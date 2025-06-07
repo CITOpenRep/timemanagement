@@ -58,6 +58,25 @@ function validId(value) {
     return (value !== undefined && value > 0) ? value : null;
 }
 
+function markTaskAsDeleted(taskId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        db.transaction(function (tx) {
+            tx.executeSql("UPDATE project_task_app SET status = 'deleted', last_modified = datetime('now') WHERE id = ?", [taskId]);
+        });
+        console.log(" Task marked as deleted: ID " + taskId);
+        return {
+            success: true,
+            message: "Task marked as deleted."
+        };
+    } catch (e) {
+        console.error("❌ Error marking timesheet as deleted (ID " + taskId + "): " + e);
+        return {
+            success: false,
+            message: "Failed to mark as deleted: " + e
+        };
+    }
+}
 
 function togglePriority(taskId, currentState) {
     try {

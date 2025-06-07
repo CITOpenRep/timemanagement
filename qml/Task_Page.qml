@@ -139,6 +139,24 @@ Page {
         TaskList {
             id: tasklist
             anchors.fill: parent
+            onTaskEditRequested: {
+                console.log("Edit Requested");
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_details.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": false
+                });
+            }
+            onTaskDeleteRequested: {
+                console.log("Delete Requested");
+                var result = Task.markTaskAsDeleted(recordId);
+                if (!result.success) {
+                    notifPopup.open("Error", result.message, "error");
+                } else {
+                    notifPopup.open("Deleted", result.message, "success");
+                }
+                pageStack.removePages(task);
+                apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Page.qml"));
+            }
         }
 
         Text {
@@ -148,6 +166,13 @@ Page {
             visible: false
             text: 'No Task Available'
         }
+    }
+
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+        onClosed: console.log("Notification dismissed")
     }
 
     DialerMenu {
