@@ -214,8 +214,8 @@ Page {
                             text = text.toLowerCase();
                             let result = Utils.validateAndCleanOdooURL(linkInput.text);
                             if (result.isValid) {
-                                isManualDbMode=false
-                                activeBackendAccount=false
+                                isManualDbMode = false;
+                                activeBackendAccount = false;
                                 linkInput.text = result.cleanedUrl;
                                 isValidUrl = true;
                                 Utils.getDatabasesFromOdooServer(linkInput.text, function (dbList) {

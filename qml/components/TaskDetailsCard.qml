@@ -150,7 +150,6 @@ ListItem {
                             width: parent.width - units.gu(2)
                         }
 
-
                         Text {
                             id: yellowBlock
                             text: projectName
@@ -161,7 +160,6 @@ ListItem {
                             height: units.gu(2)
                         }
 
-
                         Label {
                             id: details
                             text: "Details"
@@ -170,16 +168,13 @@ ListItem {
                             height: units.gu(3)
                             color: "blue"
                             font.underline: true
-                            MouseArea
-                            {
-                                anchors.fill:parent
-                                onClicked:{
-                                    console.log("Showing Task Details")
-                                    viewRequested(localId)
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    console.log("Showing Task Details");
+                                    viewRequested(localId);
                                 }
                             }
-
-
                         }
                     }
                 }

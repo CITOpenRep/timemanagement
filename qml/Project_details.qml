@@ -76,7 +76,6 @@ Page {
         }
     }
 
-
     Flickable {
         id: rect1
         anchors.top: header.bottom
@@ -153,7 +152,7 @@ Page {
             }
         }
 
-         Row {
+        Row {
             id: myRow9
             anchors.top: myRow1.bottom
             anchors.left: parent.left
@@ -306,7 +305,6 @@ Page {
             }
         }
 
-
         NotificationPopup {
             id: notifPopup
             width: units.gu(80)
@@ -315,17 +313,17 @@ Page {
         }
 
         Component.onCompleted: {
-            project = Project.get_project_detail(recordid,true);
+            project = Project.get_project_detail(recordid, true);
             //console.log("Project Name:", project.name);
             //console.log("Start Date:", project.start_date);
             //console.log("End Date:", project.end_date);
             //console.log("Account Name:", project.account_name);
             //console.log("Description:", project.description);
-           // console.log("ID:", project.account_id);
-           // console.log("From Project Page  Account ID: " + project.account_id + " Account Name: " + project.account_name);
-          //  console.log("Description is: " + project.description);
+            // console.log("ID:", project.account_id);
+            // console.log("From Project Page  Account ID: " + project.account_id + " Account Name: " + project.account_name);
+            //  console.log("Description is: " + project.description);
             selectedInstanceId = project.account_id;
-            accountCombo.selectAccountById(project.account_id)
+            accountCombo.selectAccountById(project.account_id);
         }
     }
 }

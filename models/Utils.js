@@ -41,6 +41,28 @@ function getYesterday() {
 }
 
 
+function fetchParsedSyncLog(accountId) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var parsedLogs = [];
+    db.transaction(function (tx) {
+        var rs = tx.executeSql("SELECT timestamp, message FROM sync_report WHERE account_id = ? ORDER BY timestamp DESC", [accountId]);
+        for (var i = 0; i < rs.rows.length; i++) {
+            var entry = rs.rows.item(i);
+            try {
+                //console.log(entry.message)
+                var logs = JSON.parse(entry.message);  // message is an array of JSON log items
+                logs.forEach(function (log) {
+                    log.timestamp = entry.timestamp;  // optionally use outer timestamp
+                    parsedLogs.push(log);
+                });
+            } catch (e) {
+                console.log("❌ JSON parse error in sync_report:", e);
+            }
+        }
+    });
+    return parsedLogs;
+}
+
 
 function initializeDatabase() {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -456,12 +478,12 @@ function fetch_subprojects(instance_id, parent_project_id) {
                 WHERE parent_id = ?', [row.id]);
 
             subprojectList.push({
-                id: row.odoo_record_id,
-                name: row.name,
-                parent_id: row.parent_id,
-                recordId: row.odoo_record_id,
-                projectHasSubProject: child_projects.rows.item(0).count > 0
-            });
+                                    id: row.odoo_record_id,
+                                    name: row.name,
+                                    parent_id: row.parent_id,
+                                    recordId: row.odoo_record_id,
+                                    projectHasSubProject: child_projects.rows.item(0).count > 0
+                                });
         }
     });
 
@@ -479,11 +501,11 @@ function fetch_subtasks(instance_id, parent_task_id) {
         for (var i = 0; i < result.rows.length; i++) {
             var row = result.rows.item(i);
             subtaskList.push({
-                id: row.odoo_record_id,
-                name: row.name,
-                parent_id: row.parent_id,
-                id_val: row.odoo_record_id
-            });
+                                 id: row.odoo_record_id,
+                                 name: row.name,
+                                 parent_id: row.parent_id,
+                                 id_val: row.odoo_record_id
+                             });
         }
     });
 
@@ -571,15 +593,15 @@ function fetch_tasks(accountId, projectId) {
         for (var i = 0; i < result.rows.length; i++) {
             var row = result.rows.item(i);
             tasks.push({
-                id: row.id,
-                remote_id: row.odoo_record_id,
-                name: row.name,
-                allocated_hours: row.initial_planned_hours,
-                state: row.state,
-                project_id: row.project_id,
-                parent_id: row.parent_id,
-                favorites: row.favorites
-            });
+                           id: row.id,
+                           remote_id: row.odoo_record_id,
+                           name: row.name,
+                           allocated_hours: row.initial_planned_hours,
+                           state: row.state,
+                           project_id: row.project_id,
+                           parent_id: row.parent_id,
+                           favorites: row.favorites
+                       });
         }
     });
 

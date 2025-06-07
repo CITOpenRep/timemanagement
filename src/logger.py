@@ -23,6 +23,30 @@
 
 # logger.py
 import logging
+from logging import Handler, Formatter
+from datetime import datetime
+import json
+
+class JsonMemoryHandler(Handler):
+    def __init__(self):
+        super().__init__()
+        # Set a formatter with both message and time format
+        self.formatter = Formatter(fmt="%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        self.logs = []
+
+    def emit(self, record):
+        timestamp = self.formatter.formatTime(record, self.formatter.datefmt)
+        self.logs.append({
+            "timestamp": timestamp,
+            "level": record.levelname,
+            "name": record.name,
+            "filename": record.filename,
+            "lineno": record.lineno,
+            "message": record.getMessage(),
+        })
+
+    def get_json_string(self):
+        return json.dumps(self.logs, indent=2)
 
 
 def setup_logger(name="odoo_sync", log_file="sync.log", level=logging.DEBUG):
@@ -61,5 +85,12 @@ def setup_logger(name="odoo_sync", log_file="sync.log", level=logging.DEBUG):
         # Add handlers
         # logger.addHandler(fh)
         logger.addHandler(ch)
+
+
+        json_handler = JsonMemoryHandler()
+        json_handler.setLevel(level)
+        json_handler.setFormatter(formatter)  # Use the same formatter if you want consistent timestamps
+        logger.addHandler(json_handler)
+        logger.json_handler = json_handler
 
     return logger

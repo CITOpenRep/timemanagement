@@ -128,7 +128,7 @@ Page {
                                 anchors.fill: parent
                                 Row {
                                     width: parent.width
-                                    height: units.gu(10)
+                                    height: units.gu(15)
                                     spacing: units.gu(1)
 
                                     Rectangle {
@@ -196,6 +196,17 @@ Page {
                                             onClicked: {
                                                 Utils.deleteAccountAndRelatedData(model.user_id);
                                                 accountListModel.remove(index);
+                                            }
+                                        }
+                                        TSButton {
+                                            width: units.gu(10)
+                                            height: units.gu(4)
+                                            fontSize: units.gu(1.5)
+                                            text: "Show Logs"
+                                            onClicked: {
+                                                apLayout.addPageToNextColumn(settings, Qt.resolvedUrl("SyncLog.qml"), {
+                                                    "recordid": model.user_id
+                                                });
                                             }
                                         }
                                         // Sync Button

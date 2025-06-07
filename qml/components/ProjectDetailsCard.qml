@@ -54,10 +54,9 @@ ListItem {
         actions: [
             Action {
                 iconName: "document-preview"
-                onTriggered:
-                {
-                    console.log(localId)
-                    viewRequested(localId)
+                onTriggered: {
+                    console.log(localId);
+                    viewRequested(localId);
                 }
             }
         ]
@@ -140,16 +139,13 @@ ListItem {
                             height: units.gu(3)
                             color: "blue"
                             font.underline: true
-                            MouseArea
-                            {
-                                anchors.fill:parent
-                                onClicked:{
-                                    console.log("Showing Task Details")
-                                    viewRequested(localId)
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    console.log("Showing Task Details");
+                                    viewRequested(localId);
                                 }
                             }
-
-
                         }
                     }
                 }

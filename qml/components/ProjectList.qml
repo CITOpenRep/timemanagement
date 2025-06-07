@@ -125,7 +125,7 @@ Item {
                 }
                 var item = {
                     id_val: odooId,
-                    local_id:row.id,
+                    local_id: row.id,
                     parent_id: parentOdooId,
                     name: row.name || "Untitled",
                     projectName: row.name || "Untitled",
@@ -240,7 +240,7 @@ Item {
                     isFavorite: model.isFavorite
                     hasChildren: model.hasChildren
                     childCount: model.childCount
-                    localId:model.local_id
+                    localId: model.local_id
 
                     onEditRequested: id => {
                         console.log("Edit:", local_id);
