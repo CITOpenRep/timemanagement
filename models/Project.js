@@ -37,6 +37,7 @@ function fetch_projects_list(is_work_state) {
                 }
                 children_list.push({
                     id: child_projects.rows.item(child).id,
+                    accountid:child_projects.rows.item(child).account_id,
                     total_tasks: childtask_total.rows.item(0).count,
                     name: child_projects.rows.item(child).name,
                     favorites: child_projects.rows.item(child).favorites,
@@ -189,14 +190,14 @@ function get_project_detail(project_id, is_work_state) {
                 var formattedDate = formatDate(rowDate);  
                 project_detail_obj['start_date'] = formattedDate;
             }else{
-                project_detail_obj['start_date'] = "mm/dd/yy";
+                project_detail_obj['start_date'] = "";
             }
             if(rowData.planned_end_date != 0) {
                 var rowDate = new Date(rowData.planned_end_date || "");
                 var formattedDate = formatDate(rowDate);
                 project_detail_obj['end_date'] = formattedDate;
             }else{
-                project_detail_obj['end_date'] = "mm/dd/yy";
+                project_detail_obj['end_date'] = "";
             }
 
             var parent_project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?',[rowData.parent_id]);

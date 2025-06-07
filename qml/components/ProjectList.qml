@@ -91,7 +91,7 @@ Item {
     property var childrenMap: ({})
     property bool childrenMapReady: false
 
-    signal projectSelected(int projectId, string name)
+    signal projectSelected(int recordId)
     signal projectEditRequested(int recordId)
     signal projectDeleteRequested(int recordId)
 
@@ -125,6 +125,7 @@ Item {
                 }
                 var item = {
                     id_val: odooId,
+                    local_id:row.id,
                     parent_id: parentOdooId,
                     name: row.name || "Untitled",
                     projectName: row.name || "Untitled",
@@ -239,10 +240,15 @@ Item {
                     isFavorite: model.isFavorite
                     hasChildren: model.hasChildren
                     childCount: model.childCount
+                    localId:model.local_id
 
                     onEditRequested: id => {
-                        console.log("Edit:", id);
-                        projectEditRequested(id);
+                        console.log("Edit:", local_id);
+                        projectEditRequested(local_id);
+                    }
+                    onViewRequested: id => {
+                        console.log("Selected:", local_id);
+                        projectSelected(local_id);
                     }
 
                     MouseArea {
@@ -257,7 +263,7 @@ Item {
                                 currentParentId = model.id_val;
                             } else {
                                 console.log("Selecting:", model.projectName);
-                                projectNavigator.projectSelected(model.id_val, model.name);
+                                //projectNavigator.projectSelected(model.id_val, model.name);
                             }
                         }
                     }

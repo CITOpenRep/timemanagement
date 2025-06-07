@@ -68,6 +68,13 @@ Page {
         ProjectList {
             id: projectlist
             anchors.fill: parent
+            onProjectSelected: {
+                console.log("Viewing Project");
+                apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Project_details.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": true
+                });
+            }
         }
     }
 
