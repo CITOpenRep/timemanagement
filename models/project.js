@@ -1,4 +1,5 @@
 .import QtQuick.LocalStorage 2.7 as Sql
+.import "database.js" as DBCommon
 
 /* Name: fetch_projects_list
 * This function will return list of projects which will also contain child project lists

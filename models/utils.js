@@ -1,4 +1,5 @@
 .import QtQuick.LocalStorage 2.7 as Sql
+.import "database.js" as DBCommon
 
 function getLastSyncStatus(accountId) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);

@@ -1,5 +1,5 @@
 .import QtQuick.LocalStorage 2.7 as Sql
-
+.import "database.js" as DBCommon
 
 function getFormattedTimestamp() {
     var d = new Date();

@@ -103,3 +103,85 @@ function logQueryResult(tag, resultSet) {
 }
 
 //Helper End
+
+/**
+ * Ensures that the default "Local Account" (id: 0, name: "Local Account") exists in the users table.
+ * If not found, it inserts a predefined local account entry.
+ *
+ * This account is used when working in personal/offline mode without any external Odoo instance.
+ */
+function ensureDefaultLocalAccountExists() {
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(NAME, VERSION, DISPLAY_NAME, SIZE);
+
+        db.transaction(function (tx) {
+            const result = tx.executeSql(
+                "SELECT id FROM users WHERE id = 0 OR name = ?",
+                ["Local Account"]
+            );
+
+            if (result.rows.length === 0) {
+                tx.executeSql(
+                    "INSERT INTO users (id, name, link, last_modified, database, connectwith_id, api_key, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        0,
+                        "Local Account",
+                        "local://",
+                        new Date().toISOString(),
+                        "local",
+                        null,
+                        null,
+                        "local_user"
+                    ]
+                );
+                console.log("✅ Default Local Account inserted.");
+            } else {
+                console.log("ℹ️ Default Local Account already exists.");
+            }
+        });
+
+    } catch (e) {
+        logException(e);
+    }
+}
+
+/**
+ * Creates a table if it doesn't exist, and ensures all expected columns are present.
+ *
+ * - Executes the given `CREATE TABLE IF NOT EXISTS` SQL.
+ * - Then compares existing columns against the `match_column_list`.
+ * - Adds any missing columns using `ALTER TABLE`.
+ *
+ * @param {string} label - Logical name of the table (used for logging).
+ * @param {string} createSQL - The full CREATE TABLE SQL statement.
+ * @param {Array<string>} match_column_list - List of column definitions (e.g., "name TEXT").
+ */
+function createOrUpdateTable(label, createSQL, match_column_list) {
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(NAME, VERSION, DISPLAY_NAME, SIZE);
+
+        db.transaction(function (tx) {
+            tx.executeSql(createSQL);
+            console.log("Created (or verified): " + label);
+
+            const result = tx.executeSql("PRAGMA table_info(" + label + ")");
+            const existing_columns = [];
+
+            for (let i = 0; i < result.rows.length; i++) {
+                existing_columns.push(result.rows.item(i).name);
+            }
+
+            for (let j = 0; j < match_column_list.length; j++) {
+                const column_name = match_column_list[j].split(" ")[0];
+                if (!existing_columns.includes(column_name)) {
+                    tx.executeSql("ALTER TABLE " + label + " ADD COLUMN " + match_column_list[j]);
+                    console.log(" Added column to " + label + ": " + match_column_list[j]);
+                }
+            }
+        });
+
+    } catch (e) {
+        logException(e);
+    }
+}
+

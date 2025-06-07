@@ -1,4 +1,5 @@
 .import QtQuick.LocalStorage 2.7 as Sql
+.import "database.js" as DBCommon
 
 /* Name: createAccount
 * This function will create record in users table and it will return true in case of duplicate record
