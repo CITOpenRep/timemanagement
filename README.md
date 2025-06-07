@@ -21,8 +21,3 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 
 ~/.clickable/home/.local/share/ubtms/Databases (Location of DB)
 
-Test Database
-url: https://demo16.onestein.eu/
-DB: project_demo
-Email:admin
-Password: admin
