@@ -154,15 +154,24 @@ ListItem {
                         }
 
 
-                        TSButton {
+                        Label {
                             id: details
                             text: "Details"
                             width: parent.width - units.gu(2)
+                            font.pixelSize: units.gu(1.6)
                             height: units.gu(3)
-                            onClicked:{
-                                console.log("Showing Task Details")
-                                viewRequested(localId)
+                            color: "blue"
+                            font.underline: true
+                            MouseArea
+                            {
+                                anchors.fill:parent
+                                onClicked:{
+                                    console.log("Showing Task Details")
+                                    viewRequested(localId)
+                                }
                             }
+
+
                         }
                     }
                 }
