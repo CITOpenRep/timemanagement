@@ -77,6 +77,7 @@ ComboBox {
     onActivated: {
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
+            selectedInstanceId = selected.id;
             accountSelected(selected.id, selected.name);
         }
     }
@@ -85,6 +86,7 @@ ComboBox {
         const idx = find(editText);
         if (idx !== -1) {
             const selected = model.get(idx);
+            selectedInstanceId = selected.id;
             accountSelected(selected.id, selected.name);
         }
     }

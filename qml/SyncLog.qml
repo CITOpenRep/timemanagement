@@ -1,6 +1,6 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
-import "../models/Utils.js" as Utils
+import "../models/database.js" as Database
 
 Page {
     id: syncLogPage
@@ -34,7 +34,7 @@ Page {
     }
 
     Component.onCompleted: {
-        syncLogs = Utils.fetchParsedSyncLog(recordid);
+        syncLogs = Database.fetchParsedSyncLog(recordid);
         console.log("Logs loaded:", syncLogs.length);
     }
 

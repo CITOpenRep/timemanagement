@@ -24,7 +24,7 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../models/Utils.js" as Utils
+import "../../models/database.js" as Database
 
 ComboBox {
     id: taskCombo
@@ -77,8 +77,8 @@ ComboBox {
 
         internalTaskModel.clear();
 
-        var tasks = Utils.fetch_tasks(accountId, projectId);
-        console.log("Total tasks fetched:", tasks.length);
+        var tasks = Database.getTasksForAccountAndProject(accountId, projectId);
+        console.log("📋 Tasks = " + JSON.stringify(tasks, null, 2));
 
         for (var i = 0; i < tasks.length; i++) {
             var t = tasks[i];
@@ -92,10 +92,12 @@ ComboBox {
 
         if (internalTaskModel.count > 0 && !shouldDeferSelection) {
             let item = internalTaskModel.get(0);
-            currentIndex = 0;
-            editText = item.name;
-            selectedTaskId = item.recordId;
-            taskSelected(selectedTaskId, item.name);
+            if (item && item.recordId !== undefined) {
+                currentIndex = 0;
+                editText = item.name;
+                selectedTaskId = item.recordId;
+                taskSelected(selectedTaskId, item.name);
+            }
         }
 
         if (shouldDeferSelection && deferredTaskId > 0) {
@@ -111,12 +113,14 @@ ComboBox {
         for (var i = 0; i < internalTaskModel.count; i++) {
             let item = internalTaskModel.get(i);
             if (item.recordId === taskId) {
-                console.log("✅ Task matched:", item.name);
-                currentIndex = i;
-                editText = item.name;
-                selectedTaskId = item.recordId;
-                taskSelected(selectedTaskId, item.name);
-                break;
+                if (item && item.recordId === taskId) {
+                    console.log("Task matched:", item.name);
+                    currentIndex = i;
+                    editText = item.name;
+                    selectedTaskId = item.recordId;
+                    taskSelected(selectedTaskId, item.name);
+                    break;
+                }
             }
         }
     }

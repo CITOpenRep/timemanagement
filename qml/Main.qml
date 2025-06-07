@@ -2178,7 +2178,6 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
-        Utils.prepare_database();
         issearchHeadermain = false;
     }
 }

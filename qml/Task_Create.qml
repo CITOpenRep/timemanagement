@@ -78,7 +78,7 @@ Page {
             const saveData = {
                 accountId: accountCombo.selectedInstanceId,
                 name: task_text.text,
-                projectId: projectCombo.selectedProjectId,
+                projectId: (projectCombo.selectedProjectId < 0) ? 0 : projectCombo.selectedProjectId,
                 subProjectId: 0,
                 parentId: taskselector_combo.selectedTaskId > 0 ? taskselector_combo.selectedTaskId : null,
                 startDate: start_date_widget.date,
@@ -172,6 +172,10 @@ Page {
                             height: parent.height
                             anchors.centerIn: parent.centerIn
                             flat: true
+                            Component.onCompleted: {
+                                console.log("Account id is " + accountCombo.selectedInstanceId);
+                            }
+
                             onAccountSelected: {
                                 //fetch the users from the account
                                 assigneecombo.accountId = id;
@@ -180,6 +184,10 @@ Page {
                                 //fetch projects
                                 projectCombo.accountId = id;
                                 projectCombo.loadProjects();
+
+                                //add account id to task
+                                taskselector_combo.clear();
+                                taskselector_combo.accountId = accountCombo.selectedInstanceId;
                             }
                         }
                     }
@@ -338,6 +346,7 @@ Page {
                                 console.log("Selected Project ID: " + id + ", Name: " + name);
                                 selectedProjectId = id;
                                 // do follow-up logic, e.g. load tasks
+                                taskselector_combo.clear();
                                 taskselector_combo.projectId = selectedProjectId;
                                 taskselector_combo.loadTasks();
                             }

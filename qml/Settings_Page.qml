@@ -189,7 +189,7 @@ Page {
                                         anchors.rightMargin: units.gu(1)
                                         anchors.verticalCenter: parent.verticalCenter
                                         TSButton {
-                                            visible:(model.user_id!==0)
+                                            visible: (model.user_id !== 0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
@@ -200,7 +200,7 @@ Page {
                                             }
                                         }
                                         TSButton {
-                                            visible:(model.user_id!==0)
+                                            visible: (model.user_id !== 0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
@@ -213,8 +213,8 @@ Page {
                                         }
                                         // Sync Button
                                         TSButton {
-                                            visible:(model.user_id!==0)
                                             id: syncBtn
+                                            visible: (model.user_id !== 0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
