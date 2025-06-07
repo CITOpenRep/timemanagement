@@ -126,7 +126,7 @@ Page {
             favorites: favorites,
             plannedHours: hours_text.text,
             description: description_text.text,
-            assigneeUserId: assigneecombo.selectedUserId,
+            assigneeUserId: assigneeCombo.selectedUserId,
             status: "updated",
             rowId: tasks[0].id // presence of rowId determines update vs insert
         };
@@ -308,8 +308,8 @@ Page {
                     flat: true
                     onAccountSelected: {
                         //fetch the users from the account
-                        assigneecombo.accountId = id;
-                        assigneecombo.loadUsers();
+                        assigneeCombo.accountId = id;
+                        assigneeCombo.loadUsers();
 
                         //fetch projects
                         projectCombo.accountId = id;
