@@ -27,7 +27,7 @@ import Lomiri.Components 1.3
 import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
-import "../constants.js" as AppConst
+import "../../models/constants.js" as AppConst
 import QtQuick.LocalStorage 2.7 as Sql
 
 Item {
