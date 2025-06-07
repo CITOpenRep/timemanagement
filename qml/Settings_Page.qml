@@ -119,7 +119,7 @@ Page {
                         model: accountListModel
                         delegate: Rectangle {
                             width: parent.width
-                            height: units.gu(10)
+                            height: units.gu(16)
                             color: "#FFFFFF"
                             border.color: "#CCCCCC"
                             border.width: 1
@@ -180,7 +180,7 @@ Page {
                                         }
                                         Text {
                                             text: Utils.getLastSyncStatus(0)
-                                            font.pixelSize: units.gu(1.1)
+                                            font.pixelSize: units.gu(1)
                                             color: "#666"
                                         }
                                     }
@@ -189,6 +189,7 @@ Page {
                                         anchors.rightMargin: units.gu(1)
                                         anchors.verticalCenter: parent.verticalCenter
                                         TSButton {
+                                            visible:(model.user_id!==0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
@@ -199,6 +200,7 @@ Page {
                                             }
                                         }
                                         TSButton {
+                                            visible:(model.user_id!==0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
@@ -211,6 +213,7 @@ Page {
                                         }
                                         // Sync Button
                                         TSButton {
+                                            visible:(model.user_id!==0)
                                             id: syncBtn
                                             width: units.gu(10)
                                             height: units.gu(4)
