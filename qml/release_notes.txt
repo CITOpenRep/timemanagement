@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Release Notes</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { font-size: 24px; }
+        h2 { font-size: 20px; margin-top: 20px; }
+        ul { margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <p>
+        This native time-tracking and productivity application is built for Ubuntu Touch phones.
+        It allows users to manage projects, tasks, timesheets, and activities—both offline and online—
+        through seamless integration with Odoo.
+    </p>
+
+    <h2>Known Issues</h2>
+    <ul>
+        <li>This app is currently in beta. Upcoming releases will focus on enhancing the user experience.</li>
+        <li>Occasional issues may occur while loading Project → Subproject → Task → Subtask hierarchy. Fixes are planned.</li>
+        <li>Overall user experience and design still require refinement.</li>
+        <li>Currently requires at least one Odoo server to function—local account support is not yet available.</li>
+    </ul>
+
+    <h2>Key Features</h2>
+    <ul>
+        <li>Connect to multiple Odoo backends with credential-based login</li>
+        <li>Support for background sync and multiple accounts</li>
+        <li>Bidirectional sync for timesheets, projects, and tasks</li>
+        <li>Integrated dashboard to visualize workload and usage</li>
+    </ul>
+
+    <h2>Coming Soon</h2>
+    <ul>
+        <li>Odoo Activity integration</li>
+        <li>Notification service</li>
+        <li>Translation Service using ubuntu touch integration</li>
+        <li>More standardisation of ubuntu touch gestures</li>
+        <li>Convergence Integration</li>
+        <li>Content Hub</li>
+        <li>Local account mode—use the app without Odoo connectivity</li>
+        <li>Refined UI for tasks, projects, and timesheets</li>
+        <li>Simplified and more intuitive workflows for end users</li>
+        <li>Improved selectors for users, projects, tasks, and activities</li>
+    </ul>
+
+    <h2>Functional Modules</h2>
+    <ul>
+        <li><strong>Login & Accounts:</strong> Switch between Odoo and local modes</li>
+        <li><strong>Project & Task Management:</strong> Create and edit with support for hierarchy and deadlines</li>
+        <li><strong>Activity Logging:</strong> Record and view interactions and mail activities</li>
+        <li><strong>Timesheets:</strong> Log work and sync entries with Odoo</li>
+        <li><strong>Dashboard:</strong> View charts and time analytics for active projects</li>
+        <li><strong>Settings:</strong> Control sync intervals, themes, and preferences</li>
+    </ul>
+
+    <h2>Performance & UX Enhancements</h2>
+    <ul>
+        <li>More stable and reliable sync mechanisms (Odoo to/from Local)</li>
+        <li>Faster navigation and filtering in project/task views</li>
+        <li>Dark mode and theme support with improved visuals</li>
+        <li>Smoother transitions and optimized QML components</li>
+    </ul>
+</body>
+</html>

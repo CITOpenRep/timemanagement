@@ -1,0 +1,15 @@
+{
+    "name": "ubtms",
+    "description": "Time Management for Ubuntu Touch devices",
+    "architecture": "@CLICK_ARCH@",
+    "title": "Time Management (Alpha Draft)",
+    "hooks": {
+        "ubtms": {
+            "apparmor": "ubtms.apparmor",
+            "desktop":  "ubtms.desktop"
+        }
+    },
+    "version": "0.1",
+    "maintainer": "CIT Services <info@cit-services.eu>",
+    "framework" : "@CLICK_FRAMEWORK@"
+}

@@ -1,0 +1,1188 @@
+{
+    "project.project": {
+        "rating_ids": {
+            "string": "Ratings",
+            "type": "one2many"
+        },
+        "rating_percentage_satisfaction": {
+            "string": "Rating Satisfaction",
+            "type": "integer"
+        },
+        "rating_count": {
+            "string": "# Ratings",
+            "type": "integer"
+        },
+        "rating_avg": {
+            "string": "Average Rating",
+            "type": "float"
+        },
+        "rating_avg_percentage": {
+            "string": "Average Rating (%)",
+            "type": "float"
+        },
+        "activity_ids": {
+            "string": "Activities",
+            "type": "one2many"
+        },
+        "activity_state": {
+            "string": "Activity State",
+            "type": "selection"
+        },
+        "activity_user_id": {
+            "string": "Responsible User",
+            "type": "many2one"
+        },
+        "activity_type_id": {
+            "string": "Next Activity Type",
+            "type": "many2one"
+        },
+        "activity_type_icon": {
+            "string": "Activity Type Icon",
+            "type": "char"
+        },
+        "activity_date_deadline": {
+            "string": "Next Activity Deadline",
+            "type": "date"
+        },
+        "my_activity_date_deadline": {
+            "string": "My Activity Deadline",
+            "type": "date"
+        },
+        "activity_summary": {
+            "string": "Next Activity Summary",
+            "type": "char"
+        },
+        "activity_exception_decoration": {
+            "string": "Activity Exception Decoration",
+            "type": "selection"
+        },
+        "activity_exception_icon": {
+            "string": "Icon",
+            "type": "char"
+        },
+        "activity_calendar_event_id": {
+            "string": "Next Activity Calendar Event",
+            "type": "many2one"
+        },
+        "message_is_follower": {
+            "string": "Is Follower",
+            "type": "boolean"
+        },
+        "message_follower_ids": {
+            "string": "Followers",
+            "type": "one2many"
+        },
+        "message_partner_ids": {
+            "string": "Followers (Partners)",
+            "type": "many2many"
+        },
+        "message_ids": {
+            "string": "Messages",
+            "type": "one2many"
+        },
+        "has_message": {
+            "string": "Has Message",
+            "type": "boolean"
+        },
+        "message_needaction": {
+            "string": "Action Needed",
+            "type": "boolean"
+        },
+        "message_needaction_counter": {
+            "string": "Number of Actions",
+            "type": "integer"
+        },
+        "message_has_error": {
+            "string": "Message Delivery error",
+            "type": "boolean"
+        },
+        "message_has_error_counter": {
+            "string": "Number of errors",
+            "type": "integer"
+        },
+        "message_attachment_count": {
+            "string": "Attachment Count",
+            "type": "integer"
+        },
+        "message_main_attachment_id": {
+            "string": "Main Attachment",
+            "type": "many2one"
+        },
+        "website_message_ids": {
+            "string": "Website Messages",
+            "type": "one2many"
+        },
+        "message_has_sms_error": {
+            "string": "SMS Delivery error",
+            "type": "boolean"
+        },
+        "alias_id": {
+            "string": "Alias",
+            "type": "many2one"
+        },
+        "access_url": {
+            "string": "Portal Access URL",
+            "type": "char"
+        },
+        "access_token": {
+            "string": "Security Token",
+            "type": "char"
+        },
+        "access_warning": {
+            "string": "Access warning",
+            "type": "text"
+        },
+        "name": {
+            "string": "Name",
+            "type": "char"
+        },
+        "description": {
+            "string": "Description",
+            "type": "html"
+        },
+        "active": {
+            "string": "Active",
+            "type": "boolean"
+        },
+        "sequence": {
+            "string": "Sequence",
+            "type": "integer"
+        },
+        "partner_id": {
+            "string": "Customer",
+            "type": "many2one"
+        },
+        "partner_email": {
+            "string": "Email",
+            "type": "char"
+        },
+        "partner_phone": {
+            "string": "Phone",
+            "type": "char"
+        },
+        "commercial_partner_id": {
+            "string": "Commercial Entity",
+            "type": "many2one"
+        },
+        "company_id": {
+            "string": "Company",
+            "type": "many2one"
+        },
+        "currency_id": {
+            "string": "Currency",
+            "type": "many2one"
+        },
+        "analytic_account_id": {
+            "string": "Analytic Account",
+            "type": "many2one"
+        },
+        "analytic_account_balance": {
+            "string": "Balance",
+            "type": "monetary"
+        },
+        "favorite_user_ids": {
+            "string": "Members",
+            "type": "many2many"
+        },
+        "is_favorite": {
+            "string": "Show Project on Dashboard",
+            "type": "boolean"
+        },
+        "label_tasks": {
+            "string": "Use Tasks as",
+            "type": "char"
+        },
+        "tasks": {
+            "string": "Task Activities",
+            "type": "one2many"
+        },
+        "resource_calendar_id": {
+            "string": "Working Time",
+            "type": "many2one"
+        },
+        "type_ids": {
+            "string": "Tasks Stages",
+            "type": "many2many"
+        },
+        "task_count": {
+            "string": "Task Count",
+            "type": "integer"
+        },
+        "task_count_with_subtasks": {
+            "string": "Task Count With Subtasks",
+            "type": "integer"
+        },
+        "task_ids": {
+            "string": "Tasks",
+            "type": "one2many"
+        },
+        "color": {
+            "string": "Color Index",
+            "type": "integer"
+        },
+        "user_id": {
+            "string": "Project Manager",
+            "type": "many2one"
+        },
+        "alias_enabled": {
+            "string": "Use Email Alias",
+            "type": "boolean"
+        },
+        "alias_value": {
+            "string": "Alias email",
+            "type": "char"
+        },
+        "privacy_visibility": {
+            "string": "Visibility",
+            "type": "selection"
+        },
+        "privacy_visibility_warning": {
+            "string": "Privacy Visibility Warning",
+            "type": "char"
+        },
+        "access_instruction_message": {
+            "string": "Access Instruction Message",
+            "type": "char"
+        },
+        "doc_count": {
+            "string": "Number of documents attached",
+            "type": "integer"
+        },
+        "date_start": {
+            "string": "Start Date",
+            "type": "date"
+        },
+        "date": {
+            "string": "Expiration Date",
+            "type": "date"
+        },
+        "allow_subtasks": {
+            "string": "Sub-tasks",
+            "type": "boolean"
+        },
+        "allow_recurring_tasks": {
+            "string": "Recurring Tasks",
+            "type": "boolean"
+        },
+        "allow_task_dependencies": {
+            "string": "Task Dependencies",
+            "type": "boolean"
+        },
+        "allow_milestones": {
+            "string": "Milestones",
+            "type": "boolean"
+        },
+        "tag_ids": {
+            "string": "Tags",
+            "type": "many2many"
+        },
+        "task_properties_definition": {
+            "string": "Task Properties",
+            "type": "properties_definition"
+        },
+        "collaborator_ids": {
+            "string": "Collaborators",
+            "type": "one2many"
+        },
+        "collaborator_count": {
+            "string": "# Collaborators",
+            "type": "integer"
+        },
+        "rating_request_deadline": {
+            "string": "Rating Request Deadline",
+            "type": "datetime"
+        },
+        "rating_active": {
+            "string": "Customer Ratings",
+            "type": "boolean"
+        },
+        "allow_rating": {
+            "string": "Allow Customer Ratings",
+            "type": "boolean"
+        },
+        "rating_status": {
+            "string": "Customer Ratings Status",
+            "type": "selection"
+        },
+        "rating_status_period": {
+            "string": "Rating Frequency",
+            "type": "selection"
+        },
+        "stage_id": {
+            "string": "Stage",
+            "type": "many2one"
+        },
+        "update_ids": {
+            "string": "Update",
+            "type": "one2many"
+        },
+        "last_update_id": {
+            "string": "Last Update",
+            "type": "many2one"
+        },
+        "last_update_status": {
+            "string": "Last Update Status",
+            "type": "selection"
+        },
+        "last_update_color": {
+            "string": "Last Update Color",
+            "type": "integer"
+        },
+        "milestone_ids": {
+            "string": "Milestone",
+            "type": "one2many"
+        },
+        "milestone_count": {
+            "string": "Milestone Count",
+            "type": "integer"
+        },
+        "milestone_count_reached": {
+            "string": "Milestone Count Reached",
+            "type": "integer"
+        },
+        "is_milestone_exceeded": {
+            "string": "Is Milestone Exceeded",
+            "type": "boolean"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "create_date": {
+            "string": "Created on",
+            "type": "datetime"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "write_date": {
+            "string": "Last Updated on",
+            "type": "datetime"
+        },
+        "allow_timesheets": {
+            "string": "Timesheets",
+            "type": "boolean"
+        },
+        "timesheet_ids": {
+            "string": "Associated Timesheets",
+            "type": "one2many"
+        },
+        "timesheet_count": {
+            "string": "Timesheet Count",
+            "type": "integer"
+        },
+        "timesheet_encode_uom_id": {
+            "string": "Timesheet Encoding Unit",
+            "type": "many2one"
+        },
+        "total_timesheet_time": {
+            "string": "Total Timesheet Time",
+            "type": "integer"
+        },
+        "encode_uom_in_days": {
+            "string": "Encode Uom In Days",
+            "type": "boolean"
+        },
+        "is_internal_project": {
+            "string": "Is Internal Project",
+            "type": "boolean"
+        },
+        "remaining_hours": {
+            "string": "Remaining Invoiced Time",
+            "type": "float"
+        },
+        "is_project_overtime": {
+            "string": "Project in Overtime",
+            "type": "boolean"
+        },
+        "allocated_hours": {
+            "string": "Allocated Hours",
+            "type": "float"
+        },
+        "parent_id": {
+            "string": "Parent Project",
+            "type": "many2one"
+        },
+        "child_ids": {
+            "string": "Sub-projects",
+            "type": "one2many"
+        },
+        "parent_path": {
+            "string": "Parent Path",
+            "type": "char"
+        },
+        "child_ids_count": {
+            "string": "Child Ids Count",
+            "type": "integer"
+        },
+        "alias_name": {
+            "string": "Alias Name",
+            "type": "char"
+        },
+        "alias_model_id": {
+            "string": "Aliased Model",
+            "type": "many2one"
+        },
+        "alias_user_id": {
+            "string": "Owner",
+            "type": "many2one"
+        },
+        "alias_defaults": {
+            "string": "Default Values",
+            "type": "text"
+        },
+        "alias_force_thread_id": {
+            "string": "Record Thread ID",
+            "type": "integer"
+        },
+        "alias_domain": {
+            "string": "Alias domain",
+            "type": "char"
+        },
+        "alias_parent_model_id": {
+            "string": "Parent Model",
+            "type": "many2one"
+        },
+        "alias_parent_thread_id": {
+            "string": "Parent Record Thread ID",
+            "type": "integer"
+        },
+        "alias_contact": {
+            "string": "Alias Contact Security",
+            "type": "selection"
+        },
+        "alias_bounced_content": {
+            "string": "Custom Bounced Message",
+            "type": "html"
+        }
+    },
+    "project.task": {
+        "rating_ids": {
+            "string": "Rating",
+            "type": "one2many"
+        },
+        "rating_last_value": {
+            "string": "Rating Last Value",
+            "type": "float"
+        },
+        "rating_last_feedback": {
+            "string": "Rating Last Feedback",
+            "type": "text"
+        },
+        "rating_last_image": {
+            "string": "Rating Last Image",
+            "type": "binary"
+        },
+        "rating_count": {
+            "string": "Rating count",
+            "type": "integer"
+        },
+        "rating_avg": {
+            "string": "Average Rating",
+            "type": "float"
+        },
+        "rating_avg_text": {
+            "string": "Rating Avg Text",
+            "type": "selection"
+        },
+        "rating_percentage_satisfaction": {
+            "string": "Rating Satisfaction",
+            "type": "float"
+        },
+        "rating_last_text": {
+            "string": "Rating Text",
+            "type": "selection"
+        },
+        "activity_ids": {
+            "string": "Activities",
+            "type": "one2many"
+        },
+        "activity_state": {
+            "string": "Activity State",
+            "type": "selection"
+        },
+        "activity_user_id": {
+            "string": "Responsible User",
+            "type": "many2one"
+        },
+        "activity_type_id": {
+            "string": "Next Activity Type",
+            "type": "many2one"
+        },
+        "activity_type_icon": {
+            "string": "Activity Type Icon",
+            "type": "char"
+        },
+        "activity_date_deadline": {
+            "string": "Next Activity Deadline",
+            "type": "date"
+        },
+        "my_activity_date_deadline": {
+            "string": "My Activity Deadline",
+            "type": "date"
+        },
+        "activity_summary": {
+            "string": "Next Activity Summary",
+            "type": "char"
+        },
+        "activity_exception_decoration": {
+            "string": "Activity Exception Decoration",
+            "type": "selection"
+        },
+        "activity_exception_icon": {
+            "string": "Icon",
+            "type": "char"
+        },
+        "activity_calendar_event_id": {
+            "string": "Next Activity Calendar Event",
+            "type": "many2one"
+        },
+        "message_is_follower": {
+            "string": "Is Follower",
+            "type": "boolean"
+        },
+        "message_follower_ids": {
+            "string": "Followers",
+            "type": "one2many"
+        },
+        "message_partner_ids": {
+            "string": "Followers (Partners)",
+            "type": "many2many"
+        },
+        "message_ids": {
+            "string": "Messages",
+            "type": "one2many"
+        },
+        "has_message": {
+            "string": "Has Message",
+            "type": "boolean"
+        },
+        "message_needaction": {
+            "string": "Action Needed",
+            "type": "boolean"
+        },
+        "message_needaction_counter": {
+            "string": "Number of Actions",
+            "type": "integer"
+        },
+        "message_has_error": {
+            "string": "Message Delivery error",
+            "type": "boolean"
+        },
+        "message_has_error_counter": {
+            "string": "Number of errors",
+            "type": "integer"
+        },
+        "message_attachment_count": {
+            "string": "Attachment Count",
+            "type": "integer"
+        },
+        "message_main_attachment_id": {
+            "string": "Main Attachment",
+            "type": "many2one"
+        },
+        "website_message_ids": {
+            "string": "Website Messages",
+            "type": "one2many"
+        },
+        "message_has_sms_error": {
+            "string": "SMS Delivery error",
+            "type": "boolean"
+        },
+        "email_cc": {
+            "string": "Email cc",
+            "type": "char"
+        },
+        "access_url": {
+            "string": "Portal Access URL",
+            "type": "char"
+        },
+        "access_token": {
+            "string": "Security Token",
+            "type": "char"
+        },
+        "access_warning": {
+            "string": "Access warning",
+            "type": "text"
+        },
+        "active": {
+            "string": "Active",
+            "type": "boolean"
+        },
+        "name": {
+            "string": "Title",
+            "type": "char"
+        },
+        "description": {
+            "string": "Description",
+            "type": "html"
+        },
+        "priority": {
+            "string": "Priority",
+            "type": "selection"
+        },
+        "sequence": {
+            "string": "Sequence",
+            "type": "integer"
+        },
+        "stage_id": {
+            "string": "Stage",
+            "type": "many2one"
+        },
+        "tag_ids": {
+            "string": "Tags",
+            "type": "many2many"
+        },
+        "kanban_state": {
+            "string": "Status",
+            "type": "selection"
+        },
+        "kanban_state_label": {
+            "string": "Kanban State Label",
+            "type": "char"
+        },
+        "create_date": {
+            "string": "Created On",
+            "type": "datetime"
+        },
+        "write_date": {
+            "string": "Last Updated On",
+            "type": "datetime"
+        },
+        "date_end": {
+            "string": "Ending Date",
+            "type": "datetime"
+        },
+        "date_assign": {
+            "string": "Assigning Date",
+            "type": "datetime"
+        },
+        "date_deadline": {
+            "string": "Deadline",
+            "type": "date"
+        },
+        "date_last_stage_update": {
+            "string": "Last Stage Update",
+            "type": "datetime"
+        },
+        "project_id": {
+            "string": "Project",
+            "type": "many2one"
+        },
+        "task_properties": {
+            "string": "Properties",
+            "type": "properties"
+        },
+        "display_project_id": {
+            "string": "Display Project",
+            "type": "many2one"
+        },
+        "planned_hours": {
+            "string": "Initially Planned Hours",
+            "type": "float"
+        },
+        "subtask_planned_hours": {
+            "string": "Sub-tasks Planned Hours",
+            "type": "float"
+        },
+        "user_ids": {
+            "string": "Assignees",
+            "type": "many2many"
+        },
+        "portal_user_names": {
+            "string": "Portal User Names",
+            "type": "char"
+        },
+        "personal_stage_type_ids": {
+            "string": "Personal Stage",
+            "type": "many2many"
+        },
+        "personal_stage_id": {
+            "string": "Personal Stage State",
+            "type": "many2one"
+        },
+        "personal_stage_type_id": {
+            "string": "Personal User Stage",
+            "type": "many2one"
+        },
+        "partner_id": {
+            "string": "Customer",
+            "type": "many2one"
+        },
+        "partner_is_company": {
+            "string": "Is a Company",
+            "type": "boolean"
+        },
+        "commercial_partner_id": {
+            "string": "Commercial Entity",
+            "type": "many2one"
+        },
+        "partner_email": {
+            "string": "Email",
+            "type": "char"
+        },
+        "partner_phone": {
+            "string": "Phone",
+            "type": "char"
+        },
+        "partner_city": {
+            "string": "City",
+            "type": "char"
+        },
+        "manager_id": {
+            "string": "Project Manager",
+            "type": "many2one"
+        },
+        "company_id": {
+            "string": "Company",
+            "type": "many2one"
+        },
+        "color": {
+            "string": "Color Index",
+            "type": "integer"
+        },
+        "project_color": {
+            "string": "Project Color",
+            "type": "integer"
+        },
+        "rating_active": {
+            "string": "Project Rating Status",
+            "type": "boolean"
+        },
+        "attachment_ids": {
+            "string": "Main Attachments",
+            "type": "one2many"
+        },
+        "displayed_image_id": {
+            "string": "Cover Image",
+            "type": "many2one"
+        },
+        "legend_blocked": {
+            "string": "Kanban Blocked Explanation",
+            "type": "char"
+        },
+        "legend_done": {
+            "string": "Kanban Valid Explanation",
+            "type": "char"
+        },
+        "legend_normal": {
+            "string": "Kanban Ongoing Explanation",
+            "type": "char"
+        },
+        "is_closed": {
+            "string": "Closing Stage",
+            "type": "boolean"
+        },
+        "parent_id": {
+            "string": "Parent Task",
+            "type": "many2one"
+        },
+        "ancestor_id": {
+            "string": "Ancestor Task",
+            "type": "many2one"
+        },
+        "child_ids": {
+            "string": "Sub-tasks",
+            "type": "one2many"
+        },
+        "child_text": {
+            "string": "Child Text",
+            "type": "char"
+        },
+        "allow_subtasks": {
+            "string": "Allow Sub-tasks",
+            "type": "boolean"
+        },
+        "subtask_count": {
+            "string": "Sub-task Count",
+            "type": "integer"
+        },
+        "email_from": {
+            "string": "Email From",
+            "type": "char"
+        },
+        "project_privacy_visibility": {
+            "string": "Project Visibility",
+            "type": "selection"
+        },
+        "working_hours_open": {
+            "string": "Working Hours to Assign",
+            "type": "float"
+        },
+        "working_hours_close": {
+            "string": "Working Hours to Close",
+            "type": "float"
+        },
+        "working_days_open": {
+            "string": "Working Days to Assign",
+            "type": "float"
+        },
+        "working_days_close": {
+            "string": "Working Days to Close",
+            "type": "float"
+        },
+        "is_private": {
+            "string": "Is Private",
+            "type": "boolean"
+        },
+        "allow_milestones": {
+            "string": "Milestones",
+            "type": "boolean"
+        },
+        "milestone_id": {
+            "string": "Milestone",
+            "type": "many2one"
+        },
+        "has_late_and_unreached_milestone": {
+            "string": "Has Late And Unreached Milestone",
+            "type": "boolean"
+        },
+        "allow_task_dependencies": {
+            "string": "Task Dependencies",
+            "type": "boolean"
+        },
+        "depend_on_ids": {
+            "string": "Blocked By",
+            "type": "many2many"
+        },
+        "dependent_ids": {
+            "string": "Block",
+            "type": "many2many"
+        },
+        "dependent_tasks_count": {
+            "string": "Dependent Tasks",
+            "type": "integer"
+        },
+        "is_blocked": {
+            "string": "Is Blocked",
+            "type": "boolean"
+        },
+        "display_parent_task_button": {
+            "string": "Display Parent Task Button",
+            "type": "boolean"
+        },
+        "allow_recurring_tasks": {
+            "string": "Recurring Tasks",
+            "type": "boolean"
+        },
+        "recurring_task": {
+            "string": "Recurrent",
+            "type": "boolean"
+        },
+        "recurring_count": {
+            "string": "Tasks in Recurrence",
+            "type": "integer"
+        },
+        "recurrence_id": {
+            "string": "Recurrence",
+            "type": "many2one"
+        },
+        "recurrence_update": {
+            "string": "Recurrence Update",
+            "type": "selection"
+        },
+        "recurrence_message": {
+            "string": "Next Recurrencies",
+            "type": "char"
+        },
+        "repeat_interval": {
+            "string": "Repeat Every",
+            "type": "integer"
+        },
+        "repeat_unit": {
+            "string": "Repeat Unit",
+            "type": "selection"
+        },
+        "repeat_type": {
+            "string": "Until",
+            "type": "selection"
+        },
+        "repeat_until": {
+            "string": "End Date",
+            "type": "date"
+        },
+        "repeat_number": {
+            "string": "Repetitions",
+            "type": "integer"
+        },
+        "repeat_on_month": {
+            "string": "Repeat On Month",
+            "type": "selection"
+        },
+        "repeat_on_year": {
+            "string": "Repeat On Year",
+            "type": "selection"
+        },
+        "mon": {
+            "string": "Mon",
+            "type": "boolean"
+        },
+        "tue": {
+            "string": "Tue",
+            "type": "boolean"
+        },
+        "wed": {
+            "string": "Wed",
+            "type": "boolean"
+        },
+        "thu": {
+            "string": "Thu",
+            "type": "boolean"
+        },
+        "fri": {
+            "string": "Fri",
+            "type": "boolean"
+        },
+        "sat": {
+            "string": "Sat",
+            "type": "boolean"
+        },
+        "sun": {
+            "string": "Sun",
+            "type": "boolean"
+        },
+        "repeat_day": {
+            "string": "Repeat Day",
+            "type": "selection"
+        },
+        "repeat_week": {
+            "string": "Repeat Week",
+            "type": "selection"
+        },
+        "repeat_weekday": {
+            "string": "Day Of The Week",
+            "type": "selection"
+        },
+        "repeat_month": {
+            "string": "Repeat Month",
+            "type": "selection"
+        },
+        "repeat_show_dow": {
+            "string": "Repeat Show Dow",
+            "type": "boolean"
+        },
+        "repeat_show_day": {
+            "string": "Repeat Show Day",
+            "type": "boolean"
+        },
+        "repeat_show_week": {
+            "string": "Repeat Show Week",
+            "type": "boolean"
+        },
+        "repeat_show_month": {
+            "string": "Repeat Show Month",
+            "type": "boolean"
+        },
+        "analytic_account_id": {
+            "string": "Analytic Account",
+            "type": "many2one"
+        },
+        "is_analytic_account_id_changed": {
+            "string": "Is Analytic Account Manually Changed",
+            "type": "boolean"
+        },
+        "project_analytic_account_id": {
+            "string": "Project Analytic Account",
+            "type": "many2one"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "analytic_account_active": {
+            "string": "Active Analytic Account",
+            "type": "boolean"
+        },
+        "allow_timesheets": {
+            "string": "Allow timesheets",
+            "type": "boolean"
+        },
+        "remaining_hours": {
+            "string": "Remaining Hours",
+            "type": "float"
+        },
+        "remaining_hours_percentage": {
+            "string": "Remaining Hours Percentage",
+            "type": "float"
+        },
+        "effective_hours": {
+            "string": "Hours Spent",
+            "type": "float"
+        },
+        "total_hours_spent": {
+            "string": "Total Hours",
+            "type": "float"
+        },
+        "progress": {
+            "string": "Progress",
+            "type": "float"
+        },
+        "overtime": {
+            "string": "Overtime",
+            "type": "float"
+        },
+        "subtask_effective_hours": {
+            "string": "Sub-tasks Hours Spent",
+            "type": "float"
+        },
+        "timesheet_ids": {
+            "string": "Timesheets",
+            "type": "one2many"
+        },
+        "encode_uom_in_days": {
+            "string": "Encode Uom In Days",
+            "type": "boolean"
+        },
+        "planned_date_start": {
+            "string": "Planned Date Start",
+            "type": "datetime"
+        },
+        "planned_date_end": {
+            "string": "Planned Date End",
+            "type": "datetime"
+        }
+    },
+    "account.analytic.line": {
+        "name": {
+            "string": "Description",
+            "type": "char"
+        },
+        "date": {
+            "string": "Date",
+            "type": "date"
+        },
+        "amount": {
+            "string": "Amount",
+            "type": "monetary"
+        },
+        "unit_amount": {
+            "string": "Quantity",
+            "type": "float"
+        },
+        "product_uom_id": {
+            "string": "Unit of Measure",
+            "type": "many2one"
+        },
+        "product_uom_category_id": {
+            "string": "UoM Category",
+            "type": "many2one"
+        },
+        "account_id": {
+            "string": "Analytic Account",
+            "type": "many2one"
+        },
+        "partner_id": {
+            "string": "Partner",
+            "type": "many2one"
+        },
+        "user_id": {
+            "string": "User",
+            "type": "many2one"
+        },
+        "company_id": {
+            "string": "Company",
+            "type": "many2one"
+        },
+        "currency_id": {
+            "string": "Currency",
+            "type": "many2one"
+        },
+        "plan_id": {
+            "string": "Plan",
+            "type": "many2one"
+        },
+        "category": {
+            "string": "Category",
+            "type": "selection"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "create_date": {
+            "string": "Created on",
+            "type": "datetime"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "write_date": {
+            "string": "Last Updated on",
+            "type": "datetime"
+        },
+        "task_id": {
+            "string": "Task",
+            "type": "many2one"
+        },
+        "ancestor_task_id": {
+            "string": "Ancestor Task",
+            "type": "many2one"
+        },
+        "project_id": {
+            "string": "Project",
+            "type": "many2one"
+        },
+        "employee_id": {
+            "string": "Employee",
+            "type": "many2one"
+        },
+        "job_title": {
+            "string": "Job Title",
+            "type": "char"
+        },
+        "department_id": {
+            "string": "Department",
+            "type": "many2one"
+        },
+        "manager_id": {
+            "string": "Manager",
+            "type": "many2one"
+        },
+        "encoding_uom_id": {
+            "string": "Encoding Uom",
+            "type": "many2one"
+        }
+    }
+}

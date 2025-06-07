@@ -1,0 +1,7 @@
+[Desktop Entry]
+_Name=Time Management (Beta Release)
+Exec=qmlscene %U qml/TSApp.qml
+Icon=assets/logo.png
+Terminal=false
+Type=Application
+X-Lomiri-Touch=true

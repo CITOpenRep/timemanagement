@@ -1,0 +1,407 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2025 CIT-Services
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+import QtQuick 2.7
+import QtQuick.Controls 2.2
+import Lomiri.Components 1.3
+import QtQuick.Window 2.2
+import io.thp.pyotherside 1.4
+import "../models/Sync.js" as SyncData
+import "../models/Utils.js" as Utils
+import "components"
+
+Page {
+    id: createAccountPage
+    title: "Create Account"
+
+    property bool isTextInputVisible: false
+    property bool isTextMenuVisible: false
+    property bool connectionSuccess: false
+    property bool isValidUrl: true
+    property bool isValidAccount: true
+    property bool isPasswordVisible: false
+    property int selectedconnectwithId: 1
+    property string single_db: ""
+    property bool activeBackendAccount: false
+
+    header: PageHeader {
+        id: pageHeader
+        title: createAccountPage.title
+        StyleHints {
+            foregroundColor: "white"
+
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
+        }
+        trailingActionBar.actions: [
+            Action {
+                iconSource: "images/save.svg"
+                onTriggered: {
+                    handleAccountSave();
+                }
+            }
+        ]
+    }
+
+    function handleAccountSave() {
+        if (!accountNameInput.text) {
+            notifPopup.open("Error", "Account name cannot be empty", "error");
+            return;
+        }
+
+        python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, database_combo.currentText], function (result) {
+            if (result && result['status'] === 'pass' && result['database']) {
+                let apikey = passwordInput.text;
+
+                var isDuplicate = SyncData.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
+
+                if (isDuplicate) {
+                    notifPopup.open("Error", "You already have this account", "error");
+                } else {
+                    notifPopup.open("Saved", "Your account has been saved, Enjoy using the app !", "success");
+                }
+            } else {
+                notifPopup.open("Error", "Unable to save the Account", "error");
+            }
+        });
+    }
+
+    Python {
+        id: python
+
+        Component.onCompleted: {
+            addImportPath(Qt.resolvedUrl('../src/'));
+            importModule_sync("backend");
+        }
+
+        onError: {}
+    }
+
+    ListModel {
+        id: databaseListModel
+    }
+
+    ListModel {
+        id: menuconnectwithModel
+        ListElement {
+            modelData: "Connect With Api Key"
+            itemid: 0
+        }
+        ListElement {
+            modelData: "Connect With Password"
+            itemid: 1
+        }
+    }
+
+    Flickable {
+        id: accountPageFlickable
+        anchors.fill: parent
+        contentHeight: signup_shape.height + 1500
+        flickableDirection: Flickable.VerticalFlick
+        anchors.top: pageHeader.bottom
+        anchors.topMargin: pageHeader.height + units.gu(4)
+        width: parent.width
+        LomiriShape {
+            id: signup_shape
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            radius: "large"
+            width: parent.width
+            height: parent.height
+            Row {
+                id: accountRow
+                anchors.topMargin: 5
+                Column {
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(12)
+                        height: units.gu(4)
+                        Label {
+                            id: account_name_label
+                            text: "Account Name"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column {
+                    leftPadding: units.gu(1)
+                    Rectangle {
+                        width: units.gu(28)
+                        height: units.gu(5)
+                        TextField {
+                            id: accountNameInput
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            placeholderText: "Account Name"
+                            width: parent.width
+                        }
+                    }
+                }
+            }
+
+            Row {
+                id: linkRow
+                anchors.top: accountRow.bottom
+                // anchors.horizontalCenter: parent.horizontalCenter
+                anchors.topMargin: units.gu(2)
+                Column {
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(12)
+                        height: units.gu(4)
+                        Label {
+                            id: link_label
+                            text: "URL"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column {
+                    leftPadding: units.gu(1)
+                    spacing: units.gu(1)
+                    Rectangle {
+                        width: units.gu(28)
+                        height: units.gu(4)
+
+                        TextField {
+                            id: linkInput
+                            placeholderText: "Enter Odoo URL here"
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width
+                            height: parent.height
+
+                            onTextChanged: {
+                                text = text.toLowerCase();
+                            }
+                        }
+                    }
+                    TSButton {
+                        id: fetch_db_button
+                        text: "connect"
+                        width: units.gu(28)
+                        height: units.gu(4)
+                        onClicked: {
+                            databaseListModel.clear();
+                            text = text.toLowerCase();
+                            let result = Utils.validateAndCleanOdooURL(linkInput.text);
+                            if (result.isValid) {
+                                linkInput.text = result.cleanedUrl;
+                                isValidUrl = true;
+                                Utils.getDatabasesFromOdooServer(linkInput.text, function (dbList) {
+                                    if (dbList.length === 0) {
+                                        notifPopup.open("Error", "The Odoo Server doesnot provided any database", "error");
+                                        activeBackendAccount = false;
+                                    }
+
+                                    for (var i = 0; i < dbList.length; i++) {
+                                        console.log(dbList[i]);
+                                        databaseListModel.append({
+                                            name: dbList[i]
+                                        });
+                                        activeBackendAccount = true;
+                                    }
+
+                                    if (dbList.length > 0) {
+                                        database_combo.currentIndex = 0;
+                                        console.log("First DB selected:", database_combo.currentText);
+                                    }
+                                });
+                            } else {
+                                console.error("Invalid DB URL");
+                                notifPopup.open("Error", "The Odoo Server URL is Wrong", "error");
+                                activeBackendAccount = false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row {
+                id: databaseListRow
+                anchors.top: linkRow.bottom
+                Column {
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(12)
+                        height: units.gu(3)
+                        Label {
+                            id: database_list_label
+                            visible: activeBackendAccount
+                            text: "Database"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column {
+                    leftPadding: units.gu(1)
+                    Rectangle {
+                        width: units.gu(28)
+                        height: units.gu(5)
+                        ComboBox {
+                            id: database_combo
+                            visible: activeBackendAccount
+                            width: parent.width
+                            height: parent.height
+                            anchors.centerIn: parent.centerIn
+                            flat: true
+                            model: databaseListModel
+                            onVisibleChanged: {
+                                if (database_combo.model.length > 0)
+                                    database_combo.currentIndex = 0;
+                            }
+
+                            Component.onCompleted: {
+                                if (database_combo.model.length > 0)
+                                    database_combo.currentIndex = 0;
+                            }
+
+                            onModelChanged: {
+                                if (databaseListModel.count > 0 && database_combo.currentIndex === -1) {
+                                    database_combo.currentIndex = 0;
+                                    console.log("Model changed → selecting first DB");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row {
+                id: usernameRow
+                anchors.top: databaseListRow.bottom
+                anchors.topMargin: units.gu(3)
+                Column {
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(12)
+                        height: units.gu(4)
+                        Label {
+                            id: username_label
+                            visible: activeBackendAccount
+                            text: "Username"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column {
+                    leftPadding: units.gu(1)
+                    Rectangle {
+                        width: units.gu(28)
+                        height: units.gu(5)
+                        TextField {
+                            id: usernameInput
+                            visible: activeBackendAccount
+                            placeholderText: "Username"
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width
+                        }
+                    }
+                }
+            }
+
+            Row {
+                id: connectWithRow
+                anchors.top: usernameRow.bottom
+                anchors.topMargin: units.gu(2)
+                Column {
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(12)
+                        height: units.gu(5)
+                        Label {
+                            id: connectwith_label
+                            text: "Connect With"
+                            visible: activeBackendAccount
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column {
+                    leftPadding: units.gu(1)
+                    ComboBox {
+                        id: connectWith_combo
+                        width: units.gu(28)
+                        height: units.gu(5)
+                        visible: activeBackendAccount
+                        anchors.centerIn: parent.centerIn
+                        flat: true
+                        model: menuconnectwithModel
+                    }
+                }
+            }
+
+            Row {
+                id: passwordRow
+                anchors.top: connectWithRow.bottom
+                anchors.topMargin: units.gu(3)
+                Column {
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(12)
+                        height: units.gu(4)
+                        Label {
+                            id: password_label
+                            visible: activeBackendAccount
+                            text: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column {
+                    leftPadding: units.gu(1)
+                    Rectangle {
+                        width: units.gu(23)
+                        height: units.gu(5)
+                        TextField {
+                            id: passwordInput
+                            visible: activeBackendAccount
+                            echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
+                            placeholderText: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width
+                        }
+                    }
+                }
+                Column {
+                    TSButton {
+                        width: units.gu(5)
+                        height: passwordInput.height
+                        visible: activeBackendAccount
+                        fontSize: units.gu(1.2)
+                        text: isPasswordVisible ? "show" : "hide"
+                        onClicked: {
+                            isPasswordVisible = !isPasswordVisible;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+        onClosed: console.log("Notification dismissed")
+    }
+}

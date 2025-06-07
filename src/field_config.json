@@ -1,0 +1,64 @@
+{
+    "project.project": {
+        "name": "name",
+        "parent_id": "parent_id",
+        "date_start": "planned_start_date",
+        "date": "planned_end_date",
+        "allocated_hours": "allocated_hours",
+        "description": "description",
+        "color": "color_pallet",
+        "last_update_status": "last_update_status",
+        "write_date": "last_modified",
+        "is_favorite": "favorites",
+        "id": "odoo_record_id"
+    },
+    "project.task": {
+        "name": "name",
+        "project_id": "project_id",
+        "display_project_id": "sub_project_id",
+        "parent_id": "parent_id",
+        "planned_date_start": "start_date",
+        "planned_date_end": "end_date",
+        "date_deadline": "deadline",
+        "planned_hours": "initial_planned_hours",
+        "priority": "favorites",
+        "description": "description",
+        "write_date": "last_modified",
+        "user_ids": "user_id",
+        "id": "odoo_record_id"
+    },
+    "account.analytic.line": {
+        "project_id": "project_id",
+        "user_id" :"user_id",
+        "task_id": "task_id",
+        "name": "name",
+        "unit_amount": "unit_amount",
+        "write_date": "last_modified",
+        "id": "odoo_record_id"
+    },
+    "mail.activity.type": {
+        "name": "name",
+        "id": "odoo_record_id"
+    },
+    "mail.activity": {
+        "activity_type_id": "activity_type_id",
+        "summary": "summary",
+        "date_deadline": "due_date",
+        "user_id": "user_id",
+        "note": "notes",
+        "write_date": "last_modified",
+        "id": "odoo_record_id",
+        "project_id": "project_id",
+        "task_id": "task_id",
+        "res_id": "resId",
+        "res_model": "resModel",
+        "state": "state",
+        "link_id": "link_id"
+    },
+    "res.users": {
+        "name": "name",
+        "share": "share",
+        "active": "active",
+        "id": "odoo_record_id"
+    }
+}
