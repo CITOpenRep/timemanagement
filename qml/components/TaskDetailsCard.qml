@@ -74,6 +74,14 @@ ListItem {
             }
         ]
     }
+    leadingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "document-preview"
+                onTriggered: viewRequested(localId)
+            }
+        ]
+    }
 
     Rectangle {
         anchors.fill: parent
