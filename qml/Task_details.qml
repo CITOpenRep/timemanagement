@@ -126,7 +126,7 @@ Page {
             favorites: favorites,
             plannedHours: hours_text.text,
             description: description_text.text,
-            assigneeUserId: assigneeCombo.selectedUserId,
+            assigneeUserId: assigneecombo.selectedUserId,
             status: "updated",
             rowId: tasks[0].id // presence of rowId determines update vs insert
         };
@@ -391,7 +391,7 @@ Page {
                         Component.onCompleted: {
                             assigneeCombo.accountId = tasks[0].account_id;
                             assigneeCombo.loadUsers();
-                            projectCombo.selectProjectById(taskdata[0].user);
+                            projectCombo.selectProjectById(tasks[0].user);
                         }
                     }
                 }
@@ -426,11 +426,10 @@ Page {
                 TextArea {
                     id: description_text
                     readOnly: isReadOnly
-                    autoSize: true
-                    maximumLineCount: 0
+                    maximumLineCount: 1
                     width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                     anchors.centerIn: parent.centerIn
-                    text: tasks[0].description
+                    text: Utils.stripHtmlTags(tasks[0].description)
                 }
             }
         }
