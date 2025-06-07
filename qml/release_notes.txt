@@ -28,6 +28,7 @@
     <h2>Key Features</h2>
     <ul>
         <li>Connect to multiple Odoo backends with credential-based login</li>
+         <li>If the database while connecting to an oddo instance can not be fetched automatically, user can manually enter it</li>
         <li>Support for background sync and multiple accounts</li>
         <li>Bidirectional sync for timesheets, projects, and tasks</li>
         <li>Integrated dashboard to visualize workload and usage</li>

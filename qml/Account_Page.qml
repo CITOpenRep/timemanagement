@@ -44,6 +44,7 @@ Page {
     property int selectedconnectwithId: 1
     property string single_db: ""
     property bool activeBackendAccount: false
+    property bool isManualDbMode: false
 
     header: PageHeader {
         id: pageHeader
@@ -70,7 +71,14 @@ Page {
             return;
         }
 
-        python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, database_combo.currentText], function (result) {
+        var dbname = "";
+        if (isManualDbMode) {
+            dbname = manualDbInput.text;
+        } else {
+            dbname = database_combo.currentText;
+        }
+
+        python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, dbname], function (result) {
             if (result && result['status'] === 'pass' && result['database']) {
                 let apikey = passwordInput.text;
 
@@ -82,7 +90,7 @@ Page {
                     notifPopup.open("Saved", "Your account has been saved, Enjoy using the app !", "success");
                 }
             } else {
-                notifPopup.open("Error", "Unable to save the Account", "error");
+                notifPopup.open("Error", "Unable to save the Account, Please check the URL , Database name or your credentials", "error");
             }
         });
     }
@@ -198,7 +206,7 @@ Page {
                     }
                     TSButton {
                         id: fetch_db_button
-                        text: "connect"
+                        text: "Fetch Databases"
                         width: units.gu(28)
                         height: units.gu(4)
                         onClicked: {
@@ -210,8 +218,9 @@ Page {
                                 isValidUrl = true;
                                 Utils.getDatabasesFromOdooServer(linkInput.text, function (dbList) {
                                     if (dbList.length === 0) {
-                                        notifPopup.open("Error", "The Odoo Server doesnot provided any database", "error");
-                                        activeBackendAccount = false;
+                                        isManualDbMode = true;
+                                        activeBackendAccount = true;
+                                        notifPopup.open("Error", "Unable to fetch the DBs from the Server (may be due to security), please enter it manually below", "error");
                                     }
 
                                     for (var i = 0; i < dbList.length; i++) {
@@ -240,6 +249,7 @@ Page {
             Row {
                 id: databaseListRow
                 anchors.top: linkRow.bottom
+
                 Column {
                     leftPadding: units.gu(2)
                     Rectangle {
@@ -247,41 +257,39 @@ Page {
                         height: units.gu(3)
                         Label {
                             id: database_list_label
-                            visible: activeBackendAccount
                             text: "Database"
                             anchors.verticalCenter: parent.verticalCenter
+                            visible: activeBackendAccount
                         }
                     }
                 }
+
                 Column {
                     leftPadding: units.gu(1)
+
+                    // ComboBox shown only if databases were fetched
                     Rectangle {
                         width: units.gu(28)
                         height: units.gu(5)
+                        visible: activeBackendAccount && !isManualDbMode
                         ComboBox {
                             id: database_combo
-                            visible: activeBackendAccount
                             width: parent.width
                             height: parent.height
-                            anchors.centerIn: parent.centerIn
                             flat: true
                             model: databaseListModel
-                            onVisibleChanged: {
-                                if (database_combo.model.length > 0)
-                                    database_combo.currentIndex = 0;
-                            }
+                        }
+                    }
 
-                            Component.onCompleted: {
-                                if (database_combo.model.length > 0)
-                                    database_combo.currentIndex = 0;
-                            }
-
-                            onModelChanged: {
-                                if (databaseListModel.count > 0 && database_combo.currentIndex === -1) {
-                                    database_combo.currentIndex = 0;
-                                    console.log("Model changed → selecting first DB");
-                                }
-                            }
+                    // Manual TextField shown when DB list fetch fails
+                    Rectangle {
+                        width: units.gu(28)
+                        height: units.gu(5)
+                        visible: isManualDbMode
+                        TextField {
+                            id: manualDbInput
+                            width: parent.width
+                            placeholderText: "Enter Database Name"
                         }
                     }
                 }
