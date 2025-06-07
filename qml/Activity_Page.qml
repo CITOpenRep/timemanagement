@@ -26,10 +26,10 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Window 2.2
-import "../models/Timesheet.js" as Model
-import "../models/Project.js" as Project
+import "../models/timesheet.js" as Model
+import "../models/project.js" as Project
 import "../models/Activity.js" as Activity
-import "../models/Utils.js" as Utils
+import "../models/utils.js" as Utils
 
 Page {
     id: activity

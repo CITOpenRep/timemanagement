@@ -392,8 +392,6 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
     xhr.send("{}");
 }
 
-
-
 function populateProjectModelWithTaskCount(model, is_work_state) {
     model.clear();
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -473,60 +471,5 @@ function getNextMonthRange() {
     };
 }
 
-function get_accounts_list() {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
-    var accountsList = [];
-    db.transaction(function (tx) {
-        var accounts = tx.executeSql('SELECT * FROM users');
-        for (var i = 0; i < accounts.rows.length; i++) {
-            var row = accounts.rows.item(i);
-            console.log("Account loaded ->", row.id, row.name);
-            accountsList.push({
-                                  id: row.id,
-                                  name: row.name,
-                                  link: row.link,
-                                  database: row.database,
-                                  username: row.username,
-                                  connect_with: row.connectwith_id || 0,
-                                  api_key: row.api_key
-                              });
-        }
-    });
-
-    return accountsList;
-}
-
-function deleteAccountAndRelatedData(userId) {
-    try {
-        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-        db.transaction(function (tx) {
-            // List of tables where account_id is used
-            var tables = [
-                        "sync_report",
-                        "project_project_app",
-                        "project_task_app",
-                        "account_analytic_line_app",
-                        "res_users_app",
-                        "mail_activity_type_app",
-                        "mail_activity_app"
-                    ];
-
-            // Delete from each related table
-            for (var i = 0; i < tables.length; i++) {
-                var table = tables[i];
-                console.log("Deleting from", table, "where account_id =", userId);
-                tx.executeSql("DELETE FROM " + table + " WHERE account_id = ?", [userId]);
-            }
-
-            // Now delete from users table
-            console.log("Deleting user from users where id =", userId);
-            tx.executeSql("DELETE FROM users WHERE id = ?", [userId]);
-
-            console.log("✅ Account and related data deleted successfully for account_id:", userId);
-        });
-    } catch (e) {
-        console.error("❌ Error deleting account and related data:", e);
-    }
-}
 

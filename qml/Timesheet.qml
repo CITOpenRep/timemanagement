@@ -30,8 +30,8 @@ import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
 import QtQuick.Window 2.2
 import Qt.labs.settings 1.0
-import "../models/Timesheet.js" as Model
-import "../models/TimerService.js" as TimerService
+import "../models/timesheet.js" as Model
+import "../models/timer_service.js" as TimerService
 import "components"
 
 Page {

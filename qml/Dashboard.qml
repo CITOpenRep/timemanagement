@@ -30,8 +30,8 @@ import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
 import "../models/DbInit.js" as DbInit
 import "../models/DemoData.js" as DemoData
-import "../models/Project.js" as Project
-import "../models/Utils.js" as Utils
+import "../models/project.js" as Project
+import "../models/utils.js" as Utils
 import io.thp.pyotherside 1.4
 import "components"
 

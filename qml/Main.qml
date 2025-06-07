@@ -29,7 +29,7 @@ import io.thp.pyotherside 1.4
 import QtGraphicalEffects 1.7
 import QtQuick.LocalStorage 2.7
 import Ubuntu.Components 1.3 as Ubuntu
-import "Utils.js" as Utils
+import "utils.js" as Utils
 
 ApplicationWindow {
     visible: true

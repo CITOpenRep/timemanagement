@@ -59,10 +59,10 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 
 /*Database Constants*/
-const DB_NAME = "myDatabase";
-const DB_VERSION = "1.0";
-const DB_DISPLAY_NAME = "My Database";
-const DB_SIZE = 1000000;
+const NAME = "myDatabase";
+const VERSION = "1.0";
+const DISPLAY_NAME = "My Database";
+const SIZE = 1000000;
 
 // Helpers
 function getTimestamp() {
@@ -103,105 +103,3 @@ function logQueryResult(tag, resultSet) {
 }
 
 //Helper End
-
-/**
- * Fetches and parses the sync report logs for a specific account from the local SQLite database.
- *
- * This function queries the `sync_report` table for a given `accountId`, then parses each `message`
- * (which is expected to be a JSON array of log entries). It appends the corresponding timestamp
- * to each individual log entry before returning the full list of parsed logs.
- *
- * @param {number} accountId - The ID of the account for which to fetch logs.
- * @returns {Array<Object>} An array of parsed log objects with attached timestamps.
- */
-function fetchParsedSyncLog(accountId) {
-    var parsedLogs = [];
-
-    try {
-        var db = Sql.LocalStorage.openDatabaseSync(DB_NAME, DB_VERSION, DB_DISPLAY_NAME, DB_SIZE);
-
-        db.transaction(function (tx) {
-            var rs = tx.executeSql(
-                "SELECT timestamp, message FROM sync_report WHERE account_id = ? ORDER BY timestamp DESC",
-                [accountId]
-            );
-
-            for (var i = 0; i < rs.rows.length; i++) {
-                var entry = rs.rows.item(i);
-
-                try {
-                    // Each 'message' field is a JSON string containing an array of log objects
-                    var logs = JSON.parse(entry.message);
-
-                    logs.forEach(function (log) {
-                        log.timestamp = entry.timestamp; // Attach DB timestamp to each log
-                        parsedLogs.push(log);
-                    });
-
-                } catch (e) {
-                    logException("fetchParsedSyncLog", e)
-                }
-            }
-        });
-
-    } catch (e) {
-        logException(e);
-    }
-
-    return parsedLogs;
-}
-
-/**
- * Fetches tasks for a given account and optionally filtered by project.
- *
- * If `projectId` is 0, it fetches all tasks for the account. Otherwise, it fetches
- * tasks belonging to both the account and the specified project.
- *
- * @param {number} accountId - The ID of the account.
- * @param {number} projectId - The ID of the project to filter by (0 to ignore).
- * @returns {Array<Object>} An array of task objects from the local DB.
- */
-function getTasksForAccountAndProject(accountId, projectId) {
-    log('getTasksForAccountAndProject','[${tag}] Fetching tasks for accountId: ${accountId}, projectId: ${projectId}');
-
-    var tasks = [];
-
-    try {
-        var db = Sql.LocalStorage.openDatabaseSync(DB_NAME, DB_VERSION, DB_DISPLAY_NAME, DB_SIZE);
-
-        db.transaction(function (tx) {
-            var result;
-
-            if (projectId === 0) {
-                result = tx.executeSql(
-                    "SELECT * FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC",
-                    [accountId]
-                );
-            } else {
-                result = tx.executeSql(
-                    "SELECT * FROM project_task_app WHERE account_id = ? AND project_id = ? ORDER BY last_modified DESC",
-                    [accountId, projectId]
-                );
-            }
-
-            for (var i = 0; i < result.rows.length; i++) {
-                var row = result.rows.item(i);
-                tasks.push({
-                    id: row.id,
-                    remote_id: row.odoo_record_id,
-                    name: row.name,
-                    allocated_hours: row.initial_planned_hours,
-                    state: row.state,
-                    project_id: row.project_id,
-                    parent_id: row.parent_id,
-                    favorites: row.favorites
-                });
-            }
-        });
-
-    } catch (e) {
-        logException(e);
-    }
-
-    return tasks;
-}

@@ -30,9 +30,9 @@ import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
 import QtQuick.Window 2.2
 import Qt.labs.settings 1.0
-import "../models/Project.js" as Project
-import "../models/Timesheet.js" as Timesheet
-import "../models/Utils.js" as Utils
+import "../models/project.js" as Project
+import "../models/timesheet.js" as Timesheet
+import "../models/utils.js" as Utils
 import "components"
 
 Page {

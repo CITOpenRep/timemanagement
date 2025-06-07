@@ -28,8 +28,9 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import Ubuntu.Components 1.3 as Ubuntu
 import io.thp.pyotherside 1.4
-import "../models/Sync.js" as SyncData
-import "../models/Utils.js" as Utils
+import "../models/sync.js" as SyncData
+import "../models/utils.js" as Utils
+import "../models/accounts.js" as Accounts
 import "components"
 
 Page {
@@ -84,7 +85,7 @@ Page {
 
     function fetch_accounts() {
         accountListModel.clear();
-        var accountsList = SyncData.get_accounts_list();
+        var accountsList = Accounts.getAccountsList();
         for (var account = 0; account < accountsList.length; account++) {
             accountListModel.append(accountsList[account]);
         }
@@ -195,7 +196,7 @@ Page {
                                             fontSize: units.gu(1.5)
                                             text: "Delete"
                                             onClicked: {
-                                                Utils.deleteAccountAndRelatedData(model.user_id);
+                                                Accounts.deleteAccountAndRelatedData(model.user_id);
                                                 accountListModel.remove(index);
                                             }
                                         }

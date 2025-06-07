@@ -27,8 +27,8 @@ import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import io.thp.pyotherside 1.4
-import "../models/Sync.js" as SyncData
-import "../models/Utils.js" as Utils
+import "../models/sync.js" as SyncData
+import "../models/utils.js" as Utils
 import "components"
 
 Page {

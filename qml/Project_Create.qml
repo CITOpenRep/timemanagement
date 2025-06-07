@@ -30,10 +30,10 @@ import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
-import "../models/Task.js" as Task
-import "../models/Utils.js" as Utils
-import "../models/Global.js" as Global
-import "../models/Project.js" as Project
+import "../models/task.js" as Task
+import "../models/utils.js" as Utils
+import "../models/global.js" as Global
+import "../models/project.js" as Project
 import "components"
 
 Page {

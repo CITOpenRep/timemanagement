@@ -27,8 +27,8 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import Ubuntu.Components 1.3 as Ubuntu
 import QtQuick.LocalStorage 2.7
-import "../models/Timesheet.js" as Model
-import "../models/Project.js" as Project
+import "../models/timesheet.js" as Model
+import "../models/project.js" as Project
 import "components"
 
 Page {

@@ -28,51 +28,6 @@ function createAccount(name, link, database, username, selectedconnectwithId, ap
     return duplicate_account;
 }
 
-/* Name: get_accounts_list
-* This function will return all records of users
-*/
-
-function get_accounts_list() {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-
-    var accountsList = [];
-    db.transaction(function(tx) {
-        var accounts = tx.executeSql('SELECT * FROM users');
-        for (var account = 0; account < accounts.rows.length; account++) {
-            var connect_with = 0
-            if (accounts.rows.item(account).connectwith_id && accounts.rows.item(account).connectwith_id != undefined) {
-                connect_with = accounts.rows.item(account).connectwith_id;
-            } 
-            accountsList.push({'user_id': accounts.rows.item(account).id,
-                             'name': accounts.rows.item(account).name,
-                             'link': accounts.rows.item(account).link,
-                             'database': accounts.rows.item(account).database,
-                             'username': accounts.rows.item(account).username,
-                             'connect_with': connect_with,
-                            'api_key': accounts.rows.item(account).api_key})
-        }
-    });
-    return accountsList;
-}
-
-/* Name: deleteAccount
-* This function will delete record from users table
-* account_id -> record id to be deleted
-*/
-
-function deleteAccount(account_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    db.transaction(function(tx) {
-        tx.executeSql('DELETE FROM account_analytic_line_app where account_id =' + parseInt(account_id));
-        tx.executeSql('DELETE FROM project_task_app where account_id =' + parseInt(account_id));
-        tx.executeSql('DELETE FROM project_project_app where account_id =' + parseInt(account_id));
-        tx.executeSql('DELETE FROM mail_activity_type_app where account_id =' + parseInt(account_id));
-        tx.executeSql('DELETE FROM mail_activity_app where account_id =' + parseInt(account_id));
-        tx.executeSql('DELETE FROM res_users_app where account_id =' + parseInt(account_id));
-        tx.executeSql('DELETE FROM users where id =' + parseInt(account_id));
-    });
-    return
-}
 
 /* Name: deleteAccount
 * This function will return datetime when last sync was done
