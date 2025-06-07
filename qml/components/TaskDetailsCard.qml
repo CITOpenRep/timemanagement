@@ -53,11 +53,26 @@ ListItem {
     property string endDate: ""
     property string description: ""
     property int colorPallet: 0
+    property int localId: -1
     property int recordId: -1
     property bool hasChildren: false
     property int childCount: 0
 
-    signal editRequested(int recordId)
+    signal editRequested(int localId)
+    signal deleteRequested(int localId)
+
+    trailingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "edit"
+                onTriggered: editRequested(localId)
+            },
+            Action {
+                iconName: "delete"
+                onTriggered: deleteRequested(localId)
+            }
+        ]
+    }
 
     Rectangle {
         anchors.fill: parent

@@ -47,7 +47,7 @@ Item {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
         db.transaction(function (tx) {
-            var query = isWorkProfile ? 'SELECT * FROM project_task_app WHERE account_id IS NOT NULL ORDER BY last_modified DESC' : 'SELECT * FROM project_task_app WHERE account_id IS NULL ORDER BY last_modified DESC';
+            var query = isWorkProfile ? "SELECT * FROM project_task_app WHERE account_id IS NOT NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC" : "SELECT * FROM project_task_app WHERE account_id IS NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
 
             var result = tx.executeSql(query);
             if (result.rows.length === 0) {
@@ -65,6 +65,7 @@ Item {
 
                 var item = {
                     id_val: odooId,
+                    local_id: row.id,
                     account_id: row.account_id,
                     project: project.rows.length > 0 ? project.rows.item(0).name : 'Unknown Project',
                     parent_id: parentOdooId,
@@ -145,6 +146,7 @@ Item {
 
                 TaskDetailsCard {
                     id: taskCard
+                    localId: model.local_id
                     height: parent.height
                     width: parent.width
                     recordId: model.recordId
@@ -161,8 +163,12 @@ Item {
                     //accountId:model.account_id
 
                     onEditRequested: id => {
-                        console.log("Edit Task:", id);
-                        taskEditRequested(id);
+                        console.log("Edit Task:", local_id);
+                        taskEditRequested(local_id);
+                    }
+                    onDeleteRequested: d => {
+                        console.log("Edit Task:", local_id);
+                        taskDeleteRequested(local_id);
                     }
 
                     MouseArea {
