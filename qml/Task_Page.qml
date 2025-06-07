@@ -146,6 +146,13 @@ Page {
                     "isReadOnly": false
                 });
             }
+            onTaskSelected: {
+                console.log("Viewing Task");
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_details.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": true
+                });
+            }
             onTaskDeleteRequested: {
                 console.log("Delete Requested");
                 var result = Task.markTaskAsDeleted(recordId);

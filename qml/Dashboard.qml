@@ -185,17 +185,17 @@ Page {
                 label: "Task"
             },
             {
-                label: "Timehsheet"
+                label: "Timesheet"
             },
         ]
         onMenuItemSelected: {
             if (index === 0) {
                 console.log("add task");
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Create.qml"));
             }
             if (index === 1) {
                 console.log("add time sheet");
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"));
             }
         }
     }

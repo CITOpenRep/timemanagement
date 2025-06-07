@@ -267,13 +267,13 @@ Page {
         id: projectModel1
     }
 
-    LomiriShape {
+    Flickable {
         id: rect1
         anchors.top: header.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        radius: "large"
+        //radius: "large"
         width: parent.width
         height: parent.height
 
@@ -305,6 +305,7 @@ Page {
                     width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                     height: units.gu(6)
                     anchors.centerIn: parent.centerIn
+                    enabled: !taskDetails.isReadOnly
                     flat: true
                     onAccountSelected: {
                         //fetch the users from the account
@@ -388,6 +389,7 @@ Page {
                         height: parent.height
                         anchors.centerIn: parent.centerIn
                         flat: true
+                        enabled: !taskDetails.isReadOnly
                         Component.onCompleted: {
                             assigneeCombo.accountId = tasks[0].account_id;
                             assigneeCombo.loadUsers();
@@ -462,6 +464,7 @@ Page {
                     height: 60
                     ProjectSelector {
                         id: projectCombo
+                        enabled: !taskDetails.isReadOnly
                         width: parent.width
                         height: parent.height
                         anchors.centerIn: parent.centerIn
@@ -511,6 +514,7 @@ Page {
                     ComboBox {
                         id: task_field
                         editable: true
+                        enabled: !taskDetails.isReadOnly
                         editText: taskdata[0].parentname
                         width: parent.width
                         height: parent.height
