@@ -36,7 +36,7 @@ Item {
     property var childrenMap: ({})
     property bool childrenMapReady: false
 
-    signal taskSelected(int taskId, string name)
+    signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
 
@@ -170,6 +170,10 @@ Item {
                         console.log("Edit Task:", local_id);
                         taskDeleteRequested(local_id);
                     }
+                    onViewRequested: d => {
+                        console.log("View Task:", local_id);
+                        taskSelected(local_id);
+                    }
 
                     MouseArea {
                         anchors.fill: parent
@@ -183,7 +187,7 @@ Item {
                                 currentParentId = model.id_val;
                             } else {
                                 console.log("Selecting task:", model.taskName);
-                                taskNavigator.taskSelected(model.id_val, model.name);
+                               // taskNavigator.taskSelected(model.id_val, model.name);
                             }
                         }
                     }

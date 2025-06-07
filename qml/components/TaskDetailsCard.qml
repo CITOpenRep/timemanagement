@@ -60,6 +60,7 @@ ListItem {
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
+    signal viewRequested(int localId)
 
     trailingActions: ListItemActions {
         actions: [
@@ -70,6 +71,14 @@ ListItem {
             Action {
                 iconName: "delete"
                 onTriggered: deleteRequested(localId)
+            }
+        ]
+    }
+    leadingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "document-preview"
+                onTriggered: viewRequested(localId)
             }
         ]
     }
@@ -138,19 +147,39 @@ ListItem {
                             wrapMode: Text.WordWrap
                             maximumLineCount: 2
                             clip: true
-
                             width: parent.width - units.gu(2)
-                            height: parent.height - yellowBlock.height
                         }
+
 
                         Text {
                             id: yellowBlock
                             text: projectName
                             font.pixelSize: units.gu(1.6)
-                            wrapMode: Text.Wrap
-                            maximumLineCount: 2
+                            wrapMode: Text.NoWrap
+                            elide: Text.ElideRight
                             width: parent.width - units.gu(2)
                             height: units.gu(2)
+                        }
+
+
+                        Label {
+                            id: details
+                            text: "Details"
+                            width: parent.width - units.gu(2)
+                            font.pixelSize: units.gu(1.6)
+                            height: units.gu(3)
+                            color: "blue"
+                            font.underline: true
+                            MouseArea
+                            {
+                                anchors.fill:parent
+                                onClicked:{
+                                    console.log("Showing Task Details")
+                                    viewRequested(localId)
+                                }
+                            }
+
+
                         }
                     }
                 }
@@ -168,7 +197,6 @@ ListItem {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: units.gu(0.4)
                     width: parent.width
-
                     Text {
                         text: "Planned (H): " + (allocatedHours !== "" ? allocatedHours : "N/A")
                         font.pixelSize: units.gu(1.5)

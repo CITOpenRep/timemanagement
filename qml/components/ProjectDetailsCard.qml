@@ -44,9 +44,24 @@ ListItem {
     property string description: ""
     property int colorPallet: 0
     property int recordId: -1
+    property int localId: -1
     property bool hasChildren: false
     property int childCount: 0
     signal editRequested(int recordId)
+    signal viewRequested(int recordId)
+
+    leadingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "document-preview"
+                onTriggered:
+                {
+                    console.log(localId)
+                    viewRequested(localId)
+                }
+            }
+        ]
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -116,6 +131,25 @@ ListItem {
                             maximumLineCount: 2
                             width: parent.width - units.gu(2)
                             height: units.gu(2)
+                        }
+                        Label {
+                            id: details
+                            text: "Details"
+                            width: parent.width - units.gu(2)
+                            font.pixelSize: units.gu(1.6)
+                            height: units.gu(3)
+                            color: "blue"
+                            font.underline: true
+                            MouseArea
+                            {
+                                anchors.fill:parent
+                                onClicked:{
+                                    console.log("Showing Task Details")
+                                    viewRequested(localId)
+                                }
+                            }
+
+
                         }
                     }
                 }
