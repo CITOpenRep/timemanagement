@@ -71,9 +71,10 @@ Rectangle {
                 AccountSelector {
                     id: accountSelector
                     anchors.centerIn: parent
+                    enabled: !readOnly
                     editable: true
                     onAccountSelected: {
-                            projectSelector.load(accountSelector.selectedInstanceId, 0);
+                        projectSelector.load(accountSelector.selectedInstanceId, 0);
                     }
                 }
             }
@@ -100,6 +101,7 @@ Rectangle {
                 color: "transparent"
                 ProjectSelector {
                     id: projectSelector
+                    enabled: !readOnly
                     anchors.centerIn: parent
                     editable: true
                     onProjectSelected: {
@@ -134,6 +136,7 @@ Rectangle {
                     id: subProjectSelector
                     mode: "subproject"
                     anchors.centerIn: parent
+                    enabled: !readOnly
                     editable: true
                     onProjectSelected: {
                         console.log("Selecting Subproject " + subProjectSelector.selectedProjectId);
@@ -169,6 +172,7 @@ Rectangle {
                 TaskSelector {
                     id: taskSelector
                     anchors.centerIn: parent
+                    enabled: !readOnly
                     editable: true
                     onTaskSelected: {
                         console.log("Selecting Task " + taskSelector.selectedTaskId);
@@ -203,9 +207,9 @@ Rectangle {
                 color: "transparent"
                 TaskSelector {
                     id: subTaskSelector
+                    enabled: !readOnly
                     mode: "subtask"
                     anchors.centerIn: parent
-                    editable: true
                     onTaskSelected: {}
                 }
             }

@@ -51,6 +51,7 @@ Page {
         trailingActionBar.actions: [
             Action {
                 iconSource: "images/save.svg"
+                visible: !isReadOnly
                 text: "Save"
                 onTriggered: {
                     save_timesheet();
@@ -68,20 +69,19 @@ Page {
         console.log("Subproject DB ID:", ids.subprojectDbId);
         console.log("Task DB ID:", ids.taskDbId);
         console.log("Subtask DB ID:", ids.subtaskDbId);
-        console.log("Gokul commented it out , not saving time sheet")
-        return
-        if (projectSelectorCombo.selectedProjectId < 0) {
+
+        if (ids.projectDbId < 0) {
             notifPopup.open("Error", "You need to select a project to save time sheet", "error");
             return;
         }
 
         var timesheet_data = {
-            'instance_id': accountSelectorCombo.selectedInstanceId < 0 ? null : accountSelectorCombo.selectedInstanceId,
+            'instance_id': ids.accountDbId < 0 ? 0 : ids.accountDbId,
             'dateTime': date_widget.date,
-            'project': projectSelectorCombo.getSelectedDbRecordId(),
-            'task': taskSelectorCombo.selectedTaskId < 0 ? null : taskSelectorCombo.selectedTaskId,
-            'subprojectId': subprojectSelectorCombo.getSelectedDbRecordId(),
-            'subTask': subTaskSelectorCombo.selectedSubTaskId < 0 ? null : subTaskSelectorCombo.selectedSubTaskId,
+            'project': ids.projectDbId,
+            'task': ids.taskDbId,
+            'subprojectId': ids.subprojectDbId,
+            'subTask': ids.subtaskDbId,
             'description': description_text.text,
             'manualSpentHours': hours_text.text,
             'spenthours': hours_text.text,
@@ -101,6 +101,9 @@ Page {
     property bool isManualTime: false
     property bool running: false
     property int selectedSubTaskId: 0
+    property var recordid: 0 //0 means creatiion mode
+    property bool isReadOnly: false //edit or view mode
+    property var currentTimesheet: {}
 
     NotificationPopup {
         id: notifPopup
@@ -125,6 +128,7 @@ Page {
             topPadding: 40
             WorkItemSelector {
                 id: workItem
+                readOnly: isReadOnly
                 width: timesheetsDetailsPageFlickable.width
                 height: units.gu(35)
             }
@@ -155,6 +159,7 @@ Page {
                 QuickDateSelector {
                     id: date_widget
                     mode: "previous"
+                    enabled: !isReadOnly
                     width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                     height: units.gu(4)
                     anchors.centerIn: parent.centerIn
@@ -179,6 +184,7 @@ Page {
 
             TextArea {
                 id: description_text
+                enabled: !isReadOnly
                 text: ""
                 width: parent.width
             }
@@ -251,6 +257,7 @@ Page {
                     id: priorityCombo
                     width: units.gu(30)
                     model: ["Do", "Plan", "Delegate", "Delete"]
+                    enabled: !isReadOnly
                     currentIndex: 0
 
                     // Use +1 so the stored value matches quadrant_id 1-4
@@ -272,10 +279,21 @@ Page {
 
         Component.onCompleted: {
             console.log("From Timesheet " + apLayout.columns);
-            //Gokul is teesting
-            console.log("Gokul added below line to test")
-          //  workItem.applyDeferredSelection(2, 133, 135, 261, 264);
-            //  myTimePicker.open(9, 30) //testing
+            if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
+            {
+                console.log("Loading time sheet " + recordid);
+                currentTimesheet = Model.get_timesheet_details(recordid);
+                let instanceId = currentTimesheet.instance_id !== undefined ? currentTimesheet.instance_id : -1;
+                let projectId = currentTimesheet.project_id !== undefined ? currentTimesheet.project_id : -1;
+                let taskId = currentTimesheet.task_id !== undefined ? currentTimesheet.task_id : -1;
+                let subProjectId = currentTimesheet.sub_project_id !== undefined ? currentTimesheet.sub_project_id : -1;
+                workItem.applyDeferredSelection(instanceId, projectId, taskId, subProjectId);
+                if (currentTimesheet.record_date) {
+                    date_widget.setDate(currentTimesheet.record_date);
+                }
+                description_text.text = currentTimesheet.description;
+            } else //we are creating a new timesheet
+            {}
         }
     }
 

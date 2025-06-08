@@ -73,7 +73,7 @@ ComboBox {
     }
 
     function _loadInternal(accountIdVal, secondVal, suppressSignal, useParentFilter) {
-        console.log("📥 _loadInternal → accountId:", accountIdVal, "secondVal:", secondVal, "suppressSignal:", suppressSignal, "useParentFilter:", useParentFilter);
+        //console.log(" _loadInternal → accountId:", accountIdVal, "secondVal:", secondVal, "suppressSignal:", suppressSignal, "useParentFilter:", useParentFilter);
         clear();
         accountId = accountIdVal;
 
@@ -106,7 +106,7 @@ ComboBox {
                 }
             }
         }
-        console.log("✅ Resolved parent id is " + resolvedParentId);
+        console.log("Resolved parent id is " + resolvedParentId);
 
         for (let i = 0; i < allProjects.length; i++) {
             const p = allProjects[i];
