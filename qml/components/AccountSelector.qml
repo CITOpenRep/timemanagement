@@ -88,6 +88,12 @@ ComboBox {
     }
 
     onActivated: {
+        if(shouldDeferSelection)
+        {
+            shouldDeferSelection=false
+            return
+        }
+
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedInstanceId = selected.id;
@@ -96,6 +102,11 @@ ComboBox {
     }
 
     onAccepted: {
+        if(shouldDeferSelection)
+        {
+            shouldDeferSelection=false
+            return
+        }
         const idx = find(editText);
         if (idx !== -1) {
             const selected = model.get(idx);

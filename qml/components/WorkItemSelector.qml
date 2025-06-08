@@ -15,7 +15,6 @@ Rectangle {
     property bool showTaskSelector: true
     property bool showSubtaskSelector: true
 
-
     signal datachanged
 
     function getDbRecordId(localId, odooId) {
@@ -23,17 +22,16 @@ Rectangle {
     }
 
     function applyDeferredSelection(accountId, projectOdooId, subProjectOdooId, taskOdooId, subTaskOdooId) {
-
         accountSelector.shouldDeferSelection = true;
         accountSelector.deferredAccountId = accountId;
 
         accountSelector.loadAccounts();
 
-        projectSelector.loadDeferred(accountId,projectOdooId)
+        projectSelector.loadDeferred(accountId, projectOdooId);
         subProjectSelector.loadDeferred(accountId, subProjectOdooId);
 
-        taskSelector.loadDeferred(accountId, taskOdooId,projectOdooId);
-        subTaskSelector.loadDeferred(accountId, subTaskOdooId,projectOdooId);
+        taskSelector.loadDeferred(accountId, taskOdooId, projectOdooId);
+        subTaskSelector.loadDeferred(accountId, subTaskOdooId, projectOdooId);
     }
 
     function getAllSelectedDbRecordIds() {
@@ -75,8 +73,9 @@ Rectangle {
                     id: accountSelector
                     anchors.centerIn: parent
                     editable: true
-                    onAccountSelected: {
-                      //  projectSelector.load(accountSelector.selectedInstanceId,0)
+                    onAccountSelected:
+                    {
+                        projectSelector.load(accountSelector.selectedInstanceId,0)
                     }
                 }
             }
@@ -106,7 +105,9 @@ Rectangle {
                     anchors.centerIn: parent
                     editable: true
                     onProjectSelected: {
-                        console.log("Normal  Subproject Load Triggered");
+                        console.log("Selecting Project " + projectSelector.selectedProjectId);
+                        subProjectSelector.load(accountSelector.selectedInstanceId, projectSelector.selectedProjectId);
+                        taskSelector.load(accountSelector.selectedInstanceId, 0, projectSelector.selectedProjectId);
                     }
                 }
             }
@@ -137,6 +138,12 @@ Rectangle {
                     anchors.centerIn: parent
                     editable: true
                     onProjectSelected: {
+                        console.log("Selecting Subproject " + subProjectSelector.selectedProjectId);
+                        if (subProjectSelector.selectedProjectId != -1) {
+                            taskSelector.load(accountSelector.selectedInstanceId, 0, subProjectSelector.selectedProjectId);
+                        } else {
+                            taskSelector.load(accountSelector.selectedInstanceId, 0, projectSelector.selectedProjectId);
+                        }
                     }
                 }
             }
@@ -166,6 +173,12 @@ Rectangle {
                     anchors.centerIn: parent
                     editable: true
                     onTaskSelected: {
+                        console.log("Selecting Task " + taskSelector.selectedTaskId);
+                        if (subProjectSelector.selectedProjectId != -1) {
+                            subTaskSelector.load(accountSelector.selectedInstanceId, taskSelector.selectedTaskId, subProjectSelector.selectedProjectId);
+                        } else {
+                            subTaskSelector.load(accountSelector.selectedInstanceId, taskSelector.selectedTaskId, projectSelector.selectedProjectId);
+                        }
                     }
                 }
             }
@@ -195,8 +208,7 @@ Rectangle {
                     mode: "subtask"
                     anchors.centerIn: parent
                     editable: true
-                    onTaskSelected: {
-                    }
+                    onTaskSelected: {}
                 }
             }
         }

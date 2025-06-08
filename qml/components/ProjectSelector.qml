@@ -35,6 +35,7 @@ ComboBox {
     }
 
     model: internalProjectModel
+    property bool isDeferredSelection: false
 
     background: Rectangle {
         color: "transparent"
@@ -48,9 +49,7 @@ ComboBox {
         for (let i = 0; i < internalProjectModel.count; i++) {
             let item = internalProjectModel.get(i);
             if (item.recordId === selectedProjectId) {
-                return (accountId === 0)
-                    ? item.id
-                    : (item.odoo_record_id && item.odoo_record_id !== 0) ? item.odoo_record_id : null;
+                return (accountId === 0) ? item.id : (item.odoo_record_id && item.odoo_record_id !== 0) ? item.odoo_record_id : null;
             }
         }
         return null;
@@ -63,20 +62,27 @@ ComboBox {
         editText = "";
     }
 
-    function load(accountIdVal, projectIdVal) {
-        _loadInternal(accountIdVal, projectIdVal, false)
+    function load(accountIdVal, parentOdooIdVal) {
+        isDeferredSelection=false
+        _loadInternal(accountIdVal, parentOdooIdVal, false, true);  // useParentFilter = true
     }
 
-    function loadDeferred(accountIdVal, projectIdVal) {
-        _loadInternal(accountIdVal, projectIdVal, true)
+    function loadDeferred(accountIdVal, projectOdooIdVal) {
+        isDeferredSelection=true
+        _loadInternal(accountIdVal, projectOdooIdVal, true, false); // useParentFilter = false
     }
 
-    function _loadInternal(accountIdVal, projectIdVal, suppressSignal) {
+    function _loadInternal(accountIdVal, secondVal, suppressSignal, useParentFilter) {
+        console.log("📥 _loadInternal → accountId:", accountIdVal, "secondVal:", secondVal, "suppressSignal:", suppressSignal, "useParentFilter:", useParentFilter);
         clear();
         accountId = accountIdVal;
 
         const noneLabel = (mode === "subproject") ? "No Subproject" : "No Project";
-        internalProjectModel.append({ name: noneLabel, id: -1, recordId: -1 });
+        internalProjectModel.append({
+            name: noneLabel,
+            id: -1,
+            recordId: -1
+        });
         currentIndex = 0;
         selectedProjectId = -1;
         editText = noneLabel;
@@ -85,14 +91,30 @@ ComboBox {
             return;
 
         const allProjects = Project.getProjectsForAccount(accountId);
+        let resolvedParentId = secondVal;
+        if (accountId > 0) {
+            if (useParentFilter && secondVal !== 0) {
+                for (let i = 0; i < allProjects.length; i++) {
+                    const p = allProjects[i];
+                    console.log("accountId is " + accountId + " p.odoo_record_id is " + p.odoo_record_id + " and p.id is " + p.id);
+
+                    if (secondVal === p.id) {
+                        console.log("got the record");
+                        resolvedParentId = p.odoo_record_id;
+                        break;
+                    }
+                }
+            }
+        }
+        console.log("✅ Resolved parent id is " + resolvedParentId);
 
         for (let i = 0; i < allProjects.length; i++) {
             const p = allProjects[i];
+            const pid = parseInt(p.parent_id) || 0;
 
-            if (mode === "project" && p.parent_id && parseInt(p.parent_id) !== 0)
-                continue;
+            const parentMatch = useParentFilter ? ((secondVal === 0 && pid === 0) || (secondVal !== 0 && pid === resolvedParentId)) : (mode === "project" && pid === 0) || (mode === "subproject" && pid !== 0);
 
-            if (mode === "subproject" && (!p.parent_id || parseInt(p.parent_id) === 0))
+            if (!parentMatch)
                 continue;
 
             internalProjectModel.append({
@@ -104,15 +126,16 @@ ComboBox {
             });
         }
 
-        if (projectIdVal === -1)
+        if (useParentFilter)
+            return;
+
+        if (secondVal === -1)
             return;
 
         let found = false;
         for (let i = 0; i < internalProjectModel.count; i++) {
             const item = internalProjectModel.get(i);
-            const isMatch = (accountId === 0)
-                ? item.recordId === projectIdVal
-                : item.odoo_record_id === projectIdVal;
+            const isMatch = (accountId === 0) ? item.recordId === secondVal : item.odoo_record_id === secondVal;
 
             if (isMatch) {
                 currentIndex = i;
@@ -136,6 +159,7 @@ ComboBox {
     }
 
     onActivated: {
+        isDeferredSelection=false
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedProjectId = selected.recordId;
@@ -144,6 +168,7 @@ ComboBox {
     }
 
     onAccepted: {
+        isDeferredSelection=false
         const idx = find(editText);
         if (idx !== -1) {
             const selected = model.get(idx);

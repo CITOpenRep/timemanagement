@@ -33,6 +33,7 @@ ComboBox {
     }
 
     model: internalTaskModel
+    property bool isDeferredSelection: false
 
     background: Rectangle {
         color: "transparent"
@@ -51,9 +52,7 @@ ComboBox {
         for (let i = 0; i < internalTaskModel.count; i++) {
             let item = internalTaskModel.get(i);
             if (item.recordId === selectedTaskId) {
-                return (accountId === 0)
-                    ? item.id
-                    : (item.odoo_record_id || null);
+                return (accountId === 0) ? item.id : (item.odoo_record_id || null);
             }
         }
 
@@ -68,20 +67,27 @@ ComboBox {
     }
 
     function load(accountIdVal, taskIdVal, projectIdVal) {
-        _loadInternal(accountIdVal, taskIdVal, projectIdVal, false)
+        isDeferredSelection=false
+        _loadInternal(accountIdVal, taskIdVal, projectIdVal, false);
     }
 
     function loadDeferred(accountIdVal, taskIdVal, projectIdVal) {
-        _loadInternal(accountIdVal, taskIdVal, projectIdVal, true)
+        isDeferredSelection=true
+        _loadInternal(accountIdVal, taskIdVal, projectIdVal, true);
     }
 
     function _loadInternal(accountIdVal, taskIdVal, projectIdVal, suppressSignal) {
+        console.log("📥 _loadInternal → accountId:", accountIdVal, "taskIdVal:", taskIdVal, "projectIdVal:", projectIdVal, "suppressSignal:", suppressSignal);
         clear();
         accountId = accountIdVal;
         projectId = projectIdVal;
 
         const noneLabel = (mode === "subtask") ? "No Subtask" : "No Task";
-        internalTaskModel.append({ name: noneLabel, id: -1, recordId: -1 });
+        internalTaskModel.append({
+            name: noneLabel,
+            id: -1,
+            recordId: -1
+        });
         currentIndex = 0;
         selectedTaskId = -1;
         editText = noneLabel;
@@ -93,8 +99,10 @@ ComboBox {
         const resolvedProjectId = _resolveRemoteProjectId(projectId);
 
         let filtered = fullTaskList.filter(t => {
-            if (!t.name) return false;
-            if (t.project_id !== resolvedProjectId) return false;
+            if (!t.name)
+                return false;
+            if (t.project_id !== resolvedProjectId)
+                return false;
 
             if (mode === "task") {
                 return !t.parent_id || parseInt(t.parent_id) === 0;
@@ -121,9 +129,7 @@ ComboBox {
         let found = false;
         for (let i = 0; i < internalTaskModel.count; i++) {
             const item = internalTaskModel.get(i);
-            const match = (accountId === 0)
-                ? item.recordId === taskIdVal
-                : item.odoo_record_id === taskIdVal;
+            const match = (accountId === 0) ? item.recordId === taskIdVal : item.odoo_record_id === taskIdVal;
 
             if (match) {
                 currentIndex = i;
@@ -147,7 +153,8 @@ ComboBox {
     }
 
     function _resolveRemoteProjectId(localId) {
-        if (accountId === 0) return localId;
+        if (accountId === 0)
+            return localId;
         const projects = Project.getProjectsForAccount(accountId) || [];
         for (let p of projects)
             if (p.id === localId && p.odoo_record_id)
@@ -156,14 +163,17 @@ ComboBox {
     }
 
     onActivated: {
+        isDeferredSelection=false
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedTaskId = selected.recordId;
             taskSelected(selected.recordId, selected.name);
+            isDeferredSelection=false
         }
     }
 
     onAccepted: {
+        isDeferredSelection=false
         const idx = find(editText);
         if (idx !== -1) {
             const selected = model.get(idx);
