@@ -28,8 +28,9 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import Ubuntu.Components 1.3 as Ubuntu
 import io.thp.pyotherside 1.4
-import "../models/Sync.js" as SyncData
-import "../models/Utils.js" as Utils
+import "../models/sync.js" as SyncData
+import "../models/utils.js" as Utils
+import "../models/accounts.js" as Accounts
 import "components"
 
 Page {
@@ -84,7 +85,7 @@ Page {
 
     function fetch_accounts() {
         accountListModel.clear();
-        var accountsList = SyncData.get_accounts_list();
+        var accountsList = Accounts.getAccountsList();
         for (var account = 0; account < accountsList.length; account++) {
             accountListModel.append(accountsList[account]);
         }
@@ -119,7 +120,7 @@ Page {
                         model: accountListModel
                         delegate: Rectangle {
                             width: parent.width
-                            height: units.gu(10)
+                            height: units.gu(16)
                             color: "#FFFFFF"
                             border.color: "#CCCCCC"
                             border.width: 1
@@ -128,7 +129,7 @@ Page {
                                 anchors.fill: parent
                                 Row {
                                     width: parent.width
-                                    height: units.gu(10)
+                                    height: units.gu(15)
                                     spacing: units.gu(1)
 
                                     Rectangle {
@@ -180,7 +181,7 @@ Page {
                                         }
                                         Text {
                                             text: Utils.getLastSyncStatus(0)
-                                            font.pixelSize: units.gu(1.1)
+                                            font.pixelSize: units.gu(1)
                                             color: "#666"
                                         }
                                     }
@@ -189,18 +190,32 @@ Page {
                                         anchors.rightMargin: units.gu(1)
                                         anchors.verticalCenter: parent.verticalCenter
                                         TSButton {
+                                            visible: (model.id !== 0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
                                             text: "Delete"
                                             onClicked: {
-                                                Utils.deleteAccountAndRelatedData(model.user_id);
+                                                Accounts.deleteAccountAndRelatedData(model.id);
                                                 accountListModel.remove(index);
+                                            }
+                                        }
+                                        TSButton {
+                                            visible: (model.id !== 0)
+                                            width: units.gu(10)
+                                            height: units.gu(4)
+                                            fontSize: units.gu(1.5)
+                                            text: "Show Logs"
+                                            onClicked: {
+                                                apLayout.addPageToNextColumn(settings, Qt.resolvedUrl("SyncLog.qml"), {
+                                                    "recordid": model.id
+                                                });
                                             }
                                         }
                                         // Sync Button
                                         TSButton {
                                             id: syncBtn
+                                            visible: (model.id !== 0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
@@ -212,7 +227,7 @@ Page {
                                                     } else {
                                                         console.log("Actual DB path resolved by Python:", path);
                                                         //remeber to remove hardcoded index , pasing account index
-                                                        python.call("backend.start_sync_in_background", [path, model.user_id], function (result) {
+                                                        python.call("backend.start_sync_in_background", [path, model.id], function (result) {
                                                             if (result) {
                                                                 console.log("Background sync started...");
                                                             } else {

@@ -25,7 +25,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
-import "../constants.js" as AppConst
+import "../../models/constants.js" as AppConst
 
 Item {
     id: root

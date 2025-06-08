@@ -1,4 +1,5 @@
 .import QtQuick.LocalStorage 2.7 as Sql
+.import "database.js" as DBCommon
 
 function getFormattedTimestamp() {
     var now = new Date();
@@ -56,6 +57,61 @@ function saveOrUpdateTask(data) {
 // Helper to handle -1/null
 function validId(value) {
     return (value !== undefined && value > 0) ? value : null;
+}
+
+/**
+ * Fetches tasks for a given account and optionally filtered by project.
+ *
+ * If `projectId` is 0, it fetches all tasks for the account. Otherwise, it fetches
+ * tasks belonging to both the account and the specified project.
+ *
+ * @param {number} accountId - The ID of the account.
+ * @param {number} projectId - The ID of the project to filter by (0 to ignore).
+ * @returns {Array<Object>} An array of task objects from the local DB.
+ */
+function getTasksForAccountAndProject(accountId, projectId) {
+    log('getTasksForAccountAndProject', '[${tag}] Fetching tasks for accountId: ${accountId}, projectId: ${projectId}');
+
+    var tasks = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var result;
+
+            if (projectId === 0) {
+                result = tx.executeSql(
+                    "SELECT * FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC",
+                    [accountId]
+                );
+            } else {
+                result = tx.executeSql(
+                    "SELECT * FROM project_task_app WHERE account_id = ? AND project_id = ? ORDER BY last_modified DESC",
+                    [accountId, projectId]
+                );
+            }
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                tasks.push({
+                    id: row.id,
+                    remote_id: row.odoo_record_id,
+                    name: row.name,
+                    allocated_hours: row.initial_planned_hours,
+                    state: row.state,
+                    project_id: row.project_id,
+                    parent_id: row.parent_id,
+                    favorites: row.favorites
+                });
+            }
+        });
+
+    } catch (e) {
+        logException(e);
+    }
+
+    return tasks;
 }
 
 function markTaskAsDeleted(taskId) {
@@ -363,3 +419,61 @@ function get_filtered_tasklist(filtertext){
     return filteredtasks
 
 }
+
+
+
+
+//Refactored
+
+/**
+ * Fetches all tasks for a specific account from the SQLite DB.
+ * Matches exact DB column names from the project_task_app schema.
+ *
+ * @param {int} accountId - The account identifier (0 for local).
+ * @returns {Array<Object>} - List of task records.
+ */
+function getTasksForAccount(accountId) {
+    const taskList = [];
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            const results = tx.executeSql(
+                "SELECT * FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC",
+                [accountId]
+            );
+
+            for (let i = 0; i < results.rows.length; i++) {
+                const row = results.rows.item(i);
+                taskList.push({
+                    id: row.id,
+                    name: row.name,
+                    account_id: row.account_id,
+                    project_id: row.project_id,
+                    sub_project_id: row.sub_project_id,
+                    parent_id: row.parent_id,
+                    start_date: row.start_date,
+                    end_date: row.end_date,
+                    deadline: row.deadline,
+                    initial_planned_hours: row.initial_planned_hours,
+                    favorites: row.favorites,
+                    state: row.state,
+                    description: row.description,
+                    last_modified: row.last_modified,
+                    user_id: row.user_id,
+                    status: row.status,
+                    odoo_record_id: row.odoo_record_id
+                });
+            }
+        });
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+    return taskList;
+}
+

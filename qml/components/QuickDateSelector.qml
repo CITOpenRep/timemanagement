@@ -26,7 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.1
 import QtGraphicalEffects 1.0
-import "../constants.js" as AppConst
+import "../../models/constants.js" as AppConst
 
 Item {
     id: datepicker_tb

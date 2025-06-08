@@ -1,8 +1,6 @@
 .import QtQuick.LocalStorage 2.7 as Sql
+.import "database.js" as DBCommon
 
-/* Name: get_accounts_list
-* This function will return accounts which are linked to Odoo
-*/
 function getFormattedTimestamp() {
     var d = new Date();
     return d.getFullYear() + "-" +
@@ -13,19 +11,6 @@ function getFormattedTimestamp() {
            String(d.getSeconds()).padStart(2, '0');
 }
 
-
-function get_accounts_list() {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var accountlist = [];
-    db.transaction(function(tx) {
-        var accounts = tx.executeSql('SELECT * FROM users');
-        for (var account = 0; account < accounts.rows.length; account++) {
-            accountlist.push({'id': accounts.rows.item(account).id,
-                             'name': accounts.rows.item(account).name});
-        }
-    });
-    return accountlist;
-}
 
 function convertFloatToTime(value) {
     var hours = Math.floor(value);

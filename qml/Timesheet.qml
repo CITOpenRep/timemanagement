@@ -30,8 +30,8 @@ import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
 import QtQuick.Window 2.2
 import Qt.labs.settings 1.0
-import "../models/Timesheet.js" as Model
-import "../models/TimerService.js" as TimerService
+import "../models/timesheet.js" as Model
+import "../models/timer_service.js" as TimerService
 import "components"
 
 Page {
@@ -61,13 +61,26 @@ Page {
     }
 
     function save_timesheet() {
-        console.log("Timesheet Saved");
+        console.log("Trying to save time sheet");
+        const ids = workItem.getAllSelectedDbRecordIds();
+        console.log("Account DB ID:", ids.accountDbId);
+        console.log("Project DB ID:", ids.projectDbId);
+        console.log("Subproject DB ID:", ids.subprojectDbId);
+        console.log("Task DB ID:", ids.taskDbId);
+        console.log("Subtask DB ID:", ids.subtaskDbId);
+        console.log("Gokul commented it out , not saving time sheet")
+        return
+        if (projectSelectorCombo.selectedProjectId < 0) {
+            notifPopup.open("Error", "You need to select a project to save time sheet", "error");
+            return;
+        }
+
         var timesheet_data = {
             'instance_id': accountSelectorCombo.selectedInstanceId < 0 ? null : accountSelectorCombo.selectedInstanceId,
             'dateTime': date_widget.date,
-            'project': projectSelectorCombo.selectedProjectId < 0 ? null : projectSelectorCombo.selectedProjectId,
+            'project': projectSelectorCombo.getSelectedDbRecordId(),
             'task': taskSelectorCombo.selectedTaskId < 0 ? null : taskSelectorCombo.selectedTaskId,
-            'subprojectId': subprojectSelectorCombo.selectedSubProjectId < 0 ? null : subprojectSelectorCombo.selectedSubProjectId,
+            'subprojectId': subprojectSelectorCombo.getSelectedDbRecordId(),
             'subTask': subTaskSelectorCombo.selectedSubTaskId < 0 ? null : subTaskSelectorCombo.selectedSubTaskId,
             'description': description_text.text,
             'manualSpentHours': hours_text.text,
@@ -110,43 +123,10 @@ Page {
             id: myRow1a
             anchors.left: parent.left
             topPadding: 40
-            Column {
-                leftPadding: units.gu(2)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: instance_label
-                        text: "Instance"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(30)
-                    height: units.gu(5)
-
-                    AccountSelector {
-                        id: accountSelectorCombo
-                        editable: true
-                        width: parent.width
-                        height: parent.height
-                        anchors.centerIn: parent.centerIn
-                        flat: true
-                        onAccountSelected: {
-                            projectSelectorCombo.accountId = id;
-                            projectSelectorCombo.loadProjects();
-                            subprojectSelectorCombo.clear();
-                            taskSelectorCombo.clear();
-                            subTaskSelectorCombo.clear();
-                        }
-                    }
-                }
+            WorkItemSelector {
+                id: workItem
+                width: timesheetsDetailsPageFlickable.width
+                height: units.gu(35)
             }
         }
 
@@ -181,191 +161,12 @@ Page {
                 }
             }
         }
-        Row {
-            id: myRow2
-            anchors.top: myRow1.bottom
-            anchors.left: parent.left
-            topPadding: 10
-            Column {
-                id: myCol
-                leftPadding: units.gu(2)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: project_label
-                        text: "Project"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                id: myCol1
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(30)
-                    height: units.gu(5)
-                    ProjectSelector {
-                        id: projectSelectorCombo
-                        editable: true
-                        width: parent.width
-                        height: parent.height
-                        anchors.centerIn: parent.centerIn
-                        onProjectSelected: {
-                            subprojectSelectorCombo.accountId = accountSelectorCombo.selectedInstanceId;
-                            subprojectSelectorCombo.projectId = id;
-                            subprojectSelectorCombo.loadSubProjects();
-                            taskSelectorCombo.clear();
-                            taskSelectorCombo.projectId = id;
-                            taskSelectorCombo.accountId = accountSelectorCombo.selectedInstanceId;
-                            taskSelectorCombo.loadTasks();
-                            subTaskSelectorCombo.clear();
-                        }
-                    }
-                }
-            }
-        }
-        /************************************************************
-*       Added Sub Project below                             *
-************************************************************/
-        Row {
-            id: myRow9
-            anchors.top: myRow2.bottom
-            anchors.left: parent.left
-            topPadding: 10
-            visible: true
-            Column {
-                id: myCol8
-                leftPadding: units.gu(2)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: subproject_label
-                        text: "Sub Project"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                id: myCol9
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                    height: units.gu(5)
-                    SubProjectSelector {
-                        id: subprojectSelectorCombo
-                        editable: true
-                        width: parent.width
-                        height: parent.height
-                        anchors.centerIn: parent.centerIn
-                        onSubProjectSelected: {
-                            taskSelectorCombo.clear();
-                            taskSelectorCombo.projectId = id;
-                            taskSelectorCombo.accountId = accountSelectorCombo.selectedInstanceId;
-                            taskSelectorCombo.loadTasks();
-                        }
-                    }
-                }
-            }
-        }
-
-        /**********************************************************/
-
-        Row {
-            id: myRow3
-            anchors.top: myRow9.bottom
-            anchors.left: parent.left
-            topPadding: 10
-            Column {
-                leftPadding: units.gu(2)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: task_label
-                        text: "Task"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                    height: units.gu(5)
-                    TaskSelector {
-                        id: taskSelectorCombo
-                        editable: true
-                        width: parent.width
-                        height: parent.height
-                        anchors.centerIn: parent.centerIn
-                        onTaskSelected: {
-                            subTaskSelectorCombo.accountId = accountSelectorCombo.selectedInstanceId;
-                            subTaskSelectorCombo.taskId = id;
-                            subTaskSelectorCombo.loadSubTasks();
-                        }
-                    }
-                }
-            }
-        }
-
-        /************************************************************
-*       Added Sub Task below                                *
-************************************************************/
-        Row {
-            id: myRow10
-            anchors.top: myRow3.bottom
-            anchors.left: parent.left
-            topPadding: 10
-            visible: true
-            Column {
-                id: myCol10
-                leftPadding: units.gu(2)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: subtask_label
-                        text: "Sub Task"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                id: myCol11
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                    height: 60
-                    SubTaskSelector {
-                        id: subTaskSelectorCombo
-                        editable: true
-                        width: parent.width
-                        height: parent.height
-                        anchors.centerIn: parent.centerIn
-                    }
-                }
-            }
-        }
 
         /**********************************************************/
 
         Column {
             id: descriptionSection
-            anchors.top: myRow10.bottom
+            anchors.top: myRow1.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             spacing: units.gu(1)
@@ -471,6 +272,9 @@ Page {
 
         Component.onCompleted: {
             console.log("From Timesheet " + apLayout.columns);
+            //Gokul is teesting
+            console.log("Gokul added below line to test")
+          //  workItem.applyDeferredSelection(2, 133, 135, 261, 264);
             //  myTimePicker.open(9, 30) //testing
         }
     }

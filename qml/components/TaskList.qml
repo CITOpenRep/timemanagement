@@ -187,7 +187,7 @@ Item {
                                 currentParentId = model.id_val;
                             } else {
                                 console.log("Selecting task:", model.taskName);
-                               // taskNavigator.taskSelected(model.id_val, model.name);
+                                // taskNavigator.taskSelected(model.id_val, model.name);
                             }
                         }
                     }

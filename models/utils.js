@@ -1,4 +1,5 @@
 .import QtQuick.LocalStorage 2.7 as Sql
+.import "database.js" as DBCommon
 
 function getLastSyncStatus(accountId) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -41,26 +42,6 @@ function getYesterday() {
 }
 
 
-
-function initializeDatabase() {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-
-    db.transaction(function(tx) {
-        
-        tx.executeSql('CREATE TABLE IF NOT EXISTS users (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT,\
-            name TEXT NOT NULL,\
-            link TEXT NOT NULL,\
-            last_modified datetime,\
-            database TEXT NOT NULL,\
-            connectwith_id INTEGER,\
-            api_key TEXT,\
-            username TEXT NOT NULL\
-        )');
-
-    });
-}
-
 function insertData(name, link, database, username, selectedconnectwithId, apikey) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
@@ -92,140 +73,6 @@ function queryData() {
     });
     selectedconnectwithId = 1;
     connectwith.text = 'Connect With Api Key'
-}
-
-function prepare_database() {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-
-    db.transaction(function(tx) {
-        tx.executeSql('CREATE TABLE IF NOT EXISTS users (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT,\
-            name TEXT NOT NULL,\
-            link TEXT NOT NULL,\
-            last_modified datetime,\
-            database TEXT NOT NULL,\
-            connectwith_id INTEGER,\
-            api_key TEXT,\
-            username TEXT NOT NULL\
-        )');
-    });
-
-    db.transaction(function(tx) {
-        
-        tx.executeSql('CREATE TABLE IF NOT EXISTS project_project_app (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT,\
-            name TEXT NOT NULL,\
-            account_id INTEGER,\
-            parent_id INTEGER,\
-            planned_start_date date,\
-            planned_end_date date,\
-            allocated_hours FLOAT,\
-            favorites INTEGER,\
-            last_update_status TEXT,\
-            description TEXT,\
-            last_modified datetime,\
-            color_pallet TEXT,\
-            odoo_record_id INTEGER,\
-            FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE,\
-            FOREIGN KEY (parent_id) REFERENCES project_project_app(id) ON DELETE CASCADE\
-        )');
-    });
-
-    db.transaction(function(tx) {
-        tx.executeSql('CREATE TABLE IF NOT EXISTS res_users_app (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT,\
-            account_id INTEGER,\
-            name Text,\
-            share INTEGER,\
-            active INTEGER,\
-            odoo_record_id INTEGER,\
-            FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE\
-        )');
-    });
-
-    db.transaction(function(tx) {
-        
-        tx.executeSql('CREATE TABLE IF NOT EXISTS project_task_app (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT,\
-            name TEXT NOT NULL,\
-            account_id INTEGER,\
-            project_id INTEGER,\
-            sub_project_id INTEGER,\
-            parent_id INTEGER,\
-            start_date date,\
-            end_date date,\
-            deadline date,\
-            initial_planned_hours FLOAT,\
-            favorites INTEGER,\
-            state TEXT,\
-            description TEXT,\
-            last_modified datetime,\
-            user_id INTEGER,\
-            odoo_record_id INTEGER,\
-            FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE,\
-            FOREIGN KEY (project_id) REFERENCES project_project_app(id) ON DELETE CASCADE,\
-            FOREIGN KEY (sub_project_id) REFERENCES project_project_app(id) ON DELETE CASCADE,\
-            FOREIGN KEY (user_id) REFERENCES res_users_app(id) ON DELETE CASCADE,\
-            FOREIGN KEY (parent_id) REFERENCES project_task_app(id) ON DELETE CASCADE\
-        )');
-    });
-
-    db.transaction(function(tx) {
-        
-        tx.executeSql('CREATE TABLE IF NOT EXISTS account_analytic_line_app (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT,\
-            account_id INTEGER,\
-            project_id INTEGER,\
-            sub_project_id INTEGER,\
-            task_id INTEGER,\
-            sub_task_id INTEGER,\
-            name TEXT,\
-            unit_amount FLOAT,\
-            last_modified datetime,\
-            quadrant_id INTEGER,\
-            record_date date,\
-            odoo_record_id INTEGER,\
-            FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE,\
-            FOREIGN KEY (project_id) REFERENCES project_project_app(id) ON DELETE CASCADE,\
-            FOREIGN KEY (task_id) REFERENCES project_task_app(id) ON DELETE CASCADE\
-        )');
-    });
-
-    db.transaction(function(tx) {
-        tx.executeSql('CREATE TABLE IF NOT EXISTS mail_activity_type_app (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT,\
-            account_id INTEGER,\
-            name TEXT,\
-            odoo_record_id INTEGER,\
-            FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE\
-        )');
-    });
-
-    db.transaction(function(tx) {
-        
-        tx.executeSql('CREATE TABLE IF NOT EXISTS mail_activity_app (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT,\
-            account_id INTEGER,\
-            activity_type_id INTEGER,\
-            summary TEXT,\
-            due_date DATE,\
-            user_id INTEGER,\
-            notes TEXT,\
-            odoo_record_id INTEGER,\
-            last_modified datetime,\
-            link_id INTEGER,\
-            project_id INTEGER,\
-            task_id INTEGER,\
-            resId INTEGER,\
-            resModel TEXT,\
-            state TEXT,\
-            FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE,\
-            FOREIGN KEY (user_id) REFERENCES res_users_app(id) ON DELETE CASCADE,\
-            FOREIGN KEY (activity_type_id) REFERENCES mail_activity_type_app(id) ON DELETE CASCADE\
-            FOREIGN KEY (project_id) REFERENCES project_project_app(id) ON DELETE CASCADE,\
-            FOREIGN KEY (task_id) REFERENCES project_task_app(id) ON DELETE CASCADE\
-        )');
-    });
 }
 
 function accountlistDataGet(){
@@ -404,21 +251,6 @@ function updateOdooUsers(model) {
     });
 }
 
-function updateAccounts(model) {
-    const db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    model.clear();
-
-    db.transaction(function(tx) {
-        const result = tx.executeSql('SELECT id, name FROM users');
-        for (let i = 0; i < result.rows.length; i++) {
-            model.append({
-                             id: result.rows.item(i).id,
-                             name: result.rows.item(i).name
-                         });
-        }
-    });
-}
-
 function fetch_projects(instance_id, is_work_state) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var projectList = [];
@@ -456,12 +288,12 @@ function fetch_subprojects(instance_id, parent_project_id) {
                 WHERE parent_id = ?', [row.id]);
 
             subprojectList.push({
-                id: row.odoo_record_id,
-                name: row.name,
-                parent_id: row.parent_id,
-                recordId: row.odoo_record_id,
-                projectHasSubProject: child_projects.rows.item(0).count > 0
-            });
+                                    id: row.odoo_record_id,
+                                    name: row.name,
+                                    parent_id: row.parent_id,
+                                    recordId: row.odoo_record_id,
+                                    projectHasSubProject: child_projects.rows.item(0).count > 0
+                                });
         }
     });
 
@@ -479,11 +311,11 @@ function fetch_subtasks(instance_id, parent_task_id) {
         for (var i = 0; i < result.rows.length; i++) {
             var row = result.rows.item(i);
             subtaskList.push({
-                id: row.odoo_record_id,
-                name: row.name,
-                parent_id: row.parent_id,
-                id_val: row.odoo_record_id
-            });
+                                 id: row.odoo_record_id,
+                                 name: row.name,
+                                 parent_id: row.parent_id,
+                                 id_val: row.odoo_record_id
+                             });
         }
     });
 
@@ -545,47 +377,6 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
 
     xhr.send("{}");
 }
-
-
-// Utils.js — Task fetcher function for TaskSelector
-function fetch_tasks(accountId, projectId) {
-    console.log("📥 Fetching tasks for accountId:", accountId, " projectId:", projectId);
-
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var tasks = [];
-
-    db.transaction(function(tx) {
-        var result;
-
-        if (projectId === 0) {
-            // Fallback: return all tasks if no filter at all
-            result = tx.executeSql("SELECT * FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC",[accountId]);
-        } else if (projectId === 0) {
-            // Only account filter
-            result = tx.executeSql("SELECT * FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC", [accountId]);
-        } else {
-            // Both project and account filters
-            result = tx.executeSql("SELECT * FROM project_task_app WHERE account_id = ? AND project_id = ? ORDER BY last_modified DESC", [accountId, projectId]);
-        }
-
-        for (var i = 0; i < result.rows.length; i++) {
-            var row = result.rows.item(i);
-            tasks.push({
-                id: row.id,
-                remote_id: row.odoo_record_id,
-                name: row.name,
-                allocated_hours: row.initial_planned_hours,
-                state: row.state,
-                project_id: row.project_id,
-                parent_id: row.parent_id,
-                favorites: row.favorites
-            });
-        }
-    });
-
-    return tasks;
-}
-
 
 function populateProjectModelWithTaskCount(model, is_work_state) {
     model.clear();
@@ -666,60 +457,5 @@ function getNextMonthRange() {
     };
 }
 
-function get_accounts_list() {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
-    var accountsList = [];
-    db.transaction(function (tx) {
-        var accounts = tx.executeSql('SELECT * FROM users');
-        for (var i = 0; i < accounts.rows.length; i++) {
-            var row = accounts.rows.item(i);
-            console.log("Account loaded ->", row.id, row.name);
-            accountsList.push({
-                                  id: row.id,
-                                  name: row.name,
-                                  link: row.link,
-                                  database: row.database,
-                                  username: row.username,
-                                  connect_with: row.connectwith_id || 0,
-                                  api_key: row.api_key
-                              });
-        }
-    });
-
-    return accountsList;
-}
-
-function deleteAccountAndRelatedData(userId) {
-    try {
-        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-        db.transaction(function (tx) {
-            // List of tables where account_id is used
-            var tables = [
-                        "sync_report",
-                        "project_project_app",
-                        "project_task_app",
-                        "account_analytic_line_app",
-                        "res_users_app",
-                        "mail_activity_type_app",
-                        "mail_activity_app"
-                    ];
-
-            // Delete from each related table
-            for (var i = 0; i < tables.length; i++) {
-                var table = tables[i];
-                console.log("Deleting from", table, "where account_id =", userId);
-                tx.executeSql("DELETE FROM " + table + " WHERE account_id = ?", [userId]);
-            }
-
-            // Now delete from users table
-            console.log("Deleting user from users where id =", userId);
-            tx.executeSql("DELETE FROM users WHERE id = ?", [userId]);
-
-            console.log("✅ Account and related data deleted successfully for account_id:", userId);
-        });
-    } catch (e) {
-        console.error("❌ Error deleting account and related data:", e);
-    }
-}
 

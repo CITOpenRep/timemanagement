@@ -30,8 +30,8 @@ import Ubuntu.Components 1.3 as Ubuntu
 import QtQuick.LocalStorage 2.7
 import Lomiri.Components.ListItems 1.3 as ListItem
 
-import "../models/Project.js" as Project
-import "../models/Utils.js" as Utils
+import "../models/project.js" as Project
+import "../models/utils.js" as Utils
 
 import "components"
 

@@ -24,7 +24,7 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../models/Utils.js" as Utils
+import "../../models/utils.js" as Utils
 
 ComboBox {
     id: subTaskCombo

@@ -23,8 +23,8 @@
  */
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../constants.js" as AppConst
-import "../../models/Utils.js" as Utils
+import "../../models/constants.js" as AppConst
+import "../../models/utils.js" as Utils
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
 
@@ -150,7 +150,6 @@ ListItem {
                             width: parent.width - units.gu(2)
                         }
 
-
                         Text {
                             id: yellowBlock
                             text: projectName
@@ -161,7 +160,6 @@ ListItem {
                             height: units.gu(2)
                         }
 
-
                         Label {
                             id: details
                             text: "Details"
@@ -170,16 +168,13 @@ ListItem {
                             height: units.gu(3)
                             color: "blue"
                             font.underline: true
-                            MouseArea
-                            {
-                                anchors.fill:parent
-                                onClicked:{
-                                    console.log("Showing Task Details")
-                                    viewRequested(localId)
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    console.log("Showing Task Details");
+                                    viewRequested(localId);
                                 }
                             }
-
-
                         }
                     }
                 }

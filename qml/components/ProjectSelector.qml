@@ -1,30 +1,11 @@
 /*
  * MIT License
- *
  * Copyright (c) 2025 CIT-Services
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
  */
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../models/Utils.js" as Utils
+import "../../models/project.js" as Project
 
 ComboBox {
     id: projectCombo
@@ -36,14 +17,16 @@ ComboBox {
 
     textRole: "name"
 
+    Component.onCompleted: {
+        if (accountId === -1)
+            editText = (mode === "subproject") ? "No Subproject" : "No Project";
+    }
+
     property alias exposedModel: internalProjectModel
     property int accountId: -1
-    property bool workPersonaState: true
     property int selectedProjectId: -1
-
-    // Deferred selection support
-    property int deferredProjectId: -1
-    property bool shouldDeferSelection: false
+    property string mode: "project"    // or "subproject"
+    property bool autoSelectFirst: true
 
     signal projectSelected(int id, string name)
 
@@ -52,80 +35,145 @@ ComboBox {
     }
 
     model: internalProjectModel
+    property bool isDeferredSelection: false
 
     background: Rectangle {
         color: "transparent"
         border.width: 0
     }
 
-    function loadProjects() {
-        if (accountId === -1) {
-            console.warn("⚠️ ProjectSelector: accountId not set. Skipping load.");
-            return;
+    function getSelectedDbRecordId() {
+        if (selectedProjectId < 0 || accountId === -1)
+            return null;
+
+        for (let i = 0; i < internalProjectModel.count; i++) {
+            let item = internalProjectModel.get(i);
+            if (item.recordId === selectedProjectId) {
+                return (accountId === 0) ? item.id : (item.odoo_record_id && item.odoo_record_id !== 0) ? item.odoo_record_id : null;
+            }
         }
+        return null;
+    }
 
+    function clear() {
         internalProjectModel.clear();
+        currentIndex = -1;
+        selectedProjectId = -1;
+        editText = "";
+    }
 
-        let projects = Utils.fetch_projects(accountId, workPersonaState);
-        for (let i = 0; i < projects.length; i++) {
-            let p = projects[i];
-            if (p.parent_id && p.parent_id !== 0 && p.parent_id !== "0")
+    function load(accountIdVal, parentOdooIdVal) {
+        isDeferredSelection = false;
+        _loadInternal(accountIdVal, parentOdooIdVal, false, true);  // useParentFilter = true
+    }
+
+    function loadDeferred(accountIdVal, projectOdooIdVal) {
+        isDeferredSelection = true;
+        _loadInternal(accountIdVal, projectOdooIdVal, true, false); // useParentFilter = false
+    }
+
+    function _loadInternal(accountIdVal, secondVal, suppressSignal, useParentFilter) {
+        console.log("📥 _loadInternal → accountId:", accountIdVal, "secondVal:", secondVal, "suppressSignal:", suppressSignal, "useParentFilter:", useParentFilter);
+        clear();
+        accountId = accountIdVal;
+
+        const noneLabel = (mode === "subproject") ? "No Subproject" : "No Project";
+        internalProjectModel.append({
+            name: noneLabel,
+            id: -1,
+            recordId: -1
+        });
+        currentIndex = 0;
+        selectedProjectId = -1;
+        editText = noneLabel;
+
+        if (accountId === -1)
+            return;
+
+        const allProjects = Project.getProjectsForAccount(accountId);
+        let resolvedParentId = secondVal;
+        if (accountId > 0) {
+            if (useParentFilter && secondVal !== 0) {
+                for (let i = 0; i < allProjects.length; i++) {
+                    const p = allProjects[i];
+                    console.log("accountId is " + accountId + " p.odoo_record_id is " + p.odoo_record_id + " and p.id is " + p.id);
+
+                    if (secondVal === p.id) {
+                        console.log("got the record");
+                        resolvedParentId = p.odoo_record_id;
+                        break;
+                    }
+                }
+            }
+        }
+        console.log("✅ Resolved parent id is " + resolvedParentId);
+
+        for (let i = 0; i < allProjects.length; i++) {
+            const p = allProjects[i];
+            const pid = parseInt(p.parent_id) || 0;
+
+            const parentMatch = useParentFilter ? ((secondVal === 0 && pid === 0) || (secondVal !== 0 && pid === resolvedParentId)) : (mode === "project" && pid === 0) || (mode === "subproject" && pid !== 0);
+
+            if (!parentMatch)
                 continue;
 
             internalProjectModel.append({
                 name: p.name,
                 id: p.id,
                 recordId: p.id,
-                projectHasSubProject: p.projectHasSubProject
+                odoo_record_id: p.odoo_record_id,
+                parent_id: p.parent_id
             });
         }
 
-        if (internalProjectModel.count > 0 && !shouldDeferSelection) {
-            currentIndex = 0;
-            editText = internalProjectModel.get(0).name;
-            var item = internalProjectModel.get(0);
-            selectedProjectId = (item.recordId !== undefined) ? item.recordId : item.id;
-            projectSelected(selectedProjectId, editText);
-        }
+        if (useParentFilter)
+            return;
 
-        if (shouldDeferSelection && deferredProjectId > 0) {
-            Qt.callLater(() => {
-                selectProjectById(deferredProjectId);
-                shouldDeferSelection = false;
-                deferredProjectId = -1;
-            });
-        }
-    }
+        if (secondVal === -1)
+            return;
 
-    function selectProjectById(projectId) {
-        console.log("Loading project : " + projectId);
+        let found = false;
         for (let i = 0; i < internalProjectModel.count; i++) {
-            let item = internalProjectModel.get(i);
-            if (item.recordId === projectId) {
-                console.log("✅ Project matched:", item.name);
+            const item = internalProjectModel.get(i);
+            const isMatch = (accountId === 0) ? item.recordId === secondVal : item.odoo_record_id === secondVal;
+
+            if (isMatch) {
                 currentIndex = i;
-                editText = item.name;
                 selectedProjectId = item.recordId;
-                projectSelected(selectedProjectId, item.name);
+                editText = item.name;
+                found = true;
+                if (!suppressSignal)
+                    projectSelected(selectedProjectId, editText);
                 break;
             }
+        }
+
+        if (!found && autoSelectFirst && internalProjectModel.count > 1) {
+            const item = internalProjectModel.get(1);
+            currentIndex = 1;
+            selectedProjectId = item.recordId;
+            editText = item.name;
+            if (!suppressSignal)
+                projectSelected(selectedProjectId, item.name);
         }
     }
 
     onActivated: {
+        isDeferredSelection = false;
         if (currentIndex >= 0) {
-            let selected = model.get(currentIndex);
-            selectedProjectId = selected.id;
-            projectSelected(selectedProjectId, selected.name);
+            const selected = model.get(currentIndex);
+            selectedProjectId = selected.recordId;
+            projectSelected(selected.recordId, selected.name);
         }
     }
 
     onAccepted: {
-        let idx = find(editText);
+        isDeferredSelection = false;
+        const idx = find(editText);
         if (idx !== -1) {
-            let selected = model.get(idx);
-            selectedProjectId = selected.id;
-            projectSelected(selectedProjectId, selected.name);
+            const selected = model.get(idx);
+            selectedProjectId = selected.recordId;
+            projectSelected(selected.recordId, selected.name);
         }
     }
 }

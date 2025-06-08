@@ -23,7 +23,7 @@
  */
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../constants.js" as AppConst
+import "../../models/constants.js" as AppConst
 
 Rectangle {
     id: bellWidget

@@ -106,6 +106,8 @@ def check_table_exists(db_path, table_name):
 
 
 def write_sync_report_to_db(db_path, account_id, status, message=""):
+
+    log_output = log.json_handler.get_json_string()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -122,13 +124,18 @@ def write_sync_report_to_db(db_path, account_id, status, message=""):
     """
     )
 
+    cursor.execute(
+            "DELETE FROM sync_report WHERE account_id = ?",
+            (account_id,)
+        )
+
     # Insert report
     cursor.execute(
         """
         INSERT INTO sync_report (status, account_id, timestamp, message)
         VALUES (?, ?, ?, ?)
     """,
-        (status, account_id, datetime.utcnow().isoformat() + "Z", message),
+        (status, account_id, datetime.utcnow().isoformat() + "Z", log_output),
     )
 
     conn.commit()
