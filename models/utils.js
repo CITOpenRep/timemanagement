@@ -251,7 +251,6 @@ function updateOdooUsers(model) {
     });
 }
 
-
 function fetch_projects(instance_id, is_work_state) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var projectList = [];
