@@ -251,20 +251,6 @@ function updateOdooUsers(model) {
     });
 }
 
-function updateAccounts(model) {
-    const db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    model.clear();
-
-    db.transaction(function(tx) {
-        const result = tx.executeSql('SELECT id, name FROM users');
-        for (let i = 0; i < result.rows.length; i++) {
-            model.append({
-                             id: result.rows.item(i).id,
-                             name: result.rows.item(i).name
-                         });
-        }
-    });
-}
 
 function fetch_projects(instance_id, is_work_state) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
