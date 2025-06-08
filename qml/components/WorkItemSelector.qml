@@ -6,7 +6,7 @@ Rectangle {
     id: workItemSelector
     width: parent ? parent.width : Screen.width
     height: implicitHeight
-    color: "#eeeeee"
+    color: "transparent"
 
     // Visibility control properties
     property bool showAccountSelector: true
@@ -14,6 +14,7 @@ Rectangle {
     property bool showSubprojectSelector: true
     property bool showTaskSelector: true
     property bool showSubtaskSelector: true
+    property bool readOnly: false
 
     signal datachanged
 
@@ -24,8 +25,6 @@ Rectangle {
     function applyDeferredSelection(accountId, projectOdooId, subProjectOdooId, taskOdooId, subTaskOdooId) {
         accountSelector.shouldDeferSelection = true;
         accountSelector.deferredAccountId = accountId;
-
-        accountSelector.loadAccounts();
 
         projectSelector.loadDeferred(accountId, projectOdooId);
         subProjectSelector.loadDeferred(accountId, subProjectOdooId);
@@ -55,12 +54,12 @@ Rectangle {
             width: parent.width
             spacing: units.gu(1)
             visible: showAccountSelector
-            height: units.gu(6)
+            height: units.gu(5)
 
             Label {
                 text: "Account"
-                font.bold: true
-                font.pixelSize: units.gu(2)
+
+                font.pixelSize: units.gu(1.5)
                 width: parent.width * 0.3
                 verticalAlignment: Text.AlignVCenter
             }
@@ -73,9 +72,8 @@ Rectangle {
                     id: accountSelector
                     anchors.centerIn: parent
                     editable: true
-                    onAccountSelected:
-                    {
-                        projectSelector.load(accountSelector.selectedInstanceId,0)
+                    onAccountSelected: {
+                            projectSelector.load(accountSelector.selectedInstanceId, 0);
                     }
                 }
             }
@@ -86,12 +84,12 @@ Rectangle {
             width: parent.width
             spacing: units.gu(1)
             visible: showProjectSelector
-            height: units.gu(6)
+            height: units.gu(5)
 
             Label {
                 text: "Project"
-                font.bold: true
-                font.pixelSize: units.gu(2)
+
+                font.pixelSize: units.gu(1.5)
                 width: parent.width * 0.3
                 verticalAlignment: Text.AlignVCenter
             }
@@ -118,12 +116,12 @@ Rectangle {
             width: parent.width
             spacing: units.gu(1)
             visible: showSubprojectSelector
-            height: units.gu(6)
+            height: units.gu(5)
 
             Label {
                 text: "Subproject"
-                font.bold: true
-                font.pixelSize: units.gu(2)
+
+                font.pixelSize: units.gu(1.5)
                 width: parent.width * 0.3
                 verticalAlignment: Text.AlignVCenter
             }
@@ -154,12 +152,12 @@ Rectangle {
             width: parent.width
             spacing: units.gu(1)
             visible: showTaskSelector
-            height: units.gu(6)
+            height: units.gu(5)
 
             Label {
                 text: "Task"
-                font.bold: true
-                font.pixelSize: units.gu(2)
+
+                font.pixelSize: units.gu(1.5)
                 width: parent.width * 0.3
                 verticalAlignment: Text.AlignVCenter
             }
@@ -189,12 +187,12 @@ Rectangle {
             width: parent.width
             spacing: units.gu(1)
             visible: showSubtaskSelector
-            height: units.gu(6)
+            height: units.gu(5)
 
             Label {
                 text: "Subtask"
-                font.bold: true
-                font.pixelSize: units.gu(2)
+
+                font.pixelSize: units.gu(1.5)
                 width: parent.width * 0.3
                 verticalAlignment: Text.AlignVCenter
             }

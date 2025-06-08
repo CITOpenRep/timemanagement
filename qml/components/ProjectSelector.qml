@@ -63,12 +63,12 @@ ComboBox {
     }
 
     function load(accountIdVal, parentOdooIdVal) {
-        isDeferredSelection=false
+        isDeferredSelection = false;
         _loadInternal(accountIdVal, parentOdooIdVal, false, true);  // useParentFilter = true
     }
 
     function loadDeferred(accountIdVal, projectOdooIdVal) {
-        isDeferredSelection=true
+        isDeferredSelection = true;
         _loadInternal(accountIdVal, projectOdooIdVal, true, false); // useParentFilter = false
     }
 
@@ -159,7 +159,7 @@ ComboBox {
     }
 
     onActivated: {
-        isDeferredSelection=false
+        isDeferredSelection = false;
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedProjectId = selected.recordId;
@@ -168,7 +168,7 @@ ComboBox {
     }
 
     onAccepted: {
-        isDeferredSelection=false
+        isDeferredSelection = false;
         const idx = find(editText);
         if (idx !== -1) {
             const selected = model.get(idx);

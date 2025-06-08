@@ -67,12 +67,12 @@ ComboBox {
     }
 
     function load(accountIdVal, taskIdVal, projectIdVal) {
-        isDeferredSelection=false
+        isDeferredSelection = false;
         _loadInternal(accountIdVal, taskIdVal, projectIdVal, false);
     }
 
     function loadDeferred(accountIdVal, taskIdVal, projectIdVal) {
-        isDeferredSelection=true
+        isDeferredSelection = true;
         _loadInternal(accountIdVal, taskIdVal, projectIdVal, true);
     }
 
@@ -163,17 +163,17 @@ ComboBox {
     }
 
     onActivated: {
-        isDeferredSelection=false
+        isDeferredSelection = false;
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedTaskId = selected.recordId;
             taskSelected(selected.recordId, selected.name);
-            isDeferredSelection=false
+            isDeferredSelection = false;
         }
     }
 
     onAccepted: {
-        isDeferredSelection=false
+        isDeferredSelection = false;
         const idx = find(editText);
         if (idx !== -1) {
             const selected = model.get(idx);
