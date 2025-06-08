@@ -77,7 +77,7 @@ ComboBox {
     }
 
     function _loadInternal(accountIdVal, taskIdVal, projectIdVal, suppressSignal) {
-        console.log("📥 _loadInternal → accountId:", accountIdVal, "taskIdVal:", taskIdVal, "projectIdVal:", projectIdVal, "suppressSignal:", suppressSignal);
+        //console.log("_loadInternal → accountId:", accountIdVal, "taskIdVal:", taskIdVal, "projectIdVal:", projectIdVal, "suppressSignal:", suppressSignal);
         clear();
         accountId = accountIdVal;
         projectId = projectIdVal;

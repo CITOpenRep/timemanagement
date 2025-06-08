@@ -107,13 +107,13 @@ Page {
             user: model.user
             onEditRequested: {
                 console.log("Edit Requested");
-                apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet_details.qml"), {
+                apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                     "recordid": recordId,
                     "isReadOnly": false
                 });
             }
             onViewRequested: {
-                apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet_details.qml"), {
+                apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });

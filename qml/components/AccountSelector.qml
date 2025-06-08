@@ -84,8 +84,7 @@ ComboBox {
 
     Component.onCompleted: {
         loadAccounts();
-        if(!shouldDeferSelection)
-        {
+        if (!shouldDeferSelection) {
             selectFirstAccount();
         }
     }
