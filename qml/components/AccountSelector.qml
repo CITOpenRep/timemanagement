@@ -1,30 +1,6 @@
-/*
- * MIT License
- *
- * Copyright (c) 2025 CIT-Services
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../models/utils.js" as Utils
+import "../../models/accounts.js" as Accounts
 
 ComboBox {
     id: instanceCombo
@@ -44,33 +20,51 @@ ComboBox {
 
     model: internalInstanceModel
 
+    function loadAccounts() {
+        internalInstanceModel.clear();
+        const accounts = Accounts.getAccountsList();
+        for (let i = 0; i < accounts.length; i++) {
+            internalInstanceModel.append({
+                id: accounts[i].id,
+                name: accounts[i].name,
+                database: accounts[i].database,
+                link: accounts[i].link,
+                username: accounts[i].username
+            });
+        }
+    }
+
     function selectFirstAccount() {
         if (internalInstanceModel.count > 0) {
             currentIndex = 0;
-            editText = internalInstanceModel.get(0).name;
-            selectedInstanceId = internalInstanceModel.get(0).id;
-            accountSelected(selectedInstanceId, editText);
+            const first = internalInstanceModel.get(0);
+            editText = first.name;
+            selectedInstanceId = first.id;
+            accountSelected(selectedInstanceId, first.name);
         } else {
             currentIndex = -1;
+            selectedInstanceId = -1; // recommended
             editText = "Select an account";
         }
     }
 
     function selectAccountById(accountId) {
-        console.log("Loading account" + accountId);
+        console.log("Loading account " + accountId);
         for (var i = 0; i < internalInstanceModel.count; i++) {
-            if (internalInstanceModel.get(i).id === accountId) {
+            const item = internalInstanceModel.get(i);
+            if (item.id === accountId) {
                 currentIndex = i;
-                editText = internalInstanceModel.get(i).name;
-                selectedInstanceId = internalInstanceModel.get(i).id;
-                accountSelected(selectedInstanceId, internalInstanceModel.get(i).name);
+                editText = item.name;
+                selectedInstanceId = item.id;
+                console.log("Selecting " + item.name + " Selected index id: " + selectedInstanceId);
+                accountSelected(item.id, item.name);
                 return;
             }
         }
     }
 
     Component.onCompleted: {
-        Utils.updateAccounts(internalInstanceModel);
+        loadAccounts();
         selectFirstAccount();
     }
 
@@ -78,6 +72,7 @@ ComboBox {
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedInstanceId = selected.id;
+            console.log("Selecting " + selected.name + " Selected index id: " + selectedInstanceId);
             accountSelected(selected.id, selected.name);
         }
     }
@@ -87,6 +82,7 @@ ComboBox {
         if (idx !== -1) {
             const selected = model.get(idx);
             selectedInstanceId = selected.id;
+            console.log("Selecting " + selected.name + " Selected index id: " + selectedInstanceId);
             accountSelected(selected.id, selected.name);
         }
     }

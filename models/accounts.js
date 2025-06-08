@@ -1,11 +1,10 @@
 .import "database.js" as DBCommon
 .import QtQuick.LocalStorage 2.7 as Sql
 
-
 /**
  * Retrieves the list of all user accounts from the local SQLite database.
  *
- * Each account object contains ID, name, database link, credentials, and optional linkage info.
+ * Each account object strictly uses column names as defined in the 'users' table schema.
  *
  * @returns {Array<Object>} An array of account objects.
  */
@@ -22,19 +21,20 @@ function getAccountsList() {
                 var row = accounts.rows.item(i);
 
                 accountsList.push({
-                    user_id: row.id,
+                    id: row.id,
                     name: row.name,
                     link: row.link,
+                    last_modified: row.last_modified,
                     database: row.database,
-                    username: row.username,
+                    connectwith_id: row.connectwith_id,
                     api_key: row.api_key,
-                    connect_with: row.connectwith_id || 0
+                    username: row.username
                 });
             }
         });
 
     } catch (e) {
-        logException(e);
+        DBCommon.logException(e);
     }
 
     return accountsList;

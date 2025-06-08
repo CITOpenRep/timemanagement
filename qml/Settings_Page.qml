@@ -190,32 +190,32 @@ Page {
                                         anchors.rightMargin: units.gu(1)
                                         anchors.verticalCenter: parent.verticalCenter
                                         TSButton {
-                                            visible: (model.user_id !== 0)
+                                            visible: (model.id !== 0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
                                             text: "Delete"
                                             onClicked: {
-                                                Accounts.deleteAccountAndRelatedData(model.user_id);
+                                                Accounts.deleteAccountAndRelatedData(model.id);
                                                 accountListModel.remove(index);
                                             }
                                         }
                                         TSButton {
-                                            visible: (model.user_id !== 0)
+                                            visible: (model.id !== 0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
                                             text: "Show Logs"
                                             onClicked: {
                                                 apLayout.addPageToNextColumn(settings, Qt.resolvedUrl("SyncLog.qml"), {
-                                                    "recordid": model.user_id
+                                                    "recordid": model.id
                                                 });
                                             }
                                         }
                                         // Sync Button
                                         TSButton {
                                             id: syncBtn
-                                            visible: (model.user_id !== 0)
+                                            visible: (model.id !== 0)
                                             width: units.gu(10)
                                             height: units.gu(4)
                                             fontSize: units.gu(1.5)
@@ -227,7 +227,7 @@ Page {
                                                     } else {
                                                         console.log("Actual DB path resolved by Python:", path);
                                                         //remeber to remove hardcoded index , pasing account index
-                                                        python.call("backend.start_sync_in_background", [path, model.user_id], function (result) {
+                                                        python.call("backend.start_sync_in_background", [path, model.id], function (result) {
                                                             if (result) {
                                                                 console.log("Background sync started...");
                                                             } else {
