@@ -52,19 +52,24 @@ ComboBox {
         border.width: 0
     }
 
-    function getSelectedOdooRecordId() {
-        if (selectedProjectId < 0)
+    function getSelectedDbRecordId() {
+        if (selectedProjectId < 0 || accountId === -1)
             return null;
 
         for (let i = 0; i < internalProjectModel.count; i++) {
             let item = internalProjectModel.get(i);
             if (item.recordId === selectedProjectId) {
+                // Local account (accountId == 0): return local DB ID
+                if (accountId === 0) return item.id;
+
+                // Remote account: return Odoo ID if valid
                 return (item.odoo_record_id && item.odoo_record_id !== 0) ? item.odoo_record_id : null;
             }
         }
 
         return null;
     }
+
 
     function clear() {
         console.log("clear() called");

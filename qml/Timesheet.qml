@@ -61,13 +61,18 @@ Page {
     }
 
     function save_timesheet() {
-        console.log("Timesheet Saved");
+        console.log("Trying to save time sheet");
+        if (projectSelectorCombo.selectedProjectId < 0) {
+            notifPopup.open("Error", "You need to select a project to save time sheet", "error");
+            return;
+        }
+
         var timesheet_data = {
             'instance_id': accountSelectorCombo.selectedInstanceId < 0 ? null : accountSelectorCombo.selectedInstanceId,
             'dateTime': date_widget.date,
-            'project': projectSelectorCombo.getSelectedOdooRecordId(),
+            'project': projectSelectorCombo.getSelectedDbRecordId(),
             'task': taskSelectorCombo.selectedTaskId < 0 ? null : taskSelectorCombo.selectedTaskId,
-            'subprojectId': subprojectSelectorCombo.getSelectedOdooRecordId(),
+            'subprojectId': subprojectSelectorCombo.getSelectedDbRecordId(),
             'subTask': subTaskSelectorCombo.selectedSubTaskId < 0 ? null : subTaskSelectorCombo.selectedSubTaskId,
             'description': description_text.text,
             'manualSpentHours': hours_text.text,
