@@ -1,30 +1,12 @@
 /*
  * MIT License
- *
  * Copyright (c) 2025 CIT-Services
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
  */
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../models/database.js" as Database
+import "../../models/task.js" as Task
+import "../../models/project.js" as Project
 
 ComboBox {
     id: taskCombo
@@ -33,17 +15,16 @@ ComboBox {
     width: parent.width
     height: parent.height
     anchors.centerIn: parent.centerIn
+    property var fullTaskList: []
 
     textRole: "name"
 
     property alias exposedModel: internalTaskModel
-    property int projectId: -1
     property int accountId: -1
     property int selectedTaskId: -1
-
-    // Deferred selection support
-    property int deferredTaskId: -1
-    property bool shouldDeferSelection: false
+    property int projectId: -1
+    property string mode: "task"      // or "subtask"
+    property bool autoSelectFirst: true
 
     signal taskSelected(int id, string name)
 
@@ -58,87 +39,136 @@ ComboBox {
         border.width: 0
     }
 
-    function clear() {
-        internalTaskModel.clear();
-        editText = "";
-        currentIndex = -1;
-        selectedTaskId = -1;
-        deferredTaskId = -1;
-        shouldDeferSelection = false;
+    Component.onCompleted: {
+        if (accountId === -1)
+            editText = (mode === "subtask") ? "No Subtask" : "No Task";
     }
 
-    function loadTasks() {
-        console.log("Loading Tasks for projectId:", projectId, " and accountId:", accountId);
+    function getSelectedDbRecordId() {
+        if (selectedTaskId < 0 || accountId === -1)
+            return null;
 
-        if (projectId === -1 || accountId === -1) {
-            console.warn("TaskSelector: projectId or accountId not set. Skipping load.");
-            return;
+        for (let i = 0; i < internalTaskModel.count; i++) {
+            let item = internalTaskModel.get(i);
+            if (item.recordId === selectedTaskId) {
+                return (accountId === 0)
+                    ? item.id
+                    : (item.odoo_record_id || null);
+            }
         }
 
+        return null;
+    }
+
+    function clear() {
         internalTaskModel.clear();
+        currentIndex = -1;
+        selectedTaskId = -1;
+        editText = "";
+    }
 
-        var tasks = Database.getTasksForAccountAndProject(accountId, projectId);
-        console.log("📋 Tasks = " + JSON.stringify(tasks, null, 2));
+    function load(accountIdVal, taskIdVal, projectIdVal) {
+        _loadInternal(accountIdVal, taskIdVal, projectIdVal, false)
+    }
 
-        for (var i = 0; i < tasks.length; i++) {
-            var t = tasks[i];
+    function loadDeferred(accountIdVal, taskIdVal, projectIdVal) {
+        _loadInternal(accountIdVal, taskIdVal, projectIdVal, true)
+    }
+
+    function _loadInternal(accountIdVal, taskIdVal, projectIdVal, suppressSignal) {
+        clear();
+        accountId = accountIdVal;
+        projectId = projectIdVal;
+
+        const noneLabel = (mode === "subtask") ? "No Subtask" : "No Task";
+        internalTaskModel.append({ name: noneLabel, id: -1, recordId: -1 });
+        currentIndex = 0;
+        selectedTaskId = -1;
+        editText = noneLabel;
+
+        if (accountId === -1 || projectId === -1)
+            return;
+
+        fullTaskList = Task.getTasksForAccount(accountId);
+        const resolvedProjectId = _resolveRemoteProjectId(projectId);
+
+        let filtered = fullTaskList.filter(t => {
+            if (!t.name) return false;
+            if (t.project_id !== resolvedProjectId) return false;
+
+            if (mode === "task") {
+                return !t.parent_id || parseInt(t.parent_id) === 0;
+            } else if (mode === "subtask") {
+                return t.parent_id && parseInt(t.parent_id) !== 0;
+            }
+            return true;
+        });
+
+        for (let t of filtered) {
             internalTaskModel.append({
-                name: t.name,
-                id: t.remote_id,
-                recordId: t.remote_id,
+                name: t.name || "(Unnamed Task)",
+                id: t.id,
+                recordId: t.id,
+                odoo_record_id: t.odoo_record_id,
+                parent_id: t.parent_id,
                 project_id: t.project_id
             });
         }
 
-        if (internalTaskModel.count > 0 && !shouldDeferSelection) {
-            let item = internalTaskModel.get(0);
-            if (item && item.recordId !== undefined) {
-                currentIndex = 0;
-                editText = item.name;
+        if (taskIdVal === -1)
+            return;
+
+        let found = false;
+        for (let i = 0; i < internalTaskModel.count; i++) {
+            const item = internalTaskModel.get(i);
+            const match = (accountId === 0)
+                ? item.recordId === taskIdVal
+                : item.odoo_record_id === taskIdVal;
+
+            if (match) {
+                currentIndex = i;
                 selectedTaskId = item.recordId;
-                taskSelected(selectedTaskId, item.name);
+                editText = item.name;
+                found = true;
+                if (!suppressSignal)
+                    taskSelected(selectedTaskId, editText);
+                break;
             }
         }
 
-        if (shouldDeferSelection && deferredTaskId > 0) {
-            Qt.callLater(() => {
-                selectTaskById(deferredTaskId);
-                shouldDeferSelection = false;
-                deferredTaskId = -1;
-            });
+        if (!found && autoSelectFirst && internalTaskModel.count > 1) {
+            const item = internalTaskModel.get(1);
+            currentIndex = 1;
+            selectedTaskId = item.recordId;
+            editText = item.name;
+            if (!suppressSignal)
+                taskSelected(selectedTaskId, item.name);
         }
     }
 
-    function selectTaskById(taskId) {
-        for (var i = 0; i < internalTaskModel.count; i++) {
-            let item = internalTaskModel.get(i);
-            if (item.recordId === taskId) {
-                if (item && item.recordId === taskId) {
-                    console.log("Task matched:", item.name);
-                    currentIndex = i;
-                    editText = item.name;
-                    selectedTaskId = item.recordId;
-                    taskSelected(selectedTaskId, item.name);
-                    break;
-                }
-            }
-        }
+    function _resolveRemoteProjectId(localId) {
+        if (accountId === 0) return localId;
+        const projects = Project.getProjectsForAccount(accountId) || [];
+        for (let p of projects)
+            if (p.id === localId && p.odoo_record_id)
+                return p.odoo_record_id;
+        return localId;
     }
 
     onActivated: {
         if (currentIndex >= 0) {
-            let selected = model.get(currentIndex);
-            selectedTaskId = selected.id;
-            taskSelected(selectedTaskId, selected.name);
+            const selected = model.get(currentIndex);
+            selectedTaskId = selected.recordId;
+            taskSelected(selected.recordId, selected.name);
         }
     }
 
     onAccepted: {
-        let idx = find(editText);
+        const idx = find(editText);
         if (idx !== -1) {
-            let selected = model.get(idx);
-            selectedTaskId = selected.id;
-            taskSelected(selectedTaskId, selected.name);
+            const selected = model.get(idx);
+            selectedTaskId = selected.recordId;
+            taskSelected(selected.recordId, selected.name);
         }
     }
 }

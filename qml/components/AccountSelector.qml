@@ -12,17 +12,20 @@ ComboBox {
     textRole: "name"
 
     property int selectedInstanceId: 0
+    property int deferredAccountId: -1
+    property bool shouldDeferSelection: false
+
     signal accountSelected(int id, string name)
 
     ListModel {
         id: internalInstanceModel
     }
-
     model: internalInstanceModel
 
     function loadAccounts() {
         internalInstanceModel.clear();
         const accounts = Accounts.getAccountsList();
+
         for (let i = 0; i < accounts.length; i++) {
             internalInstanceModel.append({
                 id: accounts[i].id,
@@ -30,6 +33,15 @@ ComboBox {
                 database: accounts[i].database,
                 link: accounts[i].link,
                 username: accounts[i].username
+            });
+        }
+
+        // Handle deferred selection
+        if (shouldDeferSelection && deferredAccountId > -1) {
+            Qt.callLater(() => {
+                selectAccountById(deferredAccountId);
+                shouldDeferSelection = false;
+                deferredAccountId = -1;
             });
         }
     }
@@ -43,24 +55,31 @@ ComboBox {
             accountSelected(selectedInstanceId, first.name);
         } else {
             currentIndex = -1;
-            selectedInstanceId = -1; // recommended
+            selectedInstanceId = -1;
             editText = "Select an account";
         }
     }
 
     function selectAccountById(accountId) {
-        console.log("Loading account " + accountId);
-        for (var i = 0; i < internalInstanceModel.count; i++) {
+        if (internalInstanceModel.count === 0) {
+            shouldDeferSelection = true;
+            deferredAccountId = accountId;
+            return;
+        }
+
+        for (let i = 0; i < internalInstanceModel.count; i++) {
             const item = internalInstanceModel.get(i);
             if (item.id === accountId) {
                 currentIndex = i;
                 editText = item.name;
                 selectedInstanceId = item.id;
-                console.log("Selecting " + item.name + " Selected index id: " + selectedInstanceId);
+                console.log("✅ Account selected:", item.name);
                 accountSelected(item.id, item.name);
                 return;
             }
         }
+
+        console.warn("⚠️ Account ID not found:", accountId);
     }
 
     Component.onCompleted: {
@@ -72,7 +91,6 @@ ComboBox {
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedInstanceId = selected.id;
-            console.log("Selecting " + selected.name + " Selected index id: " + selectedInstanceId);
             accountSelected(selected.id, selected.name);
         }
     }
@@ -82,7 +100,6 @@ ComboBox {
         if (idx !== -1) {
             const selected = model.get(idx);
             selectedInstanceId = selected.id;
-            console.log("Selecting " + selected.name + " Selected index id: " + selectedInstanceId);
             accountSelected(selected.id, selected.name);
         }
     }
