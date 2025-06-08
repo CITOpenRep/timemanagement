@@ -65,9 +65,9 @@ Page {
         var timesheet_data = {
             'instance_id': accountSelectorCombo.selectedInstanceId < 0 ? null : accountSelectorCombo.selectedInstanceId,
             'dateTime': date_widget.date,
-            'project': projectSelectorCombo.selectedProjectId < 0 ? null : projectSelectorCombo.selectedProjectId,
+            'project': projectSelectorCombo.getSelectedOdooRecordId(),
             'task': taskSelectorCombo.selectedTaskId < 0 ? null : taskSelectorCombo.selectedTaskId,
-            'subprojectId': subprojectSelectorCombo.selectedSubProjectId < 0 ? null : subprojectSelectorCombo.selectedSubProjectId,
+            'subprojectId': subprojectSelectorCombo.getSelectedOdooRecordId(),
             'subTask': subTaskSelectorCombo.selectedSubTaskId < 0 ? null : subTaskSelectorCombo.selectedSubTaskId,
             'description': description_text.text,
             'manualSpentHours': hours_text.text,
@@ -141,9 +141,8 @@ Page {
                         onAccountSelected: {
                             projectSelectorCombo.accountId = id;
                             projectSelectorCombo.loadProjects();
-                            subprojectSelectorCombo.clear();
-                            taskSelectorCombo.clear();
-                            subTaskSelectorCombo.clear();
+                            subprojectSelectorCombo.accountId = id;
+                            subprojectSelectorCombo.loadProjects();
                         }
                     }
                 }
@@ -216,13 +215,13 @@ Page {
                         anchors.centerIn: parent.centerIn
                         onProjectSelected: {
                             subprojectSelectorCombo.accountId = accountSelectorCombo.selectedInstanceId;
-                            subprojectSelectorCombo.projectId = id;
-                            subprojectSelectorCombo.loadSubProjects();
-                            taskSelectorCombo.clear();
-                            taskSelectorCombo.projectId = id;
-                            taskSelectorCombo.accountId = accountSelectorCombo.selectedInstanceId;
-                            taskSelectorCombo.loadTasks();
-                            subTaskSelectorCombo.clear();
+                            subprojectSelectorCombo.parentProjectId = id;
+                            subprojectSelectorCombo.loadProjects();
+                            // taskSelectorCombo.clear();
+                            //taskSelectorCombo.projectId = id;
+                            // taskSelectorCombo.accountId = accountSelectorCombo.selectedInstanceId;
+                            // taskSelectorCombo.loadTasks();
+                            //  subTaskSelectorCombo.clear();
                         }
                     }
                 }
@@ -259,18 +258,19 @@ Page {
                 LomiriShape {
                     width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                     height: units.gu(5)
-                    SubProjectSelector {
+                    ProjectSelector {
                         id: subprojectSelectorCombo
+                        mode: "subproject"
                         editable: true
                         width: parent.width
                         height: parent.height
                         anchors.centerIn: parent.centerIn
-                        onSubProjectSelected: {
-                            taskSelectorCombo.clear();
-                            taskSelectorCombo.projectId = id;
-                            taskSelectorCombo.accountId = accountSelectorCombo.selectedInstanceId;
-                            taskSelectorCombo.loadTasks();
-                        }
+                        onProjectSelected:
+                        // taskSelectorCombo.clear();
+                        // taskSelectorCombo.projectId = id;
+                        //  taskSelectorCombo.accountId = accountSelectorCombo.selectedInstanceId;
+                        // taskSelectorCombo.loadTasks();
+                        {}
                     }
                 }
             }

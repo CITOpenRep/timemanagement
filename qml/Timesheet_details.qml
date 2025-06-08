@@ -252,14 +252,15 @@ Page {
                 LomiriShape {
                     width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                     height: units.gu(5)
-                    SubProjectSelector {
+                    ProjectSelector {
                         id: subprojectSelectorCombo
+                        mode: "subproject"
                         enabled: !isReadOnly
                         editable: true
                         width: parent.width
                         height: parent.height
                         anchors.centerIn: parent.centerIn
-                        onSubProjectSelected: {
+                        onProjectSelected: {
                             selectedSubProjectId = id;
                         }
                     }

@@ -144,28 +144,6 @@ function createUpdateProject(project_data, recordid) {
     return messageObj;
 }
 
-/* Name: fetch_parent_project_list
-* This function will return list of parent projects
-* -> instance_id -> instance of users record
-* -> is_work_state -> to update record
-*/
-
-function fetch_parent_project_list(instance_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var parent_project_list = [];
-    db.transaction(function (tx) {
-        if (is_work_state) {
-            var parent_projects = tx.executeSql('select * from project_project_app where account_id = ? AND parent_id = 0', [instance_id]);
-        } else {
-            var parent_projects = tx.executeSql('select * from project_project_app where account_id IS NULL AND parent_id = 0');
-        }
-        for (var project = 0; project < parent_projects.rows.length; project++) {
-            parent_project_list.push({'id': parent_projects.rows.item(project).id,
-                                    'name': parent_projects.rows.item(project).name});
-        }
-    });
-    return parent_project_list;
-}
 
 /* Name: get_project_detail
 * This function will return project details in form of object to fill in detail view of project
@@ -370,6 +348,48 @@ function getProjectSpentHoursList(is_work_state) {
     });
 
     return resultList;
+}
+
+//Refeactoring
+function getProjectsForAccount(accountId) {
+    var projects = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                "SELECT * FROM project_project_app WHERE account_id = ? ORDER BY last_modified DESC",
+                [accountId]
+            );
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+
+                projects.push({
+                    id: row.id,
+                    name: row.name,
+                    account_id: row.account_id,
+                    parent_id: row.parent_id,
+                    planned_start_date: row.planned_start_date,
+                    planned_end_date: row.planned_end_date,
+                    allocated_hours: row.allocated_hours,
+                    favorites: row.favorites,
+                    last_update_status: row.last_update_status,
+                    description: row.description,
+                    last_modified: row.last_modified,
+                    color_pallet: row.color_pallet,
+                    status: row.status,
+                    odoo_record_id: row.odoo_record_id
+                });
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getProjectsForAccount", e);
+    }
+
+    return projects;
 }
 
 
