@@ -222,33 +222,54 @@ Page {
             }
         }
 
-        EHower {
-            id: ehoverMatrix
+        Column {
+            id: quadrantColumn
             width: parent.width
-            height: width
+            spacing: units.gu(2)
             anchors.top: parent.top
-            quadrant1Hours: "120.2"
-            quadrant2Hours: "65.5"
-            quadrant3Hours: "55.0"
-            quadrant4Hours: "178.1"
-            onQuadrantClicked: {
-                console.log("Quadrant clicked:", quadrant);
-                // Navigate or filter as needed
-            }
-        }
+            anchors.margins: units.gu(1)
 
-        ProjectPieChart {
-            id: projectchart
-            width: parent.width
-            height: width
-            anchors.top: ehoverMatrix.bottom
-            anchors.margins: 10
-            Component.onCompleted: {
-                var data = Project.getProjectSpentHoursList(true);
-                projectchart.load(data);
+            Item {
+                id: quadrantWrapper
+                width: parent.width
+                height: width  // Maintain square layout
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                Rectangle {
+                    id: quadrantContainer
+                    anchors.fill: parent
+                    anchors.margins: units.gu(1)
+                    color: "transparent"
+                    radius: units.gu(1)
+                    border.color: "transparent"
+                    border.width: 0
+
+                    EHower {
+                        id: ehoverMatrix
+                        width: parent.width * 0.98
+                        height: width
+                        anchors.centerIn: parent
+                        quadrant1Hours: "120.2"
+                        quadrant2Hours: "65.5"
+                        quadrant3Hours: "55.0"
+                        quadrant4Hours: "178.1"
+                        onQuadrantClicked: {
+                            console.log("Quadrant clicked:", quadrant);
+                        }
+                    }
+                }
             }
 
-            // barColor: "#4CAF50"
+            ProjectPieChart {
+                id: projectchart
+                width: parent.width * 0.95
+                height: width  // Also square
+                anchors.horizontalCenter: parent.horizontalCenter
+                Component.onCompleted: {
+                    var data = Project.getProjectSpentHoursList(true);
+                    projectchart.load(data);
+                }
+            }
         }
 
         onFlickEnded: {
