@@ -59,6 +59,11 @@
         "name": "name",
         "share": "share",
         "active": "active",
-        "id": "odoo_record_id"
+        "id": "odoo_record_id",
+        "login":"login",
+        "job_title":"job_title",
+        "mobile_phone":"mobile_phone",
+        "work_email":"work_email",
+        "company_id":"company_id"
     }
 }

@@ -32,12 +32,13 @@ import QtCharts 2.0
 import QtQuick.Window 2.2
 import Qt.labs.settings 1.0
 import "../models/timesheet.js" as Model
+import "../models/accounts.js" as Accounts
 import "../models/timer_service.js" as TimerService
 import "components"
 
 Page {
     id: timeSheet
-    title: "New Timesheet"
+    title: "Timesheet"
     header: PageHeader {
         id: tsHeader
         StyleHints {
@@ -70,7 +71,14 @@ Page {
         console.log("Subproject DB ID:", ids.subprojectDbId);
         console.log("Task DB ID:", ids.taskDbId);
         console.log("Subtask DB ID:", ids.subtaskDbId);
+        console.log("Get the Current User");
+        const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
+        if (!user) {
+            notifPopup.open("Error", "Unable to find the user , can not save", "error");
+            return;
+        }
 
+        console.log("User ID is " + user);
         if (ids.projectDbId < 0) {
             notifPopup.open("Error", "You need to select a project to save time sheet", "error");
             return;
@@ -83,13 +91,19 @@ Page {
             'task': ids.taskDbId,
             'subprojectId': ids.subprojectDbId,
             'subTask': ids.subtaskDbId,
-            'description': description_text.text,
+            'description': name_text.text,
             'manualSpentHours': hours_text.text,
             'spenthours': hours_text.text,
             'isManualTimeRecord': isManualTime,
             'quadrant': priorityCombo.currentIndex + 1,
+            'user_id': user,
             'status': "updated"
         };
+
+        //Finally check if the record is not empty (Usecase Edit)
+        if (recordid && recordid !== 0) {
+            timesheet_data.id = recordid;
+        }
 
         const result = Model.create_or_update_timesheet(timesheet_data);
         if (!result.success) {
@@ -172,7 +186,7 @@ Page {
             }
 
             TextArea {
-                id: description_text
+                id: name_text
                 enabled: !isReadOnly
                 text: ""
                 width: parent.width - units.gu(2)
@@ -265,22 +279,42 @@ Page {
         }
 
         Component.onCompleted: {
-            console.log("From Timesheet " + apLayout.columns);
+            console.log("From Timesheet got record id : " + recordid);
             if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
             {
-                console.log("Loading time sheet " + recordid);
                 currentTimesheet = Model.get_timesheet_details(recordid);
-                let instanceId = currentTimesheet.instance_id !== undefined ? currentTimesheet.instance_id : -1;
-                let projectId = currentTimesheet.project_id !== undefined ? currentTimesheet.project_id : -1;
-                let taskId = currentTimesheet.task_id !== undefined ? currentTimesheet.task_id : -1;
-                let subProjectId = currentTimesheet.sub_project_id !== undefined ? currentTimesheet.sub_project_id : -1;
+                let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
+                let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
+                let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
+                let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
+                let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
+                console.log("Timesheet Field Values:");
+                console.log("Recordid     →" + recordid);
+                console.log("instanceId    →", instanceId);
+                console.log("projectId     →", projectId);
+                console.log("taskId        →", taskId);
+                console.log("subProjectId  →", subProjectId);
+                console.log("subTaskId     →", subTaskId);
+
                 workItem.applyDeferredSelection(instanceId, projectId, taskId, subProjectId);
-                if (currentTimesheet.record_date) {
-                    date_widget.selectedDate = currentTimesheet.record_date;
+                if (currentTimesheet.record_date && currentTimesheet.record_date !== "") {
+                    var parts = currentTimesheet.record_date.split("-");
+                    if (parts.length === 3) {
+                        var day = parseInt(parts[0], 10);
+                        var month = parseInt(parts[1], 10) - 1; // Month is 0-based in JS Date
+                        var year = parseInt(parts[2], 10);
+                        var parsedDate = new Date(year, month, day);
+                        date_widget.selectedDate = parsedDate;
+                    }
+                } else {
+                    date_widget.selectedDate = null; // or leave unset if DaySelector handles it
                 }
-                description_text.text = currentTimesheet.description;
+
+                name_text.text = currentTimesheet.name;
             } else //we are creating a new timesheet
-            {}
+            {
+                console.log("Creating a new timesheet");
+            }
         }
     }
 

@@ -16,7 +16,6 @@ Rectangle {
     property bool showTaskSelector: true
     property bool showSubtaskSelector: true
     property bool readOnly: false
-
     signal datachanged
 
     function getDbRecordId(localId, odooId) {
@@ -74,6 +73,7 @@ Rectangle {
                     enabled: !readOnly
                     editable: true
                     onAccountSelected: {
+                        console.log("Accoutn Selected");
                         projectSelector.load(accountSelector.selectedInstanceId, 0);
                     }
                 }

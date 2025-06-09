@@ -27,6 +27,7 @@ Rectangle {
                 id: dayCombo
                 model: ["Today", "Yesterday", "Custom"]
                 currentIndex: 0
+                enabled: daySelector.enabled
                 onActivated: {
                     updateDate();
                 }
@@ -83,5 +84,12 @@ Rectangle {
         dateChanged(selectedDate);
     }
 
-    Component.onCompleted: updateDate()
+    Component.onCompleted: {
+        if (!selectedDate || isNaN(selectedDate.getTime())) {
+            updateDate(); // fallback to Today/Yesterday/Custom logic
+        } else {
+            // If selectedDate already set externally, respect it
+            dateItem.date = selectedDate;
+        }
+    }
 }

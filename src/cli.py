@@ -53,5 +53,5 @@ def find_settings_db(app_id):
 # Usage
 app_id = "ubtms"
 settings_db = find_settings_db(app_id)
-choice = 0
+choice = 1
 sync(settings_db, choice)

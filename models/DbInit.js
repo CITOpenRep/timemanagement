@@ -59,18 +59,39 @@ function initializeDatabase() {
                                  );
 
     DBCommon.createOrUpdateTable("res_users_app",
-                                 'CREATE TABLE IF NOT EXISTS res_users_app (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT,\
-            account_id INTEGER,\
-            name TEXT,\
-            share INTEGER,\
-            active INTEGER,\
-            status TEXT DEFAULT "",\
-            odoo_record_id INTEGER,\
-            UNIQUE (odoo_record_id, account_id)\
-        )',
-                                 ['id INTEGER', 'account_id INTEGER', 'name TEXT', 'share INTEGER', 'active INTEGER', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
-                                 );
+        "CREATE TABLE IF NOT EXISTS res_users_app (" +
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+        "account_id INTEGER, " +
+        "name TEXT, " +
+        "login TEXT, " +
+        "email TEXT, " +
+        "work_email TEXT, " +
+        "mobile_phone TEXT, " +
+        "job_title TEXT, " +
+        "company_id INTEGER, " +
+        "share INTEGER, " +
+        "active INTEGER, " +
+        "status TEXT DEFAULT '', " +
+        "odoo_record_id INTEGER, " +
+        "UNIQUE (odoo_record_id, account_id)" +
+        ")",
+        [
+            "id INTEGER",
+            "account_id INTEGER",
+            "name TEXT",
+            "login TEXT",
+            "email TEXT",
+            "work_email TEXT",
+            "mobile_phone TEXT",
+            "job_title TEXT",
+            "company_id INTEGER",
+            "share INTEGER",
+            "active INTEGER",
+            "status TEXT DEFAULT ''",
+            "odoo_record_id INTEGER"
+        ]
+    );
+
 
     DBCommon.createOrUpdateTable("project_task_app",
                                  'CREATE TABLE IF NOT EXISTS project_task_app (\
