@@ -1,11 +1,12 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import "../../models/constants.js" as AppConst
 
 Rectangle {
     id: workItemSelector
     width: parent ? parent.width : Screen.width
-    height: implicitHeight
+    height: contentColumn.implicitHeight
     color: "transparent"
 
     // Visibility control properties
@@ -47,27 +48,26 @@ Rectangle {
         id: contentColumn
         width: parent.width
         spacing: units.gu(1)
-        padding: units.gu(1)
 
         // Account Row
         Row {
             width: parent.width
-            spacing: units.gu(1)
+            //spacing: units.gu(1)
             visible: showAccountSelector
             height: units.gu(5)
 
             Label {
                 text: "Account"
-
-                font.pixelSize: units.gu(1.5)
-                width: parent.width * 0.3
+                width: parent.width * 0.25
                 verticalAlignment: Text.AlignVCenter
+                anchors.verticalCenter: parent.verticalCenter
             }
 
             Rectangle {
-                width: parent.width * 0.65
+                width: parent.width * 0.75
                 height: units.gu(5.5)
                 color: "transparent"
+                anchors.verticalCenter: parent.verticalCenter
                 AccountSelector {
                     id: accountSelector
                     anchors.centerIn: parent
@@ -83,26 +83,27 @@ Rectangle {
         // 🔹 Project Row
         Row {
             width: parent.width
-            spacing: units.gu(1)
+            // spacing: units.gu(1)
             visible: showProjectSelector
             height: units.gu(5)
 
             Label {
                 text: "Project"
-
-                font.pixelSize: units.gu(1.5)
-                width: parent.width * 0.3
+                width: parent.width * 0.25
                 verticalAlignment: Text.AlignVCenter
+                anchors.verticalCenter: parent.verticalCenter
             }
 
             Rectangle {
-                width: parent.width * 0.65
+                width: parent.width * 0.75
                 height: units.gu(5.5)
                 color: "transparent"
+                anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: projectSelector
                     enabled: !readOnly
                     anchors.centerIn: parent
+
                     editable: true
                     onProjectSelected: {
                         console.log("Selecting Project " + projectSelector.selectedProjectId);
@@ -116,22 +117,22 @@ Rectangle {
         // 🔹 Subproject Row
         Row {
             width: parent.width
-            spacing: units.gu(1)
+            // spacing: units.gu(1)
             visible: showSubprojectSelector
             height: units.gu(5)
 
             Label {
                 text: "Subproject"
-
-                font.pixelSize: units.gu(1.5)
-                width: parent.width * 0.3
+                width: parent.width * 0.25
+                anchors.verticalCenter: parent.verticalCenter
                 verticalAlignment: Text.AlignVCenter
             }
 
             Rectangle {
-                width: parent.width * 0.65
+                width: parent.width * 0.75
                 height: units.gu(5.5)
                 color: "transparent"
+                anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: subProjectSelector
                     mode: "subproject"
@@ -153,22 +154,22 @@ Rectangle {
         // 🔹 Task Row
         Row {
             width: parent.width
-            spacing: units.gu(1)
+            // spacing: units.gu(1)
             visible: showTaskSelector
             height: units.gu(5)
 
             Label {
                 text: "Task"
-
-                font.pixelSize: units.gu(1.5)
-                width: parent.width * 0.3
+                width: parent.width * 0.25
                 verticalAlignment: Text.AlignVCenter
+                anchors.verticalCenter: parent.verticalCenter
             }
 
             Rectangle {
-                width: parent.width * 0.65
+                width: parent.width * 0.75
                 height: units.gu(5.5)
                 color: "transparent"
+                anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: taskSelector
                     anchors.centerIn: parent
@@ -189,22 +190,22 @@ Rectangle {
         // 🔹 Subtask Row
         Row {
             width: parent.width
-            spacing: units.gu(1)
+            // spacing: units.gu(1)
             visible: showSubtaskSelector
             height: units.gu(5)
 
             Label {
                 text: "Subtask"
-
-                font.pixelSize: units.gu(1.5)
-                width: parent.width * 0.3
+                width: parent.width * 0.25
+                anchors.verticalCenter: parent.verticalCenter
                 verticalAlignment: Text.AlignVCenter
             }
 
             Rectangle {
-                width: parent.width * 0.65
+                width: parent.width * 0.75
                 height: units.gu(5.5)
                 color: "transparent"
+                anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: subTaskSelector
                     enabled: !readOnly

@@ -3,6 +3,9 @@
 .pragma library
 
 var version="0.1(Alpha Draft)"
+
+
+
 var Colors = {
     StickyNote: "#F5F5F5",
     Border: "#B0BEC5",

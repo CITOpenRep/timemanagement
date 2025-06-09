@@ -125,12 +125,20 @@ Page {
         Row {
             id: myRow1a
             anchors.left: parent.left
-            topPadding: 40
-            WorkItemSelector {
-                id: workItem
-                readOnly: isReadOnly
-                width: timesheetsDetailsPageFlickable.width
-                height: units.gu(35)
+            topPadding: units.gu(5)
+            Column {
+                leftPadding: units.gu(2)
+                LomiriShape {
+                    width: timesheetsDetailsPageFlickable.width - units.gu(2)
+                    height: units.gu(29)
+                    aspect: LomiriShape.Flat
+                    WorkItemSelector {
+                        id: workItem
+                        readOnly: isReadOnly
+                        width: parent.width
+                        //height: parent.height
+                    }
+                }
             }
         }
 
@@ -138,7 +146,7 @@ Page {
             id: myRow1
             anchors.top: myRow1a.bottom
             anchors.left: parent.left
-            topPadding: 10
+            topPadding: units.gu(2)
             Column {
                 leftPadding: units.gu(2)
                 LomiriShape {
@@ -150,7 +158,7 @@ Page {
                         text: "Date"
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
+                        verticalAlignment: Text.AlignVCenter
                     }
                 }
             }
@@ -186,7 +194,7 @@ Page {
                 id: description_text
                 enabled: !isReadOnly
                 text: ""
-                width: parent.width
+                width: parent.width - units.gu(2)
             }
         }
 
@@ -211,20 +219,16 @@ Page {
                     text: ""
                     readOnly: true
                 }
-                Button {
+                TSButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Manual"
                     objectName: "button_manual"
                     width: units.gu(8)
-                    action: Action {
-                        text: i18n.tr("Manual")
-                        property bool flipped
-                        onTriggered: {
-                            myTimePicker.open(0, 0);
-                            flipped = !flipped;
-                            isManualTime = true;
-                            hours_text.readOnly = false;
-                        }
+                    onClicked: {
+                        myTimePicker.open(1, 0);
+                        isManualTime = true;
+                        hours_text.readOnly = false;
                     }
-                    color: action.flipped ? LomiriColors.blue : LomiriColors.slate
                 }
             }
         }
