@@ -27,8 +27,12 @@ Item {
             id: presetCombo
             model: ["Today", "This Week", "This Month"]
             currentIndex: 0
-            onActivated: {updateDates()}
-            onAccepted: {updateDates()}
+            onActivated: {
+                updateDates();
+            }
+            onAccepted: {
+                updateDates();
+            }
         }
 
         RowLayout {
@@ -58,12 +62,12 @@ Item {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            let result = PickerPanel.openDatePicker(startDateItem, "date", "Years|Months|Days")
+                            let result = PickerPanel.openDatePicker(startDateItem, "date", "Years|Months|Days");
                             if (result) {
                                 result.closed.connect(() => {
-                                    startDate = startDateItem.date
-                                    rangeChanged(startDate, endDate)
-                                })
+                                    startDate = startDateItem.date;
+                                    rangeChanged(startDate, endDate);
+                                });
                             }
                         }
                     }
@@ -94,12 +98,12 @@ Item {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            let result = PickerPanel.openDatePicker(endDateItem, "date", "Years|Months|Days")
+                            let result = PickerPanel.openDatePicker(endDateItem, "date", "Years|Months|Days");
                             if (result) {
                                 result.closed.connect(() => {
-                                    endDate = endDateItem.date
-                                    rangeChanged(startDate, endDate)
-                                })
+                                    endDate = endDateItem.date;
+                                    rangeChanged(startDate, endDate);
+                                });
                             }
                         }
                     }
@@ -109,7 +113,7 @@ Item {
     }
 
     function updateDates() {
-        console.log("Calling updates")
+        console.log("Calling updates");
         const today = new Date();
         let newStart = new Date(today);
         let newEnd = new Date(today);
@@ -117,23 +121,22 @@ Item {
         switch (presetCombo.currentIndex) {
         case 0: // Today
             break;
-
         case 1: // This Week
             const dow = today.getDay(); // 0 = Sunday, 6 = Saturday
             const offset = (dow === 0) ? 1 : (dow >= 6 ? 5 : 5 - dow);
             newEnd.setDate(newEnd.getDate() + offset);
             break;
-
         case 2: // This Month
             const year = today.getFullYear();
             const month = today.getMonth();
             let lastDay = new Date(year, month + 1, 0);
             const lastDow = lastDay.getDay();
-            if (lastDow === 6) lastDay.setDate(lastDay.getDate() - 1);
-            else if (lastDow === 0) lastDay.setDate(lastDay.getDate() - 2);
+            if (lastDow === 6)
+                lastDay.setDate(lastDay.getDate() - 1);
+            else if (lastDow === 0)
+                lastDay.setDate(lastDay.getDate() - 2);
             newEnd = lastDay;
             break;
-
         case 3: // Custom
             return; // Let user pick manually
         }
@@ -144,8 +147,8 @@ Item {
         startDate = newStart;
         endDate = newEnd;
 
-       // console.log("Updating: startDate =", Qt.formatDate(newStart, "dd-MM-yyyy"))
-       // console.log("Updating: startDateItem.date =", Qt.formatDate(startDateItem.date, "dd-MM-yyyy"))
+        // console.log("Updating: startDate =", Qt.formatDate(newStart, "dd-MM-yyyy"))
+        // console.log("Updating: startDateItem.date =", Qt.formatDate(startDateItem.date, "dd-MM-yyyy"))
 
         rangeChanged(startDate, endDate);
     }

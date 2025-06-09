@@ -24,6 +24,7 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
@@ -77,7 +78,7 @@ Page {
 
         var timesheet_data = {
             'instance_id': ids.accountDbId < 0 ? 0 : ids.accountDbId,
-            'dateTime': date_widget.date,
+            'dateTime': date_widget.selectedDate,
             'project': ids.projectDbId,
             'task': ids.taskDbId,
             'subprojectId': ids.subprojectDbId,
@@ -126,18 +127,15 @@ Page {
             id: myRow1a
             anchors.left: parent.left
             topPadding: units.gu(5)
+
             Column {
-                leftPadding: units.gu(2)
-                LomiriShape {
+                leftPadding: units.gu(1)
+
+                WorkItemSelector {
+                    id: workItem
+                    readOnly: isReadOnly
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
-                    height: units.gu(29)
-                    aspect: LomiriShape.Flat
-                    WorkItemSelector {
-                        id: workItem
-                        readOnly: isReadOnly
-                        width: parent.width
-                        //height: parent.height
-                    }
+                    // height: units.gu(29) // Uncomment if you need fixed height
                 }
             }
         }
@@ -146,30 +144,13 @@ Page {
             id: myRow1
             anchors.top: myRow1a.bottom
             anchors.left: parent.left
-            topPadding: units.gu(2)
-            Column {
-                leftPadding: units.gu(2)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: date_label
-                        text: "Date"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-            }
             Column {
                 leftPadding: units.gu(1)
-                QuickDateSelector {
+                DaySelector {
                     id: date_widget
-                    mode: "previous"
                     enabled: !isReadOnly
-                    width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                    height: units.gu(4)
+                    width: timesheetsDetailsPageFlickable.width - units.gu(2)
+                    height: units.gu(8)
                     anchors.centerIn: parent.centerIn
                 }
             }
@@ -183,7 +164,7 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             spacing: units.gu(1)
-            topPadding: units.gu(2)
+            topPadding: units.gu(1)
             leftPadding: units.gu(1)
 
             Label {
@@ -203,33 +184,45 @@ Page {
             id: spentHoursRow
             anchors.top: descriptionSection.bottom
             anchors.left: parent.left
-            topPadding: units.gu(2)
-            leftPadding: units.gu(2)
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+
             Label {
                 id: hours_label
                 text: "Spent Hours"
                 verticalAlignment: Text.AlignVCenter
+                Layout.alignment: Qt.AlignVCenter
             }
-            Row {
-                leftPadding: units.gu(2)
-                spacing: units.gu(2)
-                TextField {
-                    id: hours_text
-                    width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(20) : units.gu(50)
-                    text: ""
-                    readOnly: true
+
+            TextField {
+                id: hours_text
+                text: "01:00"
+                readOnly: true
+                Layout.alignment: Qt.AlignVCenter
+                validator: RegExpValidator {
+                    regExp: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/
                 }
-                TSButton {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Manual"
-                    objectName: "button_manual"
-                    width: units.gu(8)
-                    onClicked: {
-                        myTimePicker.open(1, 0);
-                        isManualTime = true;
-                        hours_text.readOnly = false;
-                    }
+                inputMethodHints: Qt.ImhTime
+            }
+
+            TSButton {
+                text: "Manual"
+                objectName: "button_manual"
+                width: parent.width * 0.2
+                height: units.gu(3)
+
+                onClicked: {
+                    myTimePicker.open(1, 0);
+                    isManualTime = true;
+                    // hours_text.readOnly = false;
                 }
+            }
+            Rectangle {
+                id: spacer
+                color: "red"
+                Layout.fillWidth: true
+                height: units.gu(3)
             }
         }
 
@@ -237,37 +230,27 @@ Page {
             id: myRow7
             anchors.top: spentHoursRow.bottom
             anchors.left: parent.left
-            topPadding: units.gu(2)
-            Column {
-                leftPadding: units.gu(2)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: priority_label
-                        width: units.gu(10)
-                        text: "Priority"
-                        wrapMode: Text.WordWrap
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                leftPadding: units.gu(2)
-                ComboBox {
-                    id: priorityCombo
-                    width: units.gu(30)
-                    model: ["Do", "Plan", "Delegate", "Delete"]
-                    enabled: !isReadOnly
-                    currentIndex: 0
+            anchors.leftMargin: units.gu(2)
+            spacing: units.gu(2)
+            height: units.gu(5)
 
-                    // Use +1 so the stored value matches quadrant_id 1-4
-                    onCurrentIndexChanged: {
-                        selectedQuadrant = currentIndex + 1;
-                    }
+            Label {
+                id: priority_label
+                text: "Priority"
+                width: units.gu(6)
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+            }
+
+            TSCombobox {
+                id: priorityCombo
+                width: units.gu(33)
+                model: ["Do (Important & Urgent )", "Plan (Important & Not Urgent)", "Delegate (Urgent & Not Important)", "Delete (Not Urgent & Not Important)"]
+                enabled: !isReadOnly
+                currentIndex: 0
+
+                onCurrentIndexChanged: {
+                    selectedQuadrant = currentIndex + 1;
                 }
             }
         }
@@ -293,7 +276,7 @@ Page {
                 let subProjectId = currentTimesheet.sub_project_id !== undefined ? currentTimesheet.sub_project_id : -1;
                 workItem.applyDeferredSelection(instanceId, projectId, taskId, subProjectId);
                 if (currentTimesheet.record_date) {
-                    date_widget.setDate(currentTimesheet.record_date);
+                    date_widget.selectedDate = currentTimesheet.record_date;
                 }
                 description_text.text = currentTimesheet.description;
             } else //we are creating a new timesheet

@@ -359,7 +359,7 @@ function getProjectsForAccount(accountId) {
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                "SELECT * FROM project_project_app WHERE account_id = ? ORDER BY last_modified DESC",
+                "SELECT * FROM project_project_app WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC",
                 [accountId]
             );
 
