@@ -444,7 +444,7 @@ function getTasksForAccount(accountId) {
 
         db.transaction(function (tx) {
             const results = tx.executeSql(
-                "SELECT * FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC",
+                "SELECT * FROM project_task_app WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC",
                 [accountId]
             );
 
