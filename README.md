@@ -2,6 +2,53 @@
 
 Time Management (Alpha Draft)
 
+This guide explains how to install `clickable`, build the `TimeManagement` project, and run it on both desktop and Ubuntu Touch devices.
+
+## Prerequisites
+
+- Ubuntu or Debian-based system
+- Git
+- Python 3
+- Docker (for cross-compilation and device builds)
+
+## Install Clickable
+
+Follow the official steps to install `clickable`:
+
+```bash
+# Install required dependencies
+sudo apt update
+sudo apt install git python3 python3-pip
+
+# Install Clickable using pip
+pip3 install --user clickable-ut
+
+# Add Clickable to your PATH
+echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Verify installation:
+
+```bash
+clickable --version
+```
+
+
+## Build the project
+To build the project, clone this repo and then you can run 
+
+```bash
+clickable desktop 
+```
+
+The above command will run the project on desktop
+
+```bash
+clickable install
+```
+to install the app on the connected device.
+
 ## License
 
 /*
@@ -27,6 +74,10 @@ Time Management (Alpha Draft)
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+ 
 
-~/.clickable/home/.local/share/ubtms/Databases (Location of DB)
+
+References
+* https://clickable-ut.dev/en/latest/
+* Location of DB : ~/.clickable/home/.local/share/ubtms/Databases
 
