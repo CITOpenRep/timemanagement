@@ -37,14 +37,21 @@ Rectangle {
     //        anchors.top: rect4.bottom
     width: parent.width
     height: units.gu(40)
+    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "transparent"
 
     ChartView {
         id: chart4
         title: "Taskwise Time Spent"
+        titleColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         anchors.fill: parent
         theme: ChartView.ChartThemeHighContrast
         legend.alignment: Qt.AlignBottom
         antialiasing: true
+
+        backgroundColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "transparent"
+
+        legend.labelColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        legend.font.pixelSize: units.gu(3)
 
         BarSeries {
             id: mySeries2
@@ -52,6 +59,10 @@ Rectangle {
                 min: 0
                 max: 50
                 tickCount: 5
+                labelsColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+            }
+            axisX: BarCategoryAxis {
+                labelsColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
             }
         }
 

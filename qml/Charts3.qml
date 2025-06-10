@@ -39,15 +39,29 @@ Rectangle {
     color: "transparent"
     //anchors.fill: parent
 
+    //   Text {
+    //     id: chartTitle
+    //     text: "Projectwise Time Spent"
+    //     anchors.top: parent.top
+    //     anchors.horizontalCenter: parent.horizontalCenter
+    //     font.pixelSize: units.gu(2)
+    //     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+    //     padding: units.gu(1.5)
+    // }
+
+
     ChartView {
         id: chart3
         title: "Projectwise Time Spent"
+        titleColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
      
         anchors.fill: parent
         legend.alignment: Qt.AlignBottom
         antialiasing: true
 
         backgroundColor: "transparent"
+        legend.labelColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        legend.font.pixelSize: units.gu(3)
        
        // theme: ChartView.ChartThemeHighContrast
 
@@ -57,6 +71,11 @@ Rectangle {
                 min: 0
                 max: 50
                 tickCount: 5
+                labelsColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+     
+            }
+            axisX: BarCategoryAxis {
+                labelsColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
             }
         }
 
