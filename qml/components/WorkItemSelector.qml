@@ -54,12 +54,15 @@ Rectangle {
             //spacing: units.gu(1)
             visible: showAccountSelector
             height: units.gu(5)
-
-            Label {
-                text: "Account"
+            LomiriShape {
                 width: parent.width * 0.25
-                verticalAlignment: Text.AlignVCenter
                 anchors.verticalCenter: parent.verticalCenter
+                aspect: LomiriShape.Flat
+                Label {
+                    text: "Account"
+                    anchors.fill: parent
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
 
             Rectangle {
@@ -87,11 +90,15 @@ Rectangle {
             visible: showProjectSelector
             height: units.gu(5)
 
-            Label {
-                text: "Project"
+            LomiriShape {
                 width: parent.width * 0.25
-                verticalAlignment: Text.AlignVCenter
                 anchors.verticalCenter: parent.verticalCenter
+                aspect: LomiriShape.Flat
+                Label {
+                    text: "Project"
+                    anchors.fill: parent
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
 
             Rectangle {
@@ -121,11 +128,15 @@ Rectangle {
             visible: showSubprojectSelector
             height: units.gu(5)
 
-            Label {
-                text: "Subproject"
+            LomiriShape {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-                verticalAlignment: Text.AlignVCenter
+                aspect: LomiriShape.Flat
+                Label {
+                    text: "Subproject"
+                    anchors.fill: parent
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
 
             Rectangle {
@@ -158,11 +169,15 @@ Rectangle {
             visible: showTaskSelector
             height: units.gu(5)
 
-            Label {
-                text: "Task"
+            LomiriShape {
                 width: parent.width * 0.25
-                verticalAlignment: Text.AlignVCenter
                 anchors.verticalCenter: parent.verticalCenter
+                aspect: LomiriShape.Flat
+                Label {
+                    text: "Task"
+                    anchors.fill: parent
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
 
             Rectangle {
@@ -194,11 +209,15 @@ Rectangle {
             visible: showSubtaskSelector
             height: units.gu(5)
 
-            Label {
-                text: "Subtask"
+            LomiriShape {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-                verticalAlignment: Text.AlignVCenter
+                aspect: LomiriShape.Flat
+                Label {
+                    text: "Subtask"
+                    anchors.fill: parent
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
 
             Rectangle {

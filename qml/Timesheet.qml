@@ -212,6 +212,7 @@ Page {
             TextField {
                 id: hours_text
                 text: "01:00"
+                enabled: !isReadOnly
                 readOnly: true
                 Layout.alignment: Qt.AlignVCenter
                 validator: RegExpValidator {
@@ -223,6 +224,7 @@ Page {
             TSButton {
                 text: "Manual"
                 objectName: "button_manual"
+                enabled: !isReadOnly
                 width: parent.width * 0.2
                 height: units.gu(3)
 
@@ -311,22 +313,16 @@ Page {
                 }
 
                 name_text.text = currentTimesheet.name;
+                if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
+                    hours_text.text = currentTimesheet.spentHours;
+                }
+                if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
+                    priorityCombo.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
+                }
             } else //we are creating a new timesheet
             {
                 console.log("Creating a new timesheet");
             }
         }
-    }
-
-    onVisibleChanged: {
-        if (visible)
-        //to update the UI
-        //if (TimerService.isRunning())
-        //stopwatchTimer.start();
-        //else
-        //  stopwatchTimer.stop();
-        {} else
-        //stopwatchTimer.stop();
-        {}
     }
 }
