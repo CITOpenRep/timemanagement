@@ -17,6 +17,11 @@
         through seamless integration with Odoo.
     </p>
 
+    <h2>Change History</h2>
+    <ul>
+        <li>10-06-2025 : Fixed the bugs in Timesheet & Updated Eisenhower matrix</li>
+    </ul>
+
     <h2>Known Issues</h2>
     <ul>
         <li>This app is currently in beta. Upcoming releases will focus on enhancing the user experience.</li>
