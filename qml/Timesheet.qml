@@ -162,7 +162,7 @@ Page {
                 leftPadding: units.gu(1)
                 DaySelector {
                     id: date_widget
-                    enabled: !isReadOnly
+                    readOnly: isReadOnly
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(8)
                     anchors.centerIn: parent.centerIn
@@ -264,7 +264,6 @@ Page {
                 model: ["Do (Important & Urgent )", "Plan (Important & Not Urgent)", "Delegate (Urgent & Not Important)", "Delete (Not Urgent & Not Important)"]
                 enabled: !isReadOnly
                 currentIndex: 0
-
             }
         }
 
