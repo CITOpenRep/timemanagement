@@ -9,42 +9,49 @@ Rectangle {
     width: parent ? parent.width : 400
     property alias labelText: rangeLabel.text
     property date selectedDate: new Date()
+    property bool readOnly: false
     signal dateChanged(date selectedDate)
     color: "transparent"
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: units.gu(1)
+        //anchors.margins: units.gu(1)
 
         // Row for label and combo
         RowLayout {
-            Label {
+            TSLabel {
                 id: rangeLabel
+                enabled: true
                 text: "Date"
             }
 
-            TSCombobox {
-                id: dayCombo
-                model: ["Today", "Yesterday", "Custom"]
-                currentIndex: 0
-                enabled: daySelector.enabled
-                onActivated: {
-                    updateDate();
-                }
-                onAccepted: {
-                    updateDate();
-                }
-                //Layout.preferredWidth: 200
-            }
             Item {
+                Layout.preferredWidth: units.gu(20)
+                Layout.preferredHeight: units.gu(5.5)
+
+                TSCombobox {
+                    id: dayCombo
+                    anchors.fill: parent
+                    model: ["Today", "Yesterday", "Custom"]
+                    visible: !daySelector.readOnly
+                    currentIndex: 0
+                    onActivated: updateDate()
+                    onAccepted: updateDate()
+                }
+            }
+
+            Rectangle {
                 id: dateItem
                 property date date: new Date()
                 Layout.preferredWidth: parent.width * 0.5
                 Layout.preferredHeight: parent.height
+                color: "white"
 
-                TextField {
+                TSLabel {
                     anchors.fill: parent
-                    readOnly: true
+                    verticalAlignment: Text.AlignVCenter
+                    enabled: !daySelector.readOnly
+                    //readOnly: true
                     text: Qt.formatDate(dateItem.date, "dd-MM-yyyy")
                 }
 
@@ -52,6 +59,10 @@ Rectangle {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
+                        if (daySelector.readOnly) {
+                            return;
+                        }
+
                         let result = PickerPanel.openDatePicker(dateItem, "date", "Years|Months|Days");
                         if (result) {
                             result.closed.connect(() => {
