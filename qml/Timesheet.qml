@@ -265,9 +265,6 @@ Page {
                 enabled: !isReadOnly
                 currentIndex: 0
 
-                onCurrentIndexChanged: {
-                    selectedQuadrant = currentIndex + 1;
-                }
             }
         }
 

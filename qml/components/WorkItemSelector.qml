@@ -76,7 +76,7 @@ Rectangle {
                     enabled: !readOnly
                     editable: false
                     onAccountSelected: {
-                        console.log("Accoutn Selected");
+                        console.log("Account Selected");
                         projectSelector.load(accountSelector.selectedInstanceId, 0);
                     }
                 }
