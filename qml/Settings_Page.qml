@@ -36,10 +36,13 @@ import "components"
 Page {
     id: settings
     title: "Settings"
+    // property bool  theme.name === "Ubuntu.Components.Themes.SuruDark": false // Set externally or bind to a global setting
     header: PageHeader {
         id: pageHeader
         StyleHints {
+
             foregroundColor: "white"
+
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
@@ -100,11 +103,12 @@ Page {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.bottomMargin: units.gu(1)
-        color: "#ffffff"
+        // color:  theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#181a20" : "transparent"
         Rectangle {
             anchors.fill: parent
             anchors.top: pageHeader.bottom
             anchors.topMargin: units.gu(5)
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
             Flickable {
                 id: listView
                 anchors.fill: parent
@@ -121,8 +125,8 @@ Page {
                         delegate: Rectangle {
                             width: parent.width
                             height: units.gu(16)
-                            color: "#FFFFFF"
-                            border.color: "#CCCCCC"
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
+                            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#CCCCCC"
                             border.width: 1
                             Column {
                                 spacing: 0
@@ -136,9 +140,9 @@ Page {
                                         id: imgmodulename
                                         width: units.gu(5)
                                         height: units.gu(5)
-                                        color: "#0078d4"
+                                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#0078d4" : "#0078d4"
                                         radius: 80
-                                        border.color: "#0056a0"
+                                        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#0056a0" : "#0056a0"
                                         border.width: 1
                                         anchors.rightMargin: units.gu(1)
                                         anchors.verticalCenter: parent.verticalCenter
@@ -156,7 +160,6 @@ Page {
 
                                     Column {
                                         spacing: 5
-                                        // anchors.centerIn:  parent
                                         anchors.left: imgmodulename.right
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.leftMargin: units.gu(2)
@@ -164,25 +167,25 @@ Page {
                                         Text {
                                             text: model.name.toUpperCase()
                                             font.pixelSize: units.gu(2)
-                                            color: "#000"
+                                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#000"
                                             elide: Text.ElideRight
                                         }
 
                                         Text {
-                                            text: "URL : " + (model.link.length > 40) ? model.link.substring(0, 40) + "..." : model.link
+                                            text: "URL : " + ((model.link.length > 40) ? model.link.substring(0, 40) + "..." : model.link)
                                             font.pixelSize: units.gu(1.2)
-                                            color: "#666"
+                                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                             elide: Text.ElideNone
                                         }
                                         Text {
                                             text: "Database : " + model.database
                                             font.pixelSize: units.gu(1.1)
-                                            color: "#666"
+                                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                         }
                                         Text {
                                             text: Utils.getLastSyncStatus(0)
                                             font.pixelSize: units.gu(1)
-                                            color: "#666"
+                                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                         }
                                     }
                                     Column {
@@ -212,7 +215,6 @@ Page {
                                                 });
                                             }
                                         }
-                                        // Sync Button
                                         TSButton {
                                             id: syncBtn
                                             visible: (model.id !== 0)
@@ -226,7 +228,6 @@ Page {
                                                         console.warn("DB not found.");
                                                     } else {
                                                         console.log("Actual DB path resolved by Python:", path);
-                                                        //remeber to remove hardcoded index , pasing account index
                                                         python.call("backend.start_sync_in_background", [path, model.id], function (result) {
                                                             if (result) {
                                                                 console.log("Background sync started...");
@@ -252,13 +253,16 @@ Page {
                 Rectangle {
                     width: Screen.width
                     height: Screen.height
-                    color: "lightgray"
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#23272f" : "lightgray"
                     radius: 10
                     opacity: 0.8
+                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ccc"
+                    border.width: 1
                     Text {
                         anchors.centerIn: parent
                         text: loadingMessage
                         font.pixelSize: 50
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#000"
                     }
                 }
             }

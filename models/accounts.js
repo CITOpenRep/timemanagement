@@ -128,3 +128,50 @@ function deleteAccountAndRelatedData(userId) {
         logException(e);
     }
 }
+
+
+/**
+ * Retrieves the `odoo_record_id` for the current user based on the username from the `users` table.
+ * It looks up the `username` for the given `accountId` in the `users` table,
+ * and then finds the corresponding user in the `res_users_app` table by matching the `name` field.
+ *
+ * @param {number} accountId - The ID of the account in the `users` table.
+ * @returns {number|null} The `odoo_record_id` of the matched user, or `null` if not found.
+ */
+function getCurrentUserOdooId(accountId) {
+    if (accountId === 0) {
+           return 1; // Local account
+       }
+    let odooId = null;
+
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            DBCommon.log(`Looking up username for account_id: ${accountId}`);
+            const result = tx.executeSql("SELECT username FROM users WHERE id = ?", [accountId]);
+
+            if (result.rows.length === 0) {
+                DBCommon.log("No user found with given account ID.");
+                return;
+            }
+
+            const username = result.rows.item(0).username;
+
+            DBCommon.log(`Found username: ${username}, now checking res_users_app`);
+
+            const userResult = tx.executeSql("SELECT odoo_record_id FROM res_users_app WHERE login = ?", [username]);
+
+            if (userResult.rows.length > 0) {
+                odooId = userResult.rows.item(0).odoo_record_id;
+                DBCommon.log(`Found odoo_record_id: ${odooId}`);
+            } else {
+                DBCommon.log(`No match found in res_users_app for username: ${username}`);
+            }
+        });
+    } catch (e) {
+        logException(e);
+    }
+
+    return odooId;
+}

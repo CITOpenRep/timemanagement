@@ -37,8 +37,8 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         font.pixelSize: units.gu(2)
-        color: "#444"
-        padding: 10
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        padding: units.gu(1.5)
     }
 
     // Main ChartView below the title
@@ -48,6 +48,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+
+        backgroundColor: "transparent"
 
         antialiasing: true
         title: ""
@@ -112,7 +114,7 @@ Item {
                     id: label
                     text: model.label
                     font.pixelSize: units.gu(2)
-                    color: "#333"
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
                     wrapMode: Text.WordWrap
                     maximumLineCount: 2
                     width: parent.width

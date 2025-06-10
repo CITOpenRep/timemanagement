@@ -108,19 +108,19 @@ Page {
             onEditRequested: {
                 console.log("Edit Requested");
                 apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
-                    "recordid": recordId,
+                    "recordid": model.id,
                     "isReadOnly": false
                 });
             }
             onViewRequested: {
                 apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
-                    "recordid": recordId,
+                    "recordid": model.id,
                     "isReadOnly": true
                 });
             }
 
             onDeleteRequested: {
-                var result = Model.markTimesheetAsDeleted(recordId);
+                var result = Model.markTimesheetAsDeleted(model.id);
                 if (!result.success) {
                     notifPopup.open("Error", result.message, "error");
                 } else {

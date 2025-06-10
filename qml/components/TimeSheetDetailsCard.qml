@@ -25,10 +25,12 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
+import "../../models/utils.js" as Utils
+import "../../models/constants.js" as AppConst
 
 ListItem {
     id: timesheetItem
-    height: units.gu(10)
+    height: units.gu(12)
 
     property string name: ""
     property string project: ""
@@ -60,7 +62,7 @@ ListItem {
                 onTriggered: editRequested(recordId)
             },
             Action {
-                iconName: "delete"
+                iconSource: "../images/delete.png"
                 onTriggered: deleteRequested(recordId)
             }
         ]
@@ -81,26 +83,30 @@ ListItem {
                 spacing: units.gu(0.5)
 
                 Text {
-                    text: name
-                    font.pixelSize: units.gu(2)
+                    text: Utils.truncateText(name, 40)
+                    font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
                     width: parent.width
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
 
                 Text {
                     text: (project ? project : "No Project")
-                    font.pixelSize: units.gu(1.5)
+                    font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
                 Text {
                     text: task
-                    font.pixelSize: units.gu(1.5)
+                    font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
                 Text {
                     text: (user ? user : "Unknown User")
-                    font.pixelSize: units.gu(1.5)
+                    font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
             }
 
@@ -112,16 +118,18 @@ ListItem {
 
                 Text {
                     text: spentHours + " H"
-                    font.pixelSize: units.gu(1.4)
+                    font.pixelSize: units.gu(AppConst.FontSizes.ListSubSubHeading)
                     horizontalAlignment: Text.AlignRight
                     width: parent.width
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
 
                 Text {
                     text: date
-                    font.pixelSize: units.gu(1.4)
+                    font.pixelSize: units.gu(AppConst.FontSizes.ListSubSubHeading)
                     horizontalAlignment: Text.AlignRight
                     width: parent.width
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
 
                 EHowerIndicator {

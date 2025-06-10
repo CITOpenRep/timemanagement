@@ -37,7 +37,7 @@ import "components"
 
 Page {
     id: mainPage
-    title: "Ubudoo- Time Management"
+    title: "Time Manager - Time Management Dashboard"
     anchors.fill: parent
     property bool isMultiColumn: apLayout.columns > 1
     property var page: 0
@@ -67,7 +67,7 @@ Page {
         //     numberOfSlots: 2
         //     anchors.right: parent.right
         trailingActionBar.visible: isMultiColumn ? false : true
-        trailingActionBar.numberOfSlots: 2
+        trailingActionBar.numberOfSlots: 3
 
         trailingActionBar.actions: [
             Action {
@@ -78,6 +78,13 @@ Page {
                     console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
                     page = 7;
                     apLayout.setCurrentPage(page);
+                }
+            },
+            Action {
+                iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
+                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
+                onTriggered: {
+                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
                 }
             },
             Action {
@@ -204,7 +211,11 @@ Page {
         id: top_custom_header
         z: 9999
     }*/
-
+    // LomiriShape {
+    //     anchors.fill: parent
+    //     anchors.margins: units.gu(1)
+    //    anchors.topMargin: header.height + units.gu(1)
+    //     aspect: LomiriShape.Flat
     Flickable {
         id: flick1
         width: parent.width
@@ -222,33 +233,54 @@ Page {
             }
         }
 
-        EHower {
-            id: ehoverMatrix
+        Column {
+            id: quadrantColumn
             width: parent.width
-            height: width
+            spacing: units.gu(2)
             anchors.top: parent.top
-            quadrant1Hours: "120.2"
-            quadrant2Hours: "65.5"
-            quadrant3Hours: "55.0"
-            quadrant4Hours: "178.1"
-            onQuadrantClicked: {
-                console.log("Quadrant clicked:", quadrant);
-                // Navigate or filter as needed
-            }
-        }
+            anchors.margins: units.gu(1)
 
-        ProjectPieChart {
-            id: projectchart
-            width: parent.width
-            height: width
-            anchors.top: ehoverMatrix.bottom
-            anchors.margins: 10
-            Component.onCompleted: {
-                var data = Project.getProjectSpentHoursList(true);
-                projectchart.load(data);
+            Item {
+                id: quadrantWrapper
+                width: parent.width
+                height: width  // Maintain square layout
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                Rectangle {
+                    id: quadrantContainer
+                    anchors.fill: parent
+                    anchors.margins: units.gu(1)
+                    color: "transparent"
+                    radius: units.gu(1)
+                    border.color: "transparent"
+                    border.width: 0
+
+                    EHower {
+                        id: ehoverMatrix
+                        width: parent.width * 0.98
+                        height: width
+                        anchors.centerIn: parent
+                        quadrant1Hours: "120.2"
+                        quadrant2Hours: "65.5"
+                        quadrant3Hours: "55.0"
+                        quadrant4Hours: "178.1"
+                        onQuadrantClicked: {
+                            console.log("Quadrant clicked:", quadrant);
+                        }
+                    }
+                }
             }
 
-            // barColor: "#4CAF50"
+            ProjectPieChart {
+                id: projectchart
+                width: parent.width * 0.95
+                height: width  // Also square
+                anchors.horizontalCenter: parent.horizontalCenter
+                Component.onCompleted: {
+                    var data = Project.getProjectSpentHoursList(true);
+                    projectchart.load(data);
+                }
+            }
         }
 
         onFlickEnded: {

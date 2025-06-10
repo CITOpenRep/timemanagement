@@ -50,50 +50,52 @@ Page {
         }
 
         //    enable: true
-        ActionBar {
-            numberOfSlots: 2
-            anchors.right: parent.right
-            actions: [
-                Action {
-                    iconName: "save"
-                    text: "Save"
-                    visible: !isReadOnly
-                    onTriggered: {
 
-                        // isReadOnly = !isReadOnly
-                        var project_data = {
-                            'account_id': accountCombo.selectedInstanceId,
-                            'name': p_name.text,
-                            'planned_start_date': start_date_widget.date,
-                            'planned_end_date': end_date_widget.date,
-                            'parent_id': (!parent_projectCombo.selectedProjectId || parent_projectCombo.selectedProjectId < 0) ? 0 : parent_projectCombo.selectedProjectId,
-                            'allocated_hours': hours_text.text,
-                            'description': description_text.text,
-                            'favorites': 0,
-                            'color': 0,
-                            'status': "updated"
-                        };
-                        console.log(JSON.stringify(project_data, null, 4));
-                        var recordid = 0; //project creation
-                        var response = Project.createUpdateProject(project_data, recordid);
-                        if (response) {
-                            if (response.is_success) {
-                                notifPopup.open("Saved", response.message, "success");
-                            } else {
-                                notifPopup.open("Failed", response.message, "error");
-                            }
+        trailingActionBar.actions: [
+            Action {
+
+                iconSource: "images/save.svg" // New Save Icon
+                text: "Save"
+                visible: !isReadOnly
+                onTriggered: {
+
+                    // isReadOnly = !isReadOnly
+                    var project_data = {
+                        'account_id': accountCombo.selectedInstanceId,
+                        'name': project_name.text,
+                        'planned_start_date': start_date_widget.date,
+                        'planned_end_date': end_date_widget.date,
+                        'parent_id': (!parent_projectCombo.selectedProjectId || parent_projectCombo.selectedProjectId < 0) ? 0 : parent_projectCombo.selectedProjectId,
+                        'allocated_hours': hours_text.text,
+                        'description': description_text.text,
+                        'favorites': 0,
+                        'color': project_color,
+                        'status': "updated"
+                    };
+                    console.log(JSON.stringify(project_data, null, 4));
+                    var recordid = 0; //project creation
+                    var response = Project.createUpdateProject(project_data, recordid);
+                    if (response) {
+                        if (response.is_success) {
+                            notifPopup.open("Saved", response.message, "success");
                         } else {
-                            notifPopup.open("Failed", "Unable to save project", "error");
+                            notifPopup.open("Failed", response.message, "error");
                         }
+                    } else {
+                        notifPopup.open("Failed", "Unable to save project", "error");
                     }
                 }
-            ]
-        }
+            }
+        ]
     }
 
     property bool isReadOnly: false
+    property var recordid: 0
+    property int project_color: 0
+    property var project: {}
 
     ScrollView {
+        id: scrollview
         anchors.top: header.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -112,7 +114,7 @@ Page {
             Row {
                 id: myRow1a
                 anchors.left: parent.left
-                topPadding: units.gu(2)
+                topPadding: 10
                 Column {
                     leftPadding: units.gu(2)
                     LomiriShape {
@@ -122,7 +124,6 @@ Page {
                         Label {
                             id: instance_label
                             text: "Instance"
-                            font.bold: true
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             //textSize: Label.Large
@@ -131,21 +132,21 @@ Page {
                 }
                 Column {
                     leftPadding: units.gu(3)
-                    LomiriShape {
-                        width: units.gu(30)
-                        height: units.gu(8.5)
-
-                        AccountSelector {
-                            id: accountCombo
-                            editable: true
-                            width: parent.width
-                            height: parent.height
-                            anchors.centerIn: parent.centerIn
-                            flat: true
-                            onAccountSelected: {
-                                //fetch projects
-                                parent_projectCombo.accountId = id;
-                                parent_projectCombo.loadProjects();
+                    AccountSelector {
+                        id: accountCombo
+                        editable: true
+                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                        height: units.gu(6)
+                        anchors.centerIn: parent.centerIn
+                        enabled: !isReadOnly
+                        flat: true
+                        onAccountSelected: {
+                            if (project && project.parent_d) {
+                                //on read / edit mode
+                                console.log("Parent id found , loading that project");
+                                parent_projectCombo.load(accountCombo.selectedInstanceId, project.parent_id);
+                            } else {
+                                parent_projectCombo.load(accountCombo.selectedInstanceId, 0);
                             }
                         }
                     }
@@ -159,24 +160,17 @@ Page {
                 topPadding: units.gu(2)
                 Column {
                     leftPadding: units.gu(2)
-                    LomiriShape {
+                    TSLabel {
+                        id: project_label
                         width: units.gu(10)
                         height: units.gu(5)
-                        aspect: LomiriShape.Flat
-                        Label {
-                            id: task_label
-                            text: "Project Name"
-                            font.bold: true
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
-                        }
+                        text: "Project Name"
                     }
                 }
                 Column {
                     leftPadding: units.gu(3)
                     TextField {
-                        id: p_name
+                        id: project_name
                         readOnly: isReadOnly
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         text: ""
@@ -184,7 +178,7 @@ Page {
                 }
             }
 
-            Row {
+            Column {
                 id: myRow9
                 anchors.top: myRow1.bottom
                 anchors.left: parent.left
@@ -199,7 +193,6 @@ Page {
                         Label {
                             id: description_label
                             text: "Description"
-                            font.bold: true
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             //textSize: Label.Large
@@ -212,7 +205,8 @@ Page {
                     TextArea {
                         id: description_text
                         readOnly: isReadOnly
-                        autoSize: true
+                        textFormat: Text.RichText
+                        autoSize: false
                         maximumLineCount: 0
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         anchors.centerIn: parent.centerIn
@@ -236,7 +230,6 @@ Page {
                         Label {
                             id: parent_label
                             text: "Parent Project"
-                            font.bold: true
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             //textSize: Label.Large
@@ -266,6 +259,7 @@ Page {
                 anchors.rightMargin: 10
                 height: units.gu(5)
                 topPadding: units.gu(2)
+                spacing: units.gu(2) // Spacing between columns
                 Column {
                     leftPadding: units.gu(2)
                     LomiriShape {
@@ -275,7 +269,6 @@ Page {
                         Label {
                             id: hours_label
                             text: "Allocated Hours"
-                            font.bold: true
                             anchors.left: parent.left
 
                             anchors.verticalCenter: parent.verticalCenter
@@ -285,7 +278,7 @@ Page {
                 }
                 Column {
                     id: planColumn
-                    leftPadding: units.gu(1)
+                    leftPadding: units.gu(5)
                     TextField {
                         id: hours_text
                         readOnly: isReadOnly
@@ -315,7 +308,6 @@ Page {
                         Label {
                             id: start_label
                             text: "Start Date"
-                            font.bold: true
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             //textSize: Label.Large
@@ -347,7 +339,6 @@ Page {
                         Label {
                             id: end_label
                             text: "End Date"
-                            font.bold: true
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             //textSize: Label.Large
@@ -364,6 +355,54 @@ Page {
                     }
                 }
             }
+            Row {
+                id: colorRow
+                anchors.top: myRow6.bottom
+                anchors.left: parent.left
+                topPadding: units.gu(2)
+                Column {
+                    leftPadding: units.gu(2)
+                    LomiriShape {
+                        width: units.gu(10)
+                        height: units.gu(5)
+                        aspect: LomiriShape.Flat
+                        Label {
+                            id: color_Label
+                            text: "Color"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            //textSize: Label.Large
+                        }
+                    }
+                }
+                Column {
+                    leftPadding: units.gu(3)
+                    Rectangle {
+                        id: project_color_label
+                        width: units.gu(4)
+                        height: units.gu(4)
+                        color: "red"
+                        enabled: !isReadOnly
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                colorpicker.open();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    ColorPicker {
+        id: colorpicker
+        width: units.gu(80)
+        height: units.gu(80)
+        onColorPicked: function (index, value) {
+            console.log("Selected index:", index);
+            console.log("Selected color:", value);
+            project_color_label.color = value;
+            project_color = index;
         }
     }
 
@@ -374,7 +413,41 @@ Page {
         onClosed: console.log("Notification dismissed")
     }
 
-    Component.onCompleted:
-    // Utils.updateOdooUsers(assigneeModel);
-    {}
+    Component.onCompleted: {
+        if (recordid !== 0) {
+            let project = Project.get_project_details(recordid);
+            console.log("=== Project Details ===");
+            console.log("id:", project.id);
+            console.log("name:", project.name);
+            console.log("account_id:", project.account_id);
+            console.log("parent_id:", project.parent_id);
+            console.log("planned_start_date:", project.planned_start_date);
+            console.log("planned_end_date:", project.planned_end_date);
+            console.log("allocated_hours:", project.allocated_hours);
+            console.log("favorites:", project.favorites);
+            console.log("last_update_status:", project.last_update_status);
+            console.log("description:", project.description);
+            console.log("last_modified:", project.last_modified);
+            console.log("color_pallet:", project.color_pallet);
+            console.log("status:", project.status);
+            console.log("odoo_record_id:", project.odoo_record_id);
+
+            let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
+            let ppid = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
+            accountCombo.selectAccountById(instanceId);
+            parent_projectCombo.accountId = instanceId;
+            parent_projectCombo.selectProjectById(ppid);
+            if (project && Object.keys(project).length > 0) {
+                description_text.text = project.description || "";
+            } else {
+                notifPopup.open("Failed", "Unable to open the project details", "error");
+            }
+            project_name.text = project.name;
+            project_color = project.color_pallet;
+            project_color_label.color = colorpicker.getColorByIndex(project.color_pallet);
+        } else {
+            //do nothing as we are creating project
+            recordid = 0;
+        }
+    }
 }

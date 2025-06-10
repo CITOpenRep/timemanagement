@@ -53,7 +53,7 @@ ListItem {
     leadingActions: ListItemActions {
         actions: [
             Action {
-                iconName: "document-preview"
+                iconSource: "../images/show.png"
                 onTriggered: {
                     console.log(localId);
                     viewRequested(localId);
@@ -64,10 +64,11 @@ ListItem {
 
     Rectangle {
         anchors.fill: parent
-        border.color: "#dcdcdc"
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#dcdcdc"
         radius: units.gu(0.2)
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
 
         Row {
             anchors.fill: parent
@@ -82,7 +83,7 @@ ListItem {
             Rectangle {
                 width: parent.width - units.gu(17)
                 height: parent.height
-                color: "transparent" //add some color and see layout
+                color: "transparent"
 
                 Row {
                     width: parent.width
@@ -114,7 +115,7 @@ ListItem {
 
                         Text {
                             text: projectName !== "" ? projectName : "Unnamed Project"
-                            color: hasChildren ? AppConst.Colors.Orange : "black"
+                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                             font.pixelSize: units.gu(2)
                             wrapMode: Text.WordWrap
                             maximumLineCount: 2
@@ -130,6 +131,7 @@ ListItem {
                             maximumLineCount: 2
                             width: parent.width - units.gu(2)
                             height: units.gu(2)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                         }
                         Label {
                             id: details
@@ -137,7 +139,7 @@ ListItem {
                             width: parent.width - units.gu(2)
                             font.pixelSize: units.gu(1.6)
                             height: units.gu(3)
-                            color: "blue"
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "blue"
                             font.underline: true
                             MouseArea {
                                 anchors.fill: parent
@@ -154,10 +156,9 @@ ListItem {
             Rectangle {
                 width: units.gu(15)
                 height: parent.height
-                color: 'transparent' //add some color and see layout
+                color: 'transparent'
 
                 Column {
-
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: units.gu(0.4)
@@ -168,7 +169,7 @@ ListItem {
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
-                        color: "#555"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555"
                     }
 
                     Text {
@@ -176,6 +177,7 @@ ListItem {
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                     }
 
                     Text {
@@ -183,12 +185,12 @@ ListItem {
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
-                        color: "#e53935"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                     }
                     Text {
                         text: (childCount > 0 ? " [+" + childCount + "] Projects " : "")
                         visible: childCount > 0
-                        color: hasChildren ? AppConst.Colors.Orange : "black"
+                        color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width

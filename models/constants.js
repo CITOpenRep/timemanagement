@@ -3,6 +3,14 @@
 .pragma library
 
 var version="0.1(Alpha Draft)"
+
+var FontSizes = {
+    ListHeading:1.7,
+    ListSubHeading:1.5,
+    ListSubSubHeading:1.7,
+}
+
+
 var Colors = {
     StickyNote: "#F5F5F5",
     Border: "#B0BEC5",
@@ -11,6 +19,7 @@ var Colors = {
     ButtonText: "white",
     ButtonHover: "#ef8037",
     Orange :"#F25C27",
+    ButtonDisabled :"grey",
 
     Quadrants: {
         Q1: "#FF3B30",     // Urgent & Important

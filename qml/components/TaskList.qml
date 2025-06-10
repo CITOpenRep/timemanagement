@@ -47,7 +47,7 @@ Item {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
         db.transaction(function (tx) {
-            var query = isWorkProfile ? "SELECT * FROM project_task_app WHERE account_id IS NOT NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC" : "SELECT * FROM project_task_app WHERE account_id IS NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+            var query = isWorkProfile ? "SELECT * FROM project_task_app WHERE account_id IS NOT NULL AND (status IS NULL OR status != 'deleted') ORDER BY name COLLATE NOCASE ASC" : "SELECT * FROM project_task_app WHERE account_id IS NULL AND (status IS NULL OR status != 'deleted') ORDER BY name COLLATE NOCASE ASC";
 
             var result = tx.executeSql(query);
             if (result.rows.length === 0) {

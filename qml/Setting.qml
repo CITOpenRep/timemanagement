@@ -43,6 +43,8 @@ Item {
     property bool loading: false
     property string loadingMessage: ""
     property bool issearchHeader: false
+    property bool darkMode: false // Set this externally or bind to a global setting
+
     function queryData() {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
@@ -93,13 +95,13 @@ Item {
         height: isDesktop() ? 60 : 120
         anchors.top: parent.top
         anchors.topMargin: isDesktop() ? 60 : 120
-        color: "#FFFFFF"
+        color: "transparent"
         z: 1
 
         Rectangle {
             width: parent.width
             height: 2
-            color: "#DDDDDD"
+            color: "transparent"
             anchors.bottom: parent.bottom
         }
 
@@ -132,7 +134,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
 
                         font.bold: true
-                        color: "#121944"
+                        color: darkMode ? "#e0e0e0" : "#121944"
                     }
                 }
             }
@@ -227,13 +229,12 @@ Item {
         anchors.rightMargin: isDesktop() ? 10 : 20
         anchors.bottom: parent.bottom
         anchors.bottomMargin: isDesktop() ? 0 : 100
-        color: "#ffffff"
+        color: darkMode ? "#181a20" : "transparent"
         Rectangle {
-
             anchors.fill: parent
             anchors.top: searchId.bottom
             anchors.topMargin: isDesktop() ? 68 : 170
-            border.color: "#CCCCCC"
+            border.color: darkMode ? "#444" : "#CCCCCC"
             border.width: isDesktop() ? 1 : 2
 
             Flickable {
@@ -253,9 +254,8 @@ Item {
                         delegate: Rectangle {
                             width: parent.width
                             height: isDesktop() ? 80 : 130
-
-                            color: "#FFFFFF"
-                            border.color: "#CCCCCC"
+                            color: darkMode ? "#23272f" : "transparent"
+                            border.color: darkMode ? "#444" : "#CCCCCC"
                             border.width: isDesktop() ? 1 : 2
 
                             Column {
@@ -271,9 +271,9 @@ Item {
                                         id: imgmodulename
                                         width: isDesktop() ? 50 : 90
                                         height: isDesktop() ? 50 : 90
-                                        color: "#0078d4"
+                                        color: darkMode ? "#0078d4" : "#0078d4"
                                         radius: 80
-                                        border.color: "#0056a0"
+                                        border.color: darkMode ? "#0056a0" : "#0056a0"
                                         border.width: 2
                                         anchors.rightMargin: 10
 
@@ -297,20 +297,19 @@ Item {
                                         Text {
                                             text: model.name
                                             font.pixelSize: isDesktop() ? 20 : 40
-                                            color: "#000"
+                                            color: darkMode ? "#e0e0e0" : "#000"
                                             elide: Text.ElideRight
                                         }
 
                                         Text {
                                             text: (model.link.length > 40) ? model.link.substring(0, 40) + "..." : model.link
                                             font.pixelSize: isDesktop() ? 18 : 30
-                                            color: "#0078d4"
+                                            color: darkMode ? "#4fc3f7" : "#0078d4"
                                             elide: Text.ElideNone
                                         }
                                     }
 
                                     Button {
-
                                         width: isDesktop() ? 40 : 90
                                         height: isDesktop() ? 40 : 90
 
@@ -323,6 +322,8 @@ Item {
                                             source: "images/delete.png"
                                             anchors.fill: parent
                                             smooth: true
+                                            // Optionally, use a white icon for dark mode
+                                            // source: darkMode ? "images/delete_white.png" : "images/delete.png"
                                         }
                                         anchors.right: parent.right
                                         anchors.rightMargin: 20
@@ -347,13 +348,14 @@ Item {
                 Rectangle {
                     width: Screen.width
                     height: Screen.height
-                    color: "lightgray"
+                    color: darkMode ? "#23272f" : "lightgray"
                     radius: 10
                     opacity: 0.8
                     Text {
                         anchors.centerIn: parent
                         text: loadingMessage
                         font.pixelSize: 50
+                        color: darkMode ? "#e0e0e0" : "#000"
                     }
                 }
             }

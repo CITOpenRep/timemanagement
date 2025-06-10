@@ -1184,5 +1184,1056 @@
             "string": "Encoding Uom",
             "type": "many2one"
         }
+    },
+    "res.users": {
+        "partner_id": {
+            "string": "Related Partner",
+            "type": "many2one"
+        },
+        "login": {
+            "string": "Login",
+            "type": "char"
+        },
+        "password": {
+            "string": "Password",
+            "type": "char"
+        },
+        "new_password": {
+            "string": "Set Password",
+            "type": "char"
+        },
+        "signature": {
+            "string": "Email Signature",
+            "type": "html"
+        },
+        "active": {
+            "string": "Active",
+            "type": "boolean"
+        },
+        "active_partner": {
+            "string": "Partner is Active",
+            "type": "boolean"
+        },
+        "action_id": {
+            "string": "Home Action",
+            "type": "many2one"
+        },
+        "groups_id": {
+            "string": "Groups",
+            "type": "many2many"
+        },
+        "log_ids": {
+            "string": "User log entries",
+            "type": "one2many"
+        },
+        "login_date": {
+            "string": "Latest authentication",
+            "type": "datetime"
+        },
+        "share": {
+            "string": "Share User",
+            "type": "boolean"
+        },
+        "companies_count": {
+            "string": "Number of Companies",
+            "type": "integer"
+        },
+        "tz_offset": {
+            "string": "Timezone offset",
+            "type": "char"
+        },
+        "company_id": {
+            "string": "Company",
+            "type": "many2one"
+        },
+        "company_ids": {
+            "string": "Companies",
+            "type": "many2many"
+        },
+        "name": {
+            "string": "Name",
+            "type": "char"
+        },
+        "email": {
+            "string": "Email",
+            "type": "char"
+        },
+        "accesses_count": {
+            "string": "# Access Rights",
+            "type": "integer"
+        },
+        "rules_count": {
+            "string": "# Record Rules",
+            "type": "integer"
+        },
+        "groups_count": {
+            "string": "# Groups",
+            "type": "integer"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "create_date": {
+            "string": "Created on",
+            "type": "datetime"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "write_date": {
+            "string": "Last Updated on",
+            "type": "datetime"
+        },
+        "user_group_warning": {
+            "string": "User Group Warning",
+            "type": "text"
+        },
+        "api_key_ids": {
+            "string": "API Keys",
+            "type": "one2many"
+        },
+        "totp_enabled": {
+            "string": "Two-factor authentication",
+            "type": "boolean"
+        },
+        "totp_trusted_device_ids": {
+            "string": "Trusted Devices",
+            "type": "one2many"
+        },
+        "im_status": {
+            "string": "IM Status",
+            "type": "char"
+        },
+        "resource_ids": {
+            "string": "Resources",
+            "type": "one2many"
+        },
+        "resource_calendar_id": {
+            "string": "Default Working Hours",
+            "type": "many2one"
+        },
+        "notification_type": {
+            "string": "Notification",
+            "type": "selection"
+        },
+        "res_users_settings_ids": {
+            "string": "Res Users Settings",
+            "type": "one2many"
+        },
+        "res_users_settings_id": {
+            "string": "Settings",
+            "type": "many2one"
+        },
+        "state": {
+            "string": "Status",
+            "type": "selection"
+        },
+        "employee_ids": {
+            "string": "Related employee",
+            "type": "one2many"
+        },
+        "employee_id": {
+            "string": "Company employee",
+            "type": "many2one"
+        },
+        "job_title": {
+            "string": "Job Title",
+            "type": "char"
+        },
+        "work_phone": {
+            "string": "Work Phone",
+            "type": "char"
+        },
+        "mobile_phone": {
+            "string": "Work Mobile",
+            "type": "char"
+        },
+        "employee_phone": {
+            "string": "Private Phone",
+            "type": "char"
+        },
+        "work_email": {
+            "string": "Work Email",
+            "type": "char"
+        },
+        "category_ids": {
+            "string": "Employee Tags",
+            "type": "many2many"
+        },
+        "department_id": {
+            "string": "Department",
+            "type": "many2one"
+        },
+        "address_id": {
+            "string": "Work Address",
+            "type": "many2one"
+        },
+        "work_location_id": {
+            "string": "Work Location",
+            "type": "many2one"
+        },
+        "employee_parent_id": {
+            "string": "Manager",
+            "type": "many2one"
+        },
+        "coach_id": {
+            "string": "Coach",
+            "type": "many2one"
+        },
+        "address_home_id": {
+            "string": "Address",
+            "type": "many2one"
+        },
+        "private_street": {
+            "string": "Private Street",
+            "type": "char"
+        },
+        "private_street2": {
+            "string": "Private Street2",
+            "type": "char"
+        },
+        "private_city": {
+            "string": "Private City",
+            "type": "char"
+        },
+        "private_state_id": {
+            "string": "Private State",
+            "type": "many2one"
+        },
+        "private_zip": {
+            "string": "Private Zip",
+            "type": "char"
+        },
+        "private_country_id": {
+            "string": "Private Country",
+            "type": "many2one"
+        },
+        "is_address_home_a_company": {
+            "string": "The employee address has a company linked",
+            "type": "boolean"
+        },
+        "private_email": {
+            "string": "Private Email",
+            "type": "char"
+        },
+        "private_lang": {
+            "string": "Employee Lang",
+            "type": "selection"
+        },
+        "km_home_work": {
+            "string": "Home-Work Distance",
+            "type": "integer"
+        },
+        "employee_bank_account_id": {
+            "string": "Employee's Bank Account Number",
+            "type": "many2one"
+        },
+        "employee_country_id": {
+            "string": "Employee's Country",
+            "type": "many2one"
+        },
+        "identification_id": {
+            "string": "Identification No",
+            "type": "char"
+        },
+        "passport_id": {
+            "string": "Passport No",
+            "type": "char"
+        },
+        "gender": {
+            "string": "Gender",
+            "type": "selection"
+        },
+        "birthday": {
+            "string": "Date of Birth",
+            "type": "date"
+        },
+        "place_of_birth": {
+            "string": "Place of Birth",
+            "type": "char"
+        },
+        "country_of_birth": {
+            "string": "Country of Birth",
+            "type": "many2one"
+        },
+        "marital": {
+            "string": "Marital Status",
+            "type": "selection"
+        },
+        "spouse_complete_name": {
+            "string": "Spouse Complete Name",
+            "type": "char"
+        },
+        "spouse_birthdate": {
+            "string": "Spouse Birthdate",
+            "type": "date"
+        },
+        "children": {
+            "string": "Number of Dependent Children",
+            "type": "integer"
+        },
+        "emergency_contact": {
+            "string": "Contact Name",
+            "type": "char"
+        },
+        "emergency_phone": {
+            "string": "Contact Phone",
+            "type": "char"
+        },
+        "visa_no": {
+            "string": "Visa No",
+            "type": "char"
+        },
+        "permit_no": {
+            "string": "Work Permit No",
+            "type": "char"
+        },
+        "visa_expire": {
+            "string": "Visa Expiration Date",
+            "type": "date"
+        },
+        "additional_note": {
+            "string": "Additional Note",
+            "type": "text"
+        },
+        "barcode": {
+            "string": "Badge ID",
+            "type": "char"
+        },
+        "pin": {
+            "string": "PIN",
+            "type": "char"
+        },
+        "certificate": {
+            "string": "Certificate Level",
+            "type": "selection"
+        },
+        "study_field": {
+            "string": "Field of Study",
+            "type": "char"
+        },
+        "study_school": {
+            "string": "School",
+            "type": "char"
+        },
+        "employee_count": {
+            "string": "Employee Count",
+            "type": "integer"
+        },
+        "hr_presence_state": {
+            "string": "Hr Presence State",
+            "type": "selection"
+        },
+        "last_activity": {
+            "string": "Last Activity",
+            "type": "date"
+        },
+        "last_activity_time": {
+            "string": "Last Activity Time",
+            "type": "char"
+        },
+        "employee_type": {
+            "string": "Employee Type",
+            "type": "selection"
+        },
+        "employee_resource_calendar_id": {
+            "string": "Employee's Working Hours",
+            "type": "many2one"
+        },
+        "create_employee": {
+            "string": "Technical field, whether to create an employee",
+            "type": "boolean"
+        },
+        "create_employee_id": {
+            "string": "Technical field, bind user to this employee on create",
+            "type": "many2one"
+        },
+        "can_edit": {
+            "string": "Can Edit",
+            "type": "boolean"
+        },
+        "is_system": {
+            "string": "Is System",
+            "type": "boolean"
+        },
+        "odoobot_state": {
+            "string": "OdooBot Status",
+            "type": "selection"
+        },
+        "odoobot_failed": {
+            "string": "Odoobot Failed",
+            "type": "boolean"
+        },
+        "google_calendar_account_id": {
+            "string": "Google Calendar Account",
+            "type": "many2one"
+        },
+        "google_calendar_rtoken": {
+            "string": "Refresh Token",
+            "type": "char"
+        },
+        "google_calendar_token": {
+            "string": "User token",
+            "type": "char"
+        },
+        "google_calendar_token_validity": {
+            "string": "Token Validity",
+            "type": "datetime"
+        },
+        "google_calendar_sync_token": {
+            "string": "Next Sync Token",
+            "type": "char"
+        },
+        "google_calendar_cal_id": {
+            "string": "Calendar ID",
+            "type": "char"
+        },
+        "google_synchronization_stopped": {
+            "string": "Google Synchronization stopped",
+            "type": "boolean"
+        },
+        "message_is_follower": {
+            "string": "Is Follower",
+            "type": "boolean"
+        },
+        "message_follower_ids": {
+            "string": "Followers",
+            "type": "one2many"
+        },
+        "message_partner_ids": {
+            "string": "Followers (Partners)",
+            "type": "many2many"
+        },
+        "message_ids": {
+            "string": "Messages",
+            "type": "one2many"
+        },
+        "has_message": {
+            "string": "Has Message",
+            "type": "boolean"
+        },
+        "message_needaction": {
+            "string": "Action Needed",
+            "type": "boolean"
+        },
+        "message_needaction_counter": {
+            "string": "Number of Actions",
+            "type": "integer"
+        },
+        "message_has_error": {
+            "string": "Message Delivery error",
+            "type": "boolean"
+        },
+        "message_has_error_counter": {
+            "string": "Number of errors",
+            "type": "integer"
+        },
+        "message_attachment_count": {
+            "string": "Attachment Count",
+            "type": "integer"
+        },
+        "message_main_attachment_id": {
+            "string": "Main Attachment",
+            "type": "many2one"
+        },
+        "website_message_ids": {
+            "string": "Website Messages",
+            "type": "one2many"
+        },
+        "message_has_sms_error": {
+            "string": "SMS Delivery error",
+            "type": "boolean"
+        },
+        "email_normalized": {
+            "string": "Normalized Email",
+            "type": "char"
+        },
+        "is_blacklisted": {
+            "string": "Blacklist",
+            "type": "boolean"
+        },
+        "message_bounce": {
+            "string": "Bounce",
+            "type": "integer"
+        },
+        "activity_ids": {
+            "string": "Activities",
+            "type": "one2many"
+        },
+        "activity_state": {
+            "string": "Activity State",
+            "type": "selection"
+        },
+        "activity_user_id": {
+            "string": "Responsible User",
+            "type": "many2one"
+        },
+        "activity_type_id": {
+            "string": "Next Activity Type",
+            "type": "many2one"
+        },
+        "activity_type_icon": {
+            "string": "Activity Type Icon",
+            "type": "char"
+        },
+        "activity_date_deadline": {
+            "string": "Next Activity Deadline",
+            "type": "date"
+        },
+        "my_activity_date_deadline": {
+            "string": "My Activity Deadline",
+            "type": "date"
+        },
+        "activity_summary": {
+            "string": "Next Activity Summary",
+            "type": "char"
+        },
+        "activity_exception_decoration": {
+            "string": "Activity Exception Decoration",
+            "type": "selection"
+        },
+        "activity_exception_icon": {
+            "string": "Icon",
+            "type": "char"
+        },
+        "activity_calendar_event_id": {
+            "string": "Next Activity Calendar Event",
+            "type": "many2one"
+        },
+        "image_1920": {
+            "string": "Image",
+            "type": "binary"
+        },
+        "image_1024": {
+            "string": "Image 1024",
+            "type": "binary"
+        },
+        "image_512": {
+            "string": "Image 512",
+            "type": "binary"
+        },
+        "image_256": {
+            "string": "Image 256",
+            "type": "binary"
+        },
+        "image_128": {
+            "string": "Image 128",
+            "type": "binary"
+        },
+        "avatar_1920": {
+            "string": "Avatar",
+            "type": "binary"
+        },
+        "avatar_1024": {
+            "string": "Avatar 1024",
+            "type": "binary"
+        },
+        "avatar_512": {
+            "string": "Avatar 512",
+            "type": "binary"
+        },
+        "avatar_256": {
+            "string": "Avatar 256",
+            "type": "binary"
+        },
+        "avatar_128": {
+            "string": "Avatar 128",
+            "type": "binary"
+        },
+        "translated_display_name": {
+            "string": "Translated Display Name",
+            "type": "char"
+        },
+        "date": {
+            "string": "Date",
+            "type": "date"
+        },
+        "title": {
+            "string": "Title",
+            "type": "many2one"
+        },
+        "parent_id": {
+            "string": "Related Company",
+            "type": "many2one"
+        },
+        "parent_name": {
+            "string": "Parent name",
+            "type": "char"
+        },
+        "child_ids": {
+            "string": "Contact",
+            "type": "one2many"
+        },
+        "ref": {
+            "string": "Reference",
+            "type": "char"
+        },
+        "lang": {
+            "string": "Language",
+            "type": "selection"
+        },
+        "active_lang_count": {
+            "string": "Active Lang Count",
+            "type": "integer"
+        },
+        "tz": {
+            "string": "Timezone",
+            "type": "selection"
+        },
+        "user_id": {
+            "string": "Salesperson",
+            "type": "many2one"
+        },
+        "vat": {
+            "string": "Tax ID",
+            "type": "char"
+        },
+        "same_vat_partner_id": {
+            "string": "Partner with same Tax ID",
+            "type": "many2one"
+        },
+        "same_company_registry_partner_id": {
+            "string": "Partner with same Company Registry",
+            "type": "many2one"
+        },
+        "company_registry": {
+            "string": "Company ID",
+            "type": "char"
+        },
+        "bank_ids": {
+            "string": "Banks",
+            "type": "one2many"
+        },
+        "website": {
+            "string": "Website Link",
+            "type": "char"
+        },
+        "comment": {
+            "string": "Notes",
+            "type": "html"
+        },
+        "category_id": {
+            "string": "Tags",
+            "type": "many2many"
+        },
+        "employee": {
+            "string": "Employee",
+            "type": "boolean"
+        },
+        "function": {
+            "string": "Job Position",
+            "type": "char"
+        },
+        "type": {
+            "string": "Address Type",
+            "type": "selection"
+        },
+        "street": {
+            "string": "Street",
+            "type": "char"
+        },
+        "street2": {
+            "string": "Street2",
+            "type": "char"
+        },
+        "zip": {
+            "string": "Zip",
+            "type": "char"
+        },
+        "city": {
+            "string": "City",
+            "type": "char"
+        },
+        "state_id": {
+            "string": "State",
+            "type": "many2one"
+        },
+        "country_id": {
+            "string": "Country",
+            "type": "many2one"
+        },
+        "country_code": {
+            "string": "Country Code",
+            "type": "char"
+        },
+        "partner_latitude": {
+            "string": "Geo Latitude",
+            "type": "float"
+        },
+        "partner_longitude": {
+            "string": "Geo Longitude",
+            "type": "float"
+        },
+        "email_formatted": {
+            "string": "Formatted Email",
+            "type": "char"
+        },
+        "phone": {
+            "string": "Phone",
+            "type": "char"
+        },
+        "mobile": {
+            "string": "Mobile",
+            "type": "char"
+        },
+        "is_company": {
+            "string": "Is a Company",
+            "type": "boolean"
+        },
+        "is_public": {
+            "string": "Is Public",
+            "type": "boolean"
+        },
+        "industry_id": {
+            "string": "Industry",
+            "type": "many2one"
+        },
+        "company_type": {
+            "string": "Company Type",
+            "type": "selection"
+        },
+        "color": {
+            "string": "Color Index",
+            "type": "integer"
+        },
+        "user_ids": {
+            "string": "Users",
+            "type": "one2many"
+        },
+        "partner_share": {
+            "string": "Share Partner",
+            "type": "boolean"
+        },
+        "contact_address": {
+            "string": "Complete Address",
+            "type": "char"
+        },
+        "commercial_partner_id": {
+            "string": "Commercial Entity",
+            "type": "many2one"
+        },
+        "commercial_company_name": {
+            "string": "Company Name Entity",
+            "type": "char"
+        },
+        "company_name": {
+            "string": "Company Name",
+            "type": "char"
+        },
+        "self": {
+            "string": "Self",
+            "type": "many2one"
+        },
+        "channel_ids": {
+            "string": "Channels",
+            "type": "many2many"
+        },
+        "signup_token": {
+            "string": "Signup Token",
+            "type": "char"
+        },
+        "signup_type": {
+            "string": "Signup Token Type",
+            "type": "char"
+        },
+        "signup_expiration": {
+            "string": "Signup Expiration",
+            "type": "datetime"
+        },
+        "signup_valid": {
+            "string": "Signup Token is Valid",
+            "type": "boolean"
+        },
+        "signup_url": {
+            "string": "Signup URL",
+            "type": "char"
+        },
+        "meeting_count": {
+            "string": "# Meetings",
+            "type": "integer"
+        },
+        "meeting_ids": {
+            "string": "Meetings",
+            "type": "many2many"
+        },
+        "calendar_last_notif_ack": {
+            "string": "Last notification marked as read from base Calendar",
+            "type": "datetime"
+        },
+        "employees_count": {
+            "string": "Employees Count",
+            "type": "integer"
+        },
+        "partner_gid": {
+            "string": "Company database ID",
+            "type": "integer"
+        },
+        "additional_info": {
+            "string": "Additional info",
+            "type": "char"
+        },
+        "phone_sanitized": {
+            "string": "Sanitized Number",
+            "type": "char"
+        },
+        "phone_sanitized_blacklisted": {
+            "string": "Phone Blacklisted",
+            "type": "boolean"
+        },
+        "phone_blacklisted": {
+            "string": "Blacklisted Phone is Phone",
+            "type": "boolean"
+        },
+        "mobile_blacklisted": {
+            "string": "Blacklisted Phone Is Mobile",
+            "type": "boolean"
+        },
+        "phone_mobile_search": {
+            "string": "Phone/Mobile",
+            "type": "char"
+        },
+        "task_ids": {
+            "string": "Tasks",
+            "type": "one2many"
+        },
+        "task_count": {
+            "string": "# Tasks",
+            "type": "integer"
+        },
+        "sel_groups_2_4": {
+            "type": "selection",
+            "string": "Administration",
+            "selection": [
+                [
+                    false,
+                    ""
+                ],
+                [
+                    2,
+                    "Access Rights"
+                ],
+                [
+                    4,
+                    "Settings"
+                ]
+            ],
+            "help": "",
+            "exportable": false,
+            "selectable": false
+        },
+        "sel_groups_16_17": {
+            "type": "selection",
+            "string": "Project",
+            "selection": [
+                [
+                    false,
+                    ""
+                ],
+                [
+                    16,
+                    "User"
+                ],
+                [
+                    17,
+                    "Administrator"
+                ]
+            ],
+            "help": "Helps you manage your projects and tasks by tracking them, generating plannings, etc...\n",
+            "exportable": false,
+            "selectable": false
+        },
+        "sel_groups_24_25": {
+            "type": "selection",
+            "string": "Employees",
+            "selection": [
+                [
+                    false,
+                    ""
+                ],
+                [
+                    24,
+                    "Officer : Manage all employees"
+                ],
+                [
+                    25,
+                    "Administrator"
+                ]
+            ],
+            "help": "Officer : Manage all employees: The user will be able to approve document created by employees.\nAdministrator: The user will have access to the human resources configuration as well as statistic reports.",
+            "exportable": false,
+            "selectable": false
+        },
+        "sel_groups_1_10_11": {
+            "type": "selection",
+            "string": "User types",
+            "selection": [
+                [
+                    1,
+                    "Internal User"
+                ],
+                [
+                    10,
+                    "Portal"
+                ],
+                [
+                    11,
+                    "Public"
+                ]
+            ],
+            "help": "Helps you manage users.\n\nPortal: Portal members have specific access rights (such as record rules and restricted menus).\n                They usually do not belong to the usual Odoo groups.\nPublic: Public users have specific access rights (such as record rules and restricted menus).\n                They usually do not belong to the usual Odoo groups.",
+            "exportable": false,
+            "selectable": false
+        },
+        "sel_groups_26_27_28": {
+            "type": "selection",
+            "string": "Timesheets",
+            "selection": [
+                [
+                    false,
+                    ""
+                ],
+                [
+                    26,
+                    "User: own timesheets only"
+                ],
+                [
+                    27,
+                    "User: all timesheets"
+                ],
+                [
+                    28,
+                    "Administrator"
+                ]
+            ],
+            "help": "Helps you manage the timesheets.\n",
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_12": {
+            "type": "boolean",
+            "string": "Access to Private Addresses",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_8": {
+            "type": "boolean",
+            "string": "Access to export feature",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_15": {
+            "type": "boolean",
+            "string": "Analytic Accounting",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_14": {
+            "type": "boolean",
+            "string": "Mail Template Editor",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_13": {
+            "type": "boolean",
+            "string": "Manage Multiple Units of Measure",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_23": {
+            "type": "boolean",
+            "string": "Use Milestones",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_19": {
+            "type": "boolean",
+            "string": "Use Rating on Project",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_21": {
+            "type": "boolean",
+            "string": "Use Recurring Tasks",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_20": {
+            "type": "boolean",
+            "string": "Use Stages on Project",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_18": {
+            "type": "boolean",
+            "string": "Use Subtasks",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_22": {
+            "type": "boolean",
+            "string": "Use Task Dependencies",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_9": {
+            "type": "boolean",
+            "string": "Contact Creation",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_5": {
+            "type": "boolean",
+            "string": "Multi Companies",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_6": {
+            "type": "boolean",
+            "string": "Multi Currencies",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_7": {
+            "type": "boolean",
+            "string": "Technical Features",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_3": {
+            "type": "boolean",
+            "string": "Bypass HTML Field Sanitize",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        }
     }
 }

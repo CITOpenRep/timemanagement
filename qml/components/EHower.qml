@@ -101,239 +101,327 @@ Item {
         id: headlabel
         text: "Time spent based on priorities"
         font.pixelSize: units.gu(2)
-        color: "#444"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         anchors.topMargin: 5
         horizontalAlignment: Text.AlignHCenter
         anchors.horizontalCenter: parent.horizontalCenter
     }
 
-    GridLayout {
-        id: matrix
+    ColumnLayout {
         anchors.top: headlabel.bottom
         anchors.bottom: parent.bottom
+        anchors.leftMargin: units.gu(-3)
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 5
-        columns: 2
-        rowSpacing: 10
-        columnSpacing: 10
+        anchors.margins: 1
+        spacing: 1
 
-        // Q1 - Urgent & Important
-        Rectangle {
-            id: q1Rect
-            color: AppConst.Colors.Quadrants.Q1
+        // Horizontal Axis Labels
+        RowLayout {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            radius: units.gu(1)
-            scale: 1.0
-            transformOrigin: Item.Center
+            Layout.preferredHeight: units.gu(4)
+            spacing: 10
 
-            Behavior on scale {
-                NumberAnimation {
-                    duration: 100
-                    easing.type: Easing.InOutQuad
-                }
+            // Spacer for left vertical axis
+            Rectangle {
+                width: units.gu(5)
+                color: "transparent"
             }
 
-            MouseArea {
-                anchors.fill: parent
-                onPressed: q1Rect.scale = 0.97
-                onReleased: {
-                    q1Rect.scale = 1.0;
-                    ehoverMatrix.quadrantClicked(1);
-                }
-                onCanceled: q1Rect.scale = 1.0
+            Text {
+                text: "URGENT"
+                font.bold: true
+                font.pixelSize: units.gu(2)
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
+                horizontalAlignment: Text.AlignHCenter
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
             }
 
-            Column {
-                anchors.centerIn: parent
-                spacing: units.gu(0.5)
-
-                Text {
-                    text: "Do Now <br>(Important & Urgent)"
-                    font.bold: true
-                    font.pixelSize: units.gu(1.5)
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-
-                Text {
-                    text: quadrant1Hours
-                    font.pixelSize: units.gu(8)
-                    font.bold: true
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
+            Text {
+                text: "NOT URGENT"
+                font.bold: true
+                font.pixelSize: units.gu(2)
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
+                horizontalAlignment: Text.AlignHCenter
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
             }
         }
-
-        // Q2 - Not Urgent & Important
-        Rectangle {
-            id: q2Rect
-            color: AppConst.Colors.Quadrants.Q2
+        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: units.gu(1)
-            scale: 1.0
-            transformOrigin: Item.Center
+            spacing: 10
 
-            Behavior on scale {
-                NumberAnimation {
-                    duration: 100
-                    easing.type: Easing.InOutQuad
+            // Vertical Axis Labels
+            ColumnLayout {
+                Layout.preferredWidth: units.gu(6)
+                Layout.fillHeight: true
+
+                Rectangle {
+                    Layout.fillHeight: true
+                    color: "transparent"
+
+                    Text {
+                        text: "IMPORTANT"
+                        font.bold: true
+                        font.pixelSize: units.gu(2)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
+                        anchors.verticalCenter: parent.verticalCenter
+                        //anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.left: parent.left
+                        anchors.leftMargin: units.gu(-1)
+                        rotation: -90
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillHeight: true
+                    color: "transparent"
+
+                    Text {
+                        text: "NOT IMPORTANT"
+                        font.bold: true
+                        font.pixelSize: units.gu(2)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
+                        anchors.verticalCenter: parent.verticalCenter
+                        //anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.left: parent.left
+                        anchors.leftMargin: units.gu(-3)
+                        rotation: -90
+                    }
                 }
             }
 
-            MouseArea {
-                anchors.fill: parent
-                onPressed: q2Rect.scale = 0.97
-                onReleased: {
-                    q2Rect.scale = 1.0;
-                    ehoverMatrix.quadrantClicked(2);
-                }
-                onCanceled: q2Rect.scale = 1.0
-            }
+            // The Eisenhower Matrix Grid
+            GridLayout {
+                id: matrix
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                //Layout.margins:  units.gu(1)
+                columns: 2
+                rowSpacing: 5
+                columnSpacing: 5
 
-            Column {
-                anchors.centerIn: parent
-                spacing: units.gu(0.5)
+                // Q1 - Urgent & Important
+                Rectangle {
+                    id: q1Rect
+                    color: AppConst.Colors.Quadrants.Q1
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: units.gu(1)
+                    scale: 1.0
+                    transformOrigin: Item.Center
 
-                Text {
-                    text: "Schedule<br>(Important / Not Urgent)"
-                    font.bold: true
-                    font.pixelSize: units.gu(1.5)
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 100
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
 
-                Text {
-                    text: quadrant2Hours
-                    font.pixelSize: units.gu(8)
-                    font.bold: true
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-            }
-        }
+                    MouseArea {
+                        anchors.fill: parent
+                        onPressed: q1Rect.scale = 0.97
+                        onReleased: {
+                            q1Rect.scale = 1.0;
+                            ehoverMatrix.quadrantClicked(1);
+                        }
+                        onCanceled: q1Rect.scale = 1.0
+                    }
 
-        // Q3 - Urgent & Not Important
-        Rectangle {
-            id: q3Rect
-            color: AppConst.Colors.Quadrants.Q3
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            radius: units.gu(1)
-            scale: 1.0
-            transformOrigin: Item.Center
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: units.gu(0.5)
 
-            Behavior on scale {
-                NumberAnimation {
-                    duration: 100
-                    easing.type: Easing.InOutQuad
-                }
-            }
+                        Text {
+                            text: "Do Now"
+                            font.bold: true
+                            font.pixelSize: units.gu(1.5)
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
 
-            MouseArea {
-                anchors.fill: parent
-                onPressed: q3Rect.scale = 0.97
-                onReleased: {
-                    q3Rect.scale = 1.0;
-                    ehoverMatrix.quadrantClicked(3);
-                }
-                onCanceled: q3Rect.scale = 1.0
-            }
-
-            Column {
-                anchors.centerIn: parent
-                spacing: units.gu(0.5)
-
-                Text {
-                    text: "Delegate <br>(Urgent / Not Important)"
-                    font.bold: true
-                    font.pixelSize: units.gu(1.5)
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
+                        Text {
+                            text: quadrant1Hours
+                            font.pixelSize: units.gu(5)
+                            font.bold: true
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                    }
                 }
 
-                Text {
-                    text: quadrant3Hours
-                    font.pixelSize: units.gu(8)
-                    font.bold: true
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
+                // Q2 - Not Urgent & Important
+                Rectangle {
+                    id: q2Rect
+                    color: AppConst.Colors.Quadrants.Q2
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: units.gu(1)
+                    scale: 1.0
+                    transformOrigin: Item.Center
+
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 100
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onPressed: q2Rect.scale = 0.97
+                        onReleased: {
+                            q2Rect.scale = 1.0;
+                            ehoverMatrix.quadrantClicked(2);
+                        }
+                        onCanceled: q2Rect.scale = 1.0
+                    }
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: units.gu(0.5)
+
+                        Text {
+                            text: "Schedule"
+                            font.bold: true
+                            font.pixelSize: units.gu(1.5)
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+
+                        Text {
+                            text: quadrant2Hours
+                            font.pixelSize: units.gu(5)
+                            font.bold: true
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                    }
                 }
-            }
-        }
 
-        // Q4 - Not Urgent & Not Important
-        Rectangle {
-            id: q4Rect
-            color: AppConst.Colors.Quadrants.Q4
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            radius: units.gu(1)
-            scale: 1.0
-            transformOrigin: Item.Center
+                // Q3 - Urgent & Not Important
+                Rectangle {
+                    id: q3Rect
+                    color: AppConst.Colors.Quadrants.Q3
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: units.gu(1)
+                    scale: 1.0
+                    transformOrigin: Item.Center
 
-            Behavior on scale {
-                NumberAnimation {
-                    duration: 100
-                    easing.type: Easing.InOutQuad
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 100
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onPressed: q3Rect.scale = 0.97
+                        onReleased: {
+                            q3Rect.scale = 1.0;
+                            ehoverMatrix.quadrantClicked(3);
+                        }
+                        onCanceled: q3Rect.scale = 1.0
+                    }
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: units.gu(0.5)
+
+                        Text {
+                            text: "Delegate"
+                            font.bold: true
+                            font.pixelSize: units.gu(1.5)
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+
+                        Text {
+                            text: quadrant3Hours
+                            font.pixelSize: units.gu(5)
+                            font.bold: true
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                    }
                 }
-            }
 
-            MouseArea {
-                anchors.fill: parent
-                onPressed: q4Rect.scale = 0.97
-                onReleased: {
-                    q4Rect.scale = 1.0;
-                    ehoverMatrix.quadrantClicked(4);
-                }
-                onCanceled: q4Rect.scale = 1.0
-            }
+                // Q4 - Not Urgent & Not Important
+                Rectangle {
+                    id: q4Rect
+                    color: AppConst.Colors.Quadrants.Q4
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: units.gu(1)
+                    scale: 1.0
+                    transformOrigin: Item.Center
 
-            Column {
-                anchors.centerIn: parent
-                spacing: units.gu(0.5)
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 100
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
 
-                Text {
-                    text: "Eliminate <br>(Not Urgent & Not Important)"
-                    font.bold: true
-                    font.pixelSize: units.gu(1.5)
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
+                    MouseArea {
+                        anchors.fill: parent
+                        onPressed: q4Rect.scale = 0.97
+                        onReleased: {
+                            q4Rect.scale = 1.0;
+                            ehoverMatrix.quadrantClicked(4);
+                        }
+                        onCanceled: q4Rect.scale = 1.0
+                    }
 
-                Text {
-                    text: quadrant4Hours
-                    font.pixelSize: units.gu(8)
-                    font.bold: true
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: units.gu(0.5)
+
+                        Text {
+                            text: "Delete"
+                            font.bold: true
+                            font.pixelSize: units.gu(1.5)
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+
+                        Text {
+                            text: quadrant4Hours
+                            font.pixelSize: units.gu(5)
+                            font.bold: true
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                    }
                 }
             }
         }
     }
+
     Component.onCompleted: {
         var result = getQuadrantHoursFromAllInstances();
-        quadrant1Hours = result[1];
-        quadrant2Hours = result[2];
-        quadrant3Hours = result[3];
-        quadrant4Hours = result[4];
+        quadrant1Hours = result[1] + "H";
+        quadrant2Hours = result[2] + "H";
+        quadrant3Hours = result[3] + "H";
+        quadrant4Hours = result[4] + "H";
     }
     onVisibleChanged: {
         var result = getQuadrantHoursFromAllInstances();
-        quadrant1Hours = result[1];
-        quadrant2Hours = result[2];
-        quadrant3Hours = result[3];
-        quadrant4Hours = result[4];
+        quadrant1Hours = result[1] + "H";
+        quadrant2Hours = result[2] + "H";
+        quadrant3Hours = result[3] + "H";
+        quadrant4Hours = result[4] + "H";
     }
 }

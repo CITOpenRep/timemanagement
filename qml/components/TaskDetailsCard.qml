@@ -37,7 +37,7 @@ ListItem {
 
     //         if (screenWidth < units.gu(361))
     //         {
-    //             projectTitleText.text = truncateText("rtrtretertreterterterterterterteterterterterterterter", 20)
+    //             projectTitleText.text = truncateText("rtrtretertreterterterterterteterterterterterterterter", 20)
     //         }else
     //     {
     //         projectTitleText.text = truncateText("2356577867878547874768678576876857567789578957897899795878795", 25)
@@ -69,7 +69,7 @@ ListItem {
                 onTriggered: editRequested(localId)
             },
             Action {
-                iconName: "delete"
+                iconSource: "../images/delete.png"
                 onTriggered: deleteRequested(localId)
             }
         ]
@@ -77,7 +77,7 @@ ListItem {
     leadingActions: ListItemActions {
         actions: [
             Action {
-                iconName: "document-preview"
+                iconSource: "../images/show.png"
                 onTriggered: viewRequested(localId)
             }
         ]
@@ -85,10 +85,11 @@ ListItem {
 
     Rectangle {
         anchors.fill: parent
-        border.color: "#dcdcdc"
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#dcdcdc"
         radius: units.gu(0.2)
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
 
         Row {
             anchors.fill: parent
@@ -96,7 +97,6 @@ ListItem {
 
             // side bar on left
             Rectangle {
-
                 width: units.gu(0.5)
                 height: parent.height
                 color: Utils.getColorFromOdooIndex(colorPallet)
@@ -141,8 +141,7 @@ ListItem {
                         Text {
                             id: projectTitleText
                             text: (taskName !== "" ? truncateText(taskName, 300) : "Unnamed Task")
-                            color: hasChildren ? AppConst.Colors.Orange : "black"
-                            //font.bold: true
+                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                             font.pixelSize: units.gu(2)
                             wrapMode: Text.WordWrap
                             maximumLineCount: 2
@@ -158,6 +157,7 @@ ListItem {
                             elide: Text.ElideRight
                             width: parent.width - units.gu(2)
                             height: units.gu(2)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                         }
 
                         Label {
@@ -166,7 +166,7 @@ ListItem {
                             width: parent.width - units.gu(2)
                             font.pixelSize: units.gu(1.6)
                             height: units.gu(3)
-                            color: "blue"
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "blue"
                             font.underline: true
                             MouseArea {
                                 anchors.fill: parent
@@ -182,7 +182,6 @@ ListItem {
 
             // space for date and time
             Rectangle {
-
                 width: units.gu(19)
                 height: parent.height
                 color: 'transparent'
@@ -197,26 +196,27 @@ ListItem {
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
-                        color: "#555"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555"
                     }
                     Text {
                         text: "Start Date: " + (startDate !== "" ? toDateOnly(startDate) : "Not set")
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                     }
 
                     Text {
-                        text: getTaskTimeStatus(endDate)//"End Date: " + (endDate !== "" ? toDateOnly(endDate) : "Not set")
+                        text: getTaskTimeStatus(endDate)
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
-                        color: "#e53935"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                     }
                     Text {
                         text: (childCount > 0 ? " [+" + childCount + "] Tasks" : "")
                         visible: childCount > 0
-                        color: hasChildren ? AppConst.Colors.Orange : "black"
+                        color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width

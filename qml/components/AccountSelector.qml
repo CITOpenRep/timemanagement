@@ -52,7 +52,8 @@ ComboBox {
             const first = internalInstanceModel.get(0);
             editText = first.name;
             selectedInstanceId = first.id;
-            accountSelected(selectedInstanceId, first.name);
+            if (!shouldDeferSelection)
+                accountSelected(selectedInstanceId, first.name);
         } else {
             currentIndex = -1;
             selectedInstanceId = -1;
@@ -74,7 +75,8 @@ ComboBox {
                 editText = item.name;
                 selectedInstanceId = item.id;
                 console.log("✅ Account selected:", item.name);
-                accountSelected(item.id, item.name);
+                if (!shouldDeferSelection)
+                    accountSelected(item.id, item.name);
                 return;
             }
         }
@@ -93,7 +95,8 @@ ComboBox {
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedInstanceId = selected.id;
-            accountSelected(selected.id, selected.name);
+            if (!shouldDeferSelection)
+                accountSelected(selected.id, selected.name);
         }
     }
 
@@ -102,7 +105,8 @@ ComboBox {
         if (idx !== -1) {
             const selected = model.get(idx);
             selectedInstanceId = selected.id;
-            accountSelected(selected.id, selected.name);
+            if (!shouldDeferSelection)
+                accountSelected(selected.id, selected.name);
         }
     }
 }

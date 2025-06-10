@@ -139,7 +139,7 @@ function get_timesheet_details(record_id) {
                                 'sub_project_id': timesheet.rows.item(0).sub_project_id,
                                 'task_id': timesheet.rows.item(0).task_id,
                                 'sub_task_id': timesheet.rows.item(0).sub_task_id,
-                                'description': timesheet.rows.item(0).name,
+                                'name': timesheet.rows.item(0).name,
                                 'spentHours': convertFloatToTime(timesheet.rows.item(0).unit_amount),
                                 'quadrant_id': timesheet.rows.item(0).quadrant_id,
                                 'record_date': formatDate(new Date(timesheet.rows.item(0).last_modified))};
@@ -367,7 +367,6 @@ function getFormattedTimestamp() {
 * This function will create timesheet based on passed data
 * data -> object of details related to timesheet entry
 */
-
 function create_or_update_timesheet(data) {
     console.log("In create_or_update_timesheet");
 
@@ -377,28 +376,28 @@ function create_or_update_timesheet(data) {
 
     try {
         db.transaction(function(tx) {
-            var unitAmount = 0;
-            if (data.isManualTimeRecord) {
-                unitAmount = convertDurationToFloat(data.manualSpentHours);
-            } else {
-                unitAmount = convertDurationToFloat(data.spenthours);
-            }
+            var unitAmount = data.isManualTimeRecord
+                ? convertDurationToFloat(data.manualSpentHours)
+                : convertDurationToFloat(data.spenthours);
 
             if (data.id && data.id > 0) {
                 console.log("✏Updating timesheet id:", data.id);
-                tx.executeSql('UPDATE account_analytic_line_app SET \
-                    account_id = ?, record_date = ?, project_id = ?, task_id = ?, name = ?, \
-                    sub_project_id = ?, sub_task_id = ?, quadrant_id = ?, unit_amount = ?, \
-                    last_modified = ?, status = ? WHERE id = ?',
+                tx.executeSql(`UPDATE account_analytic_line_app SET
+                    account_id = ?, record_date = ?, project_id = ?, task_id = ?, name = ?,
+                    sub_project_id = ?, sub_task_id = ?, quadrant_id = ?, unit_amount = ?,
+                    last_modified = ?, status = ?, user_id = ? WHERE id = ?`,
                     [data.instance_id, data.dateTime, data.project, data.task, data.description,
-                    data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp, data.status, data.id]);
+                    data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
+                    data.status, data.user_id, data.id]);
             } else {
                 console.log("Inserting new timesheet entry");
-                tx.executeSql('INSERT INTO account_analytic_line_app \
-                    (account_id, record_date, project_id, task_id, name, sub_project_id, sub_task_id, quadrant_id, \
-                    unit_amount, last_modified, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                tx.executeSql(`INSERT INTO account_analytic_line_app
+                    (account_id, record_date, project_id, task_id, name, sub_project_id,
+                    sub_task_id, quadrant_id, unit_amount, last_modified, status, user_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [data.instance_id, data.dateTime, data.project, data.task, data.description,
-                    data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp, data.status]);
+                    data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
+                    data.status, data.user_id]);
             }
 
             result.success = true;

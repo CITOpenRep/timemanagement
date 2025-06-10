@@ -9,7 +9,7 @@ import "../../models/project.js" as Project
 
 ComboBox {
     id: projectCombo
-    editable: true
+    editable: false
     flat: true
     width: parent.width
     height: parent.height
@@ -156,6 +156,26 @@ ComboBox {
             if (!suppressSignal)
                 projectSelected(selectedProjectId, item.name);
         }
+    }
+
+    function selectProjectById(accountId) {
+        if (internalProjectModel.count === 0) {
+            console.log("✅ Empty Projects");
+            return;
+        }
+
+        for (let i = 0; i < internalProjectModel.count; i++) {
+            const item = internalProjectModel.get(i);
+            if (item.id === accountId) {
+                currentIndex = i;
+                editText = item.name;
+                selectedInstanceId = item.id;
+                console.log("✅ Project selected:", item.name);
+                return;
+            }
+        }
+
+        console.warn("⚠️ Account ID not found:", accountId);
     }
 
     onActivated: {

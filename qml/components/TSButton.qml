@@ -39,7 +39,7 @@ Item {
     signal clicked
 
     // Customizable colors
-    property color bgColor: AppConst.Colors.Button
+    property color bgColor: (enabled) ? AppConst.Colors.Button : AppConst.Colors.ButtonDisabled
     property color fgColor: AppConst.Colors.ButtonText
     property color hoverColor: AppConst.Colors.ButtonHover  // fallback hover
     property int radius: units.gu(0.8)

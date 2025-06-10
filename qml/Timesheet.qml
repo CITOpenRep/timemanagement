@@ -24,6 +24,7 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
@@ -31,12 +32,13 @@ import QtCharts 2.0
 import QtQuick.Window 2.2
 import Qt.labs.settings 1.0
 import "../models/timesheet.js" as Model
+import "../models/accounts.js" as Accounts
 import "../models/timer_service.js" as TimerService
 import "components"
 
 Page {
     id: timeSheet
-    title: "New Timesheet"
+    title: "Timesheet"
     header: PageHeader {
         id: tsHeader
         StyleHints {
@@ -69,7 +71,14 @@ Page {
         console.log("Subproject DB ID:", ids.subprojectDbId);
         console.log("Task DB ID:", ids.taskDbId);
         console.log("Subtask DB ID:", ids.subtaskDbId);
+        console.log("Get the Current User");
+        const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
+        if (!user) {
+            notifPopup.open("Error", "Unable to find the user , can not save", "error");
+            return;
+        }
 
+        console.log("User ID is " + user);
         if (ids.projectDbId < 0) {
             notifPopup.open("Error", "You need to select a project to save time sheet", "error");
             return;
@@ -77,18 +86,24 @@ Page {
 
         var timesheet_data = {
             'instance_id': ids.accountDbId < 0 ? 0 : ids.accountDbId,
-            'dateTime': date_widget.date,
+            'dateTime': date_widget.selectedDate,
             'project': ids.projectDbId,
             'task': ids.taskDbId,
             'subprojectId': ids.subprojectDbId,
             'subTask': ids.subtaskDbId,
-            'description': description_text.text,
+            'description': name_text.text,
             'manualSpentHours': hours_text.text,
             'spenthours': hours_text.text,
             'isManualTimeRecord': isManualTime,
             'quadrant': priorityCombo.currentIndex + 1,
+            'user_id': user,
             'status': "updated"
         };
+
+        //Finally check if the record is not empty (Usecase Edit)
+        if (recordid && recordid !== 0) {
+            timesheet_data.id = recordid;
+        }
 
         const result = Model.create_or_update_timesheet(timesheet_data);
         if (!result.success) {
@@ -125,12 +140,17 @@ Page {
         Row {
             id: myRow1a
             anchors.left: parent.left
-            topPadding: 40
-            WorkItemSelector {
-                id: workItem
-                readOnly: isReadOnly
-                width: timesheetsDetailsPageFlickable.width
-                height: units.gu(35)
+            topPadding: units.gu(5)
+
+            Column {
+                leftPadding: units.gu(1)
+
+                WorkItemSelector {
+                    id: workItem
+                    readOnly: isReadOnly
+                    width: timesheetsDetailsPageFlickable.width - units.gu(2)
+                    // height: units.gu(29) // Uncomment if you need fixed height
+                }
             }
         }
 
@@ -138,32 +158,64 @@ Page {
             id: myRow1
             anchors.top: myRow1a.bottom
             anchors.left: parent.left
-            topPadding: 10
-            Column {
-                leftPadding: units.gu(2)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: date_label
-                        text: "Date"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
             Column {
                 leftPadding: units.gu(1)
-                QuickDateSelector {
+                DaySelector {
                     id: date_widget
-                    mode: "previous"
-                    enabled: !isReadOnly
-                    width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                    height: units.gu(4)
+                    readOnly: isReadOnly
+                    width: timesheetsDetailsPageFlickable.width - units.gu(2)
+                    height: units.gu(8)
                     anchors.centerIn: parent.centerIn
                 }
+            }
+        }
+
+        // Row for Spent Hours and Manual Entry
+        Row {
+            id: spentHoursRow
+            anchors.top: myRow1.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(1)
+            topPadding: units.gu(1)
+
+            TSLabel {
+                id: hours_label
+                text: "Spent Hours"
+                width: parent.width * 0.3
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            TSLabel {
+                id: hours_text
+                text: "01:00"
+                enabled: !isReadOnly
+                width: parent.width * 0.3
+                fontBold: true
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            TSButton {
+                text: "Manual"
+                objectName: "button_manual"
+                enabled: !isReadOnly
+                width: parent.width * 0.2
+                height: units.gu(3)
+                anchors.verticalCenter: parent.verticalCenter
+
+                onClicked: {
+                    myTimePicker.open(1, 0);
+                    isManualTime = true;
+                    // hours_text.readOnly = false;
+                }
+            }
+            Rectangle {
+                id: spacer
+                color: "red"
+                Layout.fillWidth: true
+                height: units.gu(3)
             }
         }
 
@@ -171,11 +223,11 @@ Page {
 
         Column {
             id: descriptionSection
-            anchors.top: myRow1.bottom
+            anchors.top: spentHoursRow.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             spacing: units.gu(1)
-            topPadding: units.gu(2)
+            topPadding: units.gu(1)
             leftPadding: units.gu(1)
 
             Label {
@@ -183,88 +235,37 @@ Page {
             }
 
             TextArea {
-                id: description_text
+                id: name_text
                 enabled: !isReadOnly
                 text: ""
-                width: parent.width
-            }
-        }
-
-        // Row for Spent Hours and Manual Entry
-        Row {
-            id: spentHoursRow
-            anchors.top: descriptionSection.bottom
-            anchors.left: parent.left
-            topPadding: units.gu(2)
-            leftPadding: units.gu(2)
-            Label {
-                id: hours_label
-                text: "Spent Hours"
-                verticalAlignment: Text.AlignVCenter
-            }
-            Row {
-                leftPadding: units.gu(2)
-                spacing: units.gu(2)
-                TextField {
-                    id: hours_text
-                    width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(20) : units.gu(50)
-                    text: ""
-                    readOnly: true
-                }
-                Button {
-                    objectName: "button_manual"
-                    width: units.gu(8)
-                    action: Action {
-                        text: i18n.tr("Manual")
-                        property bool flipped
-                        onTriggered: {
-                            myTimePicker.open(0, 0);
-                            flipped = !flipped;
-                            isManualTime = true;
-                            hours_text.readOnly = false;
-                        }
-                    }
-                    color: action.flipped ? LomiriColors.blue : LomiriColors.slate
-                }
+                width: parent.width - units.gu(2)
             }
         }
 
         Row {
             id: myRow7
-            anchors.top: spentHoursRow.bottom
+            anchors.top: descriptionSection.bottom
             anchors.left: parent.left
-            topPadding: units.gu(2)
-            Column {
-                leftPadding: units.gu(2)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: priority_label
-                        width: units.gu(10)
-                        text: "Priority"
-                        wrapMode: Text.WordWrap
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                leftPadding: units.gu(2)
-                ComboBox {
-                    id: priorityCombo
-                    width: units.gu(30)
-                    model: ["Do", "Plan", "Delegate", "Delete"]
-                    enabled: !isReadOnly
-                    currentIndex: 0
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(1)
+            topPadding: units.gu(1)
 
-                    // Use +1 so the stored value matches quadrant_id 1-4
-                    onCurrentIndexChanged: {
-                        selectedQuadrant = currentIndex + 1;
-                    }
-                }
+            Label {
+                id: priority_label
+                text: "Priority"
+                width: units.gu(6)
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+            }
+
+            TSCombobox {
+                id: priorityCombo
+                width: units.gu(33)
+                model: ["Do (Important & Urgent )", "Plan (Important & Not Urgent)", "Delegate (Urgent & Not Important)", "Delete (Not Urgent & Not Important)"]
+                enabled: !isReadOnly
+                currentIndex: 0
             }
         }
 
@@ -278,34 +279,48 @@ Page {
         }
 
         Component.onCompleted: {
-            console.log("From Timesheet " + apLayout.columns);
+            console.log("From Timesheet got record id : " + recordid);
             if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
             {
-                console.log("Loading time sheet " + recordid);
                 currentTimesheet = Model.get_timesheet_details(recordid);
-                let instanceId = currentTimesheet.instance_id !== undefined ? currentTimesheet.instance_id : -1;
-                let projectId = currentTimesheet.project_id !== undefined ? currentTimesheet.project_id : -1;
-                let taskId = currentTimesheet.task_id !== undefined ? currentTimesheet.task_id : -1;
-                let subProjectId = currentTimesheet.sub_project_id !== undefined ? currentTimesheet.sub_project_id : -1;
-                workItem.applyDeferredSelection(instanceId, projectId, taskId, subProjectId);
-                if (currentTimesheet.record_date) {
-                    date_widget.setDate(currentTimesheet.record_date);
-                }
-                description_text.text = currentTimesheet.description;
-            } else //we are creating a new timesheet
-            {}
-        }
-    }
+                let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
+                let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
+                let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
+                let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
+                let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
+                console.log("Timesheet Field Values:");
+                console.log("Recordid     →" + recordid);
+                console.log("instanceId    →", instanceId);
+                console.log("projectId     →", projectId);
+                console.log("taskId        →", taskId);
+                console.log("subProjectId  →", subProjectId);
+                console.log("subTaskId     →", subTaskId);
 
-    onVisibleChanged: {
-        if (visible)
-        //to update the UI
-        //if (TimerService.isRunning())
-        //stopwatchTimer.start();
-        //else
-        //  stopwatchTimer.stop();
-        {} else
-        //stopwatchTimer.stop();
-        {}
+                workItem.applyDeferredSelection(instanceId, projectId, taskId, subProjectId);
+                if (currentTimesheet.record_date && currentTimesheet.record_date !== "") {
+                    var parts = currentTimesheet.record_date.split("-");
+                    if (parts.length === 3) {
+                        var day = parseInt(parts[0], 10);
+                        var month = parseInt(parts[1], 10) - 1; // Month is 0-based in JS Date
+                        var year = parseInt(parts[2], 10);
+                        var parsedDate = new Date(year, month, day);
+                        date_widget.selectedDate = parsedDate;
+                    }
+                } else {
+                    date_widget.selectedDate = null; // or leave unset if DaySelector handles it
+                }
+
+                name_text.text = currentTimesheet.name;
+                if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
+                    hours_text.text = currentTimesheet.spentHours;
+                }
+                if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
+                    priorityCombo.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
+                }
+            } else //we are creating a new timesheet
+            {
+                console.log("Creating a new timesheet");
+            }
+        }
     }
 }

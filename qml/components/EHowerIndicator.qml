@@ -42,5 +42,5 @@ Text {
 
     text: normalizedKey   // ✅ fixed here
     color: quadrantColor
-    font.pixelSize: units.gu(1.6)
+    font.pixelSize: units.gu(AppConst.FontSizes.ListSubSubHeading)
 }
