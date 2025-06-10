@@ -70,7 +70,7 @@ Page {
                             'allocated_hours': hours_text.text,
                             'description': description_text.text,
                             'favorites': 0,
-                            'color': 0,
+                            'color': project_color,
                             'status': "updated"
                         };
                         console.log(JSON.stringify(project_data, null, 4));
@@ -93,6 +93,7 @@ Page {
 
     property bool isReadOnly: false
     property var recordid: 0
+    property int project_color: 0
     property var project: {}
 
     ScrollView {
@@ -355,6 +356,54 @@ Page {
                     }
                 }
             }
+            Row {
+                id: colorRow
+                anchors.top: myRow6.bottom
+                anchors.left: parent.left
+                topPadding: units.gu(2)
+                Column {
+                    leftPadding: units.gu(2)
+                    LomiriShape {
+                        width: units.gu(10)
+                        height: units.gu(5)
+                        aspect: LomiriShape.Flat
+                        Label {
+                            id: color_Label
+                            text: "Color"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            //textSize: Label.Large
+                        }
+                    }
+                }
+                Column {
+                    leftPadding: units.gu(3)
+                    Rectangle {
+                        id: project_color_label
+                        width: units.gu(4)
+                        height: units.gu(4)
+                        color: "red"
+                        enabled: !isReadOnly
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                colorpicker.open();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    ColorPicker {
+        id: colorpicker
+        width: units.gu(80)
+        height: units.gu(80)
+        onColorPicked: function (index, value) {
+            console.log("Selected index:", index);
+            console.log("Selected color:", value);
+            project_color_label.color = value;
+            project_color = index;
         }
     }
 
@@ -395,6 +444,8 @@ Page {
                 notifPopup.open("Failed", "Unable to open the project details", "error");
             }
             project_name.text = project.name;
+            project_color = project.color_pallet;
+            project_color_label.color = colorpicker.getColorByIndex(project.color_pallet);
         } else {
             //do nothing as we are creating project
             recordid = 0;
