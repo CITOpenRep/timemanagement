@@ -80,15 +80,13 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             },
-
-               Action {
-                        iconName: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "weather-clear-night-symbolic" : "weather-clear-symbolic"
-                        text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
-                        onTriggered: {
-                            Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
-                        }
-                    },
-            
+            Action {
+                iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
+                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
+                onTriggered: {
+                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                }
+            },
             Action {
                 iconName: "clock"
                 text: "Timesheet"
@@ -213,11 +211,11 @@ Page {
         id: top_custom_header
         z: 9999
     }*/
-// LomiriShape {
-//     anchors.fill: parent
-//     anchors.margins: units.gu(1)
-//    anchors.topMargin: header.height + units.gu(1)
-//     aspect: LomiriShape.Flat
+    // LomiriShape {
+    //     anchors.fill: parent
+    //     anchors.margins: units.gu(1)
+    //    anchors.topMargin: header.height + units.gu(1)
+    //     aspect: LomiriShape.Flat
     Flickable {
         id: flick1
         width: parent.width
@@ -304,7 +302,6 @@ Page {
             {}
         }
     }
-
 
     Scrollbar {
         flickableItem: flick1

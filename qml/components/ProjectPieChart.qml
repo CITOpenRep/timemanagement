@@ -26,7 +26,6 @@ import QtQuick 2.7
 import QtCharts 2.0
 import QtQuick.Controls 2.2
 
-
 Item {
     width: parent.width
     height: parent.height

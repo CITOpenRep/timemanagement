@@ -9,7 +9,7 @@ ComboBox {
     // NOTE: Do NOT alias final properties like model/currentIndex/currentText
 
     background: Rectangle {
-        color: "white"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
         radius: units.gu(0.5)
         border.color: "black"
         border.width: 1

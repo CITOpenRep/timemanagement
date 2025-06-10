@@ -50,45 +50,44 @@ Page {
         }
 
         //    enable: true
-       
-           trailingActionBar.actions: [
-                Action {
-                    
-                iconSource: "images/save.svg" // New Save Icon
-                    text: "Save"
-                    visible: !isReadOnly
-                    onTriggered: {
 
-                        // isReadOnly = !isReadOnly
-                        var project_data = {
-                            'account_id': accountCombo.selectedInstanceId,
-                            'name': project_name.text,
-                            'planned_start_date': start_date_widget.date,
-                            'planned_end_date': end_date_widget.date,
-                            'parent_id': (!parent_projectCombo.selectedProjectId || parent_projectCombo.selectedProjectId < 0) ? 0 : parent_projectCombo.selectedProjectId,
-                            'allocated_hours': hours_text.text,
-                            'description': description_text.text,
-                            'favorites': 0,
-                            'color': project_color,
-                            'status': "updated"
-                        };
-                        console.log(JSON.stringify(project_data, null, 4));
-                        var recordid = 0; //project creation
-                        var response = Project.createUpdateProject(project_data, recordid);
-                        if (response) {
-                            if (response.is_success) {
-                                notifPopup.open("Saved", response.message, "success");
-                            } else {
-                                notifPopup.open("Failed", response.message, "error");
-                            }
+        trailingActionBar.actions: [
+            Action {
+
+                iconSource: "images/save.svg" // New Save Icon
+                text: "Save"
+                visible: !isReadOnly
+                onTriggered: {
+
+                    // isReadOnly = !isReadOnly
+                    var project_data = {
+                        'account_id': accountCombo.selectedInstanceId,
+                        'name': project_name.text,
+                        'planned_start_date': start_date_widget.date,
+                        'planned_end_date': end_date_widget.date,
+                        'parent_id': (!parent_projectCombo.selectedProjectId || parent_projectCombo.selectedProjectId < 0) ? 0 : parent_projectCombo.selectedProjectId,
+                        'allocated_hours': hours_text.text,
+                        'description': description_text.text,
+                        'favorites': 0,
+                        'color': project_color,
+                        'status': "updated"
+                    };
+                    console.log(JSON.stringify(project_data, null, 4));
+                    var recordid = 0; //project creation
+                    var response = Project.createUpdateProject(project_data, recordid);
+                    if (response) {
+                        if (response.is_success) {
+                            notifPopup.open("Saved", response.message, "success");
                         } else {
-                            notifPopup.open("Failed", "Unable to save project", "error");
+                            notifPopup.open("Failed", response.message, "error");
                         }
+                    } else {
+                        notifPopup.open("Failed", "Unable to save project", "error");
                     }
                 }
-            ]
-        }
-    
+            }
+        ]
+    }
 
     property bool isReadOnly: false
     property var recordid: 0

@@ -11,7 +11,7 @@ Item {
     property date selectedDate: new Date()
     property bool readOnly: false
     signal dateChanged(date selectedDate)
-   // color: "transparent"
+    // color: "transparent"
 
     ColumnLayout {
         anchors.fill: parent
@@ -45,7 +45,7 @@ Item {
                 property date date: new Date()
                 Layout.preferredWidth: parent.width * 0.5
                 Layout.preferredHeight: parent.height
-             //   color: "white"
+                //   color: "white"
 
                 TSLabel {
                     anchors.fill: parent
