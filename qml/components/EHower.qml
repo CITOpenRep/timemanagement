@@ -131,7 +131,7 @@ Item {
                 text: "URGENT"
                 font.bold: true
                 font.pixelSize: units.gu(2)
-                color: "#333"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
                 horizontalAlignment: Text.AlignHCenter
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
@@ -141,7 +141,7 @@ Item {
                 text: "NOT URGENT"
                 font.bold: true
                 font.pixelSize: units.gu(2)
-                color: "#333"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
                 horizontalAlignment: Text.AlignHCenter
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
@@ -165,7 +165,7 @@ Item {
                         text: "IMPORTANT"
                         font.bold: true
                         font.pixelSize: units.gu(2)
-                        color: "#333"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
                         anchors.verticalCenter: parent.verticalCenter
                         //anchors.horizontalCenter: parent.horizontalCenter
                         anchors.left: parent.left
@@ -182,7 +182,7 @@ Item {
                         text: "NOT IMPORTANT"
                         font.bold: true
                         font.pixelSize: units.gu(2)
-                        color: "#333"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
                         anchors.verticalCenter: parent.verticalCenter
                         //anchors.horizontalCenter: parent.horizontalCenter
                         anchors.left: parent.left
