@@ -87,22 +87,26 @@ ListItem {
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
                     width: parent.width
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
 
                 Text {
                     text: (project ? project : "No Project")
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
                 Text {
                     text: task
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
                 Text {
                     text: (user ? user : "Unknown User")
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
             }
 
@@ -117,6 +121,7 @@ ListItem {
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubSubHeading)
                     horizontalAlignment: Text.AlignRight
                     width: parent.width
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
 
                 Text {
@@ -124,6 +129,7 @@ ListItem {
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubSubHeading)
                     horizontalAlignment: Text.AlignRight
                     width: parent.width
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
 
                 EHowerIndicator {
