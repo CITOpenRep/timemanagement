@@ -164,7 +164,6 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Task"
                 verticalAlignment: Text.AlignVCenter
-
             }
 
             Rectangle {
@@ -201,7 +200,6 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Subtask"
                 verticalAlignment: Text.AlignVCenter
-
             }
 
             Rectangle {

@@ -178,25 +178,23 @@ Page {
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
-            spacing:units.gu(1)
+            spacing: units.gu(1)
             topPadding: units.gu(1)
 
             TSLabel {
                 id: hours_label
                 text: "Spent Hours"
-                width:parent.width * 0.3
-                verticalAlignment: Text.AlignVCenter
-                Layout.alignment: Qt.AlignVCenter
-
+                width: parent.width * 0.3
+                anchors.verticalCenter: parent.verticalCenter
             }
 
             TSLabel {
                 id: hours_text
                 text: "01:00"
                 enabled: !isReadOnly
-                width:parent.width * 0.3
-                fontBold:true
-                Layout.alignment: Qt.AlignVCenter
+                width: parent.width * 0.3
+                fontBold: true
+                anchors.verticalCenter: parent.verticalCenter
             }
 
             TSButton {
@@ -205,7 +203,7 @@ Page {
                 enabled: !isReadOnly
                 width: parent.width * 0.2
                 height: units.gu(3)
-                Layout.alignment: Qt.AlignVCenter
+                anchors.verticalCenter: parent.verticalCenter
 
                 onClicked: {
                     myTimePicker.open(1, 0);
@@ -244,15 +242,15 @@ Page {
             }
         }
 
-
-
         Row {
             id: myRow7
             anchors.top: descriptionSection.bottom
             anchors.left: parent.left
-            anchors.leftMargin: units.gu(2)
-            spacing: units.gu(2)
-            height: units.gu(5)
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(1)
+            topPadding: units.gu(1)
 
             Label {
                 id: priority_label
