@@ -25,9 +25,10 @@ function initializeDatabase() {
             database TEXT NOT NULL,\
             connectwith_id INTEGER,\
             api_key TEXT,\
-            username TEXT NOT NULL\
+            username TEXT NOT NULL,\
+            is_default INTEGER DEFAULT 0\
         )',
-                                 ['id INTEGER', 'name TEXT', 'link TEXT', 'last_modified datetime', 'database TEXT', 'connectwith_id INTEGER', 'api_key TEXT', 'username TEXT']
+                                 ['id INTEGER', 'name TEXT', 'link TEXT', 'last_modified datetime', 'database TEXT', 'connectwith_id INTEGER', 'api_key TEXT', 'username TEXT','is_default INTEGER']
                                  );
 
     //Time to create a local account
@@ -59,38 +60,38 @@ function initializeDatabase() {
                                  );
 
     DBCommon.createOrUpdateTable("res_users_app",
-        "CREATE TABLE IF NOT EXISTS res_users_app (" +
-        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-        "account_id INTEGER, " +
-        "name TEXT, " +
-        "login TEXT, " +
-        "email TEXT, " +
-        "work_email TEXT, " +
-        "mobile_phone TEXT, " +
-        "job_title TEXT, " +
-        "company_id INTEGER, " +
-        "share INTEGER, " +
-        "active INTEGER, " +
-        "status TEXT DEFAULT '', " +
-        "odoo_record_id INTEGER, " +
-        "UNIQUE (odoo_record_id, account_id)" +
-        ")",
-        [
-            "id INTEGER",
-            "account_id INTEGER",
-            "name TEXT",
-            "login TEXT",
-            "email TEXT",
-            "work_email TEXT",
-            "mobile_phone TEXT",
-            "job_title TEXT",
-            "company_id INTEGER",
-            "share INTEGER",
-            "active INTEGER",
-            "status TEXT DEFAULT ''",
-            "odoo_record_id INTEGER"
-        ]
-    );
+                                 "CREATE TABLE IF NOT EXISTS res_users_app (" +
+                                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                 "account_id INTEGER, " +
+                                 "name TEXT, " +
+                                 "login TEXT, " +
+                                 "email TEXT, " +
+                                 "work_email TEXT, " +
+                                 "mobile_phone TEXT, " +
+                                 "job_title TEXT, " +
+                                 "company_id INTEGER, " +
+                                 "share INTEGER, " +
+                                 "active INTEGER, " +
+                                 "status TEXT DEFAULT '', " +
+                                 "odoo_record_id INTEGER, " +
+                                 "UNIQUE (odoo_record_id, account_id)" +
+                                 ")",
+                                 [
+                                     "id INTEGER",
+                                     "account_id INTEGER",
+                                     "name TEXT",
+                                     "login TEXT",
+                                     "email TEXT",
+                                     "work_email TEXT",
+                                     "mobile_phone TEXT",
+                                     "job_title TEXT",
+                                     "company_id INTEGER",
+                                     "share INTEGER",
+                                     "active INTEGER",
+                                     "status TEXT DEFAULT ''",
+                                     "odoo_record_id INTEGER"
+                                 ]
+                                 );
 
 
     DBCommon.createOrUpdateTable("project_task_app",

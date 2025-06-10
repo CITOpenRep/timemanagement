@@ -32,7 +32,7 @@ import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
 import "../models/task.js" as Task
 import "../models/utils.js" as Utils
-import "../models/global.js" as Global
+import "../models/accounts.js" as Accounts
 import "../models/project.js" as Project
 import "components"
 
@@ -448,6 +448,11 @@ Page {
         } else {
             //do nothing as we are creating project
             recordid = 0;
+            accountCombo.shouldDeferSelection = true;
+            let defaultid = Accounts.getDefaultAccountId();
+            accountCombo.deferredAccountId = defaultid;
+            accountCombo.selectAccountById(defaultid);
+            //accountCombo.load()
         }
     }
 }

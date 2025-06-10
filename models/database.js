@@ -122,7 +122,7 @@ function ensureDefaultLocalAccountExists() {
 
             if (result.rows.length === 0) {
                 tx.executeSql(
-                    "INSERT INTO users (id, name, link, last_modified, database, connectwith_id, api_key, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO users (id, name, link, last_modified, database, connectwith_id, api_key, username, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     [
                         0,
                         "Local Account",
@@ -131,9 +131,11 @@ function ensureDefaultLocalAccountExists() {
                         "local",
                         null,
                         null,
-                        "local_user"
+                        "local_user",
+                        1
                     ]
                 );
+
                 console.log("✅ Default Local Account inserted.");
             } else {
                 console.log("ℹ️ Default Local Account already exists.");

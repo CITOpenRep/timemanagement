@@ -320,6 +320,7 @@ Page {
             } else //we are creating a new timesheet
             {
                 console.log("Creating a new timesheet");
+                workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
             }
         }
     }
