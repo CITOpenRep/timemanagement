@@ -323,20 +323,6 @@ function getFormattedTimestamp() {
             String(d.getSeconds()).padStart(2, '0');
 }
 
-function fetch_current_users_task(selectedAccountUserId) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var activity_type_list = []
-    db.transaction(function (tx) {
-        var instance_users = tx.executeSql('select * from res_users_app where account_id = ? AND share = ? AND active = ?', [selectedAccountUserId, 0, 1])
-        var all_users = tx.executeSql('select * from res_users_app')
-        for (var user = 0; user < all_users.rows.length; user++) {
-        } //GM: What is this for?
-        for (var instance_user = 0; instance_user < instance_users.rows.length; instance_user++) {
-            activity_type_list.push({'id': instance_users.rows.item(instance_user).id, 'name': instance_users.rows.item(instance_user).name});
-        }
-    })
-    return activity_type_list;
-}
 
 function getAssigneeList(){
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
