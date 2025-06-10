@@ -50,12 +50,11 @@ Page {
         }
 
         //    enable: true
-        ActionBar {
-            numberOfSlots: 2
-            anchors.right: parent.right
-            actions: [
+       
+           trailingActionBar.actions: [
                 Action {
-                    iconName: "save"
+                    
+                iconSource: "images/save.svg"
                     text: "Save"
                     visible: !isReadOnly
                     onTriggered: {
@@ -89,7 +88,7 @@ Page {
                 }
             ]
         }
-    }
+    
 
     property bool isReadOnly: false
 
