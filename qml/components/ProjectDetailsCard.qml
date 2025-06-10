@@ -53,7 +53,7 @@ ListItem {
     leadingActions: ListItemActions {
         actions: [
             Action {
-                iconName: "document-preview"
+                iconSource: "../images/show.png"
                 onTriggered: {
                     console.log(localId);
                     viewRequested(localId);

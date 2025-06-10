@@ -16,6 +16,12 @@ Rectangle {
     property bool showTaskSelector: true
     property bool showSubtaskSelector: true
     property bool readOnly: false
+    property string accountLabelText: "Account"
+    property string projectLabelText: "Project"
+    property string subprojectLabelText: "Subproject"
+    property string taskLabelText: "Task"
+    property string subtaskLabelText: "Subtask"
+
     signal datachanged
 
     function getDbRecordId(localId, odooId) {
@@ -58,7 +64,7 @@ Rectangle {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
 
-                text: "Account"
+                text: accountLabelText
                 verticalAlignment: Text.AlignVCenter
             }
 
@@ -90,7 +96,7 @@ Rectangle {
             TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Project"
+                text: projectLabelText
                 verticalAlignment: Text.AlignVCenter
             }
 
@@ -125,7 +131,7 @@ Rectangle {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
                 aspect: LomiriShape.Flat
-                text: "Subproject"
+                text: subprojectLabelText
                 verticalAlignment: Text.AlignVCenter
             }
 
@@ -162,7 +168,7 @@ Rectangle {
             TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Task"
+                text: taskLabelText
                 verticalAlignment: Text.AlignVCenter
             }
 
@@ -198,7 +204,7 @@ Rectangle {
             TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Subtask"
+                text: subtaskLabelText
                 verticalAlignment: Text.AlignVCenter
             }
 

@@ -54,7 +54,9 @@ Page {
                 text: "New"
                 onTriggered: {
                     console.log("Create Project clicked");
-                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Project_Create.qml"));
+                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {
+                        "isReadOnly": false
+                    });
                 }
             }
         ]
@@ -70,7 +72,7 @@ Page {
             anchors.fill: parent
             onProjectSelected: {
                 console.log("Viewing Project");
-                apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Project_details.qml"), {
+                apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });

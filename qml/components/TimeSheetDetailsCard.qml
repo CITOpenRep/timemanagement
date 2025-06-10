@@ -62,7 +62,7 @@ ListItem {
                 onTriggered: editRequested(recordId)
             },
             Action {
-                iconName: "delete"
+                iconSource: "../images/delete.png"
                 onTriggered: deleteRequested(recordId)
             }
         ]
