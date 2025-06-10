@@ -89,7 +89,7 @@ ListItem {
         radius: units.gu(0.2)
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "#fff"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
 
         Row {
             anchors.fill: parent

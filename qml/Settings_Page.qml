@@ -109,7 +109,7 @@ Page {
             anchors.fill: parent
             anchors.top: pageHeader.bottom
             anchors.topMargin: units.gu(5)
-            color:  theme.name === "Ubuntu.Components.Themes.SuruDark" ? "black" : "transparent"
+            color:  theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
             Flickable {
                 id: listView
                 anchors.fill: parent
@@ -126,7 +126,7 @@ Page {
                         delegate: Rectangle {
                             width: parent.width
                             height: units.gu(16)
-                            color:  theme.name === "Ubuntu.Components.Themes.SuruDark" ? "black" : "transparent"
+                            color:  theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
                             border.color:  theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#CCCCCC"
                             border.width: 1
                             Column {
