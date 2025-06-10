@@ -50,12 +50,11 @@ Page {
         }
 
         //    enable: true
-        ActionBar {
-            numberOfSlots: 2
-            anchors.right: parent.right
-            actions: [
+       
+           trailingActionBar.actions: [
                 Action {
-                    iconName: "save"
+                    
+                iconSource: "images/save.svg"
                     text: "Save"
                     visible: !isReadOnly
                     onTriggered: {
@@ -89,7 +88,7 @@ Page {
                 }
             ]
         }
-    }
+    
 
     property bool isReadOnly: false
 
@@ -266,6 +265,7 @@ Page {
                 anchors.rightMargin: 10
                 height: units.gu(5)
                 topPadding: units.gu(2)
+                spacing: units.gu(2) // Spacing between columns
                 Column {
                     leftPadding: units.gu(2)
                     LomiriShape {
@@ -285,7 +285,7 @@ Page {
                 }
                 Column {
                     id: planColumn
-                    leftPadding: units.gu(1)
+                    leftPadding: units.gu(5)
                     TextField {
                         id: hours_text
                         readOnly: isReadOnly
