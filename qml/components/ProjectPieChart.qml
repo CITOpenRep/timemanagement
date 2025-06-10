@@ -112,7 +112,7 @@ Item {
                     id: label
                     text: model.label
                     font.pixelSize: units.gu(2)
-                    color: "#333"
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
                     wrapMode: Text.WordWrap
                     maximumLineCount: 2
                     width: parent.width
