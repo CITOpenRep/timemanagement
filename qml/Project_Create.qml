@@ -54,7 +54,7 @@ Page {
            trailingActionBar.actions: [
                 Action {
                     
-                iconSource: "images/save.svg"
+                iconSource: "images/save.svg" // New Save Icon
                     text: "Save"
                     visible: !isReadOnly
                     onTriggered: {
