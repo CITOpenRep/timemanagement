@@ -19,7 +19,7 @@ Rectangle {
 
         // Row for label and combo
         RowLayout {
-            Label {
+            TSLabel {
                 id: rangeLabel
                 enabled: true
                 text: "Date"
@@ -47,7 +47,7 @@ Rectangle {
                 Layout.preferredHeight: parent.height
                 color: "white"
 
-                Label {
+                TSLabel {
                     anchors.fill: parent
                     verticalAlignment: Text.AlignVCenter
                     enabled: !daySelector.readOnly

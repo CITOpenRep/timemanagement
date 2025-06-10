@@ -170,11 +170,62 @@ Page {
             }
         }
 
+        // Row for Spent Hours and Manual Entry
+        Row {
+            id: spentHoursRow
+            anchors.top: myRow1.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing:units.gu(1)
+            topPadding: units.gu(1)
+
+            TSLabel {
+                id: hours_label
+                text: "Spent Hours"
+                width:parent.width * 0.3
+                verticalAlignment: Text.AlignVCenter
+                Layout.alignment: Qt.AlignVCenter
+
+            }
+
+            TSLabel {
+                id: hours_text
+                text: "01:00"
+                enabled: !isReadOnly
+                width:parent.width * 0.3
+                fontBold:true
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            TSButton {
+                text: "Manual"
+                objectName: "button_manual"
+                enabled: !isReadOnly
+                width: parent.width * 0.2
+                height: units.gu(3)
+                Layout.alignment: Qt.AlignVCenter
+
+                onClicked: {
+                    myTimePicker.open(1, 0);
+                    isManualTime = true;
+                    // hours_text.readOnly = false;
+                }
+            }
+            Rectangle {
+                id: spacer
+                color: "red"
+                Layout.fillWidth: true
+                height: units.gu(3)
+            }
+        }
+
         /**********************************************************/
 
         Column {
             id: descriptionSection
-            anchors.top: myRow1.bottom
+            anchors.top: spentHoursRow.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             spacing: units.gu(1)
@@ -193,58 +244,11 @@ Page {
             }
         }
 
-        // Row for Spent Hours and Manual Entry
-        Row {
-            id: spentHoursRow
-            anchors.top: descriptionSection.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
 
-            Label {
-                id: hours_label
-                text: "Spent Hours"
-                verticalAlignment: Text.AlignVCenter
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            TextField {
-                id: hours_text
-                text: "01:00"
-                enabled: !isReadOnly
-                readOnly: true
-                Layout.alignment: Qt.AlignVCenter
-                validator: RegExpValidator {
-                    regExp: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/
-                }
-                inputMethodHints: Qt.ImhTime
-            }
-
-            TSButton {
-                text: "Manual"
-                objectName: "button_manual"
-                enabled: !isReadOnly
-                width: parent.width * 0.2
-                height: units.gu(3)
-
-                onClicked: {
-                    myTimePicker.open(1, 0);
-                    isManualTime = true;
-                    // hours_text.readOnly = false;
-                }
-            }
-            Rectangle {
-                id: spacer
-                color: "red"
-                Layout.fillWidth: true
-                height: units.gu(3)
-            }
-        }
 
         Row {
             id: myRow7
-            anchors.top: spentHoursRow.bottom
+            anchors.top: descriptionSection.bottom
             anchors.left: parent.left
             anchors.leftMargin: units.gu(2)
             spacing: units.gu(2)

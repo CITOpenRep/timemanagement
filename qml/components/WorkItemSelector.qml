@@ -54,15 +54,12 @@ Rectangle {
             //spacing: units.gu(1)
             visible: showAccountSelector
             height: units.gu(5)
-            LomiriShape {
+            TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-                aspect: LomiriShape.Flat
-                Label {
-                    text: "Account"
-                    anchors.fill: parent
-                    verticalAlignment: Text.AlignVCenter
-                }
+
+                text: "Account"
+                verticalAlignment: Text.AlignVCenter
             }
 
             Rectangle {
@@ -90,15 +87,11 @@ Rectangle {
             visible: showProjectSelector
             height: units.gu(5)
 
-            LomiriShape {
+            TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-                aspect: LomiriShape.Flat
-                Label {
-                    text: "Project"
-                    anchors.fill: parent
-                    verticalAlignment: Text.AlignVCenter
-                }
+                text: "Project"
+                verticalAlignment: Text.AlignVCenter
             }
 
             Rectangle {
@@ -128,15 +121,12 @@ Rectangle {
             visible: showSubprojectSelector
             height: units.gu(5)
 
-            LomiriShape {
+            TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
                 aspect: LomiriShape.Flat
-                Label {
-                    text: "Subproject"
-                    anchors.fill: parent
-                    verticalAlignment: Text.AlignVCenter
-                }
+                text: "Subproject"
+                verticalAlignment: Text.AlignVCenter
             }
 
             Rectangle {
@@ -169,15 +159,12 @@ Rectangle {
             visible: showTaskSelector
             height: units.gu(5)
 
-            LomiriShape {
+            TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-                aspect: LomiriShape.Flat
-                Label {
-                    text: "Task"
-                    anchors.fill: parent
-                    verticalAlignment: Text.AlignVCenter
-                }
+                text: "Task"
+                verticalAlignment: Text.AlignVCenter
+
             }
 
             Rectangle {
@@ -209,15 +196,12 @@ Rectangle {
             visible: showSubtaskSelector
             height: units.gu(5)
 
-            LomiriShape {
+            TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-                aspect: LomiriShape.Flat
-                Label {
-                    text: "Subtask"
-                    anchors.fill: parent
-                    verticalAlignment: Text.AlignVCenter
-                }
+                text: "Subtask"
+                verticalAlignment: Text.AlignVCenter
+
             }
 
             Rectangle {
