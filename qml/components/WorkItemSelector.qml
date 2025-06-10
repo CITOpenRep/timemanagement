@@ -65,7 +65,7 @@ Rectangle {
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 AccountSelector {
                     id: accountSelector
@@ -97,7 +97,7 @@ Rectangle {
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: projectSelector
@@ -132,7 +132,7 @@ Rectangle {
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: subProjectSelector
@@ -164,13 +164,12 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Task"
                 verticalAlignment: Text.AlignVCenter
-
             }
 
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: taskSelector
@@ -201,13 +200,12 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Subtask"
                 verticalAlignment: Text.AlignVCenter
-
             }
 
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: subTaskSelector

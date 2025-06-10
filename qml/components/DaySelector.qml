@@ -4,14 +4,14 @@ import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
 import Lomiri.Components.Pickers 1.3
 
-Rectangle {
+Item {
     id: daySelector
     width: parent ? parent.width : 400
     property alias labelText: rangeLabel.text
     property date selectedDate: new Date()
     property bool readOnly: false
     signal dateChanged(date selectedDate)
-    color: "transparent"
+   // color: "transparent"
 
     ColumnLayout {
         anchors.fill: parent
@@ -40,12 +40,12 @@ Rectangle {
                 }
             }
 
-            Rectangle {
+            Item {
                 id: dateItem
                 property date date: new Date()
                 Layout.preferredWidth: parent.width * 0.5
                 Layout.preferredHeight: parent.height
-                color: "white"
+             //   color: "white"
 
                 TSLabel {
                     anchors.fill: parent
