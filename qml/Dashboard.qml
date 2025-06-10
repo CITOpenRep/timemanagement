@@ -37,7 +37,7 @@ import "components"
 
 Page {
     id: mainPage
-    title: "Ubudoo- Time Management"
+    title: "Time Manager - Time Management Dashboard"
     anchors.fill: parent
     property bool isMultiColumn: apLayout.columns > 1
     property var page: 0
@@ -67,7 +67,7 @@ Page {
         //     numberOfSlots: 2
         //     anchors.right: parent.right
         trailingActionBar.visible: isMultiColumn ? false : true
-        trailingActionBar.numberOfSlots: 2
+        trailingActionBar.numberOfSlots: 3
 
         trailingActionBar.actions: [
             Action {
@@ -80,6 +80,15 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             },
+
+               Action {
+                        iconName: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "weather-clear-night-symbolic" : "weather-clear-symbolic"
+                        text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
+                        onTriggered: {
+                            Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                        }
+                    },
+            
             Action {
                 iconName: "clock"
                 text: "Timesheet"
@@ -204,7 +213,11 @@ Page {
         id: top_custom_header
         z: 9999
     }*/
-
+// LomiriShape {
+//     anchors.fill: parent
+//     anchors.margins: units.gu(1)
+//    anchors.topMargin: header.height + units.gu(1)
+//     aspect: LomiriShape.Flat
     Flickable {
         id: flick1
         width: parent.width
@@ -291,6 +304,7 @@ Page {
             {}
         }
     }
+
 
     Scrollbar {
         flickableItem: flick1

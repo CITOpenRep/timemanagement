@@ -71,7 +71,7 @@ Rectangle {
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 AccountSelector {
                     id: accountSelector
@@ -103,7 +103,7 @@ Rectangle {
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: projectSelector
@@ -138,7 +138,7 @@ Rectangle {
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: subProjectSelector
@@ -175,7 +175,7 @@ Rectangle {
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: taskSelector
@@ -211,7 +211,7 @@ Rectangle {
             Rectangle {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: "transparent"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: subTaskSelector

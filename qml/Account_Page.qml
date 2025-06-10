@@ -146,7 +146,8 @@ Page {
                     Rectangle {
                         width: units.gu(12)
                         height: units.gu(4)
-                        Label {
+                        color: "transparent"
+                        TSLabel {
                             id: account_name_label
                             text: "Account Name"
                             anchors.verticalCenter: parent.verticalCenter
@@ -158,11 +159,13 @@ Page {
                     Rectangle {
                         width: units.gu(28)
                         height: units.gu(5)
+                        color: "transparent"
                         TextField {
                             id: accountNameInput
                             anchors.horizontalCenter: parent.horizontalCenter
                             placeholderText: "Account Name"
                             width: parent.width
+                            color: "transparent"
                         }
                     }
                 }
@@ -178,7 +181,8 @@ Page {
                     Rectangle {
                         width: units.gu(12)
                         height: units.gu(4)
-                        Label {
+                        color: "transparent"
+                        TSLabel {
                             id: link_label
                             text: "URL"
                             anchors.verticalCenter: parent.verticalCenter
@@ -191,14 +195,14 @@ Page {
                     Rectangle {
                         width: units.gu(28)
                         height: units.gu(4)
-
+                        color: "transparent"
                         TextField {
                             id: linkInput
                             placeholderText: "Enter Odoo URL here"
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
                             height: parent.height
-
+                            color: "transparent"
                             onTextChanged: {
                                 text = text.toLowerCase();
                             }
@@ -257,7 +261,8 @@ Page {
                     Rectangle {
                         width: units.gu(12)
                         height: units.gu(3)
-                        Label {
+                        color: "transparent"
+                        TSLabel {
                             id: database_list_label
                             text: "Database"
                             anchors.verticalCenter: parent.verticalCenter
@@ -273,6 +278,7 @@ Page {
                     Rectangle {
                         width: units.gu(28)
                         height: units.gu(5)
+                        color: "transparent"
                         visible: activeBackendAccount && !isManualDbMode
                         ComboBox {
                             id: database_combo
@@ -287,11 +293,13 @@ Page {
                     Rectangle {
                         width: units.gu(28)
                         height: units.gu(5)
+                        color: "transparent"
                         visible: isManualDbMode
                         TextField {
                             id: manualDbInput
                             width: parent.width
                             placeholderText: "Enter Database Name"
+                            color: "transparent"
                         }
                     }
                 }
@@ -306,7 +314,8 @@ Page {
                     Rectangle {
                         width: units.gu(12)
                         height: units.gu(4)
-                        Label {
+                        color: "transparent"
+                        TSLabel {
                             id: username_label
                             visible: activeBackendAccount
                             text: "Username"
@@ -319,12 +328,14 @@ Page {
                     Rectangle {
                         width: units.gu(28)
                         height: units.gu(5)
+                        color: "transparent"
                         TextField {
                             id: usernameInput
                             visible: activeBackendAccount
                             placeholderText: "Username"
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
+                            color: "transparent"
                         }
                     }
                 }
@@ -339,7 +350,8 @@ Page {
                     Rectangle {
                         width: units.gu(12)
                         height: units.gu(5)
-                        Label {
+                        color: "transparent"
+                        TSLabel {
                             id: connectwith_label
                             text: "Connect With"
                             visible: activeBackendAccount
@@ -370,7 +382,8 @@ Page {
                     Rectangle {
                         width: units.gu(12)
                         height: units.gu(4)
-                        Label {
+                        color: "transparent"
+                        TSLabel {
                             id: password_label
                             visible: activeBackendAccount
                             text: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
@@ -383,6 +396,7 @@ Page {
                     Rectangle {
                         width: units.gu(23)
                         height: units.gu(5)
+                        color: "transparent"
                         TextField {
                             id: passwordInput
                             visible: activeBackendAccount
@@ -390,6 +404,7 @@ Page {
                             placeholderText: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
+                            color: "transparent"
                         }
                     }
                 }

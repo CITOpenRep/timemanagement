@@ -50,6 +50,9 @@ Page {
             legend.alignment: Qt.AlignBottom
             antialiasing: true
 
+            backgroundColor: "transparent"
+            legend.labelColor: "red"
+
             BarSeries {
                 id: mySeries2
                 axisY: ValueAxis {

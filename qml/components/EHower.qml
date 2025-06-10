@@ -101,7 +101,7 @@ Item {
         id: headlabel
         text: "Time spent based on priorities"
         font.pixelSize: units.gu(2)
-        color: "#444"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         anchors.topMargin: 5
         horizontalAlignment: Text.AlignHCenter
         anchors.horizontalCenter: parent.horizontalCenter
@@ -110,6 +110,7 @@ Item {
     ColumnLayout {
         anchors.top: headlabel.bottom
         anchors.bottom: parent.bottom
+        anchors.leftMargin: units.gu(-3)
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: 1
@@ -131,7 +132,7 @@ Item {
                 text: "URGENT"
                 font.bold: true
                 font.pixelSize: units.gu(2)
-                color: "#333"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
                 horizontalAlignment: Text.AlignHCenter
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
@@ -141,7 +142,7 @@ Item {
                 text: "NOT URGENT"
                 font.bold: true
                 font.pixelSize: units.gu(2)
-                color: "#333"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
                 horizontalAlignment: Text.AlignHCenter
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
@@ -165,7 +166,7 @@ Item {
                         text: "IMPORTANT"
                         font.bold: true
                         font.pixelSize: units.gu(2)
-                        color: "#333"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
                         anchors.verticalCenter: parent.verticalCenter
                         //anchors.horizontalCenter: parent.horizontalCenter
                         anchors.left: parent.left
@@ -182,7 +183,7 @@ Item {
                         text: "NOT IMPORTANT"
                         font.bold: true
                         font.pixelSize: units.gu(2)
-                        color: "#333"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
                         anchors.verticalCenter: parent.verticalCenter
                         //anchors.horizontalCenter: parent.horizontalCenter
                         anchors.left: parent.left
