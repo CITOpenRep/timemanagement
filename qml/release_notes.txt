@@ -20,6 +20,8 @@
     <h2>Change History</h2>
     <ul>
         <li>10-06-2025 : Fixed the bugs in Timesheet & Updated Eisenhower matrix</li>
+        <li>10-06-2025 : Adapted theme for Timesheet</li>
+        <li>10-06-2025 : Better project view</li>
     </ul>
 
     <h2>Known Issues</h2>
