@@ -36,13 +36,20 @@ Rectangle {
     id: rect4
     width: parent.width
     height: units.gu(40)
+    color: "transparent"
+    //anchors.fill: parent
 
     ChartView {
         id: chart3
         title: "Projectwise Time Spent"
+     
         anchors.fill: parent
         legend.alignment: Qt.AlignBottom
         antialiasing: true
+
+        backgroundColor: "transparent"
+       
+       // theme: ChartView.ChartThemeHighContrast
 
         BarSeries {
             id: mySeries

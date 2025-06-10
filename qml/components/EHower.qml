@@ -110,6 +110,7 @@ Item {
     ColumnLayout {
         anchors.top: headlabel.bottom
         anchors.bottom: parent.bottom
+        anchors.leftMargin: units.gu(-3)
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: 1
