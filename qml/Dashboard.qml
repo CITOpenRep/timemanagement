@@ -213,7 +213,8 @@ Page {
         id: top_custom_header
         z: 9999
     }*/
-
+LomiriShape {
+    anchors.fill: parent
     Flickable {
         id: flick1
         width: parent.width
@@ -300,6 +301,7 @@ Page {
             {}
         }
     }
+}
 
     Scrollbar {
         flickableItem: flick1

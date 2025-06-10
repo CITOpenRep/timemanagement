@@ -101,7 +101,7 @@ Item {
         id: headlabel
         text: "Time spent based on priorities"
         font.pixelSize: units.gu(2)
-        color: "#444"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         anchors.topMargin: 5
         horizontalAlignment: Text.AlignHCenter
         anchors.horizontalCenter: parent.horizontalCenter
