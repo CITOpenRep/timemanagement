@@ -10,7 +10,7 @@ import "../../models/project.js" as Project
 
 ComboBox {
     id: taskCombo
-    editable: true
+    editable: false
     flat: true
     width: parent.width
     height: parent.height

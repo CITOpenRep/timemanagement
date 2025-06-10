@@ -74,7 +74,7 @@ Rectangle {
                     id: accountSelector
                     anchors.centerIn: parent
                     enabled: !readOnly
-                    editable: true
+                    editable: false
                     onAccountSelected: {
                         console.log("Accoutn Selected");
                         projectSelector.load(accountSelector.selectedInstanceId, 0);
@@ -111,7 +111,7 @@ Rectangle {
                     enabled: !readOnly
                     anchors.centerIn: parent
 
-                    editable: true
+                    editable: false
                     onProjectSelected: {
                         console.log("Selecting Project " + projectSelector.selectedProjectId);
                         subProjectSelector.load(accountSelector.selectedInstanceId, projectSelector.selectedProjectId);
@@ -149,7 +149,7 @@ Rectangle {
                     mode: "subproject"
                     anchors.centerIn: parent
                     enabled: !readOnly
-                    editable: true
+                    editable: false
                     onProjectSelected: {
                         console.log("Selecting Subproject " + subProjectSelector.selectedProjectId);
                         if (subProjectSelector.selectedProjectId != -1) {
@@ -189,7 +189,7 @@ Rectangle {
                     id: taskSelector
                     anchors.centerIn: parent
                     enabled: !readOnly
-                    editable: true
+                    editable: false
                     onTaskSelected: {
                         console.log("Selecting Task " + taskSelector.selectedTaskId);
                         if (subProjectSelector.selectedProjectId != -1) {
