@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
 import Lomiri.Components.Pickers 1.3
 
+
 Item {
     id: dateRangeSelector
     width: parent ? parent.width : 400
@@ -65,7 +66,7 @@ Item {
             visible: !dateRangeSelector.readOnly
             background: Rectangle {
                 color: "transparent"
-                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "transparent"
+                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
                 border.width: 1
                 radius: units.gu ? units.gu(0.5) : 4
             }
@@ -98,22 +99,22 @@ Item {
         }
 
         RowLayout {
-            spacing: 10
+            spacing: units.gu(1.2)
 
             // Start Date Picker Field
             ColumnLayout {
                 spacing: 4
-                Label {
+                TSLabel {
                     text: "Start Date"
                     enabled: !dateRangeSelector.readOnly
-                    font.pixelSize: 14
+                   // font.pixelSize: units.gu(1.8)
                 }
 
                 Item {
                     id: startDateItem
                     property date date: new Date()
-                    Layout.preferredWidth: 160
-                    Layout.preferredHeight: 40
+                    Layout.preferredWidth: units.gu(20)
+                    Layout.preferredHeight: units.gu(5)
 
                     TextField {
                         anchors.fill: parent
@@ -145,18 +146,18 @@ Item {
 
             // End Date Picker Field
             ColumnLayout {
-                spacing: 4
-                Label {
+                spacing: units.gu(0.5)
+                TSLabel {
                     text: "End Date"
                     enabled: !dateRangeSelector.readOnly
-                    font.pixelSize: 14
+                  //  font.pixelSize: units.gu(1.8)
                 }
 
                 Item {
                     id: endDateItem
                     property date date: new Date()
-                    Layout.preferredWidth: 160
-                    Layout.preferredHeight: 40
+                    Layout.preferredWidth: units.gu(20)
+                    Layout.preferredHeight: units.gu(5)
 
                     TextField {
                         anchors.fill: parent
