@@ -83,7 +83,11 @@ ComboBox {
         projectId = projectIdVal;
 
         const noneLabel = (mode === "subtask") ? "No Subtask" : "No Task";
-        internalTaskModel.append({ name: noneLabel, id: -1, recordId: -1 });
+        internalTaskModel.append({
+            name: noneLabel,
+            id: -1,
+            recordId: -1
+        });
         currentIndex = 0;
         selectedTaskId = -1;
         editText = noneLabel;
@@ -95,8 +99,10 @@ ComboBox {
         const resolvedProjectId = _resolveRemoteProjectId(projectId);
 
         let filtered = fullTaskList.filter(t => {
-            if (!t.name) return false;
-            if (t.project_id !== resolvedProjectId) return false;
+            if (!t.name)
+                return false;
+            if (t.project_id !== resolvedProjectId)
+                return false;
 
             if (mode === "task")
                 return !t.parent_id || parseInt(t.parent_id) === 0;
@@ -115,7 +121,11 @@ ComboBox {
         accountId = accountIdVal;
 
         const noneLabel = (mode === "subtask") ? "No Subtask" : "No Task";
-        internalTaskModel.append({ name: noneLabel, id: -1, recordId: -1 });
+        internalTaskModel.append({
+            name: noneLabel,
+            id: -1,
+            recordId: -1
+        });
         currentIndex = 0;
         selectedTaskId = -1;
         editText = noneLabel;
@@ -135,8 +145,10 @@ ComboBox {
         const resolvedProjectId = matchedTask.project_id;
 
         let filtered = fullTaskList.filter(t => {
-            if (!t.name) return false;
-            if (t.project_id !== resolvedProjectId) return false;
+            if (!t.name)
+                return false;
+            if (t.project_id !== resolvedProjectId)
+                return false;
 
             if (mode === "task")
                 return !t.parent_id || parseInt(t.parent_id) === 0;
@@ -185,7 +197,6 @@ ComboBox {
                 taskSelected(selectedTaskId, item.name);
         }
     }
-
 
     function _resolveRemoteProjectId(localId) {
         if (accountId === 0)

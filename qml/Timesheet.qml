@@ -296,7 +296,7 @@ Page {
                 console.log("subProjectId  →", subProjectId);
                 console.log("subTaskId     →", subTaskId);
 
-                workItem.applyDeferredSelection(instanceId, projectId, subProjectId,taskId, subTaskId);
+                workItem.applyDeferredSelection(instanceId, projectId, subProjectId, taskId, subTaskId);
                 if (currentTimesheet.record_date && currentTimesheet.record_date !== "") {
                     var parts = currentTimesheet.record_date.split("-");
                     if (parts.length === 3) {
