@@ -477,3 +477,57 @@ function getTasksForAccount(accountId) {
     return taskList;
 }
 
+/**
+ * Fetches all tasks for a specific account from the SQLite DB.
+ * Matches exact DB column names from the project_task_app schema.
+ *
+ * @param {number} accountId - The account identifier (0 for local).
+ * @returns {Array<Object>} - Array of task records with fields from project_task_app.
+ */
+function getTaskDetails(task_id) {
+    var task_detail = {};
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var result = tx.executeSql('SELECT * FROM project_task_app WHERE id = ?', [task_id]);
+
+            if (result.rows.length > 0) {
+                var row = result.rows.item(0);
+
+                task_detail = {
+                    id: row.id,
+                    name: row.name,
+                    account_id: row.account_id,
+                    project_id: row.project_id,
+                    sub_project_id: row.sub_project_id,
+                    parent_id: row.parent_id,
+                    start_date: row.start_date ? formatDate(new Date(row.start_date)) : "",
+                    end_date: row.end_date ? formatDate(new Date(row.end_date)) : "",
+                    deadline: row.deadline ? formatDate(new Date(row.deadline)) : "",
+                    initial_planned_hours: convertFloatToTime(row.initial_planned_hours),
+                    favorites: row.favorites || 0,
+                    state: row.state || "",
+                    description: row.description || "",
+                    last_modified: row.last_modified,
+                    user_id: row.user_id,
+                    status: row.status || "",
+                    odoo_record_id: row.odoo_record_id
+                };
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+
+    function formatDate(date) {
+        var month = date.getMonth() + 1;
+        var day = date.getDate();
+        var year = date.getFullYear();
+        return month + '/' + day + '/' + year;
+    }
+
+    return task_detail;
+}

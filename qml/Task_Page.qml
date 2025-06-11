@@ -50,7 +50,12 @@ Page {
             Action {
                 iconName: "add"
                 text: "New"
-                onTriggered: apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_Create.qml"))
+                onTriggered: {
+                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                        "recordid": 0,
+                        "isReadOnly": false
+                    });
+                }
             }/*,
             Action {
                 iconName: "search"
@@ -141,14 +146,14 @@ Page {
             anchors.fill: parent
             onTaskEditRequested: {
                 console.log("Edit Requested");
-                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_details.qml"), {
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": false
                 });
             }
             onTaskSelected: {
                 console.log("Viewing Task");
-                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_details.qml"), {
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
