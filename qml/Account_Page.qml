@@ -276,8 +276,36 @@ Page {
                             id: database_combo
                             width: parent.width
                             height: parent.height
+                            background: Rectangle {
+                                color: "transparent"
+                                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
+                                border.width: 1
+                                radius: units.gu(0.5)
+                            }
                             flat: true
                             model: databaseListModel
+                            contentItem: Text {
+                                text: database_combo.displayText
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                                anchors.verticalCenter: parent.verticalCenter
+                                leftPadding: units.gu(2)
+                            }
+                            delegate: ItemDelegate {
+                                width: database_combo.width
+                                hoverEnabled: true
+                                contentItem: Text {
+                                    text: model.name
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                    leftPadding: units.gu(1)
+                                    elide: Text.ElideRight
+                                }
+                                background: Rectangle {
+                                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                                    radius: 4
+                                }
+                            }
                         }
                     }
 
@@ -352,9 +380,38 @@ Page {
                         width: units.gu(28)
                         height: units.gu(5)
                         visible: activeBackendAccount
+
+                        background: Rectangle {
+                            color: "transparent"
+                            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
+                            border.width: 1
+                            radius: units.gu(0.5)
+                        }
                         anchors.centerIn: parent.centerIn
                         flat: true
                         model: menuconnectwithModel
+                        contentItem: Text {
+                            text: connectWith_combo.displayText
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                            anchors.verticalCenter: parent.verticalCenter
+                            leftPadding: units.gu(2)
+                        }
+                        delegate: ItemDelegate {
+                            width: connectWith_combo.width
+                            hoverEnabled: true
+                            contentItem: Text {
+                                text: model.modelData
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                leftPadding: units.gu(1)
+                                elide: Text.ElideRight
+                            }
+                            background: Rectangle {
+                                color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                                radius: 4
+                            }
+                        }
                     }
                 }
             }

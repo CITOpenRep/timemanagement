@@ -24,19 +24,54 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../models/utils.js" as Utils
+import "../../models/accounts.js" as Accounts
 
 ComboBox {
     id: userCombo
-    editable: true
+    editable: false
     flat: true
     width: parent.width
     height: parent.height
     anchors.centerIn: parent.centerIn
     textRole: "name"
 
+    background: Rectangle {
+        color: "transparent"
+        radius: units.gu(0.6)
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "transparent"
+        border.width: 1
+    }
+
+    contentItem: Label {
+        text: userCombo.displayText
+        horizontalAlignment: Text.AlignLeft
+        verticalAlignment: Text.AlignVCenter
+        elide: Text.ElideRight
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+        anchors.verticalCenter: parent.verticalCenter
+        leftPadding: units.gu(2)
+    }
+
+    delegate: ItemDelegate {
+        width: userCombo.width
+        hoverEnabled: true
+        contentItem: Text {
+            text: model.name
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+            leftPadding: units.gu(1)
+            elide: Text.ElideRight
+        }
+        background: Rectangle {
+            color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+            radius: 4
+        }
+    }
+
     property int accountId: -1
     property int selectedUserId: -1
+    property int deferredUserId: -1
+    property bool shouldDeferUserSelection: false
+
     signal userSelected(int remoteid, string name)
 
     ListModel {
@@ -47,60 +82,93 @@ ComboBox {
 
     function selectFirstUser() {
         if (internalUserModel.count > 0) {
+            const first = internalUserModel.get(0);
             currentIndex = 0;
-            editText = internalUserModel.get(0).name;
-            selectedUserId = internalUserModel.get(0).remoteid;
-            userSelected(selectedUserId, editText);
+            selectedUserId = first.remoteid;
+            if (!shouldDeferUserSelection)
+                userSelected(selectedUserId, first.name);
+        } else {
+            currentIndex = -1;
+            selectedUserId = -1;
+        }
+    }
+
+    function selectUserById(remoteid) {
+        if (internalUserModel.count === 0) {
+            shouldDeferUserSelection = true;
+            deferredUserId = remoteid;
+            return;
+        }
+
+        for (let i = 0; i < internalUserModel.count; i++) {
+            const user = internalUserModel.get(i);
+            if (user.id === remoteid) {
+                // 👈 use id, not remoteid
+                Qt.callLater(() => {
+                    currentIndex = i;
+                    selectedUserId = user.id;
+                    console.log("✅ (Deferred) User selected:", user.name);
+                    if (!shouldDeferUserSelection)
+                        userSelected(user.id, user.name);
+                });
+                console.log("✅ User selected:", user.name);
+                if (!shouldDeferUserSelection)
+                    userSelected(user.id, user.name);
+                return;
+            }
+        }
+
+        console.warn("⚠️ User ID not found:", remoteid);
+        if (!shouldDeferUserSelection) {
+            selectFirstUser();
         }
     }
 
     function loadUsers() {
+        internalUserModel.clear();
         if (accountId === -1) {
             console.warn("UsersCombo: accountId not set. Skipping user load.");
             return;
         }
 
-        internalUserModel.clear();
-
-        let users = Utils.getOdooUsers(accountId);
+        const users = Accounts.getUsers(accountId);
         for (let i = 0; i < users.length; i++) {
             internalUserModel.append({
+                id: users[i].remoteid         // 👈 this is key!
+                ,
                 name: users[i].name,
                 remoteid: users[i].remoteid
             });
         }
 
-        selectFirstUser();
-    }
-
-    function selectUserById(remoteid) {
-        for (let i = 0; i < internalUserModel.count; i++) {
-            if (internalUserModel.get(i).remoteid === remoteid) {
-                currentIndex = i;
-                editText = internalUserModel.get(i).name;
-                selectedUserId = remoteid;
-                userSelected(selectedUserId, internalUserModel.get(i).name);
-                return;
-            }
+        console.log('About to check shouldDeferUserSelection: ' + shouldDeferUserSelection + " " + deferredUserId);
+        if (shouldDeferUserSelection && deferredUserId > -1) {
+            Qt.callLater(() => {
+                selectUserById(deferredUserId);
+                shouldDeferUserSelection = false;
+                deferredUserId = -1;
+            });
+        } else {
+            selectFirstUser();
         }
-
-        selectFirstUser();
     }
 
     onActivated: {
         if (currentIndex >= 0) {
-            let selected = model.get(currentIndex);
+            const selected = model.get(currentIndex);
             selectedUserId = selected.remoteid;
-            userSelected(selectedUserId, selected.name);
+            if (!shouldDeferUserSelection)
+                userSelected(selectedUserId, selected.name);
         }
     }
 
     onAccepted: {
-        let idx = find(editText);
+        const idx = find(editText);
         if (idx !== -1) {
-            let selected = model.get(idx);
+            const selected = model.get(idx);
             selectedUserId = selected.remoteid;
-            userSelected(selectedUserId, selected.name);
+            if (!shouldDeferUserSelection)
+                userSelected(selected.remoteid, selected.name);
         }
     }
 }

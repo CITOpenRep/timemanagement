@@ -9,29 +9,34 @@ ComboBox {
     // NOTE: Do NOT alias final properties like model/currentIndex/currentText
 
     background: Rectangle {
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+        //color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
         radius: units.gu(0.5)
-        border.color: "black"
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#636161"
         border.width: 1
+        color: "transparent"
     }
 
     contentItem: Text {
         text: innerCombo.displayText
-        color: "#000000"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
         anchors.verticalCenter: parent.verticalCenter
-        leftPadding: units.gu(1)
-        rightPadding: units.gu(2)
+        leftPadding: units.gu(2)
     }
 
     delegate: ItemDelegate {
         width: innerCombo.width
+        hoverEnabled: true
         contentItem: Text {
             text: modelData
-            color: "#000000"
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#222"
             leftPadding: units.gu(1)
             elide: Text.ElideRight
+        }
+        background: Rectangle {
+            color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+            radius: 4
         }
     }
 

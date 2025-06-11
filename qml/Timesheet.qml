@@ -86,7 +86,7 @@ Page {
 
         var timesheet_data = {
             'instance_id': ids.accountDbId < 0 ? 0 : ids.accountDbId,
-            'dateTime': date_widget.selectedDate,
+            'record_date': date_widget.selectedDate,
             'project': ids.projectDbId,
             'task': ids.taskDbId,
             'subprojectId': ids.subprojectDbId,
@@ -296,7 +296,7 @@ Page {
                 console.log("subProjectId  →", subProjectId);
                 console.log("subTaskId     →", subTaskId);
 
-                workItem.applyDeferredSelection(instanceId, projectId, taskId, subProjectId);
+                workItem.applyDeferredSelection(instanceId, projectId, subProjectId, taskId, subTaskId);
                 if (currentTimesheet.record_date && currentTimesheet.record_date !== "") {
                     var parts = currentTimesheet.record_date.split("-");
                     if (parts.length === 3) {
@@ -320,6 +320,7 @@ Page {
             } else //we are creating a new timesheet
             {
                 console.log("Creating a new timesheet");
+                workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
             }
         }
     }

@@ -23,20 +23,23 @@ Rectangle {
     property string subtaskLabelText: "Subtask"
 
     signal datachanged
+    signal accountChanged(int accountId)
 
     function getDbRecordId(localId, odooId) {
         return accountSelector.selectedInstanceId === 0 ? localId : odooId;
     }
 
     function applyDeferredSelection(accountId, projectOdooId, subProjectOdooId, taskOdooId, subTaskOdooId) {
+        console.log("Setting accountId as " + accountId);
         accountSelector.shouldDeferSelection = true;
         accountSelector.deferredAccountId = accountId;
+        accountSelector.selectAccountById(accountId);
 
         projectSelector.loadDeferred(accountId, projectOdooId);
         subProjectSelector.loadDeferred(accountId, subProjectOdooId);
 
-        taskSelector.loadDeferred(accountId, taskOdooId, projectOdooId);
-        subTaskSelector.loadDeferred(accountId, subTaskOdooId, projectOdooId);
+        taskSelector.loadDeferred(accountId, taskOdooId);
+        subTaskSelector.loadDeferred(accountId, subTaskOdooId);
     }
 
     function getAllSelectedDbRecordIds() {
@@ -68,19 +71,21 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+            Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+                // color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 AccountSelector {
                     id: accountSelector
                     anchors.centerIn: parent
+                    anchors.verticalCenter: parent.verticalCenter
                     enabled: !readOnly
                     editable: false
                     onAccountSelected: {
-                        console.log("Account Selected");
+                        console.log("###Account Selected ->>>>>>>>");
                         projectSelector.load(accountSelector.selectedInstanceId, 0);
+                        accountChanged(accountSelector.selectedInstanceId); //give to the extenral world
                     }
                 }
             }
@@ -100,10 +105,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+            Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: projectSelector
@@ -135,10 +140,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+            Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+                //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: subProjectSelector
@@ -172,10 +177,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+            Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+                //  color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: taskSelector
@@ -208,10 +213,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+            Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+                //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: subTaskSelector

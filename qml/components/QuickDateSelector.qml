@@ -26,9 +26,10 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.1
 import QtGraphicalEffects 1.0
+import Lomiri.Components 1.3
 import "../../models/constants.js" as AppConst
 
-Item {
+LomiriShape {
     id: datepicker_tb
     width: parent.width
     height: parent.height
@@ -43,21 +44,23 @@ Item {
         date_text_field.text = dateval;
     }
 
-    TextField {
-        id: date_text_field
+    Rectangle {
         width: parent.width
         height: parent.height
-        readOnly: true
-        background: Rectangle {
-            radius: 5 // Set the border radius here
-            border.color: "#dbdbdb"
-            border.width: 1
-            color: "white"
-        }
-        MouseArea {
+        radius: units.gu(0.6) // Set the border radius here
+        border.color: "#dbdbdb"
+        border.width: 1
+        color: "transparent"
+
+        TextField {
+            id: date_text_field
             anchors.fill: parent
-            onClicked: {
-                quickPicker.open();
+            readOnly: true
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    quickPicker.open();
+                }
             }
         }
     }

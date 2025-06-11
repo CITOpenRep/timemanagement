@@ -94,6 +94,16 @@ Page {
         }
     }
 
+    function setDefaultAccount(accountId) {
+        for (let i = 0; i < accountListModel.count; i++) {
+            const isSelected = accountListModel.get(i).id === accountId ? 1 : 0;
+            accountListModel.setProperty(i, "is_default", isSelected);
+        }
+
+        Accounts.setDefaultAccount(accountId);  // Persist to DB
+        fetch_accounts();
+    }
+
     Rectangle {
         width: parent.width
         height: parent.height
@@ -186,6 +196,13 @@ Page {
                                             text: Utils.getLastSyncStatus(0)
                                             font.pixelSize: units.gu(1)
                                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                                        }
+                                        CheckBox {
+                                            checked: model.is_default === 1
+                                            text: "Default"
+                                            onClicked: {
+                                                setDefaultAccount(model.id);
+                                            }
                                         }
                                     }
                                     Column {

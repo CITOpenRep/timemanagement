@@ -11,9 +11,40 @@ ComboBox {
     anchors.centerIn: parent.centerIn
     textRole: "name"
 
+    background: Rectangle {
+        color: "transparent"
+        radius: units.gu(0.6)
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "transparent"
+    }
+
+    contentItem: Text {
+        text: instanceCombo.displayText
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+        verticalAlignment: Text.AlignVCenter
+        elide: Text.ElideRight
+        anchors.verticalCenter: parent.verticalCenter
+        leftPadding: units.gu(2)
+    }
+
+    delegate: ItemDelegate {
+        width: instanceCombo.width
+        hoverEnabled: true
+        contentItem: Text {
+            text: model.name
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+            leftPadding: units.gu(1)
+            elide: Text.ElideRight
+        }
+        background: Rectangle {
+            color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+            radius: 4
+        }
+    }
+
     property int selectedInstanceId: 0
     property int deferredAccountId: -1
     property bool shouldDeferSelection: false
+    property bool suppressSignal: false
 
     signal accountSelected(int id, string name)
 
@@ -36,8 +67,12 @@ ComboBox {
             });
         }
 
+        console.log('About to check shouldDeferSelection ' + shouldDeferSelection + " " + deferredAccountId);
+
         // Handle deferred selection
         if (shouldDeferSelection && deferredAccountId > -1) {
+            shouldDeferSelection = false;
+            console.log('The Id specified is a Defered one , So moving on');
             Qt.callLater(() => {
                 selectAccountById(deferredAccountId);
                 shouldDeferSelection = false;
@@ -71,12 +106,13 @@ ComboBox {
         for (let i = 0; i < internalInstanceModel.count; i++) {
             const item = internalInstanceModel.get(i);
             if (item.id === accountId) {
+                suppressSignal = true;  // 🛑 Block onActivated temporarily
                 currentIndex = i;
                 editText = item.name;
                 selectedInstanceId = item.id;
-                console.log("✅ Account selected:", item.name);
-                if (!shouldDeferSelection)
-                    accountSelected(item.id, item.name);
+                console.log("✅ Account selected (programmatically):", item.name);
+                Qt.callLater(() => suppressSignal = false);  // ✅ Re-enable after event loop
+                accountSelected(item.id, item.name);
                 return;
             }
         }
@@ -92,21 +128,23 @@ ComboBox {
     }
 
     onActivated: {
+        if (suppressSignal)
+            return;
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedInstanceId = selected.id;
-            if (!shouldDeferSelection)
-                accountSelected(selected.id, selected.name);
+            accountSelected(selected.id, selected.name);
         }
     }
 
     onAccepted: {
+        if (suppressSignal)
+            return;
         const idx = find(editText);
         if (idx !== -1) {
             const selected = model.get(idx);
             selectedInstanceId = selected.id;
-            if (!shouldDeferSelection)
-                accountSelected(selected.id, selected.name);
+            accountSelected(selected.id, selected.name);
         }
     }
 }

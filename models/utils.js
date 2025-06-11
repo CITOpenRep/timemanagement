@@ -220,20 +220,8 @@ function getCurrentOdooTimestamp() {
 }
 
 
-function getOdooUsers(){
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var assigneelist = [];
 
-    db.transaction(function(tx) {
-        var result1 = tx.executeSql('SELECT * FROM res_users_app');
-        for (var i = 0; i < result1.rows.length; i++) {
-            //                console.log("getAssigneeList: " + result1.rows.item(i).name)
-            assigneelist.push({'id': result1.rows.item(i).id, 'name': result1.rows.item(i).name,'remoteid': result1.rows.item(i).odoo_record_id})
-        }
-    })
-    return assigneelist
 
-}
 
 function updateOdooUsers(model) {
     const db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);

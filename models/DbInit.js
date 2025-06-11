@@ -25,9 +25,10 @@ function initializeDatabase() {
             database TEXT NOT NULL,\
             connectwith_id INTEGER,\
             api_key TEXT,\
-            username TEXT NOT NULL\
+            username TEXT NOT NULL,\
+            is_default INTEGER DEFAULT 0\
         )',
-                                 ['id INTEGER', 'name TEXT', 'link TEXT', 'last_modified datetime', 'database TEXT', 'connectwith_id INTEGER', 'api_key TEXT', 'username TEXT']
+                                 ['id INTEGER', 'name TEXT', 'link TEXT', 'last_modified datetime', 'database TEXT', 'connectwith_id INTEGER', 'api_key TEXT', 'username TEXT','is_default INTEGER']
                                  );
 
     //Time to create a local account
@@ -59,38 +60,38 @@ function initializeDatabase() {
                                  );
 
     DBCommon.createOrUpdateTable("res_users_app",
-        "CREATE TABLE IF NOT EXISTS res_users_app (" +
-        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-        "account_id INTEGER, " +
-        "name TEXT, " +
-        "login TEXT, " +
-        "email TEXT, " +
-        "work_email TEXT, " +
-        "mobile_phone TEXT, " +
-        "job_title TEXT, " +
-        "company_id INTEGER, " +
-        "share INTEGER, " +
-        "active INTEGER, " +
-        "status TEXT DEFAULT '', " +
-        "odoo_record_id INTEGER, " +
-        "UNIQUE (odoo_record_id, account_id)" +
-        ")",
-        [
-            "id INTEGER",
-            "account_id INTEGER",
-            "name TEXT",
-            "login TEXT",
-            "email TEXT",
-            "work_email TEXT",
-            "mobile_phone TEXT",
-            "job_title TEXT",
-            "company_id INTEGER",
-            "share INTEGER",
-            "active INTEGER",
-            "status TEXT DEFAULT ''",
-            "odoo_record_id INTEGER"
-        ]
-    );
+                                 "CREATE TABLE IF NOT EXISTS res_users_app (" +
+                                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                 "account_id INTEGER, " +
+                                 "name TEXT, " +
+                                 "login TEXT, " +
+                                 "email TEXT, " +
+                                 "work_email TEXT, " +
+                                 "mobile_phone TEXT, " +
+                                 "job_title TEXT, " +
+                                 "company_id INTEGER, " +
+                                 "share INTEGER, " +
+                                 "active INTEGER, " +
+                                 "status TEXT DEFAULT '', " +
+                                 "odoo_record_id INTEGER, " +
+                                 "UNIQUE (odoo_record_id, account_id)" +
+                                 ")",
+                                 [
+                                     "id INTEGER",
+                                     "account_id INTEGER",
+                                     "name TEXT",
+                                     "login TEXT",
+                                     "email TEXT",
+                                     "work_email TEXT",
+                                     "mobile_phone TEXT",
+                                     "job_title TEXT",
+                                     "company_id INTEGER",
+                                     "share INTEGER",
+                                     "active INTEGER",
+                                     "status TEXT DEFAULT ''",
+                                     "odoo_record_id INTEGER"
+                                 ]
+                                 );
 
 
     DBCommon.createOrUpdateTable("project_task_app",
@@ -131,7 +132,7 @@ function initializeDatabase() {
             unit_amount FLOAT,\
             last_modified datetime,\
             quadrant_id INTEGER,\
-            record_date date,\
+            record_date datetime,\
             user_id INTEGER,\
             status TEXT DEFAULT "",\
             odoo_record_id INTEGER,\
@@ -139,7 +140,7 @@ function initializeDatabase() {
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'project_id INTEGER', 'sub_project_id INTEGER', 'task_id INTEGER',
                                   'sub_task_id INTEGER', 'name TEXT', 'unit_amount FLOAT', 'last_modified datetime', 'quadrant_id INTEGER',
-                                  'record_date date','user_id INTEGER' ,'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
+                                  'record_date datetime','user_id INTEGER' ,'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
                                  );
 
     DBCommon.createOrUpdateTable("mail_activity_type_app",

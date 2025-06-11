@@ -21,15 +21,17 @@ function getAccountsList() {
                 var row = accounts.rows.item(i);
 
                 accountsList.push({
-                    id: row.id,
-                    name: row.name,
-                    link: row.link,
-                    last_modified: row.last_modified,
-                    database: row.database,
-                    connectwith_id: row.connectwith_id,
-                    api_key: row.api_key,
-                    username: row.username
-                });
+                                      id: row.id,
+                                      name: row.name,
+                                      link: row.link,
+                                      last_modified: row.last_modified,
+                                      database: row.database,
+                                      connectwith_id: row.connectwith_id,
+                                      api_key: row.api_key,
+                                      username: row.username,
+                                      is_default:row.is_default
+
+                                  });
             }
         });
 
@@ -38,6 +40,119 @@ function getAccountsList() {
     }
 
     return accountsList;
+}
+
+/**
+ * Sets the specified account as the default in the local SQLite database.
+ *
+ * This function ensures that only one account is marked as the default at any time.
+ * It first resets the `is_default` flag to 0 for all accounts, and then sets it to 1
+ * for the account matching the given ID.
+ *
+ * The `is_default` flag is stored as an INTEGER (0 or 1) in the `users` table.
+ *
+ * Usage:
+ *     setDefaultAccount(3); // Marks account with ID 3 as default
+ *
+ * Preconditions:
+ * - The `users` table must exist and include the `is_default` column.
+ * - The provided `id` must match an existing account ID.
+ *
+ * Postconditions:
+ * - All other accounts will have `is_default = 0`.
+ * - One account will have `is_default = 1`.
+ *
+ * @param {number} id - The ID of the account to mark as default.
+ */
+
+function setDefaultAccount(id) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            // Reset all accounts to is_default = 0
+            tx.executeSql("UPDATE users SET is_default = 0");
+
+            // Set the selected account to is_default = 1
+            tx.executeSql("UPDATE users SET is_default = 1 WHERE id = ?", [id]);
+
+            console.log("Default account set to ID:", id);
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+}
+
+/**
+ * Retrieves the ID of the currently marked default account from the database.
+ *
+ * @returns {number} The account ID marked as default, or 0 if none found.
+ */
+function getDefaultAccountId() {
+    var defaultId = 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var res = tx.executeSql("SELECT id FROM users WHERE is_default = 1 LIMIT 1");
+            if (res.rows.length > 0) {
+                defaultId = res.rows.item(0).id;
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+
+    return defaultId;
+}
+
+/**
+ * Retrieves a list of Odoo users associated with the given account ID.
+ *
+ * @param {number} accountId - The ID of the account to filter users by.
+ * @returns {Array<Object>} A list of user objects with fields: id, name, remoteid.
+ */
+/**
+ * Retrieves a list of Odoo users associated with the given account ID.
+ *
+ * @param {number} accountId - The ID of the account to filter users by.
+ * @returns {Array<Object>} A list of user objects with fields: id, name, remoteid.
+ */
+function getUsers(accountId) {
+    var assigneeList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+                    DBCommon.NAME,
+                    DBCommon.VERSION,
+                    DBCommon.DISPLAY_NAME,
+                    DBCommon.SIZE
+                    );
+
+        db.transaction(function(tx) {
+            var result = tx.executeSql(
+                        "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
+                        [accountId]
+                        );
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                assigneeList.push({
+                                      id: row.id,
+                                      name: row.name,
+                                      remoteid: row.odoo_record_id
+                                  });
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+
+    return assigneeList;
 }
 
 
@@ -59,9 +174,9 @@ function fetchParsedSyncLog(accountId) {
 
         db.transaction(function (tx) {
             var rs = tx.executeSql(
-                "SELECT timestamp, message FROM sync_report WHERE account_id = ? ORDER BY timestamp DESC",
-                [accountId]
-            );
+                        "SELECT timestamp, message FROM sync_report WHERE account_id = ? ORDER BY timestamp DESC",
+                        [accountId]
+                        );
 
             for (var i = 0; i < rs.rows.length; i++) {
                 var entry = rs.rows.item(i);
@@ -103,14 +218,14 @@ function deleteAccountAndRelatedData(userId) {
 
         db.transaction(function (tx) {
             const tables = [
-                "sync_report",
-                "project_project_app",
-                "project_task_app",
-                "account_analytic_line_app",
-                "res_users_app",
-                "mail_activity_type_app",
-                "mail_activity_app"
-            ];
+                             "sync_report",
+                             "project_project_app",
+                             "project_task_app",
+                             "account_analytic_line_app",
+                             "res_users_app",
+                             "mail_activity_type_app",
+                             "mail_activity_app"
+                         ];
 
             for (let i = 0; i < tables.length; i++) {
                 const table = tables[i];
@@ -140,8 +255,8 @@ function deleteAccountAndRelatedData(userId) {
  */
 function getCurrentUserOdooId(accountId) {
     if (accountId === 0) {
-           return 1; // Local account
-       }
+        return 1; // Local account
+    }
     let odooId = null;
 
     try {

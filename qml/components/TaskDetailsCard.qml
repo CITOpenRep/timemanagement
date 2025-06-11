@@ -65,20 +65,20 @@ ListItem {
     trailingActions: ListItemActions {
         actions: [
             Action {
-                iconName: "edit"
-                onTriggered: editRequested(localId)
+                iconName: "view-on"
+                onTriggered: viewRequested(localId)
             },
             Action {
-                iconSource: "../images/delete.png"
-                onTriggered: deleteRequested(localId)
+                iconName: "edit"
+                onTriggered: editRequested(localId)
             }
         ]
     }
     leadingActions: ListItemActions {
         actions: [
             Action {
-                iconSource: "../images/show.png"
-                onTriggered: viewRequested(localId)
+                iconName: "delete"
+                onTriggered: deleteRequested(localId)
             }
         ]
     }
