@@ -35,8 +35,8 @@ Rectangle {
         projectSelector.loadDeferred(accountId, projectOdooId);
         subProjectSelector.loadDeferred(accountId, subProjectOdooId);
 
-        taskSelector.loadDeferred(accountId, taskOdooId, projectOdooId);
-        subTaskSelector.loadDeferred(accountId, subTaskOdooId, projectOdooId);
+        taskSelector.loadDeferred(accountId, taskOdooId);
+        subTaskSelector.loadDeferred(accountId, subTaskOdooId);
     }
 
     function getAllSelectedDbRecordIds() {
