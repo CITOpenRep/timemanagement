@@ -50,10 +50,10 @@ ListItem {
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
 
-    leadingActions: ListItemActions {
+    trailingActions: ListItemActions {
         actions: [
             Action {
-                iconSource: "../images/show.png"
+                iconName: "view-on"
                 onTriggered: {
                     console.log(localId);
                     viewRequested(localId);

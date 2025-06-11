@@ -276,6 +276,12 @@ Page {
                             id: database_combo
                             width: parent.width
                             height: parent.height
+                            background: Rectangle {
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+                                border.color: "#636161"
+                                border.width: 1
+                                radius: units.gu(0.5)
+                            }
                             flat: true
                             model: databaseListModel
                         }
@@ -352,6 +358,13 @@ Page {
                         width: units.gu(28)
                         height: units.gu(5)
                         visible: activeBackendAccount
+
+                        background: Rectangle {
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+                            border.color: "#636161"
+                            border.width: 1
+                            radius: units.gu(0.5)
+                        }
                         anchors.centerIn: parent.centerIn
                         flat: true
                         model: menuconnectwithModel

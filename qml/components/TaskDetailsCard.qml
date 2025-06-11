@@ -64,21 +64,22 @@ ListItem {
 
     trailingActions: ListItemActions {
         actions: [
+           
             Action {
+                iconName: "view-on"
+                onTriggered: viewRequested(localId)
+            }, Action {
                 iconName: "edit"
                 onTriggered: editRequested(localId)
-            },
-            Action {
-                iconSource: "../images/delete.png"
-                onTriggered: deleteRequested(localId)
             }
+           
         ]
     }
     leadingActions: ListItemActions {
         actions: [
-            Action {
-                iconSource: "../images/show.png"
-                onTriggered: viewRequested(localId)
+             Action {
+                iconName: "delete"
+                onTriggered: deleteRequested(localId)
             }
         ]
     }
