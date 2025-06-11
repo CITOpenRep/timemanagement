@@ -319,7 +319,7 @@ Page {
                     height: units.gu(4)
                     width: units.gu(4)
                     text: "-"
-                     enabled: !isReadOnly
+                    enabled: !isReadOnly
                     onClicked: {
                         incdecHrs(2);
                     }
