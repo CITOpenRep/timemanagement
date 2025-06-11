@@ -35,7 +35,7 @@
  * - Standardize logging for easier debugging.
  *
  * USAGE:
- * - Call utility functions like `getTasksForAccountAndProject()` or `getProjects()` 
+ * - Call utility functions like `getTasksForAccountAndProject()` or `getProjects()`
  *   directly from QML or JavaScript modules.
  * - All database functions must use the global `db` instance and handle exceptions internally.
  * - Use `logException()` and `logQueryResult()` for consistent debug output.
@@ -115,6 +115,7 @@ function ensureDefaultLocalAccountExists() {
         const db = Sql.LocalStorage.openDatabaseSync(NAME, VERSION, DISPLAY_NAME, SIZE);
 
         db.transaction(function (tx) {
+            // Step 1: Ensure Local Account Exists
             const result = tx.executeSql(
                 "SELECT id FROM users WHERE id = 0 OR name = ?",
                 ["Local Account"]
@@ -135,10 +136,38 @@ function ensureDefaultLocalAccountExists() {
                         1
                     ]
                 );
-
                 console.log("✅ Default Local Account inserted.");
             } else {
                 console.log("ℹ️ Default Local Account already exists.");
+            }
+
+            // Step 2: Ensure Local User Exists in res_users_app
+            const userResult = tx.executeSql(
+                "SELECT id FROM res_users_app WHERE account_id = ? AND odoo_record_id = ?",
+                [0, -1]
+            );
+
+            if (userResult.rows.length === 0) {
+                tx.executeSql(
+                    "INSERT INTO res_users_app (account_id, name, login, email, work_email, mobile_phone, job_title, company_id, share, active, status, odoo_record_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        0,                          // account_id
+                        "Local User",               // name
+                        "local_user",               // login
+                        "",                         // email
+                        "",                         // work_email
+                        "",                         // mobile_phone
+                        "Personal",                 // job_title
+                        null,                       // company_id
+                        0,                          // share
+                        1,                          // active
+                        "",                         // status
+                        -1                          // odoo_record_id
+                    ]
+                );
+                console.log("✅ Local User for Default Account inserted.");
+            } else {
+                console.log("ℹ️ Local User already exists.");
             }
         });
 
@@ -146,6 +175,7 @@ function ensureDefaultLocalAccountExists() {
         logException(e);
     }
 }
+
 
 /**
  * Creates a table if it doesn't exist, and ensures all expected columns are present.

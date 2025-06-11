@@ -85,7 +85,7 @@ Rectangle {
                     onAccountSelected: {
                         console.log("###Account Selected ->>>>>>>>");
                         projectSelector.load(accountSelector.selectedInstanceId, 0);
-                        accountChanged(accountSelector.selectedInstanceId) //give to the extenral world
+                        accountChanged(accountSelector.selectedInstanceId); //give to the extenral world
                     }
                 }
             }

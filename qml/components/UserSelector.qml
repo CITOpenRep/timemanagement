@@ -24,7 +24,7 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../models/utils.js" as Utils
+import "../../models/accounts.js" as Accounts
 
 ComboBox {
     id: userCombo
@@ -125,13 +125,13 @@ ComboBox {
     }
 
     function loadUsers() {
+        internalUserModel.clear();
         if (accountId === -1) {
             console.warn("UsersCombo: accountId not set. Skipping user load.");
             return;
         }
 
-        internalUserModel.clear();
-        const users = Utils.getOdooUsers(accountId);
+        const users = Accounts.getUsers(accountId);
         for (let i = 0; i < users.length; i++) {
             internalUserModel.append({
                 id: users[i].remoteid         // 👈 this is key!

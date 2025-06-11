@@ -120,7 +120,6 @@ ComboBox {
         console.warn("⚠️ Account ID not found:", accountId);
     }
 
-
     Component.onCompleted: {
         loadAccounts();
         if (!shouldDeferSelection) {
@@ -129,7 +128,8 @@ ComboBox {
     }
 
     onActivated: {
-        if (suppressSignal) return;
+        if (suppressSignal)
+            return;
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedInstanceId = selected.id;
@@ -138,7 +138,8 @@ ComboBox {
     }
 
     onAccepted: {
-        if (suppressSignal) return;
+        if (suppressSignal)
+            return;
         const idx = find(editText);
         if (idx !== -1) {
             const selected = model.get(idx);
@@ -146,5 +147,4 @@ ComboBox {
             accountSelected(selected.id, selected.name);
         }
     }
-
 }

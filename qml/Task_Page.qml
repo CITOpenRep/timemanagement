@@ -70,7 +70,6 @@ Page {
         id: taskModel
     }
 
-
     LomiriShape {
         anchors.top: taskheader.bottom
         height: parent.height - taskheader.height
@@ -141,10 +140,10 @@ Page {
     }
     onVisibleChanged: {
         if (visible) {
-            tasklist.refresh()
+            tasklist.refresh();
         }
     }
     Component.onCompleted: {
-        tasklist.refresh()
+        tasklist.refresh();
     }
 }

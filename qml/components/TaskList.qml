@@ -47,7 +47,6 @@ Item {
         populateTaskChildrenMap(true);
     }
 
-
     function populateTaskChildrenMap(isWorkProfile) {
         childrenMap = {};
         childrenMapReady = false;

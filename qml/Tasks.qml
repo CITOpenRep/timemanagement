@@ -96,14 +96,16 @@ Page {
             const saveData = {
                 accountId: ids.accountDbId < 0 ? 0 : ids.accountDbId,
                 name: name_text.text,
-                record_id:recordid,
+                record_id: recordid,
                 projectId: ids.projectDbId < 0 ? 0 : ids.projectDbId,
                 subProjectId: ids.subprojectDbId < 0 ? 0 : ids.subprojectDbId,
                 parentId: ids.taskDbId > 0 ? ids.taskDbId : 0,
                 startDate: date_range_widget.startDate,
                 endDate: date_range_widget.endDate,
-                deadline: date_range_widget.endDate, //for now we made deadline as enddate
-                favorites: 0,//for now do nothing
+                deadline: date_range_widget.endDate //for now we made deadline as enddate
+                ,
+                favorites: 0//for now do nothing
+                ,
                 plannedHours: hours_text.text,
                 description: description_text.text,
                 assigneeUserId: assigneeCombo.selectedUserId,
@@ -165,10 +167,11 @@ Page {
                     showSubtaskSelector: false
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
-                    onAccountChanged:
-                    {
-                        console.log("Account id is " + accountId)
-                         assigneeCombo.accountId =accountId
+                    onAccountChanged: {
+                        console.log("Account id is " + accountId);
+                        assigneeCombo.accountId = accountId;
+                        assigneeCombo.shouldDeferUserSelection = false;
+                        assigneeCombo.loadUsers();
                     }
                 }
             }
@@ -394,7 +397,7 @@ Page {
             let subProjectId = (currentTask.sub_project_id !== undefined && currentTask.sub_project_id !== null) ? currentTask.sub_project_id : -1;
             let user_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            workItem.applyDeferredSelection(instanceId, currentTask.project_id,currentTask.sub_project_id, -1, -1);
+            workItem.applyDeferredSelection(instanceId, currentTask.project_id, currentTask.sub_project_id, -1, -1);
             //We do not now setting the parent task
 
             //Todo Gokul to implement the defered loading in assignees , we get [] for invalid users

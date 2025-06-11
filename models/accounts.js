@@ -109,6 +109,52 @@ function getDefaultAccountId() {
     return defaultId;
 }
 
+/**
+ * Retrieves a list of Odoo users associated with the given account ID.
+ *
+ * @param {number} accountId - The ID of the account to filter users by.
+ * @returns {Array<Object>} A list of user objects with fields: id, name, remoteid.
+ */
+/**
+ * Retrieves a list of Odoo users associated with the given account ID.
+ *
+ * @param {number} accountId - The ID of the account to filter users by.
+ * @returns {Array<Object>} A list of user objects with fields: id, name, remoteid.
+ */
+function getUsers(accountId) {
+    var assigneeList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+                    DBCommon.NAME,
+                    DBCommon.VERSION,
+                    DBCommon.DISPLAY_NAME,
+                    DBCommon.SIZE
+                    );
+
+        db.transaction(function(tx) {
+            var result = tx.executeSql(
+                        "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
+                        [accountId]
+                        );
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                assigneeList.push({
+                                      id: row.id,
+                                      name: row.name,
+                                      remoteid: row.odoo_record_id
+                                  });
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+
+    return assigneeList;
+}
+
 
 /**
  * Fetches and parses the sync report logs for a specific account from the local SQLite database.
