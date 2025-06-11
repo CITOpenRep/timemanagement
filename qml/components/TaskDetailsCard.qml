@@ -69,16 +69,17 @@ ListItem {
                 onTriggered: editRequested(localId)
             },
             Action {
-                iconSource: "../images/delete.png"
-                onTriggered: deleteRequested(localId)
+                iconSource: "../images/show.png"
+                onTriggered: viewRequested(localId)
             }
+           
         ]
     }
     leadingActions: ListItemActions {
         actions: [
-            Action {
-                iconSource: "../images/show.png"
-                onTriggered: viewRequested(localId)
+             Action {
+                iconSource: "../images/delete.png"
+                onTriggered: deleteRequested(localId)
             }
         ]
     }
