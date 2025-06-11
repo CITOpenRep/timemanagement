@@ -386,7 +386,7 @@ function create_or_update_timesheet(data) {
                     account_id = ?, record_date = ?, project_id = ?, task_id = ?, name = ?,
                     sub_project_id = ?, sub_task_id = ?, quadrant_id = ?, unit_amount = ?,
                     last_modified = ?, status = ?, user_id = ? WHERE id = ?`,
-                    [data.instance_id, data.dateTime, data.project, data.task, data.description,
+                    [data.instance_id, data.record_date, data.project, data.task, data.description,
                     data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
                     data.status, data.user_id, data.id]);
             } else {
@@ -395,7 +395,7 @@ function create_or_update_timesheet(data) {
                     (account_id, record_date, project_id, task_id, name, sub_project_id,
                     sub_task_id, quadrant_id, unit_amount, last_modified, status, user_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [data.instance_id, data.dateTime, data.project, data.task, data.description,
+                    [data.instance_id, data.record_date, data.project, data.task, data.description,
                     data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
                     data.status, data.user_id]);
             }

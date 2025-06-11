@@ -50,8 +50,8 @@ LomiriShape {
         radius: units.gu(0.6) // Set the border radius here
         border.color: "#dbdbdb"
         border.width: 1
-        color : "transparent"
-        
+        color: "transparent"
+
         TextField {
             id: date_text_field
             anchors.fill: parent

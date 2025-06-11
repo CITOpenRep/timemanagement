@@ -28,7 +28,7 @@ import "../../models/utils.js" as Utils
 
 ComboBox {
     id: userCombo
-    editable: true
+    editable: false
     flat: true
     width: parent.width
     height: parent.height
@@ -42,11 +42,12 @@ ComboBox {
         border.width: 1
     }
 
-    contentItem: Text {
+    contentItem: Label {
         text: userCombo.displayText
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+        horizontalAlignment: Text.AlignLeft
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
         anchors.verticalCenter: parent.verticalCenter
         leftPadding: units.gu(2)
     }
@@ -61,15 +62,16 @@ ComboBox {
             elide: Text.ElideRight
         }
         background: Rectangle {
-            color: hovered
-                ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0")
-                : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+            color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
             radius: 4
         }
     }
 
     property int accountId: -1
     property int selectedUserId: -1
+    property int deferredUserId: -1
+    property bool shouldDeferUserSelection: false
+
     signal userSelected(int remoteid, string name)
 
     ListModel {
@@ -80,10 +82,45 @@ ComboBox {
 
     function selectFirstUser() {
         if (internalUserModel.count > 0) {
+            const first = internalUserModel.get(0);
             currentIndex = 0;
-            editText = internalUserModel.get(0).name;
-            selectedUserId = internalUserModel.get(0).remoteid;
-            userSelected(selectedUserId, editText);
+            selectedUserId = first.remoteid;
+            if (!shouldDeferUserSelection)
+                userSelected(selectedUserId, first.name);
+        } else {
+            currentIndex = -1;
+            selectedUserId = -1;
+        }
+    }
+
+    function selectUserById(remoteid) {
+        if (internalUserModel.count === 0) {
+            shouldDeferUserSelection = true;
+            deferredUserId = remoteid;
+            return;
+        }
+
+        for (let i = 0; i < internalUserModel.count; i++) {
+            const user = internalUserModel.get(i);
+            if (user.id === remoteid) {
+                // 👈 use id, not remoteid
+                Qt.callLater(() => {
+                    currentIndex = i;
+                    selectedUserId = user.id;
+                    console.log("✅ (Deferred) User selected:", user.name);
+                    if (!shouldDeferUserSelection)
+                        userSelected(user.id, user.name);
+                });
+                console.log("✅ User selected:", user.name);
+                if (!shouldDeferUserSelection)
+                    userSelected(user.id, user.name);
+                return;
+            }
+        }
+
+        console.warn("⚠️ User ID not found:", remoteid);
+        if (!shouldDeferUserSelection) {
+            selectFirstUser();
         }
     }
 
@@ -94,46 +131,44 @@ ComboBox {
         }
 
         internalUserModel.clear();
-
-        let users = Utils.getOdooUsers(accountId);
+        const users = Utils.getOdooUsers(accountId);
         for (let i = 0; i < users.length; i++) {
             internalUserModel.append({
+                id: users[i].remoteid         // 👈 this is key!
+                ,
                 name: users[i].name,
                 remoteid: users[i].remoteid
             });
         }
 
-        selectFirstUser();
-    }
-
-    function selectUserById(remoteid) {
-        for (let i = 0; i < internalUserModel.count; i++) {
-            if (internalUserModel.get(i).remoteid === remoteid) {
-                currentIndex = i;
-                editText = internalUserModel.get(i).name;
-                selectedUserId = remoteid;
-                userSelected(selectedUserId, internalUserModel.get(i).name);
-                return;
-            }
+        console.log('About to check shouldDeferUserSelection: ' + shouldDeferUserSelection + " " + deferredUserId);
+        if (shouldDeferUserSelection && deferredUserId > -1) {
+            Qt.callLater(() => {
+                selectUserById(deferredUserId);
+                shouldDeferUserSelection = false;
+                deferredUserId = -1;
+            });
+        } else {
+            selectFirstUser();
         }
-
-        selectFirstUser();
     }
 
     onActivated: {
         if (currentIndex >= 0) {
-            let selected = model.get(currentIndex);
+            const selected = model.get(currentIndex);
             selectedUserId = selected.remoteid;
-            userSelected(selectedUserId, selected.name);
+            if (!shouldDeferUserSelection)
+                userSelected(selectedUserId, selected.name);
         }
     }
 
     onAccepted: {
-        let idx = find(editText);
+        const idx = find(editText);
         if (idx !== -1) {
-            let selected = model.get(idx);
+            const selected = model.get(idx);
             selectedUserId = selected.remoteid;
-            userSelected(selectedUserId, selected.name);
+            if (!shouldDeferUserSelection)
+                userSelected(selected.remoteid, selected.name);
         }
     }
 }

@@ -18,7 +18,7 @@ ComboBox {
     background: Rectangle {
         color: "transparent"
         radius: units.gu(0.6)
-       border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "transparent"
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "transparent"
         border.width: 1
     }
 
@@ -41,9 +41,7 @@ ComboBox {
             elide: Text.ElideRight
         }
         background: Rectangle {
-            color: hovered
-                ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0")
-                : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+            color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
             radius: 4
         }
     }
@@ -69,8 +67,6 @@ ComboBox {
 
     model: internalProjectModel
     property bool isDeferredSelection: false
-
-   
 
     function getSelectedDbRecordId() {
         if (selectedProjectId < 0 || accountId === -1)

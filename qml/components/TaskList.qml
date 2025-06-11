@@ -61,30 +61,32 @@ Item {
                 var row = result.rows.item(i);
                 var odooId = row.odoo_record_id;
                 var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
-                var project = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ?", [row.project_id]);
+                var project = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?", [row.project_id, row.account_id]);
+                if (project.rows.length > 0) //found a valid project
+                {
+                    var item = {
+                        id_val: odooId,
+                        local_id: row.id,
+                        account_id: row.account_id,
+                        project: project.rows.item(0).name,
+                        parent_id: parentOdooId,
+                        name: row.name || "Untitled",
+                        taskName: row.name || "Untitled",
+                        recordId: odooId,
+                        allocatedHours: row.initial_planned_hours ? String(row.initial_planned_hours) : "0",
+                        startDate: row.start_date || "",
+                        endDate: row.end_date || "",
+                        deadline: row.deadline || "",
+                        description: row.description || "",
+                        isFavorite: row.favorites === 1,
+                        hasChildren: false
+                    };
 
-                var item = {
-                    id_val: odooId,
-                    local_id: row.id,
-                    account_id: row.account_id,
-                    project: project.rows.length > 0 ? project.rows.item(0).name : 'Unknown Project',
-                    parent_id: parentOdooId,
-                    name: row.name || "Untitled",
-                    taskName: row.name || "Untitled",
-                    recordId: odooId,
-                    allocatedHours: row.initial_planned_hours ? String(row.initial_planned_hours) : "0",
-                    startDate: row.start_date || "",
-                    endDate: row.end_date || "",
-                    deadline: row.deadline || "",
-                    description: row.description || "",
-                    isFavorite: row.favorites === 1,
-                    hasChildren: false
-                };
-
-                if (!tempMap[parentOdooId])
-                    tempMap[parentOdooId] = [];
-                tempMap[parentOdooId].push(item);
-            }
+                    if (!tempMap[parentOdooId])
+                        tempMap[parentOdooId] = [];
+                    tempMap[parentOdooId].push(item);
+                }
+            } //TODO : If an account has two projects with the exact same name , we are screwed , improve the logic
 
             for (var parent in tempMap) {
                 tempMap[parent].forEach(function (child) {

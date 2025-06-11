@@ -86,7 +86,7 @@ Page {
 
         var timesheet_data = {
             'instance_id': ids.accountDbId < 0 ? 0 : ids.accountDbId,
-            'dateTime': date_widget.selectedDate,
+            'record_date': date_widget.selectedDate,
             'project': ids.projectDbId,
             'task': ids.taskDbId,
             'subprojectId': ids.subprojectDbId,

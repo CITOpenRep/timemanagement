@@ -13,7 +13,7 @@ ComboBox {
         radius: units.gu(0.5)
         border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#636161"
         border.width: 1
-        color : "transparent"
+        color: "transparent"
     }
 
     contentItem: Text {
@@ -35,9 +35,7 @@ ComboBox {
             elide: Text.ElideRight
         }
         background: Rectangle {
-            color: hovered
-                ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0")
-                : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+            color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
             radius: 4
         }
     }

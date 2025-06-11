@@ -53,6 +53,7 @@ Page {
         trailingActionBar.actions: [
             Action {
                 iconSource: "images/save.svg"
+                visible: !isReadOnly
                 text: "Save"
                 onTriggered: {
                     isReadOnly = !isReadOnly;
@@ -97,9 +98,7 @@ Page {
                 name: task_text.text,
                 projectId: ids.projectDbId < 0 ? 0 : ids.projectDbId,
                 subProjectId: ids.subprojectDbId < 0 ? 0 : ids.subprojectDbId,
-                 
                 parentId: taskselector_combo.selectedTaskId > 0 ? taskselector_combo.selectedTaskId : null,
-
                 startDate: start_date_widget.date,
                 endDate: end_date_widget.date,
                 deadline: deadline_widget.date,
@@ -144,7 +143,7 @@ Page {
         id: tasksDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height+ 500
+        contentHeight: parent.height + 500
         // + 1000
         flickableDirection: Flickable.VerticalFlick
 
@@ -161,14 +160,50 @@ Page {
                 WorkItemSelector {
                     id: workItem
                     readOnly: isReadOnly
+                    taskLabelText: "Parent Task"
+                    showSubtaskSelector: false
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
                 }
             }
         }
         Row {
-            id: myRow9
+            id: myRow1b
             anchors.top: myRow1a.bottom
+            anchors.left: parent.left
+            topPadding: units.gu(5)
+            Column {
+                id: myCol88
+                leftPadding: units.gu(1)
+                LomiriShape {
+                    width: units.gu(10)
+                    height: units.gu(5)
+                    aspect: LomiriShape.Flat
+                    Label {
+                        id: name_label
+                        text: "Name"
+                        // font.bold: true
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        //textSize: Label.Large
+                    }
+                }
+            }
+            Column {
+                id: myCol99
+                leftPadding: units.gu(3)
+                TextField {
+                    id: name_text
+                    readOnly: isReadOnly
+                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
+                    anchors.centerIn: parent.centerIn
+                    text: ""
+                }
+            }
+        }
+        Row {
+            id: myRow9
+            anchors.top: myRow1b.bottom
             anchors.left: parent.left
             topPadding: units.gu(5)
             Column {
@@ -194,7 +229,8 @@ Page {
                 TextArea {
                     id: description_text
                     readOnly: isReadOnly
-                    autoSize: true
+                    textFormat: Text.RichText
+                    autoSize: false
                     maximumLineCount: 0
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
@@ -238,11 +274,6 @@ Page {
                         anchors.centerIn: parent.centerIn
                         flat: true
                         enabled: !taskCreate.isReadOnly
-                        Component.onCompleted: {
-                            assigneeCombo.accountId = tasks[0].account_id;
-                            assigneeCombo.loadUsers();
-                            projectCombo.selectProjectById(tasks[0].user);
-                        }
                     }
                 }
             }
@@ -310,96 +341,17 @@ Page {
                 }
             }
         }
-        Row {
-            id: myRow5
-            anchors.top: myRow4.bottom
-            anchors.left: parent.left
-            topPadding: units.gu(2)
-            Column {
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: start_label
-                        text: "Start Date"
-                        //font.bold: true
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                leftPadding: units.gu(3)
-                QuickDateSelector {
-                    id: start_date_widget
-                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
-
-                    height: units.gu(4)
-                    anchors.centerIn: parent.centerIn
-                }
-            }
-        }
 
         Row {
             id: myRow6
-            anchors.top: myRow5.bottom
+            anchors.top: myRow4.bottom
             anchors.left: parent.left
-            topPadding: units.gu(2)
+            topPadding: units.gu(1)
             Column {
                 leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: end_label
-                        text: "End Date"
-                        //font.bold: true
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                leftPadding: units.gu(3)
-                QuickDateSelector {
-                    id: end_date_widget
-                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
-                    height: units.gu(4)
-                    anchors.centerIn: parent.centerIn
-                }
-            }
-        }
-
-        Row {
-            id: myRow7
-            anchors.top: myRow6.bottom
-            anchors.left: parent.left
-            topPadding: units.gu(2)
-            Column {
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: deadline_label
-                        text: "Deadline"
-                        //font.bold: true
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                leftPadding: units.gu(3)
-                QuickDateSelector {
-                    id: deadline_widget
+                DateRangeSelector {
+                    id: date_range_widget
+                    readOnly: isReadOnly
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
                     height: units.gu(4)
                     anchors.centerIn: parent.centerIn
@@ -412,15 +364,10 @@ Page {
         // console.log("From Timesheet got record id : " + recordid);
         if (recordid != 0) // We are loading a time sheet, depends on readonly value it could be for view/edit
         {
-            console.log(("Got the call"));
+            console.log("Loading Task with id->" + recordid);
             //// return;
             currentTask = Task.getTaskDetails(recordid);
 
-            console.log("Task Details:");
-            console.log("ID:", currentTask.id);
-            console.log("Name:", currentTask.name);
-            console.log("Account ID:", currentTask.account_id);
-            console.log("Project ID:", currentTask.project_id);
             console.log("Sub Project ID:", currentTask.sub_project_id);
             console.log("Parent ID:", currentTask.parent_id);
             console.log("Start Date:", currentTask.start_date);
@@ -439,29 +386,29 @@ Page {
             let projectId = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;
             let taskId = (currentTask.task_id !== undefined && currentTask.task_id !== null) ? currentTask.task_id : -1;
             let subProjectId = (currentTask.sub_project_id !== undefined && currentTask.sub_project_id !== null) ? currentTask.sub_project_id : -1;
+            let user_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            workItem.applyDeferredSelection(instanceId, projectId, subProjectId, taskId, -1);
+            workItem.applyDeferredSelection(instanceId, currentTask.project_id, -1, -1, -1);
 
-            if (currentTask.record_date && currentTask.record_date !== "") {
-                var parts = currentTask.record_date.split("-");
-                if (parts.length === 3) {
-                    var day = parseInt(parts[0], 10);
-                    var month = parseInt(parts[1], 10) - 1; // Month is 0-based in JS Date
-                    var year = parseInt(parts[2], 10);
-                    var parsedDate = new Date(year, month, day);
-                    date_widget.selectedDate = parsedDate;
-                }
+            //Todo Gokul to implement the defered loading in assignees , we get [] for invalid users
+            if (typeof currentTask.user_id === "number" && currentTask.user_id > 0) {
+                console.log("User ID:", currentTask.user_id);
+                assigneeCombo.accountId = instanceId;
+                assigneeCombo.deferredUserId = currentTask.user_id;
+                assigneeCombo.shouldDeferUserSelection = true;
+                assigneeCombo.loadUsers();
             } else {
-                date_widget.selectedDate = null; // or leave unset if DaySelector handles it
+                console.warn("⚠️ Invalid or empty user_id:", currentTask.user_id);
             }
+
+            date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
 
             name_text.text = currentTask.name;
-            if (currentTask.spentHours && currentTask.spentHours !== "") {
-                hours_text.text = currentTask.spentHours;
+            if (currentTask.initial_planned_hours && currentTask.initial_planned_hours !== "") {
+                hours_text.text = currentTask.initial_planned_hours;
             }
-            if (currentTask.quadrant_id && currentTask.quadrant_id !== "") {
-                priorityCombo.currentIndex = parseInt(currentTask.quadrant_id) - 1; //index=id-1
-            }
+
+            description_text.text = currentTask.description;
         } else //we are creating a new Task
         {
             console.log("Creating a new task");

@@ -11,28 +11,60 @@ Item {
     property date startDate: new Date()
     property date endDate: new Date()
     signal rangeChanged(date start, date end)
+    property bool readOnly: false
+    property bool isStartDateValid: true
+    property bool isEndDateValid: true
+
+    function setDateRange(start, end) {
+        function toDate(val) {
+            if (val instanceof Date)
+                return val;
+            if (typeof val === "string") {
+                const d = new Date(val);
+                return !isNaN(d.getTime()) ? d : null;
+            }
+            return null;
+        }
+
+        const sDate = toDate(start);
+        const eDate = toDate(end);
+
+        if (sDate) {
+            startDateItem.date = sDate;
+            startDate = sDate;
+            isStartDateValid = true;
+        } else {
+            console.warn("Invalid start date:", start);
+            isStartDateValid = false;
+        }
+
+        if (eDate) {
+            endDateItem.date = eDate;
+            endDate = eDate;
+            isEndDateValid = true;
+        } else {
+            console.warn("Invalid end date:", end);
+            isEndDateValid = false;
+        }
+
+        rangeChanged(startDate, endDate);
+    }
 
     ColumnLayout {
-        spacing: 10
         anchors.fill: parent
-        anchors.margins: 10
 
-        Label {
+        TSLabel {
             id: rangeLabel
-            text: "When is this planned for?"
-            font.bold: true
+            text: "Date Range"
         }
 
         ComboBox {
             id: presetCombo
             model: ["Today", "This Week", "This Month"]
             currentIndex: 0
-            onActivated: {
-                updateDates();
-            }
-            onAccepted: {
-                updateDates();
-            }
+            visible: !dateRangeSelector.readOnly
+            onActivated: updateDates()
+            onAccepted: updateDates()
         }
 
         RowLayout {
@@ -43,6 +75,7 @@ Item {
                 spacing: 4
                 Label {
                     text: "Start Date"
+                    enabled: !dateRangeSelector.readOnly
                     font.pixelSize: 14
                 }
 
@@ -55,19 +88,25 @@ Item {
                     TextField {
                         anchors.fill: parent
                         readOnly: true
-                        text: Qt.formatDate(startDateItem.date, "dd-MM-yyyy")
+                        enabled: !dateRangeSelector.readOnly
+                        text: isStartDateValid ? Qt.formatDate(startDateItem.date, "dd-MM-yyyy") : ""
+                        placeholderText: isStartDateValid ? "" : "No date set"
+                        color: isStartDateValid ? "black" : "gray"
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            let result = PickerPanel.openDatePicker(startDateItem, "date", "Years|Months|Days");
-                            if (result) {
-                                result.closed.connect(() => {
-                                    startDate = startDateItem.date;
-                                    rangeChanged(startDate, endDate);
-                                });
+                            if (!dateRangeSelector.readOnly) {
+                                let result = PickerPanel.openDatePicker(startDateItem, "date", "Years|Months|Days");
+                                if (result) {
+                                    result.closed.connect(() => {
+                                        startDate = startDateItem.date;
+                                        isStartDateValid = true;
+                                        rangeChanged(startDate, endDate);
+                                    });
+                                }
                             }
                         }
                     }
@@ -79,6 +118,7 @@ Item {
                 spacing: 4
                 Label {
                     text: "End Date"
+                    enabled: !dateRangeSelector.readOnly
                     font.pixelSize: 14
                 }
 
@@ -91,19 +131,25 @@ Item {
                     TextField {
                         anchors.fill: parent
                         readOnly: true
-                        text: Qt.formatDate(endDateItem.date, "dd-MM-yyyy")
+                        enabled: !dateRangeSelector.readOnly
+                        text: isEndDateValid ? Qt.formatDate(endDateItem.date, "dd-MM-yyyy") : ""
+                        placeholderText: isEndDateValid ? "" : "No date set"
+                        color: isEndDateValid ? "black" : "gray"
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            let result = PickerPanel.openDatePicker(endDateItem, "date", "Years|Months|Days");
-                            if (result) {
-                                result.closed.connect(() => {
-                                    endDate = endDateItem.date;
-                                    rangeChanged(startDate, endDate);
-                                });
+                            if (!dateRangeSelector.readOnly) {
+                                let result = PickerPanel.openDatePicker(endDateItem, "date", "Years|Months|Days");
+                                if (result) {
+                                    result.closed.connect(() => {
+                                        endDate = endDateItem.date;
+                                        isEndDateValid = true;
+                                        rangeChanged(startDate, endDate);
+                                    });
+                                }
                             }
                         }
                     }
@@ -113,20 +159,22 @@ Item {
     }
 
     function updateDates() {
-        console.log("Calling updates");
         const today = new Date();
         let newStart = new Date(today);
         let newEnd = new Date(today);
 
         switch (presetCombo.currentIndex) {
         case 0: // Today
+            console.log("Today");
             break;
         case 1: // This Week
-            const dow = today.getDay(); // 0 = Sunday, 6 = Saturday
+            console.log("This week");
+            const dow = today.getDay();
             const offset = (dow === 0) ? 1 : (dow >= 6 ? 5 : 5 - dow);
             newEnd.setDate(newEnd.getDate() + offset);
             break;
         case 2: // This Month
+            console.log("This Month");
             const year = today.getFullYear();
             const month = today.getMonth();
             let lastDay = new Date(year, month + 1, 0);
@@ -137,19 +185,14 @@ Item {
                 lastDay.setDate(lastDay.getDate() - 2);
             newEnd = lastDay;
             break;
-        case 3: // Custom
-            return; // Let user pick manually
         }
 
-        // Update internal date pickers and emit signal
         startDateItem.date = newStart;
         endDateItem.date = newEnd;
         startDate = newStart;
         endDate = newEnd;
-
-        // console.log("Updating: startDate =", Qt.formatDate(newStart, "dd-MM-yyyy"))
-        // console.log("Updating: startDateItem.date =", Qt.formatDate(startDateItem.date, "dd-MM-yyyy"))
-
+        isStartDateValid = true;
+        isEndDateValid = true;
         rangeChanged(startDate, endDate);
     }
 

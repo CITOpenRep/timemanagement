@@ -506,7 +506,7 @@ function getTaskDetails(task_id) {
                     start_date: row.start_date ? formatDate(new Date(row.start_date)) : "",
                     end_date: row.end_date ? formatDate(new Date(row.end_date)) : "",
                     deadline: row.deadline ? formatDate(new Date(row.deadline)) : "",
-                    initial_planned_hours: convertFloatToTime(row.initial_planned_hours),
+                    initial_planned_hours: row.initial_planned_hours,
                     favorites: row.favorites || 0,
                     state: row.state || "",
                     description: row.description || "",
