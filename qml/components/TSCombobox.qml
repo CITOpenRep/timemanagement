@@ -17,7 +17,7 @@ ComboBox {
 
     contentItem: Text {
         text: innerCombo.displayText
-        color: "#000000"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#000000"
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
         anchors.verticalCenter: parent.verticalCenter

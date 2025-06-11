@@ -35,6 +35,12 @@ ComboBox {
     anchors.centerIn: parent.centerIn
     textRole: "name"
 
+    background: Rectangle {
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+       // border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        radius: units.gu(0.6)
+    }
+
     property int accountId: -1
     property int selectedUserId: -1
     signal userSelected(int remoteid, string name)
