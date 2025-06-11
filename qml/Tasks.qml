@@ -319,6 +319,7 @@ Page {
                     height: units.gu(4)
                     width: units.gu(4)
                     text: "-"
+                     enabled: !isReadOnly
                     onClicked: {
                         incdecHrs(2);
                     }
@@ -344,6 +345,7 @@ Page {
                     height: units.gu(4)
                     width: units.gu(4)
                     text: "+"
+                    enabled: !isReadOnly
                     onClicked: {
                         incdecHrs(1);
                     }
