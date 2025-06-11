@@ -178,7 +178,7 @@ Page {
                 }
             }
 
-            Column {
+            Row {
                 id: myRow9
                 anchors.top: myRow1.bottom
                 anchors.left: parent.left
