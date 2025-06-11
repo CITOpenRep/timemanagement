@@ -198,7 +198,7 @@ Page {
         onMenuItemSelected: {
             if (index === 0) {
                 console.log("add task");
-                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
                 });
