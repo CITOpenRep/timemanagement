@@ -12,8 +12,35 @@ ComboBox {
     textRole: "name"
 
     background: Rectangle {
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
-        radius: 5
+        color:  "transparent"
+        radius: units.gu(0.6)
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "transparent"
+    }
+
+    contentItem: Text {
+        text: instanceCombo.displayText
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+        verticalAlignment: Text.AlignVCenter
+        elide: Text.ElideRight
+        anchors.verticalCenter: parent.verticalCenter
+        leftPadding: units.gu(2)
+    }
+
+    delegate: ItemDelegate {
+        width: instanceCombo.width
+        hoverEnabled: true
+        contentItem: Text {
+            text: model.name
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+            leftPadding: units.gu(1)
+            elide: Text.ElideRight
+        }
+        background: Rectangle {
+            color: hovered
+                ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0")
+                : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+            radius: 4
+        }
     }
 
     property int selectedInstanceId: 0
