@@ -9,15 +9,16 @@ ComboBox {
     // NOTE: Do NOT alias final properties like model/currentIndex/currentText
 
     background: Rectangle {
-       // color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+        //color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
         radius: units.gu(0.5)
-        border.color: "black"
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#444"
         border.width: 1
+        color : "transparent"
     }
 
     contentItem: Text {
         text: innerCombo.displayText
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#000000"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
         anchors.verticalCenter: parent.verticalCenter
@@ -29,7 +30,7 @@ ComboBox {
         width: innerCombo.width
         contentItem: Text {
             text: modelData
-            color: "#000000"
+           // color: "#000000"
             leftPadding: units.gu(1)
             elide: Text.ElideRight
         }
