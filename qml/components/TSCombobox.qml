@@ -22,17 +22,20 @@ ComboBox {
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
         anchors.verticalCenter: parent.verticalCenter
-        leftPadding: units.gu(1)
-        rightPadding: units.gu(2)
+        leftPadding: units.gu(2)
     }
 
     delegate: ItemDelegate {
         width: innerCombo.width
         contentItem: Text {
             text: modelData
-           // color: "#000000"
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#222"
             leftPadding: units.gu(1)
             elide: Text.ElideRight
+        }
+         background: Rectangle {
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white" // Dark background, changes on hover
+            radius: 4
         }
     }
 
