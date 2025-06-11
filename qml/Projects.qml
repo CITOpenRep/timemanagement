@@ -34,6 +34,7 @@ import "../models/task.js" as Task
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Accounts
 import "../models/project.js" as Project
+import "../models/global.js" as Global
 import "components"
 
 Page {
@@ -58,14 +59,18 @@ Page {
                 text: "Save"
                 visible: !isReadOnly
                 onTriggered: {
+                    console.log("Account ID: " + Global.selectedInstanceId);
+                    const ids = workItem.getAllSelectedDbRecordIds();
+                    console.log("Account DB ID:", ids.accountDbId);
 
                     // isReadOnly = !isReadOnly
                     var project_data = {
-                        'account_id': accountCombo.selectedInstanceId,
+                        'account_id': ids.accountDbId,
                         'name': project_name.text,
-                        'planned_start_date': start_date_widget.date,
-                        'planned_end_date': end_date_widget.date,
-                        'parent_id': (!parent_projectCombo.selectedProjectId || parent_projectCombo.selectedProjectId < 0) ? 0 : parent_projectCombo.selectedProjectId,
+                        'planned_start_date': date_range_widget.formattedStartDate(),
+                        'planned_end_date': date_range_widget.formattedEndDate(),
+                        'parent_id': 0 //for now
+                        ,
                         'allocated_hours': hours_text.text,
                         'description': description_text.text,
                         'favorites': 0,
@@ -116,38 +121,21 @@ Page {
                 anchors.left: parent.left
                 topPadding: 10
                 Column {
-                    leftPadding: units.gu(2)
-                    LomiriShape {
-                        width: units.gu(10)
-                        height: units.gu(5)
-                        aspect: LomiriShape.Flat
-                        Label {
-                            id: instance_label
-                            text: "Instance"
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
-                        }
-                    }
-                }
-                Column {
                     leftPadding: units.gu(3)
-                    AccountSelector {
-                        id: accountCombo
-                        editable: true
+                    WorkItemSelector {
+                        id: workItem
+                        readOnly: isReadOnly
+                        taskLabelText: "Parent Task"
+                        showSubtaskSelector: false
+                        showSubprojectSelector: false
+                        showTaskSelector: false
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        height: units.gu(6)
-                        anchors.centerIn: parent.centerIn
-                        enabled: !isReadOnly
-                        flat: true
-                        onAccountSelected: {
-                            if (project && project.parent_d) {
-                                //on read / edit mode
-                                console.log("Parent id found , loading that project");
-                                parent_projectCombo.load(accountCombo.selectedInstanceId, project.parent_id);
-                            } else {
-                                parent_projectCombo.load(accountCombo.selectedInstanceId, 0);
-                            }
+                        height: units.gu(10)
+                        onAccountChanged: {
+                            console.log("Account id is " + accountId);
+                            assigneeCombo.accountId = accountId;
+                            assigneeCombo.shouldDeferUserSelection = false;
+                            assigneeCombo.loadUsers();
                         }
                     }
                 }
@@ -270,7 +258,6 @@ Page {
                             id: hours_label
                             text: "Allocated Hours"
                             anchors.left: parent.left
-
                             anchors.verticalCenter: parent.verticalCenter
                             //textSize: Label.Large
                         }
@@ -295,71 +282,10 @@ Page {
             }
 
             Row {
-                id: myRow5
+                id: colorRow
                 anchors.top: myRow4.bottom
                 anchors.left: parent.left
-                topPadding: units.gu(2)
-                Column {
-                    leftPadding: units.gu(2)
-                    LomiriShape {
-                        width: units.gu(10)
-                        height: units.gu(5)
-                        aspect: LomiriShape.Flat
-                        Label {
-                            id: start_label
-                            text: "Start Date"
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
-                        }
-                    }
-                }
-                Column {
-                    leftPadding: units.gu(3)
-                    QuickDateSelector {
-                        id: start_date_widget
-                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        height: units.gu(4)
-                        anchors.centerIn: parent.centerIn
-                    }
-                }
-            }
-
-            Row {
-                id: myRow6
-                anchors.top: myRow5.bottom
-                anchors.left: parent.left
-                topPadding: units.gu(2)
-                Column {
-                    leftPadding: units.gu(2)
-                    LomiriShape {
-                        width: units.gu(10)
-                        height: units.gu(5)
-                        aspect: LomiriShape.Flat
-                        Label {
-                            id: end_label
-                            text: "End Date"
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
-                        }
-                    }
-                }
-                Column {
-                    leftPadding: units.gu(3)
-                    QuickDateSelector {
-                        id: end_date_widget
-                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        height: units.gu(4)
-                        anchors.centerIn: parent.centerIn
-                    }
-                }
-            }
-            Row {
-                id: colorRow
-                anchors.top: myRow6.bottom
-                anchors.left: parent.left
-                topPadding: units.gu(2)
+                topPadding: units.gu(4)
                 Column {
                     leftPadding: units.gu(2)
                     LomiriShape {
@@ -392,6 +318,23 @@ Page {
                     }
                 }
             }
+
+            Row {
+                id: myRow6
+                anchors.top: colorRow.bottom
+                anchors.left: parent.left
+                topPadding: units.gu(1)
+                Column {
+                    leftPadding: units.gu(1)
+                    DateRangeSelector {
+                        id: date_range_widget
+                        readOnly: isReadOnly
+                        width: scrollview.width < units.gu(361) ? scrollview.width - units.gu(15) : scrollview.width - units.gu(10)
+                        height: units.gu(4)
+                        anchors.centerIn: parent.centerIn
+                    }
+                }
+            }
         }
     }
     ColorPicker {
@@ -416,6 +359,9 @@ Page {
     Component.onCompleted: {
         if (recordid !== 0) {
             let project = Project.get_project_details(recordid);
+            if (project && Object.keys(project).length > 0) {} else {
+                notifPopup.open("Failed", "Unable to open the project details", "error");
+            }
             console.log("=== Project Details ===");
             console.log("id:", project.id);
             console.log("name:", project.name);
@@ -434,17 +380,16 @@ Page {
 
             let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
             let ppid = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
-            accountCombo.selectAccountById(instanceId);
-            parent_projectCombo.accountId = instanceId;
-            parent_projectCombo.selectProjectById(ppid);
-            if (project && Object.keys(project).length > 0) {
-                description_text.text = project.description || "";
-            } else {
-                notifPopup.open("Failed", "Unable to open the project details", "error");
-            }
+
+            //dont integrate the parnet projct
+            workItem.applyDeferredSelection(instanceId, -1, -1, -1, -1);
+
+            description_text.text = project.description || "";
+
             project_name.text = project.name;
             project_color = project.color_pallet;
             project_color_label.color = colorpicker.getColorByIndex(project.color_pallet);
+            date_range_widget.setDateRange(project.planned_start_date, project.planned_end_date);
         } else {
             //do nothing as we are creating project
             recordid = 0;

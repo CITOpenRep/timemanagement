@@ -15,6 +15,22 @@ Item {
     property bool isStartDateValid: true
     property bool isEndDateValid: true
 
+    /**
+     * Returns the selected start date as a formatted string (yyyy-MM-dd).
+     * @returns {string}
+     */
+    function formattedStartDate() {
+        return Qt.formatDate(startDate, "yyyy-MM-dd");
+    }
+
+    /**
+     * Returns the selected end date as a formatted string (yyyy-MM-dd).
+     * @returns {string}
+     */
+    function formattedEndDate() {
+        return Qt.formatDate(endDate, "yyyy-MM-dd");
+    }
+
     function setDateRange(start, end) {
         function toDate(val) {
             if (val instanceof Date)

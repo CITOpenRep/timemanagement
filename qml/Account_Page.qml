@@ -302,9 +302,7 @@ Page {
                                     elide: Text.ElideRight
                                 }
                                 background: Rectangle {
-                                    color: hovered
-                                        ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0")
-                                        : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
                                     radius: 4
                                 }
                             }
@@ -410,9 +408,7 @@ Page {
                                 elide: Text.ElideRight
                             }
                             background: Rectangle {
-                                color: hovered
-                                    ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0")
-                                    : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                                color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
                                 radius: 4
                             }
                         }

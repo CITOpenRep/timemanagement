@@ -100,9 +100,9 @@ Page {
                 projectId: ids.projectDbId < 0 ? 0 : ids.projectDbId,
                 subProjectId: ids.subprojectDbId < 0 ? 0 : ids.subprojectDbId,
                 parentId: ids.taskDbId > 0 ? ids.taskDbId : 0,
-                startDate: date_range_widget.startDate,
-                endDate: date_range_widget.endDate,
-                deadline: date_range_widget.endDate //for now we made deadline as enddate
+                startDate: date_range_widget.formattedStartDate(),
+                endDate: date_range_widget.formattedEndDate(),
+                deadline: date_range_widget.formattedEndDate() //for now we made deadline as enddate
                 ,
                 favorites: 0//for now do nothing
                 ,
