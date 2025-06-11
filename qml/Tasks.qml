@@ -363,7 +363,7 @@ Page {
                 DateRangeSelector {
                     id: date_range_widget
                     readOnly: isReadOnly
-                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
+                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(35) : tasksDetailsPageFlickable.width - units.gu(30)
                     height: units.gu(4)
                     anchors.centerIn: parent.centerIn
                 }
@@ -379,8 +379,8 @@ Page {
             //// return;
             currentTask = Task.getTaskDetails(recordid);
 
-            console.log("Sub Project ID:", currentTask.sub_project_id);
-            console.log("Parent ID:", currentTask.parent_id);
+            /* console.log("Sub Project ID:", currentTask.sub_project_id);
+            console.log("Project ID:", currentTask.project_id);
             console.log("Start Date:", currentTask.start_date);
             console.log("End Date:", currentTask.end_date);
             console.log("Deadline:", currentTask.deadline);
@@ -391,7 +391,7 @@ Page {
             console.log("Last Modified:", currentTask.last_modified);
             console.log("User ID:", currentTask.user_id);
             console.log("Status:", currentTask.status);
-            console.log("Odoo Record ID:", currentTask.odoo_record_id);
+            console.log("Odoo Record ID:", currentTask.odoo_record_id);*/
 
             let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
             let projectId = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;

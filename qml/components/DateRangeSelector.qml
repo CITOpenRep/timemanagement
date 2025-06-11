@@ -73,42 +73,45 @@ Item {
             id: rangeLabel
             text: "Date Range"
         }
-
-        ComboBox {
-            id: presetCombo
-            model: ["Today", "This Week", "This Month"]
-            currentIndex: 0
-            visible: !dateRangeSelector.readOnly
-            background: Rectangle {
-                color: "transparent"
-                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
-                border.width: 1
-                radius: units.gu ? units.gu(0.5) : 4
-            }
-            contentItem: Text {
-                text: presetCombo.displayText
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                verticalAlignment: Text.AlignVCenter
-                elide: Text.ElideRight
-                anchors.verticalCenter: parent.verticalCenter
-                leftPadding: units.gu ? units.gu(2) : 8
-            }
-            delegate: ItemDelegate {
-                width: presetCombo.width
-                hoverEnabled: true
-                contentItem: Text {
-                    text: modelData
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                    leftPadding: units.gu ? units.gu(1) : 4
-                    elide: Text.ElideRight
-                }
+        Item {
+            Layout.fillWidth: true
+            ComboBox {
+                id: presetCombo
+                width: parent.width / 2
+                model: ["Today", "This Week", "This Month"]
+                currentIndex: 0
+                visible: !dateRangeSelector.readOnly
                 background: Rectangle {
-                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                    radius: 4
+                    color: "transparent"
+                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
+                    border.width: 1
+                    radius: units.gu ? units.gu(0.5) : 4
                 }
+                contentItem: Text {
+                    text: presetCombo.displayText
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                    anchors.verticalCenter: parent.verticalCenter
+                    leftPadding: units.gu ? units.gu(2) : 8
+                }
+                delegate: ItemDelegate {
+                    width: presetCombo.width
+                    hoverEnabled: true
+                    contentItem: Text {
+                        text: modelData
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                        leftPadding: units.gu ? units.gu(1) : 4
+                        elide: Text.ElideRight
+                    }
+                    background: Rectangle {
+                        color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                        radius: 4
+                    }
+                }
+                onActivated: updateDates()
+                onAccepted: updateDates()
             }
-            onActivated: updateDates()
-            onAccepted: updateDates()
         }
 
         RowLayout {

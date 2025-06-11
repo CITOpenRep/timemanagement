@@ -13,6 +13,41 @@ Item {
     signal dateChanged(date selectedDate)
     // color: "transparent"
 
+    /**
+     * Returns the selected date in "yyyy-MM-dd" format (for database/API use).
+     * @returns {string}
+     */
+    function formattedDate() {
+        return Qt.formatDate(selectedDate, "yyyy-MM-dd");
+    }
+
+    /**
+     * Sets the selected date from a string or Date object.
+     * Accepts either a JS Date or a valid string like "2025-06-12".
+     * @param {string|Date} val
+     */
+    function setSelectedDate(val) {
+        function toDate(input) {
+            if (input instanceof Date)
+                return input;
+            if (typeof input === "string") {
+                const d = new Date(input);
+                return !isNaN(d.getTime()) ? d : null;
+            }
+            return null;
+        }
+
+        const parsed = toDate(val);
+
+        if (parsed) {
+            dateItem.date = parsed;
+            selectedDate = parsed;
+            dateChanged(selectedDate);
+        } else {
+            console.warn("❌ Invalid date input for setSelectedDate:", val);
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         //anchors.margins: units.gu(1)

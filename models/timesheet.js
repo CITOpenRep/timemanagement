@@ -64,8 +64,8 @@ function fetch_timesheets(is_work_state) {
                 spentHours: convertFloatToTime(row.unit_amount),
                 project: project.rows.length > 0 ? project.rows.item(0).name : 'Unknown Project',
                 quadrant: quadrantObj[row.quadrant_id] || "Do",
-                date: row.last_modified,
-                                   task:task.rows.length > 0 ? task.rows.item(0).name : 'Unknown Task',
+                date: row.record_date,
+                task:task.rows.length > 0 ? task.rows.item(0).name : 'Unknown Task',
                 user:user.rows.length > 0 ? user.rows.item(0).name : '',
             });
         }
@@ -142,7 +142,7 @@ function get_timesheet_details(record_id) {
                                 'name': timesheet.rows.item(0).name,
                                 'spentHours': convertFloatToTime(timesheet.rows.item(0).unit_amount),
                                 'quadrant_id': timesheet.rows.item(0).quadrant_id,
-                                'record_date': formatDate(new Date(timesheet.rows.item(0).last_modified))};
+                                'record_date': formatDate(new Date(timesheet.rows.item(0).record_date))};
         }
     });
     function formatDate(date) {
