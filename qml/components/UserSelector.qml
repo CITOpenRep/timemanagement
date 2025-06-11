@@ -36,9 +36,36 @@ ComboBox {
     textRole: "name"
 
     background: Rectangle {
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
-       // border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        color: "transparent"
         radius: units.gu(0.6)
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "transparent"
+        border.width: 1
+    }
+
+    contentItem: Text {
+        text: userCombo.displayText
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+        verticalAlignment: Text.AlignVCenter
+        elide: Text.ElideRight
+        anchors.verticalCenter: parent.verticalCenter
+        leftPadding: units.gu(2)
+    }
+
+    delegate: ItemDelegate {
+        width: userCombo.width
+        hoverEnabled: true
+        contentItem: Text {
+            text: model.name
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+            leftPadding: units.gu(1)
+            elide: Text.ElideRight
+        }
+        background: Rectangle {
+            color: hovered
+                ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0")
+                : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+            radius: 4
+        }
     }
 
     property int accountId: -1
