@@ -99,18 +99,13 @@ ComboBox {
     function load(accountIdVal, taskIdVal, projectIdVal) {
         isDeferredSelection = false;
         _loadFromProject(accountIdVal, taskIdVal, projectIdVal, false);
-        _loadFromProject(accountIdVal, taskIdVal, projectIdVal, false);
     }
 
-    function loadDeferred(accountIdVal, taskIdVal) {
     function loadDeferred(accountIdVal, taskIdVal) {
         isDeferredSelection = true;
         _loadFromTask(accountIdVal, taskIdVal, true);
-        _loadFromTask(accountIdVal, taskIdVal, true);
     }
 
-    function _loadFromProject(accountIdVal, taskIdVal, projectIdVal, suppressSignal) {
-        console.log("[load] project-based → accountId:", accountIdVal, "projectId:", projectIdVal);
     function _loadFromProject(accountIdVal, taskIdVal, projectIdVal, suppressSignal) {
         console.log("[load] project-based → accountId:", accountIdVal, "projectId:", projectIdVal);
         clear();
@@ -140,9 +135,7 @@ ComboBox {
                 return false;
 
             if (mode === "task")
-            if (mode === "task")
                 return !t.parent_id || parseInt(t.parent_id) === 0;
-            else if (mode === "subtask")
             else if (mode === "subtask")
                 return t.parent_id && parseInt(t.parent_id) !== 0;
 
@@ -195,11 +188,6 @@ ComboBox {
             return true;
         });
 
-        _populateAndSelect(filtered, taskIdVal, suppressSignal);
-    }
-
-    function _populateAndSelect(taskList, taskIdVal, suppressSignal) {
-        for (let t of taskList) {
         _populateAndSelect(filtered, taskIdVal, suppressSignal);
     }
 
