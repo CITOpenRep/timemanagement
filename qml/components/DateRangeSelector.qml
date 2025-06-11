@@ -4,7 +4,6 @@ import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
 import Lomiri.Components.Pickers 1.3
 
-
 Item {
     id: dateRangeSelector
     width: parent ? parent.width : units.gu(50)
@@ -104,9 +103,7 @@ Item {
                     elide: Text.ElideRight
                 }
                 background: Rectangle {
-                    color: hovered
-                        ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0")
-                        : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
                     radius: 4
                 }
             }
@@ -123,7 +120,7 @@ Item {
                 TSLabel {
                     text: "Start Date"
                     enabled: !dateRangeSelector.readOnly
-                   // font.pixelSize: units.gu(1.8)
+                    // font.pixelSize: units.gu(1.8)
                 }
 
                 Item {
@@ -166,7 +163,7 @@ Item {
                 TSLabel {
                     text: "End Date"
                     enabled: !dateRangeSelector.readOnly
-                  //  font.pixelSize: units.gu(1.8)
+                    //  font.pixelSize: units.gu(1.8)
                 }
 
                 Item {

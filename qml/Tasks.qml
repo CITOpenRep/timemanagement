@@ -425,6 +425,6 @@ Page {
         {
             console.log("Creating a new task");
             workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
-        }
+        } // We are loading a time sheet, depends on readonly value it could be for view/edit
     }
 }
