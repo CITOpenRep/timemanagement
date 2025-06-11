@@ -33,11 +33,13 @@ import QtCharts 2.0
 import "../models/task.js" as Task
 import "../models/utils.js" as Utils
 import "../models/global.js" as Global
+import "../models/accounts.js" as Accounts
+
 import "components"
 
 Page {
     id: taskCreate
-    title: "New Task 123"
+    title: "New Task"
     header: PageHeader {
         title: taskCreate.title
         StyleHints {
@@ -93,9 +95,11 @@ Page {
             const saveData = {
                 accountId: ids.accountDbId < 0 ? 0 : ids.accountDbId,
                 name: task_text.text,
-                projectId: (projectCombo.selectedProjectId < 0) ? 0 : projectCombo.selectedProjectId,
-                subProjectId: 0,
+                projectId: ids.projectDbId < 0 ? 0 : ids.projectDbId,
+                subProjectId: ids.subprojectDbId < 0 ? 0 : ids.subprojectDbId,
+                 
                 parentId: taskselector_combo.selectedTaskId > 0 ? taskselector_combo.selectedTaskId : null,
+
                 startDate: start_date_widget.date,
                 endDate: end_date_widget.date,
                 deadline: deadline_widget.date,
@@ -140,7 +144,7 @@ Page {
         id: tasksDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height
+        contentHeight: parent.height+ 500
         // + 1000
         flickableDirection: Flickable.VerticalFlick
 
@@ -194,7 +198,7 @@ Page {
                     maximumLineCount: 0
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
-                    text: tasksDetailsPageFlickable.width
+                    text: ""
                 }
             }
         }
@@ -205,14 +209,14 @@ Page {
             anchors.left: parent.left
             topPadding: 10
             Column {
-                leftPadding: units.gu(2)
+                leftPadding: units.gu(1)
                 LomiriShape {
                     width: units.gu(10)
                     height: units.gu(5)
                     aspect: LomiriShape.Flat
                     Label {
                         id: assignee_label
-                        font.bold: true
+                        // font.bold: true
                         text: "Assignee"
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
@@ -223,7 +227,7 @@ Page {
             Column {
                 leftPadding: units.gu(3)
                 LomiriShape {
-                    width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
                     height: 60
 
                     UserSelector {
@@ -233,7 +237,7 @@ Page {
                         height: parent.height
                         anchors.centerIn: parent.centerIn
                         flat: true
-                        enabled: !taskDetails.isReadOnly
+                        enabled: !taskCreate.isReadOnly
                         Component.onCompleted: {
                             assigneeCombo.accountId = tasks[0].account_id;
                             assigneeCombo.loadUsers();
