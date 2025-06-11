@@ -131,12 +131,6 @@ Page {
                         showTaskSelector: false
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         height: units.gu(10)
-                        onAccountChanged: {
-                            console.log("Account id is " + accountId);
-                            assigneeCombo.accountId = accountId;
-                            assigneeCombo.shouldDeferUserSelection = false;
-                            assigneeCombo.loadUsers();
-                        }
                     }
                 }
             }
@@ -393,10 +387,7 @@ Page {
         } else {
             //do nothing as we are creating project
             recordid = 0;
-            accountCombo.shouldDeferSelection = true;
-            let defaultid = Accounts.getDefaultAccountId();
-            accountCombo.deferredAccountId = defaultid;
-            accountCombo.selectAccountById(defaultid);
+            workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
             //accountCombo.load()
         }
     }

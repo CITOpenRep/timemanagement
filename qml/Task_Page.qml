@@ -134,7 +134,10 @@ Page {
         onMenuItemSelected: {
             if (index === 0) {
                 console.log("add task");
-                apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Create.qml"));
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                    "recordid": 0,
+                    "isReadOnly": false
+                });
             }
         }
     }

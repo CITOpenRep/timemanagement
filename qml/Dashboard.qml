@@ -198,7 +198,10 @@ Page {
         onMenuItemSelected: {
             if (index === 0) {
                 console.log("add task");
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Create.qml"));
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                    "recordid": 0,
+                    "isReadOnly": false
+                });
             }
             if (index === 1) {
                 console.log("add time sheet");
