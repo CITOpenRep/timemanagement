@@ -7,7 +7,7 @@ import Lomiri.Components.Pickers 1.3
 
 Item {
     id: dateRangeSelector
-    width: parent ? parent.width : 400
+    width: parent ? parent.width : units.gu(50)
     property alias labelText: rangeLabel.text
     property date startDate: new Date()
     property date endDate: new Date()
