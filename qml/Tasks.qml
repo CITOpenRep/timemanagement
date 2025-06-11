@@ -98,11 +98,11 @@ Page {
                 name: task_text.text,
                 projectId: ids.projectDbId < 0 ? 0 : ids.projectDbId,
                 subProjectId: ids.subprojectDbId < 0 ? 0 : ids.subprojectDbId,
-                parentId: taskselector_combo.selectedTaskId > 0 ? taskselector_combo.selectedTaskId : null,
-                startDate: start_date_widget.date,
-                endDate: end_date_widget.date,
-                deadline: deadline_widget.date,
-                favorites: favorites,
+                parentId: ids.taskDbId > 0 ? ids.taskDbId : 0,
+                startDate: date_range_widget.startDate,
+                endDate: date_range_widget.endDate,
+                deadline: date_range_widget.endDate, //for now we made deadline as enddate
+                favorites: 0,//for now do nothing
                 plannedHours: hours_text.text,
                 description: description_text.text,
                 assigneeUserId: assigneecombo.selectedUserId,
@@ -164,6 +164,10 @@ Page {
                     showSubtaskSelector: false
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
+                    onAccountChanged:
+                    {
+                        console.log("Account id is " + accountId)
+                    }
                 }
             }
         }

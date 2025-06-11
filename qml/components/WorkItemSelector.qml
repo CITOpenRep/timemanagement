@@ -23,6 +23,7 @@ Rectangle {
     property string subtaskLabelText: "Subtask"
 
     signal datachanged
+    signal accountChanged(int accountId)
 
     function getDbRecordId(localId, odooId) {
         return accountSelector.selectedInstanceId === 0 ? localId : odooId;
@@ -82,8 +83,9 @@ Rectangle {
                     enabled: !readOnly
                     editable: false
                     onAccountSelected: {
-                        console.log("Account Selected ->>>>>>>>");
+                        console.log("###Account Selected ->>>>>>>>");
                         projectSelector.load(accountSelector.selectedInstanceId, 0);
+                        accountChanged(accountSelector.selectedInstanceId) //give to the extenral world
                     }
                 }
             }

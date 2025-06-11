@@ -44,6 +44,7 @@ ComboBox {
     property int selectedInstanceId: 0
     property int deferredAccountId: -1
     property bool shouldDeferSelection: false
+    property bool suppressSignal: false
 
     signal accountSelected(int id, string name)
 
@@ -70,6 +71,7 @@ ComboBox {
 
         // Handle deferred selection
         if (shouldDeferSelection && deferredAccountId > -1) {
+            shouldDeferSelection = false;
             console.log('The Id specified is a Defered one , So moving on');
             Qt.callLater(() => {
                 selectAccountById(deferredAccountId);
@@ -104,18 +106,20 @@ ComboBox {
         for (let i = 0; i < internalInstanceModel.count; i++) {
             const item = internalInstanceModel.get(i);
             if (item.id === accountId) {
+                suppressSignal = true;  // 🛑 Block onActivated temporarily
                 currentIndex = i;
                 editText = item.name;
                 selectedInstanceId = item.id;
-                console.log("✅ Account selected:", item.name);
-                if (!shouldDeferSelection)
-                    accountSelected(item.id, item.name);
+                console.log("✅ Account selected (programmatically):", item.name);
+                Qt.callLater(() => suppressSignal = false);  // ✅ Re-enable after event loop
+                accountSelected(item.id, item.name);
                 return;
             }
         }
 
         console.warn("⚠️ Account ID not found:", accountId);
     }
+
 
     Component.onCompleted: {
         loadAccounts();
@@ -125,21 +129,22 @@ ComboBox {
     }
 
     onActivated: {
+        if (suppressSignal) return;
         if (currentIndex >= 0) {
             const selected = model.get(currentIndex);
             selectedInstanceId = selected.id;
-            if (!shouldDeferSelection)
-                accountSelected(selected.id, selected.name);
+            accountSelected(selected.id, selected.name);
         }
     }
 
     onAccepted: {
+        if (suppressSignal) return;
         const idx = find(editText);
         if (idx !== -1) {
             const selected = model.get(idx);
             selectedInstanceId = selected.id;
-            if (!shouldDeferSelection)
-                accountSelected(selected.id, selected.name);
+            accountSelected(selected.id, selected.name);
         }
     }
+
 }
