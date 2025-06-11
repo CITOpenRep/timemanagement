@@ -99,13 +99,18 @@ ComboBox {
     function load(accountIdVal, taskIdVal, projectIdVal) {
         isDeferredSelection = false;
         _loadFromProject(accountIdVal, taskIdVal, projectIdVal, false);
+        _loadFromProject(accountIdVal, taskIdVal, projectIdVal, false);
     }
 
     function loadDeferred(accountIdVal, taskIdVal) {
+    function loadDeferred(accountIdVal, taskIdVal) {
         isDeferredSelection = true;
+        _loadFromTask(accountIdVal, taskIdVal, true);
         _loadFromTask(accountIdVal, taskIdVal, true);
     }
 
+    function _loadFromProject(accountIdVal, taskIdVal, projectIdVal, suppressSignal) {
+        console.log("[load] project-based → accountId:", accountIdVal, "projectId:", projectIdVal);
     function _loadFromProject(accountIdVal, taskIdVal, projectIdVal, suppressSignal) {
         console.log("[load] project-based → accountId:", accountIdVal, "projectId:", projectIdVal);
         clear();
@@ -113,11 +118,7 @@ ComboBox {
         projectId = projectIdVal;
 
         const noneLabel = (mode === "subtask") ? "No Subtask" : "No Task";
-        internalTaskModel.append({
-            name: noneLabel,
-            id: -1,
-            recordId: -1
-        });
+        internalTaskModel.append({ name: noneLabel, id: -1, recordId: -1 });
         currentIndex = 0;
         selectedTaskId = -1;
         editText = noneLabel;
@@ -129,13 +130,13 @@ ComboBox {
         const resolvedProjectId = _resolveRemoteProjectId(projectId);
 
         let filtered = fullTaskList.filter(t => {
-            if (!t.name)
-                return false;
-            if (t.project_id !== resolvedProjectId)
-                return false;
+            if (!t.name) return false;
+            if (t.project_id !== resolvedProjectId) return false;
 
             if (mode === "task")
+            if (mode === "task")
                 return !t.parent_id || parseInt(t.parent_id) === 0;
+            else if (mode === "subtask")
             else if (mode === "subtask")
                 return t.parent_id && parseInt(t.parent_id) !== 0;
 
@@ -151,11 +152,7 @@ ComboBox {
         accountId = accountIdVal;
 
         const noneLabel = (mode === "subtask") ? "No Subtask" : "No Task";
-        internalTaskModel.append({
-            name: noneLabel,
-            id: -1,
-            recordId: -1
-        });
+        internalTaskModel.append({ name: noneLabel, id: -1, recordId: -1 });
         currentIndex = 0;
         selectedTaskId = -1;
         editText = noneLabel;
@@ -175,10 +172,8 @@ ComboBox {
         const resolvedProjectId = matchedTask.project_id;
 
         let filtered = fullTaskList.filter(t => {
-            if (!t.name)
-                return false;
-            if (t.project_id !== resolvedProjectId)
-                return false;
+            if (!t.name) return false;
+            if (t.project_id !== resolvedProjectId) return false;
 
             if (mode === "task")
                 return !t.parent_id || parseInt(t.parent_id) === 0;
@@ -188,6 +183,11 @@ ComboBox {
             return true;
         });
 
+        _populateAndSelect(filtered, taskIdVal, suppressSignal);
+    }
+
+    function _populateAndSelect(taskList, taskIdVal, suppressSignal) {
+        for (let t of taskList) {
         _populateAndSelect(filtered, taskIdVal, suppressSignal);
     }
 
@@ -227,6 +227,7 @@ ComboBox {
                 taskSelected(selectedTaskId, item.name);
         }
     }
+
 
     function _resolveRemoteProjectId(localId) {
         if (accountId === 0)
