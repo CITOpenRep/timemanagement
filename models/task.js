@@ -18,7 +18,7 @@ function saveOrUpdateTask(data) {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         var timestamp = getFormattedTimestamp();
         db.transaction(function(tx) {
-            if (data.rowId) {
+            if (data.record_id) {
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
                     account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, favorites = ?, description = ?, user_id = ?, sub_project_id = ?, \
@@ -28,7 +28,7 @@ function saveOrUpdateTask(data) {
                         validId(data.parentId), data.plannedHours, data.favorites,
                         data.description, data.assigneeUserId, data.subProjectId,
                         data.startDate, data.endDate, data.deadline,
-                        timestamp, data.status, data.rowId
+                        timestamp, data.status, data.record_id
                     ]
                 );
             } else {

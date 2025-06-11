@@ -66,75 +66,10 @@ Page {
 
         ]
     }
-    /*TextField {
-    id: nameFilter
-    anchors.centerIn: parent
-    visible: false
-    placeholderText: qsTr("Search by name...")
-    onTextChanged: {
-        if (nameFilter.text === "")
-            get_task_list(0);
-        else
-            filter_task_list(nameFilter.text);
-        }
-    }*/
-
     ListModel {
         id: taskModel
     }
 
-    function get_task_list(recordid) {
-        var tasks = Task.fetch_tasks_lists(recordid);
-        var deadline;
-        taskModel.clear();
-
-        if (tasks == 0) {
-            labelNoTask.visible = true;
-        }
-
-        for (var i = 0; i < tasks.length; i++) {
-            deadline = tasks[i].deadline === 0 ? "" : String(tasks[i].deadline);
-            taskModel.append({
-                'id': tasks[i].id,
-                'name': tasks[i].name,
-                'taskHasSubTask': tasks[i].taskHasSubTask,
-                'favorites': tasks[i].favorites,
-                'spentHours': tasks[i].spentHours,
-                'timesheet_count': tasks[i].number_of_timesheets,
-                'allocated_hours': tasks[i].allocated_hours,
-                'state': tasks[i].state,
-                'parentTask': tasks[i].parentTask,
-                'accountName': tasks[i].accountName,
-                'deadline': deadline,
-                'project_id': tasks[i].project_id,
-                'project': tasks[i].project
-            });
-        }
-        console.log("Total tasks are " + tasks.length);
-    }
-
-    function filter_task_list(searchstr) {
-        var tasks = Task.get_filtered_tasklist(searchstr);
-        var deadline;
-        taskModel.clear();
-        for (var i = 0; i < tasks.length; i++) {
-            deadline = tasks[i].deadline === 0 ? "" : String(tasks[i].deadline);
-            taskModel.append({
-                'id': tasks[i].id,
-                'name': tasks[i].name,
-                'taskHasSubTask': tasks[i].taskHasSubTask,
-                'favorites': tasks[i].favorites,
-                'spentHours': tasks[i].spentHours,
-                'allocated_hours': tasks[i].allocated_hours,
-                'state': tasks[i].state,
-                'parentTask': tasks[i].parentTask,
-                'accountName': tasks[i].accountName,
-                'deadline': deadline,
-                'project_id': tasks[i].project_id,
-                'project': tasks[i].project
-            });
-        }
-    }
 
     LomiriShape {
         anchors.top: taskheader.bottom
@@ -206,10 +141,10 @@ Page {
     }
     onVisibleChanged: {
         if (visible) {
-            get_task_list(0);
+            tasklist.refresh()
         }
     }
     Component.onCompleted: {
-        get_task_list(0);
+        tasklist.refresh()
     }
 }

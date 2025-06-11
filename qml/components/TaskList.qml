@@ -40,6 +40,14 @@ Item {
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
 
+    function refresh() {
+        console.log("🔄 Refreshing taskNavigator...");
+        navigationStackModel.clear();
+        currentParentId = -1;
+        populateTaskChildrenMap(true);
+    }
+
+
     function populateTaskChildrenMap(isWorkProfile) {
         childrenMap = {};
         childrenMapReady = false;

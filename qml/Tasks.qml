@@ -92,10 +92,11 @@ Page {
             notifPopup.open("Error", "Unable to find the user , can not save", "error");
             return;
         }
-        if (task_text.text != "") {
+        if (name_text.text != "") {
             const saveData = {
                 accountId: ids.accountDbId < 0 ? 0 : ids.accountDbId,
-                name: task_text.text,
+                name: name_text.text,
+                record_id:recordid,
                 projectId: ids.projectDbId < 0 ? 0 : ids.projectDbId,
                 subProjectId: ids.subprojectDbId < 0 ? 0 : ids.subprojectDbId,
                 parentId: ids.taskDbId > 0 ? ids.taskDbId : 0,
@@ -105,7 +106,7 @@ Page {
                 favorites: 0,//for now do nothing
                 plannedHours: hours_text.text,
                 description: description_text.text,
-                assigneeUserId: assigneecombo.selectedUserId,
+                assigneeUserId: assigneeCombo.selectedUserId,
                 status: "updated"
             };
 
@@ -116,7 +117,7 @@ Page {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
             }
         } else {
-            notifPopup.open("Error", "Unable to Save the Data", "error");
+            notifPopup.open("Error", "Please add a Name to the task", "error");
         }
     }
 
@@ -167,6 +168,7 @@ Page {
                     onAccountChanged:
                     {
                         console.log("Account id is " + accountId)
+                         assigneeCombo.accountId =accountId
                     }
                 }
             }
@@ -392,7 +394,8 @@ Page {
             let subProjectId = (currentTask.sub_project_id !== undefined && currentTask.sub_project_id !== null) ? currentTask.sub_project_id : -1;
             let user_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            workItem.applyDeferredSelection(instanceId, currentTask.project_id, -1, -1, -1);
+            workItem.applyDeferredSelection(instanceId, currentTask.project_id,currentTask.sub_project_id, -1, -1);
+            //We do not now setting the parent task
 
             //Todo Gokul to implement the defered loading in assignees , we get [] for invalid users
             if (typeof currentTask.user_id === "number" && currentTask.user_id > 0) {
