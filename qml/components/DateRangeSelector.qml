@@ -4,9 +4,10 @@ import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
 import Lomiri.Components.Pickers 1.3
 
+
 Item {
     id: dateRangeSelector
-    width: parent ? parent.width : 400
+    width: parent ? parent.width : units.gu(50)
     property alias labelText: rangeLabel.text
     property date startDate: new Date()
     property date endDate: new Date()
@@ -79,27 +80,57 @@ Item {
             model: ["Today", "This Week", "This Month"]
             currentIndex: 0
             visible: !dateRangeSelector.readOnly
+            background: Rectangle {
+                color: "transparent"
+                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
+                border.width: 1
+                radius: units.gu ? units.gu(0.5) : 4
+            }
+            contentItem: Text {
+                text: presetCombo.displayText
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+                anchors.verticalCenter: parent.verticalCenter
+                leftPadding: units.gu ? units.gu(2) : 8
+            }
+            delegate: ItemDelegate {
+                width: presetCombo.width
+                hoverEnabled: true
+                contentItem: Text {
+                    text: modelData
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                    leftPadding: units.gu ? units.gu(1) : 4
+                    elide: Text.ElideRight
+                }
+                background: Rectangle {
+                    color: hovered
+                        ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0")
+                        : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                    radius: 4
+                }
+            }
             onActivated: updateDates()
             onAccepted: updateDates()
         }
 
         RowLayout {
-            spacing: 10
+            spacing: units.gu(1.2)
 
             // Start Date Picker Field
             ColumnLayout {
                 spacing: 4
-                Label {
+                TSLabel {
                     text: "Start Date"
                     enabled: !dateRangeSelector.readOnly
-                    font.pixelSize: 14
+                   // font.pixelSize: units.gu(1.8)
                 }
 
                 Item {
                     id: startDateItem
                     property date date: new Date()
-                    Layout.preferredWidth: 160
-                    Layout.preferredHeight: 40
+                    Layout.preferredWidth: units.gu(20)
+                    Layout.preferredHeight: units.gu(5)
 
                     TextField {
                         anchors.fill: parent
@@ -131,18 +162,18 @@ Item {
 
             // End Date Picker Field
             ColumnLayout {
-                spacing: 4
-                Label {
+                spacing: units.gu(0.5)
+                TSLabel {
                     text: "End Date"
                     enabled: !dateRangeSelector.readOnly
-                    font.pixelSize: 14
+                  //  font.pixelSize: units.gu(1.8)
                 }
 
                 Item {
                     id: endDateItem
                     property date date: new Date()
-                    Layout.preferredWidth: 160
-                    Layout.preferredHeight: 40
+                    Layout.preferredWidth: units.gu(20)
+                    Layout.preferredHeight: units.gu(5)
 
                     TextField {
                         anchors.fill: parent
