@@ -346,7 +346,7 @@ Page {
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
-        height: units.gu(80)
+        height: units.gu(100)
         onClosed: console.log("Notification dismissed")
     }
 

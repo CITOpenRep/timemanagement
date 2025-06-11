@@ -34,14 +34,14 @@ Item {
 
                 GridLayout {
                     id: colorGrid
-                    columns: 6
+                    columns: 3
                     Layout.alignment: Qt.AlignHCenter
 
                     Repeater {
                         model: colorPopupWrapper.odooColors.length
                         Rectangle {
-                            width: 32
-                            height: 32
+                            width: 64
+                            height: 64
                             color: colorPopupWrapper.odooColors[index]
                             border.color: Qt.darker(color, 1.3)
                             border.width: index === colorDialog.preselected ? 3 : 1
