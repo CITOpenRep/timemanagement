@@ -11,6 +11,11 @@ ComboBox {
     anchors.centerIn: parent.centerIn
     textRole: "name"
 
+    background: Rectangle {
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+        radius: 5
+    }
+
     property int selectedInstanceId: 0
     property int deferredAccountId: -1
     property bool shouldDeferSelection: false

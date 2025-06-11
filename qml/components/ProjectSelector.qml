@@ -38,8 +38,9 @@ ComboBox {
     property bool isDeferredSelection: false
 
     background: Rectangle {
-        color: "transparent"
-        border.width: 0
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+        radius: units.gu(0.6)
+      //  border.width: 0
     }
 
     function getSelectedDbRecordId() {
