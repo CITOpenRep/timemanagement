@@ -70,26 +70,22 @@ ComboBox {
 
     function load(accountIdVal, taskIdVal, projectIdVal) {
         isDeferredSelection = false;
-        _loadInternal(accountIdVal, taskIdVal, projectIdVal, false);
+        _loadFromProject(accountIdVal, taskIdVal, projectIdVal, false);
     }
 
-    function loadDeferred(accountIdVal, taskIdVal, projectIdVal) {
+    function loadDeferred(accountIdVal, taskIdVal) {
         isDeferredSelection = true;
-        _loadInternal(accountIdVal, taskIdVal, projectIdVal, true);
+        _loadFromTask(accountIdVal, taskIdVal, true);
     }
 
-    function _loadInternal(accountIdVal, taskIdVal, projectIdVal, suppressSignal) {
-        console.log("_loadInternal → accountId:", accountIdVal, "taskIdVal:", taskIdVal, "projectIdVal:", projectIdVal, "suppressSignal:", suppressSignal);
+    function _loadFromProject(accountIdVal, taskIdVal, projectIdVal, suppressSignal) {
+        console.log("[load] project-based → accountId:", accountIdVal, "projectId:", projectIdVal);
         clear();
         accountId = accountIdVal;
         projectId = projectIdVal;
 
         const noneLabel = (mode === "subtask") ? "No Subtask" : "No Task";
-        internalTaskModel.append({
-            name: noneLabel,
-            id: -1,
-            recordId: -1
-        });
+        internalTaskModel.append({ name: noneLabel, id: -1, recordId: -1 });
         currentIndex = 0;
         selectedTaskId = -1;
         editText = noneLabel;
@@ -101,20 +97,62 @@ ComboBox {
         const resolvedProjectId = _resolveRemoteProjectId(projectId);
 
         let filtered = fullTaskList.filter(t => {
-            if (!t.name)
-                return false;
-            if (t.project_id !== resolvedProjectId)
-                return false;
+            if (!t.name) return false;
+            if (t.project_id !== resolvedProjectId) return false;
 
-            if (mode === "task") {
+            if (mode === "task")
                 return !t.parent_id || parseInt(t.parent_id) === 0;
-            } else if (mode === "subtask") {
+            else if (mode === "subtask")
                 return t.parent_id && parseInt(t.parent_id) !== 0;
-            }
+
             return true;
         });
 
-        for (let t of filtered) {
+        _populateAndSelect(filtered, taskIdVal, suppressSignal);
+    }
+
+    function _loadFromTask(accountIdVal, taskIdVal, suppressSignal) {
+        console.log("[loadDeferred] task-based → accountId:", accountIdVal, "taskId:", taskIdVal);
+        clear();
+        accountId = accountIdVal;
+
+        const noneLabel = (mode === "subtask") ? "No Subtask" : "No Task";
+        internalTaskModel.append({ name: noneLabel, id: -1, recordId: -1 });
+        currentIndex = 0;
+        selectedTaskId = -1;
+        editText = noneLabel;
+
+        if (accountId === -1 || taskIdVal === -1)
+            return;
+
+        fullTaskList = Task.getTasksForAccount(accountId);
+
+        let matchedTask = fullTaskList.find(t => {
+            return (accountId === 0) ? t.id === taskIdVal : t.odoo_record_id === taskIdVal;
+        });
+
+        if (!matchedTask)
+            return;
+
+        const resolvedProjectId = matchedTask.project_id;
+
+        let filtered = fullTaskList.filter(t => {
+            if (!t.name) return false;
+            if (t.project_id !== resolvedProjectId) return false;
+
+            if (mode === "task")
+                return !t.parent_id || parseInt(t.parent_id) === 0;
+            else if (mode === "subtask")
+                return t.parent_id && parseInt(t.parent_id) !== 0;
+
+            return true;
+        });
+
+        _populateAndSelect(filtered, taskIdVal, suppressSignal);
+    }
+
+    function _populateAndSelect(taskList, taskIdVal, suppressSignal) {
+        for (let t of taskList) {
             internalTaskModel.append({
                 name: t.name || "(Unnamed Task)",
                 id: t.id,
@@ -125,14 +163,10 @@ ComboBox {
             });
         }
 
-        if (taskIdVal === -1)
-            return;
-
         let found = false;
         for (let i = 0; i < internalTaskModel.count; i++) {
             const item = internalTaskModel.get(i);
             const match = (accountId === 0) ? item.recordId === taskIdVal : item.odoo_record_id === taskIdVal;
-
             if (match) {
                 currentIndex = i;
                 selectedTaskId = item.recordId;
@@ -153,6 +187,7 @@ ComboBox {
                 taskSelected(selectedTaskId, item.name);
         }
     }
+
 
     function _resolveRemoteProjectId(localId) {
         if (accountId === 0)
