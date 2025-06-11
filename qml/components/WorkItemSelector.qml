@@ -68,14 +68,15 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+        Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+               // color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 AccountSelector {
                     id: accountSelector
                     anchors.centerIn: parent
+                     anchors.verticalCenter: parent.verticalCenter
                     enabled: !readOnly
                     editable: false
                     onAccountSelected: {
@@ -100,10 +101,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+          Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+               
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: projectSelector
@@ -135,10 +136,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+         Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+             //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
                     id: subProjectSelector
@@ -172,10 +173,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+          Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+              //  color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: taskSelector
@@ -208,10 +209,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Rectangle {
+      Item {
                 width: parent.width * 0.75
                 height: units.gu(5.5)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+             //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
                     id: subTaskSelector

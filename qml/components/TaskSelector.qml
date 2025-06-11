@@ -17,6 +17,11 @@ ComboBox {
     anchors.centerIn: parent.centerIn
     property var fullTaskList: []
 
+    background: Rectangle {
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+        radius: units.gu(0.6)
+    }
+
     textRole: "name"
 
     property alias exposedModel: internalTaskModel
@@ -35,10 +40,7 @@ ComboBox {
     model: internalTaskModel
     property bool isDeferredSelection: false
 
-    background: Rectangle {
-        color: "transparent"
-        border.width: 0
-    }
+    
 
     Component.onCompleted: {
         if (accountId === -1)

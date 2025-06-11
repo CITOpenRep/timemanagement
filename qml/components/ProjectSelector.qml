@@ -15,6 +15,12 @@ ComboBox {
     height: parent.height
     anchors.centerIn: parent.centerIn
 
+     background: Rectangle {
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
+        radius: units.gu(0.6)
+      //  border.width: 0
+    }
+
     textRole: "name"
 
     Component.onCompleted: {
@@ -37,11 +43,7 @@ ComboBox {
     model: internalProjectModel
     property bool isDeferredSelection: false
 
-    background: Rectangle {
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
-        radius: units.gu(0.6)
-      //  border.width: 0
-    }
+   
 
     function getSelectedDbRecordId() {
         if (selectedProjectId < 0 || accountId === -1)
