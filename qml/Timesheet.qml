@@ -86,7 +86,7 @@ Page {
 
         var timesheet_data = {
             'instance_id': ids.accountDbId < 0 ? 0 : ids.accountDbId,
-            'record_date': date_widget.selectedDate,
+            'record_date': date_widget.formattedDate(),
             'project': ids.projectDbId,
             'task': ids.taskDbId,
             'subprojectId': ids.subprojectDbId,
@@ -150,6 +150,9 @@ Page {
                     readOnly: isReadOnly
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
+                    onAccountChanged: {
+                        console.log("Account id is ->>>>" + accountId);
+                    }
                 }
             }
         }
@@ -279,7 +282,7 @@ Page {
         }
 
         Component.onCompleted: {
-            console.log("From Timesheet got record id : " + recordid);
+            console.log("XXXX From Timesheet got record id : " + recordid);
             if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
             {
                 currentTimesheet = Model.get_timesheet_details(recordid);
@@ -288,27 +291,16 @@ Page {
                 let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
                 let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
                 let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
-                console.log("Timesheet Field Values:");
+                /* console.log("Timesheet Field Values:");
                 console.log("Recordid     →" + recordid);
                 console.log("instanceId    →", instanceId);
                 console.log("projectId     →", projectId);
                 console.log("taskId        →", taskId);
                 console.log("subProjectId  →", subProjectId);
-                console.log("subTaskId     →", subTaskId);
+                console.log("subTaskId     →", subTaskId);*/
 
                 workItem.applyDeferredSelection(instanceId, projectId, subProjectId, taskId, subTaskId);
-                if (currentTimesheet.record_date && currentTimesheet.record_date !== "") {
-                    var parts = currentTimesheet.record_date.split("-");
-                    if (parts.length === 3) {
-                        var day = parseInt(parts[0], 10);
-                        var month = parseInt(parts[1], 10) - 1; // Month is 0-based in JS Date
-                        var year = parseInt(parts[2], 10);
-                        var parsedDate = new Date(year, month, day);
-                        date_widget.selectedDate = parsedDate;
-                    }
-                } else {
-                    date_widget.selectedDate = null; // or leave unset if DaySelector handles it
-                }
+                date_widget.setSelectedDate(currentTimesheet.record_date);
 
                 name_text.text = currentTimesheet.name;
                 if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
@@ -319,8 +311,9 @@ Page {
                 }
             } else //we are creating a new timesheet
             {
-                console.log("Creating a new timesheet");
-                workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
+                const defaultId = Accounts.getDefaultAccountId();
+                console.log("XXXXX Creating a new timesheet → defaultId =", defaultId);
+                workItem.applyDeferredSelection(defaultId, -1, -1, -1);
             }
         }
     }

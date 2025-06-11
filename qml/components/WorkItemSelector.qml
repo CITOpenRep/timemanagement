@@ -30,14 +30,25 @@ Rectangle {
     }
 
     function applyDeferredSelection(accountId, projectOdooId, subProjectOdooId, taskOdooId, subTaskOdooId) {
-        console.log("Setting accountId as " + accountId);
-        accountSelector.shouldDeferSelection = true;
-        accountSelector.deferredAccountId = accountId;
-        accountSelector.selectAccountById(accountId);
+        console.log("🧩 applyDeferredSelection →", accountId, projectOdooId, subProjectOdooId, taskOdooId, subTaskOdooId);
 
+        if (accountSelector.model.count === 0) {
+            console.log("⏳ AccountSelector model not loaded yet → retrying via timer...");
+            deferredApplyTimer.deferredPayload = {
+                accountId,
+                projectOdooId,
+                subProjectOdooId,
+                taskOdooId,
+                subTaskOdooId
+            };
+            deferredApplyTimer.start();
+            return;
+        }
+
+        deferredApplyTimer.stop(); // Just in case
+        accountSelector.selectAccountById(accountId);
         projectSelector.loadDeferred(accountId, projectOdooId);
         subProjectSelector.loadDeferred(accountId, subProjectOdooId);
-
         taskSelector.loadDeferred(accountId, taskOdooId);
         subTaskSelector.loadDeferred(accountId, subTaskOdooId);
     }
@@ -83,7 +94,8 @@ Rectangle {
                     enabled: !readOnly
                     editable: false
                     onAccountSelected: {
-                        console.log("###Account Selected ->>>>>>>>");
+                        console.log("✅ [WorkItemSelector] Account selected:", accountSelector.selectedInstanceId);
+                        console.log("→ loading projectSelector...");
                         projectSelector.load(accountSelector.selectedInstanceId, 0);
                         accountChanged(accountSelector.selectedInstanceId); //give to the extenral world
                     }
@@ -117,7 +129,7 @@ Rectangle {
 
                     editable: false
                     onProjectSelected: {
-                        console.log("Selecting Project " + projectSelector.selectedProjectId);
+                        console.log("➡️ [ProjectSelector] Defer Load → accountId:", accountSelector.selectedInstanceId, "projectId:", projectSelector.selectedProjectId);
                         subProjectSelector.load(accountSelector.selectedInstanceId, projectSelector.selectedProjectId);
                         taskSelector.load(accountSelector.selectedInstanceId, 0, projectSelector.selectedProjectId);
                     }
@@ -225,6 +237,31 @@ Rectangle {
                     anchors.centerIn: parent
                     onTaskSelected: {}
                 }
+            }
+        }
+        Timer {
+            id: deferredApplyTimer
+            interval: 100   // 100ms retry interval
+            repeat: true
+            running: false
+            property var deferredPayload: null
+
+            onTriggered: {
+                if (!deferredPayload || accountSelector.model.count === 0) {
+                    console.log("⏳ Timer: Waiting for model to load...");
+                    return;
+                }
+
+                console.log("⏱ Timer: Retrying deferred apply...");
+                deferredApplyTimer.stop();
+                let p = deferredApplyTimer.deferredPayload;
+                deferredPayload = null;
+
+                accountSelector.selectAccountById(p.accountId);
+                projectSelector.loadDeferred(p.accountId, p.projectOdooId);
+                subProjectSelector.loadDeferred(p.accountId, p.subProjectOdooId);
+                taskSelector.loadDeferred(p.accountId, p.taskOdooId);
+                subTaskSelector.loadDeferred(p.accountId, p.subTaskOdooId);
             }
         }
     }
