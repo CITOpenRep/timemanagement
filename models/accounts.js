@@ -19,28 +19,17 @@ function getAccountsList() {
 
             for (var i = 0; i < accounts.rows.length; i++) {
                 var row = accounts.rows.item(i);
-
-                accountsList.push({
-                                      id: row.id,
-                                      name: row.name,
-                                      link: row.link,
-                                      last_modified: row.last_modified,
-                                      database: row.database,
-                                      connectwith_id: row.connectwith_id,
-                                      api_key: row.api_key,
-                                      username: row.username,
-                                      is_default:row.is_default
-
-                                  });
+                accountsList.push(DBCommon.rowToObject(row));
             }
         });
 
     } catch (e) {
-        DBCommon.logException(e);
+        DBCommon.logException("getAccountsList", e);
     }
 
     return accountsList;
 }
+
 
 /**
  * Sets the specified account as the default in the local SQLite database.
@@ -126,30 +115,26 @@ function getUsers(accountId) {
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(
-                    DBCommon.NAME,
-                    DBCommon.VERSION,
-                    DBCommon.DISPLAY_NAME,
-                    DBCommon.SIZE
-                    );
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
 
         db.transaction(function(tx) {
             var result = tx.executeSql(
-                        "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
-                        [accountId]
-                        );
+                "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
+                [accountId]
+            );
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                assigneeList.push({
-                                      id: row.id,
-                                      name: row.name,
-                                      remoteid: row.odoo_record_id
-                                  });
+                assigneeList.push(DBCommon.rowToObject(row));
             }
         });
 
     } catch (e) {
-        DBCommon.logException(e);
+        DBCommon.logException("getUsers", e);
     }
 
     return assigneeList;

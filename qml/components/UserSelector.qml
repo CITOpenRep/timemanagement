@@ -134,10 +134,9 @@ ComboBox {
         const users = Accounts.getUsers(accountId);
         for (let i = 0; i < users.length; i++) {
             internalUserModel.append({
-                id: users[i].remoteid         // 👈 this is key!
-                ,
+                id: users[i].odoo_record_id,
                 name: users[i].name,
-                remoteid: users[i].remoteid
+                remoteid: users[i].odoo_record_id
             });
         }
 
