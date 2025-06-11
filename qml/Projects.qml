@@ -39,22 +39,17 @@ import "components"
 
 Page {
     id: projectCreate
-    title: "New Project"
+    title: "Project"
     header: PageHeader {
         id: header
         title: projectCreate.title
         StyleHints {
             foregroundColor: "white"
-
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-
-        //    enable: true
-
         trailingActionBar.actions: [
             Action {
-
                 iconSource: "images/save.svg" // New Save Icon
                 text: "Save"
                 visible: !isReadOnly
