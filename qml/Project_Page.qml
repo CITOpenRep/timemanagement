@@ -80,5 +80,12 @@ Page {
         }
     }
 
-    onVisibleChanged: {}
+    onVisibleChanged: {
+        if (visible) {
+            projectlist.refresh();
+        }
+    }
+    Component.onCompleted: {
+        projectlist.refresh();
+    }
 }
