@@ -54,6 +54,7 @@ Item {
 
         // Row for label and combo
         RowLayout {
+
             TSLabel {
                 id: rangeLabel
                 enabled: true
@@ -61,8 +62,10 @@ Item {
             }
 
             Item {
+                // Add left margin using Layout.leftMargin for TSCombobox
                 Layout.preferredWidth: units.gu(20)
-                Layout.preferredHeight: units.gu(5.5)
+                Layout.preferredHeight: units.gu(5)
+                Layout.leftMargin: units.gu(4)
 
                 TSCombobox {
                     id: dayCombo
@@ -80,6 +83,8 @@ Item {
                 property date date: new Date()
                 Layout.preferredWidth: parent.width * 0.5
                 Layout.preferredHeight: parent.height
+                Layout.leftMargin: units.gu(1)
+
                 //   color: "white"
 
                 TSLabel {

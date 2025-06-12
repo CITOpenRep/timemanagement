@@ -167,7 +167,7 @@ Page {
                     id: date_widget
                     readOnly: isReadOnly
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
-                    height: units.gu(8)
+                    height: units.gu(5)
                     anchors.centerIn: parent.centerIn
                 }
             }
@@ -205,7 +205,7 @@ Page {
                 objectName: "button_manual"
                 enabled: !isReadOnly
                 width: parent.width * 0.2
-                height: units.gu(3)
+                height: units.gu(5)
                 anchors.verticalCenter: parent.verticalCenter
 
                 onClicked: {
@@ -266,6 +266,7 @@ Page {
             TSCombobox {
                 id: priorityCombo
                 width: units.gu(33)
+                height: units.gu(5)
                 model: ["Do (Important & Urgent )", "Plan (Important & Not Urgent)", "Delegate (Urgent & Not Important)", "Delete (Not Urgent & Not Important)"]
                 enabled: !isReadOnly
                 currentIndex: 0
