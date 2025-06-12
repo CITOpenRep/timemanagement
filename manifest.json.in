@@ -9,7 +9,7 @@
             "desktop":  "ubtms.desktop"
         }
     },
-    "version": "0.9",
+    "version": "1.0",
     "maintainer": "CIT Services <info@cit-services.eu>",
     "framework" : "@CLICK_FRAMEWORK@"
 }
