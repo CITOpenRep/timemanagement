@@ -55,16 +55,22 @@ ListItem {
         }
     }*/
 
+    leadingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "delete"
+                onTriggered: deleteRequested(recordId)
+            }
+        ]
+    }
+
     trailingActions: ListItemActions {
         actions: [
             Action {
                 iconName: "edit"
                 onTriggered: editRequested(recordId)
-            },
-            Action {
-                iconSource: "../images/delete.png"
-                onTriggered: deleteRequested(recordId)
             }
+           
         ]
     }
 
