@@ -19,6 +19,7 @@
 
     <h2>Change History</h2>
     <ul>
+    <li>13-06-2025 : Updates on Eisenhower widget</li>
     <li>13-06-2025 : Code optimization for better performance</li>
     <li>12-06-2025 : Better UX & Corrected Projects & Tasks menu</li>
      <li>11-06-2025 : Default Account Selection Method Introduced</li>
