@@ -273,7 +273,7 @@ function deleteAccountAndRelatedData(userId) {
         });
 
     } catch (e) {
-        logException(e);
+        DBCommon.logException(e);
     }
 }
 
