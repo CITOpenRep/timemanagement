@@ -115,17 +115,17 @@ function getUsers(accountId) {
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(
-            DBCommon.NAME,
-            DBCommon.VERSION,
-            DBCommon.DISPLAY_NAME,
-            DBCommon.SIZE
-        );
+                    DBCommon.NAME,
+                    DBCommon.VERSION,
+                    DBCommon.DISPLAY_NAME,
+                    DBCommon.SIZE
+                    );
 
         db.transaction(function(tx) {
             var result = tx.executeSql(
-                "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
-                [accountId]
-            );
+                        "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
+                        [accountId]
+                        );
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);

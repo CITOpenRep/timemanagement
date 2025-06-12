@@ -14,17 +14,17 @@ function fetch_timesheets(is_work_state) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var timesheetList = [];
 
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         let timesheets;
 
         if (is_work_state) {
             timesheets = tx.executeSql(
-                "SELECT * FROM account_analytic_line_app WHERE account_id IS NOT NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC"
-            );
+                        "SELECT * FROM account_analytic_line_app WHERE account_id IS NOT NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC"
+                        );
         } else {
             timesheets = tx.executeSql(
-                "SELECT * FROM account_analytic_line_app WHERE parent_id = 0 AND account_id IS NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC"
-            );
+                        "SELECT * FROM account_analytic_line_app WHERE parent_id = 0 AND account_id IS NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC"
+                        );
         }
 
         for (var i = 0; i < timesheets.rows.length; i++) {
@@ -44,16 +44,16 @@ function fetch_timesheets(is_work_state) {
             var task = tx.executeSql("SELECT name FROM project_task_app WHERE odoo_record_id = ?", [row.task_id]);
 
             timesheetList.push({
-                id: row.id,
-                instance: instance.rows.length > 0 ? instance.rows.item(0).name : '',
-                name: row.name || '',
-                spentHours: Utils.convertFloatToTime(row.unit_amount),
-                project: project.rows.length > 0 ? project.rows.item(0).name : 'Unknown Project',
-                quadrant: quadrantObj[row.quadrant_id] || "Do",
-                date: row.record_date,
-                task:task.rows.length > 0 ? task.rows.item(0).name : 'Unknown Task',
-                user:user.rows.length > 0 ? user.rows.item(0).name : '',
-            });
+                                   id: row.id,
+                                   instance: instance.rows.length > 0 ? instance.rows.item(0).name : '',
+                                   name: row.name || '',
+                                   spentHours: Utils.convertFloatToTime(row.unit_amount),
+                                   project: project.rows.length > 0 ? project.rows.item(0).name : 'Unknown Project',
+                                   quadrant: quadrantObj[row.quadrant_id] || "Do",
+                                   date: row.record_date,
+                                   task: task.rows.length > 0 ? task.rows.item(0).name : 'Unknown Task',
+                                   user: user.rows.length > 0 ? user.rows.item(0).name : '',
+                               });
         }
     });
 
@@ -65,11 +65,11 @@ function fetch_timesheets(is_work_state) {
 function markTimesheetAsDeleted(taskId) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             tx.executeSql(
-                "UPDATE account_analytic_line_app SET status = 'deleted' WHERE id = ?",
-                [taskId]
-            );
+                        "UPDATE account_analytic_line_app SET status = 'deleted' WHERE id = ?",
+                        [taskId]
+                        );
         });
         console.log("Marked timesheet as deleted with id " + taskId);
         return { success: true, message: "Timesheet marked as deleted." };
@@ -79,31 +79,33 @@ function markTimesheetAsDeleted(taskId) {
     }
 }
 
-/* Name: get_timesheet_details
+/* Name: getTimeSheetDetails
 * This function will return timesheets details in form of object to fill in detail view of timesheet
 * -> record_id -> for which timesheet details needs to be fetched
 */
 
-function get_timesheet_details(record_id) {
+function getTimeSheetDetails(record_id) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var timesheet_detail = {};
     db.transaction(function (tx) {
         var timesheet = tx.executeSql('SELECT * FROM account_analytic_line_app\
                                     WHERE id = ?', [record_id]);
         if (timesheet.rows.length) {
-            timesheet_detail = {'instance_id': timesheet.rows.item(0).account_id,
-                                'project_id': timesheet.rows.item(0).project_id,
-                                'sub_project_id': timesheet.rows.item(0).sub_project_id,
-                                'task_id': timesheet.rows.item(0).task_id,
-                                'sub_task_id': timesheet.rows.item(0).sub_task_id,
-                                'name': timesheet.rows.item(0).name,
-                                'spentHours': Utils.convertFloatToTime(timesheet.rows.item(0).unit_amount),
-                                'quadrant_id': timesheet.rows.item(0).quadrant_id,
-                                'record_date': formatDate(new Date(timesheet.rows.item(0).record_date))};
+            timesheet_detail = {
+                'instance_id': timesheet.rows.item(0).account_id,
+                'project_id': timesheet.rows.item(0).project_id,
+                'sub_project_id': timesheet.rows.item(0).sub_project_id,
+                'task_id': timesheet.rows.item(0).task_id,
+                'sub_task_id': timesheet.rows.item(0).sub_task_id,
+                'name': timesheet.rows.item(0).name,
+                'spentHours': Utils.convertFloatToTime(timesheet.rows.item(0).unit_amount),
+                'quadrant_id': timesheet.rows.item(0).quadrant_id,
+                'record_date': formatDate(new Date(timesheet.rows.item(0).record_date))
+            };
         }
     });
     function formatDate(date) {
-        var month = date.getMonth() + 1; 
+        var month = date.getMonth() + 1;
         var day = date.getDate();
         var year = date.getFullYear();
         return month + '/' + day + '/' + year;
@@ -111,162 +113,46 @@ function get_timesheet_details(record_id) {
     return timesheet_detail;
 }
 
-
-function fetch_projects(instance_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var projectList = [];
-    db.transaction(function(tx) {
-        if (is_work_state) {
-            var projects = tx.executeSql('SELECT * FROM project_project_app\
-             WHERE account_id = ? AND parent_id IS 0', [instance_id]);
-        } else {
-            var projects = tx.executeSql('SELECT * FROM project_project_app\
-             WHERE account_id IS NULL');
-        }
-        for (var project = 0; project < projects.rows.length; project++) {
-            var child_projects = tx.executeSql('SELECT count(*) as count FROM project_project_app\
-             where parent_id = ?', [projects.rows.item(project).id]);
-            projectList.push({'id': projects.rows.item(project).id,
-                             'name': projects.rows.item(project).name,
-                             'projectHasSubProject': true ? child_projects.rows.item(0).count > 0 : false});
-        }
-    });
-    return projectList;
-}// in doubt function
-
-/* Name: fetch_sub_project
-* This function will return sub projects based on given project's id
-* project_id -> id from project_project_app table
-* is_work_state -> in case of work mode is enable
-*/
-
-function fetch_sub_project(project_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var subProjectsList = [];
-    db.transaction(function(tx) {
-        if (is_work_state) {
-            var sub_projects = tx.executeSql('SELECT * FROM project_project_app\
-                                where parent_id = ?', [project_id]);
-        } else {
-            var sub_projects = tx.executeSql('SELECT * FROM project_project_app\
-                                where account_id IS NULL AND parent_id = ?', [project_id]);
-        }
-        for (var sub_project = 0; sub_project < sub_projects.rows.length; sub_project++) {
-            subProjectsList.push({'id': sub_projects.rows.item(sub_project).id,
-                                 'name': sub_projects.rows.item(sub_project).name});
-        }
-    });
-    return subProjectsList;
-}// in doubt function
-
-/* Name: fetch_tasks_list
-* This function will return tasks list
-* project_id -> id from project_project_app table
-* sub_project_id -> id from project_project_app table
-* is_work_state -> in case of work mode is enable
-*/
-
-function fetch_tasks_list(project_id, sub_project_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var tasks_list = [];
-    db.transaction(function(tx) {
-        if (is_work_state) {
-            var tasks = tx.executeSql('SELECT * FROM project_task_app\
-                                 where project_id = ? AND account_id != 0 AND sub_project_id = ?',
-                                [project_id, sub_project_id != 0 ? sub_project_id : null]);
-            if (sub_project_id == 0) {
-                tasks = tx.executeSql('SELECT * FROM project_task_app\
-                                     where project_id = ? AND account_id != 0',
-                                    [project_id]);
-            }
-        } else {
-            var tasks = tx.executeSql('SELECT * FROM project_task_app\
-                                     where account_id is NULL \
-                                     AND project_id = ? \
-                                     ',
-                                     [project_id]);
-        }
-        for (var task = 0; task < tasks.rows.length; task++) {
-            var child_tasks = tx.executeSql('SELECT count(*) as count FROM project_task_app\
-                                             where parent_id = ?',
-                                             [tasks.rows.item(task).id]);
-            tasks_list.push({'id': tasks.rows.item(task).id,
-                         'name': tasks.rows.item(task).name,
-                         'taskHasSubTask': true ? child_tasks.rows.item(0).count > 0 : false,
-                         'parent_id':tasks.rows.item(task).parent_id});
-        }
-    });
-    return tasks_list;
-}// in doubt function
-
-/* Name: fetch_sub_tasks
-* This function will return sub tasks list based on given id of the task
-* task_id -> id of project_task_app table
-* is_work_state -> in case of work mode is enable
-*/
-
-function fetch_sub_tasks(task_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var sub_tasks_list = [];
-    db.transaction(function(tx) {
-        if (is_work_state) {
-            var sub_tasks = tx.executeSql('SELECT * FROM project_task_app\
-                                         where parent_id = ?', [task_id]);
-        } else {
-            var sub_tasks = tx.executeSql('SELECT * FROM project_task_app\
-                                         where account_id IS NULL AND parent_id = ?',
-                                         [task_id]);
-        }
-        for (var sub_task = 0; sub_task < sub_tasks.rows.length; sub_task++) {
-            sub_tasks_list.push({'id': sub_tasks.rows.item(sub_task).id,
-                             'name': sub_tasks.rows.item(sub_task).name});
-        }
-    });
-    return sub_tasks_list;
-}
-
 /* Name: create_timesheet
 * This function will create timesheet based on passed data
 * data -> object of details related to timesheet entry
 */
 
-function create_or_update_timesheet(data) {
-    console.log("In create_or_update_timesheet");
+function createOrSaveTimesheet(data) {
 
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var timestamp = Utils.getFormattedTimestamp();
     var result = { success: false, error: "" };
 
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             var unitAmount = data.isManualTimeRecord
-                ? Utils.convertDurationToFloat(data.manualSpentHours)
-                : Utils.convertDurationToFloat(data.spenthours);
+                    ? Utils.convertDurationToFloat(data.manualSpentHours)
+                    : Utils.convertDurationToFloat(data.spenthours);
 
             if (data.id && data.id > 0) {
                 console.log("✏Updating timesheet id:", data.id);
                 tx.executeSql(`UPDATE account_analytic_line_app SET
-                    account_id = ?, record_date = ?, project_id = ?, task_id = ?, name = ?,
-                    sub_project_id = ?, sub_task_id = ?, quadrant_id = ?, unit_amount = ?,
-                    last_modified = ?, status = ?, user_id = ? WHERE id = ?`,
-                    [data.instance_id, data.record_date, data.project, data.task, data.description,
-                    data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
-                    data.status, data.user_id, data.id]);
+                              account_id = ?, record_date = ?, project_id = ?, task_id = ?, name = ?,
+                              sub_project_id = ?, sub_task_id = ?, quadrant_id = ?, unit_amount = ?,
+                              last_modified = ?, status = ?, user_id = ? WHERE id = ?`,
+                              [data.instance_id, data.record_date, data.project, data.task, data.description,
+                               data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
+                               data.status, data.user_id, data.id]);
             } else {
                 console.log("Inserting new timesheet entry");
                 tx.executeSql(`INSERT INTO account_analytic_line_app
-                    (account_id, record_date, project_id, task_id, name, sub_project_id,
-                    sub_task_id, quadrant_id, unit_amount, last_modified, status, user_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [data.instance_id, data.record_date, data.project, data.task, data.description,
-                    data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
-                    data.status, data.user_id]);
+                              (account_id, record_date, project_id, task_id, name, sub_project_id,
+                              sub_task_id, quadrant_id, unit_amount, last_modified, status, user_id)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                              [data.instance_id, data.record_date, data.project, data.task, data.description,
+                               data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
+                               data.status, data.user_id]);
             }
 
             result.success = true;
         });
     } catch (err) {
-        console.log("❌ create_or_update_timesheet: DB error:", err);
         result.error = err.message;
     }
 
