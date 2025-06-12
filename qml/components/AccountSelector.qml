@@ -68,7 +68,7 @@ ComboBox {
             });
         }
 
-        console.log('About to check shouldDeferSelection ' + shouldDeferSelection + " " + deferredAccountId);
+        //console.log('About to check shouldDeferSelection ' + shouldDeferSelection + " " + deferredAccountId);
 
         // Handle deferred selection
         if (shouldDeferSelection && deferredAccountId > -1) {
@@ -98,7 +98,7 @@ ComboBox {
     }
 
     function selectAccountById(accountId) {
-        console.log("🔁 [AccountSelector] selectAccountById:", accountId, "modelCount:", internalInstanceModel.count);
+        //console.log("[AccountSelector] selectAccountById:", accountId, "modelCount:", internalInstanceModel.count);
         if (internalInstanceModel.count === 0) {
             shouldDeferSelection = true;
             deferredAccountId = accountId;
@@ -108,12 +108,12 @@ ComboBox {
         for (let i = 0; i < internalInstanceModel.count; i++) {
             const item = internalInstanceModel.get(i);
             if (item.id === accountId) {
-                console.log("✅ [AccountSelector] Matched account:", item.name);
-                suppressSignal = true;  // 🛑 Block onActivated temporarily
+                //console.log("[AccountSelector] Matched account:", item.name);
+                suppressSignal = true;
                 currentIndex = i;
                 editText = item.name;
                 selectedInstanceId = item.id;
-                console.log("✅ Account selected (programmatically):", item.name);
+                //console.log("Account selected (programmatically):", item.name);
                 Qt.callLater(() => suppressSignal = false);  // ✅ Re-enable after event loop
                 if (selectedInstanceId !== item.id) {
                     accountSelected(item.id, item.name);
@@ -133,7 +133,7 @@ ComboBox {
     }
 
     onActivated: {
-        console.log("⚡ [AccountSelector] onActivated index =", currentIndex);
+        //console.log("⚡ [AccountSelector] onActivated index =", currentIndex);
         if (suppressSignal)
             return;
         if (currentIndex >= 0) {

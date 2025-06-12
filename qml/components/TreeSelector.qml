@@ -8,23 +8,34 @@ Item {
     width: parent.width
     height: implicitHeight
 
-    property var projectList: [] // raw flat list
+    property var dataList: [] // raw flat list
     property var treeModel: ListModel {} // flattened tree with indentations as a proper ListModel
     property int selectedId: -1
-    signal projectSelected(int id, string name)
+    signal itemSelected(int id, string name)
+    property string currentText: "No"
+    property string labelText: "Label"
+
+    function reload() {
+        selectedId = -1; //reset index
+        buildTreeModel();
+    }
 
     function buildTreeModel() {
         treeModel.clear();
 
-        var roots = projectList.filter(function(p) { return !p.parent_id; });
-        var children = projectList.filter(function(p) { return p.parent_id; });
+        var roots = dataList.filter(function (p) {
+            return !p.parent_id;
+        });
+        var children = dataList.filter(function (p) {
+            return p.parent_id;
+        });
 
         function addChildren(parent, level) {
-            children.forEach(function(child) {
+            children.forEach(function (child) {
                 if (child.parent_id === parent.id) {
                     treeModel.append({
                         id: child.id,
-                        label: "  ".repeat(level) + "└─ " + child.name,
+                        label: "  ".repeat(level) + "- " + child.name,
                         name: child.name,
                         parent_id: parent.id
                     });
@@ -33,7 +44,7 @@ Item {
             });
         }
 
-        roots.forEach(function(root) {
+        roots.forEach(function (root) {
             treeModel.append({
                 id: root.id,
                 label: root.name,
@@ -48,14 +59,31 @@ Item {
         width: parent.width
         spacing: units.gu(1)
 
-        Button {
-            id: triggerButton
-            property string selectedLabel: "Select Project"
-
-            text: selectedLabel || "Select Project"
+        Row {
             width: parent.width
+            spacing: units.gu(1)
             height: units.gu(5)
-            onClicked: popup.open()
+
+            TSLabel {
+                text: treeSelector.labelText
+                verticalAlignment: Text.AlignVCenter
+                width: parent.width * 0.3  // Adjust as needed
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            TSButton {
+                id: triggerButton
+                text: treeSelector.currentText || "Select Item"
+                width: parent.width * 0.7  // Adjust as needed
+                height: parent.height
+                onClicked: {
+                    if (treeModel.count > 0) {
+                        popup.open();
+                    } else {
+                        console.log("No items to select");
+                    }
+                }
+            }
         }
 
         Popup {
@@ -64,7 +92,10 @@ Item {
             width: treeSelector.width
             x: triggerButton.x
             y: triggerButton.y + triggerButton.height
-            background: Rectangle { color: "#ffffff"; radius: 6 }
+            background: Rectangle {
+                color: "#ffffff"
+                radius: 6
+            }
             height: 300
 
             ListView {
@@ -80,10 +111,10 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            treeSelector.selectedId = model.id
-                            triggerButton.selectedLabel = model.label || ""
-                            treeSelector.projectSelected(model.id, model.label || "")
-                            popup.close()
+                            treeSelector.selectedId = model.id;
+                            treeSelector.currentText = model.name || "";
+                            treeSelector.itemSelected(model.id, model.name || "");
+                            popup.close();
                         }
 
                         Text {
@@ -101,3 +132,24 @@ Item {
 
     Component.onCompleted: buildTreeModel()
 }
+
+/*
+  Example to use
+TreeSelector {
+   id: selector
+   width: parent.width - units.gu(2)
+   height: units.gu(29)
+
+   dataList: [
+           { id: 1, name: "Movies", parent_id: null },
+           { id: 2, name: "Hollywood", parent_id: 1 },
+           { id: 3, name: "Design", parent_id: null },
+           { id: 4, name: "UI Overhaul", parent_id: 3 },
+           { id: 5, name: "1Movies", parent_id: null },
+           { id: 6, name: "2Hollywood", parent_id: 1 },
+           { id: 7, name: "3Design", parent_id: null },
+           { id: 8, name: "4UI Overhaul", parent_id: 3 }
+       ]
+       onItemSelected: (id, name) => console.log("Selected →", id, name)
+}
+*/

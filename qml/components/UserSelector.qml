@@ -108,11 +108,11 @@ ComboBox {
                 Qt.callLater(() => {
                     currentIndex = i;
                     selectedUserId = user.id;
-                    console.log("✅ (Deferred) User selected:", user.name);
+                    //console.log("(Deferred) User selected:", user.name);
                     if (!shouldDeferUserSelection)
                         userSelected(user.id, user.name);
                 });
-                console.log("✅ User selected:", user.name);
+                //console.log("User selected:", user.name);
                 if (!shouldDeferUserSelection)
                     userSelected(user.id, user.name);
                 return;
@@ -141,7 +141,7 @@ ComboBox {
             });
         }
 
-        console.log('About to check shouldDeferUserSelection: ' + shouldDeferUserSelection + " " + deferredUserId);
+        //console.log('About to check shouldDeferUserSelection: ' + shouldDeferUserSelection + " " + deferredUserId);
         if (shouldDeferUserSelection && deferredUserId > -1) {
             Qt.callLater(() => {
                 selectUserById(deferredUserId);

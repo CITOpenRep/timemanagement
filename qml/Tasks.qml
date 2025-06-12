@@ -79,13 +79,10 @@ Page {
 
     function save_task_data() {
         //this shit has to be updated
-        console.log("Account ID: " + Global.selectedInstanceId);
         const ids = workItem.getAllSelectedDbRecordIds();
         console.log("Account DB ID:", ids.accountDbId);
         console.log("Project DB ID:", ids.projectDbId);
-        console.log("Subproject DB ID:", ids.subprojectDbId);
         console.log("Task DB ID:", ids.taskDbId);
-        console.log("Subtask DB ID:", ids.subtaskDbId);
         console.log("Get the Current User");
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
         if (!user) {
@@ -98,14 +95,12 @@ Page {
                 name: name_text.text,
                 record_id: recordid,
                 projectId: ids.projectDbId < 0 ? 0 : ids.projectDbId,
-                subProjectId: ids.subprojectDbId < 0 ? 0 : ids.subprojectDbId,
+                subProjectId: 0,
                 parentId: ids.taskDbId > 0 ? ids.taskDbId : 0,
                 startDate: date_range_widget.formattedStartDate(),
                 endDate: date_range_widget.formattedEndDate(),
-                deadline: date_range_widget.formattedEndDate() //for now we made deadline as enddate
-                ,
-                favorites: 0//for now do nothing
-                ,
+                deadline: date_range_widget.formattedEndDate(),
+                favorites: 0,
                 plannedHours: hours_text.text,
                 description: description_text.text,
                 assigneeUserId: assigneeCombo.selectedUserId === -1 ? null : assigneeCombo.selectedUserId //add a messagebox if you want to have an assignee based on the -1 value
@@ -165,7 +160,7 @@ Page {
                     id: workItem
                     readOnly: isReadOnly
                     taskLabelText: "Parent Task"
-                    showSubtaskSelector: false
+                    // showSubtaskSelector: false
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
                     onAccountChanged: {
@@ -380,9 +375,11 @@ Page {
             //// return;
             currentTask = Task.getTaskDetails(recordid);
 
-            /* console.log("Sub Project ID:", currentTask.sub_project_id);
+            console.log("Account ID:", currentTask.account_id);
+            console.log("Sub Project ID:", currentTask.sub_project_id);
             console.log("Project ID:", currentTask.project_id);
-            console.log("Start Date:", currentTask.start_date);
+            console.log("Task Parent ID:", currentTask.project_id);
+            /* console.log("Start Date:", currentTask.start_date);
             console.log("End Date:", currentTask.end_date);
             console.log("Deadline:", currentTask.deadline);
             console.log("Initial Planned Hours:", currentTask.initial_planned_hours);
@@ -391,16 +388,15 @@ Page {
             console.log("Description:", currentTask.description);
             console.log("Last Modified:", currentTask.last_modified);
             console.log("User ID:", currentTask.user_id);
-            console.log("Status:", currentTask.status);
-            console.log("Odoo Record ID:", currentTask.odoo_record_id);*/
+            console.log("Status:", currentTask.status);*/
+            console.log("Odoo Record ID:", currentTask.odoo_record_id);
 
             let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
-            let projectId = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;
-            let taskId = (currentTask.task_id !== undefined && currentTask.task_id !== null) ? currentTask.task_id : -1;
-            let subProjectId = (currentTask.sub_project_id !== undefined && currentTask.sub_project_id !== null) ? currentTask.sub_project_id : -1;
+            let parent_project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;
+            let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let user_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            workItem.applyDeferredSelection(instanceId, currentTask.project_id, currentTask.sub_project_id, -1, -1);
+            workItem.applyDeferredSelection(instanceId, parent_project_id, parent_task_id);
             //We do not now setting the parent task
 
             //Todo Gokul to implement the defered loading in assignees , we get [] for invalid users
@@ -411,7 +407,7 @@ Page {
                 assigneeCombo.shouldDeferUserSelection = true;
                 assigneeCombo.loadUsers();
             } else {
-                console.warn("⚠️ Invalid or empty user_id:", currentTask.user_id);
+                console.warn("Invalid or empty user_id:", currentTask.user_id);
             }
 
             date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
@@ -425,7 +421,9 @@ Page {
         } else //we are creating a new Task
         {
             console.log("Creating a new task");
-            workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
+
+            workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
+
             assigneeCombo.accountId = Accounts.getDefaultAccountId();
             assigneeCombo.shouldDeferUserSelection = false;
             assigneeCombo.loadUsers();

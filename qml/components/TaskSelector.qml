@@ -143,7 +143,7 @@ ComboBox {
     }
 
     function _loadFromTask(accountIdVal, taskIdVal, suppressSignal) {
-        console.log("[loadDeferred] task-based → accountId:", accountIdVal, "taskId:", taskIdVal);
+        //console.log("[loadDeferred] task-based → accountId:", accountIdVal, "taskId:", taskIdVal);
         clear();
         accountId = accountIdVal;
 

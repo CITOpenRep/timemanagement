@@ -54,18 +54,16 @@ Page {
                 text: "Save"
                 visible: !isReadOnly
                 onTriggered: {
-                    console.log("Account ID: " + Global.selectedInstanceId);
                     const ids = workItem.getAllSelectedDbRecordIds();
                     console.log("Account DB ID:", ids.accountDbId);
 
                     // isReadOnly = !isReadOnly
                     var project_data = {
-                        'account_id': ids.accountDbId,
+                        'account_id': ids.accountDbId >= 0 ? ids.accountDbId : 0,
                         'name': project_name.text,
                         'planned_start_date': date_range_widget.formattedStartDate(),
                         'planned_end_date': date_range_widget.formattedEndDate(),
-                        'parent_id': 0 //for now
-                        ,
+                        'parent_id': (ids.projectDbId !== undefined && ids.projectDbId >= 0) ? ids.projectDbId : 0,
                         'allocated_hours': hours_text.text,
                         'description': description_text.text,
                         'favorites': 0,
@@ -121,10 +119,8 @@ Page {
                         id: workItem
                         readOnly: isReadOnly
                         taskLabelText: "Parent Task"
-                        showSubtaskSelector: false
-                        showSubprojectSelector: false
                         showTaskSelector: false
-                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                        width: scrollview.width - units.gu(2)
                         height: units.gu(10)
                     }
                 }
@@ -371,7 +367,7 @@ Page {
             let ppid = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
 
             //dont integrate the parnet projct
-            workItem.applyDeferredSelection(instanceId, -1, -1, -1, -1);
+            workItem.applyDeferredSelection(instanceId, project.parent_id, -1);
 
             description_text.text = project.description || "";
 
@@ -382,7 +378,7 @@ Page {
         } else {
             //do nothing as we are creating project
             recordid = 0;
-            workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
+            workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
             //accountCombo.load()
         }
     }

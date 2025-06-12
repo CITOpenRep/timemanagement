@@ -229,7 +229,7 @@ def process_odoo_records(
     for rec in records:
         odoo_id = rec["id"]
         fetched_odoo_ids.add(odoo_id)
-       # print(rec) to view the record for debugging
+        #print(rec) #to view the record for debugging
 
         if has_last_modified:
             # Read last_modified from local DB
