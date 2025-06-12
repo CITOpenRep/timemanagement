@@ -3,6 +3,7 @@ import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.3
 
+
 ComboBox {
     id: innerCombo
 
@@ -11,7 +12,7 @@ ComboBox {
     background: Rectangle {
         //color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
         radius: units.gu(0.5)
-        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#636161"
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
         border.width: 1
         color: "transparent"
     }
@@ -28,6 +29,7 @@ ComboBox {
     delegate: ItemDelegate {
         width: innerCombo.width
         hoverEnabled: true
+
         contentItem: Text {
             text: modelData
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#222"
@@ -35,8 +37,11 @@ ComboBox {
             elide: Text.ElideRight
         }
         background: Rectangle {
-            color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-            radius: 4
+            color: (hovered
+                    ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "skyblue" : "lightgrey")
+                    : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white"))
+            radius: units.gu(0.5)
+            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
         }
     }
 
