@@ -40,9 +40,12 @@ ComboBox {
             leftPadding: units.gu(1)
             elide: Text.ElideRight
         }
-        background: Rectangle {
-            color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-            radius: 4
+       background: Rectangle {
+            color: (hovered
+                    ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "skyblue" : "lightgrey")
+                    : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white"))
+            radius: units.gu(0.5)
+            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
         }
     }
 
