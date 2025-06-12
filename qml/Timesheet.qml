@@ -157,15 +157,14 @@ Page {
             }
         }
 
-
-          Row {
+        Row {
             id: myRow7
-            anchors.top:  myRow1a.bottom   
+            anchors.top: myRow1a.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
-       
+
             spacing: units.gu(6.3)
             topPadding: units.gu(2)
 
@@ -252,8 +251,6 @@ Page {
             }
         }
 
-
-
         /**********************************************************/
 
         Column {
@@ -276,8 +273,6 @@ Page {
                 width: parent.width - units.gu(2)
             }
         }
-
-      
 
         TimePickerPopup {
             id: myTimePicker

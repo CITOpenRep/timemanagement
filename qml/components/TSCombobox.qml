@@ -3,7 +3,6 @@ import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.3
 
-
 ComboBox {
     id: innerCombo
 
@@ -37,9 +36,7 @@ ComboBox {
             elide: Text.ElideRight
         }
         background: Rectangle {
-            color: (hovered
-                    ? "skyblue"
-                    : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e2e0da"))
+            color: (hovered ? "skyblue" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e2e0da"))
             radius: units.gu(0.5)
             border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
         }

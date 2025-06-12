@@ -274,7 +274,7 @@ Page {
                 leftPadding: units.gu(3)
                 LomiriShape {
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
-                    height: 60
+                    height: units.gu(5)
 
                     UserSelector {
                         id: assigneeCombo

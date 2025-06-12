@@ -70,7 +70,6 @@ ListItem {
                 iconName: "edit"
                 onTriggered: editRequested(recordId)
             }
-           
         ]
     }
 
