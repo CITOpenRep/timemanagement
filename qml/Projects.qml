@@ -189,45 +189,8 @@ Page {
             }
 
             Row {
-                id: myRow10
-                anchors.top: myRow9.bottom
-                anchors.left: parent.left
-                topPadding: units.gu(2)
-                Column {
-                    id: myCol10
-                    leftPadding: units.gu(2)
-                    LomiriShape {
-                        width: units.gu(10)
-                        height: units.gu(5)
-                        aspect: LomiriShape.Flat
-                        Label {
-                            id: parent_label
-                            text: "Parent Project"
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
-                        }
-                    }
-                }
-                Column {
-                    id: myCol11
-                    leftPadding: units.gu(3)
-                    LomiriShape {
-                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        height: units.gu(6)
-                        ProjectSelector {
-                            id: parent_projectCombo
-                            width: parent.width
-                            height: parent.height
-                            anchors.centerIn: parent.centerIn
-                        }
-                    }
-                }
-            }
-
-            Row {
                 id: myRow4
-                anchors.top: myRow10.bottom
+                anchors.top: myRow9.bottom
                 anchors.left: parent.left
                 anchors.rightMargin: 10
                 height: units.gu(5)
