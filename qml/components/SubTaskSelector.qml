@@ -78,7 +78,7 @@ ComboBox {
             leftPadding: units.gu ? units.gu(1) : 4
             elide: Text.ElideRight
         }
-        background: Rectangle {
+       background: Rectangle {
             color: (hovered
                     ? "skyblue"
                     : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e2e0da"))
