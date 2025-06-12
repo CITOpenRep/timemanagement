@@ -239,6 +239,12 @@ function updateOdooUsers(model) {
     });
 }
 
+/* Name: fetch_projects
+* This function will return projects based on Odoo account and work state
+* instance_id -> id of users table
+* is_work_state -> in case of work mode is enable
+*/
+
 function fetch_projects(instance_id, is_work_state) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var projectList = [];
@@ -262,31 +268,7 @@ function fetch_projects(instance_id, is_work_state) {
     return projectList;
 }
 
-function fetch_subprojects(instance_id, parent_project_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var subprojectList = [];
 
-    db.transaction(function(tx) {
-        var result = tx.executeSql('SELECT * FROM project_project_app \
-            WHERE account_id = ? AND parent_id = ?', [instance_id, parent_project_id]);
-
-        for (var i = 0; i < result.rows.length; i++) {
-            var row = result.rows.item(i);
-            var child_projects = tx.executeSql('SELECT count(*) as count FROM project_project_app \
-                WHERE parent_id = ?', [row.id]);
-
-            subprojectList.push({
-                                    id: row.odoo_record_id,
-                                    name: row.name,
-                                    parent_id: row.parent_id,
-                                    recordId: row.odoo_record_id,
-                                    projectHasSubProject: child_projects.rows.item(0).count > 0
-                                });
-        }
-    });
-
-    return subprojectList;
-}
 
 function fetch_subtasks(instance_id, parent_task_id) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -366,42 +348,7 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
     xhr.send("{}");
 }
 
-function populateProjectModelWithTaskCount(model, is_work_state) {
-    model.clear();
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
-    db.transaction(function(tx) {
-        var query = is_work_state
-                ? 'SELECT * FROM project_project_app WHERE account_id IS NOT NULL ORDER BY last_modified DESC'
-                : 'SELECT * FROM project_project_app WHERE account_id IS NULL ORDER BY last_modified DESC';
-
-        var result = tx.executeSql(query);
-
-        for (var i = 0; i < result.rows.length; i++) {
-            var row = result.rows.item(i);
-            var taskCountQuery = tx.executeSql(
-                        'SELECT COUNT(*) AS count FROM project_task_app WHERE project_id = ? AND account_id = ?',
-                        [row.id, row.account_id]
-                        );
-
-            var taskCount = (taskCountQuery.rows.length > 0) ? taskCountQuery.rows.item(0).count : 0;
-
-            model.append({
-                             id: row.id,
-                             projectName: row.name,
-                             allocatedHours: row.allocated_hours || "0",
-                             startDate: row.planned_start_date || "",
-                             endDate: row.planned_end_date || "",
-                             deadline: row.planned_end_date || "",  // same as endDate
-                             description: row.description || "",
-                             colorPallet: row.color_pallet || "#cccccc",
-                             recordId: row.id,
-                             isFavorite: row.favorites === 1,
-                             task_count: taskCount
-                         });
-        }
-    });
-}
 
 function getColorFromOdooIndex(index) {
     //standard from odoo pallet
@@ -462,4 +409,31 @@ function getFormattedTimestamp() {
     var minutes = String(now.getMinutes()).padStart(2, '0');
     var seconds = String(now.getSeconds()).padStart(2, '0');
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+
+/* Name: convertFloatToTime
+* This function will return HH:MM format time based on float value
+* -> value -> float value to convert HH:MM
+*/
+
+function convertFloatToTime(value) {
+    var hours = Math.floor(value);
+    var minutes = Math.round((value - hours) * 60);
+    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
+}
+
+/* Name: convertDurationToFloat
+* This function will return float value from HH:MM format
+* -> value -> HH:MM format to convert float value
+*/
+
+function convertDurationToFloat(value) {
+    let vals = value.split(":");
+    let hours = parseFloat(vals[0]);
+    let minutes = parseFloat(vals[1]);
+    let days = Math.floor(hours / 24);
+    hours = hours % 24;
+    let convertedMinutes = minutes / 60.0;
+    return hours + convertedMinutes;
 }

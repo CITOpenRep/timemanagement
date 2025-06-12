@@ -2,11 +2,7 @@
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
 
-function convertFloatToTime(value) {
-    var hours = Math.floor(value);
-    var minutes = Math.round((value - hours) * 60);
-    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
-}
+
 
 /* Name: fetch_timesheets
 * This function will return timesheets based on work state, this function is returning
@@ -51,7 +47,7 @@ function fetch_timesheets(is_work_state) {
                 id: row.id,
                 instance: instance.rows.length > 0 ? instance.rows.item(0).name : '',
                 name: row.name || '',
-                spentHours: convertFloatToTime(row.unit_amount),
+                spentHours: Utils.convertFloatToTime(row.unit_amount),
                 project: project.rows.length > 0 ? project.rows.item(0).name : 'Unknown Project',
                 quadrant: quadrantObj[row.quadrant_id] || "Do",
                 date: row.record_date,
@@ -65,35 +61,6 @@ function fetch_timesheets(is_work_state) {
 }
 
 
-function fetch_timesheets_for_grid(is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var timesheetList = [];
-    db.transaction(function(tx) {
-        let timesheets;
-        if (is_work_state) {
-            timesheets = tx.executeSql('SELECT * FROM account_analytic_line_app WHERE account_id IS NOT NULL ORDER BY id DESC');
-        } else {
-            timesheets = tx.executeSql('SELECT * FROM account_analytic_line_app WHERE parent_id = 0 AND account_id IS NULL');
-        }
-
-        for (let i = 0; i < timesheets.rows.length; i++) {
-            let row = timesheets.rows.item(i);
-            let project = tx.executeSql('SELECT name, color_pallet FROM project_project_app WHERE id = ?', [row.project_id]);
-
-            timesheetList.push({
-                id: row.id,
-                record_date: row.record_date,
-                project_id: project.rows.length ? project.rows.item(0).name : '',
-                project_color: project.rows.length ? project.rows.item(0).color_pallet : '',
-                task_id: row.task_id,
-                name: row.name,
-                quadrant_id: row.quadrant_id,
-                unit_amount: row.unit_amount.toString()
-            });
-        }
-    });
-    return timesheetList;
-}
 
 function markTimesheetAsDeleted(taskId) {
     try {
@@ -130,7 +97,7 @@ function get_timesheet_details(record_id) {
                                 'task_id': timesheet.rows.item(0).task_id,
                                 'sub_task_id': timesheet.rows.item(0).sub_task_id,
                                 'name': timesheet.rows.item(0).name,
-                                'spentHours': convertFloatToTime(timesheet.rows.item(0).unit_amount),
+                                'spentHours': Utils.convertFloatToTime(timesheet.rows.item(0).unit_amount),
                                 'quadrant_id': timesheet.rows.item(0).quadrant_id,
                                 'record_date': formatDate(new Date(timesheet.rows.item(0).record_date))};
         }
@@ -144,75 +111,6 @@ function get_timesheet_details(record_id) {
     return timesheet_detail;
 }
 
-/* Name: createUpdateTimesheet
-* This function will return whether record is saved successfully or not
-* -> timesheet_data -> Object of latest data
-* -> record_id -> to update record
-*/
-
-function createUpdateTimesheet(timesheet_data, record_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var timesheetObj = {};
-    db.transaction(function (tx) {
-        try {
-            if (recordid == 0) {
-                tx.executeSql('INSERT INTO account_analytic_line_app \
-                            (account_id, name, project_id, sub_project_id, task_id, \
-                            sub_task_id, unit_amount, quadrant_id, last_modified)\
-                            Values (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-                            [timesheet_data.account_id, timesheet_data.name, timesheet_data.project_id,
-                            timesheet_data.sub_project_id, timesheet_data.task_id, timesheet_data.sub_task_id, convertDurationToFloat(timesheet_data.unit_amount),
-                            timesheet_data.quadrant_id, Utils.getFormattedTimestamp()])
-            } else {
-                tx.executeSql('UPDATE account_analytic_line_app SET \
-                            account_id = ?, name = ?, project_id = ?, sub_project_id = ?, task_id = ?, \
-                            sub_task_id = ?, unit_amount = ?, quadrant_id = ?, last_modified = ?\
-                            where id = ?', 
-                            [timesheet_data.account_id, timesheet_data.name, timesheet_data.project_id,
-                            timesheet_data.sub_project_id, timesheet_data.task_id, timesheet_data.sub_task_id, convertDurationToFloat(timesheet_data.unit_amount),
-                            timesheet_data.quadrant_id, Utils.getFormattedTimestamp(), recordid])
-            }
-            timesheetObj['is_success'] = true;
-            timesheetObj['message'] = 'Record is saved Successfully!';
-        } catch (error) {
-            timesheetObj['is_success'] = false;
-            timesheetObj['message'] = 'Record could not be saved!\n' + error;
-        }
-    });
-    return timesheetObj;
-}
-
-/* Name: convertFloatToTime
-* This function will return HH:MM format time based on float value
-* -> value -> float value to convert HH:MM
-*/
-
-function convertFloatToTime(value) {
-    var hours = Math.floor(value);
-    var minutes = Math.round((value - hours) * 60);
-    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
-}
-
-/* Name: convertDurationToFloat
-* This function will return float value from HH:MM format
-* -> value -> HH:MM format to convert float value
-*/
-
-function convertDurationToFloat(value) {
-    let vals = value.split(":");
-    let hours = parseFloat(vals[0]);
-    let minutes = parseFloat(vals[1]);
-    let days = Math.floor(hours / 24);
-    hours = hours % 24;
-    let convertedMinutes = minutes / 60.0;
-    return hours + convertedMinutes;
-}
-
-/* Name: fetch_projects
-* This function will return projects based on Odoo account and work state
-* instance_id -> id of users table
-* is_work_state -> in case of work mode is enable
-*/
 
 function fetch_projects(instance_id, is_work_state) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -234,7 +132,7 @@ function fetch_projects(instance_id, is_work_state) {
         }
     });
     return projectList;
-}
+}// in doubt function
 
 /* Name: fetch_sub_project
 * This function will return sub projects based on given project's id
@@ -259,7 +157,7 @@ function fetch_sub_project(project_id, is_work_state) {
         }
     });
     return subProjectsList;
-}
+}// in doubt function
 
 /* Name: fetch_tasks_list
 * This function will return tasks list
@@ -299,7 +197,7 @@ function fetch_tasks_list(project_id, sub_project_id, is_work_state) {
         }
     });
     return tasks_list;
-}
+}// in doubt function
 
 /* Name: fetch_sub_tasks
 * This function will return sub tasks list based on given id of the task
@@ -327,24 +225,11 @@ function fetch_sub_tasks(task_id, is_work_state) {
     return sub_tasks_list;
 }
 
-/* Name: convert_time
-* This function will return formatted time HH:MM
-* value -> string
-*/
-
-function convert_time(value) {
-    var vals = value.split(':');
-    var hours = parseInt(vals[0], 10);
-    var minutes = parseInt(vals[1], 10);
-    hours += Math.floor(minutes / 60);
-    minutes = minutes % 60;
-    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
-}
-
 /* Name: create_timesheet
 * This function will create timesheet based on passed data
 * data -> object of details related to timesheet entry
 */
+
 function create_or_update_timesheet(data) {
     console.log("In create_or_update_timesheet");
 
@@ -355,8 +240,8 @@ function create_or_update_timesheet(data) {
     try {
         db.transaction(function(tx) {
             var unitAmount = data.isManualTimeRecord
-                ? convertDurationToFloat(data.manualSpentHours)
-                : convertDurationToFloat(data.spenthours);
+                ? Utils.convertDurationToFloat(data.manualSpentHours)
+                : Utils.convertDurationToFloat(data.spenthours);
 
             if (data.id && data.id > 0) {
                 console.log("✏Updating timesheet id:", data.id);
