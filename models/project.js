@@ -52,6 +52,33 @@ function getProjectDetails(project_id) {
     return project_detail;
 }
 
+/**
+ * Retrieves all project records from the local SQLite DB as plain objects.
+ *
+ * @returns {Array<Object>} A list of project objects with fields like id, name, etc.
+ */
+function getAllProjects() {
+    var projectList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_project_app ORDER BY name COLLATE NOCASE ASC";
+            var result = tx.executeSql(query);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                projectList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("❌ getAllProjects failed:", e);
+    }
+
+    return projectList;
+}
+
 
 /**
  * Retrieves all projects associated with a specific user account from the local SQLite database.

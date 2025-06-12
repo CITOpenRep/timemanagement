@@ -323,3 +323,32 @@ function getCurrentUserOdooId(accountId) {
 
     return odooId;
 }
+
+/**
+ * Fetches the account name for a given account ID from the `users` table.
+ *
+ * @param {number} accountId - The ID of the account to look up.
+ * @returns {string} - The name of the account, or an empty string if not found.
+ */
+function getAccountName(accountId) {
+    if (accountId === null || accountId === undefined) {
+        return "";
+    }
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var name = "";
+
+        db.transaction(function (tx) {
+            var result = tx.executeSql("SELECT name FROM users WHERE id = ?", [accountId]);
+            if (result.rows.length > 0) {
+                name = result.rows.item(0).name;
+            }
+        });
+
+        return name;
+    } catch (e) {
+        console.error("❌ getAccountName failed:", e);
+        return "";
+    }
+}
