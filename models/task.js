@@ -2,6 +2,10 @@
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
 
+// Helper to handle -1/null
+function validId(value) {
+    return (value !== undefined && value > 0) ? value : null;
+}
 
 function saveOrUpdateTask(data) {
     try {
@@ -44,66 +48,6 @@ function saveOrUpdateTask(data) {
 }
 
 
-// Helper to handle -1/null
-function validId(value) {
-    return (value !== undefined && value > 0) ? value : null;
-}
-
-/**
- * Fetches tasks for a given account and optionally filtered by project.
- *
- * If `projectId` is 0, it fetches all tasks for the account. Otherwise, it fetches
- * tasks belonging to both the account and the specified project.
- *
- * @param {number} accountId - The ID of the account.
- * @param {number} projectId - The ID of the project to filter by (0 to ignore).
- * @returns {Array<Object>} An array of task objects from the local DB.
- */
-function getTasksForAccountAndProject(accountId, projectId) {
-    log('getTasksForAccountAndProject', '[${tag}] Fetching tasks for accountId: ${accountId}, projectId: ${projectId}');
-
-    var tasks = [];
-
-    try {
-        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-
-        db.transaction(function (tx) {
-            var result;
-
-            if (projectId === 0) {
-                result = tx.executeSql(
-                    "SELECT * FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC",
-                    [accountId]
-                );
-            } else {
-                result = tx.executeSql(
-                    "SELECT * FROM project_task_app WHERE account_id = ? AND project_id = ? ORDER BY last_modified DESC",
-                    [accountId, projectId]
-                );
-            }
-
-            for (var i = 0; i < result.rows.length; i++) {
-                var row = result.rows.item(i);
-                tasks.push({
-                    id: row.id,
-                    remote_id: row.odoo_record_id,
-                    name: row.name,
-                    allocated_hours: row.initial_planned_hours,
-                    state: row.state,
-                    project_id: row.project_id,
-                    parent_id: row.parent_id,
-                    favorites: row.favorites
-                });
-            }
-        });
-
-    } catch (e) {
-        logException(e);
-    }
-
-    return tasks;
-}
-
 function markTaskAsDeleted(taskId) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -121,31 +65,6 @@ function markTaskAsDeleted(taskId) {
             success: false,
             message: "Failed to mark as deleted: " + e
         };
-    }
-}
-
-function togglePriority(taskId, currentState) {
-    try {
-        var newState = currentState > 0 ? 0 : 1;
-        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-        db.transaction(function(tx) {
-            tx.executeSql("UPDATE project_task_app SET favorites = ?, last_modified = ? WHERE id = ?", [newState, new Date().toISOString(), taskId]);
-        });
-        console.log("togglePriority: Updated favorites for taskId " + taskId + " to " + newState);
-    } catch (e) {
-        console.error("togglePriority: Failed to update favorites for taskId " + taskId + " - " + e);
-    }
-}
-
-function deletetaskData(taskId) {
-    try {
-        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-        db.transaction(function(tx) {
-            tx.executeSql("DELETE FROM project_task_app WHERE id = ?", [taskId]);
-        });
-        console.log("deletetaskData: Deleted task with id " + taskId);
-    } catch (e) {
-        console.error("deletetaskData: Failed to delete task with id " + taskId + " - " + e);
     }
 }
 
@@ -285,7 +204,6 @@ function fetch_task_details(taskrec){
     return taskdata
 }
 
-
 function filterTaskList(query) {
     tasksListModel.clear();
 
@@ -304,20 +222,6 @@ function filterTaskList(query) {
     }
 }
 
-function fetch_current_users_task(selectedAccountUserId) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var activity_type_list = []
-    db.transaction(function (tx) {
-        var instance_users = tx.executeSql('select * from res_users_app where account_id = ? AND share = ? AND active = ?', [selectedAccountUserId, 0, 1])
-        var all_users = tx.executeSql('select * from res_users_app')
-        for (var user = 0; user < all_users.rows.length; user++) {
-        } //GM: What is this for?
-        for (var instance_user = 0; instance_user < instance_users.rows.length; instance_user++) {
-            activity_type_list.push({'id': instance_users.rows.item(instance_user).id, 'name': instance_users.rows.item(instance_user).name});
-        }
-    })
-    return activity_type_list;
-}
 
 function getAssigneeList(){
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -333,9 +237,6 @@ function getAssigneeList(){
     return assigneelist
 
 }
-
-
-//Refactored
 
 /**
  * Fetches all tasks for a specific account from the SQLite DB.
