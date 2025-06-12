@@ -182,3 +182,32 @@ function getTaskDetails(task_id) {
 
     return task_detail;
 }
+
+
+/**
+ * Retrieves all non-deleted tasks from the `project_task_app` table.
+ *
+ * @returns {Array<Object>} A list of task objects as plain JS objects.
+ */
+function getAllTasks() {
+    var taskList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_task_app WHERE status IS NULL OR status != 'deleted' ORDER BY name COLLATE NOCASE ASC";
+            var result = tx.executeSql(query);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                taskList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("❌ getAllTasks failed:", e);
+    }
+
+    return taskList;
+}
+

@@ -143,7 +143,7 @@ function getProjectsForAccount(accountId) {
  * @returns {Object} - An object with `is_success` (boolean) and `message` (string) indicating the result.
  */
 function createUpdateProject(project_data, recordid) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var messageObj = {};
     var timestamp = Utils.getFormattedTimestamp();
     db.transaction(function (tx) {
@@ -186,7 +186,7 @@ function createUpdateProject(project_data, recordid) {
  * @returns {Array<Object>} - A list of objects with `project_id`, `name`, and `spentHours`.
  */
 function getProjectSpentHoursList(is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var resultList = [];
     var projectSpentMap = {};
 
@@ -222,4 +222,33 @@ function getProjectSpentHoursList(is_work_state) {
     });
 
     return resultList;
+}
+
+/**
+ * Gets the name of a project by its Odoo ID and account.
+ *
+ * @param {number} projectId - Odoo record ID of the project.
+ * @param {number} accountId - Account ID to scope the lookup.
+ * @returns {string} - Project name if found, else "Unknown Project".
+ */
+function getProjectName(projectId, accountId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectName = "Unknown Project";
+
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
+                [projectId, accountId]
+            );
+            if (result.rows.length > 0) {
+                projectName = result.rows.item(0).name;
+            }
+        });
+
+        return projectName;
+    } catch (e) {
+        console.error("❌ getProjectName failed:", e);
+        return "Unknown Project";
+    }
 }
