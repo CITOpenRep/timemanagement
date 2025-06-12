@@ -157,9 +157,39 @@ Page {
             }
         }
 
+
+          Row {
+            id: myRow7
+            anchors.top:  myRow1a.bottom   
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+       
+            spacing: units.gu(6.3)
+            topPadding: units.gu(2)
+
+            Label {
+                id: priority_label
+                text: "Priority"
+                width: units.gu(6)
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+            }
+
+            TSCombobox {
+                id: priorityCombo
+                width: units.gu(37)
+                height: units.gu(5)
+                model: ["Do (Important & Urgent )", "Plan (Important & Not Urgent)", "Delegate (Urgent & Not Important)", "Delete (Not Urgent & Not Important)"]
+                enabled: !isReadOnly
+                currentIndex: 0
+            }
+        }
+
         Row {
             id: myRow1
-            anchors.top: myRow1a.bottom
+            anchors.top: myRow7.bottom
             anchors.left: parent.left
             Column {
                 leftPadding: units.gu(1)
@@ -167,7 +197,7 @@ Page {
                     id: date_widget
                     readOnly: isReadOnly
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
-                    height: units.gu(8)
+                    height: units.gu(5)
                     anchors.centerIn: parent.centerIn
                 }
             }
@@ -181,7 +211,7 @@ Page {
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
-            spacing: units.gu(1)
+            spacing: units.gu(2)
             topPadding: units.gu(1)
 
             TSLabel {
@@ -205,7 +235,7 @@ Page {
                 objectName: "button_manual"
                 enabled: !isReadOnly
                 width: parent.width * 0.2
-                height: units.gu(3)
+                height: units.gu(5)
                 anchors.verticalCenter: parent.verticalCenter
 
                 onClicked: {
@@ -221,6 +251,8 @@ Page {
                 height: units.gu(3)
             }
         }
+
+
 
         /**********************************************************/
 
@@ -245,32 +277,7 @@ Page {
             }
         }
 
-        Row {
-            id: myRow7
-            anchors.top: descriptionSection.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(1)
-            topPadding: units.gu(1)
-
-            Label {
-                id: priority_label
-                text: "Priority"
-                width: units.gu(6)
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignLeft
-            }
-
-            TSCombobox {
-                id: priorityCombo
-                width: units.gu(33)
-                model: ["Do (Important & Urgent )", "Plan (Important & Not Urgent)", "Delegate (Urgent & Not Important)", "Delete (Not Urgent & Not Important)"]
-                enabled: !isReadOnly
-                currentIndex: 0
-            }
-        }
+      
 
         TimePickerPopup {
             id: myTimePicker

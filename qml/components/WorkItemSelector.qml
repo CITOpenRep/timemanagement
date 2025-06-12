@@ -84,7 +84,7 @@ Rectangle {
 
             Item {
                 width: parent.width * 0.75
-                height: units.gu(5.5)
+                height: units.gu(5)
                 // color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 AccountSelector {
@@ -119,7 +119,7 @@ Rectangle {
 
             Item {
                 width: parent.width * 0.75
-                height: units.gu(5.5)
+                height: units.gu(5)
 
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
@@ -154,7 +154,7 @@ Rectangle {
 
             Item {
                 width: parent.width * 0.75
-                height: units.gu(5.5)
+                height: units.gu(5)
                 //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 ProjectSelector {
@@ -191,7 +191,7 @@ Rectangle {
 
             Item {
                 width: parent.width * 0.75
-                height: units.gu(5.5)
+                height: units.gu(5)
                 //  color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
@@ -227,7 +227,7 @@ Rectangle {
 
             Item {
                 width: parent.width * 0.75
-                height: units.gu(5.5)
+                height: units.gu(5)
                 //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 TaskSelector {
