@@ -27,8 +27,6 @@ import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
-import "../models/DbInit.js" as DbInit
-import "../models/DemoData.js" as DemoData
 
 Page {
     id: splashPage

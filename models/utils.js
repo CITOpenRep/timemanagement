@@ -1,5 +1,5 @@
 .import QtQuick.LocalStorage 2.7 as Sql
-    .import "database.js" as DBCommon
+.import "database.js" as DBCommon
 
 function getLastSyncStatus(accountId) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -8,9 +8,9 @@ function getLastSyncStatus(accountId) {
     db.transaction(function (tx) {
         // 1. Fetch the latest sync status for display
         var rs = tx.executeSql(
-            "SELECT status, timestamp FROM sync_report WHERE account_id = ? ORDER BY timestamp DESC LIMIT 1",
-            [accountId]
-        );
+                    "SELECT status, timestamp FROM sync_report WHERE account_id = ? ORDER BY timestamp DESC LIMIT 1",
+                    [accountId]
+                    );
         if (rs.rows.length > 0) {
             var status = rs.rows.item(0).status;
             var timestamp = rs.rows.item(0).timestamp;
@@ -102,7 +102,7 @@ function timesheetData(data) {
         tx.executeSql('INSERT INTO account_analytic_line_app \
             (account_id, record_date, project_id, task_id, name, sub_project_id, sub_task_id, quadrant_id,  \
             unit_amount, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [data.instance_id, data.dateTime, data.project, data.task, data.description, data.subprojectId, data.subTask, data.quadrant, unitAmount, new Date().toISOString()]);
+                      [data.instance_id, data.dateTime, data.project, data.task, data.description, data.subprojectId, data.subTask, data.quadrant, unitAmount, new Date().toISOString()]);
 
         datesmartBtnStart = ""
     });
@@ -129,11 +129,11 @@ function formatOdooDateTime(dateObj) {
     }
 
     return dateObj.getFullYear() + "-" +
-        pad(dateObj.getMonth() + 1) + "-" +
-        pad(dateObj.getDate()) + " " +
-        pad(dateObj.getHours()) + ":" +
-        pad(dateObj.getMinutes()) + ":" +
-        pad(dateObj.getSeconds());
+            pad(dateObj.getMonth() + 1) + "-" +
+            pad(dateObj.getDate()) + " " +
+            pad(dateObj.getHours()) + ":" +
+            pad(dateObj.getMinutes()) + ":" +
+            pad(dateObj.getSeconds());
 }
 
 function getCurrentOdooTimestamp() {
@@ -144,11 +144,11 @@ function getCurrentOdooTimestamp() {
     }
 
     return now.getFullYear() + "-" +
-        pad(now.getMonth() + 1) + "-" +
-        pad(now.getDate()) + " " +
-        pad(now.getHours()) + ":" +
-        pad(now.getMinutes()) + ":" +
-        pad(now.getSeconds());
+            pad(now.getMonth() + 1) + "-" +
+            pad(now.getDate()) + " " +
+            pad(now.getHours()) + ":" +
+            pad(now.getMinutes()) + ":" +
+            pad(now.getSeconds());
 }
 
 
@@ -164,9 +164,9 @@ function updateOdooUsers(model) {
         for (let i = 0; i < result.rows.length; i++) {
             const row = result.rows.item(i);
             model.append({
-                name: row.name,
-                remoteid: row.odoo_record_id
-            });
+                             name: row.name,
+                             remoteid: row.odoo_record_id
+                         });
         }
     });
 }
@@ -182,11 +182,11 @@ function fetch_subtasks(instance_id, parent_task_id) {
         for (var i = 0; i < result.rows.length; i++) {
             var row = result.rows.item(i);
             subtaskList.push({
-                id: row.odoo_record_id,
-                name: row.name,
-                parent_id: row.parent_id,
-                id_val: row.odoo_record_id
-            });
+                                 id: row.odoo_record_id,
+                                 name: row.name,
+                                 parent_id: row.parent_id,
+                                 id_val: row.odoo_record_id
+                             });
         }
     });
 
@@ -201,13 +201,13 @@ function validateAndCleanOdooURL(url) {
     }
 
     const pattern = new RegExp(
-        '^(https?:\\/\\/)?' +
-        '(([a-zA-Z0-9\\-\\.]+)\\.([a-zA-Z]{2,4})|' +
-        '(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})|' +
-        '\\[([a-fA-F0-9:\\.]+)\\])' +
-        '(\\:\\d+)?(\\/[-a-zA-Z0-9@:%_\\+.~#?&//=]*)?$',
-        'i'
-    );
+                      '^(https?:\\/\\/)?' +
+                      '(([a-zA-Z0-9\\-\\.]+)\\.([a-zA-Z]{2,4})|' +
+                      '(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})|' +
+                      '\\[([a-fA-F0-9:\\.]+)\\])' +
+                      '(\\:\\d+)?(\\/[-a-zA-Z0-9@:%_\\+.~#?&//=]*)?$',
+                      'i'
+                      );
 
     return {
         isValid: pattern.test(url),
@@ -254,10 +254,10 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
 function getColorFromOdooIndex(index) {
     //standard from odoo pallet
     const colorMap = [
-        "#FFFFFF", "#EB6E67", "#F39C5A", "#F6C342",
-        "#6CC1E1", "#854D76", "#ED8888", "#2C8397",
-        "#49597C", "#DE3F7C", "#45C486", "#9B6CC3"
-    ];
+                       "#FFFFFF", "#EB6E67", "#F39C5A", "#F6C342",
+                       "#6CC1E1", "#854D76", "#ED8888", "#2C8397",
+                       "#49597C", "#DE3F7C", "#45C486", "#9B6CC3"
+                   ];
     return colorMap[index % colorMap.length];
 }
 
@@ -337,4 +337,11 @@ function convertDurationToFloat(value) {
     hours = hours % 24;
     let convertedMinutes = minutes / 60.0;
     return hours + convertedMinutes;
+}
+
+function formatDate(date) {
+    var month = date.getMonth() + 1;
+    var day = date.getDate();
+    var year = date.getFullYear();
+    return month + '/' + day + '/' + year;
 }

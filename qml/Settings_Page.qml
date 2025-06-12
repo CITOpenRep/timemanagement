@@ -28,7 +28,6 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import Ubuntu.Components 1.3 as Ubuntu
 import io.thp.pyotherside 1.4
-import "../models/sync.js" as SyncData
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Accounts
 import "components"

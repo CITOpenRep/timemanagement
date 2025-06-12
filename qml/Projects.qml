@@ -347,7 +347,7 @@ Page {
 
     Component.onCompleted: {
         if (recordid !== 0) {
-            let project = Project.get_project_details(recordid);
+            let project = Project.getProjectDetails(recordid);
             if (project && Object.keys(project).length > 0) {} else {
                 notifPopup.open("Failed", "Unable to open the project details", "error");
             }
