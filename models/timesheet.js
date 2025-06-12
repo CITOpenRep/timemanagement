@@ -1,16 +1,6 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
-
-function getFormattedTimestamp() {
-    var d = new Date();
-    return d.getFullYear() + "-" +
-           String(d.getMonth() + 1).padStart(2, '0') + "-" +
-           String(d.getDate()).padStart(2, '0') + " " +
-           String(d.getHours()).padStart(2, '0') + ":" +
-           String(d.getMinutes()).padStart(2, '0') + ":" +
-           String(d.getSeconds()).padStart(2, '0');
-}
-
+.import "utils.js" as Utils
 
 function convertFloatToTime(value) {
     var hours = Math.floor(value);
@@ -172,7 +162,7 @@ function createUpdateTimesheet(timesheet_data, record_id) {
                             Values (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
                             [timesheet_data.account_id, timesheet_data.name, timesheet_data.project_id,
                             timesheet_data.sub_project_id, timesheet_data.task_id, timesheet_data.sub_task_id, convertDurationToFloat(timesheet_data.unit_amount),
-                            timesheet_data.quadrant_id, getFormattedTimestamp()])
+                            timesheet_data.quadrant_id, Utils.getFormattedTimestamp()])
             } else {
                 tx.executeSql('UPDATE account_analytic_line_app SET \
                             account_id = ?, name = ?, project_id = ?, sub_project_id = ?, task_id = ?, \
@@ -180,7 +170,7 @@ function createUpdateTimesheet(timesheet_data, record_id) {
                             where id = ?', 
                             [timesheet_data.account_id, timesheet_data.name, timesheet_data.project_id,
                             timesheet_data.sub_project_id, timesheet_data.task_id, timesheet_data.sub_task_id, convertDurationToFloat(timesheet_data.unit_amount),
-                            timesheet_data.quadrant_id, getFormattedTimestamp(), recordid])
+                            timesheet_data.quadrant_id, Utils.getFormattedTimestamp(), recordid])
             }
             timesheetObj['is_success'] = true;
             timesheetObj['message'] = 'Record is saved Successfully!';
@@ -351,18 +341,6 @@ function convert_time(value) {
     return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
 }
 
-function getFormattedTimestamp() {
-    var now = new Date();
-    var year = now.getFullYear();
-    var month = String(now.getMonth() + 1).padStart(2, '0');
-    var day = String(now.getDate()).padStart(2, '0');
-    var hours = String(now.getHours()).padStart(2, '0');
-    var minutes = String(now.getMinutes()).padStart(2, '0');
-    var seconds = String(now.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
-
-
 /* Name: create_timesheet
 * This function will create timesheet based on passed data
 * data -> object of details related to timesheet entry
@@ -371,7 +349,7 @@ function create_or_update_timesheet(data) {
     console.log("In create_or_update_timesheet");
 
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var timestamp = getFormattedTimestamp();
+    var timestamp = Utils.getFormattedTimestamp();
     var result = { success: false, error: "" };
 
     try {
