@@ -108,7 +108,7 @@ Page {
                 ,
                 plannedHours: hours_text.text,
                 description: description_text.text,
-                assigneeUserId: assigneeCombo.selectedUserId,
+                assigneeUserId: assigneeCombo.selectedUserId === -1 ? null : assigneeCombo.selectedUserId, //add a messagebox if you want to have an assignee based on the -1 value
                 status: "updated"
             };
 
@@ -425,6 +425,9 @@ Page {
         {
             console.log("Creating a new task");
             workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
+            assigneeCombo.accountId = Accounts.getDefaultAccountId();
+            assigneeCombo.shouldDeferUserSelection = false;
+            assigneeCombo.loadUsers();
         }
     }
 }
