@@ -1,22 +1,12 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
-
-function getFormattedTimestamp() {
-    var now = new Date();
-    var year = now.getFullYear();
-    var month = String(now.getMonth() + 1).padStart(2, '0');
-    var day = String(now.getDate()).padStart(2, '0');
-    var hours = String(now.getHours()).padStart(2, '0');
-    var minutes = String(now.getMinutes()).padStart(2, '0');
-    var seconds = String(now.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
+.import "utils.js" as Utils
 
 
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-        var timestamp = getFormattedTimestamp();
+        var timestamp = Utils.getFormattedTimestamp();
         db.transaction(function(tx) {
             if (data.record_id) {
                 // UPDATE
@@ -312,15 +302,6 @@ function filterTaskList(query) {
             tasksListModel.append(entry);
         }
     }
-}
-function getFormattedTimestamp() {
-    var d = new Date();
-    return d.getFullYear() + "-" +
-            String(d.getMonth() + 1).padStart(2, '0') + "-" +
-            String(d.getDate()).padStart(2, '0') + " " +
-            String(d.getHours()).padStart(2, '0') + ":" +
-            String(d.getMinutes()).padStart(2, '0') + ":" +
-            String(d.getSeconds()).padStart(2, '0');
 }
 
 function fetch_current_users_task(selectedAccountUserId) {

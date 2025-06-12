@@ -1,5 +1,6 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
+.import "utils.js" as Utils
 
 /* Name: fetch_projects_list
 * This function will return list of projects which will also contain child project lists
@@ -93,17 +94,6 @@ function convertDurationToFloat(value) {
     return hours + convertedMinutes;
 }
 
-function getFormattedTimestamp() {
-    var now = new Date();
-    var year = now.getFullYear();
-    var month = String(now.getMonth() + 1).padStart(2, '0');
-    var day = String(now.getDate()).padStart(2, '0');
-    var hours = String(now.getHours()).padStart(2, '0');
-    var minutes = String(now.getMinutes()).padStart(2, '0');
-    var seconds = String(now.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
-
 
 /* Name: createUpdateProject
 * This function will return whether record is saved successfully or not
@@ -114,7 +104,7 @@ function getFormattedTimestamp() {
 function createUpdateProject(project_data, recordid) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var messageObj = {};
-    var timestamp = getFormattedTimestamp();
+    var timestamp = Utils.getFormattedTimestamp();
     db.transaction(function (tx) {
         try {
             if (recordid == 0) {
