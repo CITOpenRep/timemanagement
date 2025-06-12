@@ -30,10 +30,10 @@ Rectangle {
     }
 
     function applyDeferredSelection(accountId, projectOdooId, subProjectOdooId, taskOdooId, subTaskOdooId) {
-        console.log("🧩 applyDeferredSelection →", accountId, projectOdooId, subProjectOdooId, taskOdooId, subTaskOdooId);
+        //console.log("applyDeferredSelection →", accountId, projectOdooId, subProjectOdooId, taskOdooId, subTaskOdooId);
 
         if (accountSelector.model.count === 0) {
-            console.log("⏳ AccountSelector model not loaded yet → retrying via timer...");
+            //console.log("AccountSelector model not loaded yet → retrying via timer...");
             deferredApplyTimer.deferredPayload = {
                 accountId,
                 projectOdooId,
@@ -94,8 +94,8 @@ Rectangle {
                     enabled: !readOnly
                     editable: false
                     onAccountSelected: {
-                        console.log("✅ [WorkItemSelector] Account selected:", accountSelector.selectedInstanceId);
-                        console.log("→ loading projectSelector...");
+                        //console.log("[WorkItemSelector] Account selected:", accountSelector.selectedInstanceId);
+                        //console.log("loading projectSelector...");
                         projectSelector.load(accountSelector.selectedInstanceId, 0);
                         accountChanged(accountSelector.selectedInstanceId); //give to the extenral world
                     }
@@ -129,7 +129,7 @@ Rectangle {
 
                     editable: false
                     onProjectSelected: {
-                        console.log("➡️ [ProjectSelector] Defer Load → accountId:", accountSelector.selectedInstanceId, "projectId:", projectSelector.selectedProjectId);
+                        //console.log("[ProjectSelector] Defer Load → accountId:", accountSelector.selectedInstanceId, "projectId:", projectSelector.selectedProjectId);
                         subProjectSelector.load(accountSelector.selectedInstanceId, projectSelector.selectedProjectId);
                         taskSelector.load(accountSelector.selectedInstanceId, 0, projectSelector.selectedProjectId);
                     }
@@ -164,7 +164,7 @@ Rectangle {
                     enabled: !readOnly
                     editable: false
                     onProjectSelected: {
-                        console.log("Selecting Subproject " + subProjectSelector.selectedProjectId);
+                        //console.log("Selecting Subproject " + subProjectSelector.selectedProjectId);
                         if (subProjectSelector.selectedProjectId != -1) {
                             taskSelector.load(accountSelector.selectedInstanceId, 0, subProjectSelector.selectedProjectId);
                         } else {
@@ -200,7 +200,7 @@ Rectangle {
                     enabled: !readOnly
                     editable: false
                     onTaskSelected: {
-                        console.log("Selecting Task " + taskSelector.selectedTaskId);
+                        //console.log("Selecting Task " + taskSelector.selectedTaskId);
                         if (subProjectSelector.selectedProjectId != -1) {
                             subTaskSelector.load(accountSelector.selectedInstanceId, taskSelector.selectedTaskId, subProjectSelector.selectedProjectId);
                         } else {
@@ -248,11 +248,11 @@ Rectangle {
 
             onTriggered: {
                 if (!deferredPayload || accountSelector.model.count === 0) {
-                    console.log("⏳ Timer: Waiting for model to load...");
+                    console.log("Timer: Waiting for model to load...");
                     return;
                 }
 
-                console.log("⏱ Timer: Retrying deferred apply...");
+                console.log("Timer: Retrying deferred apply...");
                 deferredApplyTimer.stop();
                 let p = deferredApplyTimer.deferredPayload;
                 deferredPayload = null;
