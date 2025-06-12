@@ -105,7 +105,7 @@ Page {
             timesheet_data.id = recordid;
         }
 
-        const result = Model.create_or_update_timesheet(timesheet_data);
+        const result = Model.createOrSaveTimesheet(timesheet_data);
         if (!result.success) {
             notifPopup.open("Error", "Unable to Save the Task", "error");
         } else {
@@ -292,7 +292,7 @@ Page {
             console.log("XXXX From Timesheet got record id : " + recordid);
             if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
             {
-                currentTimesheet = Model.get_timesheet_details(recordid);
+                currentTimesheet = Model.getTimeSheetDetails(recordid);
                 let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
                 let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
                 let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
