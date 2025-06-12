@@ -95,6 +95,13 @@ Item {
     signal projectEditRequested(int recordId)
     signal projectDeleteRequested(int recordId)
 
+    function refresh() {
+        console.log("Refreshing projectNavigator...");
+        navigationStackModel.clear();
+        currentParentId = -1;
+        populateProjectChildrenMap(true);
+    }
+
     function populateProjectChildrenMap(isWorkProfile) {
         childrenMap = {};
         childrenMapReady = false;
