@@ -37,7 +37,7 @@ ComboBox {
         }
        background: Rectangle {
             color: (hovered
-                    ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "skyblue" : "skyblue")
+                    ? "skyblue"
                     : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e2e0da"))
             radius: units.gu(0.5)
             border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
