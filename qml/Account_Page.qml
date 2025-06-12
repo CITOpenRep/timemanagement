@@ -27,7 +27,7 @@ import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import io.thp.pyotherside 1.4
-import "../models/sync.js" as SyncData
+import "../models/accounts.js" as Accounts
 import "../models/utils.js" as Utils
 import "components"
 
@@ -82,7 +82,7 @@ Page {
             if (result && result['status'] === 'pass' && result['database']) {
                 let apikey = passwordInput.text;
 
-                var isDuplicate = SyncData.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
+                var isDuplicate = Accounts.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
 
                 if (isDuplicate) {
                     notifPopup.open("Error", "You already have this account", "error");

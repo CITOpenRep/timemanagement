@@ -2,143 +2,20 @@
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
 
-/* Name: fetch_projects_list
-* This function will return list of projects which will also contain child project lists
-* -> is_work_state -> in case of work mode is enable
-*/
-
-function fetch_projects_list(is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var listData = [];
-
-    db.transaction(function(tx) {
-        if (is_work_state) {
-            var result = tx.executeSql('SELECT * FROM project_project_app where account_id IS NOT NULL order by last_modified desc');
-        } else {
-            var result = tx.executeSql('SELECT * FROM project_project_app where account_id IS NULL');
-        }
-        for (var project = 0; project < result.rows.length; project++) {
-            var task_total = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE account_id = ? AND project_id = ?', [result.rows.item(project).account_id, result.rows.item(project).id]);
-            var plannedEndDate = result.rows.item(project).planned_end_date;
-            if (typeof plannedEndDate !== 'string') {
-                plannedEndDate = String(plannedEndDate);
-            }
-
-            var children_list = [];
-            var child_projects = tx.executeSql('select * from project_project_app where parent_id = ?', [result.rows.item(project).id]);
-
-            for (var child = 0; child < child_projects.rows.length; child++) {
-
-                var childtask_total = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE account_id = ? AND project_id = ?', [child_projects.rows.item(child).account_id, child_projects.rows.item(child).id]);
-
-                var parent_project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', [child_projects.rows.item(child).parent_id]);
-                var parentProject = parent_project.rows.length > 0 ? parent_project.rows.item(0).name || "" : "";
-                var childplannedEndDate = child_projects.rows.item(child).planned_end_date;
-                if (typeof childplannedEndDate !== 'string') {
-                    childplannedEndDate = String(childplannedEndDate);
-                }
-                children_list.push({
-                    id: child_projects.rows.item(child).id,
-                    accountid:child_projects.rows.item(child).account_id,
-                    total_tasks: childtask_total.rows.item(0).count,
-                    name: child_projects.rows.item(child).name,
-                    favorites: child_projects.rows.item(child).favorites,
-                    status: child_projects.rows.item(child).last_update_status,
-                    allocated_hours: child_projects.rows.item(child).allocated_hours,
-                    planned_end_date: childplannedEndDate,
-                    parentProject: result.rows.item(project).name,
-                    color_pallet: result.rows.item(project).name
-                });
-            }
-
-            listData.push({
-                id: result.rows.item(project).id,
-                total_tasks: task_total.rows.item(0).count,
-                name: result.rows.item(project).name,
-                favorites: result.rows.item(project).favorites,
-                status: result.rows.item(project).last_update_status,
-                allocated_hours: Utils.convertFloatToTime(result.rows.item(project).allocated_hours),
-                planned_end_date: plannedEndDate,
-                children: children_list,
-                color_pallet: result.rows.item(project).color_pallet
-            });
-
-        }
-    });
-    return listData;
-} // not using
 
 
-function filter_projects_list(is_work_state, filterstr) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var listData = [];
-    var searchstr = "%" + filterstr + "%"
-
-    db.transaction(function(tx) {
-        if (is_work_state) {
-            var result = tx.executeSql('SELECT * FROM project_project_app where account_id IS NOT NULL AND name like "' + searchstr + '" order by last_modified desc');
-        } else {
-            var result = tx.executeSql('SELECT * FROM project_project_app where account_id IS NULL');
-        }
-        for (var project = 0; project < result.rows.length; project++) {
-            var task_total = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE account_id = ? AND project_id = ?', [result.rows.item(project).account_id, result.rows.item(project).id]);
-            var plannedEndDate = result.rows.item(project).planned_end_date;
-            if (typeof plannedEndDate !== 'string') {
-                plannedEndDate = String(plannedEndDate);
-            }
-
-            var children_list = [];
-            var child_projects = tx.executeSql('select * from project_project_app where parent_id = ?', [result.rows.item(project).id]);
-
-            for (var child = 0; child < child_projects.rows.length; child++) {
-
-                var childtask_total = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE account_id = ? AND project_id = ?', [child_projects.rows.item(child).account_id, child_projects.rows.item(child).id]);
-
-                var parent_project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', [child_projects.rows.item(child).parent_id]);
-                var parentProject = parent_project.rows.length > 0 ? parent_project.rows.item(0).name || "" : "";
-                var childplannedEndDate = child_projects.rows.item(child).planned_end_date;
-                if (typeof childplannedEndDate !== 'string') {
-                    childplannedEndDate = String(childplannedEndDate);
-                }
-                children_list.push({
-                    id: child_projects.rows.item(child).id,
-                    total_tasks: childtask_total.rows.item(0).count,
-                    name: child_projects.rows.item(child).name,
-                    favorites: child_projects.rows.item(child).favorites,
-                    status: child_projects.rows.item(child).last_update_status,
-                    allocated_hours: child_projects.rows.item(child).allocated_hours,
-                    planned_end_date: childplannedEndDate,
-                    parentProject: result.rows.item(project).name,
-                    color_pallet: result.rows.item(project).color_pallet,
-                    description: result.rows.item(project).description
-                });
-            }
-
-            listData.push({
-                id: result.rows.item(project).id,
-                total_tasks: task_total.rows.item(0).count,
-                name: result.rows.item(project).name,
-                favorites: result.rows.item(project).favorites,
-                status: result.rows.item(project).last_update_status,
-                allocated_hours: Utils.convertFloatToTime(result.rows.item(project).allocated_hours),
-                planned_end_date: plannedEndDate,
-                children: children_list,
-                color_pallet: result.rows.item(project).color_pallet
-            });
-
-        }
-    });
-    return listData;
-} // not using
-
-
-
-/* Name: get_project_detail
-* This function will return project details in form of object to fill in detail view of project
-* -> project_id -> for which project details needs to be fetched
-* -> is_work_state -> in case of work mode is enable
-*/
-function get_project_details(project_id) {
+/**
+ * Retrieves detailed information for a specific project from the local SQLite database.
+ *
+ * This function queries the `project_project_app` table using the provided project ID
+ * and returns a structured object with relevant project details. If the project is not found,
+ * an empty object is returned.
+ *
+ * @param {number} project_id - The unique local ID of the project.
+ * @returns {Object} - An object containing project details such as name, dates, hours, and metadata.
+ *                     Returns an empty object if no matching project is found.
+ */
+function getProjectDetails(project_id) {
     var project_detail = {};
 
     try {
@@ -155,8 +32,8 @@ function get_project_details(project_id) {
                     name: row.name,
                     account_id: row.account_id,
                     parent_id: row.parent_id,
-                    planned_start_date: row.planned_start_date ? formatDate(new Date(row.planned_start_date)) : "",
-                    planned_end_date: row.planned_end_date ? formatDate(new Date(row.planned_end_date)) : "",
+                    planned_start_date: row.planned_start_date ? Utils.formatDate(new Date(row.planned_start_date)) : "",
+                    planned_end_date: row.planned_end_date ? Utils.formatDate(new Date(row.planned_end_date)) : "",
                     allocated_hours: Utils.convertFloatToTime(row.allocated_hours),
                     favorites: row.favorites || 0,
                     last_update_status: row.last_update_status,
@@ -172,19 +49,19 @@ function get_project_details(project_id) {
     } catch (e) {
         DBCommon.logException(e);
     }
-
-    function formatDate(date) {
-        var month = date.getMonth() + 1;
-        var day = date.getDate();
-        var year = date.getFullYear();
-        return month + '/' + day + '/' + year;
-    }
-
     return project_detail;
 }
 
 
-//Refeactoring
+/**
+ * Retrieves all projects associated with a specific user account from the local SQLite database.
+ *
+ * Projects are fetched from the `project_project_app` table where the `account_id` matches,
+ * and are sorted alphabetically by name (case-insensitive).
+ *
+ * @param {number} accountId - The ID of the account whose projects are to be retrieved.
+ * @returns {Array<Object>} - An array of project objects with properties like name, dates, hours, and metadata.
+ */
 function getProjectsForAccount(accountId) {
     var projects = [];
 
@@ -193,29 +70,29 @@ function getProjectsForAccount(accountId) {
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                "SELECT * FROM project_project_app WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC",
-                [accountId]
-            );
+                        "SELECT * FROM project_project_app WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC",
+                        [accountId]
+                        );
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
 
                 projects.push({
-                    id: row.id,
-                    name: row.name,
-                    account_id: row.account_id,
-                    parent_id: row.parent_id,
-                    planned_start_date: row.planned_start_date,
-                    planned_end_date: row.planned_end_date,
-                    allocated_hours: row.allocated_hours,
-                    favorites: row.favorites,
-                    last_update_status: row.last_update_status,
-                    description: row.description,
-                    last_modified: row.last_modified,
-                    color_pallet: row.color_pallet,
-                    status: row.status,
-                    odoo_record_id: row.odoo_record_id
-                });
+                                  id: row.id,
+                                  name: row.name,
+                                  account_id: row.account_id,
+                                  parent_id: row.parent_id,
+                                  planned_start_date: row.planned_start_date,
+                                  planned_end_date: row.planned_end_date,
+                                  allocated_hours: row.allocated_hours,
+                                  favorites: row.favorites,
+                                  last_update_status: row.last_update_status,
+                                  description: row.description,
+                                  last_modified: row.last_modified,
+                                  color_pallet: row.color_pallet,
+                                  status: row.status,
+                                  odoo_record_id: row.odoo_record_id
+                              });
             }
         });
 
@@ -227,12 +104,17 @@ function getProjectsForAccount(accountId) {
 }
 
 
-/* Name: createUpdateProject
-* This function will return whether record is saved successfully or not
-* -> project_data -> Object of latest data
-* -> recordid -> to update record
-*/
-
+/**
+ * Creates a new project or updates an existing one in the local SQLite database.
+ *
+ * If `recordid` is 0, a new project is inserted. Otherwise, the existing project
+ * with the matching `id` is updated. The function returns a message object indicating
+ * success or failure.
+ *
+ * @param {Object} project_data - The project data containing all fields to be saved.
+ * @param {number} recordid - The local ID of the project to update. Use 0 to create a new project.
+ * @returns {Object} - An object with `is_success` (boolean) and `message` (string) indicating the result.
+ */
 function createUpdateProject(project_data, recordid) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var messageObj = {};
@@ -244,17 +126,17 @@ function createUpdateProject(project_data, recordid) {
                             (account_id, name, parent_id, planned_start_date, planned_end_date, \
                             allocated_hours, favorites, description, last_modified, color_pallet,status)\
                             Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)',
-                            [project_data.account_id, project_data.name, project_data.parent_id,
-                            project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                            project_data.favorites, project_data.description, timestamp, project_data.color,project_data.status])
+                              [project_data.account_id, project_data.name, project_data.parent_id,
+                               project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
+                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status])
             } else {
                 tx.executeSql('UPDATE project_project_app SET \
                             account_id = ?, name = ?, parent_id = ?, planned_start_date = ?, planned_end_date = ?, \
                             allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?, status=?\
-                            where id = ?', 
-                            [project_data.account_id, project_data.name, project_data.parent_id,
-                            project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                            project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status,recordid])
+                            where id = ?',
+                              [project_data.account_id, project_data.name, project_data.parent_id,
+                               project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
+                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, recordid])
             }
             messageObj['is_success'] = true;
             messageObj['message'] = 'Project saved Successfully!';
@@ -266,13 +148,22 @@ function createUpdateProject(project_data, recordid) {
     return messageObj;
 }
 
-
+/**
+ * Calculates and returns a list of projects with their total spent hours.
+ *
+ * It aggregates the `unit_amount` from the `account_analytic_line_app` table for either work (remote)
+ * or personal (local) entries based on the `account_id` filter. Then it resolves each project name
+ * from the `project_project_app` table using `odoo_record_id`.
+ *
+ * @param {boolean} is_work_state - If true, includes remote (Odoo) entries (account_id != 0), else local entries (account_id = 0).
+ * @returns {Array<Object>} - A list of objects with `project_id`, `name`, and `spentHours`.
+ */
 function getProjectSpentHoursList(is_work_state) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var resultList = [];
     var projectSpentMap = {};
 
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         var filter = is_work_state ? "account_id != 0" : "account_id = 0";
         var result = tx.executeSql("SELECT project_id, unit_amount FROM account_analytic_line_app WHERE " + filter);
 
@@ -285,8 +176,8 @@ function getProjectSpentHoursList(is_work_state) {
                 projectSpentMap[projectId] = 0;
             }
             projectSpentMap[projectId] += spent;
-           // console.log("project is " + projectId)
-           // console.log(" Spent is " + spent)
+            // console.log("project is " + projectId)
+            // console.log(" Spent is " + spent)
         }
 
         for (var projectId in projectSpentMap) {
@@ -295,19 +186,13 @@ function getProjectSpentHoursList(is_work_state) {
             var projectName = pname.rows.length ? pname.rows.item(0).name : "Unknown";
 
             resultList.push({
-                project_id: intProjectId,
-                name: projectName,
-                spentHours: parseFloat(projectSpentMap[projectId].toFixed(1))
-            });
+                                project_id: intProjectId,
+                                name: projectName,
+                                spentHours: parseFloat(projectSpentMap[projectId].toFixed(1))
+                            });
         }
 
     });
 
     return resultList;
 }
-
-
-
-
-
-

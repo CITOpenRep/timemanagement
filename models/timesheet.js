@@ -2,90 +2,99 @@
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
 
-
-
-/* Name: fetch_timesheets
-* This function will return timesheets based on work state, this function is returning
-* for timesheet list view
-* is_work_state -> in case of work mode is enable
-*/
-
-function fetch_timesheets(is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+/**
+ * Retrieves all non-deleted timesheet entries from the local SQLite database.
+ *
+ * Joins related data from `project_project_app`, `users`, `res_users_app`, and `project_task_app`
+ * to enrich the timesheet list with human-readable project, task, instance, and user names.
+ *
+ * @returns {Array<Object>} - A list of enriched timesheet entries.
+ */
+function fetch_timesheets() {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheetList = [];
 
-    db.transaction(function (tx) {
-        let timesheets;
-
-        if (is_work_state) {
-            timesheets = tx.executeSql(
-                        "SELECT * FROM account_analytic_line_app WHERE account_id IS NOT NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC"
+    try {
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                        "SELECT * FROM account_analytic_line_app WHERE (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC"
                         );
-        } else {
-            timesheets = tx.executeSql(
-                        "SELECT * FROM account_analytic_line_app WHERE parent_id = 0 AND account_id IS NULL AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC"
-                        );
-        }
 
-        for (var i = 0; i < timesheets.rows.length; i++) {
-            var row = timesheets.rows.item(i);
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
 
-            var quadrantObj = {
-                0: "Unknown",
-                1: "Do",
-                2: "Plan",
-                3: "Delegate",
-                4: "Delete"
-            };
-            //console.log("PROJECT ID IS  " + row.project_id)
-            var project = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ?", [row.project_id]);
-            var instance = tx.executeSql("SELECT name FROM users WHERE id = ?", [row.account_id]);
-            var user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ?", [row.user_id]);
-            var task = tx.executeSql("SELECT name FROM project_task_app WHERE odoo_record_id = ?", [row.task_id]);
+                var quadrantMap = {
+                    0: "Unknown",
+                    1: "Do",
+                    2: "Plan",
+                    3: "Delegate",
+                    4: "Delete"
+                };
 
-            timesheetList.push({
-                                   id: row.id,
-                                   instance: instance.rows.length > 0 ? instance.rows.item(0).name : '',
-                                   name: row.name || '',
-                                   spentHours: Utils.convertFloatToTime(row.unit_amount),
-                                   project: project.rows.length > 0 ? project.rows.item(0).name : 'Unknown Project',
-                                   quadrant: quadrantObj[row.quadrant_id] || "Do",
-                                   date: row.record_date,
-                                   task: task.rows.length > 0 ? task.rows.item(0).name : 'Unknown Task',
-                                   user: user.rows.length > 0 ? user.rows.item(0).name : '',
-                               });
-        }
-    });
+                var projectResult = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ?", [row.project_id]);
+                var taskResult = tx.executeSql("SELECT name FROM project_task_app WHERE odoo_record_id = ?", [row.task_id]);
+                var instanceResult = tx.executeSql("SELECT name FROM users WHERE id = ?", [row.account_id]);
+                var userResult = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ?", [row.user_id]);
+
+                timesheetList.push({
+                                       id: row.id,
+                                       instance: instanceResult.rows.length > 0 ? instanceResult.rows.item(0).name : '',
+                                       name: row.name || '',
+                                       spentHours: Utils.convertFloatToTime(row.unit_amount),
+                                       project: projectResult.rows.length > 0 ? projectResult.rows.item(0).name : 'Unknown Project',
+                                       quadrant: quadrantMap[row.quadrant_id] || "Unknown",
+                                       date: row.record_date,
+                                       task: taskResult.rows.length > 0 ? taskResult.rows.item(0).name : 'Unknown Task',
+                                       user: userResult.rows.length > 0 ? userResult.rows.item(0).name : ''
+                                   });
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("fetch_timesheets", e);
+    }
 
     return timesheetList;
 }
 
-
-
+/**
+ * Marks a timesheet entry as deleted in the local SQLite database by setting its `status` to `'deleted'`.
+ *
+ * This is a soft delete and does not remove the record from the database.
+ *
+ * @param {number} taskId - The ID of the timesheet entry to be marked as deleted.
+ * @returns {Object} - An object with `success` (boolean) and `message` (string) indicating the result.
+ */
 function markTimesheetAsDeleted(taskId) {
     try {
-        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
         db.transaction(function (tx) {
             tx.executeSql(
                         "UPDATE account_analytic_line_app SET status = 'deleted' WHERE id = ?",
                         [taskId]
                         );
         });
-        console.log("Marked timesheet as deleted with id " + taskId);
+
+        DBCommon.log("Timesheet marked as deleted (id: " + taskId + ")");
         return { success: true, message: "Timesheet marked as deleted." };
+
     } catch (e) {
-        console.error("Failed to mark timesheet as deleted with id " + taskId + " - " + e);
-        return { success: false, message: "Failed to mark as deleted: " + e };
+        DBCommon.logException("markTimesheetAsDeleted", e);
+        return { success: false, message: "Failed to mark as deleted: " + e.message };
     }
 }
 
-/* Name: getTimeSheetDetails
-* This function will return timesheets details in form of object to fill in detail view of timesheet
-* -> record_id -> for which timesheet details needs to be fetched
-*/
-
+/**
+ * Retrieves details of a specific timesheet entry by its local database ID.
+ *
+ * The returned object includes project/task associations, recorded hours,
+ * quadrant classification, and a formatted record date.
+ *
+ * @param {number} record_id - The local database ID of the timesheet entry.
+ * @returns {Object} - A timesheet detail object, or an empty object if not found.
+ */
 function getTimeSheetDetails(record_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheet_detail = {};
     db.transaction(function (tx) {
         var timesheet = tx.executeSql('SELECT * FROM account_analytic_line_app\
@@ -100,27 +109,27 @@ function getTimeSheetDetails(record_id) {
                 'name': timesheet.rows.item(0).name,
                 'spentHours': Utils.convertFloatToTime(timesheet.rows.item(0).unit_amount),
                 'quadrant_id': timesheet.rows.item(0).quadrant_id,
-                'record_date': formatDate(new Date(timesheet.rows.item(0).record_date))
+                'record_date': Utils.formatDate(new Date(timesheet.rows.item(0).record_date))
             };
         }
     });
-    function formatDate(date) {
-        var month = date.getMonth() + 1;
-        var day = date.getDate();
-        var year = date.getFullYear();
-        return month + '/' + day + '/' + year;
-    }
     return timesheet_detail;
 }
 
-/* Name: create_timesheet
-* This function will create timesheet based on passed data
-* data -> object of details related to timesheet entry
-*/
-
+/**
+ * Creates a new timesheet entry or updates an existing one in the local SQLite database.
+ *
+ * The function decides whether to insert or update based on the presence of a valid `id` in `data`.
+ * Duration is parsed based on whether the entry is manually recorded or tracked automatically.
+ *
+ * @param {Object} data - An object representing the timesheet fields:
+ *                        - `id`, `instance_id`, `record_date`, `project`, `task`, `description`,
+ *                        - `subprojectId`, `subTask`, `quadrant`, `spenthours`, `manualSpentHours`,
+ *                        - `isManualTimeRecord`, `status`, `user_id`
+ * @returns {Object} - An object containing `success` (boolean) and `error` (string, if any).
+ */
 function createOrSaveTimesheet(data) {
-
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestamp();
     var result = { success: false, error: "" };
 
