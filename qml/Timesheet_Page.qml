@@ -39,7 +39,6 @@ Page {
         title: timesheets.title
         StyleHints {
             foregroundColor: "white"
-
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }

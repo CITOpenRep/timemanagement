@@ -28,11 +28,11 @@ Text {
     }
 
     readonly property color quadrantColor: ({
-        "Do": AppConst.Colors.Quadrants.Q1,
-        "Plan": AppConst.Colors.Quadrants.Q2,
-        "Delegate": AppConst.Colors.Quadrants.Q3,
-        "Delete": AppConst.Colors.Quadrants.Q4
-    })[normalizedKey] || "#AAAAAA"
+            "Do": AppConst.Colors.Quadrants.Q1,
+            "Plan": AppConst.Colors.Quadrants.Q2,
+            "Delegate": AppConst.Colors.Quadrants.Q3,
+            "Delete": AppConst.Colors.Quadrants.Q4
+        })[normalizedKey] || "#AAAAAA"
 
     text: quadrantKey
     color: quadrantColor
