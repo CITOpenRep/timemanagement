@@ -94,19 +94,19 @@ Item {
             y: triggerButton.y + triggerButton.height
             background: Rectangle {
                 color: "transparent"
-               
+
                 radius: units.gu(0.8)
             }
             height: units.gu(38)
 
-           ListView {
+            ListView {
                 anchors.fill: parent
                 model: treeModel
                 clip: true
                 interactive: true
                 boundsBehavior: Flickable.DragAndOvershootBounds
                 delegate: ItemDelegate {
-                    width: triggerButton.width 
+                    width: triggerButton.width
                     height: units.gu(5)
                     hoverEnabled: true
                     background: Rectangle {
@@ -129,8 +129,8 @@ Item {
                             anchors.left: parent.left
                             anchors.leftMargin: units.gu(1.2)
                             font.pixelSize: units.gu(1.4)
-                            color : theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                         //   elide: Text.ElideRight
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                            //   elide: Text.ElideRight
                         }
                     }
                 }

@@ -49,7 +49,7 @@ Page {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: units.gu(0.8)
-               
+
                 color: getColorByLevel(modelData.level)
 
                 Text {
@@ -58,7 +58,7 @@ Page {
                     font.pixelSize: units.gu(1)
                     wrapMode: Text.Wrap
                     width: parent.width
-                    color : theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "black"
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "black"
                 }
             }
         }

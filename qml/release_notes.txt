@@ -1,15 +1,30 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>Release Notes</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { font-size: 24px; }
-        h2 { font-size: 20px; margin-top: 20px; }
-        ul { margin-top: 5px; }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+
+        ul {
+            margin-top: 5px;
+        }
     </style>
 </head>
+
 <body>
     <p>
         This native time-tracking and productivity application is built for Ubuntu Touch phones.
@@ -19,32 +34,32 @@
 
     <h2>Change History</h2>
     <ul>
- <p> -----13-06-2025 : Version 1.0 : Release 5 ----- </p>
-     <li> Updates on Eisenhower widget </li>
-     <li> Code optimization for better performance </li>
-      <li> UI fixes in New TreeSelector , Dark Mode Compatibility for About and Sync Page Added.</li>
-      
-    <br>
-    <p> -----12-06-2025 : Version 1.0 : Release 4 ----- </p>
-     <li> Fixes in "Today" ,"This Week " ComboBox.</li>
-     <li> Fixes in Timesheet Details , Fixed Issue of Project Name Missing.</li>
-       <li> Fixes in Timesheet  , Fixed issue , of when record date was not updated.</li>
-        <li> Better UX & Corrected Projects & Tasks menu</li>
-          <li>UI enhancements in New Timesheet Screen , Better ComboBoxes UI for better Visibility</li>
-       <li> This Version was not released to Open-Store due to Internal User Testing and Feedback. </li>
+        <h4> 13-06-2025 : Version 1.0 : Release 5 </h4>
+        <li> Updates on Eisenhower widget </li>
+        <li> Code optimization for better performance </li>
+        <li> UI fixes in New TreeSelector , Dark Mode Compatibility for About and Sync Page Added.</li>
 
-    <br>
-  
-    <p> -----11-06-2025 : Version 0.9 : Release 3 ----- </p>
-     <li> Default Account Selection Method Introduced</li>
-     <li> Remote user list to assign tasks to the users</li>
-     <li> Introduction of Color codes for Projects</li>
-     <li> Support for Local User and Local Project Creation</li>
-    <li> Full Support to Dark Mode with Theme toggle support</li>
+        <br>
+        <h4> 12-06-2025 : Version 1.0 : Release 4 </h4>
+        <li> Fixes in "Today" ,"This Week " ComboBox.</li>
+        <li> Fixes in Timesheet Details , Fixed Issue of Project Name Missing.</li>
+        <li> Fixes in Timesheet , Fixed issue , of when record date was not updated.</li>
+        <li> Better UX & Corrected Projects & Tasks menu</li>
+        <li>UI enhancements in New Timesheet Screen , Better ComboBoxes UI for better Visibility</li>
+        <li> This Version was not released to Open-Store due to Internal User Testing and Feedback. </li>
+
+        <br>
+
+        <h4> 11-06-2025 : Version 0.9 : Release 3 </h4>
+        <li> Default Account Selection Method Introduced</li>
+        <li> Remote user list to assign tasks to the users</li>
+        <li> Introduction of Color codes for Projects</li>
+        <li> Support for Local User and Local Project Creation</li>
+        <li> Full Support to Dark Mode with Theme toggle support</li>
         <br>
 
 
-        <p> -10-06-2025 : Version 0.6 to 0.8 : Release 2 - </p>
+        <h4> 10-06-2025 : Version 0.6 to 0.8 : Release 2</h4>
         <li> Introduction of the Local Storage : Please remove your existing accounts from settings to use this release</li>
         <li> Fixed the bugs in Timesheet & Updated Eisenhower matrix</li>
         <li> Adapted theme support to few screens, full comptability in the next release</li>
@@ -53,19 +68,19 @@
         <br>
 
 
-        <p> -07-06-2025 : Version 0.1 to 0.5 : Release 1 - </p>
+        <h4> 07-06-2025 : Version 0.1 to 0.5 : Release 1</h4>
         <li> Connect to Odoo servers to sync timesheets, tasks, and projects.</li>
         <li> Login to multiple accounts and keep data in sync .</li>
         <li> Visual dashboards to see where your time goes.</li>
         <li> Project and task hierarchy support (Project → Subproject → Task → Subtask).</li>
         <li> Background sync for timesheets, tasks, and projects</li>
         <li> Create and manage tasks with deadlines and subtasks.</li>
-          <li>Fixed UI and Sync Issues after Testing and User Feedback. </li>
+        <li>Fixed UI and Sync Issues after Testing and User Feedback. </li>
     </ul>
+
     <h2>Known Issues</h2>
     <ul>
         <li>This app is currently in beta. Upcoming releases will focus on enhancing the user experience.</li>
-        <li>Occasional issues may occur while loading Project → Subproject → Task → Subtask hierarchy. Fixes are planned.</li>
         <li>Overall user experience and design still require refinement.</li>
         <li>Currently requires at least one Odoo server to function—local account support is not yet available.</li>
     </ul>
@@ -73,7 +88,7 @@
     <h2>Key Features</h2>
     <ul>
         <li>Connect to multiple Odoo backends with credential-based login</li>
-         <li>If the database while connecting to an oddo instance can not be fetched automatically, user can manually enter it</li>
+        <li>If the database while connecting to an oddo instance can not be fetched automatically, user can manually enter it</li>
         <li>Support for background sync and multiple accounts</li>
         <li>Bidirectional sync for timesheets, projects, and tasks</li>
         <li>Integrated dashboard to visualize workload and usage</li>
@@ -111,4 +126,5 @@
         <li>Smoother transitions and optimized QML components</li>
     </ul>
 </body>
+
 </html>
