@@ -29,6 +29,7 @@ import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
 import "../models/project.js" as Project
+import "../models/notifications.js" as Notifications
 import "../models/utils.js" as Utils
 import io.thp.pyotherside 1.4
 import "components"
@@ -44,7 +45,33 @@ Page {
             //update graph etc
             var data = Project.getProjectSpentHoursList(true);
             projectchart.load(data);
+            simulateTestNotifications();
         }
+    }
+
+    function simulateTestNotifications() {
+        Notifications.addNotification(1, "Task", "Task 'Write Report' is due today", {
+            id: 1026
+        });
+        Notifications.addNotification(1, "Project", "Project 'Website Revamp' deadline is tomorrow", {
+            id: 3001
+        });
+        Notifications.addNotification(1, "Sync", "Sync failed for task 'Client Meeting'", [
+            {
+                id: 1014,
+                error: "Missing project_id"
+            },
+            {
+                id: 1025,
+                error: "Unknown task_id"
+            }
+        ]);
+        Notifications.addNotification(1, "Activity", "Meeting with John at 3 PM", {
+            id: 45
+        });
+        Notifications.addNotification(1, "Timesheet", "No timesheet logged today", {
+            date: "2025-06-13"
+        });
     }
 
     header: PageHeader {
@@ -58,6 +85,11 @@ Page {
         title: "Time Mangager"
         visible: true
 
+        NotificationBell {
+            z: 9999
+            anchors.centerIn: parent
+            parentWindow: mainPage
+        }
         // ActionBar {
 
         //     id: actionbar
@@ -208,17 +240,9 @@ Page {
         }
     }
 
-    /* TopHeader {
-        id: top_custom_header
-        z: 9999
-    }*/
-    // LomiriShape {
-    //     anchors.fill: parent
-    //     anchors.margins: units.gu(1)
-    //    anchors.topMargin: header.height + units.gu(1)
-    //     aspect: LomiriShape.Flat
     Flickable {
         id: flick1
+        z: 8888
         width: parent.width
         height: parent.height
         anchors.top: header.bottom
