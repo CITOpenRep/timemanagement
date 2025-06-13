@@ -32,9 +32,9 @@
         through seamless integration with Odoo.
     </p>
 
-    <h3>Change History : (Version 1.0) </h3>
+    <h3>Change History : (Version 1.0.0) Alpha Draft </h3>
     <ul>
-        <h4> 13-06-2025 : Version 1.0 </h4>
+        <h4> 13-06-2025 : Version 1.0.0 </h4>
         <li> Updates on Eisenhower widget </li>
         <li> Code optimization for better performance </li>
         <li> UI fixes in New TreeSelector , Dark Mode Compatibility for About and Sync Page Added.</li>
