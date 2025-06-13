@@ -19,20 +19,48 @@
 
     <h2>Change History</h2>
     <ul>
-    <li>13-06-2025 : Updates on Eisenhower widget</li>
-    <li>13-06-2025 : Code optimization for better performance</li>
-    <li>12-06-2025 : Better UX & Corrected Projects & Tasks menu</li>
-     <li>11-06-2025 : Default Account Selection Method Introduced</li>
-     <li>11-06-2025 : Remote user list to assign tasks to the users</li>
-     <li>11-06-2025 : Introduction of Color codes for Projects</li>
-     <li>11-06-2025 : Support for Local User and Local Project Creation</li>
-        <li>11-06-2025 : Full Support to Dark Mode with Theme toggle support</li>
-        <li>10-06-2025 : Introduction of the Local Storage : Please remove your existing accounts from settings to use this release</li>
-        <li>10-06-2025 : Fixed the bugs in Timesheet & Updated Eisenhower matrix</li>
-        <li>10-06-2025 : Adapted theme support to few screens, full comptability in the next release</li>
-        <li>10-06-2025 : Additional fields has been added to the project screen</li>
-    </ul>
+ <p> -----13-06-2025 : Version 1.0 : Release 5 ----- </p>
+     <li> Updates on Eisenhower widget </li>
+     <li> Code optimization for better performance </li>
+      
+    <br>
+    <p> -----12-06-2025 : Version 1.0 : Release 4 ----- </p>
+     <li> Fixes in "Today" ,"This Week " ComboBox.</li>
+     <li> Fixes in Timesheet Details , Fixed Issue of Project Name Missing.</li>
+       <li> Fixes in Timesheet  , Fixed issue , of when record date was not updated.</li>
+        <li> Better UX & Corrected Projects & Tasks menu</li>
+          <li>UI enhancements in New Timesheet Screen , Better ComboBoxes UI for better Visibility</li>
+       <li> This Version was not released to Open-Store due to Internal User Testing and Feedback. </li>
 
+    <br>
+  
+    <p> -----11-06-2025 : Version 0.9 : Release 3 ----- </p>
+     <li> Default Account Selection Method Introduced</li>
+     <li> Remote user list to assign tasks to the users</li>
+     <li> Introduction of Color codes for Projects</li>
+     <li> Support for Local User and Local Project Creation</li>
+    <li> Full Support to Dark Mode with Theme toggle support</li>
+        <br>
+
+
+        <p> -10-06-2025 : Version 0.6 to 0.8 : Release 2 - </p>
+        <li> Introduction of the Local Storage : Please remove your existing accounts from settings to use this release</li>
+        <li> Fixed the bugs in Timesheet & Updated Eisenhower matrix</li>
+        <li> Adapted theme support to few screens, full comptability in the next release</li>
+        <li> Additional fields has been added to the project screen</li>
+
+        <br>
+
+
+        <p> -07-06-2025 : Version 0.1 to 0.5 : Release 1 - </p>
+        <li> Connect to Odoo servers to sync timesheets, tasks, and projects.</li>
+        <li> Login to multiple accounts and keep data in sync .</li>
+        <li> Visual dashboards to see where your time goes.</li>
+        <li> Project and task hierarchy support (Project → Subproject → Task → Subtask).</li>
+        <li> Background sync for timesheets, tasks, and projects</li>
+        <li> Create and manage tasks with deadlines and subtasks.</li>
+          <li>Fixed UI and Sync Issues after Testing and User Feedback. </li>
+    </ul>
     <h2>Known Issues</h2>
     <ul>
         <li>This app is currently in beta. Upcoming releases will focus on enhancing the user experience.</li>
