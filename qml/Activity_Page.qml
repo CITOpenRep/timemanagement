@@ -22,144 +22,131 @@
  * SOFTWARE.
  */
 
-import QtQuick 2.7
+import QtQuick 2.9
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Window 2.2
+import QtQml.Models 2.3
 import "../models/timesheet.js" as Model
 import "../models/project.js" as Project
-import "../models/activity.js" as Activity
+import "../models/task.js" as Task
 import "../models/utils.js" as Utils
+import "components"
 
 Page {
-    id: activity
-    title: "Activities"
+    id: task
+    title: "Tasks"
+
     header: PageHeader {
         id: taskheader
-        title: activity.title
-        ActionBar {
-            numberOfSlots: 1
-            anchors.right: parent.right
-            //    enable: true
-            actions: [
-                Action {
-                    iconName: "add"
-                    text: "New"
-                    onTriggered: {
-                        console.log("Create Activity clicked");
-                        apLayout.addPageToCurrentColumn(activity, Qt.resolvedUrl("Activity_Create.qml"));
-                    }
+        StyleHints {
+            foregroundColor: "white"
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
+        }
+        title: task.title
+
+        trailingActionBar.actions: [
+            Action {
+                iconName: "add"
+                text: "New"
+                onTriggered: {
+                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                        "recordid": 0,
+                        "isReadOnly": false
+                    });
                 }
-            ]
-        }
-    }
+            }/*,
+            Action {
+                iconName: "search"
+                text: "Search"
+                onTriggered: nameFilter.visible = !nameFilter.visible
+            }*/
 
-    function get_activity_list(recordid) {
-        var activities = Activity.queryActivityData(recordid);
-        activityListModel.clear();
-        for (var activity = 0; activity < activities.length; activity++) {
-            activityListModel.append({
-                'id': activities[activity].id,
-                'summary': activities[activity].summary,
-                'due_date': activities[activity].due_date
-            });
-        }
-    }
 
-    function get_activityOn_Status(searchstr) {
-        var activities = Activity.filterStatus(searchstr);
-        activityListModel.clear();
-        for (var activity = 0; activity < tasks.length; activity++) {
-            activityListModel.append({
-                'id': activities[activity].id,
-                'summary': activities[activity].summary,
-                'due_date': activities[activity].due_date
-            });
-        }
+        ]
     }
-
     ListModel {
-        id: activityListModel
+        id: taskModel
     }
 
     LomiriShape {
         anchors.top: taskheader.bottom
-        height: parent.height
+        height: parent.height - taskheader.height
         width: parent.width
 
-        Component {
-            id: activityDelegate
-            LomiriShape {
-                width: parent.width
-                height: units.gu(10)
-                Row {
-                    height: units.gu(10)
-                    leftPadding: units.gu(1)
-                    spacing: 10
-                    Column {
-                        width: units.gu(35)
-                        height: units.gu(10)
-                        /*                        Label{
-                        id: tasklabel
-                            text: "Activity: "}*/
-                        Text {
-                            width: units.gu(20)
-                            //                            anchors.left: tasklabel.left
-                            text: summary
-                            clip: true
-                        }
-                        /*                        Label{
-                            id: idlabel
-                            text: "ID: "}*/
-                        Text {
-                            //                            anchors.left:idlabel.left
-                            text: id
-                        }
-                    }
-                    Column {
-                        width: units.gu(10)
-                        height: units.gu(10)
-                        //                        Label{ text: "Due Date: "}
-                        Text {
-                            text: due_date
-                        }
-                        /*                        Label{ text: "Planned: "}
-                        Text { text: allocated_hours }*/
-                    }
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        activitylist.currentIndex = index;
-                        apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activity_details.qml"), {
-                            "recordid": id
-                        });
-                    }
-                }
-            }
-        }
-
-        LomiriListView {
-            id: activitylist
+        TaskList {
+            id: tasklist
             anchors.fill: parent
-            //            anchors.top: taskheader.bottom
-            model: activityListModel
-            delegate: activityDelegate
-            highlight: Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                color: "lightsteelblue"
-                radius: 5
+            onTaskEditRequested: {
+                console.log("Edit Requested");
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": false
+                });
             }
-            highlightFollowsCurrentItem: true
-            currentIndex: 0
-            onCurrentIndexChanged: {
-                console.log("currentIndex changed");
+            onTaskSelected: {
+                console.log("Viewing Task");
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": true
+                });
             }
-
-            Component.onCompleted: {
-                get_activity_list(0);
+            onTaskDeleteRequested: {
+                console.log("Delete Requested");
+                var result = Task.markTaskAsDeleted(recordId);
+                if (!result.success) {
+                    notifPopup.open("Error", result.message, "error");
+                } else {
+                    notifPopup.open("Deleted", result.message, "success");
+                }
+                pageStack.removePages(task);
+                apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Page.qml"));
             }
         }
+
+        Text {
+            id: labelNoTask
+            anchors.centerIn: parent
+            font.pixelSize: units.gu(2)
+            visible: false
+            text: 'No Task Available'
+        }
+    }
+
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+        onClosed: console.log("Notification dismissed")
+    }
+
+    DialerMenu {
+        id: fabMenu
+        anchors.fill: parent
+        z: 9999
+        //text:""
+        menuModel: [
+            {
+                label: "Create"
+            },
+        ]
+        onMenuItemSelected: {
+            if (index === 0) {
+                console.log("add task");
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                    "recordid": 0,
+                    "isReadOnly": false
+                });
+            }
+        }
+    }
+    onVisibleChanged: {
+        if (visible) {
+            tasklist.refresh();
+        }
+    }
+    Component.onCompleted: {
+        tasklist.refresh();
     }
 }
