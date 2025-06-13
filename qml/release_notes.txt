@@ -32,25 +32,25 @@
         through seamless integration with Odoo.
     </p>
 
-    <h2>Change History</h2>
+    <h3>Change History : (Version 1.0) </h3>
     <ul>
-        <h4> 13-06-2025 : Version 1.0 : Release 5 </h4>
+        <h4> 13-06-2025 : Version 1.0 </h4>
         <li> Updates on Eisenhower widget </li>
         <li> Code optimization for better performance </li>
         <li> UI fixes in New TreeSelector , Dark Mode Compatibility for About and Sync Page Added.</li>
+        <li> Updates in project, task and assingee selector</li>
 
         <br>
-        <h4> 12-06-2025 : Version 1.0 : Release 4 </h4>
+        <h4> 12-06-2025 : Version 0.9 </h4>
         <li> Fixes in "Today" ,"This Week " ComboBox.</li>
         <li> Fixes in Timesheet Details , Fixed Issue of Project Name Missing.</li>
         <li> Fixes in Timesheet , Fixed issue , of when record date was not updated.</li>
         <li> Better UX & Corrected Projects & Tasks menu</li>
         <li>UI enhancements in New Timesheet Screen , Better ComboBoxes UI for better Visibility</li>
         <li> This Version was not released to Open-Store due to Internal User Testing and Feedback. </li>
-
         <br>
 
-        <h4> 11-06-2025 : Version 0.9 : Release 3 </h4>
+        <h4> 11-06-2025 :  Version 0.8 </h4>
         <li> Default Account Selection Method Introduced</li>
         <li> Remote user list to assign tasks to the users</li>
         <li> Introduction of Color codes for Projects</li>
@@ -59,16 +59,14 @@
         <br>
 
 
-        <h4> 10-06-2025 : Version 0.6 to 0.8 : Release 2</h4>
+        <h4> 10-06-2025 : Version 0.6</h4>
         <li> Introduction of the Local Storage : Please remove your existing accounts from settings to use this release</li>
         <li> Fixed the bugs in Timesheet & Updated Eisenhower matrix</li>
         <li> Adapted theme support to few screens, full comptability in the next release</li>
         <li> Additional fields has been added to the project screen</li>
-
         <br>
 
-
-        <h4> 07-06-2025 : Version 0.1 to 0.5 : Release 1</h4>
+        <h4> 07-06-2025 :  Version 0.5</h4>
         <li> Connect to Odoo servers to sync timesheets, tasks, and projects.</li>
         <li> Login to multiple accounts and keep data in sync .</li>
         <li> Visual dashboards to see where your time goes.</li>
