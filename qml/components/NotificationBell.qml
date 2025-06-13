@@ -53,6 +53,11 @@ Item {
     MouseArea {
         anchors.fill: parent
         onClicked: {
+            if (notificationCount === 0) {
+                console.log("No Notifications");
+                return;
+            }
+
             loadNotifications();
             notificationPopup.open();
         }
@@ -123,8 +128,7 @@ Item {
             }
         }
     }
-    Component.onCompleted:
-    {
-        loadNotifications()
+    Component.onCompleted: {
+        loadNotifications();
     }
 }
