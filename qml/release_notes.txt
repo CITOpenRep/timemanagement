@@ -22,6 +22,7 @@
  <p> -----13-06-2025 : Version 1.0 : Release 5 ----- </p>
      <li> Updates on Eisenhower widget </li>
      <li> Code optimization for better performance </li>
+      <li> UI fixes in New TreeSelector , Dark Mode Compatibility for About and Sync Page Added.</li>
       
     <br>
     <p> -----12-06-2025 : Version 1.0 : Release 4 ----- </p>
