@@ -3,6 +3,7 @@ import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import "../../models/constants.js" as AppConst
 import "../../models/project.js" as Project
+import "../../models/accounts.js" as Accounts
 import "../../models/task.js" as Task
 
 Rectangle {
@@ -19,6 +20,8 @@ Rectangle {
     property string accountLabelText: "Account"
     property string projectLabelText: "Project"
     property string taskLabelText: "Task"
+    property bool showAssigneeSelector: false
+    property string assigneeLabelText: "Assignee"
 
     signal accountChanged(int accountId)
 
@@ -37,7 +40,7 @@ Rectangle {
      * @param {int} projectid   - The ID (local or Odoo) of the project to preselect in the project tree.
      * @param {int} taskId      - The ID (local or Odoo) of the task to preselect in the task tree.
      */
-    function applyDeferredSelection(accountId, projectId, taskId) {
+    function applyDeferredSelection(accountId, projectId, taskId, assigneeId) {
         if (accountSelector.model.count === 0) {
             console.log("⏳ Deferring apply until account model is ready");
             deferredApplyTimer.deferredPayload = {
@@ -52,6 +55,58 @@ Rectangle {
         accountSelector.selectAccountById(accountId);
         reloadProjectSelector(accountId, projectId);
         reloadTaskSelector(accountId, taskId);
+        reloadAssigneeSelector(accountId, assigneeId);
+    }
+
+    /**
+     * Reloads the Assignee TreeSelector with a user list and includes a default "Unassigned" option.
+     *
+     * This function fetches user records from the local database (res_users_app) for a given account ID.
+     * It formats them into a flat list compatible with TreeSelector, where each user is treated as a top-level node.
+     * A default "Unassigned" entry is always shown at the top of the list.
+     *
+     * @param {int} accountId - The ID of the account (0 = local account, >0 = Odoo instance).
+     * @param {int} [selectedAssigneeId] - Optional assignee ID (local or Odoo) to preselect.
+     */
+    function reloadAssigneeSelector(accountId, selectedAssigneeId) {
+        console.log("Loading Assignees for account " + accountId);
+
+        let rawAssignees = Accounts.getUsers(accountId);  // expects: [{id, name, odoo_record_id}]
+        let flatModel = [];
+
+        // ✅ Default "Unassigned" entry
+        flatModel.push({
+            id: -1,
+            name: "Unassigned",
+            parent_id: null
+        });
+
+        let selectedText = "Unassigned";
+        let selectedFound = (selectedAssigneeId === -1);
+
+        for (let i = 0; i < rawAssignees.length; i++) {
+            let id = accountId === 0 ? rawAssignees[i].id : rawAssignees[i].odoo_record_id;
+            let name = rawAssignees[i].name;
+
+            flatModel.push({
+                id: id,
+                name: name,
+                parent_id: null  // or 0, as needed by TreeSelector (no hierarchy)
+            });
+
+            if (selectedAssigneeId !== undefined && selectedAssigneeId !== null && selectedAssigneeId === id) {
+                selectedText = name;
+                selectedFound = true;
+            }
+        }
+
+        // Push to selector
+        assigneeSelector.dataList = flatModel;
+        assigneeSelector.reload();
+
+        // Update selection
+        assigneeSelector.selectedId = selectedFound ? selectedAssigneeId : -1;
+        assigneeSelector.currentText = selectedFound ? selectedText : "Select Assignee";
     }
 
     /**
@@ -158,7 +213,8 @@ Rectangle {
         return {
             accountDbId: accountSelector.selectedInstanceId,
             projectDbId: projectSelector.selectedId,
-            taskDbId: taskSelector.selectedId
+            taskDbId: taskSelector.selectedId,
+            assigneeDbId: assigneeSelector.selectedId
         };
     }
 
@@ -197,6 +253,7 @@ Rectangle {
                         reloadProjectSelector(accountSelector.selectedInstanceId);
                         reloadTaskSelector(accountSelector.selectedInstanceId);
                         accountChanged(accountSelector.selectedInstanceId);
+                        reloadAssigneeSelector(accountSelector.selectedInstanceId);
                     }
                 }
             }
@@ -231,7 +288,22 @@ Rectangle {
                 height: units.gu(29)
             }
         }
-        //defered task row
+
+        // 🔹 Assignee Row
+        Row {
+            width: parent.width
+            visible: showAssigneeSelector
+            height: units.gu(5)
+
+            TreeSelector {
+                id: assigneeSelector
+                enabled: !readOnly
+                labelText: assigneeLabelText
+                width: parent.width
+                height: units.gu(29)
+            }
+        }
+
         Timer {
             id: deferredApplyTimer
             interval: 100
@@ -254,6 +326,7 @@ Rectangle {
                 accountSelector.selectAccountById(p.accountId);
                 reloadProjectSelector(p.accountId, p.projectId);
                 reloadTaskSelector(p.accountId, p.taskId);
+                reloadAssigneeSelector(p.accountId, p.assigneeId);
             }
         }
     }
