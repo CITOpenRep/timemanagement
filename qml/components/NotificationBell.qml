@@ -123,4 +123,8 @@ Item {
             }
         }
     }
+    Component.onCompleted:
+    {
+        loadNotifications()
+    }
 }
