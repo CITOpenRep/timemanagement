@@ -61,7 +61,7 @@ Item {
 
         Row {
             width: parent.width
-            spacing: units.gu(1)
+            spacing: units.gu(-1)
             height: units.gu(5)
 
             TSLabel {
@@ -93,21 +93,27 @@ Item {
             x: triggerButton.x
             y: triggerButton.y + triggerButton.height
             background: Rectangle {
-                color: "#ffffff"
-                radius: 6
+                color: "transparent"
+               
+                radius: units.gu(0.8)
             }
-            height: 300
+            height: units.gu(38)
 
-            ListView {
+           ListView {
                 anchors.fill: parent
                 model: treeModel
                 clip: true
                 interactive: true
                 boundsBehavior: Flickable.DragAndOvershootBounds
-                delegate: Item {
-                    width: parent.width
-                    height: 40
-
+                delegate: ItemDelegate {
+                    width: triggerButton.width 
+                    height: units.gu(5)
+                    hoverEnabled: true
+                    background: Rectangle {
+                        color: (hovered ? "skyblue" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e2e0da"))
+                        radius: units.gu(0.2)
+                        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
+                    }
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
@@ -121,8 +127,10 @@ Item {
                             text: model.label || ""
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.left: parent.left
-                            anchors.leftMargin: 10
-                            font.pixelSize: 16
+                            anchors.leftMargin: units.gu(1.2)
+                            font.pixelSize: units.gu(1.4)
+                            color : theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                         //   elide: Text.ElideRight
                         }
                     }
                 }
