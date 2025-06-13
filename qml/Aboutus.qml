@@ -88,6 +88,8 @@ Page {
                 wrapMode: Text.Wrap
                 width: parent.width - units.gu(4)
                 font.pixelSize: units.gu(1.8)
+
+                color : theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
             }
         }
     }
