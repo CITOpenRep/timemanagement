@@ -45,7 +45,8 @@ Page {
             //update graph etc
             var data = Project.getProjectSpentHoursList(true);
             projectchart.load(data);
-            simulateTestNotifications();
+            // For testing
+           // simulateTestNotifications();
         }
     }
 
