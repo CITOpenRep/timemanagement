@@ -232,10 +232,17 @@ Item {
 
                     Column {
                         anchors.centerIn: parent
-                        spacing: units.gu(0.5)
+                        spacing: units.gu(1)
+                        Image {
+                            source: "../images/q1.png"
+                            width: units.gu(4)
+                            height: units.gu(4)
+                            fillMode: Image.PreserveAspectFit
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
 
                         Text {
-                            text: "Do Now"
+                            text: "Do First"
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -283,10 +290,16 @@ Item {
 
                     Column {
                         anchors.centerIn: parent
-                        spacing: units.gu(0.5)
-
+                        spacing: units.gu(1)
+                        Image {
+                            source: "../images/q2.png"
+                            width: units.gu(4)
+                            height: units.gu(4)
+                            fillMode: Image.PreserveAspectFit
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
                         Text {
-                            text: "Schedule"
+                            text: "Do Next"
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -334,10 +347,17 @@ Item {
 
                     Column {
                         anchors.centerIn: parent
-                        spacing: units.gu(0.5)
+                        spacing: units.gu(1)
+                        Image {
+                            source: "../images/q3.png"
+                            width: units.gu(4)
+                            height: units.gu(4)
+                            fillMode: Image.PreserveAspectFit
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
 
                         Text {
-                            text: "Delegate"
+                            text: "Do Later"
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -385,10 +405,16 @@ Item {
 
                     Column {
                         anchors.centerIn: parent
-                        spacing: units.gu(0.5)
-
+                        spacing: units.gu(1)
+                        Image {
+                            source: "../images/q4.png"
+                            width: units.gu(4)
+                            height: units.gu(4)
+                            fillMode: Image.PreserveAspectFit
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
                         Text {
-                            text: "Delete"
+                            text: "Don't do"
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"

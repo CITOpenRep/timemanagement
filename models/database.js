@@ -217,3 +217,25 @@ function createOrUpdateTable(label, createSQL, match_column_list) {
     }
 }
 
+
+/**
+ * Converts a SQLite result row into a plain JS object dynamically.
+ * @param {object} row - A row object from tx.executeSql().rows.item(i)
+ * @returns {object} - Mapped plain object with all key-value pairs
+ */
+function rowToObject(row) {
+    var obj = {};
+
+    if (!row || typeof row !== 'object') {
+        console.warn("⚠️ rowToObject: Invalid row input", row);
+        return obj;
+    }
+
+    for (var key in row) {
+        if (Object.prototype.hasOwnProperty.call(row, key)) {
+            obj[key] = row[key] === undefined ? null : row[key];
+        }
+    }
+
+    return obj;
+}

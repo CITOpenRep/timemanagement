@@ -68,11 +68,10 @@ Page {
         const ids = workItem.getAllSelectedDbRecordIds();
         console.log("Account DB ID:", ids.accountDbId);
         console.log("Project DB ID:", ids.projectDbId);
-        console.log("Subproject DB ID:", ids.subprojectDbId);
         console.log("Task DB ID:", ids.taskDbId);
-        console.log("Subtask DB ID:", ids.subtaskDbId);
         console.log("Get the Current User");
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
+
         if (!user) {
             notifPopup.open("Error", "Unable to find the user , can not save", "error");
             return;
@@ -84,13 +83,17 @@ Page {
             return;
         }
 
+        if (ids.taskDbId < 0) {
+            notifPopup.open("Error", "You need to select a task to save time sheet", "error");
+            return;
+        }
+
         var timesheet_data = {
             'instance_id': ids.accountDbId < 0 ? 0 : ids.accountDbId,
             'record_date': date_widget.formattedDate(),
             'project': ids.projectDbId,
             'task': ids.taskDbId,
-            'subprojectId': ids.subprojectDbId,
-            'subTask': ids.subtaskDbId,
+            'subprojectId': 0,
             'description': name_text.text,
             'manualSpentHours': hours_text.text,
             'spenthours': hours_text.text,
@@ -105,7 +108,7 @@ Page {
             timesheet_data.id = recordid;
         }
 
-        const result = Model.create_or_update_timesheet(timesheet_data);
+        const result = Model.createOrSaveTimesheet(timesheet_data);
         if (!result.success) {
             notifPopup.open("Error", "Unable to Save the Task", "error");
         } else {
@@ -158,8 +161,37 @@ Page {
         }
 
         Row {
-            id: myRow1
+            id: myRow7
             anchors.top: myRow1a.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+
+            spacing: units.gu(6.3)
+            topPadding: units.gu(2)
+
+            Label {
+                id: priority_label
+                text: "Priority"
+                width: units.gu(6)
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+            }
+
+            TSCombobox {
+                id: priorityCombo
+                width: units.gu(37)
+                height: units.gu(5)
+                model: ["Do First (Important & Urgent )", "Do Next (Important & Not Urgent)", "Do Later (Urgent & Not Important)", "Don't do (Not Urgent & Not Important)"]
+                enabled: !isReadOnly
+                currentIndex: 0
+            }
+        }
+
+        Row {
+            id: myRow1
+            anchors.top: myRow7.bottom
             anchors.left: parent.left
             Column {
                 leftPadding: units.gu(1)
@@ -167,7 +199,7 @@ Page {
                     id: date_widget
                     readOnly: isReadOnly
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
-                    height: units.gu(8)
+                    height: units.gu(5)
                     anchors.centerIn: parent.centerIn
                 }
             }
@@ -181,7 +213,7 @@ Page {
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
-            spacing: units.gu(1)
+            spacing: units.gu(2)
             topPadding: units.gu(1)
 
             TSLabel {
@@ -205,7 +237,7 @@ Page {
                 objectName: "button_manual"
                 enabled: !isReadOnly
                 width: parent.width * 0.2
-                height: units.gu(3)
+                height: units.gu(5)
                 anchors.verticalCenter: parent.verticalCenter
 
                 onClicked: {
@@ -245,33 +277,6 @@ Page {
             }
         }
 
-        Row {
-            id: myRow7
-            anchors.top: descriptionSection.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(1)
-            topPadding: units.gu(1)
-
-            Label {
-                id: priority_label
-                text: "Priority"
-                width: units.gu(6)
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignLeft
-            }
-
-            TSCombobox {
-                id: priorityCombo
-                width: units.gu(33)
-                model: ["Do (Important & Urgent )", "Plan (Important & Not Urgent)", "Delegate (Urgent & Not Important)", "Delete (Not Urgent & Not Important)"]
-                enabled: !isReadOnly
-                currentIndex: 0
-            }
-        }
-
         TimePickerPopup {
             id: myTimePicker
             onTimeSelected: {
@@ -285,7 +290,7 @@ Page {
             console.log("XXXX From Timesheet got record id : " + recordid);
             if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
             {
-                currentTimesheet = Model.get_timesheet_details(recordid);
+                currentTimesheet = Model.getTimeSheetDetails(recordid);
                 let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
                 let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
                 let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
@@ -299,7 +304,7 @@ Page {
                 console.log("subProjectId  →", subProjectId);
                 console.log("subTaskId     →", subTaskId);*/
 
-                workItem.applyDeferredSelection(instanceId, projectId, subProjectId, taskId, subTaskId);
+                workItem.applyDeferredSelection(instanceId, projectId, taskId);
                 date_widget.setSelectedDate(currentTimesheet.record_date);
 
                 name_text.text = currentTimesheet.name;
@@ -311,9 +316,7 @@ Page {
                 }
             } else //we are creating a new timesheet
             {
-                const defaultId = Accounts.getDefaultAccountId();
-                console.log("XXXXX Creating a new timesheet → defaultId =", defaultId);
-                workItem.applyDeferredSelection(defaultId, -1, -1, -1);
+                workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
             }
         }
     }

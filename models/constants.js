@@ -22,10 +22,10 @@ var Colors = {
     ButtonDisabled :"grey",
 
     Quadrants: {
-        Q1: "#FF3B30",     // Urgent & Important
-        Q2: "#007AFF",     // Not Urgent but Important
-        Q3: "#A259FF",     // Delegate
-        Q4: "#8E8E93",     // Delete
+        Q1: "#E53935",     // Urgent & Important
+        Q2: "#1E88E5",     // Not Urgent but Important
+        Q3: "#43A047",     // Delegate
+        Q4: "#757575",     // Delete
         Default: "transparent"
     }
 }

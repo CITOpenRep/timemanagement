@@ -19,28 +19,17 @@ function getAccountsList() {
 
             for (var i = 0; i < accounts.rows.length; i++) {
                 var row = accounts.rows.item(i);
-
-                accountsList.push({
-                                      id: row.id,
-                                      name: row.name,
-                                      link: row.link,
-                                      last_modified: row.last_modified,
-                                      database: row.database,
-                                      connectwith_id: row.connectwith_id,
-                                      api_key: row.api_key,
-                                      username: row.username,
-                                      is_default:row.is_default
-
-                                  });
+                accountsList.push(DBCommon.rowToObject(row));
             }
         });
 
     } catch (e) {
-        DBCommon.logException(e);
+        DBCommon.logException("getAccountsList", e);
     }
 
     return accountsList;
 }
+
 
 /**
  * Sets the specified account as the default in the local SQLite database.
@@ -132,7 +121,7 @@ function getUsers(accountId) {
                     DBCommon.SIZE
                     );
 
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             var result = tx.executeSql(
                         "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
                         [accountId]
@@ -140,16 +129,12 @@ function getUsers(accountId) {
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                assigneeList.push({
-                                      id: row.id,
-                                      name: row.name,
-                                      remoteid: row.odoo_record_id
-                                  });
+                assigneeList.push(DBCommon.rowToObject(row));
             }
         });
 
     } catch (e) {
-        DBCommon.logException(e);
+        DBCommon.logException("getUsers", e);
     }
 
     return assigneeList;
@@ -203,6 +188,54 @@ function fetchParsedSyncLog(accountId) {
     return parsedLogs;
 }
 
+
+/**
+ * Creates a new user account in the local SQLite database if no duplicate exists.
+ *
+ * This function checks for an existing account with the same link, database, and username.
+ * If no duplicate is found, it inserts the new user data into the `users` table.
+ *
+ * @param {string} name - The name of the user.
+ * @param {string} link - The Odoo server link (or local server reference).
+ * @param {string} database - The Odoo database name.
+ * @param {string} username - The username for the account.
+ * @param {number} selectedConnectWithId - The connection type identifier (e.g., 1 for API key).
+ * @param {string} apikey - The API key if the connection type requires it.
+ * @returns {boolean} - Returns `true` if a duplicate account was found and no insertion was made, otherwise `false`.
+ */
+function createAccount(name, link, database, username, selectedConnectWithId, apikey) {
+    let duplicateFound = false;
+
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            const result = tx.executeSql(
+                             'SELECT COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ?',
+                             [link, database, username]
+                             );
+
+            if (result.rows.item(0).count === 0) {
+                const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
+                tx.executeSql(
+                            'INSERT INTO users (name, link, database, username, connectwith_id, api_key) VALUES (?, ?, ?, ?, ?, ?)',
+                            [name, link, database, username, selectedConnectWithId, apiKeyToStore]
+                            );
+                DBCommon.log("New user account created successfully.");
+            } else {
+                DBCommon.log("Duplicate account found. No new account created.");
+                duplicateFound = true;
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+
+    return duplicateFound;
+}
+
+
 /**
  * Deletes a user account and all related records from associated tables in the local SQLite database.
  *
@@ -240,7 +273,7 @@ function deleteAccountAndRelatedData(userId) {
         });
 
     } catch (e) {
-        logException(e);
+        DBCommon.logException(e);
     }
 }
 
@@ -289,4 +322,33 @@ function getCurrentUserOdooId(accountId) {
     }
 
     return odooId;
+}
+
+/**
+ * Fetches the account name for a given account ID from the `users` table.
+ *
+ * @param {number} accountId - The ID of the account to look up.
+ * @returns {string} - The name of the account, or an empty string if not found.
+ */
+function getAccountName(accountId) {
+    if (accountId === null || accountId === undefined) {
+        return "";
+    }
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var name = "";
+
+        db.transaction(function (tx) {
+            var result = tx.executeSql("SELECT name FROM users WHERE id = ?", [accountId]);
+            if (result.rows.length > 0) {
+                name = result.rows.item(0).name;
+            }
+        });
+
+        return name;
+    } catch (e) {
+        console.error("❌ getAccountName failed:", e);
+        return "";
+    }
 }

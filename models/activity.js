@@ -38,19 +38,19 @@ function queryActivityData(type, recordid) {
                     var account_id = tx.executeSql('SELECT name FROM users WHERE id = ?',[existing_activities.rows.item(0).account_id]);
                     var accountName = account_id.rows.length > 0 ? account_id.rows.item(0).name || "" : "";
                 }
- 
+
             }
-        } 
+        }
         else {
             var existing_activities = tx.executeSql('SELECT * FROM mail_activity_app where account_id IS NULL');
         }
 
         for (var activity = 0; activity < existing_activities.rows.length; activity++) {
-            activitylist.push({'summary': existing_activities.rows.item(activity).summary, 
-                'due_date': existing_activities.rows.item(activity).due_date, 
-                'id': existing_activities.rows.item(activity).id, 'account_id': existing_activities.rows.item(activity).account_id, 
-                'accountName': accountName, 'activity_type_id': existing_activities.rows.item(activity).activity_type_id,
-                'notes': notes, 'name': name})
+            activitylist.push({'summary': existing_activities.rows.item(activity).summary,
+                                  'due_date': existing_activities.rows.item(activity).due_date,
+                                  'id': existing_activities.rows.item(activity).id, 'account_id': existing_activities.rows.item(activity).account_id,
+                                  'accountName': accountName, 'activity_type_id': existing_activities.rows.item(activity).activity_type_id,
+                                  'notes': notes, 'name': name})
             filterActivityListData.push({'summary': existing_activities.rows.item(activity).summary, 'due_date': existing_activities.rows.item(activity).due_date, 'id': existing_activities.rows.item(activity).id})
         }
     })
@@ -60,15 +60,15 @@ function queryActivityData(type, recordid) {
 function filterActivityList(query) {
     activityListModel.clear();
 
-        for (var i = 0; i < filterActivityListData.length; i++) {
-            var entry = filterActivityListData[i];
-            if (entry.summary.toLowerCase().includes(query.toLowerCase()) ||
+    for (var i = 0; i < filterActivityListData.length; i++) {
+        var entry = filterActivityListData[i];
+        if (entry.summary.toLowerCase().includes(query.toLowerCase()) ||
                 entry.due_date.toLowerCase().includes(query.toLowerCase())
                 ) {
-                activityListModel.append(entry);
+            activityListModel.append(entry);
 
-            }
         }
+    }
 }
 
 function fetch_activity_types(selectedAccountUserId) {
@@ -92,10 +92,10 @@ function editActivityData(data) {
             account_id = ?, activity_type_id = ?, summary = ?, user_id = ?, due_date = ?, \
             notes = ?, resModel = ?, resId = ?, task_id = ?, project_id = ?, link_id = ?, state = ?, last_modified = ? \
             WHERE id = ?',
-            [data.updatedAccount, data.updatedActivity, data.updatedSummary, data.updatedUserId,
-            data.updatedDate, data.updatedNote, data.resModel, data.resId, data.task_id, 
-            data.project_id, data.link_id, data.editschedule, new Date().toISOString(), data.rowId]
-        );
+                      [data.updatedAccount, data.updatedActivity, data.updatedSummary, data.updatedUserId,
+                       data.updatedDate, data.updatedNote, data.resModel, data.resId, data.task_id,
+                       data.project_id, data.link_id, data.editschedule, new Date().toISOString(), data.rowId]
+                      );
         queryData('pending');
     });
 }

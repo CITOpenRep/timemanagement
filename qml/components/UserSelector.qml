@@ -38,7 +38,7 @@ ComboBox {
     background: Rectangle {
         color: "transparent"
         radius: units.gu(0.6)
-        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "transparent"
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
         border.width: 1
     }
 
@@ -62,8 +62,9 @@ ComboBox {
             elide: Text.ElideRight
         }
         background: Rectangle {
-            color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-            radius: 4
+            color: (hovered ? "skyblue" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e2e0da"))
+            radius: units.gu(0.5)
+            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
         }
     }
 
@@ -107,11 +108,11 @@ ComboBox {
                 Qt.callLater(() => {
                     currentIndex = i;
                     selectedUserId = user.id;
-                    console.log("✅ (Deferred) User selected:", user.name);
+                    //console.log("(Deferred) User selected:", user.name);
                     if (!shouldDeferUserSelection)
                         userSelected(user.id, user.name);
                 });
-                console.log("✅ User selected:", user.name);
+                //console.log("User selected:", user.name);
                 if (!shouldDeferUserSelection)
                     userSelected(user.id, user.name);
                 return;
@@ -134,14 +135,13 @@ ComboBox {
         const users = Accounts.getUsers(accountId);
         for (let i = 0; i < users.length; i++) {
             internalUserModel.append({
-                id: users[i].remoteid         // 👈 this is key!
-                ,
+                id: users[i].odoo_record_id,
                 name: users[i].name,
-                remoteid: users[i].remoteid
+                remoteid: users[i].odoo_record_id
             });
         }
 
-        console.log('About to check shouldDeferUserSelection: ' + shouldDeferUserSelection + " " + deferredUserId);
+        //console.log('About to check shouldDeferUserSelection: ' + shouldDeferUserSelection + " " + deferredUserId);
         if (shouldDeferUserSelection && deferredUserId > -1) {
             Qt.callLater(() => {
                 selectUserById(deferredUserId);

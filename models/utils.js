@@ -5,7 +5,7 @@ function getLastSyncStatus(accountId) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var result = "";
 
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         // 1. Fetch the latest sync status for display
         var rs = tx.executeSql(
                     "SELECT status, timestamp FROM sync_report WHERE account_id = ? ORDER BY timestamp DESC LIMIT 1",
@@ -45,7 +45,7 @@ function getYesterday() {
 function insertData(name, link, database, username, selectedconnectwithId, apikey) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ?', [link, database, username]);
         if (result.rows.item(0).count === 0) {
             var api_key_text = ' ';
@@ -64,103 +64,35 @@ function insertData(name, link, database, username, selectedconnectwithId, apike
 function queryData() {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         var result = tx.executeSql('SELECT * FROM users');
         accountsList = [];
         for (var i = 0; i < result.rows.length; i++) {
-            accountsList.push({'user_id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'link': result.rows.item(i).link, 'database': result.rows.item(i).database, 'username': result.rows.item(i).username})
+            accountsList.push({ 'user_id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'link': result.rows.item(i).link, 'database': result.rows.item(i).database, 'username': result.rows.item(i).username })
         }
     });
     selectedconnectwithId = 1;
     connectwith.text = 'Connect With Api Key'
 }
 
-function accountlistDataGet(){
+function accountlistDataGet() {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var accountlist = [];
 
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         var result = tx.executeSql('SELECT * FROM users');
         for (var i = 0; i < result.rows.length; i++) {
-            accountlist.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name})
+            accountlist.push({ 'id': result.rows.item(i).id, 'name': result.rows.item(i).name })
         }
     })
     return accountlist
 
 }
 
-function fetch_projects(selectedAccountUserId) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var projectList = []
-    db.transaction(function(tx) {
-        if(workpersonaSwitchState){
-            var result = tx.executeSql('SELECT * FROM project_project_app WHERE account_id = ? AND parent_id IS 0', [selectedAccountUserId]);
-        }else{
-            var result = tx.executeSql('SELECT * FROM project_project_app WHERE id != ? AND account_id IS NULL AND parent_id IS 0', [selectedAccountUserId]);
-        }
-        for (var i = 0; i < result.rows.length; i++) {
-            var child_projects = tx.executeSql('SELECT count(*) as count FROM project_project_app where parent_id = ?', [result.rows.item(i).id]);
-            projectList.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'projectkHasSubProject': true ? child_projects.rows.item(0).count > 0 : false})
-        }
-    })
-    return projectList;
-}
-
-function fetch_sub_project(project_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var subProjectsList = []
-    db.transaction(function(tx) {
-        if(workpersonaSwitchState){
-            var child_projects = tx.executeSql('SELECT * FROM project_project_app where parent_id = ?', [project_id]);
-        }else{
-            var child_projects = tx.executeSql('SELECT * FROM project_project_app where account_id IS NULL AND parent_id = ?', [project_id]);
-        }
-        for (var i = 0; i < child_projects.rows.length; i++) {
-            subProjectsList.push({'id': child_projects.rows.item(i).id, 'name': child_projects.rows.item(i).name})
-        }
-    })
-    return subProjectsList;
-}
-
-function fetch_tasks_list(project_id, sub_project_id) {
-    var workpersonaSwitchState = true;
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var tasks_list = []
-    db.transaction(function(tx) {
-        if(workpersonaSwitchState){
-            var result = tx.executeSql('SELECT * FROM project_task_app where project_id = ? AND account_id != 0 AND sub_project_id = ?', [project_id, sub_project_id]);
-        }else{
-            var result = tx.executeSql('SELECT * FROM project_task_app where account_id = 0 AND project_id = ? AND sub_project_id = ?', [project_id, sub_project_id]);
-        }
-        for (var i = 0; i < result.rows.length; i++) {
-            var child_tasks = tx.executeSql('SELECT count(*) as count FROM project_task_app where parent_id = ?', [result.rows.item(i).id]);
-            
-            tasks_list.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'taskHasSubTask': true ? child_tasks.rows.item(0).count > 0 : false,'parent_id':result.rows.item(i).parent_id})
-        }
-    })
-    return tasks_list;
-}
-
-function fetch_sub_tasks(task_id) {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    
-    var sub_tasks_list = []
-    db.transaction(function(tx) {
-        if(workpersonaSwitchState){
-            var child_tasks = tx.executeSql('SELECT * FROM project_task_app where parent_id = ?', [task_id]);
-        }else{
-            var child_tasks = tx.executeSql('SELECT * FROM project_task_app where account_id IS NULL AND parent_id = ?', [task_id]);
-        }
-        for (var i = 0; i < child_tasks.rows.length; i++) {
-            sub_tasks_list.push({'id': child_tasks.rows.item(i).id, 'name': child_tasks.rows.item(i).name})
-        }
-    })
-    return sub_tasks_list
-}
 
 function timesheetData(data) {
     var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         var unitAmount = 0
         if (data.isManualTimeRecord) {
             unitAmount = convTimeFloat(data.manualSpentHours)
@@ -181,7 +113,7 @@ function getAccountIdByName(accountName) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var accountId = -1;  // default if not found
 
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         var rs = tx.executeSql("SELECT id FROM users WHERE name = ?", [accountName]);
         if (rs.rows.length > 0) {
             accountId = rs.rows.item(0).id;
@@ -227,7 +159,7 @@ function updateOdooUsers(model) {
     const db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     model.clear();
 
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         const result = tx.executeSql('SELECT name, odoo_record_id FROM res_users_app');
         for (let i = 0; i < result.rows.length; i++) {
             const row = result.rows.item(i);
@@ -239,60 +171,11 @@ function updateOdooUsers(model) {
     });
 }
 
-function fetch_projects(instance_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var projectList = [];
-    db.transaction(function(tx) {
-        if (is_work_state) {
-            var projects = tx.executeSql('SELECT * FROM project_project_app\
-             WHERE account_id = ? AND parent_id IS 0', [instance_id]);
-        } else {
-            var projects = tx.executeSql('SELECT * FROM project_project_app\
-             WHERE account_id IS NULL');
-        }
-        for (var project = 0; project < projects.rows.length; project++) {
-            var child_projects = tx.executeSql('SELECT count(*) as count FROM project_project_app\
-             where parent_id = ?', [projects.rows.item(project).id]);
-            projectList.push({'id': projects.rows.item(project).odoo_record_id,
-                                 'name': projects.rows.item(project).name,
-                                 'parent_id': projects.rows.item(project).parent_id,
-                                 'projectHasSubProject': true ? child_projects.rows.item(0).count > 0 : false});
-        }
-    });
-    return projectList;
-}
-
-function fetch_subprojects(instance_id, parent_project_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var subprojectList = [];
-
-    db.transaction(function(tx) {
-        var result = tx.executeSql('SELECT * FROM project_project_app \
-            WHERE account_id = ? AND parent_id = ?', [instance_id, parent_project_id]);
-
-        for (var i = 0; i < result.rows.length; i++) {
-            var row = result.rows.item(i);
-            var child_projects = tx.executeSql('SELECT count(*) as count FROM project_project_app \
-                WHERE parent_id = ?', [row.id]);
-
-            subprojectList.push({
-                                    id: row.odoo_record_id,
-                                    name: row.name,
-                                    parent_id: row.parent_id,
-                                    recordId: row.odoo_record_id,
-                                    projectHasSubProject: child_projects.rows.item(0).count > 0
-                                });
-        }
-    });
-
-    return subprojectList;
-}
-
 function fetch_subtasks(instance_id, parent_task_id) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var subtaskList = [];
 
-    db.transaction(function(tx) {
+    db.transaction(function (tx) {
         var result = tx.executeSql('SELECT * FROM project_task_app \
             WHERE account_id = ? AND parent_id = ?', [instance_id, parent_task_id]);
 
@@ -341,7 +224,7 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
     xhr.open("POST", odooUrl + "/web/database/list");
     xhr.setRequestHeader("Content-Type", "application/json");
 
-    xhr.onreadystatechange = function() {
+    xhr.onreadystatechange = function () {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200) {
                 try {
@@ -366,42 +249,7 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
     xhr.send("{}");
 }
 
-function populateProjectModelWithTaskCount(model, is_work_state) {
-    model.clear();
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
-    db.transaction(function(tx) {
-        var query = is_work_state
-                ? 'SELECT * FROM project_project_app WHERE account_id IS NOT NULL ORDER BY last_modified DESC'
-                : 'SELECT * FROM project_project_app WHERE account_id IS NULL ORDER BY last_modified DESC';
-
-        var result = tx.executeSql(query);
-
-        for (var i = 0; i < result.rows.length; i++) {
-            var row = result.rows.item(i);
-            var taskCountQuery = tx.executeSql(
-                        'SELECT COUNT(*) AS count FROM project_task_app WHERE project_id = ? AND account_id = ?',
-                        [row.id, row.account_id]
-                        );
-
-            var taskCount = (taskCountQuery.rows.length > 0) ? taskCountQuery.rows.item(0).count : 0;
-
-            model.append({
-                             id: row.id,
-                             projectName: row.name,
-                             allocatedHours: row.allocated_hours || "0",
-                             startDate: row.planned_start_date || "",
-                             endDate: row.planned_end_date || "",
-                             deadline: row.planned_end_date || "",  // same as endDate
-                             description: row.description || "",
-                             colorPallet: row.color_pallet || "#cccccc",
-                             recordId: row.id,
-                             isFavorite: row.favorites === 1,
-                             task_count: taskCount
-                         });
-        }
-    });
-}
 
 function getColorFromOdooIndex(index) {
     //standard from odoo pallet
@@ -453,3 +301,47 @@ function truncateText(text, maxLength) {
     return text;
 }
 
+function getFormattedTimestamp() {
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = String(now.getMonth() + 1).padStart(2, '0');
+    var day = String(now.getDate()).padStart(2, '0');
+    var hours = String(now.getHours()).padStart(2, '0');
+    var minutes = String(now.getMinutes()).padStart(2, '0');
+    var seconds = String(now.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+
+/* Name: convertFloatToTime
+* This function will return HH:MM format time based on float value
+* -> value -> float value to convert HH:MM
+*/
+
+function convertFloatToTime(value) {
+    var hours = Math.floor(value);
+    var minutes = Math.round((value - hours) * 60);
+    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
+}
+
+/* Name: convertDurationToFloat
+* This function will return float value from HH:MM format
+* -> value -> HH:MM format to convert float value
+*/
+
+function convertDurationToFloat(value) {
+    let vals = value.split(":");
+    let hours = parseFloat(vals[0]);
+    let minutes = parseFloat(vals[1]);
+    let days = Math.floor(hours / 24);
+    hours = hours % 24;
+    let convertedMinutes = minutes / 60.0;
+    return hours + convertedMinutes;
+}
+
+function formatDate(date) {
+    var month = date.getMonth() + 1;
+    var day = date.getDate();
+    var year = date.getFullYear();
+    return month + '/' + day + '/' + year;
+}

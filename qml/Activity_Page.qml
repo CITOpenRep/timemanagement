@@ -28,7 +28,7 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import "../models/timesheet.js" as Model
 import "../models/project.js" as Project
-import "../models/Activity.js" as Activity
+import "../models/activity.js" as Activity
 import "../models/utils.js" as Utils
 
 Page {

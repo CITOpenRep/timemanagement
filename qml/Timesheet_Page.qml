@@ -87,7 +87,7 @@ Page {
         id: timesheetModel
     }
 
-    LomiriListView {
+    ListView {
         id: timesheetlist
         anchors.top: timesheetsheader.bottom
         anchors.bottom: parent.bottom

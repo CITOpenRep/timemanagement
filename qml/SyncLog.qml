@@ -48,8 +48,8 @@ Page {
 
             Rectangle {
                 anchors.fill: parent
-                anchors.margins: 6
-                radius: 6
+                anchors.margins: units.gu(0.8)
+
                 color: getColorByLevel(modelData.level)
 
                 Text {
@@ -58,6 +58,7 @@ Page {
                     font.pixelSize: units.gu(1)
                     wrapMode: Text.Wrap
                     width: parent.width
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "black"
                 }
             }
         }
@@ -66,13 +67,13 @@ Page {
     function getColorByLevel(level) {
         switch (level) {
         case "ERROR":
-            return "#ffe6e6";
+            return "#ec9f9f";
         case "WARNING":
-            return "#fff9cc";
+            return "#c9ba4a";
         case "DEBUG":
             return "#eef6ff";
         case "INFO":
-            return "#e6ffe6";
+            return "#90f790";
         default:
             return "#f5f5f5";
         }

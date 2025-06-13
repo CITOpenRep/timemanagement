@@ -27,6 +27,8 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.1
 import Lomiri.Components 1.3
 import QtQuick.LocalStorage 2.7 as Sql
+import "../../models/accounts.js" as Accounts
+import "../../models/project.js" as Project
 
 /*
     ProjectNavigator.qml - Logic Overview
@@ -95,91 +97,91 @@ Item {
     signal projectEditRequested(int recordId)
     signal projectDeleteRequested(int recordId)
 
-    function populateProjectChildrenMap(isWorkProfile) {
+    function refresh() {
+        //console.log("Refreshing projectNavigator...");
+        navigationStackModel.clear();
+        currentParentId = -1;
+        populateProjectChildrenMap(true);
+    }
+
+    function populateProjectChildrenMap() {
         childrenMap = {};
         childrenMapReady = false;
 
-        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var allProjects = Project.getAllProjects();
 
-        db.transaction(function (tx) {
-            var query = isWorkProfile ? 'SELECT * FROM project_project_app WHERE account_id IS NOT NULL ORDER BY name COLLATE NOCASE ASC' : 'SELECT * FROM project_project_app WHERE account_id IS NULL ORDER BY name COLLATE NOCASE ASC';
+        if (allProjects.length === 0) {
+            //console.log("No project data found");
+            return;
+        }
 
-            var result = tx.executeSql(query);
-            if (result.rows.length === 0) {
-                console.log("⚠ No project data found");
-                return;
-            }
+        var tempMap = {};
 
-            var tempMap = {};
+        allProjects.forEach(function (row) {
+            var odooId = row.odoo_record_id;
+            var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
 
-            for (var i = 0; i < result.rows.length; i++) {
-                var row = result.rows.item(i);
-                var odooId = row.odoo_record_id;
-                var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
-                var accountName = "";
-                if (row.account_id !== null) {
-                    var accResult = tx.executeSql("SELECT name FROM users WHERE id = ?", [row.account_id]);
-                    if (accResult.rows.length > 0) {
-                        accountName = accResult.rows.item(0).name;
-                    }
-                }
-                var item = {
-                    id_val: odooId,
-                    local_id: row.id,
-                    parent_id: parentOdooId,
-                    name: row.name || "Untitled",
-                    projectName: row.name || "Untitled",
-                    accountName: accountName,
-                    recordId: odooId,
-                    allocatedHours: row.allocated_hours ? String(row.allocated_hours) : "0",
-                    startDate: row.planned_start_date || "",
-                    endDate: row.planned_end_date || "",
-                    deadline: row.planned_end_date || "",
-                    description: row.description || "",
-                    colorPallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
-                    isFavorite: row.favorites === 1,
-                    hasChildren: false
-                };
+            var accountName = Accounts.getAccountName(row.account_id);
 
-                if (!tempMap[parentOdooId])
-                    tempMap[parentOdooId] = [];
-                tempMap[parentOdooId].push(item);
-            }
+            var item = {
+                id_val: odooId,
+                local_id: row.id,
+                parent_id: parentOdooId,
+                name: row.name || "Untitled",
+                projectName: row.name || "Untitled",
+                accountName: accountName,
+                recordId: odooId,
+                allocatedHours: row.allocated_hours ? String(row.allocated_hours) : "0",
+                startDate: row.planned_start_date || "",
+                endDate: row.planned_end_date || "",
+                deadline: row.planned_end_date || "",
+                description: row.description || "",
+                colorPallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
+                isFavorite: row.favorites === 1,
+                hasChildren: false
+            };
 
-            for (var parent in tempMap) {
-                tempMap[parent].forEach(function (child) {
-                    if (tempMap[child.id_val]) {
-                        child.hasChildren = true;
-                        child.childCount = children ? children.length : 0;
-                    }
-                });
-            }
+            if (!tempMap[parentOdooId])
+                tempMap[parentOdooId] = [];
 
-            for (var key in tempMap) {
-                var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
-                tempMap[key].forEach(function (entry) {
-                    model.append(entry);
-                });
-                childrenMap[key] = model;
-            }
-
-            childrenMapReady = true;
-
-            console.log("childrenMap created with", Object.keys(childrenMap).length, "entries");
-            for (var key in childrenMap) {
-                var m = childrenMap[key];
-                console.log("childrenMap[" + key + "] → count:", m.count);
-                for (var j = 0; j < m.count; j++) {
-                    var it = m.get(j);
-                    console.log("   →", it.projectName, "| id_val:", it.id_val, "| parent_id:", it.parent_id, "| hasChildren:", it.hasChildren);
-                }
-            }
+            tempMap[parentOdooId].push(item);
         });
+
+        // Tag children info
+        for (var parent in tempMap) {
+            tempMap[parent].forEach(function (child) {
+                if (tempMap[child.id_val]) {
+                    child.hasChildren = true;
+                    child.childCount = tempMap[child.id_val].length;
+                }
+            });
+        }
+
+        // Convert to QML ListModels
+        for (var key in tempMap) {
+            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+            tempMap[key].forEach(function (entry) {
+                model.append(entry);
+            });
+            childrenMap[key] = model;
+        }
+
+        childrenMapReady = true;
+
+        //console.log("childrenMap created with", Object.keys(childrenMap).length, "entries");
+        for (var key in childrenMap) {
+            var m = childrenMap[key];
+            //console.log("childrenMap[" + key + "] → count:", m.count);
+            for (var j = 0; j < m.count; j++) {
+                var it = m.get(j);
+                //console.log("   →", it.projectName, "| id_val:", it.id_val, "| parent_id:", it.parent_id, "| hasChildren:", it.hasChildren);
+            }
+        }
     }
 
     function getCurrentModel() {
         var model = childrenMap[currentParentId];
-        console.log("ListView loading model for parent:", currentParentId, ", count:", model ? model.count : 0);
+        //console.log("ListView loading model for parent:", currentParentId, ", count:", model ? model.count : 0);
         return model || Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
     }
 
@@ -208,21 +210,21 @@ Item {
             clip: true
             model: getCurrentModel()
 
-            Component.onCompleted: {
-                console.log("Initial ListView model for parent:", currentParentId, "→ count:", model.count);
-            }
+            Component.onCompleted:
+            // console.log("Initial ListView model for parent:", currentParentId, "→ count:", model.count);
+            {}
 
-            onModelChanged: {
-                console.log("Model changed for parent:", currentParentId, "→ count:", model.count);
-            }
+            onModelChanged:
+            //  console.log("Model changed for parent:", currentParentId, "→ count:", model.count);
+            {}
 
             delegate: Item {
                 width: parent.width
                 height: units.gu(10)
 
-                Component.onCompleted: {
-                    console.log("Showing:", model.projectName, "id:", model.id_val);
-                }
+                Component.onCompleted:
+                // console.log("Showing:", model.projectName, "id:", model.id_val);
+                {}
 
                 ProjectDetailsCard {
                     id: projectCard
@@ -239,15 +241,15 @@ Item {
                     colorPallet: model.colorPallet
                     isFavorite: model.isFavorite
                     hasChildren: model.hasChildren
-                    childCount: model.childCount
+                    childCount: (model.hasChildren) ? model.childCount : 0
                     localId: model.local_id
 
                     onEditRequested: id => {
-                        console.log("Edit:", local_id);
+                        //console.log("Edit:", local_id);
                         projectEditRequested(local_id);
                     }
                     onViewRequested: id => {
-                        console.log("Selected:", local_id);
+                        // console.log("Selected:", local_id);
                         projectSelected(local_id);
                     }
 
@@ -256,15 +258,15 @@ Item {
                         enabled: model.hasChildren
                         onClicked: {
                             if (model.hasChildren) {
-                                console.log("Navigating into:", model.projectName, "→", model.id_val);
+                                // console.log("Navigating into:", model.projectName, "→", model.id_val);
                                 navigationStackModel.append({
                                     parentId: currentParentId
                                 });
                                 currentParentId = model.id_val;
-                            } else {
-                                console.log("Selecting:", model.projectName);
-                                //projectNavigator.projectSelected(model.id_val, model.name);
-                            }
+                            } else
+                            //  console.log("Selecting:", model.projectName);
+                            //projectNavigator.projectSelected(model.id_val, model.name);
+                            {}
                         }
                     }
                 }
@@ -276,7 +278,7 @@ Item {
         target: projectNavigator
         onChildrenMapReadyChanged: {
             if (childrenMapReady) {
-                console.log("childrenMap is ready → assigning model");
+                //console.log("childrenMap is ready → assigning model");
                 projectListView.model = getCurrentModel();
             }
         }
@@ -284,7 +286,7 @@ Item {
 
     onCurrentParentIdChanged: {
         if (childrenMapReady) {
-            console.log("currentParentId changed →", currentParentId);
+            //console.log("currentParentId changed →", currentParentId);
             projectListView.model = getCurrentModel();
         }
     }

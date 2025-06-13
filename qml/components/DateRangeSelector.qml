@@ -83,7 +83,7 @@ Item {
                 visible: !dateRangeSelector.readOnly
                 background: Rectangle {
                     color: "transparent"
-                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
+                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#636161"
                     border.width: 1
                     radius: units.gu ? units.gu(0.5) : 4
                 }
@@ -105,8 +105,9 @@ Item {
                         elide: Text.ElideRight
                     }
                     background: Rectangle {
-                        color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                        radius: 4
+                        color: (hovered ? "skyblue" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e2e0da"))
+                        radius: units.gu(0.5)
+                        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
                     }
                 }
                 onActivated: updateDates()
@@ -211,16 +212,19 @@ Item {
         let newEnd = new Date(today);
 
         switch (presetCombo.currentIndex) {
-        case 0: // Today
+        case 0 // Today
+        :
             console.log("Today");
             break;
-        case 1: // This Week
+        case 1 // This Week
+        :
             console.log("This week");
             const dow = today.getDay();
             const offset = (dow === 0) ? 1 : (dow >= 6 ? 5 : 5 - dow);
             newEnd.setDate(newEnd.getDate() + offset);
             break;
-        case 2: // This Month
+        case 2 // This Month
+        :
             console.log("This Month");
             const year = today.getFullYear();
             const month = today.getMonth();
