@@ -83,7 +83,7 @@ Page {
         console.log("Account DB ID:", ids.accountDbId);
         console.log("Project DB ID:", ids.projectDbId);
         console.log("Task DB ID:", ids.taskDbId);
-        console.log("Get the Current User");
+        console.log("Assignee" + ids.assigneeDbId);
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
         if (!user) {
             notifPopup.open("Error", "Unable to find the user , can not save", "error");
@@ -103,8 +103,7 @@ Page {
                 favorites: 0,
                 plannedHours: hours_text.text,
                 description: description_text.text,
-                assigneeUserId: assigneeCombo.selectedUserId === -1 ? null : assigneeCombo.selectedUserId //add a messagebox if you want to have an assignee based on the -1 value
-                ,
+                assigneeUserId: ids.assigneeDbId < 0 ? null : ids.assigneeDbId,
                 status: "updated"
             };
 
@@ -160,9 +159,8 @@ Page {
                     id: workItem
                     readOnly: isReadOnly
                     taskLabelText: "Parent Task"
-                    // showSubtaskSelector: false
                     width: tasksDetailsPageFlickable.width - units.gu(2)
-                    // height: units.gu(29) // Uncomment if you need fixed height
+                    showAssigneeSelector: true
                     onAccountChanged: {
                         console.log("Account id is " + accountId);
                         assigneeCombo.accountId = accountId;
@@ -245,48 +243,8 @@ Page {
         }
 
         Row {
-            id: myRow2
-            anchors.top: myRow9.bottom
-            anchors.left: parent.left
-            topPadding: 10
-            Column {
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: assignee_label
-                        // font.bold: true
-                        text: "Assignee"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                leftPadding: units.gu(3)
-                LomiriShape {
-                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
-                    height: units.gu(5)
-
-                    UserSelector {
-                        id: assigneeCombo
-                        editable: true
-                        width: parent.width
-                        height: parent.height
-                        anchors.centerIn: parent.centerIn
-                        flat: true
-                        enabled: !taskCreate.isReadOnly
-                    }
-                }
-            }
-        }
-
-        Row {
             id: myRow4
-            anchors.top: myRow2.bottom
+            anchors.top: myRow9.bottom
             anchors.left: parent.left
             height: units.gu(5)
             topPadding: units.gu(2)
@@ -396,19 +354,8 @@ Page {
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let user_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            workItem.applyDeferredSelection(instanceId, parent_project_id, parent_task_id);
+            workItem.applyDeferredSelection(instanceId, parent_project_id, parent_task_id, user_id);
             //We do not now setting the parent task
-
-            //Todo Gokul to implement the defered loading in assignees , we get [] for invalid users
-            if (typeof currentTask.user_id === "number" && currentTask.user_id > 0) {
-                console.log("User ID:", currentTask.user_id);
-                assigneeCombo.accountId = instanceId;
-                assigneeCombo.deferredUserId = currentTask.user_id;
-                assigneeCombo.shouldDeferUserSelection = true;
-                assigneeCombo.loadUsers();
-            } else {
-                console.warn("Invalid or empty user_id:", currentTask.user_id);
-            }
 
             date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
 
@@ -422,11 +369,7 @@ Page {
         {
             console.log("Creating a new task");
 
-            workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
-
-            assigneeCombo.accountId = Accounts.getDefaultAccountId();
-            assigneeCombo.shouldDeferUserSelection = false;
-            assigneeCombo.loadUsers();
+            workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
         }
     }
 }
