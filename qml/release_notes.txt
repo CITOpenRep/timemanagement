@@ -37,7 +37,7 @@
         <h4> 13-06-2025 : Version 1.0.0 </h4>
         <li> Updates on Eisenhower widget </li>
         <li> Code optimization for better performance </li>
-        <li> UI fixes in New TreeSelector , Dark Mode Compatibility for About and Sync Page Added.</li>
+        <li> UI fixes in New TreeSelector component for Project and Tasks, Dark Mode Compatibility for About and Sync Page Added.</li>
         <li> Updates in project, task and assingee selector</li>
 
         <br>
