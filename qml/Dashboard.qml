@@ -245,7 +245,7 @@ Page {
         id: flick1
         z: 8888
         width: parent.width
-        height: parent.height
+        height: parent.height - header.height
         anchors.top: header.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         contentWidth: parent.width
@@ -262,7 +262,7 @@ Page {
         Column {
             id: quadrantColumn
             width: parent.width
-            spacing: units.gu(2)
+            spacing: units.gu(3)
             anchors.top: parent.top
             anchors.margins: units.gu(1)
 
@@ -296,6 +296,30 @@ Page {
                     }
                 }
             }
+
+            /*  The below widget is useful for getting an overview of tasks . For future integration, please note that thereis a bug in the odooid we get , to be fixed.
+            Item {
+                id: tasksForTheDay
+                width: parent.width
+                height: width/2  // Maintain square layout
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                TasksForDayWidget {
+                    id: tasks_widget
+                    width: parent.width * 0.98
+                    height: parent.height
+                    anchors.centerIn: parent
+                    onTaskSelected: {
+                        if (odooId > 0) {
+                            console.log("---> Record ID received:", odooId, typeof odooId);
+                            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
+                                                             "recordid": String(odooId),
+                                                             "isReadOnly": true
+                                                         });
+                        }
+                    }
+                }
+            }*/
 
             ProjectPieChart {
                 id: projectchart

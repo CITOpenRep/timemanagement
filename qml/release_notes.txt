@@ -34,6 +34,10 @@
 
     <h3>Change History : (Version 1.0.0) Alpha Draft </h3>
     <ul>
+        <h4> 16-06-2025 : Version 1.0.1 </h4>
+        <li> Introduction of a Notification mechanism </li>
+        <li> User is notified the sync errors through notifications </li>
+        <br>
         <h4> 13-06-2025 : Version 1.0.0 </h4>
         <li> Updates on Eisenhower widget </li>
         <li> Code optimization for better performance </li>

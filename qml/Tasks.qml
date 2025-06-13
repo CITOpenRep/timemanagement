@@ -163,9 +163,6 @@ Page {
                     showAssigneeSelector: true
                     onAccountChanged: {
                         console.log("Account id is " + accountId);
-                        assigneeCombo.accountId = accountId;
-                        assigneeCombo.shouldDeferUserSelection = false;
-                        assigneeCombo.loadUsers();
                     }
                 }
             }
