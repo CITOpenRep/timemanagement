@@ -26,7 +26,7 @@ import json
 import sqlite3
 import logging
 from odoo_client import OdooClient
-from common import sanitize_datetime, safe_sql_execute
+from common import sanitize_datetime, safe_sql_execute,add_notification
 from pathlib import Path
 from datetime import datetime
 import os
@@ -73,6 +73,13 @@ def get_local_records(
         return records
     except Exception as e:
         log.error(f"[ERROR] Failed to fetch local records from '{table_name}': {e}")
+        add_notification(
+            db_path=db_path,
+            account_id=account_id,
+            notif_type="Sync",
+            message=f"Failed to fetch local records from '{table_name}'",
+            payload={}
+        )
         return []
 
 
@@ -327,7 +334,17 @@ def sync_to_odoo(
         record["db_path"] = db_path
         record["table_name"] = table_name
         record["account_id"] = account_id
-        push_record_to_odoo(client, model_name, record, config_path)
+        try:
+            push_record_to_odoo(client, model_name, record, config_path)
+        except Exception as e:
+            log.error(f"[ERROR] Failed to push record to {model_name} id={record.get('odoo_record_id')}: {e}")
+            add_notification(
+                db_path=db_path,
+                account_id=account_id,
+                notif_type="Sync",
+                message=f"Failed to push record to {model_name} id={record.get('odoo_record_id')}",
+                payload={"record_id": record.get("id")}
+            )
 
     log.info(
         f"[SYNC] {model_name}: {len(local_records)} updated, {len(deleted_records)} deleted."

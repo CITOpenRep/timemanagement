@@ -30,6 +30,7 @@ import logging
 from datetime import datetime
 from common import sanitize_datetime, safe_sql_execute,add_notification
 from pathlib import Path
+import os
 
 log = logging.getLogger("odoo_sync")
 
@@ -123,7 +124,13 @@ def insert_record(
         safe_sql_execute(db_path, sql, values)
     except Exception as e:
         log.debug(f"[ERROR] Failed to insert record into '{table_name}': {e}")
-        exit(1)  # for testing
+        add_notification(
+            db_path=db_path,
+            account_id=account_id,
+            notif_type="Sync",
+            message=f"Failed to insert record in '{model_name}'",
+            payload={"record_id": record.get("id")}
+        )
 
 
 def get_model_fields(client, model_name):
@@ -175,7 +182,7 @@ def sync_model(
             account_id=account_id,
             notif_type="Sync",
             message=f"Sync failed for model '{model_name}'",
-            payload={"error": str(e)}
+            payload={}
         )
 
 
