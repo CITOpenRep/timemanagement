@@ -46,6 +46,7 @@ ListItem {
                 fillMode: Image.PreserveAspectFit
                 source: "../images/" + Activity.getActivityIconForType(activity_type_name)
                 anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: units.gu(2)
             }
 
             Rectangle {
