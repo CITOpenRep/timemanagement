@@ -60,10 +60,6 @@
             "string": "Icon",
             "type": "char"
         },
-        "activity_calendar_event_id": {
-            "string": "Next Activity Calendar Event",
-            "type": "many2one"
-        },
         "message_is_follower": {
             "string": "Is Follower",
             "type": "boolean"
@@ -332,14 +328,6 @@
             "string": "Milestone",
             "type": "one2many"
         },
-        "milestone_count": {
-            "string": "Milestone Count",
-            "type": "integer"
-        },
-        "milestone_count_reached": {
-            "string": "Milestone Count Reached",
-            "type": "integer"
-        },
         "is_milestone_exceeded": {
             "string": "Is Milestone Exceeded",
             "type": "boolean"
@@ -427,6 +415,54 @@
         "child_ids_count": {
             "string": "Child Ids Count",
             "type": "integer"
+        },
+        "allow_billable": {
+            "string": "Billable",
+            "type": "boolean"
+        },
+        "sale_line_id": {
+            "string": "Sales Order Item",
+            "type": "many2one"
+        },
+        "sale_order_id": {
+            "string": "Sales Order",
+            "type": "many2one"
+        },
+        "has_any_so_to_invoice": {
+            "string": "Has SO to Invoice",
+            "type": "boolean"
+        },
+        "sale_order_count": {
+            "string": "Sale Order Count",
+            "type": "integer"
+        },
+        "has_any_so_with_nothing_to_invoice": {
+            "string": "Has a SO with an invoice status of No",
+            "type": "boolean"
+        },
+        "pricing_type": {
+            "string": "Pricing",
+            "type": "selection"
+        },
+        "sale_line_employee_ids": {
+            "string": "Sale line/Employee map",
+            "type": "one2many"
+        },
+        "billable_percentage": {
+            "string": "Billable Percentage",
+            "type": "integer"
+        },
+        "display_create_order": {
+            "string": "Display Create Order",
+            "type": "boolean"
+        },
+        "timesheet_product_id": {
+            "string": "Timesheet Product",
+            "type": "many2one"
+        },
+        "warning_employee_rate": {
+            "string": "Warning Employee Rate",
+            "type": "boolean"
         },
         "alias_name": {
             "string": "Alias Name",
@@ -545,10 +581,6 @@
         "activity_exception_icon": {
             "string": "Icon",
             "type": "char"
-        },
-        "activity_calendar_event_id": {
-            "string": "Next Activity Calendar Event",
-            "type": "many2one"
         },
         "message_is_follower": {
             "string": "Is Follower",
@@ -1062,13 +1094,57 @@
             "string": "Encode Uom In Days",
             "type": "boolean"
         },
-        "planned_date_start": {
-            "string": "Planned Date Start",
-            "type": "datetime"
+        "sale_order_id": {
+            "string": "Sales Order",
+            "type": "many2one"
         },
-        "planned_date_end": {
-            "string": "Planned Date End",
-            "type": "datetime"
+        "sale_line_id": {
+            "string": "Sales Order Item",
+            "type": "many2one"
+        },
+        "project_sale_order_id": {
+            "string": "Project's sale order",
+            "type": "many2one"
+        },
+        "task_to_invoice": {
+            "string": "To invoice",
+            "type": "boolean"
+        },
+        "display_sale_order_button": {
+            "string": "Display Sales Order",
+            "type": "boolean"
+        },
+        "so_analytic_account_id": {
+            "string": "Sale Order Analytic Account",
+            "type": "many2one"
+        },
+        "pricing_type": {
+            "string": "Pricing",
+            "type": "selection"
+        },
+        "is_project_map_empty": {
+            "string": "Is Project map empty",
+            "type": "boolean"
+        },
+        "has_multi_sol": {
+            "string": "Has Multi Sol",
+            "type": "boolean"
+        },
+        "allow_billable": {
+            "string": "Billable",
+            "type": "boolean"
+        },
+        "timesheet_product_id": {
+            "string": "Timesheet Product",
+            "type": "many2one"
+        },
+        "remaining_hours_so": {
+            "string": "Remaining Hours on SO",
+            "type": "float"
+        },
+        "remaining_hours_available": {
+            "string": "Remaining Hours Available",
+            "type": "boolean"
         }
     },
     "account.analytic.line": {
@@ -1152,6 +1228,30 @@
             "string": "Last Updated on",
             "type": "datetime"
         },
+        "product_id": {
+            "string": "Product",
+            "type": "many2one"
+        },
+        "general_account_id": {
+            "string": "Financial Account",
+            "type": "many2one"
+        },
+        "journal_id": {
+            "string": "Financial Journal",
+            "type": "many2one"
+        },
+        "move_line_id": {
+            "string": "Journal Item",
+            "type": "many2one"
+        },
+        "code": {
+            "string": "Code",
+            "type": "char"
+        },
+        "ref": {
+            "string": "Ref.",
+            "type": "char"
+        },
         "task_id": {
             "string": "Task",
             "type": "many2one"
@@ -1183,6 +1283,38 @@
         "encoding_uom_id": {
             "string": "Encoding Uom",
             "type": "many2one"
+        },
+        "so_line": {
+            "string": "Sales Order Item",
+            "type": "many2one"
+        },
+        "timesheet_invoice_type": {
+            "string": "Billable Type",
+            "type": "selection"
+        },
+        "commercial_partner_id": {
+            "string": "Commercial Partner",
+            "type": "many2one"
+        },
+        "timesheet_invoice_id": {
+            "string": "Invoice",
+            "type": "many2one"
+        },
+        "order_id": {
+            "string": "Order Reference",
+            "type": "many2one"
+        },
+        "is_so_line_edited": {
+            "string": "Is Sales Order Item Manually Edited",
+            "type": "boolean"
+        },
+        "sheet_id": {
+            "string": "Sheet",
+            "type": "many2one"
+        },
+        "sheet_state": {
+            "string": "Sheet State",
+            "type": "selection"
         }
     },
     "res.users": {
@@ -1578,33 +1710,17 @@
             "string": "Odoobot Failed",
             "type": "boolean"
         },
-        "google_calendar_account_id": {
-            "string": "Google Calendar Account",
+        "crm_team_ids": {
+            "string": "Sales Teams",
+            "type": "many2many"
+        },
+        "crm_team_member_ids": {
+            "string": "Sales Team Members",
+            "type": "one2many"
+        },
+        "sale_team_id": {
+            "string": "User Sales Team",
             "type": "many2one"
-        },
-        "google_calendar_rtoken": {
-            "string": "Refresh Token",
-            "type": "char"
-        },
-        "google_calendar_token": {
-            "string": "User token",
-            "type": "char"
-        },
-        "google_calendar_token_validity": {
-            "string": "Token Validity",
-            "type": "datetime"
-        },
-        "google_calendar_sync_token": {
-            "string": "Next Sync Token",
-            "type": "char"
-        },
-        "google_calendar_cal_id": {
-            "string": "Calendar ID",
-            "type": "char"
-        },
-        "google_synchronization_stopped": {
-            "string": "Google Synchronization stopped",
-            "type": "boolean"
         },
         "message_is_follower": {
             "string": "Is Follower",
@@ -1709,10 +1825,6 @@
         "activity_exception_icon": {
             "string": "Icon",
             "type": "char"
-        },
-        "activity_calendar_event_id": {
-            "string": "Next Activity Calendar Event",
-            "type": "many2one"
         },
         "image_1920": {
             "string": "Image",
@@ -1962,21 +2074,17 @@
             "string": "Signup URL",
             "type": "char"
         },
-        "meeting_count": {
-            "string": "# Meetings",
-            "type": "integer"
-        },
-        "meeting_ids": {
-            "string": "Meetings",
-            "type": "many2many"
-        },
-        "calendar_last_notif_ack": {
-            "string": "Last notification marked as read from base Calendar",
-            "type": "datetime"
-        },
         "employees_count": {
             "string": "Employees Count",
             "type": "integer"
+        },
+        "property_product_pricelist": {
+            "string": "Pricelist",
+            "type": "many2one"
+        },
+        "team_id": {
+            "string": "Sales Team",
+            "type": "many2one"
         },
         "partner_gid": {
             "string": "Company database ID",
@@ -2006,6 +2114,118 @@
             "string": "Phone/Mobile",
             "type": "char"
         },
+        "payment_token_ids": {
+            "string": "Payment Tokens",
+            "type": "one2many"
+        },
+        "payment_token_count": {
+            "string": "Payment Token Count",
+            "type": "integer"
+        },
+        "credit": {
+            "string": "Total Receivable",
+            "type": "monetary"
+        },
+        "credit_limit": {
+            "string": "Credit Limit",
+            "type": "float"
+        },
+        "use_partner_credit_limit": {
+            "string": "Partner Limit",
+            "type": "boolean"
+        },
+        "show_credit_limit": {
+            "string": "Show Credit Limit",
+            "type": "boolean"
+        },
+        "debit": {
+            "string": "Total Payable",
+            "type": "monetary"
+        },
+        "debit_limit": {
+            "string": "Payable Limit",
+            "type": "monetary"
+        },
+        "total_invoiced": {
+            "string": "Total Invoiced",
+            "type": "monetary"
+        },
+        "currency_id": {
+            "string": "Currency",
+            "type": "many2one"
+        },
+        "journal_item_count": {
+            "string": "Journal Items",
+            "type": "integer"
+        },
+        "property_account_payable_id": {
+            "string": "Account Payable",
+            "type": "many2one"
+        },
+        "property_account_receivable_id": {
+            "string": "Account Receivable",
+            "type": "many2one"
+        },
+        "property_account_position_id": {
+            "string": "Fiscal Position",
+            "type": "many2one"
+        },
+        "property_payment_term_id": {
+            "string": "Customer Payment Terms",
+            "type": "many2one"
+        },
+        "property_supplier_payment_term_id": {
+            "string": "Vendor Payment Terms",
+            "type": "many2one"
+        },
+        "ref_company_ids": {
+            "string": "Companies that refers to partner",
+            "type": "one2many"
+        },
+        "has_unreconciled_entries": {
+            "string": "Has Unreconciled Entries",
+            "type": "boolean"
+        },
+        "last_time_entries_checked": {
+            "string": "Latest Invoices & Payments Matching Date",
+            "type": "datetime"
+        },
+        "invoice_ids": {
+            "string": "Invoices",
+            "type": "one2many"
+        },
+        "contract_ids": {
+            "string": "Partner Contracts",
+            "type": "one2many"
+        },
+        "bank_account_count": {
+            "string": "Bank",
+            "type": "integer"
+        },
+        "trust": {
+            "string": "Degree of trust you have in this debtor",
+            "type": "selection"
+        },
+        "invoice_warn": {
+            "string": "Invoice",
+            "type": "selection"
+        },
+        "invoice_warn_msg": {
+            "string": "Message for Invoice",
+            "type": "text"
+        },
+        "supplier_rank": {
+            "string": "Supplier Rank",
+            "type": "integer"
+        },
+        "customer_rank": {
+            "string": "Customer Rank",
+            "type": "integer"
+        },
+        "duplicated_bank_account_partners_count": {
+            "string": "Duplicated Bank Account Partners Count",
+            "type": "integer"
+        },
         "task_ids": {
             "string": "Tasks",
             "type": "one2many"
@@ -2013,6 +2233,34 @@
         "task_count": {
             "string": "# Tasks",
             "type": "integer"
+        },
+        "vies_failed_message": {
+            "string": "Technical field display a message to the user if the VIES check fails.",
+            "type": "char"
+        },
+        "l10n_nl_kvk": {
+            "string": "KVK-nummer",
+            "type": "char"
+        },
+        "l10n_nl_oin": {
+            "string": "Organisatie Indentificatie Nummer",
+            "type": "char"
+        },
+        "sale_order_count": {
+            "string": "Sale Order Count",
+            "type": "integer"
+        },
+        "sale_order_ids": {
+            "string": "Sales Order",
+            "type": "one2many"
+        },
+        "sale_warn": {
+            "string": "Sales Warnings",
+            "type": "selection"
+        },
+        "sale_warn_msg": {
+            "string": "Message for Sales Order",
+            "type": "text"
         },
         "sel_groups_2_4": {
             "type": "selection",
@@ -2035,6 +2283,31 @@
             "exportable": false,
             "selectable": false
         },
+        "sel_groups_31_32_33": {
+            "type": "selection",
+            "string": "Sales",
+            "selection": [
+                [
+                    false,
+                    ""
+                ],
+                [
+                    31,
+                    "User: Own Documents Only"
+                ],
+                [
+                    32,
+                    "User: All Documents"
+                ],
+                [
+                    33,
+                    "Administrator"
+                ]
+            ],
+            "help": "Helps you handle your quotations, sale orders and invoicing.\n\nUser: Own Documents Only: the user will have access to his own data in the sales application.\nUser: All Documents: the user will have access to all records of everyone in the sales application.\nAdministrator: the user will have an access to the sales configuration as well as statistic reports.",
+            "exportable": false,
+            "selectable": false
+        },
         "sel_groups_16_17": {
             "type": "selection",
             "string": "Project",
@@ -2053,6 +2326,27 @@
                 ]
             ],
             "help": "Helps you manage your projects and tasks by tracking them, generating plannings, etc...\n",
+            "exportable": false,
+            "selectable": false
+        },
+        "sel_groups_38_40": {
+            "type": "selection",
+            "string": "Invoicing",
+            "selection": [
+                [
+                    false,
+                    ""
+                ],
+                [
+                    38,
+                    "Billing"
+                ],
+                [
+                    40,
+                    "Billing Administrator"
+                ]
+            ],
+            "help": "Helps you handle your accounting needs, if you are not an accountant, we suggest you to install only the Invoicing.\n",
             "exportable": false,
             "selectable": false
         },
@@ -2098,7 +2392,7 @@
             "exportable": false,
             "selectable": false
         },
-        "sel_groups_26_27_28": {
+        "sel_groups_45_46_47": {
             "type": "selection",
             "string": "Timesheets",
             "selection": [
@@ -2107,19 +2401,33 @@
                     ""
                 ],
                 [
-                    26,
+                    45,
                     "User: own timesheets only"
                 ],
                 [
-                    27,
+                    46,
                     "User: all timesheets"
                 ],
                 [
-                    28,
+                    47,
                     "Administrator"
                 ]
             ],
             "help": "Helps you manage the timesheets.\n",
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_41": {
+            "type": "boolean",
+            "string": "A warning can be set on a partner (Account)",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_49": {
+            "type": "boolean",
+            "string": "A warning can be set on a product or a customer (Sale)",
+            "help": false,
             "exportable": false,
             "selectable": false
         },
@@ -2137,9 +2445,51 @@
             "exportable": false,
             "selectable": false
         },
+        "in_group_27": {
+            "type": "boolean",
+            "string": "Advanced Pricelists",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_42": {
+            "type": "boolean",
+            "string": "Allow the cash rounding management",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
         "in_group_15": {
             "type": "boolean",
             "string": "Analytic Accounting",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_26": {
+            "type": "boolean",
+            "string": "Basic Pricelists",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_34": {
+            "type": "boolean",
+            "string": "Delivery Address",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_30": {
+            "type": "boolean",
+            "string": "Discount on lines",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_48": {
+            "type": "boolean",
+            "string": "Lock Confirmed Sales",
             "help": false,
             "exportable": false,
             "selectable": false
@@ -2155,6 +2505,62 @@
             "type": "boolean",
             "string": "Manage Multiple Units of Measure",
             "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_28": {
+            "type": "boolean",
+            "string": "Manage Product Packaging",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_29": {
+            "type": "boolean",
+            "string": "Manage Product Variants",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_50": {
+            "type": "boolean",
+            "string": "Pro-forma Invoices",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_44": {
+            "type": "boolean",
+            "string": "Purchase Receipt",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_51": {
+            "type": "boolean",
+            "string": "Quotation Templates",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_43": {
+            "type": "boolean",
+            "string": "Sale Receipt",
+            "help": false,
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_35": {
+            "type": "boolean",
+            "string": "Tax display B2B",
+            "help": "Show line subtotals without taxes (B2B)",
+            "exportable": false,
+            "selectable": false
+        },
+        "in_group_36": {
+            "type": "boolean",
+            "string": "Tax display B2C",
+            "help": "Show line subtotals with taxes included (B2C)",
             "exportable": false,
             "selectable": false
         },
@@ -2234,6 +2640,120 @@
             "help": false,
             "exportable": false,
             "selectable": false
+        }
+    },
+    "mail.activity": {
+        "res_model_id": {
+            "string": "Document Model",
+            "type": "many2one"
+        },
+        "res_model": {
+            "string": "Related Document Model",
+            "type": "char"
+        },
+        "res_id": {
+            "string": "Related Document ID",
+            "type": "many2one_reference"
+        },
+        "res_name": {
+            "string": "Document Name",
+            "type": "char"
+        },
+        "activity_type_id": {
+            "string": "Activity Type",
+            "type": "many2one"
+        },
+        "activity_category": {
+            "string": "Action",
+            "type": "selection"
+        },
+        "activity_decoration": {
+            "string": "Decoration Type",
+            "type": "selection"
+        },
+        "icon": {
+            "string": "Icon",
+            "type": "char"
+        },
+        "summary": {
+            "string": "Summary",
+            "type": "char"
+        },
+        "note": {
+            "string": "Note",
+            "type": "html"
+        },
+        "date_deadline": {
+            "string": "Due Date",
+            "type": "date"
+        },
+        "automated": {
+            "string": "Automated activity",
+            "type": "boolean"
+        },
+        "user_id": {
+            "string": "Assigned to",
+            "type": "many2one"
+        },
+        "request_partner_id": {
+            "string": "Requesting Partner",
+            "type": "many2one"
+        },
+        "state": {
+            "string": "State",
+            "type": "selection"
+        },
+        "recommended_activity_type_id": {
+            "string": "Recommended Activity Type",
+            "type": "many2one"
+        },
+        "previous_activity_type_id": {
+            "string": "Previous Activity Type",
+            "type": "many2one"
+        },
+        "has_recommended_activities": {
+            "string": "Next activities available",
+            "type": "boolean"
+        },
+        "mail_template_ids": {
+            "string": "Email templates",
+            "type": "many2many"
+        },
+        "chaining_type": {
+            "string": "Chaining Type",
+            "type": "selection"
+        },
+        "can_write": {
+            "string": "Can Write",
+            "type": "boolean"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "create_date": {
+            "string": "Created on",
+            "type": "datetime"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "write_date": {
+            "string": "Last Updated on",
+            "type": "datetime"
         }
     }
 }

@@ -128,15 +128,15 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             },
-            /*Action {
-                    iconName: "calendar"
-                    text: "Activities"
-                    onTriggered: {
-                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
-                        page = 2;
-                        apLayout.setCurrentPage(page);
-                    }
-                },*/
+            Action {
+                iconName: "calendar"
+                text: "Activities"
+                onTriggered: {
+                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
+                    page = 2;
+                    apLayout.setCurrentPage(page);
+                }
+            },
             Action {
                 iconName: "view-list-symbolic"
                 text: "Tasks"

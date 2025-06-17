@@ -352,3 +352,26 @@ function getAccountName(accountId) {
         return "";
     }
 }
+
+
+function getUserNameByOdooId(odoo_record_id) {
+    var userName = "";
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1";
+            var result = tx.executeSql(query, [odoo_record_id]);
+
+            if (result.rows.length > 0) {
+                userName = result.rows.item(0).name;
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getUserNameByOdooId", e);
+    }
+
+    return userName;
+}

@@ -1,4 +1,5 @@
 .import QtQuick.LocalStorage 2.7 as Sql
+.import "database.js" as DBCommon
 
 
 function queryActivityData(type, recordid) {
@@ -120,4 +121,119 @@ function filterStatus(type) {
         }
     })
     return filterActivityListData;
+}
+
+
+/**
+ * Retrieves all activity records from the `mail_activity_app` table.
+ *
+ * This function opens a read-only SQLite transaction using the DBCommon configuration,
+ * executes a query to fetch all rows from the `mail_activity_app` table without any filtering
+ * (e.g., includes all statuses, states, and accounts), and returns the results as a list of objects.
+ *
+ * Each row is converted into a plain JavaScript object using `DBCommon.rowToObject`.
+ *
+ * @function
+ * @returns {Array<Object>} A list of all activities stored in the local database, sorted by `due_date` ascending.
+ *
+ * @example
+ * const allActivities = getAllActivities();
+ * console.log(allActivities[0].summary); // Example usage
+ */
+function getAllActivities() {
+    var activityList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+            SELECT *
+            FROM mail_activity_app
+            ORDER BY due_date ASC
+            `;
+
+            var rs = tx.executeSql(query);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                activityList.push(DBCommon.rowToObject(rs.rows.item(i)));
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getAllActivities", e);
+    }
+
+    return activityList;
+}
+
+function getActivityByOdooId(odoo_record_id) {
+    var activity = null;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+            SELECT *
+            FROM mail_activity_app
+            WHERE odoo_record_id = ?
+            LIMIT 1
+            `;
+
+            var rs = tx.executeSql(query, [odoo_record_id]);
+
+            if (rs.rows.length > 0) {
+                activity = DBCommon.rowToObject(rs.rows.item(0));
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getActivityByOdooId", e);
+    }
+
+    return activity;
+}
+
+function getActivityTypeName(odooRecordId) {
+    var typeName = "";
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+            SELECT name FROM mail_activity_type_app
+            WHERE odoo_record_id = ?
+            LIMIT 1
+            `;
+            var rs = tx.executeSql(query, [odooRecordId]);
+
+            if (rs.rows.length > 0) {
+                typeName = rs.rows.item(0).name;
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getActivityTypeName", e);
+    }
+
+    return typeName;
+}
+
+function getActivityIconForType(typeName) {
+    if (!typeName) return "activity_others.png";
+
+    const normalized = typeName.trim().toLowerCase();
+
+    if (normalized.includes("mail")) {
+        return "activity_mail.png";
+    } else if (normalized.includes("call")) {
+        return "activity_call.png";
+    }else if (normalized.includes("meeting")) {
+        return "activity_meeting.png";
+    }
+    else {
+        return "activity_others.png";
+    }
 }
