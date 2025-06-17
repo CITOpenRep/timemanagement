@@ -41,7 +41,7 @@ ListItem {
             anchors.fill: parent
             spacing: units.gu(2)
 
-            anchors.leftMargin: units.gu(2)
+            anchors.leftMargin: units.gu(1.5)
 
             Image {
                 width: parent.height / 2
