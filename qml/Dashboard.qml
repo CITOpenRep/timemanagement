@@ -29,6 +29,7 @@ import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
 import "../models/project.js" as Project
+import "../models/notifications.js" as Notifications
 import "../models/utils.js" as Utils
 import io.thp.pyotherside 1.4
 import "components"
@@ -44,7 +45,34 @@ Page {
             //update graph etc
             var data = Project.getProjectSpentHoursList(true);
             projectchart.load(data);
+            // For testing notifications
+            // simulateTestNotifications();
         }
+    }
+
+    function simulateTestNotifications() {
+        Notifications.addNotification(1, "Task", "Task 'Write Report' is due today", {
+            id: 1026
+        });
+        Notifications.addNotification(1, "Project", "Project 'Website Revamp' deadline is tomorrow", {
+            id: 3001
+        });
+        Notifications.addNotification(1, "Sync", "Sync failed for task 'Client Meeting'", [
+            {
+                id: 1014,
+                error: "Missing project_id"
+            },
+            {
+                id: 1025,
+                error: "Unknown task_id"
+            }
+        ]);
+        Notifications.addNotification(1, "Activity", "Meeting with John at 3 PM", {
+            id: 45
+        });
+        Notifications.addNotification(1, "Timesheet", "No timesheet logged today", {
+            date: "2025-06-13"
+        });
     }
 
     header: PageHeader {
@@ -58,6 +86,12 @@ Page {
         title: "Time Mangager"
         visible: true
 
+        NotificationBell {
+            z: 9999
+            anchors.centerIn: parent
+            parentWindow: mainPage
+            visible : false // Set to true if you want to show the notification bell
+        }
         // ActionBar {
 
         //     id: actionbar
@@ -95,15 +129,15 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             },
-            /*Action {
-                    iconName: "calendar"
-                    text: "Activities"
-                    onTriggered: {
-                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
-                        page = 2;
-                        apLayout.setCurrentPage(page);
-                    }
-                },*/
+            Action {
+                iconName: "calendar"
+                text: "Activities"
+                onTriggered: {
+                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
+                    page = 2;
+                    apLayout.setCurrentPage(page);
+                }
+            },
             Action {
                 iconName: "view-list-symbolic"
                 text: "Tasks"
@@ -208,19 +242,11 @@ Page {
         }
     }
 
-    /* TopHeader {
-        id: top_custom_header
-        z: 9999
-    }*/
-    // LomiriShape {
-    //     anchors.fill: parent
-    //     anchors.margins: units.gu(1)
-    //    anchors.topMargin: header.height + units.gu(1)
-    //     aspect: LomiriShape.Flat
     Flickable {
         id: flick1
+        z: 8888
         width: parent.width
-        height: parent.height
+        height: parent.height - header.height
         anchors.top: header.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         contentWidth: parent.width
@@ -237,7 +263,7 @@ Page {
         Column {
             id: quadrantColumn
             width: parent.width
-            spacing: units.gu(2)
+            spacing: units.gu(3)
             anchors.top: parent.top
             anchors.margins: units.gu(1)
 
@@ -271,6 +297,30 @@ Page {
                     }
                 }
             }
+
+            /*  The below widget is useful for getting an overview of tasks . For future integration, please note that thereis a bug in the odooid we get , to be fixed.
+            Item {
+                id: tasksForTheDay
+                width: parent.width
+                height: width/2  // Maintain square layout
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                TasksForDayWidget {
+                    id: tasks_widget
+                    width: parent.width * 0.98
+                    height: parent.height
+                    anchors.centerIn: parent
+                    onTaskSelected: {
+                        if (odooId > 0) {
+                            console.log("---> Record ID received:", odooId, typeof odooId);
+                            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
+                                                             "recordid": String(odooId),
+                                                             "isReadOnly": true
+                                                         });
+                        }
+                    }
+                }
+            }*/
 
             ProjectPieChart {
                 id: projectchart

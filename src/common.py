@@ -26,7 +26,7 @@ import json
 import sqlite3
 from pathlib import Path
 from logger import setup_logger
-
+from datetime import datetime
 import sqlite3
 import time
 import sqlite3
@@ -140,3 +140,43 @@ def write_sync_report_to_db(db_path, account_id, status, message=""):
 
     conn.commit()
     conn.close()
+
+def add_notification(db_path, account_id, notif_type, message, payload):
+    """
+    Inserts a notification record into the 'notification' table.
+
+    Args:
+        db_path (str): Path to the SQLite database file.
+        account_id (int): The account associated with this notification.
+        notif_type (str): Type of notification, e.g., 'Task', 'Project', etc.
+        message (str): The main message body of the notification.
+        payload (dict or list): Any JSON-serializable metadata payload.
+    """
+    # Ensure table exists
+    create_table_sql = """
+        CREATE TABLE IF NOT EXISTS notification (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            account_id INTEGER,
+            timestamp TEXT DEFAULT (datetime('now')),
+            message TEXT NOT NULL,
+            type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'Timesheet', 'Sync')),
+            payload TEXT NOT NULL,
+            read_status INTEGER DEFAULT 0
+        )
+    """
+
+    safe_sql_execute(db_path, create_table_sql)
+
+    insert_sql = """
+        INSERT INTO notification (account_id, timestamp, message, type, payload, read_status)
+        VALUES (?, ?, ?, ?, ?, 0)
+    """
+
+    timestamp = datetime.utcnow().isoformat() + "Z"
+    payload_json = json.dumps(payload)
+
+    safe_sql_execute(
+        db_path,
+        insert_sql,
+        (account_id, timestamp, message, notif_type, payload_json)
+    )

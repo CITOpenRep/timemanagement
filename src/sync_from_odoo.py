@@ -28,8 +28,9 @@ from xmlrpc.client import ServerProxy
 from odoo_client import OdooClient
 import logging
 from datetime import datetime
-from common import sanitize_datetime, safe_sql_execute
+from common import sanitize_datetime, safe_sql_execute,add_notification
 from pathlib import Path
+import os
 
 log = logging.getLogger("odoo_sync")
 
@@ -123,7 +124,13 @@ def insert_record(
         safe_sql_execute(db_path, sql, values)
     except Exception as e:
         log.debug(f"[ERROR] Failed to insert record into '{table_name}': {e}")
-        exit(1)  # for testing
+        add_notification(
+            db_path=db_path,
+            account_id=account_id,
+            notif_type="Sync",
+            message=f"Failed to insert record in '{model_name}'",
+            payload={"record_id": record.get("id")}
+        )
 
 
 def get_model_fields(client, model_name):
@@ -160,9 +167,6 @@ def sync_model(
     try:
         records = fetch_odoo_records(client, model_name, odoo_fields)
         log.debug(f"[INFO] {len(records)} records fetched for model '{model_name}'.")
-        # conn = sqlite3.connect(db_path)
-        # cur = conn.cursor()
-
         fetched_odoo_ids = process_odoo_records(
             records, table_name, model_name, account_id, config_path, db_path
         )
@@ -170,11 +174,16 @@ def sync_model(
             fetched_odoo_ids, table_name, model_name, account_id, db_path
         )
 
-        # conn.commit()
-        # conn.close()
         log.debug(f"Synced '{model_name}' to table '{table_name}' with deletion check.")
     except Exception as e:
         log.debug(f"[ERROR] Failed to sync model '{model_name}': {e}")
+        add_notification(
+            db_path=db_path,
+            account_id=account_id,
+            notif_type="Sync",
+            message=f"Sync failed for model '{model_name}'",
+            payload={}
+        )
 
 
 def prepare_field_mapping(client, model_name, config_path):

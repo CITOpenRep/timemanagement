@@ -31,6 +31,29 @@ function initializeDatabase() {
                                  ['id INTEGER', 'name TEXT', 'link TEXT', 'last_modified datetime', 'database TEXT', 'connectwith_id INTEGER', 'api_key TEXT', 'username TEXT','is_default INTEGER']
                                  );
 
+    //Notification table
+    DBCommon.createOrUpdateTable("notification",
+        "CREATE TABLE IF NOT EXISTS notification (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "account_id INTEGER," +
+            "timestamp TEXT DEFAULT (datetime('now'))," +
+            "message TEXT NOT NULL," +
+            "type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'Timesheet', 'Sync'))," +
+            "payload TEXT NOT NULL," +
+            "read_status INTEGER DEFAULT 0" +
+        ")",
+        [
+            "id INTEGER",
+            "account_id INTEGER",
+            "timestamp TEXT",
+            "message TEXT",
+            "type TEXT",
+            "payload TEXT",
+            "read_status INTEGER"
+        ]
+    );
+
+
     //Time to create a local account
     DBCommon.ensureDefaultLocalAccountExists()
     //Local account ends

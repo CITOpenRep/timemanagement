@@ -345,3 +345,19 @@ function formatDate(date) {
     var year = date.getFullYear();
     return month + '/' + day + '/' + year;
 }
+
+function getTimeStatusInText(endDateString) {
+    if (!endDateString)
+        return "N/A";
+    var end = new Date(endDateString);
+    if (isNaN(end.getTime()))
+        return "Invalid";
+    var now = new Date();
+    var diff = end - now;
+    var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days < 0)
+        return Math.abs(days) + " days overdue";
+    if (days === 0)
+        return "Due today";
+    return days + " days";
+}

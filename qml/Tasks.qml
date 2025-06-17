@@ -39,7 +39,7 @@ import "components"
 
 Page {
     id: taskCreate
-    title: "New Task"
+    title: "Task"
     header: PageHeader {
         title: taskCreate.title
         StyleHints {
@@ -101,7 +101,7 @@ Page {
                 endDate: date_range_widget.formattedEndDate(),
                 deadline: date_range_widget.formattedEndDate(),
                 favorites: 0,
-                plannedHours: hours_text.text,
+                plannedHours: Utils.convertDurationToFloat(hours_text.text),
                 description: description_text.text,
                 assigneeUserId: ids.assigneeDbId < 0 ? null : ids.assigneeDbId,
                 status: "updated"
@@ -163,9 +163,6 @@ Page {
                     showAssigneeSelector: true
                     onAccountChanged: {
                         console.log("Account id is " + accountId);
-                        assigneeCombo.accountId = accountId;
-                        assigneeCombo.shouldDeferUserSelection = false;
-                        assigneeCombo.loadUsers();
                     }
                 }
             }
@@ -243,73 +240,49 @@ Page {
         }
 
         Row {
-            id: myRow4
+            id: plannedh_row
             anchors.top: myRow9.bottom
             anchors.left: parent.left
-            height: units.gu(5)
-            topPadding: units.gu(2)
-            Column {
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: hours_label
-                        text: "Planned Hours"
-                        //font.bold: true
-                        anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(2)
+            topPadding: units.gu(1)
 
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
+            TSLabel {
+                id: hours_label
+                text: "Planned Hours"
+                width: parent.width * 0.3
+                anchors.verticalCenter: parent.verticalCenter
             }
-            Column {
-                leftPadding: units.gu(3)
-                TSButton {
-                    id: minusbutton
-                    anchors.left: plusbutton.right
-                    height: units.gu(4)
-                    width: units.gu(4)
-                    text: "-"
-                    enabled: !isReadOnly
-                    onClicked: {
-                        incdecHrs(2);
-                    }
-                }
+
+            TSLabel {
+                id: hours_text
+                text: "01:00"
+                enabled: !isReadOnly
+                width: parent.width * 0.3
+                fontBold: true
+                anchors.verticalCenter: parent.verticalCenter
             }
-            Column {
-                id: planColumn
-                leftPadding: units.gu(1)
-                TextField {
-                    id: hours_text
-                    readOnly: isReadOnly
-                    width: units.gu(20)
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "1"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
-            Column {
-                leftPadding: units.gu(1)
-                TSButton {
-                    id: plusbutton
-                    height: units.gu(4)
-                    width: units.gu(4)
-                    text: "+"
-                    enabled: !isReadOnly
-                    onClicked: {
-                        incdecHrs(1);
-                    }
+
+            TSButton {
+                text: "Select"
+                objectName: "button_manual"
+                enabled: !isReadOnly
+                width: parent.width * 0.2
+                height: units.gu(5)
+                anchors.verticalCenter: parent.verticalCenter
+
+                onClicked: {
+                    myTimePicker.open(1, 0);
+                    // hours_text.readOnly = false;
                 }
             }
         }
 
         Row {
             id: myRow6
-            anchors.top: myRow4.bottom
+            anchors.top: plannedh_row.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
             Column {
@@ -322,6 +295,14 @@ Page {
                     anchors.centerIn: parent.centerIn
                 }
             }
+        }
+    }
+    TimePickerPopup {
+        id: myTimePicker
+        onTimeSelected: {
+            let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
+            console.log("Selected time:", timeStr);
+            hours_text.text = timeStr;  // for example, update a field
         }
     }
     Component.onCompleted: {

@@ -40,7 +40,7 @@ Item {
 
         Dialog {
             id: timeDialog
-            title: "Select Time"
+            title: "Select Hours"
 
             property int selectedHour: popupWrapper.initialHour
             property int selectedMinute: popupWrapper.initialMinute
@@ -98,12 +98,16 @@ Item {
 
                 Row {
                     spacing: units.gu(2)
-                    Button {
+                    TSButton {
                         text: "Cancel"
+                        width: units.gu(10)
+                        height: units.gu(5)
                         onClicked: PopupUtils.close(timeDialog)
                     }
-                    Button {
+                    TSButton {
                         text: "OK"
+                        height: units.gu(5)
+                        width: units.gu(10)
                         onClicked: {
                             popupWrapper.timeSelected(selectedHour, selectedMinute);
                             PopupUtils.close(timeDialog);

@@ -207,7 +207,7 @@ ListItem {
                     }
 
                     Text {
-                        text: getTaskTimeStatus(endDate)
+                        text: Utils.getTimeStatusInText(endDate)
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
@@ -238,25 +238,5 @@ ListItem {
 
         // Split by space to remove time
         return datetimeStr.split(" ")[0];
-    }
-    function getTaskTimeStatus(endDateString) {
-        if (!endDateString)
-            return "No Date";
-
-        var end = new Date(endDateString);
-        if (isNaN(end.getTime()))
-            return "";
-
-        var now = new Date();
-        var diff = end - now;
-        var days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-        if (days < 0) {
-            return Math.abs(days) + " days overdue";
-        } else if (days === 0) {
-            return "Due today";
-        } else {
-            return days + " days left";
-        }
     }
 }

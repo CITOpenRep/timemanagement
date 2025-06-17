@@ -28,8 +28,11 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import "../models/timesheet.js" as Model
 import "../models/project.js" as Project
+import "../models/task.js" as Task
 import "../models/activity.js" as Activity
 import "../models/utils.js" as Utils
+import "../models/accounts.js" as Accounts
+import "components"
 
 Page {
     id: activity
@@ -37,44 +40,67 @@ Page {
     header: PageHeader {
         id: taskheader
         title: activity.title
+          StyleHints {
+            foregroundColor: "white"
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
+        }
         ActionBar {
             numberOfSlots: 1
             anchors.right: parent.right
             //    enable: true
-            actions: [
+            /*actions: [
                 Action {
                     iconName: "add"
                     text: "New"
                     onTriggered: {
                         console.log("Create Activity clicked");
-                        apLayout.addPageToCurrentColumn(activity, Qt.resolvedUrl("Activity_Create.qml"));
+                        apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                            "recordid": recordid,
+                            "isReadOnly": false
+                        });
                     }
                 }
-            ]
+            ]*/
         }
     }
 
-    function get_activity_list(recordid) {
-        var activities = Activity.queryActivityData(recordid);
+    function get_activity_list() {
         activityListModel.clear();
-        for (var activity = 0; activity < activities.length; activity++) {
-            activityListModel.append({
-                'id': activities[activity].id,
-                'summary': activities[activity].summary,
-                'due_date': activities[activity].due_date
-            });
-        }
-    }
 
-    function get_activityOn_Status(searchstr) {
-        var activities = Activity.filterStatus(searchstr);
-        activityListModel.clear();
-        for (var activity = 0; activity < tasks.length; activity++) {
-            activityListModel.append({
-                'id': activities[activity].id,
-                'summary': activities[activity].summary,
-                'due_date': activities[activity].due_date
-            });
+        try {
+            var allActivities = Activity.getAllActivities();
+
+            for (var i = 0; i < allActivities.length; i++) {
+                var item = allActivities[i];
+
+                var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
+                var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
+                var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";  // Assuming you have getTaskDetails()
+                var user = Accounts.getUserNameByOdooId(item.user_id);
+                console.log("Username is " + user);
+
+                activityListModel.append({
+                    id: item.id,
+                    summary: item.summary,
+                    due_date: item.due_date,
+                    notes: item.notes,
+                    activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
+                    state: item.state,
+                    task_id: item.task_id,
+                    task_name: taskName,
+                    project_name: projectName,
+                    odoo_record_id: item.odoo_record_id,
+                    user: user,
+                    state: item.state,
+                    account_id: item.account_id,
+                    resId: item.resId,
+                    resModel: item.resModel,
+                    last_modified: item.last_modified
+                });
+            }
+        } catch (e) {
+            console.error("❌ Error in get_activity_list():", e);
         }
     }
 
@@ -87,78 +113,36 @@ Page {
         height: parent.height
         width: parent.width
 
-        Component {
-            id: activityDelegate
-            LomiriShape {
-                width: parent.width
-                height: units.gu(10)
-                Row {
-                    height: units.gu(10)
-                    leftPadding: units.gu(1)
-                    spacing: 10
-                    Column {
-                        width: units.gu(35)
-                        height: units.gu(10)
-                        /*                        Label{
-                        id: tasklabel
-                            text: "Activity: "}*/
-                        Text {
-                            width: units.gu(20)
-                            //                            anchors.left: tasklabel.left
-                            text: summary
-                            clip: true
-                        }
-                        /*                        Label{
-                            id: idlabel
-                            text: "ID: "}*/
-                        Text {
-                            //                            anchors.left:idlabel.left
-                            text: id
-                        }
-                    }
-                    Column {
-                        width: units.gu(10)
-                        height: units.gu(10)
-                        //                        Label{ text: "Due Date: "}
-                        Text {
-                            text: due_date
-                        }
-                        /*                        Label{ text: "Planned: "}
-                        Text { text: allocated_hours }*/
-                    }
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        activitylist.currentIndex = index;
-                        apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activity_details.qml"), {
-                            "recordid": id
-                        });
-                    }
-                }
-            }
-        }
-
         LomiriListView {
             id: activitylist
             anchors.fill: parent
-            //            anchors.top: taskheader.bottom
             model: activityListModel
-            delegate: activityDelegate
-            highlight: Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                color: "lightsteelblue"
-                radius: 5
+            delegate: ActivityDetailsCard {
+                id: activityCard
+                odoo_record_id: model.odoo_record_id
+                notes: model.notes
+                activity_type_name: model.activity_type_name
+                summary: model.summary
+                user: model.user
+                account_id: model.account_id
+                due_date: model.due_date
+                state: model.state
+                onCardClicked: function (accountid, recordid) {
+                    console.log("Page : Loading record " + recordid + " account id " + accountid);
+                    apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                        "recordid": recordid,
+                        "accountid": accountid,
+                        "isReadOnly": true
+                    });
+                }
             }
-            highlightFollowsCurrentItem: true
             currentIndex: 0
             onCurrentIndexChanged: {
                 console.log("currentIndex changed");
             }
 
             Component.onCompleted: {
-                get_activity_list(0);
+                get_activity_list();
             }
         }
     }
