@@ -90,7 +90,7 @@ Page {
             z: 9999
             anchors.centerIn: parent
             parentWindow: mainPage
-            visible : false
+            visible : false // Set to true if you want to show the notification bell
         }
         // ActionBar {
 
