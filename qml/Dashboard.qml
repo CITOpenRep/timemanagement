@@ -90,6 +90,7 @@ Page {
             z: 9999
             anchors.centerIn: parent
             parentWindow: mainPage
+            visible : false
         }
         // ActionBar {
 

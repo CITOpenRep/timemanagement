@@ -40,6 +40,11 @@ Page {
     header: PageHeader {
         id: taskheader
         title: activity.title
+          StyleHints {
+            foregroundColor: "white"
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
+        }
         ActionBar {
             numberOfSlots: 1
             anchors.right: parent.right

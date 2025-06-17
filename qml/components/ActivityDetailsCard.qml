@@ -41,13 +41,16 @@ ListItem {
             anchors.fill: parent
             spacing: units.gu(2)
 
+            anchors.leftMargin: units.gu(2)
+
             Image {
                 width: parent.height / 2
                 height: parent.height / 2
                 fillMode: Image.PreserveAspectFit
                 source: "../images/" + Activity.getActivityIconForType(activity_type_name)
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.margins: units.gu(2)
+                //anchors.margins: units.gu(2)
+               // anchors.leftMargin: units.gu(3)
             }
 
             Rectangle {
