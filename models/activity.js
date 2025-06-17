@@ -167,7 +167,7 @@ function getAllActivities() {
     return activityList;
 }
 
-function getActivityByOdooId(odoo_record_id) {
+function getActivityByOdooId(odoo_record_id, account_id) {
     var activity = null;
 
     try {
@@ -175,13 +175,13 @@ function getActivityByOdooId(odoo_record_id) {
 
         db.transaction(function (tx) {
             var query = `
-            SELECT *
-            FROM mail_activity_app
-            WHERE odoo_record_id = ?
-            LIMIT 1
+                SELECT *
+                FROM mail_activity_app
+                WHERE odoo_record_id = ? AND account_id = ?
+                LIMIT 1
             `;
 
-            var rs = tx.executeSql(query, [odoo_record_id]);
+            var rs = tx.executeSql(query, [odoo_record_id, account_id]);
 
             if (rs.rows.length > 0) {
                 activity = DBCommon.rowToObject(rs.rows.item(0));
@@ -194,6 +194,7 @@ function getActivityByOdooId(odoo_record_id) {
 
     return activity;
 }
+
 
 function getActivityTypeName(odooRecordId) {
     var typeName = "";

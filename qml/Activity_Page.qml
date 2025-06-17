@@ -119,12 +119,14 @@ Page {
                 activity_type_name: model.activity_type_name
                 summary: model.summary
                 user: model.user
+                account_id: model.account_id
                 due_date: model.due_date
                 state: model.state
-                onCardClicked: function (recordid) {
-                    console.log("Loading record " + recordid);
+                onCardClicked: function (accountid, recordid) {
+                    console.log("Page : Loading record " + recordid + " account id " + accountid);
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         "recordid": recordid,
+                        "accountid": accountid,
                         "isReadOnly": true
                     });
                 }

@@ -17,6 +17,7 @@ Page {
     property var recordid: 0
     property var currentActivity: {}
     property bool isReadOnly: true
+    property var accountid: 0
 
     header: PageHeader {
         id: header
@@ -62,7 +63,7 @@ Page {
             id: row2
             anchors.top: row1.bottom
             anchors.left: parent.left
-            topPadding: units.gu(5)
+            topPadding: units.gu(1)
             Column {
                 id: myCol88
                 leftPadding: units.gu(1)
@@ -201,7 +202,7 @@ Page {
                     height: units.gu(5)
                     aspect: LomiriShape.Flat
                     TSLabel {
-                        text: "Status"
+                        text: "State"
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -222,8 +223,8 @@ Page {
 
     Component.onCompleted: {
         if (recordid != 0) {
-            console.log("Loading activity " + recordid);
-            currentActivity = Activity.getActivityByOdooId(recordid);
+            console.log("Loading activity id " + recordid + " Account id is " + accountid);
+            currentActivity = Activity.getActivityByOdooId(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
             currentActivity.project_name = currentActivity.project_id ? Utils.getProjectDetails(currentActivity.project_id).name : "No Project";
             currentActivity.task_name = currentActivity.task_id ? Utils.getTaskDetails(currentActivity.task_id).name : "No Task";

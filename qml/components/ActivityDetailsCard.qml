@@ -17,8 +17,9 @@ ListItem {
     property string state: ""
     property int id: -1
     property var odoo_record_id
+    property var account_id
 
-    signal cardClicked(int recordid)
+    signal cardClicked(int accountid, int recordid)
 
     function truncateText(text, maxLength) {
         if (text.length > maxLength) {
@@ -144,6 +145,6 @@ ListItem {
 
     MouseArea {
         anchors.fill: parent
-        onClicked: root.cardClicked(root.odoo_record_id)
+        onClicked: root.cardClicked(root.account_id, root.odoo_record_id)
     }
 }
