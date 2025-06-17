@@ -65,7 +65,7 @@ ListItem {
                         spacing: 0
 
                         Text {
-                            text: root.summary ? truncateText(root.summary, 300) : "No Summary"
+                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? truncateText(root.summary, 300) : "No Summary"
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                             font.pixelSize: units.gu(2)
                             wrapMode: Text.WordWrap
@@ -127,7 +127,6 @@ ListItem {
                     Rectangle {
                         width: units.gu(6)
                         height: units.gu(2.2)
-                        radius: units.gu(1)
                         color: root.state === "done" ? "#4CAF50" : root.state === "open" ? "#FF9800" : "#9E9E9E"
 
                         Text {
