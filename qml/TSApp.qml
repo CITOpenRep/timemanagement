@@ -35,6 +35,7 @@ MainView {
     applicationName: "ubtms"
     property bool init: true
 
+    width : units.gu(50)
     //  width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
     // width: units.gu(50) //GM: for testing with only one column
     // height: units.gu(95)
