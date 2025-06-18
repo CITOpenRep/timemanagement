@@ -5,7 +5,7 @@ import QtGraphicalEffects 1.0
 Item {
     id: topFilterBar
     width: parent ? parent.width : Screen.width
-    height: flickable.height
+    height: units.gu(6) // Increased height
 
     //  anchors.margins: units.gu(0.5)
     //  anchors.leftMargin: units.gu(1)
@@ -31,7 +31,7 @@ Item {
     Flickable {
         id: flickable
         width: parent.width
-        height: rowLayout.implicitHeight
+        height: parent.height // Use full parent height
         contentWidth: rowLayout.width
         contentHeight: rowLayout.height
         clip: true
@@ -40,11 +40,15 @@ Item {
 
         Row {
             id: rowLayout
-           // spacing: units.gu(1)
-           
+            spacing: units.gu(1)
+            anchors.verticalCenter: parent.verticalCenter // Center vertically
+            anchors.left: parent.left
+            anchors.leftMargin: units.gu(1)
 
             Button {
                 text: topFilterBar.label1
+                height: topFilterBar.height
+                width: units.gu(12) // Increased width
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
@@ -64,6 +68,8 @@ Item {
 
             Button {
                 text: topFilterBar.label2
+                height: topFilterBar.height
+                width: units.gu(12) // Increased width
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
@@ -83,6 +89,8 @@ Item {
 
             Button {
                 text: topFilterBar.label3
+                height: topFilterBar.height
+                width: units.gu(12) // Increased width
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
@@ -102,6 +110,8 @@ Item {
 
             Button {
                 text: topFilterBar.label4
+                height: topFilterBar.height
+                width: units.gu(12) // Increased width
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
@@ -122,6 +132,8 @@ Item {
             TextField {
                 id: searchField
                 visible: topFilterBar.showSearchBox
+                height: topFilterBar.height
+                width: units.gu(20) // Increased width for search field
                 placeholderText: "Search..."
                 background: Rectangle {
                     color: "#F5F5F5"

@@ -195,7 +195,8 @@ Page {
     ListHeader {
         id: listheader
         anchors.top: taskheader.bottom
-        width: parent.width
+        anchors.left: parent.left
+        anchors.right: parent.right
         label1: "All"
         label2: "Today"
         label3: "This week"
