@@ -133,34 +133,34 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             }
-            // ListItem {
-            //     height: units.gu(6)
-            //     Rectangle {
-            //         color: "transparent"
-            //         anchors.fill: parent
-            //         anchors.left: parent.left
-            //         anchors.leftMargin: units.gu(3)
-            //         Row {
-            //             anchors.verticalCenter: parent.verticalCenter
-            //             spacing: units.gu(2)
-            //             Icon {
-            //                 width: 20
-            //                 height: 20
-            //                 name: "calendar"
-            //             }
-            //             Label {
-            //                 verticalAlignment: Text.AlignVCenter
-            //                 horizontalAlignment: Text.AlignLeft
-            //                 text: "Activities"
-            //             }
-            //         }
-            //     }
-            //     onClicked: {
-            //         apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Activity_Page.qml"));
-            //         page = 2;
-            //         apLayout.setCurrentPage(page);
-            //     }
-            // }
+            ListItem {
+                height: units.gu(6)
+                Rectangle {
+                    color: "transparent"
+                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.leftMargin: units.gu(3)
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: units.gu(2)
+                        Icon {
+                            width: units.gu(2.5)
+                            height: units.gu(2.5)
+                            name: "calendar"
+                        }
+                        Label {
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignLeft
+                            text: "Activities"
+                        }
+                    }
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Activity_Page.qml"));
+                    page = 2;
+                    apLayout.setCurrentPage(page);
+                }
+            }
             ListItem {
                 height: units.gu(6)
                 Rectangle {
