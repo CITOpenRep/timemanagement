@@ -65,18 +65,27 @@ Page {
         }
     }
 
-    function get_activity_list() {
+    function get_activity_list(filter) {
         activityListModel.clear();
+        
+        // Default to "all" if no filter provided
+        if (!filter) filter = "all";
 
         try {
             var allActivities = Activity.getAllActivities();
-
+            var currentDate = new Date();
+            
             for (var i = 0; i < allActivities.length; i++) {
                 var item = allActivities[i];
+                
+                // Apply date filtering
+                if (filter !== "all" && !passesDateFilter(item.due_date, filter, currentDate)) {
+                    continue;
+                }
 
                 var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
                 var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
-                var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";  // Assuming you have getTaskDetails()
+                var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";
                 var user = Accounts.getUserNameByOdooId(item.user_id);
                 console.log("Username is " + user);
 
@@ -103,6 +112,33 @@ Page {
             console.error("❌ Error in get_activity_list():", e);
         }
     }
+    
+    function passesDateFilter(dueDateStr, filter, currentDate) {
+        if (!dueDateStr) return false;
+        
+        var dueDate = new Date(dueDateStr);
+        var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+        var itemDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        
+        switch (filter) {
+            case "today":
+                return itemDate.getTime() === today.getTime();
+                
+            case "week":
+                var weekStart = new Date(today);
+                weekStart.setDate(today.getDate() - today.getDay());
+                var weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 6);
+                return itemDate >= weekStart && itemDate <= weekEnd;
+                
+            case "month":
+                return itemDate.getFullYear() === today.getFullYear() && 
+                       itemDate.getMonth() === today.getMonth();
+                       
+            default:
+                return true;
+        }
+    }
 
     ListModel {
         id: activityListModel
@@ -125,8 +161,7 @@ Page {
         filter4: "month"
         onFilterSelected: {
             console.log("Filter key is " + filterKey);
-            //here you need to reload the model based on the date .
-            //applyFilter(filterKey)
+            get_activity_list(filterKey);
         }
         onCustomSearch: {
             console.log("Search key is " + query);
@@ -169,7 +204,7 @@ Page {
             }
 
             Component.onCompleted: {
-                get_activity_list();
+                get_activity_list("all");
             }
         }
     }
