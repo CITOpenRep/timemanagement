@@ -38,6 +38,7 @@
         <li> Fixed Dashboard Screen Overflow issue </li>
         <li> Changes in Sync Logs, It will only display Warnings and Errors now. </li>
         <li> Fixed overflow of Notes in Activity Detail Card. </li>
+        <li> Introduced Tabbed View Filters in Activity Page with Search Field. </li>
         <br>
         <h4> 17-06-2025 : Version 1.0.1 </h4>
         <li> Activity List and view Basic Ui , Next release wil have better UX </li>
