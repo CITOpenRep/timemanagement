@@ -7,6 +7,10 @@ Item {
     width: parent ? parent.width : Screen.width
     height: flickable.height
 
+    //  anchors.margins: units.gu(0.5)
+    //  anchors.leftMargin: units.gu(1)
+    //  anchors.rightMargin: units.gu(1)
+
     // Exposed properties for external customization
     property string label1: "Today"
     property string label2: "Next Week"
@@ -36,14 +40,15 @@ Item {
 
         Row {
             id: rowLayout
-            spacing: units.gu(1)
+           // spacing: units.gu(1)
+           
 
             Button {
                 text: topFilterBar.label1
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                    radius: units.gu(0.5)
+                  //  radius: units.gu(0.5)
                 }
                 contentItem: Text {
                     text: parent.text
@@ -62,7 +67,7 @@ Item {
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                    radius: 5
+                   //  radius: units.gu(0.5)
                 }
                 contentItem: Text {
                     text: parent.text
@@ -81,7 +86,7 @@ Item {
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                    radius: 5
+                   //  radius: units.gu(0.5)
                 }
                 contentItem: Text {
                     text: parent.text
@@ -100,7 +105,7 @@ Item {
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                    radius: 5
+                   // radius: units.gu(0.5)
                 }
                 contentItem: Text {
                     text: parent.text
@@ -118,6 +123,15 @@ Item {
                 id: searchField
                 visible: topFilterBar.showSearchBox
                 placeholderText: "Search..."
+                background: Rectangle {
+                    color: "#F5F5F5"
+                    border.color: "#CCCCCC"
+                    border.width: 1
+                  //  radius: units.gu(0.5)
+                }
+                color: "#333333"
+                placeholderTextColor: "#888888"
+                selectByMouse: true
                 onAccepted: topFilterBar.customSearch(text)
             }
         }
