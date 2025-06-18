@@ -65,7 +65,7 @@ Page {
         }
     }
 
-    function get_activity_list(filter) {
+    function get_activity_list(filter, searchQuery) {
         activityListModel.clear();
         
         // Default to "all" if no filter provided
@@ -80,6 +80,11 @@ Page {
                 
                 // Apply date filtering
                 if (filter !== "all" && !passesDateFilter(item.due_date, filter, currentDate)) {
+                    continue;
+                }
+                
+                // Apply search filtering
+                if (searchQuery && !passesSearchFilter(item, searchQuery)) {
                     continue;
                 }
 
@@ -140,6 +145,49 @@ Page {
         }
     }
 
+    function passesSearchFilter(item, searchQuery) {
+        if (!searchQuery || searchQuery.trim() === "") return true;
+        
+        var query = searchQuery.toLowerCase().trim();
+        
+        // Search in summary
+        if (item.summary && item.summary.toLowerCase().indexOf(query) >= 0) {
+            return true;
+        }
+        
+        // Search in notes
+        if (item.notes && item.notes.toLowerCase().indexOf(query) >= 0) {
+            return true;
+        }
+        
+        // Search in activity type name
+        var activityTypeName = Activity.getActivityTypeName(item.activity_type_id);
+        if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
+            return true;
+        }
+        
+        // Search in user name
+        var user = Accounts.getUserNameByOdooId(item.user_id);
+        if (user && user.toLowerCase().indexOf(query) >= 0) {
+            return true;
+        }
+        
+        // Search in project name
+        var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
+        var projectName = projectDetails && projectDetails.name ? projectDetails.name : "";
+        if (projectName && projectName.toLowerCase().indexOf(query) >= 0) {
+            return true;
+        }
+        
+        // Search in task name
+        var taskName = item.task_id ? getTaskDetails(item.task_id).name : "";
+        if (taskName && taskName.toLowerCase().indexOf(query) >= 0) {
+            return true;
+        }
+        
+        return false;
+    }
+
     ListModel {
         id: activityListModel
     }
@@ -161,12 +209,13 @@ Page {
         filter4: "month"
         onFilterSelected: {
             console.log("Filter key is " + filterKey);
-            get_activity_list(filterKey);
+            currentFilter = filterKey;
+            get_activity_list(currentFilter, currentSearchQuery);
         }
         onCustomSearch: {
             console.log("Search key is " + query);
-            //here you need to reload the model based onsearch key
-            //   applySearch(query)
+            currentSearchQuery = query;
+            get_activity_list(currentFilter, currentSearchQuery);
         }
     }
 
@@ -204,8 +253,12 @@ Page {
             }
 
             Component.onCompleted: {
-                get_activity_list("all");
+                get_activity_list("all", "");
             }
         }
     }
+
+    // Store current filter and search state
+    property string currentFilter: "all"
+    property string currentSearchQuery: ""
 }
