@@ -19,6 +19,7 @@ Item {
     property string filter4: "later"
 
     property bool showSearchBox: true
+    property string currentFilter: filter1  // Track currently selected filter
 
     signal filterSelected(string filterKey)
     signal customSearch(string query)
@@ -39,22 +40,78 @@ Item {
 
             Button {
                 text: topFilterBar.label1
-                onClicked: topFilterBar.filterSelected(topFilterBar.filter1)
+                property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
+                background: Rectangle {
+                    color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
+                    radius: units.gu(0.5)
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: parent.isHighlighted ? "white" : "black"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    topFilterBar.currentFilter = topFilterBar.filter1
+                    topFilterBar.filterSelected(topFilterBar.filter1)
+                }
             }
 
             Button {
                 text: topFilterBar.label2
-                onClicked: topFilterBar.filterSelected(topFilterBar.filter2)
+                property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
+                background: Rectangle {
+                    color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: parent.isHighlighted ? "white" : "black"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    topFilterBar.currentFilter = topFilterBar.filter2
+                    topFilterBar.filterSelected(topFilterBar.filter2)
+                }
             }
 
             Button {
                 text: topFilterBar.label3
-                onClicked: topFilterBar.filterSelected(topFilterBar.filter3)
+                property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
+                background: Rectangle {
+                    color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: parent.isHighlighted ? "white" : "black"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    topFilterBar.currentFilter = topFilterBar.filter3
+                    topFilterBar.filterSelected(topFilterBar.filter3)
+                }
             }
 
             Button {
                 text: topFilterBar.label4
-                onClicked: topFilterBar.filterSelected(topFilterBar.filter4)
+                property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
+                background: Rectangle {
+                    color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: parent.isHighlighted ? "white" : "black"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    topFilterBar.currentFilter = topFilterBar.filter4
+                    topFilterBar.filterSelected(topFilterBar.filter4)
+                }
             }
 
             TextField {

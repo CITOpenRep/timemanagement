@@ -202,6 +202,7 @@ Page {
         label4: "This Month"
 
         showSearchBox: true
+        currentFilter: activity.currentFilter  // Bind to page's current filter
 
         filter1: "all"
         filter2: "today"
