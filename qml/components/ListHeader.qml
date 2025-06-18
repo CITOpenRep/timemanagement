@@ -40,10 +40,10 @@ Item {
 
         Row {
             id: rowLayout
-            spacing: units.gu(1)
+            spacing: 0 // Remove spacing between elements
             anchors.verticalCenter: parent.verticalCenter // Center vertically
             anchors.left: parent.left
-            anchors.leftMargin: units.gu(1)
+           // anchors.leftMargin: units.gu(1)
 
             Button {
                 text: topFilterBar.label1
@@ -52,7 +52,8 @@ Item {
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                  //  radius: units.gu(0.5)
+                    border.color: parent.isHighlighted ? "#E55A2B" : "#CCCCCC"
+                    border.width: 1
                 }
                 contentItem: Text {
                     text: parent.text
@@ -73,7 +74,8 @@ Item {
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                   //  radius: units.gu(0.5)
+                    border.color: parent.isHighlighted ? "#E55A2B" : "#CCCCCC"
+                    border.width: 1
                 }
                 contentItem: Text {
                     text: parent.text
@@ -94,7 +96,8 @@ Item {
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                   //  radius: units.gu(0.5)
+                    border.color: parent.isHighlighted ? "#E55A2B" : "#CCCCCC"
+                    border.width: 1
                 }
                 contentItem: Text {
                     text: parent.text
@@ -115,7 +118,8 @@ Item {
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
                 background: Rectangle {
                     color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                   // radius: units.gu(0.5)
+                    border.color: parent.isHighlighted ? "#E55A2B" : "#CCCCCC"
+                    border.width: 1
                 }
                 contentItem: Text {
                     text: parent.text
@@ -137,9 +141,8 @@ Item {
                 placeholderText: "Search..."
                 background: Rectangle {
                     color: "#F5F5F5"
-                    border.color: "#CCCCCC"
-                    border.width: 1
-                  //  radius: units.gu(0.5)
+                    border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
+                    border.width: searchField.activeFocus ? 2 : 1
                 }
                 color: "#333333"
                 placeholderTextColor: "#888888"
