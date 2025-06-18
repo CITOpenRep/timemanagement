@@ -32,8 +32,13 @@
         through seamless integration with Odoo.
     </p>
 
-    <h3>Change History : (Version 1.0.1) Alpha Draft </h3>
+    <h3>Change History : (Version 1.0.2) Alpha Draft </h3>
     <ul>
+     <h4> 17-06-2025 : Version 1.0.2 </h4>
+        <li> Fixed Dashboard Screen Overflow issue </li>
+        <li> Changes in Sync Logs, It will only display Warnings and Errors now. </li>
+        <li> Fixed overflow of Notes in Activity Detail Card. </li>
+        <br>
         <h4> 17-06-2025 : Version 1.0.1 </h4>
         <li> Activity List and view Basic Ui , Next release wil have better UX </li>
         <li> Introduction of a Notification mechanism </li>
