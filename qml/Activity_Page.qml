@@ -222,7 +222,7 @@ Page {
     }
 
     LomiriShape {
-        anchors.top: listheader.bottom
+        anchors.top: listheader.bottom 
         height: parent.height
         width: parent.width
 
