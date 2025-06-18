@@ -227,17 +227,17 @@ Page {
             currentActivity = Activity.getActivityByOdooId(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
 
-            let linkid=-1;
+            let linkid = -1;
 
             switch (currentActivity.resModel) {
-                case "project.task":
-                    // handle task todo
-                    break;
-                case "project.project":
-                    // handle project
-                    break;
-                default:
-                    // handle others
+            case "project.task":
+                // handle task todo
+                break;
+            case "project.project":
+                // handle project
+                break;
+            default:
+            // handle others
             }
 
             currentActivity.project_name = currentActivity.project_id ? Utils.getProjectDetails(currentActivity.project_id).name : "No Project";

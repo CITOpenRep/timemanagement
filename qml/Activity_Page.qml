@@ -40,7 +40,7 @@ Page {
     header: PageHeader {
         id: taskheader
         title: activity.title
-          StyleHints {
+        StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
@@ -108,8 +108,35 @@ Page {
         id: activityListModel
     }
 
-    LomiriShape {
+    ListHeader {
+        id: listheader
         anchors.top: taskheader.bottom
+        width: parent.width
+        label1: "All"
+        label2: "Today"
+        label3: "This week"
+        label4: "This Month"
+
+        showSearchBox: true
+
+        filter1: "today"
+        filter2: "week"
+        filter3: "month"
+        filter4: "all"
+        onFilterSelected: {
+            console.log("Filter key is " + filterKey);
+            //here you need to reload the model based on the date .
+            //applyFilter(filterKey)
+        }
+        onCustomSearch: {
+            console.log("Search key is " + query);
+            //here you need to reload the model based onsearch key
+            //   applySearch(query)
+        }
+    }
+
+    LomiriShape {
+        anchors.top: listheader.bottom
         height: parent.height
         width: parent.width
 
