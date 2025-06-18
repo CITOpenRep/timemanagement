@@ -119,10 +119,10 @@ Page {
 
         showSearchBox: true
 
-        filter1: "today"
-        filter2: "week"
-        filter3: "month"
-        filter4: "all"
+        filter1: "all"
+        filter2: "today"
+        filter3: "week"
+        filter4: "month"
         onFilterSelected: {
             console.log("Filter key is " + filterKey);
             //here you need to reload the model based on the date .
