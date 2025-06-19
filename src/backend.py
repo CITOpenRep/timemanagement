@@ -47,6 +47,18 @@ http = urllib3.PoolManager(cert_reqs="CERT_NONE")
 
 
 def is_file_present(file_path):
+    """
+    Check if a file exists at the specified path.
+    
+    Args:
+        file_path (str): Path to the file to check
+        
+    Returns:
+        bool: True if file exists and is a file, False otherwise
+        
+    Note:
+        Logs information about file existence status.
+    """
     file = Path(file_path)
     if file.exists() and file.is_file():
         log.error(f"[INFO] File exists: {file_path}")
@@ -57,7 +69,20 @@ def is_file_present(file_path):
 
 
 def resolve_qml_db_path(app_id="ubtms"):
-
+    """
+    Resolve and find the QML application database path across different environments.
+    
+    Args:
+        app_id (str): Application identifier, defaults to "ubtms"
+        
+    Returns:
+        str or None: Path to the SQLite database file if found, None otherwise
+        
+    Note:
+        Searches for SQLite files in standard user directories and clickable sandbox.
+        Validates the database by checking for required tables like 'project_project_app'.
+        Returns the most recently modified valid database file.
+    """
     db_paths = []
     current_dir = Path(__file__).parent.resolve()
 
@@ -93,7 +118,21 @@ def resolve_qml_db_path(app_id="ubtms"):
 
 
 def fetch_databases(url):
-    """Get and identify the database while on the create account page."""
+    """
+    Fetch available databases from an Odoo server and determine UI visibility options.
+    
+    Args:
+        url (str): Odoo server URL
+        
+    Returns:
+        list: List of available database names
+        
+    Note:
+        Also sets visibility dictionary for UI components based on database count:
+        - text_field: True if no databases found
+        - single_db: Database name if only one database
+        - menu_items: List of databases if multiple found
+    """
     database_list = get_db_list(url)
     visibility_dict = {
         "menu_items": False,
@@ -112,7 +151,25 @@ def fetch_databases(url):
 
 
 def login_odoo(selected_url, username, password, selected_db):
-    """To check whether login is successful or not."""
+    """
+    Authenticate user credentials against an Odoo server.
+    
+    Args:
+        selected_url (str): Odoo server URL
+        username (str): Username for authentication
+        password (str): Password for authentication  
+        selected_db (str): Database name to authenticate against
+        
+    Returns:
+        dict: Authentication result containing:
+            - status: "pass" if successful, "fail" if failed
+            - name_of_user: Full name of authenticated user
+            - database: Database name used
+            - uid: User ID from Odoo
+            
+    Note:
+        Uses Odoo's XML-RPC API for authentication and fetches user details on success.
+    """
     common = xmlrpc.client.ServerProxy("{}/xmlrpc/2/common".format(selected_url))
     generated_uid = common.authenticate(selected_db, username, password, {})
     if generated_uid:
@@ -138,7 +195,19 @@ def login_odoo(selected_url, username, password, selected_db):
 
 
 def get_db_list(url):
-    """To fetch database list from Odoo."""
+    """
+    Retrieve list of available databases from an Odoo server.
+    
+    Args:
+        url (str): Odoo server URL
+        
+    Returns:
+        list: List of database names available on the server. Returns empty list on error.
+        
+    Note:
+        Makes HTTP POST request to /web/database/list endpoint.
+        Handles connection errors gracefully.
+    """
     try:
         response = http.request(
             "POST",
@@ -158,6 +227,22 @@ def get_db_list(url):
 
 
 def sync(settings_db, account_id):
+    """
+    Perform synchronous bidirectional sync between local database and Odoo.
+    
+    Args:
+        settings_db (str): Path to the settings database file
+        account_id (int): Account ID to sync
+        
+    Returns:
+        bool: True if sync completed successfully
+        
+    Note:
+        Performs complete sync including:
+        1. Sync from Odoo to local database
+        2. Sync from local database to Odoo
+        Updates sync report in database with progress and results.
+    """
     write_sync_report_to_db(
         settings_db, account_id, "In Progress", "Sync job triggered"
     )
@@ -183,6 +268,21 @@ def sync(settings_db, account_id):
 
 
 def sync_background(settings_db, account_id):
+    """
+    Perform asynchronous bidirectional sync in a background thread.
+    
+    Args:
+        settings_db (str): Path to the settings database file
+        account_id (int): Account ID to sync
+        
+    Returns:
+        bool: True if sync thread started successfully, False if sync already in progress
+        
+    Note:
+        Uses global sync_lock to prevent concurrent sync operations.
+        Runs sync in separate thread to avoid blocking UI.
+        Updates sync report with progress and handles errors gracefully.
+    """
     global sync_in_progress
 
     with sync_lock:
@@ -242,4 +342,17 @@ def sync_background(settings_db, account_id):
 
 
 def start_sync_in_background(settings_db, account_id):
+    """
+    Start a background synchronization process.
+    
+    Args:
+        settings_db (str): Path to the settings database file
+        account_id (int): Account ID to sync
+        
+    Returns:
+        bool: Result from sync_background function
+        
+    Note:
+        Wrapper function for sync_background to provide a cleaner interface.
+    """
     return sync_background(settings_db, account_id)
