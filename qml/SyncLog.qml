@@ -34,13 +34,21 @@ Page {
     }
 
     Component.onCompleted: {
-        syncLogs = Accounts.fetchParsedSyncLog(recordid);
+        var allLogs = Accounts.fetchParsedSyncLog(recordid);
+        syncLogs = allLogs.filter(function(log) {
+            return log.level === "ERROR" || log.level === "WARNING" ;
+        });
         console.log("Logs loaded:", syncLogs.length);
     }
 
     ListView {
         id: logListView
         anchors.fill: parent
+        anchors.margins: units.gu(1)
+        anchors.topMargin: pageHeader.height + units.gu(1)
+        
+       // anchors.top: pageHeader.bottom + units.gu(4)
+       
         model: syncLogs
         delegate: Item {
             width: logListView.width
@@ -55,7 +63,7 @@ Page {
                 Text {
                     id: textItem
                     text: modelData.timestamp + modelData.message
-                    font.pixelSize: units.gu(1)
+                    font.pixelSize: units.gu(1.5)
                     wrapMode: Text.Wrap
                     width: parent.width
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "black"

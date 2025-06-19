@@ -90,7 +90,7 @@ Page {
             z: 9999
             anchors.centerIn: parent
             parentWindow: mainPage
-            visible : false // Set to true if you want to show the notification bell
+            visible: false // Set to true if you want to show the notification bell
         }
         // ActionBar {
 
@@ -244,7 +244,7 @@ Page {
 
     Flickable {
         id: flick1
-        z: 8888
+        //z: 888 //Set it to Zero or just remove it to avoid flickable being on top of the header
         width: parent.width
         height: parent.height - header.height
         anchors.top: header.bottom

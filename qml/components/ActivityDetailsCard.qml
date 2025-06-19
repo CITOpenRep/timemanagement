@@ -50,12 +50,12 @@ ListItem {
                 source: "../images/" + Activity.getActivityIconForType(activity_type_name)
                 anchors.verticalCenter: parent.verticalCenter
                 //anchors.margins: units.gu(2)
-               // anchors.leftMargin: units.gu(3)
+                // anchors.leftMargin: units.gu(3)
             }
 
             Rectangle {
                 id: leftrect
-                width: parent.width * 0.60
+                width: parent.width * 0.65
                 height: parent.height
                 color: "transparent"
 
@@ -70,7 +70,7 @@ ListItem {
                         spacing: 0
 
                         Text {
-                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? truncateText(root.summary, 300) : "No Summary"
+                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? truncateText(root.summary, 30) : "No Summary"
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                             font.pixelSize: units.gu(2)
                             wrapMode: Text.WordWrap
@@ -80,7 +80,7 @@ ListItem {
                         }
 
                         Text {
-                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? truncateText(root.notes, 300) : "No Notes"
+                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? truncateText(root.notes, 40) : "No Notes"
                             font.pixelSize: units.gu(1.6)
                             wrapMode: Text.NoWrap
                             elide: Text.ElideRight

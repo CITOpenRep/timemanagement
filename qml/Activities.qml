@@ -226,6 +226,20 @@ Page {
             console.log("Loading activity id " + recordid + " Account id is " + accountid);
             currentActivity = Activity.getActivityByOdooId(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
+
+            let linkid = -1;
+
+            switch (currentActivity.resModel) {
+            case "project.task":
+                // handle task todo
+                break;
+            case "project.project":
+                // handle project
+                break;
+            default:
+            // handle others
+            }
+
             currentActivity.project_name = currentActivity.project_id ? Utils.getProjectDetails(currentActivity.project_id).name : "No Project";
             currentActivity.task_name = currentActivity.task_id ? Utils.getTaskDetails(currentActivity.task_id).name : "No Task";
             currentActivity.activity_name = Activity.getActivityTypeName(currentActivity.activity_type_id);
