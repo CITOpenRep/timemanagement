@@ -168,24 +168,40 @@ Page {
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
 
-            spacing: units.gu(6.3)
+            spacing: units.gu(2)
             topPadding: units.gu(2)
 
             Label {
                 id: priority_label
                 text: "Priority"
-                width: units.gu(6)
+                width: units.gu(7)
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft
+                
             }
 
             TSCombobox {
                 id: priorityCombo
-                width: units.gu(37)
+                width: units.gu(33)
                 height: units.gu(5)
+           
                 model: ["Do First (Important & Urgent )", "Do Next (Important & Not Urgent)", "Do Later (Urgent & Not Important)", "Don't do (Not Urgent & Not Important)"]
                 enabled: !isReadOnly
                 currentIndex: 0
+            }
+            
+            Icon {
+                id: helpIcon
+                name: "help"
+                width: units.gu(3)
+                height: units.gu(3)
+                anchors.verticalCenter: priorityCombo.verticalCenter
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        notifPopup.open("Priority Help", "What Is Important Is Seldom Urgent. And What Is Urgent Is Seldom Important.\n\n1. Important & Urgent:\nHere you write down important activities, which also have to be done immediately. These are urgent problems or projects with a hard deadline. All signals are on red, so this is a typical activity for the first quadrant.\n\n2. Important & Not Urgent:\nIf you leave the activities in this quadrant for the coming week, nothing will immediately go wrong. But be careful: These are activities and projects that will help you in the long term. Think of thinking about a strategy, improving work processes in your team, investing in relationships and investing in yourself.\n\n3. Urgent & Not Important:\nThis quadrant concerns activities that do not help you in the long run, but that are screaming for your attention this week. With tasks in this quadrant it is very important to check whether they are actually urgent. If you have the opportunity to delegate or outsource these tasks in this quadrant, do so.\n\n4. Not Important & Not Urgent:\nThis type of work that you want to have on your plate as little as possible, because it does not help you in any way. Sometimes these activities are a great short break from your work, but usually they are a great excuse to postpone your important work for a while.", "info");
+                    }
+                }
             }
         }
 
