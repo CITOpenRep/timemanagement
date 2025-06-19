@@ -40,7 +40,7 @@
         <li> Fixed overflow of Notes in Activity Detail Card. </li>
         <li> Introduced Tabbed View Filters in Activity Page with Search Field. </li>
         <li> Introduced Info button for Eisenhower Priority Field in Timesheets. </li>
-        <li> Fixed TimeSheet Save Dialog. </li>
+        <li> Fixed TimeSheet Save Dialog, earlier it used to say Task Saved. </li>
 
 
         <br>
