@@ -40,6 +40,8 @@
         <li> Fixed overflow of Notes in Activity Detail Card. </li>
         <li> Introduced Tabbed View Filters in Activity Page with Search Field. </li>
         <li> Introduced Info button for Eisenhower Priority Field in Timesheets. </li>
+        <li> Fixed TimeSheet Save Dialog. </li>
+
 
         <br>
         <h4> 17-06-2025 : Version 1.0.1 </h4>
