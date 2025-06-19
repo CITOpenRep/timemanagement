@@ -43,7 +43,19 @@ Item {
         Dialog {
             id: popupDialog
             title: popupWrapper.titleText
-            text: popupWrapper.messageText
+            
+            Text {
+                id: messageText
+                text: popupWrapper.messageText
+                width: parent.width
+                wrapMode: Text.WordWrap
+                horizontalAlignment: {
+                    var wordCount = popupWrapper.messageText.split(/\s+/).length;
+                    return wordCount < 100 ? Text.AlignHCenter : Text.AlignJustify;
+                }
+                textFormat: Text.RichText
+            }
+            
             // Color logic based on type (optional, add custom styling if needed)
             Button {
                 text: "OK"
