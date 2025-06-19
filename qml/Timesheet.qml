@@ -112,7 +112,7 @@ Page {
         if (!result.success) {
             notifPopup.open("Error", "Unable to Save the Task", "error");
         } else {
-            notifPopup.open("Saved", "Task has been saved successfully", "success");
+            notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
         }
     }
 
