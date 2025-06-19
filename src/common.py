@@ -50,6 +50,30 @@ def safe_sql_execute(
     fetch=False,
     many=False,
 ):
+    """
+    Execute SQL statements safely with automatic retry on database locks.
+    
+    Args:
+        db_path (str): Path to the SQLite database file
+        sql (str): SQL statement to execute
+        values (tuple): Parameter values for the SQL statement
+        retries (int): Number of retry attempts on database lock, defaults to 5
+        delay (float): Delay in seconds between retry attempts, defaults to 0.2
+        commit (bool): Whether to commit the transaction, defaults to True
+        fetch (bool): Whether to fetch and return results, defaults to False
+        many (bool): Whether to use executemany for bulk operations, defaults to False
+        
+    Returns:
+        list or None: Query results if fetch=True, None otherwise
+        
+    Raises:
+        sqlite3.OperationalError: If database remains locked after all retries
+        Exception: For other database-related errors
+        
+    Note:
+        Uses thread-safe database access with global lock to prevent concurrency issues.
+        Automatically retries on database lock errors with exponential backoff.
+    """
     for attempt in range(retries):
         try:
             with db_lock:  # Ensures thread-safe access
@@ -78,6 +102,19 @@ def safe_sql_execute(
 
 
 def sanitize_datetime(value):
+    """
+    Sanitize and validate datetime string values for database storage.
+    
+    Args:
+        value: Input value to sanitize (typically string)
+        
+    Returns:
+        str or None: Valid ISO format datetime string if input is valid, None otherwise
+        
+    Note:
+        Validates datetime strings by attempting to parse them with fromisoformat().
+        Returns None for invalid dates, empty strings, or "0" values.
+    """
     try:
         if isinstance(value, str) and value.strip() and value != "0":
             # Try parsing to validate
@@ -89,6 +126,20 @@ def sanitize_datetime(value):
 
 
 def check_table_exists(db_path, table_name):
+    """
+    Check if a specific table exists in the SQLite database.
+    
+    Args:
+        db_path (str): Path to the SQLite database file
+        table_name (str): Name of the table to check for
+        
+    Returns:
+        bool: True if table exists, False otherwise
+        
+    Note:
+        Queries sqlite_master table to get list of all tables.
+        Prints debug information about available tables.
+    """
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
@@ -106,7 +157,21 @@ def check_table_exists(db_path, table_name):
 
 
 def write_sync_report_to_db(db_path, account_id, status, message=""):
-
+    """
+    Write synchronization report to the database with current status and logs.
+    
+    Args:
+        db_path (str): Path to the SQLite database file
+        account_id (int): Account ID associated with the sync operation
+        status (str): Current sync status (e.g., "In Progress", "Successful", "Failed")
+        message (str): Additional message or description, defaults to empty string
+        
+    Note:
+        Creates sync_report table if it doesn't exist.
+        Deletes previous sync reports for the same account_id before inserting new one.
+        Stores JSON log output from the logger as the message field.
+        Uses UTC timestamp in ISO format with 'Z' suffix.
+    """
     log_output = log.json_handler.get_json_string()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -143,14 +208,20 @@ def write_sync_report_to_db(db_path, account_id, status, message=""):
 
 def add_notification(db_path, account_id, notif_type, message, payload):
     """
-    Inserts a notification record into the 'notification' table.
+    Insert a notification record into the notification table.
 
     Args:
-        db_path (str): Path to the SQLite database file.
-        account_id (int): The account associated with this notification.
-        notif_type (str): Type of notification, e.g., 'Task', 'Project', etc.
-        message (str): The main message body of the notification.
-        payload (dict or list): Any JSON-serializable metadata payload.
+        db_path (str): Path to the SQLite database file
+        account_id (int): The account associated with this notification
+        notif_type (str): Type of notification ('Activity', 'Task', 'Project', 'Timesheet', 'Sync')
+        message (str): The main message body of the notification
+        payload (dict or list): Any JSON-serializable metadata payload
+
+    Note:
+        Creates notification table if it doesn't exist with proper schema constraints.
+        Sets read_status to 0 (unread) by default.
+        Stores payload as JSON string and adds UTC timestamp.
+        Uses safe_sql_execute for thread-safe database operations.
     """
     # Ensure table exists
     create_table_sql = """
