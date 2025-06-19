@@ -25,6 +25,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components.Popups 1.3
+import Lomiri.Components 1.3
 
 Item {
     id: popupWrapper
@@ -44,6 +45,12 @@ Item {
             id: popupDialog
             title: popupWrapper.titleText
             
+            // Dark mode friendly styling
+            StyleHints {
+                backgroundColor: theme.palette.normal.background
+                foregroundColor: theme.palette.normal.backgroundText
+            }
+            
             Text {
                 id: messageText
                 text: popupWrapper.messageText
@@ -54,12 +61,21 @@ Item {
                     return wordCount < 100 ? Text.AlignHCenter : Text.AlignJustify;
                 }
                 textFormat: Text.RichText
+                color: theme.palette.normal.backgroundText
             }
             
             // Color logic based on type (optional, add custom styling if needed)
             Button {
                 text: "OK"
                 onClicked: PopupUtils.close(popupDialog)
+                
+                // Dark mode friendly button styling
+                StyleHints {
+                  foregroundColor: "white"
+
+            backgroundColor: LomiriColors.orange
+         
+                }
             }
         }
     }
