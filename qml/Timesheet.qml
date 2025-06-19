@@ -168,7 +168,7 @@ Page {
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
 
-            spacing: units.gu(2)
+            spacing: units.gu(1.5)
             topPadding: units.gu(2)
 
             Label {
@@ -180,9 +180,14 @@ Page {
                 
             }
 
+            Item {
+                width: units.gu(2.4)
+                height: units.gu(5)
+            }
+
             TSCombobox {
                 id: priorityCombo
-                width: units.gu(33)
+                width: units.gu(32.5)
                 height: units.gu(5)
            
                 model: ["Do First (Important & Urgent )", "Do Next (Important & Not Urgent)", "Do Later (Urgent & Not Important)", "Don't do (Not Urgent & Not Important)"]
