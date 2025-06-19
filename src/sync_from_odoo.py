@@ -36,6 +36,17 @@ log = logging.getLogger("odoo_sync")
 
 
 def load_field_mapping(model_name, config_path="field_config.json"):
+    """
+    Load field mapping configuration for a specific Odoo model.
+    
+    Args:
+        model_name (str): Name of the Odoo model to load mapping for
+        config_path (str): Path to the field configuration JSON file
+        
+    Returns:
+        dict: Field mapping dictionary where keys are Odoo field names 
+              and values are SQLite field names. Returns empty dict on error.
+    """
     try:
         current_dir = Path(__file__).parent.resolve()
         full_path = current_dir / config_path
@@ -56,6 +67,20 @@ def load_field_mapping(model_name, config_path="field_config.json"):
 
 
 def should_update_local(odoo_write_date: str, local_last_modified: str) -> bool:
+    """
+    Determine if local record should be updated based on timestamps.
+    
+    Args:
+        odoo_write_date (str): Write date from Odoo record in ISO format
+        local_last_modified (str): Last modified timestamp of local record
+        
+    Returns:
+        bool: True if local record should be updated, False otherwise
+        
+    Note:
+        Returns True if odoo_write_date is newer than local_last_modified,
+        or if local_last_modified is None. Returns False if odoo_write_date is None.
+    """
     if not odoo_write_date:
         return False
     if not local_last_modified:
@@ -77,6 +102,22 @@ def insert_record(
     db_path="app_settings.db",
     config_path="field_config.json",
 ):
+    """
+    Insert or replace a record in the local SQLite database.
+    
+    Args:
+        table_name (str): Name of the SQLite table to insert into
+        model_name (str): Name of the Odoo model for field mapping
+        account_id (int): Account ID to associate with the record
+        record (dict): Record data from Odoo
+        db_path (str): Path to the SQLite database file
+        config_path (str): Path to the field configuration JSON file
+        
+    Note:
+        Handles data type conversion for SQLite compatibility and flattens
+        one2many/many2many fields to their first element. Adds notification
+        on failure.
+    """
     try:
         field_map = load_field_mapping(model_name, config_path)
         columns = []
@@ -134,6 +175,16 @@ def insert_record(
 
 
 def get_model_fields(client, model_name):
+    """
+    Retrieve all available fields for a specific Odoo model.
+    
+    Args:
+        client (OdooClient): Authenticated Odoo client instance
+        model_name (str): Name of the Odoo model
+        
+    Returns:
+        list: List of field names available in the model. Returns empty list on error.
+    """
     try:
         return client.models.execute_kw(
             client.db,
@@ -157,6 +208,21 @@ def sync_model(
     db_path="app_settings.db",
     config_path="field_config.json",
 ):
+    """
+    Synchronize a complete Odoo model with its corresponding SQLite table.
+    
+    Args:
+        client (OdooClient): Authenticated Odoo client instance
+        model_name (str): Name of the Odoo model to sync
+        table_name (str): Name of the SQLite table to sync to
+        account_id (int): Account ID for record association
+        db_path (str): Path to the SQLite database file  
+        config_path (str): Path to the field configuration JSON file
+        
+    Note:
+        Performs complete sync including fetching records, updating local database,
+        and removing orphaned records. Adds notification on failure.
+    """
     log.debug(f"[INFO] Fetching '{model_name}' records from Odoo...")
     field_map = prepare_field_mapping(client, model_name, config_path)
     odoo_fields = list(field_map.keys())
@@ -187,6 +253,17 @@ def sync_model(
 
 
 def prepare_field_mapping(client, model_name, config_path):
+    """
+    Prepare and validate field mapping for a model against available Odoo fields.
+    
+    Args:
+        client (OdooClient): Authenticated Odoo client instance
+        model_name (str): Name of the Odoo model
+        config_path (str): Path to the field configuration JSON file
+        
+    Returns:
+        dict: Validated field mapping with only fields that exist in the Odoo model
+    """
     field_map = load_field_mapping(model_name, config_path)
     all_model_fields = get_model_fields(client, model_name)
 
@@ -202,6 +279,20 @@ def prepare_field_mapping(client, model_name, config_path):
 
 
 def fetch_odoo_records(client, model_name, fields):
+    """
+    Fetch all records from an Odoo model with specified fields.
+    
+    Args:
+        client (OdooClient): Authenticated Odoo client instance
+        model_name (str): Name of the Odoo model to fetch from
+        fields (list): List of field names to fetch
+        
+    Returns:
+        list: List of record dictionaries from Odoo
+        
+    Note:
+        Automatically includes 'id' field and 'write_date' if available in the model.
+    """
     # Ensure we include 'id' (safe for all), but 'write_date' only if it's valid
     model_fields = get_model_fields(client, model_name)
     safe_fields = list(fields)
@@ -226,6 +317,24 @@ def fetch_odoo_records(client, model_name, fields):
 def process_odoo_records(
     records, table_name, model_name, account_id, config_path, db_path
 ):
+    """
+    Process fetched Odoo records and update local database based on timestamps.
+    
+    Args:
+        records (list): List of record dictionaries from Odoo
+        table_name (str): Name of the SQLite table
+        model_name (str): Name of the Odoo model
+        account_id (int): Account ID for record association
+        config_path (str): Path to the field configuration JSON file
+        db_path (str): Path to the SQLite database file
+        
+    Returns:
+        set: Set of Odoo record IDs that were processed
+        
+    Note:
+        Only updates local records if Odoo write_date is newer than local last_modified,
+        or if last_modified column doesn't exist in the table.
+    """
     fetched_odoo_ids = set()
 
     # Check once if 'last_modified' column exists in the table using PRAGMA
@@ -272,6 +381,20 @@ def process_odoo_records(
 def remove_orphaned_local_records(
     fetched_odoo_ids, table_name, model_name, account_id, db_path
 ):
+    """
+    Remove local records that no longer exist in Odoo.
+    
+    Args:
+        fetched_odoo_ids (set): Set of Odoo record IDs that were fetched
+        table_name (str): Name of the SQLite table
+        model_name (str): Name of the Odoo model (for logging)
+        account_id (int): Account ID to filter records
+        db_path (str): Path to the SQLite database file
+        
+    Note:
+        Deletes local records with odoo_record_id not in the fetched set,
+        ensuring local database doesn't contain stale records.
+    """
     # Fetch all local records with odoo_record_id
     rows = safe_sql_execute(
         db_path,
@@ -297,6 +420,24 @@ def remove_orphaned_local_records(
 def sync_all_from_odoo(
     client, account_id, db_path="app_settings.db", config_path="field_config.json"
 ):
+    """
+    Synchronize all configured Odoo models with their corresponding SQLite tables.
+    
+    Args:
+        client (OdooClient): Authenticated Odoo client instance
+        account_id (int): Account ID for record association
+        db_path (str): Path to the SQLite database file
+        config_path (str): Path to the field configuration JSON file
+        
+    Note:
+        Syncs the following models:
+        - project.project -> project_project_app
+        - project.task -> project_task_app  
+        - account.analytic.line -> account_analytic_line_app
+        - mail.activity.type -> mail_activity_type_app
+        - mail.activity -> mail_activity_app
+        - res.users -> res_users_app
+    """
     log.debug(f"Account id is {account_id}")
 
     models_to_sync = {
