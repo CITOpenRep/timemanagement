@@ -34,11 +34,15 @@
 
     <h3>Change History : (Version 1.0.2) Alpha Draft </h3>
     <ul>
-     <h4> 17-06-2025 : Version 1.0.2 </h4>
+     <h4> 19-06-2025 : Version 1.0.2 </h4>
         <li> Fixed Dashboard Screen Overflow issue </li>
         <li> Changes in Sync Logs, It will only display Warnings and Errors now. </li>
         <li> Fixed overflow of Notes in Activity Detail Card. </li>
         <li> Introduced Tabbed View Filters in Activity Page with Search Field. </li>
+        <li> Introduced Info button for Eisenhower Priority Field in Timesheets. </li>
+        <li> Fixed TimeSheet Save Dialog. </li>
+
+
         <br>
         <h4> 17-06-2025 : Version 1.0.1 </h4>
         <li> Activity List and view Basic Ui , Next release wil have better UX </li>
