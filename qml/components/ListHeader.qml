@@ -51,13 +51,15 @@ Item {
                 width: units.gu(12) // Increased width
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
                 background: Rectangle {
-                    color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                    border.color: parent.isHighlighted ? "#E55A2B" : "#CCCCCC"
+                    color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
+                    border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
                     border.width: 1
                 }
                 contentItem: Text {
                     text: parent.text
-                    color: parent.isHighlighted ? "white" : "black"
+                    color: parent.isHighlighted ? "black" : "#8C7059"
+                     font.bold: parent.isHighlighted
+                   //  font.underline: parent.isHighlighted
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -72,14 +74,15 @@ Item {
                 height: topFilterBar.height
                 width: units.gu(12) // Increased width
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
-                background: Rectangle {
-                    color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                    border.color: parent.isHighlighted ? "#E55A2B" : "#CCCCCC"
+                  background: Rectangle {
+                    color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
+                    border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
                     border.width: 1
                 }
                 contentItem: Text {
                     text: parent.text
-                    color: parent.isHighlighted ? "white" : "black"
+                    color: parent.isHighlighted ? "black" : "#8C7059"
+                     font.bold: parent.isHighlighted
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -94,14 +97,15 @@ Item {
                 height: topFilterBar.height
                 width: units.gu(12) // Increased width
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
-                background: Rectangle {
-                    color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                    border.color: parent.isHighlighted ? "#E55A2B" : "#CCCCCC"
+                   background: Rectangle {
+                    color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
+                    border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
                     border.width: 1
                 }
                 contentItem: Text {
                     text: parent.text
-                    color: parent.isHighlighted ? "white" : "black"
+                    color: parent.isHighlighted ? "black" : "#8C7059"
+                     font.bold: parent.isHighlighted
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -116,14 +120,17 @@ Item {
                 height: topFilterBar.height
                 width: units.gu(12) // Increased width
                 property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
-                background: Rectangle {
-                    color: parent.isHighlighted ? "#FF6B35" : "#E0E0E0"
-                    border.color: parent.isHighlighted ? "#E55A2B" : "#CCCCCC"
+                  background: Rectangle {
+                    color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
+                    border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
                     border.width: 1
                 }
                 contentItem: Text {
                     text: parent.text
-                    color: parent.isHighlighted ? "white" : "black"
+                   color: parent.isHighlighted ? "black" : "#8C7059"
+                   // text.format: Text.PlainText
+                    font.bold: parent.isHighlighted
+                  //  font.pixelSize: units.gu(1.8)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
