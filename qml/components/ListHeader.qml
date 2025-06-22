@@ -28,6 +28,11 @@ Item {
     signal filterSelected(string filterKey)
     signal customSearch(string query)
 
+    // Add function to toggle search visibility
+    function toggleSearchVisibility() {
+        showSearchBox = !showSearchBox;
+    }
+
     Flickable {
         id: flickable
         width: parent.width

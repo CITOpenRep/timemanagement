@@ -48,20 +48,16 @@ Page {
         ActionBar {
             numberOfSlots: 1
             anchors.right: parent.right
-            //    enable: true
-            /*actions: [
+            actions: [
                 Action {
-                    iconName: "add"
-                    text: "New"
+                    iconName: "search"
+                    text: "Search"
                     onTriggered: {
-                        console.log("Create Activity clicked");
-                        apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
-                            "recordid": recordid,
-                            "isReadOnly": false
-                        });
+                        console.log("Search clicked");
+                        listheader.toggleSearchVisibility();
                     }
                 }
-            ]*/
+            ]
         }
     }
 
@@ -202,7 +198,7 @@ Page {
         label3: "This Month"
         label4: "All"
 
-        showSearchBox: true
+        showSearchBox: false
         currentFilter: activity.currentFilter  // Bind to page's current filter
 
         
@@ -265,3 +261,5 @@ Page {
     property string currentFilter: "today"
     property string currentSearchQuery: ""
 }
+    // Store current filter and search state
+  
