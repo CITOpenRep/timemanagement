@@ -77,6 +77,44 @@ Page {
     // Add properties to track filter and search state
     property string currentFilter: "today"
     property string currentSearchQuery: ""
+    
+    // Function to get tasks based on current filter and search
+    function getTaskList(filter, searchQuery) {
+        taskModel.clear();
+        
+        try {
+            var allTasks;
+            if (filter || searchQuery) {
+                allTasks = Task.getFilteredTasks(filter, searchQuery);
+            } else {
+                allTasks = Task.getAllTasks();
+            }
+            
+            for (var i = 0; i < allTasks.length; i++) {
+                var task = allTasks[i];
+                var projectName = ""; // You can add project lookup here if needed
+                
+                taskModel.append({
+                    id: task.id,
+                    name: task.name,
+                    description: task.description,
+                    deadline: task.deadline,
+                    start_date: task.start_date,
+                    end_date: task.end_date,
+                    status: task.status,
+                    initial_planned_hours: task.initial_planned_hours,
+                    favorites: task.favorites,
+                    project_name: projectName,
+                    account_id: task.account_id,
+                    project_id: task.project_id,
+                    user_id: task.user_id,
+                    odoo_record_id: task.odoo_record_id
+                });
+            }
+        } catch (e) {
+            console.error("❌ Error in getTaskList():", e);
+        }
+    }
 
     // Add the ListHeader component outside LomiriShape
     ListHeader {

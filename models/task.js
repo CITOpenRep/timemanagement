@@ -211,3 +211,190 @@ function getAllTasks() {
     return taskList;
 }
 
+/**
+ * Filters tasks based on date criteria and search query
+ * @param {string} filterType - The filter type: "today", "this_week", "next_week", "later", "completed"
+ * @param {string} searchQuery - The search query string
+ * @returns {Array<Object>} Filtered list of tasks
+ */
+function getFilteredTasks(filterType, searchQuery) {
+    var allTasks = getAllTasks();
+    var filteredTasks = [];
+    var currentDate = new Date();
+    
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        
+        // Apply date filter
+        if (!passesDateFilter(task, filterType, currentDate)) {
+            continue;
+        }
+        
+        // Apply search filter
+        if (searchQuery && !passesSearchFilter(task, searchQuery)) {
+            continue;
+        }
+        
+        filteredTasks.push(task);
+    }
+    
+    return filteredTasks;
+}
+
+/**
+ * Checks if a task passes the date filter criteria
+ * @param {Object} task - The task object
+ * @param {string} filterType - The filter type
+ * @param {Date} currentDate - Current date for comparison
+ * @returns {boolean} True if task passes the filter
+ */
+function passesDateFilter(task, filterType, currentDate) {
+    if (!filterType || filterType === "all") {
+        return true;
+    }
+    
+    var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    
+    switch (filterType) {
+        case "today":
+            return isTaskDueToday(task, today);
+        case "this_week":
+            return isTaskDueThisWeek(task, today);
+        case "next_week":
+            return isTaskDueNextWeek(task, today);
+        case "later":
+            return isTaskDueLater(task, today);
+        case "completed":
+            return isTaskCompleted(task);
+        default:
+            return true;
+    }
+}
+
+/**
+ * Checks if a task passes the search filter
+ * @param {Object} task - The task object
+ * @param {string} searchQuery - The search query
+ * @returns {boolean} True if task matches the search
+ */
+function passesSearchFilter(task, searchQuery) {
+    if (!searchQuery || searchQuery.trim() === "") {
+        return true;
+    }
+    
+    var query = searchQuery.toLowerCase().trim();
+    
+    // Search in task name
+    if (task.name && task.name.toLowerCase().indexOf(query) >= 0) {
+        return true;
+    }
+    
+    // Search in description
+    if (task.description && task.description.toLowerCase().indexOf(query) >= 0) {
+        return true;
+    }
+    
+    // Search in status
+    if (task.status && task.status.toLowerCase().indexOf(query) >= 0) {
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Check if task is due today
+ */
+function isTaskDueToday(task, today) {
+    if (!task.deadline && !task.end_date && !task.start_date) {
+        return false;
+    }
+    
+    var taskDate = getTaskRelevantDate(task);
+    if (!taskDate) return false;
+    
+    var taskDay = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
+    return taskDay.getTime() === today.getTime();
+}
+
+/**
+ * Check if task is due this week
+ */
+function isTaskDueThisWeek(task, today) {
+    if (!task.deadline && !task.end_date && !task.start_date) {
+        return false;
+    }
+    
+    var taskDate = getTaskRelevantDate(task);
+    if (!taskDate) return false;
+    
+    var weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+    var weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    
+    var taskDay = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
+    return taskDay >= weekStart && taskDay <= weekEnd;
+}
+
+/**
+ * Check if task is due next week
+ */
+function isTaskDueNextWeek(task, today) {
+    if (!task.deadline && !task.end_date && !task.start_date) {
+        return false;
+    }
+    
+    var taskDate = getTaskRelevantDate(task);
+    if (!taskDate) return false;
+    
+    var nextWeekStart = new Date(today);
+    nextWeekStart.setDate(today.getDate() - today.getDay() + 7);
+    var nextWeekEnd = new Date(nextWeekStart);
+    nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
+    
+    var taskDay = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
+    return taskDay >= nextWeekStart && taskDay <= nextWeekEnd;
+}
+
+/**
+ * Check if task is due later (beyond next week)
+ */
+function isTaskDueLater(task, today) {
+    if (!task.deadline && !task.end_date && !task.start_date) {
+        return true; // Tasks without dates are considered "later"
+    }
+    
+    var taskDate = getTaskRelevantDate(task);
+    if (!taskDate) return true;
+    
+    var nextWeekEnd = new Date(today);
+    nextWeekEnd.setDate(today.getDate() - today.getDay() + 13); // End of next week
+    
+    var taskDay = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
+    return taskDay > nextWeekEnd;
+}
+
+/**
+ * Check if task is completed
+ */
+function isTaskCompleted(task) {
+    return task.status === "completed" || task.status === "done" || task.state === "done";
+}
+
+/**
+ * Get the most relevant date for a task (priority: deadline > end_date > start_date)
+ */
+function getTaskRelevantDate(task) {
+    if (task.deadline) {
+        return new Date(task.deadline);
+    }
+    if (task.end_date) {
+        return new Date(task.end_date);
+    }
+    if (task.start_date) {
+        return new Date(task.start_date);
+    }
+    return null;
+}
+
