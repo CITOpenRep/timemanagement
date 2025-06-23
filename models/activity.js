@@ -254,9 +254,13 @@ function getAllActivityType(){
             var rs = tx.executeSql(query);
 
             if (rs.rows.length > 0) {
-                activityTypes.push(DBCommon.rowToObject(rs.rows.item(0)));
+                 for (var i = 0; i < rs.rows.length; i++) {
+                activityTypes.push(DBCommon.rowToObject(rs.rows.item(i)));
+                 }
 
             }
+
+            
         });
 
     } catch (e) {

@@ -375,11 +375,13 @@ ListModel {
 
     function loadTypes(){
         let activityTypes = Activity.getAllActivityType();
-        console.log(activityTypes[0].name);
+        
 
         //typeItems.clear();
+        console.log("activity types loading .....")
         for (var i = 0; i < activityTypes.length; i++) {
 
+            console.log(activityTypes[i].name);
             typeItems.append({ text:activityTypes[i].name, odoo_record_id: activityTypes[i].odoo_record_id })
         }
     }
