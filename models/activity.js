@@ -167,7 +167,7 @@ function getAllActivities() {
     return activityList;
 }
 
-function getActivityByOdooId(odoo_record_id, account_id) {
+function getActivityById(odoo_record_id, account_id) {
     var activity = null;
 
     try {
@@ -177,7 +177,7 @@ function getActivityByOdooId(odoo_record_id, account_id) {
             var query = `
                 SELECT *
                 FROM mail_activity_app
-                WHERE odoo_record_id = ? AND account_id = ?
+                WHERE id = ? AND account_id = ?
                 LIMIT 1
             `;
 
@@ -239,8 +239,8 @@ function getActivityIconForType(typeName) {
     }
 }
 
-function getAllActivityType(){
-        var activityTypes = [];
+function getActivityTypesForAccount(account_id) {
+    var activityTypes = [];
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -248,16 +248,13 @@ function getAllActivityType(){
         db.transaction(function (tx) {
             var query = `
                 SELECT *
-                FROM mail_activity_type_app`;
+                FROM mail_activity_type_app
+                WHERE account_id = ? AND (status IS NULL OR status != 'deleted')`;
 
-            var rs = tx.executeSql(query);
+            var rs = tx.executeSql(query, [account_id]);
 
-            if (rs.rows.length > 0) {
-
-                for (var i = 0; i < rs.rows.length; i++) {
+            for (var i = 0; i < rs.rows.length; i++) {
                 activityTypes.push(DBCommon.rowToObject(rs.rows.item(i)));
-                 }
-
             }
         });
 
