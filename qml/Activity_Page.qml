@@ -45,10 +45,8 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        ActionBar {
-            numberOfSlots: 1
-            anchors.right: parent.right
-            actions: [
+     
+            trailingActionBar.actions: [
                 Action {
                     iconName: "search"
                     text: "Search"
@@ -58,7 +56,7 @@ Page {
                     }
                 }
             ]
-        }
+    
     }
 
     function get_activity_list(filter, searchQuery) {

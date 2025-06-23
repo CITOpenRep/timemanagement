@@ -5,7 +5,7 @@ import QtGraphicalEffects 1.0
 Item {
     id: topFilterBar
     width: parent ? parent.width : Screen.width
-    height: showSearchBox ? units.gu(10) : units.gu(6) // Dynamic height based on search visibility
+    height: showSearchBox ? units.gu(11) : units.gu(6) // Dynamic height based on search visibility
 
     //  anchors.margins: units.gu(0.5)
     //  anchors.leftMargin: units.gu(1)
@@ -49,11 +49,11 @@ Item {
         // Search field at the top
         Rectangle {
             visible: topFilterBar.showSearchBox
-            height: units.gu(4)
+            height: units.gu(5)
             width: parent.width
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.margins: units.gu(0.5)
+          //  anchors.margins: units.gu(0.5)
             color: "#F5F5F5"
             border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
             border.width: searchField.activeFocus ? 2 : 1
@@ -81,7 +81,7 @@ Item {
                 anchors.rightMargin: units.gu(0.5)
                 width: units.gu(3)
                 height: units.gu(3)
-                text: "×"
+                text: "x"
                 background: Rectangle {
                     color: "transparent"
                 }
