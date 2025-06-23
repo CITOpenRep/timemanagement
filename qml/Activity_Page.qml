@@ -134,6 +134,9 @@ Page {
             return itemDate >= weekStart && itemDate <= weekEnd;
         case "month":
             return itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
+        case "favorites":
+            // Assuming favorites are marked by a specific state or flag
+            return item.state === "favorite"; // Adjust this condition based on your model
         default:
             return true;
         }
@@ -197,6 +200,8 @@ Page {
         label2: "This week"
         label3: "This Month"
         label4: "All"
+        label5: "Favorites"
+
 
         showSearchBox: false
         currentFilter: activity.currentFilter  // Bind to page's current filter
@@ -206,6 +211,8 @@ Page {
         filter2: "week"
         filter3: "month"
         filter4: "all"
+        filter5: "favorites"
+
         onFilterSelected: {
             console.log("Filter key is " + filterKey);
             currentFilter = filterKey;

@@ -16,11 +16,13 @@ Item {
     property string label2: "Next Week"
     property string label3: "Next Month"
     property string label4: "Later"
+    property string label5: "Favorites"
 
     property string filter1: "today"
     property string filter2: "next_week"
     property string filter3: "next_month"
     property string filter4: "later"
+    property string filter5: "favorites"
 
     property bool showSearchBox: true
     property string currentFilter: filter1  // Track currently selected filter
@@ -114,7 +116,7 @@ Item {
 
                 Button {
                     text: topFilterBar.label1
-                    height: topFilterBar.height
+                    height:units.gu(6) // Adjusted height
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
                     background: Rectangle {
@@ -138,7 +140,7 @@ Item {
 
                 Button {
                     text: topFilterBar.label2
-                    height: topFilterBar.height
+                     height:units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
                       background: Rectangle {
@@ -161,7 +163,7 @@ Item {
 
                 Button {
                     text: topFilterBar.label3
-                    height: topFilterBar.height
+                    height:units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
                        background: Rectangle {
@@ -184,7 +186,7 @@ Item {
 
                 Button {
                     text: topFilterBar.label4
-                    height: topFilterBar.height
+                     height:units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
                       background: Rectangle {
@@ -204,6 +206,32 @@ Item {
                     onClicked: {
                         topFilterBar.currentFilter = topFilterBar.filter4
                         topFilterBar.filterSelected(topFilterBar.filter4)
+                    }
+                }
+
+
+                 Button {
+                    text: topFilterBar.label5
+                    height:units.gu(6)
+                    width: units.gu(12) // Increased width
+                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter5
+                      background: Rectangle {
+                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
+                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
+                        border.width: 1
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                       color: parent.isHighlighted ? "black" : "#8C7059"
+                       // text.format: Text.PlainText
+                        font.bold: parent.isHighlighted
+                      //  font.pixelSize: units.gu(1.8)
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    onClicked: {
+                        topFilterBar.currentFilter = topFilterBar.filter5
+                        topFilterBar.filterSelected(topFilterBar.filter5)
                     }
                 }
             }
