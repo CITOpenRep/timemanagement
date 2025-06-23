@@ -1,6 +1,6 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
-
+.import "utils.js" as Utils
 
 function queryActivityData(type, recordid) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -237,4 +237,59 @@ function getActivityIconForType(typeName) {
     else {
         return "activity_others.png";
     }
+}
+
+function getAllActivityType(){
+        var activityTypes = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT *
+                FROM mail_activity_type_app
+            `;
+
+            var rs = tx.executeSql(query);
+
+            if (rs.rows.length > 0) {
+                activityTypes.push(DBCommon.rowToObject(rs.rows.item(0)));
+
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getAllActivityType", e);
+    }
+
+    return activityTypes;
+}
+
+function saveActivityData(data) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+
+    db.transaction(function(tx) {
+        tx.executeSql('INSERT INTO mail_activity_app ( \
+            account_id, activity_type_id, summary, user_id, due_date, \
+            notes, resModel, resId, task_id, project_id, link_id, state, last_modified) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+                data.updatedAccount,
+                data.updatedActivity,
+                data.updatedSummary,
+                data.updatedUserId,
+                Utils.extractDate(data.updatedDate),
+                data.updatedNote,
+                data.resModel,
+                data.resId,
+                data.task_id,
+                data.project_id,
+                data.link_id,
+                data.editschedule,
+                Utils.getFormattedTimestamp()
+                
+            ]
+        );
+    });
 }

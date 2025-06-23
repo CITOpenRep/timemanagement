@@ -190,7 +190,7 @@ Page {
                 width: units.gu(32.5)
                 height: units.gu(5)
            
-                model: ["Do First (Important & Urgent )", "Do Next (Important & Not Urgent)", "Do Later (Urgent & Not Important)", "Don't do (Not Urgent & Not Important)"]
+                model: ["Do First (Important & Urgent )",  "Do Next (Important & Not Urgent)", "Do Later (Urgent & Not Important)", "Don't do (Not Urgent & Not Important)"]
                 enabled: !isReadOnly
                 currentIndex: 0
             }

@@ -15,7 +15,13 @@ Page {
     title: "Activity"
 
     property var recordid: 0
-    property var currentActivity: {}
+    property var currentActivity: {
+        "summary":"",
+        "notes":"",
+        "activity_type_id":"",
+        "due_date":"",
+        "state":""
+    }
     property bool isReadOnly: true
     property var accountid: 0
 
@@ -27,9 +33,32 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-    }
+        trailingActionBar.actions: [
+            Action {
+                iconSource: "images/save.svg"
+                visible: !isReadOnly
+                text: "Save"
+                onTriggered: {
 
-    Flickable {
+                    saveActivityData();
+                    console.log("Timesheet Save Button clicked");
+                }
+            }
+        ]
+    }
+  ListModel {
+                        id: typeItems
+                        ListElement { text: "Select Type"; color: "Yellow" }
+                        // ListElement { text: "Apple"; color: "Green" }
+                        // ListElement { text: "Coconut"; color: "Brown" }
+                    }
+ListModel {
+                        id: statusItems
+                        ListElement { text: "Select Status"; color: "Yellow" }
+                        ListElement { text: "Scheduled"; color: "Green" }
+                        ListElement { text: "Done"; color: "Brown" }
+                    }
+     Flickable {
         id: flickable
         anchors.fill: parent
         anchors.topMargin: units.gu(6)
@@ -86,7 +115,7 @@ Page {
                 leftPadding: units.gu(3)
                 TextArea {
                     id: summary
-                    textFormat: Text.RichText
+                    // textFormat: Text.RichText
                     readOnly: isReadOnly
                     width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
@@ -122,7 +151,7 @@ Page {
                 leftPadding: units.gu(3)
                 TextArea {
                     id: notes
-                    textFormat: Text.RichText
+                    // textFormat: Text.RichText
                     width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
                     text: currentActivity.notes
@@ -135,6 +164,8 @@ Page {
             anchors.top: row3.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
+            height: units.gu(5) 
+            anchors.topMargin: units.gu(3)
             Column {
                 leftPadding: units.gu(1)
                 LomiriShape {
@@ -150,42 +181,76 @@ Page {
             }
             Column {
                 leftPadding: units.gu(3)
-                Label {
-                    id: type_text
-                    textFormat: Text.RichText
-                    width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
-                    anchors.centerIn: parent.centerIn
-                    text: Activity.getActivityTypeName(currentActivity.activity_type_id)
+                // Label {
+                //     id: type_text
+                //     textFormat: Text.RichText
+                //     width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
+                //     anchors.centerIn: parent.centerIn
+                //     text: Activity.getActivityTypeName(currentActivity.activity_type_id)
+                // }
+
+           anchors.verticalCenter: parent.verticalCenter
+
+                ComboBox {
+                    id: typeDropDown
+                    currentIndex: 0
+                    width: units.gu(20)
+                    height: units.gu(5)  // Match height to shape for vertical alignment
+
+                    model:typeItems
+
+                    contentItem: Text {
+                        text: typeItems.get(typeDropDown.currentIndex).text
+                        color: "black"
+                        leftPadding:units.gu(1)
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    background: Rectangle {
+                        color: "white"
+                        radius: 4
+                        border.color: "#ccc"
+                    }
+
+                    delegate: ItemDelegate {
+                        width: parent.width
+                        contentItem: Text {
+                            text: model.text
+                            color: "black"
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    onCurrentIndexChanged: {
+                        console.debug(typeItems.get(currentIndex).text )
+                        console.debug(typeItems.get(currentIndex).odoo_record_id )
+                    }
+                    
                 }
+
+
+
+
+   
             }
         }
 
-        Row {
+         Row {
             id: row5
             anchors.top: row4.bottom
             anchors.left: parent.left
-            topPadding: units.gu(1)
             Column {
                 leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
+                DaySelector {
+                    id: date_widget
+                    readOnly: isReadOnly
+                    width: flickable.width - units.gu(2)
                     height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    TSLabel {
-                        text: "Date"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-            }
-            Column {
-                leftPadding: units.gu(3)
-                Label {
-                    id: date_text
-                    textFormat: Text.RichText
-                    width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
-                    text: Utils.formatDate(new Date(currentActivity.due_date))
                 }
             }
         }
@@ -195,12 +260,18 @@ Page {
             anchors.top: row5.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
+            height: units.gu(5)  // Set a fixed height to align vertically
+            anchors.topMargin: units.gu(4)
+
             Column {
+                anchors.verticalCenter: parent.verticalCenter
                 leftPadding: units.gu(1)
+
                 LomiriShape {
                     width: units.gu(10)
                     height: units.gu(5)
                     aspect: LomiriShape.Flat
+
                     TSLabel {
                         text: "State"
                         anchors.left: parent.left
@@ -208,17 +279,50 @@ Page {
                     }
                 }
             }
+
             Column {
+                anchors.verticalCenter: parent.verticalCenter
                 leftPadding: units.gu(3)
-                Label {
-                    id: status_text
-                    textFormat: Text.RichText
-                    width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
-                    anchors.centerIn: parent.centerIn
-                    text: currentActivity.state || "Unknown"
+
+                ComboBox {
+                    id: statusDropDown
+                    currentIndex: 0
+                    width: units.gu(20)
+                    height: units.gu(5)  // Match height to shape for vertical alignment
+
+                    model:statusItems 
+
+                    contentItem: Text {
+                        text: statusItems.get(statusDropDown.currentIndex).text
+                        color: "black"
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding:units.gu(1)
+                        elide: Text.ElideRight
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    background: Rectangle {
+                        color: "white"
+                        radius: 4
+                        border.color: "#ccc"
+                    }
+
+                    delegate: ItemDelegate {
+                        width: parent.width
+                        contentItem: Text {
+                            text: model.text
+                            color: "black"
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    onCurrentIndexChanged: console.debug(statusItems.get(currentIndex).text )
                 }
             }
-        }
+    }
+
     }
 
     Component.onCompleted: {
@@ -253,6 +357,59 @@ Page {
             workItem.applyDeferredSelection(instanceId, parent_project_id, parent_task_id, user_id);
         } else {
             console.log("Creatign a new activity");
+
+            let account = Accounts.getAccountsList()
+            console.log(account[1].name);
+            loadTypes()
+            // console.log(summary.text);
+            
         }
     }
+
+    function loadTypes(){
+        let activityTypes = Activity.getAllActivityType();
+        console.log(activityTypes[0].name);
+
+        //typeItems.clear();
+        for (var i = 0; i < activityTypes.length; i++) {
+
+            typeItems.append({ text:activityTypes[i].name, odoo_record_id: activityTypes[i].odoo_record_id })
+        }
+    }
+
+    function saveActivityData(){
+        const ids = workItem.getAllSelectedDbRecordIds();
+        console.log("Account DB ID:", ids.accountDbId);
+        console.log("Project DB ID:", ids.projectDbId);
+        console.log("Task DB ID:", ids.taskDbId);
+        console.log("Assignee" + ids.assigneeDbId);
+
+        const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
+        console.log("user = ",user)
+        console.debug(typeItems.get(typeDropDown.currentIndex).text )
+        console.debug(typeItems.get(typeDropDown.currentIndex).odoo_record_id )
+        console.log(summary.text)
+        console.log(notes.text)
+        console.log(date_widget.selectedDate)
+
+        let data = {
+            "updatedAccount":ids.accountDbId,
+            "updatedActivity":typeItems.get(typeDropDown.currentIndex).odoo_record_id,
+            "updatedSummary":summary.text,
+            "updatedUserId":user,
+            "updatedDate":date_widget.selectedDate,
+            "updatedNote":notes.text,
+            "resModel":"",
+            "resId":"",
+            "task_id":"",
+            "project_id":"",
+            "link_id":"",
+            "editschedule":typeItems.get(typeDropDown.currentIndex).text
+        }
+        console.log(data)
+        Activity.saveActivityData(data);
+
+    }
+
+
 }
