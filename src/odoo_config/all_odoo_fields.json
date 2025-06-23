@@ -2755,5 +2755,103 @@
             "string": "Last Updated on",
             "type": "datetime"
         }
+    },
+    "ir.model": {
+        "name": {
+            "string": "Model Description",
+            "type": "char"
+        },
+        "model": {
+            "string": "Model",
+            "type": "char"
+        },
+        "order": {
+            "string": "Order",
+            "type": "char"
+        },
+        "info": {
+            "string": "Information",
+            "type": "text"
+        },
+        "field_id": {
+            "string": "Fields",
+            "type": "one2many"
+        },
+        "inherited_model_ids": {
+            "string": "Inherited models",
+            "type": "many2many"
+        },
+        "state": {
+            "string": "Type",
+            "type": "selection"
+        },
+        "access_ids": {
+            "string": "Access",
+            "type": "one2many"
+        },
+        "rule_ids": {
+            "string": "Record Rules",
+            "type": "one2many"
+        },
+        "transient": {
+            "string": "Transient Model",
+            "type": "boolean"
+        },
+        "modules": {
+            "string": "In Apps",
+            "type": "char"
+        },
+        "view_ids": {
+            "string": "Views",
+            "type": "one2many"
+        },
+        "count": {
+            "string": "Count (Incl. Archived)",
+            "type": "integer"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "create_date": {
+            "string": "Created on",
+            "type": "datetime"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "write_date": {
+            "string": "Last Updated on",
+            "type": "datetime"
+        },
+        "is_mail_thread": {
+            "string": "Has Mail Thread",
+            "type": "boolean"
+        },
+        "is_mail_activity": {
+            "string": "Has Mail Activity",
+            "type": "boolean"
+        },
+        "is_mail_blacklist": {
+            "string": "Has Mail Blacklist",
+            "type": "boolean"
+        },
+        "is_mail_thread_sms": {
+            "string": "Mail Thread SMS",
+            "type": "boolean"
+        }
     }
 }

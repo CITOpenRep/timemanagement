@@ -375,3 +375,30 @@ function getUserNameByOdooId(odoo_record_id) {
 
     return userName;
 }
+
+
+function getOdooModelId(accountId, technicalName) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var odooRecordId = null;
+
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                "SELECT odoo_record_id FROM ir_model_app WHERE account_id = ? AND technical_name = ?",
+                [accountId, technicalName]
+            );
+
+            if (rs.rows.length > 0) {
+                odooRecordId = rs.rows.item(0).odoo_record_id;
+                console.log("✅ Found Odoo Model ID:", odooRecordId);
+            } else {
+                console.warn("⚠ No matching ir.model found for:", technicalName);
+            }
+        });
+
+        return odooRecordId;
+    } catch (e) {
+        DBCommon.logException("getOdooModelId", e);
+        return null;
+    }
+}

@@ -72,8 +72,8 @@ Page {
                     readOnly: isReadOnly
                     showAccountSelector: true
                     showAssigneeSelector: true
-                    showProjectSelector: false
-                    showTaskSelector: false
+                    showProjectSelector: projectRadio.checked
+                    showTaskSelector: taskRadio.checked
                     taskLabelText: "Parent Task"
                     width: flickable.width - units.gu(2)
 
@@ -87,8 +87,47 @@ Page {
         }
 
         Row {
-            id: row2
+            id: row1w
             anchors.top: row1.bottom
+            anchors.left: parent.left
+            topPadding: units.gu(1)
+            Column {
+                id: myCol88w
+                leftPadding: units.gu(1)
+                LomiriShape {
+                    width: units.gu(10)
+                    height: units.gu(5)
+                    aspect: LomiriShape.Flat
+                    TSLabel {
+                        id: resource_label
+                        text: "Connected to"
+                        // font.bold: true
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        //textSize: Label.Large
+                    }
+                }
+            }
+            Column {
+                id: myCol99w
+                leftPadding: units.gu(3)
+                RadioButton {
+                    id: projectRadio
+                    text: "Project"
+                    checked: true
+                }
+
+                RadioButton {
+                    id: taskRadio
+                    text: "Task"
+                    checked:false
+                }
+            }
+        }
+
+        Row {
+            id: row2
+            anchors.top: row1w.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
             Column {
@@ -227,26 +266,6 @@ Page {
             console.log("Loading activity local id " + recordid + " Account id is " + accountid);
             currentActivity = Activity.getActivityById(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
-
-            let linkid = -1;
-
-
-
-
-            /*
-            currentActivity.project_name = currentActivity.project_id ? Utils.getProjectDetails(currentActivity.project_id).name : "No Project";
-            currentActivity.task_name = currentActivity.task_id ? Utils.getTaskDetails(currentActivity.task_id).name : "No Task";
-            currentActivity.activity_name = Activity.getActivityTypeName(currentActivity.activity_type_id);
-            console.log("Activity name is ---------------" + currentActivity.activity_name);
-
-
-            let parent_project_id = (currentActivity.project_id !== undefined && currentActivity.project_id !== null) ? currentActivity.project_id : -1;
-            let parent_task_id = (currentActivity.task_id !== undefined && currentActivity.task_id !== null) ? currentActivity.task_id : -1;
-
-
-            workItem.applyDeferredSelection(instanceId, parent_project_id, parent_task_id, user_id);*/
-
-
             let instanceId = (currentActivity.account_id !== undefined && currentActivity.account_id !== null) ? currentActivity.account_id : -1;
             let user_id = (currentActivity.user_id !== undefined && currentActivity.user_id !== null) ? currentActivity.user_id : -1;
 
@@ -283,7 +302,6 @@ Page {
 
     function reloadActivityTypeSelector(accountId, selectedTypeId) {
         console.log("->-> Loading Activity Types for account " + accountId);
-
         let rawTypes = Activity.getActivityTypesForAccount(accountId);
         let flatModel = [];
 
@@ -322,81 +340,75 @@ Page {
         activityTypeSelector.currentText = selectedFound ? selectedText : "Select Type";
     }
 
-
-    function saveActivityData(){
+    function saveActivityData() {
         const ids = workItem.getAllSelectedDbRecordIds();
-        console.log("Account DB ID:", ids.accountDbId);
-        console.log("Project DB ID:", ids.projectDbId);
-        console.log("Task DB ID:", ids.taskDbId);
-        console.log("Assignee" + ids.assigneeDbId);
+        Utils.show_dict_data(ids)
+        var linkid=0;
+        var resId=0
+
+        if (projectRadio.checked)
+        {
+            linkid=ids.projectDbId;
+            resId=Accounts.getOdooModelId(ids.accountDbId,"Project")
+        }
+
+        if(taskRadio.checked)
+        {
+            linkid=ids.taskDbId;
+            resId=Accounts.getOdooModelId(ids.accountDbId,"Task")
+        }
+
+        const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
+
+        if (linkid === 0 || resId===0 ) {
+            notifPopup.open("Error", "Activity must be connected to a project or task", "error");
+            return;
+        }
+        console.log("LINK ID is ->>>>>>>>>>> " + linkid)
 
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
         if (!user) {
-            notifPopup.open("Error", "Unable to find the user , can not save", "error");
+            notifPopup.open("Error", "The specified user does not exist. Unable to save.", "error");
             return;
         }
 
-
-        if((ids.projectDbId ==-1) || (ids.taskDbId ==-1) || (ids.assigneeDbId ==-1) )
-        {
-            notifPopup.open("Error", "Project or task  or assignee not selected", "error");
+        if (activityTypeSelector.selectedId === -1 || summary.text === "" || notes.text === "") {
+            let message = activityTypeSelector.selectedId === -1
+                ? "You must specify the Activity type"
+                : summary.text === ""
+                ? "Please enter a summary"
+                : "Please enter notes";
+            notifPopup.open("Error", message, "error");
             return;
         }
 
-        if(typeDropDown.currentIndex ==0){
+        const data = {
+            updatedAccount: ids.accountDbId,
+            updatedActivity: activityTypeSelector.selectedId,
+            updatedSummary:  summary.displayText,
+            updatedUserId: user,
+            updatedDate: date_widget.selectedDate,
+            updatedNote: notes.displayText,
+            resModel: resModel,
+            resId: resId,
+            link_id: linkid,
+            task_id: null,
+            state:"planned",
+            project_id: null,
+            status: "updated"
+        };
 
-            notifPopup.open("Error", "Choose a type", "error");
-            return;
-
-        }
-        if(summary.text ==""){
-            notifPopup.open("Error", "type summary", "error");
-            return;
-        }
-        if(notes.text ==""){
-            notifPopup.open("Error", "type notes", "error");
-            return;
-        }
-        if(statusDropDown.currentIndex == 0){
-            notifPopup.open("Error", "Select shedule", "error");
-            return;
-        }
-
-        /* console.log("user = ",user)
-        console.debug(typeItems.get(typeDropDown.currentIndex).text )
-        console.debug(typeItems.get(typeDropDown.currentIndex).odoo_record_id )
-        console.log(summary.text)
-        console.log(notes.text)
-        console.log(date_widget.selectedDate) */
-
-        let data = {
-            "updatedAccount":ids.accountDbId,
-            "updatedActivity":typeItems.get(typeDropDown.currentIndex).odoo_record_id,
-            "updatedSummary":summary.text,
-            "updatedUserId":user,
-            "updatedDate":date_widget.selectedDate,
-            "updatedNote":notes.text,
-            "resModel":"",
-            "resId":"",
-            "task_id":"",
-            "project_id":"",
-            "link_id":"",
-            "status":"updated",
-            "editschedule":statusItems.get(statusDropDown.currentIndex).text
-        }
-        console.log(data)
-        
+        Utils.show_dict_data(data)
 
         const result = Activity.saveActivityData(data);
         if (!result.success) {
-            notifPopup.open("Error", "Unable to Save the Activity", "error");
+            notifPopup.open("Error", "Unable to save the Activity", "error");
         } else {
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
             apLayout.addPageToCurrentColumn(activityDetailsPage, Qt.resolvedUrl("Activity_Page.qml"));
-            let page = 2;
-            apLayout.setCurrentPage(page);
+            apLayout.setCurrentPage(2);
         }
-
     }
+
 
 }

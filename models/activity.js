@@ -175,10 +175,10 @@ function getActivityById(odoo_record_id, account_id) {
 
         db.transaction(function (tx) {
             var query = `
-                SELECT *
-                FROM mail_activity_app
-                WHERE id = ? AND account_id = ?
-                LIMIT 1
+            SELECT *
+            FROM mail_activity_app
+            WHERE id = ? AND account_id = ?
+            LIMIT 1
             `;
 
             var rs = tx.executeSql(query, [odoo_record_id, account_id]);
@@ -247,9 +247,9 @@ function getActivityTypesForAccount(account_id) {
 
         db.transaction(function (tx) {
             var query = `
-                SELECT *
-                FROM mail_activity_type_app
-                WHERE account_id = ? AND (status IS NULL OR status != 'deleted')`;
+            SELECT *
+            FROM mail_activity_type_app
+            WHERE account_id = ? AND (status IS NULL OR status != 'deleted')`;
 
             var rs = tx.executeSql(query, [account_id]);
 
@@ -267,34 +267,33 @@ function getActivityTypesForAccount(account_id) {
 
 function saveActivityData(data) {
     try {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-
-    db.transaction(function(tx) {
-        tx.executeSql('INSERT INTO mail_activity_app ( \
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function(tx) {
+            tx.executeSql('INSERT INTO mail_activity_app ( \
             account_id, activity_type_id, summary, user_id, due_date, \
-            notes, resModel, resId, task_id, project_id, link_id, state, last_modified) \
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [
-                data.updatedAccount,
-                data.updatedActivity,
-                data.updatedSummary,
-                data.updatedUserId,
-                Utils.extractDate(data.updatedDate),
-                data.updatedNote,
-                data.resModel,
-                data.resId,
-                data.task_id,
-                data.project_id,
-                data.link_id,
-                data.editschedule,
-                Utils.getFormattedTimestamp()
-                
-            ]
-        );
-        
-    });
-     return { success: true };
-}catch (e) {
+            notes, resModel, resId, task_id, project_id, link_id, state, last_modified,status) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)',
+                          [
+                              data.updatedAccount,
+                              data.updatedActivity,
+                              data.updatedSummary,
+                              data.updatedUserId,
+                              Utils.extractDate(data.updatedDate),
+                              data.updatedNote,
+                              data.resModel,
+                              data.resId,
+                              data.task_id,
+                              data.project_id,
+                              data.link_id,
+                              data.state,
+                              Utils.getFormattedTimestamp(),
+                              data.status
+                          ]
+                          );
+
+        });
+        return { success: true };
+    }catch (e) {
         console.error("Database operation failed:", e.message);
         return { success: false, error: e.message };
     }

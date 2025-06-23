@@ -447,6 +447,7 @@ def sync_all_from_odoo(
         "mail.activity.type": "mail_activity_type_app",
         "mail.activity": "mail_activity_app",
         "res.users": "res_users_app",
+        "ir.model":"ir_model_app",
     }
 
     # Dont do this , for testing indiviudal model

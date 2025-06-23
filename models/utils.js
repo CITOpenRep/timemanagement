@@ -41,6 +41,10 @@ function getYesterday() {
     return d.toISOString();
 }
 
+function show_dict_data(data) {
+    console.log(JSON.stringify(data, null, 2));
+}
+
 
 function insertData(name, link, database, username, selectedconnectwithId, apikey) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);

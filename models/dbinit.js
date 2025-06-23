@@ -178,6 +178,21 @@ function initializeDatabase() {
                                  ['id INTEGER', 'account_id INTEGER', 'name TEXT', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
                                  );
 
+
+    DBCommon.createOrUpdateTable("ir_model_app",
+        'CREATE TABLE IF NOT EXISTS ir_model_app (\
+            id INTEGER PRIMARY KEY AUTOINCREMENT,\
+            account_id INTEGER,\
+            name TEXT,\
+            technical_name TEXT,\
+            status TEXT DEFAULT "",\
+            odoo_record_id INTEGER,\
+            UNIQUE (odoo_record_id, account_id)\
+        )',
+        ['id INTEGER', 'account_id INTEGER', 'name TEXT', 'technical_name TEXT', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
+    );
+
+
     DBCommon.createOrUpdateTable("mail_activity_app",
                                  'CREATE TABLE IF NOT EXISTS mail_activity_app (\
             id INTEGER PRIMARY KEY AUTOINCREMENT,\
