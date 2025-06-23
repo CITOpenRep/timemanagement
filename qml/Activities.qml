@@ -232,32 +232,6 @@ Page {
                 }
             }
         }
-
-        Row {
-            id: row6
-            anchors.top: row5.bottom
-            anchors.left: parent.left
-            topPadding: units.gu(1)
-            height: units.gu(5)  // Set a fixed height to align vertically
-            anchors.topMargin: units.gu(4)
-
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                leftPadding: units.gu(1)
-
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-
-                    TSLabel {
-                        text: "State"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-            }
-        }
     }
 
     Component.onCompleted: {
@@ -360,7 +334,7 @@ Page {
             notifPopup.open("Error", "Activity must be connected to a project or task", "error");
             return;
         }
-        console.log("LINK ID is ->>>>>>>>>>> " + linkid);
+        //console.log("LINK ID is ->>>>>>>>>>> " + linkid);
 
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
         if (!user) {
@@ -397,8 +371,7 @@ Page {
             notifPopup.open("Error", "Unable to save the Activity", "error");
         } else {
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
-            apLayout.addPageToCurrentColumn(activityDetailsPage, Qt.resolvedUrl("Activity_Page.qml"));
-            apLayout.setCurrentPage(2);
+            apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Activity_Page.qml"));
         }
     }
 }
