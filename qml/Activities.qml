@@ -16,11 +16,11 @@ Page {
 
     property var recordid: 0
     property var currentActivity: {
-        "summary":"",
-        "notes":"",
-        "activity_type_id":"",
-        "due_date":"",
-        "state":""
+        "summary": "",
+        "notes": "",
+        "activity_type_id": "",
+        "due_date": "",
+        "state": ""
     }
     property bool isReadOnly: true
     property var accountid: 0
@@ -39,26 +39,37 @@ Page {
                 visible: !isReadOnly
                 text: "Save"
                 onTriggered: {
-
                     saveActivityData();
-                    console.log("Timesheet Save Button clicked");
+                    console.log("Activity Save Button clicked");
                 }
             }
         ]
     }
-  ListModel {
-                        id: typeItems
-                        ListElement { text: "Select Type"; color: "Yellow" }
-                        // ListElement { text: "Apple"; color: "Green" }
-                        // ListElement { text: "Coconut"; color: "Brown" }
-                    }
-ListModel {
-                        id: statusItems
-                        ListElement { text: "Select Status"; color: "Yellow" }
-                        ListElement { text: "Scheduled"; color: "Green" }
-                        ListElement { text: "Done"; color: "Brown" }
-                    }
-     Flickable {
+    ListModel {
+        id: typeItems
+        ListElement {
+            text: "Select Type"
+            color: "Yellow"
+        }
+        // ListElement { text: "Apple"; color: "Green" }
+        // ListElement { text: "Coconut"; color: "Brown" }
+    }
+    ListModel {
+        id: statusItems
+        ListElement {
+            text: "Select Status"
+            color: "Yellow"
+        }
+        ListElement {
+            text: "Scheduled"
+            color: "Green"
+        }
+        ListElement {
+            text: "Done"
+            color: "Brown"
+        }
+    }
+    Flickable {
         id: flickable
         anchors.fill: parent
         anchors.topMargin: units.gu(6)
@@ -164,7 +175,7 @@ ListModel {
             anchors.top: row3.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
-            height: units.gu(5) 
+            height: units.gu(5)
             anchors.topMargin: units.gu(3)
             Column {
                 leftPadding: units.gu(1)
@@ -189,7 +200,7 @@ ListModel {
                 //     text: Activity.getActivityTypeName(currentActivity.activity_type_id)
                 // }
 
-           anchors.verticalCenter: parent.verticalCenter
+                anchors.verticalCenter: parent.verticalCenter
 
                 ComboBox {
                     id: typeDropDown
@@ -197,12 +208,12 @@ ListModel {
                     width: units.gu(20)
                     height: units.gu(5)  // Match height to shape for vertical alignment
 
-                    model:typeItems
+                    model: typeItems
 
                     contentItem: Text {
                         text: typeItems.get(typeDropDown.currentIndex).text
                         color: "black"
-                        leftPadding:units.gu(1)
+                        leftPadding: units.gu(1)
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
                         anchors.verticalCenter: parent.verticalCenter
@@ -226,20 +237,14 @@ ListModel {
                     }
 
                     onCurrentIndexChanged: {
-                        console.debug(typeItems.get(currentIndex).text )
-                        console.debug(typeItems.get(currentIndex).odoo_record_id )
+                        console.debug(typeItems.get(currentIndex).text);
+                        console.debug(typeItems.get(currentIndex).odoo_record_id);
                     }
-                    
                 }
-
-
-
-
-   
             }
         }
 
-         Row {
+        Row {
             id: row5
             anchors.top: row4.bottom
             anchors.left: parent.left
@@ -290,13 +295,13 @@ ListModel {
                     width: units.gu(20)
                     height: units.gu(5)  // Match height to shape for vertical alignment
 
-                    model:statusItems 
+                    model: statusItems
 
                     contentItem: Text {
                         text: statusItems.get(statusDropDown.currentIndex).text
                         color: "black"
                         verticalAlignment: Text.AlignVCenter
-                        leftPadding:units.gu(1)
+                        leftPadding: units.gu(1)
                         elide: Text.ElideRight
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -318,11 +323,10 @@ ListModel {
                         }
                     }
 
-                    onCurrentIndexChanged: console.debug(statusItems.get(currentIndex).text )
+                    onCurrentIndexChanged: console.debug(statusItems.get(currentIndex).text)
                 }
             }
-    }
-
+        }
     }
 
     Component.onCompleted: {
@@ -358,26 +362,28 @@ ListModel {
         } else {
             console.log("Creatign a new activity");
 
-            let account = Accounts.getAccountsList()
+            let account = Accounts.getAccountsList();
             console.log(account[1].name);
-            loadTypes()
+            loadTypes();
             // console.log(summary.text);
-            
+
         }
     }
 
-    function loadTypes(){
+    function loadTypes() {
         let activityTypes = Activity.getAllActivityType();
         console.log(activityTypes[0].name);
 
         //typeItems.clear();
         for (var i = 0; i < activityTypes.length; i++) {
-
-            typeItems.append({ text:activityTypes[i].name, odoo_record_id: activityTypes[i].odoo_record_id })
+            typeItems.append({
+                text: activityTypes[i].name,
+                odoo_record_id: activityTypes[i].odoo_record_id
+            });
         }
     }
 
-    function saveActivityData(){
+    function saveActivityData() {
         const ids = workItem.getAllSelectedDbRecordIds();
         console.log("Account DB ID:", ids.accountDbId);
         console.log("Project DB ID:", ids.projectDbId);
@@ -385,31 +391,28 @@ ListModel {
         console.log("Assignee" + ids.assigneeDbId);
 
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
-        console.log("user = ",user)
-        console.debug(typeItems.get(typeDropDown.currentIndex).text )
-        console.debug(typeItems.get(typeDropDown.currentIndex).odoo_record_id )
-        console.log(summary.text)
-        console.log(notes.text)
-        console.log(date_widget.selectedDate)
+        console.log("user = ", user);
+        console.debug(typeItems.get(typeDropDown.currentIndex).text);
+        console.debug(typeItems.get(typeDropDown.currentIndex).odoo_record_id);
+        console.log(summary.text);
+        console.log(notes.text);
+        console.log(date_widget.selectedDate);
 
         let data = {
-            "updatedAccount":ids.accountDbId,
-            "updatedActivity":typeItems.get(typeDropDown.currentIndex).odoo_record_id,
-            "updatedSummary":summary.text,
-            "updatedUserId":user,
-            "updatedDate":date_widget.selectedDate,
-            "updatedNote":notes.text,
-            "resModel":"",
-            "resId":"",
-            "task_id":"",
-            "project_id":"",
-            "link_id":"",
-            "editschedule":typeItems.get(typeDropDown.currentIndex).text
-        }
-        console.log(data)
+            "updatedAccount": ids.accountDbId,
+            "updatedActivity": typeItems.get(typeDropDown.currentIndex).odoo_record_id,
+            "updatedSummary": summary.text,
+            "updatedUserId": user,
+            "updatedDate": date_widget.selectedDate,
+            "updatedNote": notes.text,
+            "resModel": "",
+            "resId": "",
+            "task_id": "",
+            "project_id": "",
+            "link_id": "",
+            "editschedule": typeItems.get(typeDropDown.currentIndex).text
+        };
+        console.log(data);
         Activity.saveActivityData(data);
-
     }
-
-
 }
