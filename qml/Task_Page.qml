@@ -56,12 +56,15 @@ Page {
                         "isReadOnly": false
                     });
                 }
-            }/*,
+            },
             Action {
                 iconName: "search"
                 text: "Search"
-                onTriggered: nameFilter.visible = !nameFilter.visible
-            }*/
+                onTriggered: {
+                    console.log("Search clicked");
+                    taskListHeader.toggleSearchVisibility();
+                }
+            }
 
 
         ]
@@ -70,50 +73,91 @@ Page {
         id: taskModel
     }
 
-    LomiriShape {
+    
+    // Add properties to track filter and search state
+    property string currentFilter: "today"
+    property string currentSearchQuery: ""
+
+    // Add the ListHeader component outside LomiriShape
+    ListHeader {
+        id: taskListHeader
         anchors.top: taskheader.bottom
-        height: parent.height - taskheader.height
+        anchors.left: parent.left
+        anchors.right: parent.right
+        
+        label1: "Today"
+        label2: "This Week"
+        label3: "Next Week"
+        label4: "Later"
+        label5: "Completed"
+        
+        filter1: "today"
+        filter2: "this_week"
+        filter3: "next_week"
+        filter4: "later"
+        filter5: "completed"
+        
+        showSearchBox: false
+        currentFilter: task.currentFilter
+        
+        onFilterSelected: {
+            console.log("Filter selected:", filterKey)
+            task.currentFilter = filterKey
+            tasklist.applyFilter(filterKey)
+        }
+        
+        onCustomSearch: {
+            console.log("Search query:", query)
+            task.currentSearchQuery = query
+            tasklist.applySearch(query)
+        }
+    }
+
+    LomiriShape {
+        anchors.top: taskListHeader.bottom
+        height: parent.height - taskheader.height - taskListHeader.height
         width: parent.width
 
         TaskList {
             id: tasklist
             anchors.fill: parent
-            onTaskEditRequested: {
-                console.log("Edit Requested");
-                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
-                    "recordid": recordId,
-                    "isReadOnly": false
-                });
-            }
-            onTaskSelected: {
-                console.log("Viewing Task");
-                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
-                    "recordid": recordId,
-                    "isReadOnly": true
-                });
-            }
-            onTaskDeleteRequested: {
-                console.log("Delete Requested");
-                var result = Task.markTaskAsDeleted(recordId);
-                if (!result.success) {
-                    notifPopup.open("Error", result.message, "error");
-                } else {
-                    notifPopup.open("Deleted", result.message, "success");
+                
+                onTaskEditRequested: {
+                    console.log("Edit Requested");
+                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                        "recordid": recordId,
+                        "isReadOnly": false
+                    });
                 }
-                pageStack.removePages(task);
-                apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Page.qml"));
+                onTaskSelected: {
+                    console.log("Viewing Task");
+                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                        "recordid": recordId,
+                        "isReadOnly": true
+                    });
+                }
+                onTaskDeleteRequested: {
+                    console.log("Delete Requested");
+                    var result = Task.markTaskAsDeleted(recordId);
+                    if (!result.success) {
+                        notifPopup.open("Error", result.message, "error");
+                    } else {
+                        notifPopup.open("Deleted", result.message, "success");
+                    }
+                    pageStack.removePages(task);
+                    apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Page.qml"));
+                }
+            }
+
+            Text {
+                id: labelNoTask
+                anchors.centerIn: parent
+                font.pixelSize: units.gu(2)
+                visible: false
+                text: 'No Task Available'
             }
         }
-
-        Text {
-            id: labelNoTask
-            anchors.centerIn: parent
-            font.pixelSize: units.gu(2)
-            visible: false
-            text: 'No Task Available'
-        }
-    }
-
+    
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
