@@ -256,6 +256,8 @@ function passesDateFilter(task, filterType, currentDate) {
     var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
     
     switch (filterType) {
+        case "all":
+            return true;
         case "today":
             return isTaskDueToday(task, today);
         case "this_week":

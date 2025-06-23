@@ -126,13 +126,13 @@ Page {
         label1: "Today"
         label2: "This Week"
         label3: "Next Week"
-        label4: "Later"
+        label4: "All"
         label5: "Completed"
         
         filter1: "today"
         filter2: "this_week"
         filter3: "next_week"
-        filter4: "later"
+        filter4: "all"
         filter5: "completed"
         
         showSearchBox: false
@@ -225,10 +225,12 @@ Page {
     }
     onVisibleChanged: {
         if (visible) {
-            tasklist.refresh();
+            // Apply the current filter when page becomes visible
+            tasklist.applyFilter(currentFilter);
         }
     }
     Component.onCompleted: {
-        tasklist.refresh();
+        // Apply default "today" filter on completion
+        tasklist.applyFilter(currentFilter);
     }
 }

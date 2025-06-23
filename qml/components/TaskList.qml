@@ -39,7 +39,7 @@ Item {
     property bool childrenMapReady: false
 
     // Add properties for filtering and searching
-    property string currentFilter: ""
+    property string currentFilter: "today"  // Set default filter to "today"
     property string currentSearchQuery: ""
 
     signal taskSelected(int recordId)
@@ -62,7 +62,7 @@ Item {
     
     // New function to refresh with filter applied
     function refreshWithFilter() {
-        if (currentFilter || currentSearchQuery) {
+        if (currentFilter && currentFilter !== "" || currentSearchQuery) {
             var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
             updateDisplayedTasks(filteredTasks);
         } else {
@@ -137,9 +137,9 @@ Item {
         console.log("Refreshing taskNavigator...");
         navigationStackModel.clear();
         currentParentId = -1;
-        currentFilter = "";
+        currentFilter = "today";  // Reset to default filter
         currentSearchQuery = "";
-        populateTaskChildrenMap(true);
+        refreshWithFilter();  // Use refreshWithFilter to apply the default filter
     }
 
     function populateTaskChildrenMap() {
@@ -312,6 +312,6 @@ Item {
     }
 
     Component.onCompleted: {
-        populateTaskChildrenMap(true);
+        refreshWithFilter();  // Use refreshWithFilter to apply default "today" filter
     }
 }
