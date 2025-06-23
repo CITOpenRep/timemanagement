@@ -267,6 +267,7 @@ function getAllActivityType(){
 }
 
 function saveActivityData(data) {
+    try {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
     db.transaction(function(tx) {
@@ -291,5 +292,11 @@ function saveActivityData(data) {
                 
             ]
         );
+        
     });
+     return { success: true };
+}catch (e) {
+        console.error("Database operation failed:", e.message);
+        return { success: false, error: e.message };
+    }
 }
