@@ -150,6 +150,7 @@ function getAllActivities() {
             var query = `
             SELECT *
             FROM mail_activity_app
+            WHERE state != 'done'
             ORDER BY due_date ASC
             `;
 
@@ -221,6 +222,26 @@ function getActivityTypeName(odooRecordId) {
 
     return typeName;
 }
+
+function markAsDone(accountId, id) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+            UPDATE mail_activity_app
+            SET state = "done", status = "updated"
+            WHERE account_id = ? AND id = ?
+            `;
+            tx.executeSql(query, [accountId, id]);
+            console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
+        });
+
+    } catch (e) {
+        DBCommon.logException("markAsDone", e);
+    }
+}
+
 
 function getActivityIconForType(typeName) {
     if (!typeName) return "activity_others.png";

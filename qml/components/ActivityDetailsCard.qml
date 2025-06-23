@@ -20,12 +20,22 @@ ListItem {
     property var account_id
 
     signal cardClicked(int accountid, int recordid)
+    signal markAsDone(int accountid, int recordId)
 
     function truncateText(text, maxLength) {
         if (text.length > maxLength) {
             return text.slice(0, maxLength) + '...';
         }
         return text;
+    }
+
+    trailingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "view-list-symbolic"
+                onTriggered: markAsDone(root.account_id, root.odoo_record_id)
+            }
+        ]
     }
 
     Rectangle {

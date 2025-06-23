@@ -259,6 +259,12 @@ Page {
                                                      "isReadOnly": true
                                                  });
                 }
+                onMarkAsDone:  function(accountid,recordid){
+                    console.log("Requesting to Make done activity with id " +recordid );
+                    //Here we need to delete the record and see? if it get synced
+                    Activity.markAsDone(accountid,recordid)
+                    get_activity_list("today", "");
+                }
             }
             currentIndex: 0
             onCurrentIndexChanged: {
