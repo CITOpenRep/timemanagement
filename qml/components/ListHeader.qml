@@ -33,31 +33,65 @@ Item {
         showSearchBox = !showSearchBox;
     }
 
+    // Add function to clear search and reset filters
+    function clearSearch() {
+        searchField.text = "";
+        customSearch("");
+    }
+
     Column {
         id: mainColumn
         anchors.fill: parent
         spacing: 0
 
         // Search field at the top
-        TextField {
-            id: searchField
+        Rectangle {
             visible: topFilterBar.showSearchBox
             height: units.gu(4)
             width: parent.width
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.margins: units.gu(0.5)
-            placeholderText: "Search..."
-            background: Rectangle {
-                color: "#F5F5F5"
-                border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
-                border.width: searchField.activeFocus ? 2 : 1
+            color: "#F5F5F5"
+            border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
+            border.width: searchField.activeFocus ? 2 : 1
+
+            TextField {
+                id: searchField
+                anchors.fill: parent
+                anchors.rightMargin: units.gu(4) // Space for clear button
+                placeholderText: "Search..."
+                background: Rectangle {
+                    color: "transparent"
+                }
+                color: "#333333"
+                placeholderTextColor: "#888888"
+                selectByMouse: true
+                onAccepted: topFilterBar.customSearch(text)
+                onTextChanged: topFilterBar.customSearch(text)
             }
-            color: "#333333"
-            placeholderTextColor: "#888888"
-            selectByMouse: true
-            onAccepted: topFilterBar.customSearch(text)
-            onTextChanged: topFilterBar.customSearch(text)
+
+            Button {
+                id: clearButton
+                visible: searchField.text.length > 0
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.rightMargin: units.gu(0.5)
+                width: units.gu(3)
+                height: units.gu(3)
+                text: "×"
+                background: Rectangle {
+                    color: "transparent"
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "#888888"
+                    font.pixelSize: units.gu(2)
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: topFilterBar.clearSearch()
+            }
         }
 
         // Filter buttons row below search
