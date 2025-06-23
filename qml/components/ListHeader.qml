@@ -126,7 +126,7 @@ Item {
                     }
                     contentItem: Text {
                         text: parent.text
-                        color: parent.isHighlighted ? "black" : "#8C7059"
+                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
                          font.bold: parent.isHighlighted
                        //  font.underline: parent.isHighlighted
                         horizontalAlignment: Text.AlignHCenter
@@ -150,7 +150,7 @@ Item {
                     }
                     contentItem: Text {
                         text: parent.text
-                        color: parent.isHighlighted ? "black" : "#8C7059"
+                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
                          font.bold: parent.isHighlighted
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -173,7 +173,7 @@ Item {
                     }
                     contentItem: Text {
                         text: parent.text
-                        color: parent.isHighlighted ? "black" : "#8C7059"
+                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
                          font.bold: parent.isHighlighted
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -196,7 +196,7 @@ Item {
                     }
                     contentItem: Text {
                         text: parent.text
-                       color: parent.isHighlighted ? "black" : "#8C7059"
+                       color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
                        // text.format: Text.PlainText
                         font.bold: parent.isHighlighted
                       //  font.pixelSize: units.gu(1.8)
@@ -222,7 +222,7 @@ Item {
                     }
                     contentItem: Text {
                         text: parent.text
-                       color: parent.isHighlighted ? "black" : "#8C7059"
+                       color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
                        // text.format: Text.PlainText
                         font.bold: parent.isHighlighted
                       //  font.pixelSize: units.gu(1.8)
