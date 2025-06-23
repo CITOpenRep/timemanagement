@@ -114,13 +114,13 @@ Page {
                 RadioButton {
                     id: projectRadio
                     text: "Project"
-                    checked: true
+                    checked: false
                 }
 
                 RadioButton {
                     id: taskRadio
                     text: "Task"
-                    checked:false
+                    checked:true
                 }
             }
         }
@@ -279,11 +279,13 @@ Page {
             switch (currentActivity.resModel) {
             case "project.task":
                 workItem.showTaskSelector=true
-                workItem.applyDeferredSelection(instanceId, -1, currentActivity.resId, user_id);
+                taskRadio.checked=true
+                workItem.applyDeferredSelection(instanceId, -1, currentActivity.link_id, user_id);
                 break;
             case "project.project":
                 workItem.showProjectSelector=true
-                workItem.applyDeferredSelection(instanceId, currentActivity.resId, -1, user_id);
+                projectRadio.checked=true
+                workItem.applyDeferredSelection(instanceId, currentActivity.link_id, -1, user_id);
                 break;
             default:
                 workItem.applyDeferredSelection(instanceId, -1, -1, user_id);
