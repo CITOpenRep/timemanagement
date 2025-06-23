@@ -248,13 +248,15 @@ function getAllActivityType(){
         db.transaction(function (tx) {
             var query = `
                 SELECT *
-                FROM mail_activity_type_app
-            `;
+                FROM mail_activity_type_app`;
 
             var rs = tx.executeSql(query);
 
             if (rs.rows.length > 0) {
-                activityTypes.push(DBCommon.rowToObject(rs.rows.item(0)));
+
+                for (var i = 0; i < rs.rows.length; i++) {
+                activityTypes.push(DBCommon.rowToObject(rs.rows.item(i)));
+                 }
 
             }
         });
@@ -267,6 +269,7 @@ function getAllActivityType(){
 }
 
 function saveActivityData(data) {
+    try {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
     db.transaction(function(tx) {
@@ -291,5 +294,11 @@ function saveActivityData(data) {
                 
             ]
         );
+        
     });
+     return { success: true };
+}catch (e) {
+        console.error("Database operation failed:", e.message);
+        return { success: false, error: e.message };
+    }
 }

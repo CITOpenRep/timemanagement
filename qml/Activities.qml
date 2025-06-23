@@ -69,6 +69,13 @@ Page {
             color: "Brown"
         }
     }
+
+     NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+        onClosed: console.log("Notification dismissed")
+    }
     Flickable {
         id: flickable
         anchors.fill: parent
@@ -383,7 +390,7 @@ Page {
         }
     }
 
-    function saveActivityData() {
+function saveActivityData(){
         const ids = workItem.getAllSelectedDbRecordIds();
         console.log("Account DB ID:", ids.accountDbId);
         console.log("Project DB ID:", ids.projectDbId);
@@ -391,28 +398,76 @@ Page {
         console.log("Assignee" + ids.assigneeDbId);
 
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
-        console.log("user = ", user);
-        console.debug(typeItems.get(typeDropDown.currentIndex).text);
-        console.debug(typeItems.get(typeDropDown.currentIndex).odoo_record_id);
-        console.log(summary.text);
-        console.log(notes.text);
-        console.log(date_widget.selectedDate);
+        if (!user) {
+            notifPopup.open("Error", "Unable to find the user , can not save", "error");
+            return;
+        }
+
+
+        if((ids.projectDbId ==-1) || (ids.taskDbId ==-1) || (ids.assigneeDbId ==-1) )
+        {
+            notifPopup.open("Error", "Project or task  or assignee not selected", "error");
+             return;
+        }
+
+        if(typeDropDown.currentIndex ==0){
+
+                        notifPopup.open("Error", "Choose a type", "error");
+                         return;
+
+        }
+    if(summary.text ==""){
+  notifPopup.open("Error", "type summary", "error");
+                         return;
+    }
+      if(notes.text ==""){
+  notifPopup.open("Error", "type notes", "error");
+                         return;
+    }
+if(statusDropDown.currentIndex == 0){
+  notifPopup.open("Error", "Select shedule", "error");
+                         return;
+    }
+    
+
+
+        console.log("user = ",user)
+        console.debug(typeItems.get(typeDropDown.currentIndex).text )
+        console.debug(typeItems.get(typeDropDown.currentIndex).odoo_record_id )
+        console.log(summary.text)
+        console.log(notes.text)
+        console.log(date_widget.selectedDate)
+
+
 
         let data = {
-            "updatedAccount": ids.accountDbId,
-            "updatedActivity": typeItems.get(typeDropDown.currentIndex).odoo_record_id,
-            "updatedSummary": summary.text,
-            "updatedUserId": user,
-            "updatedDate": date_widget.selectedDate,
-            "updatedNote": notes.text,
-            "resModel": "",
-            "resId": "",
-            "task_id": "",
-            "project_id": "",
-            "link_id": "",
-            "editschedule": typeItems.get(typeDropDown.currentIndex).text
-        };
-        console.log(data);
-        Activity.saveActivityData(data);
+            "updatedAccount":ids.accountDbId,
+            "updatedActivity":typeItems.get(typeDropDown.currentIndex).odoo_record_id,
+            "updatedSummary":summary.text,
+            "updatedUserId":user,
+            "updatedDate":date_widget.selectedDate,
+            "updatedNote":notes.text,
+            "resModel":"",
+            "resId":"",
+            "task_id":"",
+            "project_id":"",
+            "link_id":"",
+            "editschedule":statusItems.get(statusDropDown.currentIndex).text
+        }
+        console.log(data)
+        
+
+        const result = Activity.saveActivityData(data);
+            if (!result.success) {
+                notifPopup.open("Error", "Unable to Save the Task", "error");
+            } else {
+                notifPopup.open("Saved", "Activity has been saved successfully", "success");
+                 apLayout.addPageToCurrentColumn(activityDetailsPage, Qt.resolvedUrl("Activity_Page.qml"));
+                    let page = 2;
+                    apLayout.setCurrentPage(page);
+            }
+
     }
+
+
 }
