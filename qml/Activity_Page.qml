@@ -54,6 +54,17 @@ Page {
                         console.log("Search clicked");
                         listheader.toggleSearchVisibility();
                     }
+                },
+                 Action {
+                    iconName: "add"
+                    text: "New"
+                    onTriggered: {
+                        console.log("Create Activity clicked");
+                        apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                            // "recordid": recordid,
+                            "isReadOnly": false
+                        });
+                    }
                 }
             ]
     

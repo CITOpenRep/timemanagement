@@ -361,3 +361,13 @@ function getTimeStatusInText(endDateString) {
         return "Due today";
     return days + " days";
 }
+
+
+function extractDate(datetimeStr) {
+  // datetimeStr example: "2025-06-23T13:53:42.834"
+   const d = new Date(datetimeStr);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');  // Months are 0-based
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
