@@ -53,7 +53,7 @@ Item {
             width: parent.width
             anchors.left: parent.left
             anchors.right: parent.right
-          //  anchors.margins: units.gu(0.5)
+            //  anchors.margins: units.gu(0.5)
             color: "#F5F5F5"
             border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
             border.width: searchField.activeFocus ? 2 : 1
@@ -112,11 +112,11 @@ Item {
                 spacing: 0 // Remove spacing between elements
                 anchors.verticalCenter: parent.verticalCenter // Center vertically
                 anchors.left: parent.left
-               // anchors.leftMargin: units.gu(1)
+                // anchors.leftMargin: units.gu(1)
 
                 Button {
                     text: topFilterBar.label1
-                    height:units.gu(6) // Adjusted height
+                    height: units.gu(6) // Adjusted height
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
                     background: Rectangle {
@@ -127,23 +127,23 @@ Item {
                     contentItem: Text {
                         text: parent.text
                         color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                         font.bold: parent.isHighlighted
-                       //  font.underline: parent.isHighlighted
+                        font.bold: parent.isHighlighted
+                        //  font.underline: parent.isHighlighted
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter1
-                        topFilterBar.filterSelected(topFilterBar.filter1)
+                        topFilterBar.currentFilter = topFilterBar.filter1;
+                        topFilterBar.filterSelected(topFilterBar.filter1);
                     }
                 }
 
                 Button {
                     text: topFilterBar.label2
-                     height:units.gu(6)
+                    height: units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
-                      background: Rectangle {
+                    background: Rectangle {
                         color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
                         border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
                         border.width: 1
@@ -151,22 +151,22 @@ Item {
                     contentItem: Text {
                         text: parent.text
                         color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                         font.bold: parent.isHighlighted
+                        font.bold: parent.isHighlighted
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter2
-                        topFilterBar.filterSelected(topFilterBar.filter2)
+                        topFilterBar.currentFilter = topFilterBar.filter2;
+                        topFilterBar.filterSelected(topFilterBar.filter2);
                     }
                 }
 
                 Button {
                     text: topFilterBar.label3
-                    height:units.gu(6)
+                    height: units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
-                       background: Rectangle {
+                    background: Rectangle {
                         color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
                         border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
                         border.width: 1
@@ -174,64 +174,63 @@ Item {
                     contentItem: Text {
                         text: parent.text
                         color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                         font.bold: parent.isHighlighted
+                        font.bold: parent.isHighlighted
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter3
-                        topFilterBar.filterSelected(topFilterBar.filter3)
+                        topFilterBar.currentFilter = topFilterBar.filter3;
+                        topFilterBar.filterSelected(topFilterBar.filter3);
                     }
                 }
 
                 Button {
                     text: topFilterBar.label4
-                     height:units.gu(6)
+                    height: units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
-                      background: Rectangle {
+                    background: Rectangle {
                         color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
                         border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
                         border.width: 1
                     }
                     contentItem: Text {
                         text: parent.text
-                       color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                       // text.format: Text.PlainText
+                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
+                        // text.format: Text.PlainText
                         font.bold: parent.isHighlighted
-                      //  font.pixelSize: units.gu(1.8)
+                        //  font.pixelSize: units.gu(1.8)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter4
-                        topFilterBar.filterSelected(topFilterBar.filter4)
+                        topFilterBar.currentFilter = topFilterBar.filter4;
+                        topFilterBar.filterSelected(topFilterBar.filter4);
                     }
                 }
 
-
-                 Button {
+                Button {
                     text: topFilterBar.label5
-                    height:units.gu(6)
+                    height: units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter5
-                      background: Rectangle {
+                    background: Rectangle {
                         color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
                         border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
                         border.width: 1
                     }
                     contentItem: Text {
                         text: parent.text
-                       color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                       // text.format: Text.PlainText
+                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
+                        // text.format: Text.PlainText
                         font.bold: parent.isHighlighted
-                      //  font.pixelSize: units.gu(1.8)
+                        //  font.pixelSize: units.gu(1.8)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter5
-                        topFilterBar.filterSelected(topFilterBar.filter5)
+                        topFilterBar.currentFilter = topFilterBar.filter5;
+                        topFilterBar.filterSelected(topFilterBar.filter5);
                     }
                 }
             }

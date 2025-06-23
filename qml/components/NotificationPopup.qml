@@ -44,13 +44,13 @@ Item {
         Dialog {
             id: popupDialog
             title: popupWrapper.titleText
-            
+
             // Dark mode friendly styling
             StyleHints {
                 backgroundColor: theme.palette.normal.background
                 foregroundColor: theme.palette.normal.backgroundText
             }
-            
+
             Text {
                 id: messageText
                 text: popupWrapper.messageText
@@ -63,18 +63,17 @@ Item {
                 textFormat: Text.RichText
                 color: theme.palette.normal.backgroundText
             }
-            
+
             // Color logic based on type (optional, add custom styling if needed)
             Button {
                 text: "OK"
                 onClicked: PopupUtils.close(popupDialog)
-                
+
                 // Dark mode friendly button styling
                 StyleHints {
-                  foregroundColor: "white"
+                    foregroundColor: "white"
 
-            backgroundColor: LomiriColors.orange
-         
+                    backgroundColor: LomiriColors.orange
                 }
             }
         }

@@ -65,23 +65,20 @@ Page {
                     taskListHeader.toggleSearchVisibility();
                 }
             }
-
-
         ]
     }
     ListModel {
         id: taskModel
     }
 
-    
     // Add properties to track filter and search state
     property string currentFilter: "today"
     property string currentSearchQuery: ""
-    
+
     // Function to get tasks based on current filter and search
     function getTaskList(filter, searchQuery) {
         taskModel.clear();
-        
+
         try {
             var allTasks;
             if (filter || searchQuery) {
@@ -89,11 +86,11 @@ Page {
             } else {
                 allTasks = Task.getAllTasks();
             }
-            
+
             for (var i = 0; i < allTasks.length; i++) {
                 var task = allTasks[i];
                 var projectName = ""; // You can add project lookup here if needed
-                
+
                 taskModel.append({
                     id: task.id,
                     name: task.name,
@@ -122,32 +119,32 @@ Page {
         anchors.top: taskheader.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        
+
         label1: "Today"
         label2: "This Week"
         label3: "Next Week"
         label4: "All"
         label5: "Completed"
-        
+
         filter1: "today"
         filter2: "this_week"
         filter3: "next_week"
         filter4: "all"
         filter5: "completed"
-        
+
         showSearchBox: false
         currentFilter: task.currentFilter
-        
+
         onFilterSelected: {
-            console.log("Filter selected:", filterKey)
-            task.currentFilter = filterKey
-            tasklist.applyFilter(filterKey)
+            console.log("Filter selected:", filterKey);
+            task.currentFilter = filterKey;
+            tasklist.applyFilter(filterKey);
         }
-        
+
         onCustomSearch: {
-            console.log("Search query:", query)
-            task.currentSearchQuery = query
-            tasklist.applySearch(query)
+            console.log("Search query:", query);
+            task.currentSearchQuery = query;
+            tasklist.applySearch(query);
         }
     }
 
@@ -159,43 +156,43 @@ Page {
         TaskList {
             id: tasklist
             anchors.fill: parent
-                
-                onTaskEditRequested: {
-                    console.log("Edit Requested");
-                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
-                        "recordid": recordId,
-                        "isReadOnly": false
-                    });
-                }
-                onTaskSelected: {
-                    console.log("Viewing Task");
-                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
-                        "recordid": recordId,
-                        "isReadOnly": true
-                    });
-                }
-                onTaskDeleteRequested: {
-                    console.log("Delete Requested");
-                    var result = Task.markTaskAsDeleted(recordId);
-                    if (!result.success) {
-                        notifPopup.open("Error", result.message, "error");
-                    } else {
-                        notifPopup.open("Deleted", result.message, "success");
-                    }
-                    pageStack.removePages(task);
-                    apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Page.qml"));
-                }
-            }
 
-            Text {
-                id: labelNoTask
-                anchors.centerIn: parent
-                font.pixelSize: units.gu(2)
-                visible: false
-                text: 'No Task Available'
+            onTaskEditRequested: {
+                console.log("Edit Requested");
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": false
+                });
+            }
+            onTaskSelected: {
+                console.log("Viewing Task");
+                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": true
+                });
+            }
+            onTaskDeleteRequested: {
+                console.log("Delete Requested");
+                var result = Task.markTaskAsDeleted(recordId);
+                if (!result.success) {
+                    notifPopup.open("Error", result.message, "error");
+                } else {
+                    notifPopup.open("Deleted", result.message, "success");
+                }
+                pageStack.removePages(task);
+                apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Page.qml"));
             }
         }
-    
+
+        Text {
+            id: labelNoTask
+            anchors.centerIn: parent
+            font.pixelSize: units.gu(2)
+            visible: false
+            text: 'No Task Available'
+        }
+    }
+
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)

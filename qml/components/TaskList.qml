@@ -52,14 +52,14 @@ Item {
         currentFilter = filterKey;
         refreshWithFilter();
     }
-    
+
     // Add the applySearch method
     function applySearch(searchQuery) {
         console.log("TaskList: Applying search:", searchQuery);
         currentSearchQuery = searchQuery;
         refreshWithFilter();
     }
-    
+
     // New function to refresh with filter applied
     function refreshWithFilter() {
         if (currentFilter && currentFilter !== "" || currentSearchQuery) {
@@ -69,19 +69,19 @@ Item {
             populateTaskChildrenMap(); // Use original function when no filters
         }
     }
-    
+
     // New function to update displayed tasks with filtered data
     function updateDisplayedTasks(tasks) {
         childrenMap = {};
         childrenMapReady = false;
-        
+
         if (tasks.length === 0) {
             childrenMapReady = true;
             return;
         }
-        
+
         var tempMap = {};
-        
+
         tasks.forEach(function (row) {
             var odooId = row.odoo_record_id;
             var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;

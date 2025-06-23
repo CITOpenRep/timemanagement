@@ -80,7 +80,7 @@ Page {
                     onAccountChanged: {
                         console.log("Account id is " + accountId);
                         //reload the activity type for the account
-                        reloadActivityTypeSelector(accountId,-1);
+                        reloadActivityTypeSelector(accountId, -1);
                     }
                 }
             }
@@ -120,7 +120,7 @@ Page {
                 RadioButton {
                     id: taskRadio
                     text: "Task"
-                    checked:true
+                    checked: true
                 }
             }
         }
@@ -257,7 +257,6 @@ Page {
                     }
                 }
             }
-
         }
     }
 
@@ -270,37 +269,34 @@ Page {
             let user_id = (currentActivity.user_id !== undefined && currentActivity.user_id !== null) ? currentActivity.user_id : -1;
 
             //Load the Activity Type
-            reloadActivityTypeSelector(instanceId,currentActivity.activity_type_id)
+            reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
 
             //Now we need to smartly use the workitem , because an activity can have a related item , which can be project or task
             //lets reset the task and project views
-            workItem.showTaskSelector=false
-            workItem.showProjectSelector=false
+            workItem.showTaskSelector = false;
+            workItem.showProjectSelector = false;
             switch (currentActivity.resModel) {
             case "project.task":
-                workItem.showTaskSelector=true
-                taskRadio.checked=true
+                workItem.showTaskSelector = true;
+                taskRadio.checked = true;
                 workItem.applyDeferredSelection(instanceId, -1, currentActivity.link_id, user_id);
                 break;
             case "project.project":
-                workItem.showProjectSelector=true
-                projectRadio.checked=true
+                workItem.showProjectSelector = true;
+                projectRadio.checked = true;
                 workItem.applyDeferredSelection(instanceId, currentActivity.link_id, -1, user_id);
                 break;
             default:
                 workItem.applyDeferredSelection(instanceId, -1, -1, user_id);
             }
-
         } else {
             console.log("Creatign a new activity");
             let account = Accounts.getAccountsList();
             console.log(account[1].name);
-            reloadActivityTypeSelector(account,-1)
+            reloadActivityTypeSelector(account, -1);
             workItem.applyDeferredSelection(account, -1, -1, -1);
-
         }
     }
-
 
     function reloadActivityTypeSelector(accountId, selectedTypeId) {
         console.log("->-> Loading Activity Types for account " + accountId);
@@ -309,10 +305,10 @@ Page {
 
         // Add default "No Type" entry
         flatModel.push({
-                           id: -1,
-                           name: "No Type",
-                           parent_id: null
-                       });
+            id: -1,
+            name: "No Type",
+            parent_id: null
+        });
 
         let selectedText = "No Type";
         let selectedFound = (selectedTypeId === -1);
@@ -322,10 +318,10 @@ Page {
             let name = rawTypes[i].name;
 
             flatModel.push({
-                               id: id,
-                               name: name,
-                               parent_id: null  // no hierarchy assumed
-                           });
+                id: id,
+                name: name,
+                parent_id: null  // no hierarchy assumed
+            });
 
             if (selectedTypeId !== undefined && selectedTypeId !== null && selectedTypeId === id) {
                 selectedText = name;
@@ -344,29 +340,27 @@ Page {
 
     function saveActivityData() {
         const ids = workItem.getAllSelectedDbRecordIds();
-        Utils.show_dict_data(ids)
-        var linkid=0;
-        var resId=0
+        Utils.show_dict_data(ids);
+        var linkid = 0;
+        var resId = 0;
 
-        if (projectRadio.checked)
-        {
-            linkid=ids.projectDbId;
-            resId=Accounts.getOdooModelId(ids.accountDbId,"Project")
+        if (projectRadio.checked) {
+            linkid = ids.projectDbId;
+            resId = Accounts.getOdooModelId(ids.accountDbId, "Project");
         }
 
-        if(taskRadio.checked)
-        {
-            linkid=ids.taskDbId;
-            resId=Accounts.getOdooModelId(ids.accountDbId,"Task")
+        if (taskRadio.checked) {
+            linkid = ids.taskDbId;
+            resId = Accounts.getOdooModelId(ids.accountDbId, "Task");
         }
 
         const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
 
-        if (linkid === 0 || resId===0 ) {
+        if (linkid === 0 || resId === 0) {
             notifPopup.open("Error", "Activity must be connected to a project or task", "error");
             return;
         }
-        console.log("LINK ID is ->>>>>>>>>>> " + linkid)
+        console.log("LINK ID is ->>>>>>>>>>> " + linkid);
 
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
         if (!user) {
@@ -375,11 +369,7 @@ Page {
         }
 
         if (activityTypeSelector.selectedId === -1 || summary.text === "" || notes.text === "") {
-            let message = activityTypeSelector.selectedId === -1
-                ? "You must specify the Activity type"
-                : summary.text === ""
-                ? "Please enter a summary"
-                : "Please enter notes";
+            let message = activityTypeSelector.selectedId === -1 ? "You must specify the Activity type" : summary.text === "" ? "Please enter a summary" : "Please enter notes";
             notifPopup.open("Error", message, "error");
             return;
         }
@@ -387,7 +377,7 @@ Page {
         const data = {
             updatedAccount: ids.accountDbId,
             updatedActivity: activityTypeSelector.selectedId,
-            updatedSummary:  summary.displayText,
+            updatedSummary: summary.displayText,
             updatedUserId: user,
             updatedDate: date_widget.selectedDate,
             updatedNote: notes.displayText,
@@ -395,12 +385,12 @@ Page {
             resId: resId,
             link_id: linkid,
             task_id: null,
-            state:"planned",
+            state: "planned",
             project_id: null,
             status: "updated"
         };
 
-        Utils.show_dict_data(data)
+        Utils.show_dict_data(data);
 
         const result = Activity.saveActivityData(data);
         if (!result.success) {
@@ -411,6 +401,4 @@ Page {
             apLayout.setCurrentPage(2);
         }
     }
-
-
 }

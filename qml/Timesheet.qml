@@ -177,7 +177,6 @@ Page {
                 width: units.gu(7)
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft
-                
             }
 
             Item {
@@ -189,12 +188,12 @@ Page {
                 id: priorityCombo
                 width: units.gu(32.5)
                 height: units.gu(5)
-           
-                model: ["Do First (Important & Urgent )",  "Do Next (Important & Not Urgent)", "Do Later (Urgent & Not Important)", "Don't do (Not Urgent & Not Important)"]
+
+                model: ["Do First (Important & Urgent )", "Do Next (Important & Not Urgent)", "Do Later (Urgent & Not Important)", "Don't do (Not Urgent & Not Important)"]
                 enabled: !isReadOnly
                 currentIndex: 0
             }
-            
+
             Icon {
                 id: helpIcon
                 name: "help"
@@ -298,7 +297,7 @@ Page {
                 height: Math.max(units.gu(10), contentHeight + units.gu(2))
                 wrapMode: TextArea.Wrap
                 selectByMouse: true
-                
+
                 // Custom styling for border highlighting
                 Rectangle {
                     id: borderRect
@@ -307,7 +306,7 @@ Page {
                     radius: units.gu(0.5)
                     border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
                     border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                   // z: -1
+                    // z: -1
                 }
             }
         }

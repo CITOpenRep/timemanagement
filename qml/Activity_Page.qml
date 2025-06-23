@@ -61,13 +61,12 @@ Page {
                 onTriggered: {
                     console.log("Create Activity clicked");
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
-                                                     // "recordid": recordid,
-                                                     "isReadOnly": false
-                                                 });
+                        // "recordid": recordid,
+                        "isReadOnly": false
+                    });
                 }
             }
         ]
-
     }
 
     function shouldIncludeItem(item) {
@@ -96,30 +95,28 @@ Page {
                     var user = Accounts.getUserNameByOdooId(item.user_id);
 
                     activityListModel.append({
-                         id: item.id,
-                         summary: item.summary,
-                         due_date: item.due_date,
-                         notes: item.notes,
-                         activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
-                         state: item.state,
-                         task_id: item.task_id,
-                         task_name: taskName,
-                         project_name: projectName,
-                         odoo_record_id: item.odoo_record_id || 0,
-                         user: user,
-                         account_id: item.account_id,
-                         resId: item.resId,
-                         resModel: item.resModel,
-                         last_modified: item.last_modified
-                     });
+                        id: item.id,
+                        summary: item.summary,
+                        due_date: item.due_date,
+                        notes: item.notes,
+                        activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
+                        state: item.state,
+                        task_id: item.task_id,
+                        task_name: taskName,
+                        project_name: projectName,
+                        odoo_record_id: item.odoo_record_id || 0,
+                        user: user,
+                        account_id: item.account_id,
+                        resId: item.resId,
+                        resModel: item.resModel,
+                        last_modified: item.last_modified
+                    });
                 }
             }
         } catch (e) {
             console.error("❌ Error in get_activity_list():", e);
         }
     }
-
-
 
     function passesDateFilter(dueDateStr, filter, currentDate) {
         if (!dueDateStr)
@@ -208,11 +205,9 @@ Page {
         label4: "All"
         label5: "Favorites"
 
-
         showSearchBox: false
         currentFilter: activity.currentFilter  // Bind to page's current filter
 
-        
         filter1: "today"
         filter2: "week"
         filter3: "month"
@@ -222,12 +217,12 @@ Page {
         onFilterSelected: {
             activity.currentFilter = filterKey;
             console.log("Filter key is " + activity.currentFilter);
-            get_activity_list()
+            get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
             console.log("Search key is " + activity.currentSearchQuery);
-            get_activity_list()
+            get_activity_list();
         }
     }
 
@@ -254,15 +249,15 @@ Page {
                 onCardClicked: function (accountid, recordid) {
                     console.log("Page : Loading record " + recordid + " account id " + accountid);
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
-                                                     "recordid": recordid,
-                                                     "accountid": accountid,
-                                                     "isReadOnly": true
-                                                 });
+                        "recordid": recordid,
+                        "accountid": accountid,
+                        "isReadOnly": true
+                    });
                 }
-                onMarkAsDone:  function(accountid,recordid){
-                    console.log("Requesting to Make done activity with id " +recordid );
+                onMarkAsDone: function (accountid, recordid) {
+                    console.log("Requesting to Make done activity with id " + recordid);
                     //Here we need to delete the record and see? if it get synced
-                    Activity.markAsDone(accountid,recordid)
+                    Activity.markAsDone(accountid, recordid);
                     get_activity_list("today", "");
                 }
             }

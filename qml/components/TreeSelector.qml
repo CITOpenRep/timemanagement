@@ -58,9 +58,8 @@ Item {
             addChildren(root, 1);
         });
 
-        //console.log("TreeModel built with " + totalCount + " entries");
+    //console.log("TreeModel built with " + totalCount + " entries");
     }
-
 
     Column {
         width: parent.width

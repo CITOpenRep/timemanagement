@@ -35,8 +35,8 @@ Page {
 
     Component.onCompleted: {
         var allLogs = Accounts.fetchParsedSyncLog(recordid);
-        syncLogs = allLogs.filter(function(log) {
-            return log.level === "ERROR" || log.level === "WARNING" ;
+        syncLogs = allLogs.filter(function (log) {
+            return log.level === "ERROR" || log.level === "WARNING";
         });
         console.log("Logs loaded:", syncLogs.length);
     }
@@ -46,9 +46,9 @@ Page {
         anchors.fill: parent
         anchors.margins: units.gu(1)
         anchors.topMargin: pageHeader.height + units.gu(1)
-        
-       // anchors.top: pageHeader.bottom + units.gu(4)
-       
+
+        // anchors.top: pageHeader.bottom + units.gu(4)
+
         model: syncLogs
         delegate: Item {
             width: logListView.width

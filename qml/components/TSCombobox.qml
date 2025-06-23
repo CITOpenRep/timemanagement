@@ -32,7 +32,7 @@ ComboBox {
         contentItem: Text {
             text: modelData
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#222"
-          //  leftPadding: units.gu(1)
+            //  leftPadding: units.gu(1)
             elide: Text.ElideRight
         }
         background: Rectangle {
