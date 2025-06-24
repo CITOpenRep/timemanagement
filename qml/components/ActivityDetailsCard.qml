@@ -32,7 +32,7 @@ ListItem {
     trailingActions: ListItemActions {
         actions: [
             Action {
-                iconName: "view-list-symbolic"
+                iconName: "tick"
                 onTriggered: markAsDone(root.account_id, root.odoo_record_id)
             }
         ]
