@@ -115,12 +115,24 @@ Page {
                     id: projectRadio
                     text: "Project"
                     checked: false
+                    contentItem: Text {
+                        text: projectRadio.text
+                        color: theme.palette.normal.backgroundText
+                        leftPadding: projectRadio.indicator.width + projectRadio.spacing
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
 
                 RadioButton {
                     id: taskRadio
                     text: "Task"
                     checked: true
+                    contentItem: Text {
+                        text: taskRadio.text
+                        color: theme.palette.normal.backgroundText
+                        leftPadding: taskRadio.indicator.width + taskRadio.spacing
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
             }
         }
