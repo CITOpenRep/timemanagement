@@ -38,7 +38,7 @@ Page {
                 text: "Save"
                 onTriggered: {
                     saveActivityData();
-                    console.log("Activity Save Button clicked");
+                  //  console.log("Activity Save Button clicked");
                 }
             }
         ]
@@ -48,7 +48,7 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
-        onClosed: console.log("Notification dismissed")
+     //   onClosed: console.log("Notification dismissed")
     }
     Flickable {
         id: flickable
@@ -78,7 +78,7 @@ Page {
                     width: flickable.width - units.gu(2)
 
                     onAccountChanged: {
-                        console.log("Account id is " + accountId);
+                       // console.log("Account id is " + accountId);
                         //reload the activity type for the account
                         reloadActivityTypeSelector(accountId, -1);
                     }
@@ -248,7 +248,7 @@ Page {
 
     Component.onCompleted: {
         if (recordid != 0) {
-            console.log("Loading activity local id " + recordid + " Account id is " + accountid);
+          //  console.log("Loading activity local id " + recordid + " Account id is " + accountid);
             currentActivity = Activity.getActivityById(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
             let instanceId = (currentActivity.account_id !== undefined && currentActivity.account_id !== null) ? currentActivity.account_id : -1;
@@ -278,16 +278,16 @@ Page {
             //update due date
             date_widget.setSelectedDate(currentActivity.due_date);
         } else {
-            console.log("Creatign a new activity");
+          //  console.log("Creatign a new activity");
             let account = Accounts.getAccountsList();
-            console.log(account[1].name);
+          //  console.log(account[1].name);
             reloadActivityTypeSelector(account, -1);
             workItem.applyDeferredSelection(account, -1, -1, -1);
         }
     }
 
     function reloadActivityTypeSelector(accountId, selectedTypeId) {
-        console.log("->-> Loading Activity Types for account " + accountId);
+      //  console.log("->-> Loading Activity Types for account " + accountId);
         let rawTypes = Activity.getActivityTypesForAccount(accountId);
         let flatModel = [];
 

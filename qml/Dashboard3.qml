@@ -76,7 +76,7 @@ Page {
                 var count2 = Object.keys(quadrant_data).length;
                 for (count = 0; count < count2; count++) {
                     timecat[count] = quadrant_data[task[count]];
-                    console.log("Dashboard 3 Timecat in task: " + timecat[count]);
+                   // console.log("Dashboard 3 Timecat in task: " + timecat[count]);
                 }
                 mySeries2.append("Time", timecat);
                 mySeries2.axisX.categories = task;

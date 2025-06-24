@@ -53,7 +53,7 @@ Page {
                 iconName: "add"
                 text: "New"
                 onTriggered: {
-                    console.log("Create Project clicked");
+                   // console.log("Create Project clicked");
                     apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {
                         "isReadOnly": false
                     });
@@ -71,7 +71,7 @@ Page {
             id: projectlist
             anchors.fill: parent
             onProjectSelected: {
-                console.log("Viewing Project");
+              //  console.log("Viewing Project");
                 apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true

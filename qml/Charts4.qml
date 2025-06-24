@@ -70,7 +70,7 @@ Rectangle {
             get_task_chart_data();
             var count = 0;
             var count2 = Object.keys(task_data).length;
-            console.log("Count2 is: " + count2);
+          //  console.log("Count2 is: " + count2);
             /*                    for (count = 0; count < count2; count++)
                         {
                             console.log("Task Timecat: " + task_timecat[count]);

@@ -55,7 +55,7 @@ Page {
                 visible: !isReadOnly
                 onTriggered: {
                     const ids = workItem.getAllSelectedDbRecordIds();
-                    console.log("Account DB ID:", ids.accountDbId);
+                  //  console.log("Account DB ID:", ids.accountDbId);
 
                     // isReadOnly = !isReadOnly
                     var project_data = {
@@ -70,7 +70,7 @@ Page {
                         'color': project_color,
                         'status': "updated"
                     };
-                    console.log(JSON.stringify(project_data, null, 4));
+                  //  console.log(JSON.stringify(project_data, null, 4));
                     var recordid = 0; //project creation
                     var response = Project.createUpdateProject(project_data, recordid);
                     if (response) {
@@ -290,8 +290,8 @@ Page {
         width: units.gu(80)
         height: units.gu(80)
         onColorPicked: function (index, value) {
-            console.log("Selected index:", index);
-            console.log("Selected color:", value);
+            // console.log("Selected index:", index);
+            // console.log("Selected color:", value);
             project_color_label.color = value;
             project_color = index;
         }
@@ -301,7 +301,7 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(100)
-        onClosed: console.log("Notification dismissed")
+       // onClosed: console.log("Notification dismissed")
     }
 
     Component.onCompleted: {
@@ -310,21 +310,21 @@ Page {
             if (project && Object.keys(project).length > 0) {} else {
                 notifPopup.open("Failed", "Unable to open the project details", "error");
             }
-            console.log("=== Project Details ===");
-            console.log("id:", project.id);
-            console.log("name:", project.name);
-            console.log("account_id:", project.account_id);
-            console.log("parent_id:", project.parent_id);
-            console.log("planned_start_date:", project.planned_start_date);
-            console.log("planned_end_date:", project.planned_end_date);
-            console.log("allocated_hours:", project.allocated_hours);
-            console.log("favorites:", project.favorites);
-            console.log("last_update_status:", project.last_update_status);
-            console.log("description:", project.description);
-            console.log("last_modified:", project.last_modified);
-            console.log("color_pallet:", project.color_pallet);
-            console.log("status:", project.status);
-            console.log("odoo_record_id:", project.odoo_record_id);
+            // console.log("=== Project Details ===");
+            // console.log("id:", project.id);
+            // console.log("name:", project.name);
+            // console.log("account_id:", project.account_id);
+            // console.log("parent_id:", project.parent_id);
+            // console.log("planned_start_date:", project.planned_start_date);
+            // console.log("planned_end_date:", project.planned_end_date);
+            // console.log("allocated_hours:", project.allocated_hours);
+            // console.log("favorites:", project.favorites);
+            // console.log("last_update_status:", project.last_update_status);
+            // console.log("description:", project.description);
+            // console.log("last_modified:", project.last_modified);
+            // console.log("color_pallet:", project.color_pallet);
+            // console.log("status:", project.status);
+            // console.log("odoo_record_id:", project.odoo_record_id);
 
             let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
             let ppid = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;

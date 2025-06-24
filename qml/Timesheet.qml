@@ -57,19 +57,19 @@ Page {
                 text: "Save"
                 onTriggered: {
                     save_timesheet();
-                    console.log("Timesheet Save Button clicked");
+                   // console.log("Timesheet Save Button clicked");
                 }
             }
         ]
     }
 
     function save_timesheet() {
-        console.log("Trying to save time sheet");
+      //  console.log("Trying to save time sheet");
         const ids = workItem.getAllSelectedDbRecordIds();
-        console.log("Account DB ID:", ids.accountDbId);
-        console.log("Project DB ID:", ids.projectDbId);
-        console.log("Task DB ID:", ids.taskDbId);
-        console.log("Get the Current User");
+        // console.log("Account DB ID:", ids.accountDbId);
+        // console.log("Project DB ID:", ids.projectDbId);
+        // console.log("Task DB ID:", ids.taskDbId);
+        // console.log("Get the Current User");
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
 
         if (!user) {
@@ -77,7 +77,7 @@ Page {
             return;
         }
 
-        console.log("User ID is " + user);
+      //  console.log("User ID is " + user);
         if (ids.projectDbId < 0) {
             notifPopup.open("Error", "You need to select a project to save time sheet", "error");
             return;
@@ -127,7 +127,7 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
-        onClosed: console.log("Notification dismissed")
+     //   onClosed: console.log("Notification dismissed")
     }
 
     Flickable {
@@ -154,7 +154,7 @@ Page {
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
                     onAccountChanged: {
-                        console.log("Account id is ->>>>" + accountId);
+                       // console.log("Account id is ->>>>" + accountId);
                     }
                 }
             }

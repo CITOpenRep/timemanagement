@@ -82,7 +82,7 @@ Rectangle {
 
             var count = 0;
             var count2 = Object.keys(project_data).length;
-            console.log("Count2 is: " + count2);
+          //  console.log("Count2 is: " + count2);
             /*                    for (count = 0; count < count2; count++)
                         {
                             console.log("Project Timecat: " + project_timecat[count]);

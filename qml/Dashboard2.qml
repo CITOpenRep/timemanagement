@@ -49,7 +49,7 @@ Page {
     property variant task_data: []
 
     function get_project_chart_data() {
-        console.log("get_project_chart_data called");
+      //  console.log("get_project_chart_data called");
         project_data = Model.get_projects_spent_hours();
         var count = 0;
         var timeval;
@@ -65,7 +65,7 @@ Page {
     }
 
     function get_task_chart_data() {
-        console.log("get_task_chart_data called");
+      //  console.log("get_task_chart_data called");
         task_data = Model.get_tasks_spent_hours();
         var count = 0;
         var timeval;
@@ -116,7 +116,7 @@ Page {
         onFlickEnded: {
             load3.active = false;
             load4.active = false;
-            console.log("Flickable flick ended");
+          //  console.log("Flickable flick ended");
             load3.active = true;
             load4.active = true;
         }

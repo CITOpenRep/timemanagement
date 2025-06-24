@@ -57,7 +57,7 @@ Page {
                 text: "Save"
                 onTriggered: {
                     isReadOnly = !isReadOnly;
-                    console.log("Save Task clicked");
+                 //   console.log("Save Task clicked");
                     save_task_data();
                 }
             }
@@ -80,10 +80,10 @@ Page {
     function save_task_data() {
         //this shit has to be updated
         const ids = workItem.getAllSelectedDbRecordIds();
-        console.log("Account DB ID:", ids.accountDbId);
-        console.log("Project DB ID:", ids.projectDbId);
-        console.log("Task DB ID:", ids.taskDbId);
-        console.log("Assignee" + ids.assigneeDbId);
+        // console.log("Account DB ID:", ids.accountDbId);
+        // console.log("Project DB ID:", ids.projectDbId);
+        // console.log("Task DB ID:", ids.taskDbId);
+        // console.log("Assignee" + ids.assigneeDbId);
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
         if (!user) {
             notifPopup.open("Error", "Unable to find the user , can not save", "error");
@@ -135,7 +135,7 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
-        onClosed: console.log("Notification dismissed")
+       // onClosed: console.log("Notification dismissed")
     }
     Flickable {
         id: tasksDetailsPageFlickable
@@ -162,7 +162,7 @@ Page {
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     showAssigneeSelector: true
                     onAccountChanged: {
-                        console.log("Account id is " + accountId);
+                      //  console.log("Account id is " + accountId);
                     }
                 }
             }
@@ -301,7 +301,7 @@ Page {
         id: myTimePicker
         onTimeSelected: {
             let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
-            console.log("Selected time:", timeStr);
+          //  console.log("Selected time:", timeStr);
             hours_text.text = timeStr;  // for example, update a field
         }
     }
@@ -314,10 +314,10 @@ Page {
             //// return;
             currentTask = Task.getTaskDetails(recordid);
 
-            console.log("Account ID:", currentTask.account_id);
-            console.log("Sub Project ID:", currentTask.sub_project_id);
-            console.log("Project ID:", currentTask.project_id);
-            console.log("Task Parent ID:", currentTask.project_id);
+            // console.log("Account ID:", currentTask.account_id);
+            // console.log("Sub Project ID:", currentTask.sub_project_id);
+            // console.log("Project ID:", currentTask.project_id);
+            // console.log("Task Parent ID:", currentTask.project_id);
             /* console.log("Start Date:", currentTask.start_date);
             console.log("End Date:", currentTask.end_date);
             console.log("Deadline:", currentTask.deadline);
@@ -328,7 +328,7 @@ Page {
             console.log("Last Modified:", currentTask.last_modified);
             console.log("User ID:", currentTask.user_id);
             console.log("Status:", currentTask.status);*/
-            console.log("Odoo Record ID:", currentTask.odoo_record_id);
+          //  console.log("Odoo Record ID:", currentTask.odoo_record_id);
 
             let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
             let parent_project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;
@@ -348,7 +348,7 @@ Page {
             description_text.text = currentTask.description;
         } else //we are creating a new Task
         {
-            console.log("Creating a new task");
+          //  console.log("Creating a new task");
 
             workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
         }

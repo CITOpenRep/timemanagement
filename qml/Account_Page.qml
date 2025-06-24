@@ -224,7 +224,7 @@ Page {
                                     }
 
                                     for (var i = 0; i < dbList.length; i++) {
-                                        console.log(dbList[i]);
+                                     //   console.log(dbList[i]);
                                         databaseListModel.append({
                                             name: dbList[i]
                                         });
@@ -233,7 +233,7 @@ Page {
 
                                     if (dbList.length > 0) {
                                         database_combo.currentIndex = 0;
-                                        console.log("First DB selected:", database_combo.currentText);
+                                     //   console.log("First DB selected:", database_combo.currentText);
                                     }
                                 });
                             } else {
@@ -467,6 +467,6 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
-        onClosed: console.log("Notification dismissed")
+       // onClosed: console.log("Notification dismissed")
     }
 }

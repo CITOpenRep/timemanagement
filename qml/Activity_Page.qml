@@ -51,7 +51,7 @@ Page {
                 iconName: "search"
                 text: "Search"
                 onTriggered: {
-                    console.log("Search clicked");
+                   // console.log("Search clicked");
                     listheader.toggleSearchVisibility();
                 }
             },
@@ -59,7 +59,7 @@ Page {
                 iconName: "add"
                 text: "New"
                 onTriggered: {
-                    console.log("Create Activity clicked");
+                 //   console.log("Create Activity clicked");
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         // "recordid": recordid,
                         "isReadOnly": false
@@ -216,12 +216,12 @@ Page {
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
-            console.log("Filter key is " + activity.currentFilter);
+          //  console.log("Filter key is " + activity.currentFilter);
             get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
-            console.log("Search key is " + activity.currentSearchQuery);
+           // console.log("Search key is " + activity.currentSearchQuery);
             get_activity_list();
         }
     }
@@ -247,7 +247,7 @@ Page {
                 state: model.state
 
                 onCardClicked: function (accountid, recordid) {
-                    console.log("Page : Loading record " + recordid + " account id " + accountid);
+                  //  console.log("Page : Loading record " + recordid + " account id " + accountid);
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         "recordid": recordid,
                         "accountid": accountid,
@@ -255,7 +255,7 @@ Page {
                     });
                 }
                 onMarkAsDone: function (accountid, recordid) {
-                    console.log("Requesting to Make done activity with id " + recordid);
+                   // console.log("Requesting to Make done activity with id " + recordid);
                     //Here we need to delete the record and see? if it get synced
                     Activity.markAsDone(accountid, recordid);
                     get_activity_list("today", "");
@@ -263,7 +263,7 @@ Page {
             }
             currentIndex: 0
             onCurrentIndexChanged: {
-                console.log("currentIndex changed");
+               // console.log("currentIndex changed");
             }
 
             Component.onCompleted: {

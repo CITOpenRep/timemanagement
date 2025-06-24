@@ -410,7 +410,7 @@ Item {
                                     MouseArea {
                                         anchors.fill: parent
                                         onClicked: {
-                                            console.log("Column clicked!", model.id);
+                                          //  console.log("Column clicked!", model.id);
                                             currentRecordId = model.id;
                                             rightPanel.visible = true;
                                             editActivity.edit_id = model.id;
@@ -478,7 +478,7 @@ Item {
                             var result = tx.executeSql('SELECT * FROM mail_activity_app WHERE id = ?', [rowId]);
                             if (result.rows.length > 0) {
                                 var rowData = result.rows.item(0);
-                                console.log(JSON.stringify(rowData, null, 2));
+                              //  console.log(JSON.stringify(rowData, null, 2));
 
                                 var activityId = rowData.activity_type_id || 0;
                                 var accountId = rowData.account_id || 0;
