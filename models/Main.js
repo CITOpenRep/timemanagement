@@ -24,6 +24,20 @@ function get_quadrant_difference() {
     return quadrant_data;
 }
 
+/**
+ * Retrieves the total spent hours for each time management quadrant (0–3)
+ * for the current week, starting from Monday.
+ *
+ * @function get_quadrant_current_week
+ * @returns {Object} - An object mapping quadrant IDs (0 to 3) to their respective total spent hours.
+ *                     Example: { 0: 5, 1: 8, 2: 2, 3: 0 }
+ *
+ * @description
+ * Initializes a data structure to hold totals for each quadrant.
+ * Calculates the date of the Monday of the current week using `getMondayOfCurrentWeek()`.
+ * Calls `get_spent_hours()` with a filter to group results by `quadrant_id` and limit data to the current week.
+ * Populates the `quadrant_data` object with the total hours spent per quadrant based on the returned data.
+ */
 
 function get_quadrant_current_week() {
     var quadrant_data = { 0: 0, 1: 0, 2: 0, 3: 0 };

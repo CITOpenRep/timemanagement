@@ -79,7 +79,6 @@ function getAllProjects() {
     return projectList;
 }
 
-
 /**
  * Retrieves all projects associated with a specific user account from the local SQLite database.
  *

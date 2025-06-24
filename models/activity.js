@@ -2,7 +2,6 @@
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
 
-
 /**
  * Retrieves all activity records from the `mail_activity_app` table.
  *

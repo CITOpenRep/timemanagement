@@ -4,13 +4,13 @@
 
 var version="1.0.3 (Alpha Draft)"
 
+//fonts
 var FontSizes = {
     ListHeading:1.7,
     ListSubHeading:1.5,
     ListSubSubHeading:1.7,
 }
-
-
+//colors
 var Colors = {
     StickyNote: "#F5F5F5",
     Border: "#B0BEC5",
