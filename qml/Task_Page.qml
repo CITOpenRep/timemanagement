@@ -61,7 +61,7 @@ Page {
                 iconName: "search"
                 text: "Search"
                 onTriggered: {
-                   // console.log("Search clicked");
+                    // console.log("Search clicked");
                     taskListHeader.toggleSearchVisibility();
                 }
             }
@@ -136,13 +136,13 @@ Page {
         currentFilter: task.currentFilter
 
         onFilterSelected: {
-          //  console.log("Filter selected:", filterKey);
+            //  console.log("Filter selected:", filterKey);
             task.currentFilter = filterKey;
             tasklist.applyFilter(filterKey);
         }
 
         onCustomSearch: {
-          //  console.log("Search query:", query);
+            //  console.log("Search query:", query);
             task.currentSearchQuery = query;
             tasklist.applySearch(query);
         }
@@ -158,21 +158,21 @@ Page {
             anchors.fill: parent
 
             onTaskEditRequested: {
-              //  console.log("Edit Requested");
+                //  console.log("Edit Requested");
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": false
                 });
             }
             onTaskSelected: {
-             //   console.log("Viewing Task");
+                //   console.log("Viewing Task");
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
             }
             onTaskDeleteRequested: {
-              //  console.log("Delete Requested");
+                //  console.log("Delete Requested");
                 var result = Task.markTaskAsDeleted(recordId);
                 if (!result.success) {
                     notifPopup.open("Error", result.message, "error");
@@ -197,7 +197,7 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
-      //  onClosed: console.log("Notification dismissed")
+        //  onClosed: console.log("Notification dismissed")
     }
 
     DialerMenu {
@@ -212,7 +212,7 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-               // console.log("add task");
+                // console.log("add task");
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false

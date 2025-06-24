@@ -57,7 +57,7 @@ Page {
                 text: "Save"
                 onTriggered: {
                     isReadOnly = !isReadOnly;
-                 //   console.log("Save Task clicked");
+                    //   console.log("Save Task clicked");
                     save_task_data();
                 }
             }
@@ -135,7 +135,7 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
-       // onClosed: console.log("Notification dismissed")
+        // onClosed: console.log("Notification dismissed")
     }
     Flickable {
         id: tasksDetailsPageFlickable
@@ -161,9 +161,9 @@ Page {
                     taskLabelText: "Parent Task"
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     showAssigneeSelector: true
-                    onAccountChanged: {
-                      //  console.log("Account id is " + accountId);
-                    }
+                    onAccountChanged:
+                    //  console.log("Account id is " + accountId);
+                    {}
                 }
             }
         }
@@ -301,7 +301,7 @@ Page {
         id: myTimePicker
         onTimeSelected: {
             let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
-          //  console.log("Selected time:", timeStr);
+            //  console.log("Selected time:", timeStr);
             hours_text.text = timeStr;  // for example, update a field
         }
     }
@@ -328,7 +328,7 @@ Page {
             console.log("Last Modified:", currentTask.last_modified);
             console.log("User ID:", currentTask.user_id);
             console.log("Status:", currentTask.status);*/
-          //  console.log("Odoo Record ID:", currentTask.odoo_record_id);
+            //  console.log("Odoo Record ID:", currentTask.odoo_record_id);
 
             let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
             let parent_project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;
@@ -348,7 +348,7 @@ Page {
             description_text.text = currentTask.description;
         } else //we are creating a new Task
         {
-          //  console.log("Creating a new task");
+            //  console.log("Creating a new task");
 
             workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
         }

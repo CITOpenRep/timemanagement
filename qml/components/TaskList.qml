@@ -48,14 +48,14 @@ Item {
 
     // Add the applyFilter method
     function applyFilter(filterKey) {
-      //  console.log("TaskList: Applying filter:", filterKey);
+        //  console.log("TaskList: Applying filter:", filterKey);
         currentFilter = filterKey;
         refreshWithFilter();
     }
 
     // Add the applySearch method
     function applySearch(searchQuery) {
-       // console.log("TaskList: Applying search:", searchQuery);
+        // console.log("TaskList: Applying search:", searchQuery);
         currentSearchQuery = searchQuery;
         refreshWithFilter();
     }
@@ -134,7 +134,7 @@ Item {
     }
 
     function refresh() {
-       // console.log("Refreshing taskNavigator...");
+        // console.log("Refreshing taskNavigator...");
         navigationStackModel.clear();
         currentParentId = -1;
         currentFilter = "today";  // Reset to default filter
@@ -203,7 +203,7 @@ Item {
         }
 
         childrenMapReady = true;
-       // console.log("Task childrenMap created with", Object.keys(childrenMap).length, "entries");
+    // console.log("Task childrenMap created with", Object.keys(childrenMap).length, "entries");
     }
 
     function getCurrentModel() {
@@ -283,10 +283,10 @@ Item {
                                     parentId: currentParentId
                                 });
                                 currentParentId = model.id_val;
-                            } else {
-                               // console.log("Selecting task:", model.taskName);
-                                // taskNavigator.taskSelected(model.id_val, model.name);
-                            }
+                            } else
+                            // console.log("Selecting task:", model.taskName);
+                            // taskNavigator.taskSelected(model.id_val, model.name);
+                            {}
                         }
                     }
                 }

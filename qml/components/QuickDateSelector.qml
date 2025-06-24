@@ -69,7 +69,7 @@ LomiriShape {
         id: quickPicker
         mode: datepicker_tb.mode  // propagate mode
         onDateSelected: d => {
-           // console.log("User picked:", d); // e.g. "09-06-2025"
+            // console.log("User picked:", d); // e.g. "09-06-2025"
 
             var parts = d.split("-");
             var formatted = parts[2] + "-" + parts[1] + "-" + parts[0];  // yyyy-MM-dd

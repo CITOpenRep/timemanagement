@@ -171,7 +171,7 @@ ListItem {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
-                                  //  console.log("Showing Task Details");
+                                    //  console.log("Showing Task Details");
                                     viewRequested(localId);
                                 }
                             }

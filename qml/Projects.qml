@@ -55,7 +55,7 @@ Page {
                 visible: !isReadOnly
                 onTriggered: {
                     const ids = workItem.getAllSelectedDbRecordIds();
-                  //  console.log("Account DB ID:", ids.accountDbId);
+                    //  console.log("Account DB ID:", ids.accountDbId);
 
                     // isReadOnly = !isReadOnly
                     var project_data = {
@@ -70,7 +70,7 @@ Page {
                         'color': project_color,
                         'status': "updated"
                     };
-                  //  console.log(JSON.stringify(project_data, null, 4));
+                    //  console.log(JSON.stringify(project_data, null, 4));
                     var recordid = 0; //project creation
                     var response = Project.createUpdateProject(project_data, recordid);
                     if (response) {
@@ -301,7 +301,7 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(100)
-       // onClosed: console.log("Notification dismissed")
+        // onClosed: console.log("Notification dismissed")
     }
 
     Component.onCompleted: {

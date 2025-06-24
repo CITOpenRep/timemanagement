@@ -243,7 +243,7 @@ Page {
                                                     if (path === "") {
                                                         console.warn("DB not found.");
                                                     } else {
-                                                     //   console.log("Actual DB path resolved by Python:", path);
+                                                        //   console.log("Actual DB path resolved by Python:", path);
                                                         python.call("backend.start_sync_in_background", [path, model.id], function (result) {
                                                             if (result) {
                                                                 console.log("Background sync started...");
