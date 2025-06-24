@@ -29,13 +29,33 @@ ListItem {
         return text;
     }
 
+    clip: true
     trailingActions: ListItemActions {
         actions: [
             Action {
                 iconName: "tick"
+                // color: "#4CAF50"
                 onTriggered: markAsDone(root.account_id, root.odoo_record_id)
             }
         ]
+
+        delegate: Item {
+            width: units.gu(6)
+            height: parent.height
+
+            Icon {
+                anchors.centerIn: parent
+                name: action.iconName
+                width: units.gu(2)
+                height: units.gu(2)
+                color: "#4CAF50" // Your desired color
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: action.trigger()
+            }
+        }
     }
 
     Rectangle {
