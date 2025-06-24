@@ -13,7 +13,7 @@ function queryActivityData(type, recordid) {
         activityListModel.clear();
         if(workpersonaSwitchState) {
             if (!recordid){
-                console.log("Gets all Activity records!");
+              //  console.log("Gets all Activity records!");
                 var existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL order by last_modified desc')
                 if (type == 'pending') {
                     existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state != "done" order by last_modified desc')
@@ -21,12 +21,12 @@ function queryActivityData(type, recordid) {
                     existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state = "done" order by last_modified desc')
                 }
                 else{
-                    console.log("Getting all types of Activity");
+                  //  console.log("Getting all types of Activity");
                     existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL order by last_modified desc')
                 }
             }
             else{
-                console.log("Gets one Activity record!");
+              //  console.log("Gets one Activity record!");
                 var existing_activities = []
                 if (type == 'pending') {
                     existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state != "done" AND id = ? order by last_modified desc', [recordid])
@@ -34,7 +34,7 @@ function queryActivityData(type, recordid) {
                     existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state = "done" AND id = ? order by last_modified desc', [recordid])
                 }
                 else{
-                    console.log("Getting all types of Activity");
+                  //  console.log("Getting all types of Activity");
                     existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND id = ? order by last_modified desc', [recordid])
                     var account_id = tx.executeSql('SELECT name FROM users WHERE id = ?',[existing_activities.rows.item(0).account_id]);
                     var accountName = account_id.rows.length > 0 ? account_id.rows.item(0).name || "" : "";
@@ -234,7 +234,7 @@ function markAsDone(accountId, id) {
             WHERE account_id = ? AND id = ?
             `;
             tx.executeSql(query, [accountId, id]);
-            console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
+         //   console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
         });
 
     } catch (e) {

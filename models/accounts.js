@@ -65,7 +65,7 @@ function setDefaultAccount(id) {
             // Set the selected account to is_default = 1
             tx.executeSql("UPDATE users SET is_default = 1 WHERE id = ?", [id]);
 
-            console.log("Default account set to ID:", id);
+          //  console.log("Default account set to ID:", id);
         });
 
     } catch (e) {
@@ -390,7 +390,7 @@ function getOdooModelId(accountId, technicalName) {
 
             if (rs.rows.length > 0) {
                 odooRecordId = rs.rows.item(0).odoo_record_id;
-                console.log("✅ Found Odoo Model ID:", odooRecordId);
+              //  console.log("✅ Found Odoo Model ID:", odooRecordId);
             } else {
                 console.warn("⚠ No matching ir.model found for:", technicalName);
             }

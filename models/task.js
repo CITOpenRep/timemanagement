@@ -54,7 +54,7 @@ function markTaskAsDeleted(taskId) {
         db.transaction(function (tx) {
             tx.executeSql("UPDATE project_task_app SET status = 'deleted', last_modified = datetime('now') WHERE id = ?", [taskId]);
         });
-        console.log(" Task marked as deleted: ID " + taskId);
+     //   console.log(" Task marked as deleted: ID " + taskId);
         return {
             success: true,
             message: "Task marked as deleted."
