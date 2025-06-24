@@ -275,6 +275,8 @@ Page {
             default:
                 workItem.applyDeferredSelection(instanceId, -1, -1, user_id);
             }
+            //update due date
+            date_widget.setSelectedDate(currentActivity.due_date);
         } else {
             console.log("Creatign a new activity");
             let account = Accounts.getAccountsList();
