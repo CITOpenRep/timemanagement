@@ -130,7 +130,7 @@ function getTimeSheetDetails(record_id) {
  */
 function createOrSaveTimesheet(data) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-    var timestamp = Utils.getFormattedTimestamp();
+    var timestamp = Utils.getFormattedTimestampUTC();
     var result = { success: false, error: "" };
 
     try {

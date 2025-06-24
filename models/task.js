@@ -10,7 +10,7 @@ function validId(value) {
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        var timestamp = Utils.getFormattedTimestamp();
+        var timestamp =  Utils.getFormattedTimestampUTC();
         db.transaction(function (tx) {
             if (data.record_id) {
                 // UPDATE

@@ -307,7 +307,7 @@ function saveActivityData(data) {
                               data.project_id,
                               data.link_id,
                               data.state,
-                              Utils.getFormattedTimestamp(),
+                              Utils.getFormattedTimestampUTC(),
                               data.status
                           ]
                           );

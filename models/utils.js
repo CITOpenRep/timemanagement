@@ -93,7 +93,6 @@ function accountlistDataGet() {
 
 }
 
-
 function timesheetData(data) {
     var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     db.transaction(function (tx) {
@@ -126,38 +125,6 @@ function getAccountIdByName(accountName) {
 
     return accountId;
 }
-
-function formatOdooDateTime(dateObj) {
-    function pad(n) {
-        return n < 10 ? '0' + n : n;
-    }
-
-    return dateObj.getFullYear() + "-" +
-            pad(dateObj.getMonth() + 1) + "-" +
-            pad(dateObj.getDate()) + " " +
-            pad(dateObj.getHours()) + ":" +
-            pad(dateObj.getMinutes()) + ":" +
-            pad(dateObj.getSeconds());
-}
-
-function getCurrentOdooTimestamp() {
-    const now = new Date();
-
-    function pad(n) {
-        return n < 10 ? '0' + n : n;
-    }
-
-    return now.getFullYear() + "-" +
-            pad(now.getMonth() + 1) + "-" +
-            pad(now.getDate()) + " " +
-            pad(now.getHours()) + ":" +
-            pad(now.getMinutes()) + ":" +
-            pad(now.getSeconds());
-}
-
-
-
-
 
 function updateOdooUsers(model) {
     const db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -196,7 +163,6 @@ function fetch_subtasks(instance_id, parent_task_id) {
 
     return subtaskList;
 }
-
 
 function validateAndCleanOdooURL(url) {
     // Strip trailing slash
@@ -253,8 +219,6 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
     xhr.send("{}");
 }
 
-
-
 function getColorFromOdooIndex(index) {
     //standard from odoo pallet
     const colorMap = [
@@ -265,10 +229,10 @@ function getColorFromOdooIndex(index) {
     return colorMap[index % colorMap.length];
 }
 
-
 function getToday() {
     return new Date().toISOString().slice(0, 10);
 }
+
 function getNextWeekRange() {
     const now = new Date();
     const day = now.getDay();
@@ -297,7 +261,6 @@ function getNextMonthRange() {
     };
 }
 
-
 function truncateText(text, maxLength) {
     if (text.length > maxLength) {
         return text.slice(0, maxLength) + "...";
@@ -305,17 +268,17 @@ function truncateText(text, maxLength) {
     return text;
 }
 
-function getFormattedTimestamp() {
-    var now = new Date();
-    var year = now.getFullYear();
-    var month = String(now.getMonth() + 1).padStart(2, '0');
-    var day = String(now.getDate()).padStart(2, '0');
-    var hours = String(now.getHours()).padStart(2, '0');
-    var minutes = String(now.getMinutes()).padStart(2, '0');
-    var seconds = String(now.getSeconds()).padStart(2, '0');
+function getFormattedTimestampUTC() {
+    console.log("Local Time:", new Date().toLocaleString());
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(now.getUTCDate()).padStart(2, '0');
+    const hours = String(now.getUTCHours()).padStart(2, '0');
+    const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(now.getUTCSeconds()).padStart(2, '0');
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
-
 
 /* Name: convertFloatToTime
 * This function will return HH:MM format time based on float value
@@ -365,7 +328,6 @@ function getTimeStatusInText(endDateString) {
         return "Due today";
     return days + " days";
 }
-
 
 function extractDate(datetimeStr) {
   // datetimeStr example: "2025-06-23T13:53:42.834"
