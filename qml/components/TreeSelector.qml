@@ -86,7 +86,7 @@ Item {
                     if (treeModel.count > 0) {
                         popup.open();
                     } else {
-                        console.log("No items to select");
+                        //console.log("No items to select");
                     }
                 }
             }

@@ -42,7 +42,7 @@ Rectangle {
      */
     function applyDeferredSelection(accountId, projectId, taskId, assigneeId) {
         if (accountSelector.model.count === 0) {
-            console.log("⏳ Deferring apply until account model is ready");
+           // console.log("⏳ Deferring apply until account model is ready");
             deferredApplyTimer.deferredPayload = {
                 accountId: accountId,
                 projectId: projectId,
@@ -69,7 +69,7 @@ Rectangle {
      * @param {int} [selectedAssigneeId] - Optional assignee ID (local or Odoo) to preselect.
      */
     function reloadAssigneeSelector(accountId, selectedAssigneeId) {
-        console.log("Loading Assignees for account " + accountId);
+      //  console.log("Loading Assignees for account " + accountId);
 
         let rawAssignees = Accounts.getUsers(accountId);  // expects: [{id, name, odoo_record_id}]
         let flatModel = [];
@@ -119,7 +119,7 @@ Rectangle {
      * @param {int} [selectedProjectId] - Optional project ID (local or Odoo) to preselect.
      */
     function reloadProjectSelector(accountId, selectedProjectId) {
-        console.log("->-> Loading Projects for account " + accountId);
+       // console.log("->-> Loading Projects for account " + accountId);
 
         let rawProjects = Project.getProjectsForAccount(accountId);
         let flatModel = [];
@@ -170,7 +170,7 @@ Rectangle {
      * @param {int} [selectedTaskId] - Optional task ID (local or Odoo) to preselect.
      */
     function reloadTaskSelector(accountId, selectedTaskId) {
-        console.log("Loading Tasks for account " + accountId);
+       // console.log("Loading Tasks for account " + accountId);
 
         let rawTasks = Task.getTasksForAccount(accountId);
         let flatModel = [];
@@ -249,7 +249,7 @@ Rectangle {
                     enabled: !readOnly
                     editable: false
                     onAccountSelected: {
-                        console.log("[WorkItemSelector] Account selected:", accountSelector.selectedInstanceId);
+                       // console.log("[WorkItemSelector] Account selected:", accountSelector.selectedInstanceId);
                         reloadProjectSelector(accountSelector.selectedInstanceId);
                         reloadTaskSelector(accountSelector.selectedInstanceId);
                         accountChanged(accountSelector.selectedInstanceId);
@@ -313,11 +313,11 @@ Rectangle {
 
             onTriggered: {
                 if (!deferredPayload || accountSelector.model.count === 0) {
-                    console.log("Timer: Waiting for accountSelector model to load...");
+                    //console.log("Timer: Waiting for accountSelector model to load...");
                     return;
                 }
 
-                console.log("Timer: Retrying account selection and applying deferred project/task IDs");
+               // console.log("Timer: Retrying account selection and applying deferred project/task IDs");
                 deferredApplyTimer.stop();
 
                 let p = deferredApplyTimer.deferredPayload;

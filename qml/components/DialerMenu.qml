@@ -58,7 +58,7 @@ Item {
         //fontSize: units.gu(3)
 
         onClicked: {
-            console.log("FAB Click Detected");
+           // console.log("FAB Click Detected");
             expanded = !expanded;
         }
     }
