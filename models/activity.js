@@ -1,6 +1,6 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
-
+.import "utils.js" as Utils
 
 function queryActivityData(type, recordid) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -150,6 +150,7 @@ function getAllActivities() {
             var query = `
             SELECT *
             FROM mail_activity_app
+            WHERE state != 'done'
             ORDER BY due_date ASC
             `;
 
@@ -167,7 +168,7 @@ function getAllActivities() {
     return activityList;
 }
 
-function getActivityByOdooId(odoo_record_id, account_id) {
+function getActivityById(odoo_record_id, account_id) {
     var activity = null;
 
     try {
@@ -175,10 +176,10 @@ function getActivityByOdooId(odoo_record_id, account_id) {
 
         db.transaction(function (tx) {
             var query = `
-                SELECT *
-                FROM mail_activity_app
-                WHERE odoo_record_id = ? AND account_id = ?
-                LIMIT 1
+            SELECT *
+            FROM mail_activity_app
+            WHERE id = ? AND account_id = ?
+            LIMIT 1
             `;
 
             var rs = tx.executeSql(query, [odoo_record_id, account_id]);
@@ -222,6 +223,26 @@ function getActivityTypeName(odooRecordId) {
     return typeName;
 }
 
+function markAsDone(accountId, id) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+            UPDATE mail_activity_app
+            SET state = "done", status = "updated"
+            WHERE account_id = ? AND id = ?
+            `;
+            tx.executeSql(query, [accountId, id]);
+            console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
+        });
+
+    } catch (e) {
+        DBCommon.logException("markAsDone", e);
+    }
+}
+
+
 function getActivityIconForType(typeName) {
     if (!typeName) return "activity_others.png";
 
@@ -236,5 +257,65 @@ function getActivityIconForType(typeName) {
     }
     else {
         return "activity_others.png";
+    }
+}
+
+function getActivityTypesForAccount(account_id) {
+    var activityTypes = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+            SELECT *
+            FROM mail_activity_type_app
+            WHERE account_id = ? AND (status IS NULL OR status != 'deleted')`;
+
+            var rs = tx.executeSql(query, [account_id]);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                activityTypes.push(DBCommon.rowToObject(rs.rows.item(i)));
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getAllActivityType", e);
+    }
+
+    return activityTypes;
+}
+
+function saveActivityData(data) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function(tx) {
+            tx.executeSql('INSERT INTO mail_activity_app ( \
+            account_id, activity_type_id, summary, user_id, due_date, \
+            notes, resModel, resId, task_id, project_id, link_id, state, last_modified,status) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)',
+                          [
+                              data.updatedAccount,
+                              data.updatedActivity,
+                              data.updatedSummary,
+                              data.updatedUserId,
+                              Utils.extractDate(data.updatedDate),
+                              data.updatedNote,
+                              data.resModel,
+                              data.resId,
+                              data.task_id,
+                              data.project_id,
+                              data.link_id,
+                              data.state,
+                              Utils.getFormattedTimestamp(),
+                              data.status
+                          ]
+                          );
+
+        });
+        return { success: true };
+    }catch (e) {
+        console.error("Database operation failed:", e.message);
+        return { success: false, error: e.message };
     }
 }

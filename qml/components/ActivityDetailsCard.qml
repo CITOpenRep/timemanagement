@@ -20,12 +20,42 @@ ListItem {
     property var account_id
 
     signal cardClicked(int accountid, int recordid)
+    signal markAsDone(int accountid, int recordId)
 
     function truncateText(text, maxLength) {
         if (text.length > maxLength) {
             return text.slice(0, maxLength) + '...';
         }
         return text;
+    }
+
+    clip: true
+    trailingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "tick"
+                // color: "#4CAF50"
+                onTriggered: markAsDone(root.account_id, root.odoo_record_id)
+            }
+        ]
+
+        delegate: Item {
+            width: units.gu(6)
+            height: parent.height
+
+            Icon {
+                anchors.centerIn: parent
+                name: action.iconName
+                width: units.gu(2)
+                height: units.gu(2)
+                color: "#4CAF50" // Your desired color
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: action.trigger()
+            }
+        }
     }
 
     Rectangle {

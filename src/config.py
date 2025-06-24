@@ -26,6 +26,18 @@ import os
 
 
 def initialize_app_settings_db(db_path="app_settings.db"):
+    """
+    Initialize the application settings database by checking if it exists.
+
+    Args:
+        db_path (str): Path to the SQLite database file, defaults to "app_settings.db"
+
+    Note:
+        Currently only checks for database existence and prints status messages.
+        Does not create tables or perform actual initialization.
+        If database doesn't exist, prints creation message.
+        If database exists, prints confirmation message.
+    """
     if not os.path.exists(db_path):
         print(f"Creating new database at {db_path}")
     else:
@@ -33,6 +45,25 @@ def initialize_app_settings_db(db_path="app_settings.db"):
 
 
 def get_all_accounts(settings_db_path):
+    """
+    Retrieve all user accounts from the settings database.
+
+    Args:
+        settings_db_path (str): Path to the settings SQLite database file
+
+    Returns:
+        list: List of dictionaries containing account information with keys:
+            - id: Account ID
+            - name: Account name
+            - link: Odoo server URL
+            - database: Database name
+            - username: Username for authentication
+            - api_key: API key for authentication
+
+    Note:
+        Queries the 'users' table and returns all accounts as a list of dictionaries.
+        Each dictionary contains all account fields for easy access.
+    """
     conn = sqlite3.connect(settings_db_path)
     cur = conn.cursor()
     cur.execute("SELECT id, name, link, database, username, api_key FROM users")

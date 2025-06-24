@@ -23,6 +23,8 @@ Item {
     function buildTreeModel() {
         treeModel.clear();
 
+        var totalCount = 0;  // Track how many items are added
+
         var roots = dataList.filter(function (p) {
             return !p.parent_id;
         });
@@ -39,6 +41,7 @@ Item {
                         name: child.name,
                         parent_id: parent.id
                     });
+                    totalCount++;
                     addChildren(child, level + 1);
                 }
             });
@@ -51,8 +54,11 @@ Item {
                 name: root.name,
                 parent_id: null
             });
+            totalCount++;
             addChildren(root, 1);
         });
+
+    //console.log("TreeModel built with " + totalCount + " entries");
     }
 
     Column {

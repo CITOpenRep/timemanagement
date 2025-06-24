@@ -56,28 +56,107 @@ Page {
                         "isReadOnly": false
                     });
                 }
-            }/*,
+            },
             Action {
                 iconName: "search"
                 text: "Search"
-                onTriggered: nameFilter.visible = !nameFilter.visible
-            }*/
-
-
+                onTriggered: {
+                    console.log("Search clicked");
+                    taskListHeader.toggleSearchVisibility();
+                }
+            }
         ]
     }
     ListModel {
         id: taskModel
     }
 
-    LomiriShape {
+    // Add properties to track filter and search state
+    property string currentFilter: "today"
+    property string currentSearchQuery: ""
+
+    // Function to get tasks based on current filter and search
+    function getTaskList(filter, searchQuery) {
+        taskModel.clear();
+
+        try {
+            var allTasks;
+            if (filter || searchQuery) {
+                allTasks = Task.getFilteredTasks(filter, searchQuery);
+            } else {
+                allTasks = Task.getAllTasks();
+            }
+
+            for (var i = 0; i < allTasks.length; i++) {
+                var task = allTasks[i];
+                var projectName = ""; // You can add project lookup here if needed
+
+                taskModel.append({
+                    id: task.id,
+                    name: task.name,
+                    description: task.description,
+                    deadline: task.deadline,
+                    start_date: task.start_date,
+                    end_date: task.end_date,
+                    status: task.status,
+                    initial_planned_hours: task.initial_planned_hours,
+                    favorites: task.favorites,
+                    project_name: projectName,
+                    account_id: task.account_id,
+                    project_id: task.project_id,
+                    user_id: task.user_id,
+                    odoo_record_id: task.odoo_record_id
+                });
+            }
+        } catch (e) {
+            console.error("❌ Error in getTaskList():", e);
+        }
+    }
+
+    // Add the ListHeader component outside LomiriShape
+    ListHeader {
+        id: taskListHeader
         anchors.top: taskheader.bottom
-        height: parent.height - taskheader.height
+        anchors.left: parent.left
+        anchors.right: parent.right
+
+        label1: "Today"
+        label2: "This Week"
+        label3: "Next Week"
+        label4: "All"
+        label5: "Completed"
+
+        filter1: "today"
+        filter2: "this_week"
+        filter3: "next_week"
+        filter4: "all"
+        filter5: "completed"
+
+        showSearchBox: false
+        currentFilter: task.currentFilter
+
+        onFilterSelected: {
+            console.log("Filter selected:", filterKey);
+            task.currentFilter = filterKey;
+            tasklist.applyFilter(filterKey);
+        }
+
+        onCustomSearch: {
+            console.log("Search query:", query);
+            task.currentSearchQuery = query;
+            tasklist.applySearch(query);
+        }
+    }
+
+    LomiriShape {
+        anchors.top: taskListHeader.bottom
+        height: parent.height - taskheader.height - taskListHeader.height
         width: parent.width
 
         TaskList {
             id: tasklist
             anchors.fill: parent
+
             onTaskEditRequested: {
                 console.log("Edit Requested");
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
@@ -143,10 +222,12 @@ Page {
     }
     onVisibleChanged: {
         if (visible) {
-            tasklist.refresh();
+            // Apply the current filter when page becomes visible
+            tasklist.applyFilter(currentFilter);
         }
     }
     Component.onCompleted: {
-        tasklist.refresh();
+        // Apply default "today" filter on completion
+        tasklist.applyFilter(currentFilter);
     }
 }

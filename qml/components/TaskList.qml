@@ -38,15 +38,108 @@ Item {
     property var childrenMap: ({})
     property bool childrenMapReady: false
 
+    // Add properties for filtering and searching
+    property string currentFilter: "today"  // Set default filter to "today"
+    property string currentSearchQuery: ""
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
 
+    // Add the applyFilter method
+    function applyFilter(filterKey) {
+        console.log("TaskList: Applying filter:", filterKey);
+        currentFilter = filterKey;
+        refreshWithFilter();
+    }
+
+    // Add the applySearch method
+    function applySearch(searchQuery) {
+        console.log("TaskList: Applying search:", searchQuery);
+        currentSearchQuery = searchQuery;
+        refreshWithFilter();
+    }
+
+    // New function to refresh with filter applied
+    function refreshWithFilter() {
+        if (currentFilter && currentFilter !== "" || currentSearchQuery) {
+            var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
+            updateDisplayedTasks(filteredTasks);
+        } else {
+            populateTaskChildrenMap(); // Use original function when no filters
+        }
+    }
+
+    // New function to update displayed tasks with filtered data
+    function updateDisplayedTasks(tasks) {
+        childrenMap = {};
+        childrenMapReady = false;
+
+        if (tasks.length === 0) {
+            childrenMapReady = true;
+            return;
+        }
+
+        var tempMap = {};
+
+        tasks.forEach(function (row) {
+            var odooId = row.odoo_record_id;
+            var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
+
+            var projectName = Project.getProjectName(row.project_id, row.account_id);
+
+            var item = {
+                id_val: odooId,
+                local_id: row.id,
+                account_id: row.account_id,
+                project: projectName,
+                parent_id: parentOdooId,
+                name: row.name || "Untitled",
+                taskName: row.name || "Untitled",
+                recordId: odooId,
+                allocatedHours: row.initial_planned_hours ? String(row.initial_planned_hours) : "0",
+                startDate: row.start_date || "",
+                endDate: row.end_date || "",
+                deadline: row.deadline || "",
+                description: row.description || "",
+                isFavorite: row.favorites === 1,
+                hasChildren: false
+            };
+
+            if (!tempMap[parentOdooId])
+                tempMap[parentOdooId] = [];
+            tempMap[parentOdooId].push(item);
+        });
+
+        // Mark children
+        for (var parent in tempMap) {
+            tempMap[parent].forEach(function (child) {
+                var children = tempMap[child.id_val];
+                child.hasChildren = !!children;
+                child.childCount = children ? children.length : 0;
+            });
+        }
+
+        // Create QML ListModels
+        for (var key in tempMap) {
+            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
+            tempMap[key].forEach(function (entry) {
+                model.append(entry);
+            });
+            childrenMap[key] = model;
+        }
+
+        childrenMapReady = true;
+    //console.log("Task childrenMap created with", Object.keys(childrenMap).length, "entries");
+    }
+
     function refresh() {
-        //console.log("Refreshing taskNavigator...");
+        console.log("Refreshing taskNavigator...");
         navigationStackModel.clear();
         currentParentId = -1;
-        populateTaskChildrenMap(true);
+        currentFilter = "today";  // Reset to default filter
+        currentSearchQuery = "";
+        refreshWithFilter();  // Use refreshWithFilter to apply the default filter
     }
 
     function populateTaskChildrenMap() {
@@ -110,7 +203,7 @@ Item {
         }
 
         childrenMapReady = true;
-    //console.log("Task childrenMap created with", Object.keys(childrenMap).length, "entries");
+        console.log("Task childrenMap created with", Object.keys(childrenMap).length, "entries");
     }
 
     function getCurrentModel() {
@@ -219,6 +312,6 @@ Item {
     }
 
     Component.onCompleted: {
-        populateTaskChildrenMap(true);
+        refreshWithFilter();  // Use refreshWithFilter to apply default "today" filter
     }
 }

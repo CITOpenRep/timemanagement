@@ -2,7 +2,7 @@
 
 .pragma library
 
-var version="0.1(Alpha Draft)"
+var version="1.0.3 (Alpha Draft)"
 
 var FontSizes = {
     ListHeading:1.7,

@@ -83,7 +83,7 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        title: "Time Mangager"
+        title: "Time Management"
         visible: true
 
         NotificationBell {

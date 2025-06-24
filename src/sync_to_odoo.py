@@ -35,6 +35,21 @@ log = logging.getLogger("odoo_sync")
 
 
 def load_field_mapping(model_name, config_path="field_config.json"):
+    """
+    Load field mapping configuration for a specific Odoo model.
+    
+    Args:
+        model_name (str): Name of the Odoo model to load mapping for
+        config_path (str): Path to the field configuration JSON file
+        
+    Returns:
+        dict: Field mapping dictionary where keys are Odoo field names 
+              and values are SQLite field names. Returns empty dict on error.
+              
+    Note:
+        Reads from JSON configuration file in the same directory as the script.
+        Lists directory contents on error for debugging purposes.
+    """
     try:
         current_dir = Path(__file__).parent.resolve()
         full_path = current_dir / config_path
@@ -60,6 +75,24 @@ def get_local_records(
     db_path="app_settings.db",
     config_path="field_config.json",
 ):
+    """
+    Retrieve local records from SQLite database for a specific table and account.
+    
+    Args:
+        table_name (str): Name of the SQLite table to query
+        model_name (str): Name of the Odoo model (for field mapping)
+        account_id: Account ID to filter records by
+        db_path (str): Path to SQLite database file
+        config_path (str): Path to field configuration JSON file
+        
+    Returns:
+        list: List of records (dictionaries) from the local SQLite table
+               Returns empty list on error
+               
+    Note:
+        Joins the 'id' field, mapped fields from field_config, 'status', and 'odoo_record_id'.
+        Filters records by account_id.
+    """
     field_map = load_field_mapping(model_name, config_path)
     sqlite_fields = list(field_map.values())
 
@@ -85,6 +118,21 @@ def get_local_records(
 
 
 def fetch_odoo_field_info(client, model_name):
+    """
+    Fetch field information from an Odoo model.
+    
+    Args:
+        client: OdooClient instance for making API calls
+        model_name (str): Name of the Odoo model to fetch field info for
+        
+    Returns:
+        dict: Dictionary containing field information with field types.
+              Returns empty dict on error.
+              
+    Note:
+        Uses the fields_get method to retrieve field attributes,
+        specifically the 'type' attribute for each field.
+    """
     try:
         return client.call(model_name, "fields_get", [], {"attributes": ["type"]})
     except Exception as e:
@@ -93,6 +141,24 @@ def fetch_odoo_field_info(client, model_name):
 
 
 def parse_local_value(field_type, value):
+    """
+    Parse and convert local SQLite values to Odoo-compatible format.
+    
+    Args:
+        field_type (str): The Odoo field type (e.g., 'many2one', 'many2many', 'datetime')
+        value: The raw value from SQLite database
+        
+    Returns:
+        Converted value appropriate for the Odoo field type.
+        - many2one: Returns int or False
+        - many2many: Returns list in format [(6, 0, [ids])]
+        - datetime/date: Returns sanitized datetime string
+        - other: Returns original value
+        
+    Note:
+        Handles various input formats for many2many fields including
+        comma-separated strings, lists, and single integers.
+    """
     if field_type == "many2one":
         return int(value) if value else False
     elif field_type == "many2many":
@@ -115,6 +181,26 @@ def parse_local_value(field_type, value):
 
 
 def should_push_field(local_val, remote_val, local_ts, remote_ts):
+    """
+    Determine if a field should be synchronized based on value and timestamp comparison.
+    
+    Args:
+        local_val: Value from local SQLite database
+        remote_val: Value from remote Odoo instance
+        local_ts (str): Local record's last modified timestamp
+        remote_ts (str): Remote record's write_date timestamp
+        
+    Returns:
+        bool: True if the field should be pushed to Odoo, False otherwise
+        
+    Logic:
+        - Skip if values are identical
+        - Push if remote timestamp is missing
+        - Skip if local timestamp is missing
+        - Handle None vs False comparison specially
+        - Compare timestamps to determine which is newer
+        - Default to pushing on timestamp parsing errors
+    """
     log.debug(
         f"[COMPARE] Value comparison: local='{local_val}' vs remote='{remote_val}' | "
         f"Timestamps: local_ts='{local_ts}', remote_ts='{remote_ts}'"
@@ -158,6 +244,24 @@ def should_push_field(local_val, remote_val, local_ts, remote_ts):
 
 
 def construct_changes(field_map, field_info, record, existing_data):
+    """
+    Construct a dictionary of changes to be applied to an Odoo record.
+    
+    Args:
+        field_map (dict): Mapping of Odoo field names to SQLite field names
+        field_info (dict): Field type information from Odoo
+        record (dict): Local record data from SQLite
+        existing_data (dict): Existing record data from Odoo
+        
+    Returns:
+        dict: Dictionary of field changes where keys are Odoo field names
+              and values are the new values to be set
+              
+    Note:
+        Compares each mapped field between local and remote data,
+        using timestamps to determine if changes should be applied.
+        Skips fields not found in field_info or with missing sqlite_field mapping.
+    """
     changes = {}
     remote_write_date = existing_data.get("write_date")
     local_last_modified = record.get("last_modified")
@@ -195,6 +299,27 @@ def construct_changes(field_map, field_info, record, existing_data):
 
 
 def push_record_to_odoo(client, model_name, record, config_path="field_config.json"):
+    """
+    Push a single record from SQLite to Odoo, either creating or updating.
+    
+    Args:
+        client: OdooClient instance for making API calls
+        model_name (str): Name of the Odoo model to push to
+        record (dict): Record data from SQLite including metadata
+        config_path (str): Path to field configuration JSON file
+        
+    Returns:
+        int or None: Odoo record ID if successful, None if failed
+        
+    Behavior:
+        - If record has odoo_record_id: Updates existing Odoo record
+        - If no odoo_record_id: Creates new Odoo record
+        - Updates local SQLite record with new status and Odoo ID
+        - Skips fields not found in Odoo model or marked as SKIP_FIELDS
+        
+    Note:
+        Automatically resets the record status to empty string after successful sync.
+    """
     field_map = load_field_mapping(model_name, config_path)
     field_info = fetch_odoo_field_info(client, model_name)
 
@@ -206,6 +331,25 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
 
     if record.get("odoo_record_id"):
         try:
+            # XXXX Special Case: Mark mail.activity as done XXXXX
+            if model_name == "mail.activity" and record.get("state") == "done":
+                try:
+                    client.call("mail.activity", "action_done", [[record["odoo_record_id"]]])
+                    log.debug(f"[SYNC] Activity {record['odoo_record_id']} marked as done using action_done.")
+
+                    # ✅ Optional: Remove the record from local SQLite after marking done
+                    safe_sql_execute(
+                        record["db_path"],
+                        f"DELETE FROM {record['table_name']} WHERE id = ? AND account_id = ?",
+                        (record["id"], record["account_id"])
+                    )
+                    log.debug(f"[CLEANUP] Deleted local Activity record {record['id']} from {record['table_name']} after marking as done.")
+
+                    return record["odoo_record_id"]
+                except Exception as e:
+                    log.error(f"[ERROR] Failed to mark activity as done using action_done: {e}")
+                    return None
+
             valid_fields = [f for f in field_map.keys() if f in field_info]
             if "write_date" in field_info:
                 valid_fields.append("write_date")
@@ -280,6 +424,16 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             return None
 
 def normalized_status(record):
+    """
+    Normalize a record's status field for consistent comparison.
+    
+    Args:
+        record (dict): Record dictionary containing status field
+        
+    Returns:
+        str: Normalized status string (stripped and lowercase)
+             Returns empty string if status is None or missing
+    """
     return (record.get("status") or "").strip().lower()
 
 def sync_to_odoo(
@@ -290,6 +444,28 @@ def sync_to_odoo(
     db_path="app_settings.db",
     config_path="field_config.json",
 ):
+    """
+    Synchronize records from SQLite to Odoo for a specific model and account.
+    
+    Args:
+        client: OdooClient instance for making API calls
+        model_name (str): Name of the Odoo model to sync to
+        table_name (str): Name of the SQLite table to sync from
+        account_id: Account ID to filter records by
+        db_path (str): Path to SQLite database file
+        config_path (str): Path to field configuration JSON file
+        
+    Behavior:
+        - Processes records with status 'updated' for creation/modification
+        - Processes records with status 'deleted' for deletion
+        - Handles both local and remote deletions
+        - Updates record status after successful operations
+        - Logs comprehensive sync statistics
+        
+    Note:
+        Records marked as 'deleted' are removed from both Odoo and local SQLite.
+        Handles cases where Odoo records are already deleted remotely.
+    """
     all_records = get_local_records(
         table_name, model_name, account_id, db_path, config_path
     )
@@ -322,7 +498,7 @@ def sync_to_odoo(
                 log.error(f"[ERROR] Failed to delete {model_name} id={record.get('odoo_record_id')}: {e}")
                 return  # Exit early — don’t delete locally
 
-        # ✅ Always delete locally if we're here
+        # Always delete locally if we're here
         safe_sql_execute(
             db_path,
             f"DELETE FROM {table_name} WHERE id = ?",
@@ -354,6 +530,7 @@ def sync_to_odoo(
 def sync_all_to_odoo(
     client, account_id, db_path="app_settings.db", config_path="field_config.json"
 ):
+
     """ We do not support Project Creation , Deletion or Updation Thats why disabled this.
     models = {
         "project.project": "project_project_app",
@@ -364,11 +541,11 @@ def sync_all_to_odoo(
         "res.users": "res_users_app",
     }
     """
-
     models = {
         "project.project": "project_project_app",
         "project.task": "project_task_app",
         "account.analytic.line": "account_analytic_line_app",
+        "mail.activity": "mail_activity_app",
     }
 
 

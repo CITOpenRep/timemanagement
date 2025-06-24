@@ -45,74 +45,73 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        ActionBar {
-            numberOfSlots: 1
-            anchors.right: parent.right
-            //    enable: true
-            /*actions: [
-                Action {
-                    iconName: "add"
-                    text: "New"
-                    onTriggered: {
-                        console.log("Create Activity clicked");
-                        apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
-                            "recordid": recordid,
-                            "isReadOnly": false
-                        });
-                    }
+
+        trailingActionBar.actions: [
+            Action {
+                iconName: "search"
+                text: "Search"
+                onTriggered: {
+                    console.log("Search clicked");
+                    listheader.toggleSearchVisibility();
                 }
-            ]*/
-        }
+            },
+            Action {
+                iconName: "add"
+                text: "New"
+                onTriggered: {
+                    console.log("Create Activity clicked");
+                    apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                        // "recordid": recordid,
+                        "isReadOnly": false
+                    });
+                }
+            }
+        ]
     }
 
-    function get_activity_list(filter, searchQuery) {
+    function shouldIncludeItem(item) {
+        const filter = activity.currentFilter || "all";
+        const searchQuery = activity.currentSearchQuery || "";
+        const currentDate = new Date();
+
+        const dueDateOk = (filter === "all") || passesDateFilter(item.due_date, filter, currentDate);
+        const searchOk = (!searchQuery) || passesSearchFilter(item, searchQuery);
+
+        return dueDateOk && searchOk;
+    }
+
+    function get_activity_list() {
         activityListModel.clear();
 
-        // Default to "all" if no filter provided
-        if (!filter)
-            filter = "all";
-
         try {
-            var allActivities = Activity.getAllActivities();
-            var currentDate = new Date();
+            const allActivities = Activity.getAllActivities();
 
-            for (var i = 0; i < allActivities.length; i++) {
+            for (let i = 0; i < allActivities.length; i++) {
                 var item = allActivities[i];
+                if (shouldIncludeItem(item)) {
+                    var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
+                    var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
+                    var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";  // Assuming you have getTaskDetails()
+                    var user = Accounts.getUserNameByOdooId(item.user_id);
 
-                // Apply date filtering
-                if (filter !== "all" && !passesDateFilter(item.due_date, filter, currentDate)) {
-                    continue;
+                    activityListModel.append({
+                        id: item.id,
+                        summary: item.summary,
+                        due_date: item.due_date,
+                        notes: item.notes,
+                        activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
+                        state: item.state,
+                        task_id: item.task_id,
+                        task_name: taskName,
+                        project_name: projectName,
+                        odoo_record_id: item.odoo_record_id || 0,
+                        user: user,
+                        account_id: item.account_id,
+                        resId: item.resId,
+                        resModel: item.resModel,
+                        last_modified: item.last_modified
+                    });
                 }
-
-                // Apply search filtering
-                if (searchQuery && !passesSearchFilter(item, searchQuery)) {
-                    continue;
-                }
-
-                var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
-                var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
-                var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";
-                var user = Accounts.getUserNameByOdooId(item.user_id);
-                console.log("Username is " + user);
-
-                activityListModel.append({
-                    id: item.id,
-                    summary: item.summary,
-                    due_date: item.due_date,
-                    notes: item.notes,
-                    activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
-                    state: item.state,
-                    task_id: item.task_id,
-                    task_name: taskName,
-                    project_name: projectName,
-                    odoo_record_id: item.odoo_record_id,
-                    user: user,
-                    state: item.state,
-                    account_id: item.account_id,
-                    resId: item.resId,
-                    resModel: item.resModel,
-                    last_modified: item.last_modified
-                });
             }
         } catch (e) {
             console.error("❌ Error in get_activity_list():", e);
@@ -138,6 +137,9 @@ Page {
             return itemDate >= weekStart && itemDate <= weekEnd;
         case "month":
             return itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
+        case "favorites":
+            // Assuming favorites are marked by a specific state or flag
+            return item.state === "favorite"; // Adjust this condition based on your model
         default:
             return true;
         }
@@ -201,24 +203,26 @@ Page {
         label2: "This week"
         label3: "This Month"
         label4: "All"
+        label5: "Favorites"
 
-        showSearchBox: true
+        showSearchBox: false
         currentFilter: activity.currentFilter  // Bind to page's current filter
 
-        
         filter1: "today"
         filter2: "week"
         filter3: "month"
         filter4: "all"
+        filter5: "favorites"
+
         onFilterSelected: {
-            console.log("Filter key is " + filterKey);
-            currentFilter = filterKey;
-            get_activity_list(currentFilter, currentSearchQuery);
+            activity.currentFilter = filterKey;
+            console.log("Filter key is " + activity.currentFilter);
+            get_activity_list();
         }
         onCustomSearch: {
-            console.log("Search key is " + query);
-            currentSearchQuery = query;
-            get_activity_list(currentFilter, currentSearchQuery);
+            activity.currentSearchQuery = query;
+            console.log("Search key is " + activity.currentSearchQuery);
+            get_activity_list();
         }
     }
 
@@ -233,7 +237,7 @@ Page {
             model: activityListModel
             delegate: ActivityDetailsCard {
                 id: activityCard
-                odoo_record_id: model.odoo_record_id
+                odoo_record_id: model.id
                 notes: model.notes
                 activity_type_name: model.activity_type_name
                 summary: model.summary
@@ -241,6 +245,7 @@ Page {
                 account_id: model.account_id
                 due_date: model.due_date
                 state: model.state
+
                 onCardClicked: function (accountid, recordid) {
                     console.log("Page : Loading record " + recordid + " account id " + accountid);
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
@@ -248,6 +253,12 @@ Page {
                         "accountid": accountid,
                         "isReadOnly": true
                     });
+                }
+                onMarkAsDone: function (accountid, recordid) {
+                    console.log("Requesting to Make done activity with id " + recordid);
+                    //Here we need to delete the record and see? if it get synced
+                    Activity.markAsDone(accountid, recordid);
+                    get_activity_list("today", "");
                 }
             }
             currentIndex: 0
@@ -265,3 +276,5 @@ Page {
     property string currentFilter: "today"
     property string currentSearchQuery: ""
 }
+// Store current filter and search state
+

@@ -49,12 +49,12 @@
         "note": "notes",
         "write_date": "last_modified",
         "id": "odoo_record_id",
-        "project_id": "project_id",
-        "task_id": "task_id",
-        "res_id": "resId",
+        "res_id": "project_id",
+        "res_id": "task_id",
+        "res_model_id": "resId",
         "res_model": "resModel",
         "state": "state",
-        "link_id": "link_id"
+        "res_id": "link_id"
     },
     "res.users": {
         "name": "name",
@@ -66,5 +66,10 @@
         "mobile_phone":"mobile_phone",
         "work_email":"work_email",
         "company_id":"company_id"
+    },
+    "ir.model": {
+        "name": "name",
+        "id": "odoo_record_id",
+        "display_name":"technical_name"
     }
 }
