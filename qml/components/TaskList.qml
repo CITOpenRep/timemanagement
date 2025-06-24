@@ -48,14 +48,12 @@ Item {
 
     // Add the applyFilter method
     function applyFilter(filterKey) {
-        //  console.log("TaskList: Applying filter:", filterKey);
         currentFilter = filterKey;
         refreshWithFilter();
     }
 
     // Add the applySearch method
     function applySearch(searchQuery) {
-        // console.log("TaskList: Applying search:", searchQuery);
         currentSearchQuery = searchQuery;
         refreshWithFilter();
     }
@@ -130,11 +128,9 @@ Item {
         }
 
         childrenMapReady = true;
-    //console.log("Task childrenMap created with", Object.keys(childrenMap).length, "entries");
     }
 
     function refresh() {
-        // console.log("Refreshing taskNavigator...");
         navigationStackModel.clear();
         currentParentId = -1;
         currentFilter = "today";  // Reset to default filter
@@ -149,7 +145,6 @@ Item {
         var allTasks = Task.getAllTasks(); // import tasks.js as Task
 
         if (allTasks.length === 0) {
-            //  console.log("⚠ No task data found");
             return;
         }
 
@@ -203,12 +198,10 @@ Item {
         }
 
         childrenMapReady = true;
-    // console.log("Task childrenMap created with", Object.keys(childrenMap).length, "entries");
     }
 
     function getCurrentModel() {
         var model = childrenMap[currentParentId];
-        //console.log("ListView loading task model for parent:", currentParentId, ", count:", model ? model.count : 0);
         return model || Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
     }
 
@@ -261,15 +254,12 @@ Item {
                     //accountId:model.account_id
 
                     onEditRequested: id => {
-                        //console.log("Edit Task:", local_id);
                         taskEditRequested(local_id);
                     }
                     onDeleteRequested: d => {
-                        //console.log("Edit Task:", local_id);
                         taskDeleteRequested(local_id);
                     }
                     onViewRequested: d => {
-                        //console.log("View Task:", local_id);
                         taskSelected(local_id);
                     }
 
@@ -278,15 +268,11 @@ Item {
                         enabled: model.hasChildren
                         onClicked: {
                             if (model.hasChildren) {
-                                // console.log("Navigating into task:", model.taskName, "→", model.id_val);
                                 navigationStackModel.append({
                                     parentId: currentParentId
                                 });
                                 currentParentId = model.id_val;
-                            } else
-                            // console.log("Selecting task:", model.taskName);
-                            // taskNavigator.taskSelected(model.id_val, model.name);
-                            {}
+                            }
                         }
                     }
                 }
@@ -298,7 +284,6 @@ Item {
         target: taskNavigator
         onChildrenMapReadyChanged: {
             if (childrenMapReady) {
-                //console.log("childrenMap is ready → assigning task model");
                 taskListView.model = getCurrentModel();
             }
         }
@@ -306,7 +291,6 @@ Item {
 
     onCurrentParentIdChanged: {
         if (childrenMapReady) {
-            // console.log("currentParentId changed →", currentParentId);
             taskListView.model = getCurrentModel();
         }
     }

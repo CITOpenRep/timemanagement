@@ -41,7 +41,7 @@ Item {
     property string quadrant3Hours: "0"
     property string quadrant4Hours: "0"
 
-    // No need of external JS file , we can make it embed
+    // TODO: Move it to Utils
     function getQuadrantHoursFromAllInstances() {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         var quadrantHours = {
@@ -53,22 +53,17 @@ Item {
 
         try {
             db.transaction(function (tx) {
-                // console.log("-----> Fetching all instances from users");
                 var users = tx.executeSql("SELECT id, name FROM users");
-                // console.log("-----> Total instances found:", users.rows.length);
 
                 for (var u = 0; u < users.rows.length; u++) {
                     var instance_id = users.rows.item(u).id;
                     var instance_name = users.rows.item(u).name;
-                    //   console.log("-----> Processing instance:", instance_name, "(ID:", instance_id, ")");
 
                     var rs = tx.executeSql("SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app WHERE account_id = ? GROUP BY quadrant_id", [instance_id]);
 
-                    //  console.log("  -----> Timesheets for this instance:", rs.rows.length);
                     for (var i = 0; i < rs.rows.length; i++) {
                         var qid = rs.rows.item(i).quadrant_id;
                         var total = rs.rows.item(i).total;
-                        //console.log("     -> Q" + qid + ": " + total);
                         if (qid === null || qid < 1 || qid > 4) {
                             qid = 1;
                         }
@@ -82,12 +77,6 @@ Item {
         } catch (err) {
             console.error("ERROR during quadrant aggregation:", err);
         }
-
-        //console.log("-----> Aggregated quadrant totals:");
-        //console.log("     Q1:", quadrantHours[1]);
-        //console.log("     Q2:", quadrantHours[2]);
-        //console.log("     Q3:", quadrantHours[3]);
-        //console.log("     Q4:", quadrantHours[4]);
 
         return {
             1: Math.round(quadrantHours[1]).toString(),

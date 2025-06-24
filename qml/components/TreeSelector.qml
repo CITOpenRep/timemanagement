@@ -57,8 +57,6 @@ Item {
             totalCount++;
             addChildren(root, 1);
         });
-
-    //console.log("TreeModel built with " + totalCount + " entries");
     }
 
     Column {
@@ -85,9 +83,7 @@ Item {
                 onClicked: {
                     if (treeModel.count > 0) {
                         popup.open();
-                    } else
-                    //console.log("No items to select");
-                    {}
+                    }
                 }
             }
         }

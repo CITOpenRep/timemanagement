@@ -214,18 +214,15 @@ Item {
         switch (presetCombo.currentIndex) {
         case 0 // Today
         :
-            //  console.log("Today");
             break;
         case 1 // This Week
         :
-            //  console.log("This week");
             const dow = today.getDay();
             const offset = (dow === 0) ? 1 : (dow >= 6 ? 5 : 5 - dow);
             newEnd.setDate(newEnd.getDate() + offset);
             break;
         case 2 // This Month
         :
-            // console.log("This Month");
             const year = today.getFullYear();
             const month = today.getMonth();
             let lastDay = new Date(year, month + 1, 0);

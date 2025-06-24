@@ -54,7 +54,6 @@ Item {
         anchors.fill: parent
         onClicked: {
             if (notificationCount === 0) {
-                // console.log("No Notifications");
                 return;
             }
 

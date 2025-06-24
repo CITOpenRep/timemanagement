@@ -98,7 +98,6 @@ Item {
     signal projectDeleteRequested(int recordId)
 
     function refresh() {
-        //console.log("Refreshing projectNavigator...");
         navigationStackModel.clear();
         currentParentId = -1;
         populateProjectChildrenMap(true);
@@ -111,7 +110,6 @@ Item {
         var allProjects = Project.getAllProjects();
 
         if (allProjects.length === 0) {
-            //console.log("No project data found");
             return;
         }
 
@@ -167,21 +165,10 @@ Item {
         }
 
         childrenMapReady = true;
-
-        //console.log("childrenMap created with", Object.keys(childrenMap).length, "entries");
-        for (var key in childrenMap) {
-            var m = childrenMap[key];
-            //console.log("childrenMap[" + key + "] → count:", m.count);
-            for (var j = 0; j < m.count; j++) {
-                var it = m.get(j);
-                //console.log("   →", it.projectName, "| id_val:", it.id_val, "| parent_id:", it.parent_id, "| hasChildren:", it.hasChildren);
-            }
-        }
     }
 
     function getCurrentModel() {
         var model = childrenMap[currentParentId];
-        //console.log("ListView loading model for parent:", currentParentId, ", count:", model ? model.count : 0);
         return model || Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
     }
 
@@ -210,21 +197,9 @@ Item {
             clip: true
             model: getCurrentModel()
 
-            Component.onCompleted:
-            // console.log("Initial ListView model for parent:", currentParentId, "→ count:", model.count);
-            {}
-
-            onModelChanged:
-            //  console.log("Model changed for parent:", currentParentId, "→ count:", model.count);
-            {}
-
             delegate: Item {
                 width: parent.width
                 height: units.gu(10)
-
-                Component.onCompleted:
-                // console.log("Showing:", model.projectName, "id:", model.id_val);
-                {}
 
                 ProjectDetailsCard {
                     id: projectCard
@@ -245,11 +220,9 @@ Item {
                     localId: model.local_id
 
                     onEditRequested: id => {
-                        //console.log("Edit:", local_id);
                         projectEditRequested(local_id);
                     }
                     onViewRequested: id => {
-                        // console.log("Selected:", local_id);
                         projectSelected(local_id);
                     }
 
@@ -258,15 +231,11 @@ Item {
                         enabled: model.hasChildren
                         onClicked: {
                             if (model.hasChildren) {
-                                // console.log("Navigating into:", model.projectName, "→", model.id_val);
                                 navigationStackModel.append({
                                     parentId: currentParentId
                                 });
                                 currentParentId = model.id_val;
-                            } else
-                            //  console.log("Selecting:", model.projectName);
-                            //projectNavigator.projectSelected(model.id_val, model.name);
-                            {}
+                            }
                         }
                     }
                 }
@@ -278,7 +247,6 @@ Item {
         target: projectNavigator
         onChildrenMapReadyChanged: {
             if (childrenMapReady) {
-                //console.log("childrenMap is ready → assigning model");
                 projectListView.model = getCurrentModel();
             }
         }
@@ -286,7 +254,6 @@ Item {
 
     onCurrentParentIdChanged: {
         if (childrenMapReady) {
-            //console.log("currentParentId changed →", currentParentId);
             projectListView.model = getCurrentModel();
         }
     }

@@ -68,8 +68,6 @@ ComboBox {
             });
         }
 
-        //console.log('About to check shouldDeferSelection ' + shouldDeferSelection + " " + deferredAccountId);
-
         // Handle deferred selection
         if (shouldDeferSelection && deferredAccountId > -1) {
             shouldDeferSelection = false;

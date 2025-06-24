@@ -38,7 +38,6 @@ Page {
                 text: "Save"
                 onTriggered: {
                     saveActivityData();
-                    //  console.log("Activity Save Button clicked");
                 }
             }
         ]
@@ -48,7 +47,6 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
-        //   onClosed: console.log("Notification dismissed")
     }
     Flickable {
         id: flickable
@@ -78,7 +76,6 @@ Page {
                     width: flickable.width - units.gu(2)
 
                     onAccountChanged: {
-                        // console.log("Account id is " + accountId);
                         //reload the activity type for the account
                         reloadActivityTypeSelector(accountId, -1);
                     }

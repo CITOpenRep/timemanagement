@@ -38,7 +38,6 @@ Page {
         syncLogs = allLogs.filter(function (log) {
             return log.level === "ERROR" || log.level === "WARNING";
         });
-        // console.log("Logs loaded:", syncLogs.length);
     }
 
     ListView {

@@ -51,7 +51,6 @@ Page {
                 iconName: "search"
                 text: "Search"
                 onTriggered: {
-                    // console.log("Search clicked");
                     listheader.toggleSearchVisibility();
                 }
             },
@@ -59,7 +58,6 @@ Page {
                 iconName: "add"
                 text: "New"
                 onTriggered: {
-                    //   console.log("Create Activity clicked");
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         // "recordid": recordid,
                         "isReadOnly": false
@@ -216,12 +214,10 @@ Page {
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
-            //  console.log("Filter key is " + activity.currentFilter);
             get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
-            // console.log("Search key is " + activity.currentSearchQuery);
             get_activity_list();
         }
     }

@@ -55,7 +55,6 @@ ListItem {
             Action {
                 iconName: "view-on"
                 onTriggered: {
-                    // console.log(localId);
                     viewRequested(localId);
                 }
             }
@@ -144,7 +143,6 @@ ListItem {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
-                                    //  console.log("Showing Task Details");
                                     viewRequested(localId);
                                 }
                             }

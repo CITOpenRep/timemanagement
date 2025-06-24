@@ -121,7 +121,6 @@ MainView {
         }
 
         function setFirstScreen() {
-            // console.log("First Screen " + columns);
             switch (columns) {
             case 1:
                 primaryPage = dashboard_page;

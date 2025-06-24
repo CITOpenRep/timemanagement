@@ -32,17 +32,6 @@ ListItem {
     id: taskCard
     width: parent.width
     height: units.gu(20)
-    //     onWidthChanged: {
-    //         shapeWidth = parent.width
-
-    //         if (screenWidth < units.gu(361))
-    //         {
-    //             projectTitleText.text = truncateText("rtrtretertreterterterterterteterterterterterterterter", 20)
-    //         }else
-    //     {
-    //         projectTitleText.text = truncateText("2356577867878547874768678576876857567789578957897899795878795", 25)
-    //     }
-    // }
     property int screenWidth: parent.width
     property bool isFavorite: true
     property string taskName: ""
@@ -171,7 +160,6 @@ ListItem {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
-                                    //  console.log("Showing Task Details");
                                     viewRequested(localId);
                                 }
                             }
