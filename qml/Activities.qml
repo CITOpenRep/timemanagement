@@ -362,10 +362,10 @@ Page {
         const data = {
             updatedAccount: ids.accountDbId,
             updatedActivity: activityTypeSelector.selectedId,
-            updatedSummary: summary.displayText,
+            updatedSummary: Utils.cleanText(summary.displayText),
             updatedUserId: user,
             updatedDate: date_widget.selectedDate,
-            updatedNote: notes.displayText,
+            updatedNote: Utils.cleanText(notes.displayText),
             resModel: resModel,
             resId: resId,
             link_id: linkid,
