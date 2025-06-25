@@ -337,3 +337,22 @@ function extractDate(datetimeStr) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+
+/**
+ * Cleans a string by removing:
+ * - Non-printable ASCII control characters
+ * - Common invisible Unicode characters (e.g. LRM, RLM, separators)
+ * - Excess whitespace from both ends
+ */
+function cleanText(str) {
+    if (typeof str !== 'string') return '';
+
+    return str
+        // Remove common invisible/control characters (ASCII + Unicode)
+        .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\u2060\uFEFF]/g, '')
+        // Normalize to avoid weird composed characters
+        .normalize('NFC')
+        // Trim extra whitespace
+        .trim();
+}
