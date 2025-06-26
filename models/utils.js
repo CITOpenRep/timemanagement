@@ -319,8 +319,13 @@ function getTimeStatusInText(endDateString) {
     var end = new Date(endDateString);
     if (isNaN(end.getTime()))
         return "Invalid";
+    
+    // Normalize both dates to remove time component for accurate day calculation
     var now = new Date();
-    var diff = end - now;
+    var endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    var nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    var diff = endDay - nowDay;
     var days = Math.floor(diff / (1000 * 60 * 60 * 24));
     if (days < 0)
         return Math.abs(days) + " days overdue";
