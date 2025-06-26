@@ -68,12 +68,10 @@ ComboBox {
             });
         }
 
-        //console.log('About to check shouldDeferSelection ' + shouldDeferSelection + " " + deferredAccountId);
-
         // Handle deferred selection
         if (shouldDeferSelection && deferredAccountId > -1) {
             shouldDeferSelection = false;
-            console.log('The Id specified is a Defered one , So moving on');
+            //  console.log('The Id specified is a Defered one , So moving on');
             Qt.callLater(() => {
                 selectAccountById(deferredAccountId);
                 shouldDeferSelection = false;

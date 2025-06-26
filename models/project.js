@@ -79,7 +79,6 @@ function getAllProjects() {
     return projectList;
 }
 
-
 /**
  * Retrieves all projects associated with a specific user account from the local SQLite database.
  *
@@ -145,7 +144,7 @@ function getProjectsForAccount(accountId) {
 function createUpdateProject(project_data, recordid) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var messageObj = {};
-    var timestamp = Utils.getFormattedTimestamp();
+    var timestamp = Utils.getFormattedTimestampUTC();
     db.transaction(function (tx) {
         try {
             if (recordid == 0) {

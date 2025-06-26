@@ -30,7 +30,6 @@ function getAccountsList() {
     return accountsList;
 }
 
-
 /**
  * Sets the specified account as the default in the local SQLite database.
  *
@@ -65,7 +64,7 @@ function setDefaultAccount(id) {
             // Set the selected account to is_default = 1
             tx.executeSql("UPDATE users SET is_default = 1 WHERE id = ?", [id]);
 
-            console.log("Default account set to ID:", id);
+          //  console.log("Default account set to ID:", id);
         });
 
     } catch (e) {
@@ -188,7 +187,6 @@ function fetchParsedSyncLog(accountId) {
     return parsedLogs;
 }
 
-
 /**
  * Creates a new user account in the local SQLite database if no duplicate exists.
  *
@@ -235,7 +233,6 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
     return duplicateFound;
 }
 
-
 /**
  * Deletes a user account and all related records from associated tables in the local SQLite database.
  *
@@ -276,7 +273,6 @@ function deleteAccountAndRelatedData(userId) {
         DBCommon.logException(e);
     }
 }
-
 
 /**
  * Retrieves the `odoo_record_id` for the current user based on the username from the `users` table.
@@ -353,7 +349,20 @@ function getAccountName(accountId) {
     }
 }
 
-
+/**
+ * Retrieves the username associated with a specific Odoo user ID
+ * from the local SQLite database.
+ *
+ * @function getUserNameByOdooId
+ * @param {number} odoo_record_id - The user ID from Odoo (remote system).
+ * @returns {string} - The user's name if found; otherwise, an empty string.
+ *
+ * @description
+ * Opens a local SQLite database transaction and queries the `res_users_app` table
+ * to find a record matching the provided `odoo_record_id`.
+ * If a match is found, extracts and returns the `name` field.
+ * Logs any exceptions using `DBCommon.logException()` to ensure safe failure handling.
+ */
 function getUserNameByOdooId(odoo_record_id) {
     var userName = "";
 
@@ -376,7 +385,22 @@ function getUserNameByOdooId(odoo_record_id) {
     return userName;
 }
 
-
+/**
+ * Retrieves the Odoo model ID (`odoo_record_id`) from the local SQLite database
+ * based on the given account ID and technical model name.
+ *
+ * @function getOdooModelId
+ * @param {number} accountId - The local account ID associated with the Odoo connection.
+ * @param {string} technicalName - The technical name of the Odoo model (e.g., "project.task").
+ * @returns {number|null} - Returns the Odoo model ID if found, or null if not found or on error.
+ *
+ * @description
+ * Opens a local SQLite database transaction and queries the `ir_model_app` table
+ * for a record matching the provided `accountId` and `technicalName`.
+ * If a matching record is found, the function returns the `odoo_record_id`.
+ * Logs a warning if no matching record is found, and logs any exceptions
+ * via `DBCommon.logException()` for error tracking.
+ */
 function getOdooModelId(accountId, technicalName) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -390,7 +414,7 @@ function getOdooModelId(accountId, technicalName) {
 
             if (rs.rows.length > 0) {
                 odooRecordId = rs.rows.item(0).odoo_record_id;
-                console.log("✅ Found Odoo Model ID:", odooRecordId);
+              //  console.log("✅ Found Odoo Model ID:", odooRecordId);
             } else {
                 console.warn("⚠ No matching ir.model found for:", technicalName);
             }

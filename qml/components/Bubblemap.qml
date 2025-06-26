@@ -167,7 +167,6 @@ Item {
                 }
 
                 layoutCanvas.height = maxBottom + padding;
-                console.log("✅ Layout height:", layoutCanvas.height);
             }
         }
     }

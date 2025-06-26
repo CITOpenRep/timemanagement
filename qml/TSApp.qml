@@ -121,7 +121,6 @@ MainView {
         }
 
         function setFirstScreen() {
-            console.log("First Screen " + columns);
             switch (columns) {
             case 1:
                 primaryPage = dashboard_page;
@@ -143,7 +142,7 @@ MainView {
         }
 
         function setCurrentPage(page) {
-            console.log("In setCurrentPage Page is :" + page + " Current Page" + currentPage);
+            //   console.log("In setCurrentPage Page is :" + page + " Current Page" + currentPage);
             switch (page) {
             case 0:
                 currentPage = dashboard_page;
@@ -184,9 +183,9 @@ MainView {
         }
 
         onColumnsChanged: {
-            console.log("onColumnsChanged: " + columns + " width " + units.gu(width));
+            //  console.log("onColumnsChanged: " + columns + " width " + units.gu(width));
             if (init === false) {
-                console.log("currentPage: " + currentPage + "Primarypage: " + primaryPage + " column changed " + columns + " width " + units.gu(width));
+                //  console.log("currentPage: " + currentPage + "Primarypage: " + primaryPage + " column changed " + columns + " width " + units.gu(width));
                 switch (columns) {
                 case 1:
                     primaryPage = dashboard_page;
@@ -208,7 +207,7 @@ MainView {
         }
     }
     Component.onCompleted: {
-        console.log("From OnComplete " + columns);
+        // console.log("From OnComplete " + columns);
         DbInit.initializeDatabase();
         Qt.callLater(function () {
             apLayout.setFirstScreen(); // Delay page setup until after DB init

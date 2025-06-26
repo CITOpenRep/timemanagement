@@ -108,18 +108,15 @@ ComboBox {
                 Qt.callLater(() => {
                     currentIndex = i;
                     selectedUserId = user.id;
-                    //console.log("(Deferred) User selected:", user.name);
                     if (!shouldDeferUserSelection)
                         userSelected(user.id, user.name);
                 });
-                //console.log("User selected:", user.name);
                 if (!shouldDeferUserSelection)
                     userSelected(user.id, user.name);
                 return;
             }
         }
 
-        console.warn("⚠️ User ID not found:", remoteid);
         if (!shouldDeferUserSelection) {
             selectFirstUser();
         }
@@ -141,7 +138,6 @@ ComboBox {
             });
         }
 
-        //console.log('About to check shouldDeferUserSelection: ' + shouldDeferUserSelection + " " + deferredUserId);
         if (shouldDeferUserSelection && deferredUserId > -1) {
             Qt.callLater(() => {
                 selectUserById(deferredUserId);

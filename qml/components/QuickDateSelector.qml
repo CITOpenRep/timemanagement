@@ -39,7 +39,6 @@ LomiriShape {
     property string mode: "next" // "previous" or "next"
 
     function setDate(dateval) {
-        console.log("Udpdating date............." + dateval);
         date = dateval;
         date_text_field.text = dateval;
     }
@@ -69,8 +68,6 @@ LomiriShape {
         id: quickPicker
         mode: datepicker_tb.mode  // propagate mode
         onDateSelected: d => {
-            console.log("User picked:", d); // e.g. "09-06-2025"
-
             var parts = d.split("-");
             var formatted = parts[2] + "-" + parts[1] + "-" + parts[0];  // yyyy-MM-dd
 

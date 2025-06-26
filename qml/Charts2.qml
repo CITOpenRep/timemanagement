@@ -81,7 +81,6 @@ Rectangle {
         }
         Component.onCompleted: {
             var quadrant_data = Model.get_quadrant_current_month();
-            console.log('\n\n quadrant_data', quadrant_data);
             chart2.timecat = quadrant_data;
         }
     }

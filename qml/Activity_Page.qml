@@ -51,7 +51,6 @@ Page {
                 iconName: "search"
                 text: "Search"
                 onTriggered: {
-                    console.log("Search clicked");
                     listheader.toggleSearchVisibility();
                 }
             },
@@ -59,7 +58,6 @@ Page {
                 iconName: "add"
                 text: "New"
                 onTriggered: {
-                    console.log("Create Activity clicked");
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         // "recordid": recordid,
                         "isReadOnly": false
@@ -119,8 +117,15 @@ Page {
     }
 
     function passesDateFilter(dueDateStr, filter, currentDate) {
-        if (!dueDateStr)
+        // Handle "all" filter - show everything
+        if (filter === "all") {
+            return true;
+        }
+        
+        // Activities without dates should only appear in "all" filter
+        if (!dueDateStr) {
             return false;
+        }
 
         var dueDate = new Date(dueDateStr);
         var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
@@ -128,15 +133,22 @@ Page {
 
         switch (filter) {
         case "today":
-            return itemDate.getTime() === today.getTime();
+            // Show activities due today OR overdue activities
+            return itemDate.getTime() <= today.getTime();
         case "week":
             var weekStart = new Date(today);
             weekStart.setDate(today.getDate() - today.getDay());
             var weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 6);
-            return itemDate >= weekStart && itemDate <= weekEnd;
+            
+            // Show if due this week OR overdue
+            return (itemDate >= weekStart && itemDate <= weekEnd);
         case "month":
-            return itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
+            var isThisMonth = itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
+            var isOverdue = itemDate < today;
+            
+            // Show if due this month OR overdue
+            return isThisMonth;
         case "favorites":
             // Assuming favorites are marked by a specific state or flag
             return item.state === "favorite"; // Adjust this condition based on your model
@@ -200,7 +212,7 @@ Page {
         anchors.right: parent.right
 
         label1: "Today"
-        label2: "This week"
+        label2: "This Week"
         label3: "This Month"
         label4: "All"
         label5: "Favorites"
@@ -216,12 +228,10 @@ Page {
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
-            console.log("Filter key is " + activity.currentFilter);
             get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
-            console.log("Search key is " + activity.currentSearchQuery);
             get_activity_list();
         }
     }
@@ -247,7 +257,7 @@ Page {
                 state: model.state
 
                 onCardClicked: function (accountid, recordid) {
-                    console.log("Page : Loading record " + recordid + " account id " + accountid);
+                    //  console.log("Page : Loading record " + recordid + " account id " + accountid);
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         "recordid": recordid,
                         "accountid": accountid,
@@ -255,16 +265,16 @@ Page {
                     });
                 }
                 onMarkAsDone: function (accountid, recordid) {
-                    console.log("Requesting to Make done activity with id " + recordid);
+                    // console.log("Requesting to Make done activity with id " + recordid);
                     //Here we need to delete the record and see? if it get synced
                     Activity.markAsDone(accountid, recordid);
                     get_activity_list("today", "");
                 }
             }
             currentIndex: 0
-            onCurrentIndexChanged: {
-                console.log("currentIndex changed");
-            }
+            onCurrentIndexChanged:
+            // console.log("currentIndex changed");
+            {}
 
             Component.onCompleted: {
                 get_activity_list("today", "");

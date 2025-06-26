@@ -159,7 +159,7 @@ def insert_record(
         values.append(account_id)
 
         placeholders = ", ".join(["?"] * len(columns))
-        log.debug(f"[INSERT] Final account_id for {table_name}: {account_id}")
+        #log.debug(f"[INSERT] Final account_id for {table_name}: {account_id}")
         sql = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
 
         safe_sql_execute(db_path, sql, values)
@@ -371,9 +371,7 @@ def process_odoo_records(
                 )
         else:
             insert_record(table_name, model_name, account_id, rec, db_path, config_path)
-            log.debug(
-                f"[FORCE] {model_name} id={odoo_id} updated (no timestamp column)."
-            )
+            #log.debug(f"[FORCE] {model_name} id={odoo_id} updated (no timestamp column).")
 
     return fetched_odoo_ids
 

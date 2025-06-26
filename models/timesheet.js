@@ -130,7 +130,7 @@ function getTimeSheetDetails(record_id) {
  */
 function createOrSaveTimesheet(data) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-    var timestamp = Utils.getFormattedTimestamp();
+    var timestamp = Utils.getFormattedTimestampUTC();
     var result = { success: false, error: "" };
 
     try {
@@ -140,7 +140,7 @@ function createOrSaveTimesheet(data) {
                     : Utils.convertDurationToFloat(data.spenthours);
 
             if (data.id && data.id > 0) {
-                console.log("✏Updating timesheet id:", data.id);
+             //   console.log("✏Updating timesheet id:", data.id);
                 tx.executeSql(`UPDATE account_analytic_line_app SET
                               account_id = ?, record_date = ?, project_id = ?, task_id = ?, name = ?,
                               sub_project_id = ?, sub_task_id = ?, quadrant_id = ?, unit_amount = ?,
@@ -149,7 +149,7 @@ function createOrSaveTimesheet(data) {
                                data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
                                data.status, data.user_id, data.id]);
             } else {
-                console.log("Inserting new timesheet entry");
+               // console.log("Inserting new timesheet entry");
                 tx.executeSql(`INSERT INTO account_analytic_line_app
                               (account_id, record_date, project_id, task_id, name, sub_project_id,
                               sub_task_id, quadrant_id, unit_amount, last_modified, status, user_id)

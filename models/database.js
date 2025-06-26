@@ -70,9 +70,9 @@ function getTimestamp() {
 }
 
 function logException(tag, error) {
-    console.log("[" + getTimestamp() + "][ERROR][" + tag + "] " + (error && error.message ? error.message : error));
+    console.warn("[" + getTimestamp() + "][ERROR][" + tag + "] " + (error && error.message ? error.message : error));
     if (error && error.stack) {
-        console.log("   ↪ Stack Trace:\n" + error.stack);
+    //    console.log("   ↪ Stack Trace:\n" + error.stack);
     }
 }
 
@@ -136,9 +136,6 @@ function ensureDefaultLocalAccountExists() {
                         1
                     ]
                 );
-                console.log("✅ Default Local Account inserted.");
-            } else {
-                console.log("ℹ️ Default Local Account already exists.");
             }
 
             // Step 2: Ensure Local User Exists in res_users_app
@@ -165,9 +162,6 @@ function ensureDefaultLocalAccountExists() {
                         -1                          // odoo_record_id
                     ]
                 );
-                console.log("✅ Local User for Default Account inserted.");
-            } else {
-                console.log("ℹ️ Local User already exists.");
             }
         });
 
@@ -175,7 +169,6 @@ function ensureDefaultLocalAccountExists() {
         logException(e);
     }
 }
-
 
 /**
  * Creates a table if it doesn't exist, and ensures all expected columns are present.
@@ -194,7 +187,6 @@ function createOrUpdateTable(label, createSQL, match_column_list) {
 
         db.transaction(function (tx) {
             tx.executeSql(createSQL);
-            console.log("Created (or verified): " + label);
 
             const result = tx.executeSql("PRAGMA table_info(" + label + ")");
             const existing_columns = [];
@@ -207,7 +199,6 @@ function createOrUpdateTable(label, createSQL, match_column_list) {
                 const column_name = match_column_list[j].split(" ")[0];
                 if (!existing_columns.includes(column_name)) {
                     tx.executeSql("ALTER TABLE " + label + " ADD COLUMN " + match_column_list[j]);
-                    console.log(" Added column to " + label + ": " + match_column_list[j]);
                 }
             }
         });

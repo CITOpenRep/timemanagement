@@ -2,128 +2,6 @@
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
 
-function queryActivityData(type, recordid) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var workpersonaSwitchState = true;
-    var filterActivityListData = [];
-    var activitylist = [];
-    var name = "";
-    var notes = "";
-    db.transaction(function (tx) {
-        activityListModel.clear();
-        if(workpersonaSwitchState) {
-            if (!recordid){
-                console.log("Gets all Activity records!");
-                var existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL order by last_modified desc')
-                if (type == 'pending') {
-                    existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state != "done" order by last_modified desc')
-                } else if (type == 'done') {
-                    existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state = "done" order by last_modified desc')
-                }
-                else{
-                    console.log("Getting all types of Activity");
-                    existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL order by last_modified desc')
-                }
-            }
-            else{
-                console.log("Gets one Activity record!");
-                var existing_activities = []
-                if (type == 'pending') {
-                    existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state != "done" AND id = ? order by last_modified desc', [recordid])
-                } else if (type == 'done') {
-                    existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state = "done" AND id = ? order by last_modified desc', [recordid])
-                }
-                else{
-                    console.log("Getting all types of Activity");
-                    existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND id = ? order by last_modified desc', [recordid])
-                    var account_id = tx.executeSql('SELECT name FROM users WHERE id = ?',[existing_activities.rows.item(0).account_id]);
-                    var accountName = account_id.rows.length > 0 ? account_id.rows.item(0).name || "" : "";
-                }
-
-            }
-        }
-        else {
-            var existing_activities = tx.executeSql('SELECT * FROM mail_activity_app where account_id IS NULL');
-        }
-
-        for (var activity = 0; activity < existing_activities.rows.length; activity++) {
-            activitylist.push({'summary': existing_activities.rows.item(activity).summary,
-                                  'due_date': existing_activities.rows.item(activity).due_date,
-                                  'id': existing_activities.rows.item(activity).id, 'account_id': existing_activities.rows.item(activity).account_id,
-                                  'accountName': accountName, 'activity_type_id': existing_activities.rows.item(activity).activity_type_id,
-                                  'notes': notes, 'name': name})
-            filterActivityListData.push({'summary': existing_activities.rows.item(activity).summary, 'due_date': existing_activities.rows.item(activity).due_date, 'id': existing_activities.rows.item(activity).id})
-        }
-    })
-    return activitylist
-}
-
-function filterActivityList(query) {
-    activityListModel.clear();
-
-    for (var i = 0; i < filterActivityListData.length; i++) {
-        var entry = filterActivityListData[i];
-        if (entry.summary.toLowerCase().includes(query.toLowerCase()) ||
-                entry.due_date.toLowerCase().includes(query.toLowerCase())
-                ) {
-            activityListModel.append(entry);
-
-        }
-    }
-}
-
-function fetch_activity_types(selectedAccountUserId) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var activity_type_list = []
-    db.transaction(function (tx) {
-        var activity_types = tx.executeSql('select * from mail_activity_type_app where account_id = ?', [selectedAccountUserId])
-        for (var type = 0; type < activity_types.rows.length; type++) {
-            activity_type_list.push({'id': activity_types.rows.item(type).id, 'name': activity_types.rows.item(type).name});
-        }
-    })
-    return activity_type_list;
-}
-
-function editActivityData(data) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-
-    db.transaction(function(tx) {
-        // Update the record in the database
-        tx.executeSql('UPDATE mail_activity_app SET \
-            account_id = ?, activity_type_id = ?, summary = ?, user_id = ?, due_date = ?, \
-            notes = ?, resModel = ?, resId = ?, task_id = ?, project_id = ?, link_id = ?, state = ?, last_modified = ? \
-            WHERE id = ?',
-                      [data.updatedAccount, data.updatedActivity, data.updatedSummary, data.updatedUserId,
-                       data.updatedDate, data.updatedNote, data.resModel, data.resId, data.task_id,
-                       data.project_id, data.link_id, data.editschedule, new Date().toISOString(), data.rowId]
-                      );
-        queryData('pending');
-    });
-}
-
-function filterStatus(type) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    db.transaction(function (tx) {
-        filterActivityListData = [];
-        if(workpersonaSwitchState) {
-            var existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL order by last_modified desc')
-            if (type == 'pending') {
-                existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state != "done" order by last_modified desc')
-            } else if (type == 'done') {
-                existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state = "done" order by last_modified desc')
-            }
-        } else {
-            var existing_activities = tx.executeSql('SELECT * FROM mail_activity_app where account_id IS NULL');
-        }
-
-        for (var activity = 0; activity < existing_activities.rows.length; activity++) {
-            filterActivityListData.push({'summary': existing_activities.rows.item(activity).summary, 'due_date': existing_activities.rows.item(activity).due_date, 'id': existing_activities.rows.item(activity).id})
-        }
-    })
-    return filterActivityListData;
-}
-
-
 /**
  * Retrieves all activity records from the `mail_activity_app` table.
  *
@@ -168,6 +46,21 @@ function getAllActivities() {
     return activityList;
 }
 
+/**
+ * Retrieves a specific activity record from the local SQLite database based on the
+ * provided Odoo record ID and account ID.
+ *
+ * @function getActivityById
+ * @param {number} odoo_record_id - The ID of the activity record from Odoo.
+ * @param {number} account_id - The local account ID associated with the activity.
+ * @returns {Object|null} - Returns the activity object if found, otherwise null.
+ *
+ * @description
+ * Opens a local SQLite database transaction and queries the `mail_activity_app` table
+ * for a record matching the given `odoo_record_id` and `account_id`.
+ * Converts the result row to a JavaScript object using `DBCommon.rowToObject()`.
+ * Logs any exception encountered during the operation via `DBCommon.logException()`.
+ */
 function getActivityById(odoo_record_id, account_id) {
     var activity = null;
 
@@ -196,7 +89,20 @@ function getActivityById(odoo_record_id, account_id) {
     return activity;
 }
 
-
+/**
+ * Retrieves the name of an activity type from the local SQLite database
+ * based on the provided Odoo record ID.
+ *
+ * @function getActivityTypeName
+ * @param {number} odooRecordId - The ID of the activity type as stored in Odoo.
+ * @returns {string} - Returns the name of the activity type if found, otherwise an empty string.
+ *
+ * @description
+ * Opens a local SQLite database transaction and queries the `mail_activity_type_app` table
+ * for a record matching the given `odooRecordId`.
+ * Extracts the `name` field from the result and returns it.
+ * Logs any exception encountered during the operation via `DBCommon.logException()`.
+ */
 function getActivityTypeName(odooRecordId) {
     var typeName = "";
 
@@ -223,6 +129,22 @@ function getActivityTypeName(odooRecordId) {
     return typeName;
 }
 
+/**
+ * Marks a specific activity record as "done" in the local SQLite database
+ * by updating its `state` and `status` fields.
+ *
+ * @function markAsDone
+ * @param {number} accountId - The local account ID associated with the activity.
+ * @param {number} id - The internal ID of the activity record in the local database.
+ * @returns {void}
+ *
+ * @description
+ * Opens a local SQLite database transaction and updates the `mail_activity_app` table
+ * for the record matching the given `accountId` and `id`.
+ * Sets the `state` to "done" and `status` to "updated" to reflect local changes
+ * pending sync with Odoo.
+ * Logs any exception encountered during the operation via `DBCommon.logException()`.
+ */
 function markAsDone(accountId, id) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -234,7 +156,7 @@ function markAsDone(accountId, id) {
             WHERE account_id = ? AND id = ?
             `;
             tx.executeSql(query, [accountId, id]);
-            console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
+         //   console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
         });
 
     } catch (e) {
@@ -242,7 +164,21 @@ function markAsDone(accountId, id) {
     }
 }
 
-
+/**
+ * Returns the appropriate icon filename for a given activity type name.
+ *
+ * @function getActivityIconForType
+ * @param {string} typeName - The name of the activity type (e.g., "Call", "Mail", "Meeting").
+ * @returns {string} - The filename of the icon corresponding to the activity type.
+ *
+ * @description
+ * Normalizes the input `typeName` to lowercase and checks for keywords to determine
+ * the matching icon:
+ * - If it contains "mail", returns `"activity_mail.png"`
+ * - If it contains "call", returns `"activity_call.png"`
+ * - If it contains "meeting", returns `"activity_meeting.png"`
+ * - For all other or missing types, returns `"activity_others.png"`
+ */
 function getActivityIconForType(typeName) {
     if (!typeName) return "activity_others.png";
 
@@ -260,6 +196,21 @@ function getActivityIconForType(typeName) {
     }
 }
 
+/**
+ * Retrieves all non-deleted activity types associated with a specific account
+ * from the local SQLite database.
+ *
+ * @function getActivityTypesForAccount
+ * @param {number} account_id - The local account ID for which to retrieve activity types.
+ * @returns {Array<Object>} - An array of activity type objects linked to the account.
+ *
+ * @description
+ * Opens a local SQLite database transaction and queries the `mail_activity_type_app` table
+ * for all records matching the provided `account_id` where `status` is not `'deleted'` or is null.
+ * Converts each result row into a JavaScript object using `DBCommon.rowToObject()` and
+ * appends it to the `activityTypes` array.
+ * Logs any exceptions encountered during the operation via `DBCommon.logException()`.
+ */
 function getActivityTypesForAccount(account_id) {
     var activityTypes = [];
 
@@ -286,6 +237,23 @@ function getActivityTypesForAccount(account_id) {
     return activityTypes;
 }
 
+/**
+ * Saves a new activity record into the `mail_activity_app` table in the local SQLite database.
+ *
+ * @function saveActivityData
+ * @param {Object} data - The activity data object containing all necessary fields to insert.
+ * @returns {Object} - Returns an object with `{ success: true }` on success,
+ *                     or `{ success: false, error: <message> }` on failure.
+ *
+ * @description
+ * Opens a local SQLite database transaction and inserts a new record into the `mail_activity_app` table.
+ * The fields inserted include account ID, activity type, summary, user ID, due date, notes,
+ * related model and ID, task and project references, link ID, activity state, status,
+ * and the current UTC timestamp (`last_modified`) for sync tracking.
+ * Uses utility functions `Utils.extractDate()` for parsing the due date and
+ * `Utils.getFormattedTimestampUTC()` for generating a UTC timestamp.
+ * Logs any database exceptions to the console and returns an error object on failure.
+ */
 function saveActivityData(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -307,7 +275,7 @@ function saveActivityData(data) {
                               data.project_id,
                               data.link_id,
                               data.state,
-                              Utils.getFormattedTimestamp(),
+                              Utils.getFormattedTimestampUTC(),
                               data.status
                           ]
                           );

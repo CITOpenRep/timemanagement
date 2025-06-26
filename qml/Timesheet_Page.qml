@@ -48,7 +48,6 @@ Page {
                 iconName: "reminder-new"
                 text: "New"
                 onTriggered: {
-                    console.log("Create Timesheet clicked");
                     apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"));
                 }
             }
@@ -61,7 +60,6 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
-        onClosed: console.log("Notification dismissed")
     }
 
     function fetch_timesheets_list() {
@@ -105,7 +103,6 @@ Page {
             recordId: model.id
             user: model.user
             onEditRequested: {
-                console.log("Edit Requested");
                 apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                     "recordid": model.id,
                     "isReadOnly": false
@@ -129,9 +126,9 @@ Page {
             }
         }
         currentIndex: 0
-        onCurrentIndexChanged: {
-            console.log("currentIndex changed");
-        }
+        onCurrentIndexChanged:
+        // console.log("currentIndex changed");
+        {}
 
         Component.onCompleted: {
             // get_project_list(0)
@@ -150,7 +147,7 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                console.log("add Timesheet");
+                // console.log("add Timesheet");
                 apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"));
             }
         }
