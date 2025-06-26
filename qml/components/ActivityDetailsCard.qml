@@ -100,7 +100,7 @@ ListItem {
                         spacing: 0
 
                         Text {
-                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? truncateText(root.summary, 30) : "No Summary"
+                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? truncateText(root.summary, 40) : "No Summary"
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                             font.pixelSize: units.gu(2)
                             wrapMode: Text.WordWrap

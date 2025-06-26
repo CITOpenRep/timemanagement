@@ -121,13 +121,13 @@ Page {
 
         label1: "Today"
         label2: "This Week"
-        label3: "Next Week"
+        label3: "This Month"
         label4: "All"
         label5: "Completed"
 
         filter1: "today"
         filter2: "this_week"
-        filter3: "next_week"
+        filter3: "this_month"
         filter4: "all"
         filter5: "completed"
 

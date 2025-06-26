@@ -253,6 +253,11 @@ function passesDateFilter(task, filterType, currentDate) {
         return true;
     }
     
+    // Tasks without any dates should only appear in "all" filter
+    if (!task.deadline && !task.end_date && !task.start_date) {
+        return false;
+    }
+    
     var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
     
     switch (filterType) {
@@ -262,8 +267,8 @@ function passesDateFilter(task, filterType, currentDate) {
             return isTaskDueToday(task, today);
         case "this_week":
             return isTaskDueThisWeek(task, today);
-        case "next_week":
-            return isTaskDueNextWeek(task, today);
+        case "this_month":
+            return isTaskDueThisMonth(task, today);
         case "later":
             return isTaskDueLater(task, today);
         case "completed":
@@ -305,7 +310,7 @@ function passesSearchFilter(task, searchQuery) {
 }
 
 /**
- * Check if task is due today
+ * Check if task is due today (includes overdue tasks)
  */
 function isTaskDueToday(task, today) {
     if (!task.deadline && !task.end_date && !task.start_date) {
@@ -316,7 +321,8 @@ function isTaskDueToday(task, today) {
     if (!taskDate) return false;
     
     var taskDay = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
-    return taskDay.getTime() === today.getTime();
+    // Show tasks due today OR overdue tasks (past due dates)
+    return taskDay.getTime() <= today.getTime();
 }
 
 /**
@@ -342,7 +348,10 @@ function isTaskDueThisWeek(task, today) {
 /**
  * Check if task is due next week
  */
-function isTaskDueNextWeek(task, today) {
+/**
+ * Check if task is due this month
+ */
+function isTaskDueThisMonth(task, today) {
     if (!task.deadline && !task.end_date && !task.start_date) {
         return false;
     }
@@ -350,31 +359,26 @@ function isTaskDueNextWeek(task, today) {
     var taskDate = getTaskRelevantDate(task);
     if (!taskDate) return false;
     
-    var nextWeekStart = new Date(today);
-    nextWeekStart.setDate(today.getDate() - today.getDay() + 7);
-    var nextWeekEnd = new Date(nextWeekStart);
-    nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
-    
     var taskDay = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
-    return taskDay >= nextWeekStart && taskDay <= nextWeekEnd;
+    return taskDay.getFullYear() === today.getFullYear() && taskDay.getMonth() === today.getMonth();
 }
 
 /**
- * Check if task is due later (beyond next week)
+ * Check if task is due later (beyond this month)
  */
 function isTaskDueLater(task, today) {
     if (!task.deadline && !task.end_date && !task.start_date) {
-        return true; // Tasks without dates are considered "later"
+        return false; // Tasks without dates should only appear in "all" filter
     }
     
     var taskDate = getTaskRelevantDate(task);
-    if (!taskDate) return true;
+    if (!taskDate) return false;
     
-    var nextWeekEnd = new Date(today);
-    nextWeekEnd.setDate(today.getDate() - today.getDay() + 13); // End of next week
+    // Calculate end of this month
+    var endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
     
     var taskDay = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
-    return taskDay > nextWeekEnd;
+    return taskDay > endOfMonth;
 }
 
 /**
