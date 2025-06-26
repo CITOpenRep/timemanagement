@@ -117,8 +117,15 @@ Page {
     }
 
     function passesDateFilter(dueDateStr, filter, currentDate) {
-        if (!dueDateStr)
+        // Handle "all" filter - show everything
+        if (filter === "all") {
+            return true;
+        }
+        
+        // Activities without dates should only appear in "all" filter
+        if (!dueDateStr) {
             return false;
+        }
 
         var dueDate = new Date(dueDateStr);
         var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
@@ -126,15 +133,22 @@ Page {
 
         switch (filter) {
         case "today":
-            return itemDate.getTime() === today.getTime();
+            // Show activities due today OR overdue activities
+            return itemDate.getTime() <= today.getTime();
         case "week":
             var weekStart = new Date(today);
             weekStart.setDate(today.getDate() - today.getDay());
             var weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 6);
-            return itemDate >= weekStart && itemDate <= weekEnd;
+            
+            // Show if due this week OR overdue
+            return (itemDate >= weekStart && itemDate <= weekEnd);
         case "month":
-            return itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
+            var isThisMonth = itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
+            var isOverdue = itemDate < today;
+            
+            // Show if due this month OR overdue
+            return isThisMonth;
         case "favorites":
             // Assuming favorites are marked by a specific state or flag
             return item.state === "favorite"; // Adjust this condition based on your model
@@ -198,7 +212,7 @@ Page {
         anchors.right: parent.right
 
         label1: "Today"
-        label2: "This week"
+        label2: "This Week"
         label3: "This Month"
         label4: "All"
         label5: "Favorites"
