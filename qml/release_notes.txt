@@ -35,9 +35,11 @@
    <h3>Change History : (Version 1.0.4) Alpha Draft </h3>
     <ul>
 
+
      <h4> 27-06-2025 : Version 1.0.4 </h4>
         <li>Fixed Filtered Priority to Display Tasks in range from Start Date to End Date. Due Tasks will be displayed in Today Tab.</li>
           <li>Activity Syncing Issue from Server to Device fixed. </li>
+
 
           <br> 
           
