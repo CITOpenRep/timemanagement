@@ -36,7 +36,7 @@
     <ul>
 
      <h4> 27-06-2025 : Version 1.0.5 </h4>
-        <li>Added OverDue Tab for Tasks. All the OverDue Tasks will be Displayed in the Tab.</li>
+        <li>Added OverDue Tab for Tasks. All the OverDue Tasks will be Displayed in the OverDue Tab.</li>
           <li>Currently We are not handling the stages for a task, so Completed Tasks Will also be displayed in the OverDue Tab, which is a Known Issue. This issue is expected to be fixed in next release.</li>
 
 
