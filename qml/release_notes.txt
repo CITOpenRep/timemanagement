@@ -35,14 +35,16 @@
    <h3>Change History : (Version 1.0.4) Alpha Draft </h3>
     <ul>
 
-     <h4> 26-06-2025 : Version 1.0.4 </h4>
-        <li>Fixed Filtered Priortiy to Display Tasks in range from Start Date to End Date. Due Tasks will be displayed in Today Tab.</li>
-          <li>Syncing Issue of Activity fixed. </li>
+
+     <h4> 27-06-2025 : Version 1.0.4 </h4>
+        <li>Fixed Filtered Priority to Display Tasks in range from Start Date to End Date. Due Tasks will be displayed in Today Tab.</li>
+          <li>Activity Syncing Issue from Server to Device fixed. </li>
+
 
           <br> 
           
      <h4> 24-06-2025 : Version 1.0.3 </h4>
-        <li> Introduced Tabbed View Filters and Search Button for Tasks. Filtered Priortiy is Deadline > End Date > Start Date. Filters are "Today" , "This Week" , "Next Week" , "All" .</li>
+        <li> Introduced Tabbed View Filters and Search Button for Tasks. Filtered Priority is Deadline > End Date > Start Date. Filters are "Today" , "This Week" , "Next Week" , "All" .</li>
         <li> Changed UI of Tabbed View,List Header. The Selected Tab will be Highlighted and Displayed in Bold. Also respositioned the Search Field, which will be only displayed after clicking on Search Button from PageHeader.</li>
         <li> Introduced Activity Creation Feature from Device to Odoo. </li>
         <li> Added clear Button in SearchField. </li>
