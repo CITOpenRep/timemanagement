@@ -122,14 +122,14 @@ Page {
         label1: "Today"
         label2: "This Week"
         label3: "This Month"
-        label4: "All"
-        label5: "Completed"
+        label4: "OverDue"
+        label5: "All"
 
         filter1: "today"
         filter2: "this_week"
         filter3: "this_month"
-        filter4: "all"
-        filter5: "completed"
+        filter4: "overdue"
+        filter5: "all"
 
         showSearchBox: false
         currentFilter: task.currentFilter

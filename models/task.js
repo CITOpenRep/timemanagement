@@ -269,6 +269,8 @@ function passesDateFilter(task, filterType, currentDate) {
             return isTaskDueThisWeek(task, today);
         case "this_month":
             return isTaskDueThisMonth(task, today);
+        case "overdue":
+            return isTaskOverdue(task, today);
         case "later":
             return isTaskDueLater(task, today);
         case "completed":
@@ -310,7 +312,7 @@ function passesSearchFilter(task, searchQuery) {
 }
 
 /**
- * Check if task should appear in today filter (tasks active today OR overdue)
+ * Check if task should appear in today filter (tasks active today but NOT overdue)
  */
 function isTaskDueToday(task, today) {
     if (!task.deadline && !task.end_date && !task.start_date) {
@@ -319,8 +321,8 @@ function isTaskDueToday(task, today) {
     
     var dateStatus = getTaskDateStatus(task, today);
     
-    // Show if task is in range today OR if it's overdue
-    return dateStatus.isInRange || dateStatus.isOverdue;
+    // Show if task is in range today but NOT overdue
+    return dateStatus.isInRange && !dateStatus.isOverdue;
 }
 
 /**
@@ -404,7 +406,7 @@ function isTaskDueLater(task, today) {
     // Check if not overdue
     var dateStatus = getTaskDateStatus(task, today);
     if (dateStatus.isOverdue) {
-        return false; // Overdue tasks should appear in "today"
+        return false; // Overdue tasks should appear in "overdue" filter
     }
     
     // Show if task starts after this month
@@ -416,6 +418,21 @@ function isTaskDueLater(task, today) {
  */
 function isTaskCompleted(task) {
     return task.status === "completed" || task.status === "done" || task.state === "done";
+}
+
+/**
+ * Check if task is overdue
+ * @param {Object} task - The task object
+ * @param {Date} today - Current date for comparison
+ * @returns {boolean} True if task is overdue
+ */
+function isTaskOverdue(task, today) {
+    if (!task.deadline && !task.end_date && !task.start_date) {
+        return false;
+    }
+    
+    var dateStatus = getTaskDateStatus(task, today);
+    return dateStatus.isOverdue;
 }
 
 /**
