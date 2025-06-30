@@ -15,14 +15,14 @@ Item {
     property string label1: "Today"
     property string label2: "Next Week"
     property string label3: "Next Month"
-    property string label4: "Later"
-    property string label5: "Favorites"
+    property string label4: "OverDue"
+    property string label5: "All"
 
     property string filter1: "today"
     property string filter2: "next_week"
     property string filter3: "next_month"
-    property string filter4: "later"
-    property string filter5: "favorites"
+    property string filter4: "overdue"
+    property string filter5: "all"
 
     property bool showSearchBox: true
     property string currentFilter: filter1  // Track currently selected filter
