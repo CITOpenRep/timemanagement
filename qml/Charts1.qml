@@ -29,6 +29,10 @@ import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
 
+/*
+Todo : The Chart Files need to be revisited and Merged in a Single File with all the Different Charts
+*/
+
 Rectangle {
     id: rect1
     width: parent.width

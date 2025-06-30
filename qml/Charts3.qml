@@ -31,6 +31,9 @@ import "../models/Main.js" as Model
 
 /**************************
 * Projectwise graph       *
+* This is a Bar Chart for Projectwise Time Spent
+* It is only visible in Convergence Mode
+Todo : The Chart Files need to be revisited and Merged in a Single File with all the Different Charts.
 **************************/
 Rectangle {
     id: rect4

@@ -116,6 +116,10 @@ Page {
         }
     }
 
+    /*
+    Todo :   - Refactor the date filter logic to be more modular and reusable. And Move to Activity.js
+    */
+
     function passesDateFilter(dueDateStr, filter, currentDate) {
         // Handle "all" filter - show everything
         if (filter === "all") {

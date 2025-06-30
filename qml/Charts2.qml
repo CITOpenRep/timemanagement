@@ -31,6 +31,8 @@ import "../models/Main.js" as Model
 
 /****************
     * Chart 2 comes below
+    * Pie Chart for Time Spent this month
+    TODO : The Chart Files need to be revisited and Merged in a Single File with all the Different Charts
     *****************/
 
 Rectangle {

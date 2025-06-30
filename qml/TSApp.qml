@@ -28,6 +28,13 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
 import "../models/dbinit.js" as DbInit
 
+
+/*
+Todo: Need to Visit this Page Again and Refactor it.
+This is the Main View of the Application.
+It contains the AdaptivePageLayout which is used to switch between different layouts based on the screen size
+*/
+
 MainView {
     id: mainView
 
