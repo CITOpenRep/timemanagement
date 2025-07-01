@@ -15,37 +15,29 @@ Rectangle {
     // Visibility control properties
     property bool showAccountSelector: true
     property bool showProjectSelector: true
+    property bool showSubProjectSelector: true
     property bool showTaskSelector: true
+    property bool showSubTaskSelector: true
     property bool readOnly: false
     property string accountLabelText: "Account"
     property string projectLabelText: "Project"
+    property string subProjectLabelText: "Subproject"
     property string taskLabelText: "Task"
+    property string subTaskLabelText: "Subtask"
     property bool showAssigneeSelector: false
     property string assigneeLabelText: "Assignee"
 
     signal accountChanged(int accountId)
 
-    /**
-     * Applies a deferred selection state for the account, project, and task selectors.
-     *
-     * This function is typically used to restore a previous selection after loading,
-     * or to initialize a known selection when opening a form. It triggers:
-     *   1. Account selection via `selectAccountById`
-     *   2. Project list reload and pre-selection via `reloadProjectSelector`
-     *   3. Task list reload and pre-selection via `reloadTaskSelector`
-     *
-     * Each reload function will also set the display label and handle missing selections gracefully.
-     *
-     * @param {int} accountId   - The ID of the account to preselect (0 for local, others for Odoo).
-     * @param {int} projectid   - The ID (local or Odoo) of the project to preselect in the project tree.
-     * @param {int} taskId      - The ID (local or Odoo) of the task to preselect in the task tree.
-     */
-    function applyDeferredSelection(accountId, projectId, taskId, assigneeId) {
+    function applyDeferredSelection(accountId, projectId, subProjectId, taskId, subTaskId, assigneeId) {
         if (accountSelector.model.count === 0) {
             deferredApplyTimer.deferredPayload = {
                 accountId: accountId,
                 projectId: projectId,
-                taskId: taskId
+                subProjectId: subProjectId,
+                taskId: taskId,
+                subTaskId: subTaskId,
+                assigneeId: assigneeId
             };
             deferredApplyTimer.start();
             return;
@@ -53,30 +45,17 @@ Rectangle {
 
         accountSelector.selectAccountById(accountId);
         reloadProjectSelector(accountId, projectId);
+        reloadSubProjectSelector(accountId, projectId, subProjectId);
         reloadTaskSelector(accountId, taskId);
+        reloadSubTaskSelector(accountId, taskId, subTaskId);
         reloadAssigneeSelector(accountId, assigneeId);
     }
 
-    /**
-     * Reloads the Assignee TreeSelector with a user list and includes a default "Unassigned" option.
-     *
-     * This function fetches user records from the local database (res_users_app) for a given account ID.
-     * It formats them into a flat list compatible with TreeSelector, where each user is treated as a top-level node.
-     * A default "Unassigned" entry is always shown at the top of the list.
-     *
-     * @param {int} accountId - The ID of the account (0 = local account, >0 = Odoo instance).
-     * @param {int} [selectedAssigneeId] - Optional assignee ID (local or Odoo) to preselect.
-     */
     function reloadAssigneeSelector(accountId, selectedAssigneeId) {
-        let rawAssignees = Accounts.getUsers(accountId);  // expects: [{id, name, odoo_record_id}]
+        let rawAssignees = Accounts.getUsers(accountId);
         let flatModel = [];
 
-        // Default "Unassigned" entry
-        flatModel.push({
-            id: -1,
-            name: "Unassigned",
-            parent_id: null
-        });
+        flatModel.push({ id: -1, name: "Unassigned", parent_id: null });
 
         let selectedText = "Unassigned";
         let selectedFound = (selectedAssigneeId === -1);
@@ -85,46 +64,26 @@ Rectangle {
             let id = accountId === 0 ? rawAssignees[i].id : rawAssignees[i].odoo_record_id;
             let name = rawAssignees[i].name;
 
-            flatModel.push({
-                id: id,
-                name: name,
-                parent_id: null  // or 0, as needed by TreeSelector (no hierarchy)
-            });
+            flatModel.push({ id: id, name: name, parent_id: null });
 
-            if (selectedAssigneeId !== undefined && selectedAssigneeId !== null && selectedAssigneeId === id) {
+            if (selectedAssigneeId === id) {
                 selectedText = name;
                 selectedFound = true;
             }
         }
 
-        // Push to selector
         assigneeSelector.dataList = flatModel;
         assigneeSelector.reload();
 
-        // Update selection
         assigneeSelector.selectedId = selectedFound ? selectedAssigneeId : -1;
         assigneeSelector.currentText = selectedFound ? selectedText : "Select Assignee";
     }
 
-    /**
-     * Reloads the Project TreeSelector with project data and includes a default "No Project" option.
-     *
-     * This version prepends a special default entry (id: -1) labeled "No Project",
-     * allowing the user to explicitly deselect a project.
-     *
-     * @param {int} accountId - ID of the account (0 = local).
-     * @param {int} [selectedProjectId] - Optional project ID (local or Odoo) to preselect.
-     */
     function reloadProjectSelector(accountId, selectedProjectId) {
         let rawProjects = Project.getProjectsForAccount(accountId);
         let flatModel = [];
 
-        // Add default "No Project" entry
-        flatModel.push({
-            id: -1,
-            name: "No Project",
-            parent_id: null
-        });
+        flatModel.push({ id: -1, name: "No Project", parent_id: null });
 
         let selectedText = "No Project";
         let selectedFound = (selectedProjectId === -1);
@@ -134,46 +93,66 @@ Rectangle {
             let name = rawProjects[i].name;
             let parentId = rawProjects[i].parent_id;
 
-            flatModel.push({
-                id: id,
-                name: name,
-                parent_id: parentId
-            });
+            // ✅ Only add top-level projects
+            if (parentId === null || parentId === 0) {
+                flatModel.push({ id: id, name: name, parent_id: null });
 
-            if (selectedProjectId !== undefined && selectedProjectId !== null && selectedProjectId === id) {
-                selectedText = name;
-                selectedFound = true;
+                if (selectedProjectId === id) {
+                    selectedText = name;
+                    selectedFound = true;
+                }
             }
         }
 
-        // Push to the model and reload
         projectSelector.dataList = flatModel;
         projectSelector.reload();
 
-        // Update UI label
         projectSelector.selectedId = selectedFound ? selectedProjectId : -1;
         projectSelector.currentText = selectedFound ? selectedText : "Select Project";
     }
 
-    /**
-     * Reloads the Task TreeSelector with a task list and includes a default "No Task" option.
-     *
-     * This function loads tasks for a given account, formats them into a flat tree-compatible model,
-     * prepends a "No Task" option with `id: -1`, and optionally preselects a given task.
-     *
-     * @param {int} accountId - The ID of the account (0 = local).
-     * @param {int} [selectedTaskId] - Optional task ID (local or Odoo) to preselect.
-     */
+
+    function reloadSubProjectSelector(accountId, parentProjectId, selectedSubProjectId) {
+        let rawProjects = Project.getProjectsForAccount(accountId);
+        let flatModel = [];
+
+        flatModel.push({ id: -1, name: "No SubProject", parent_id: null });
+
+        let selectedText = "No Project";
+        let selectedFound = (selectedSubProjectId === -1);
+
+
+        for (let i = 0; i < rawProjects.length; i++) {
+            let id = accountId === 0 ? rawProjects[i].id : rawProjects[i].odoo_record_id;
+            let name = rawProjects[i].name;
+            let parentId = rawProjects[i].parent_id;
+
+            if (parentId === parentProjectId) {
+                flatModel.push({ id: id, name: name, parent_id: null });
+
+                if (selectedSubProjectId === id) {
+                    selectedText = name;
+                    selectedFound = true;
+                }
+            }
+        }
+
+        console.log("Below is data fromr reloadSubProjectSelector")
+        console.log("SubProject Model: " + JSON.stringify(flatModel));
+
+        subProjectSelector.dataList = flatModel;
+        subProjectSelector.reload();
+
+        subProjectSelector.selectedId = selectedFound ? selectedSubProjectId : -1;
+        subProjectSelector.currentText = selectedFound ? selectedText : "Select Subproject";
+    }
+
+
     function reloadTaskSelector(accountId, selectedTaskId) {
         let rawTasks = Task.getTasksForAccount(accountId);
         let flatModel = [];
 
-        // ✅ Add default "No Task" entry
-        flatModel.push({
-            id: -1,
-            name: "No Task",
-            parent_id: null
-        });
+        flatModel.push({ id: -1, name: "No Task", parent_id: null });
 
         let selectedText = "No Task";
         let selectedFound = (selectedTaskId === -1);
@@ -183,15 +162,14 @@ Rectangle {
             let name = rawTasks[i].name;
             let parentId = rawTasks[i].parent_id;
 
-            flatModel.push({
-                id: id,
-                name: name,
-                parent_id: parentId
-            });
+            // ✅ Only add top-level tasks (no parent or parent = 0)
+            if (parentId === null || parentId === 0) {
+                flatModel.push({ id: id, name: name, parent_id: null });
 
-            if (selectedTaskId !== undefined && selectedTaskId !== null && selectedTaskId === id) {
-                selectedText = name;
-                selectedFound = true;
+                if (selectedTaskId === id) {
+                    selectedText = name;
+                    selectedFound = true;
+                }
             }
         }
 
@@ -202,11 +180,47 @@ Rectangle {
         taskSelector.currentText = selectedFound ? selectedText : "Select Task";
     }
 
+
+    function reloadSubTaskSelector(accountId, parentTaskId, selectedSubTaskId) {
+        let rawTasks = Task.getTasksForAccount(accountId);
+        let flatModel = [];
+
+        let selectedText = "No Subtask";
+        let selectedFound = (selectedSubTaskId === -1);
+
+        for (let i = 0; i < rawTasks.length; i++) {
+            let id = accountId === 0 ? rawTasks[i].id : rawTasks[i].odoo_record_id;
+            let name = rawTasks[i].name;
+            let parentId = rawTasks[i].parent_id;
+
+            if (parentId === parentTaskId) {
+                // ✅ Insert as top-level for SubTaskSelector
+                flatModel.push({ id: id, name: name, parent_id: null });
+
+                if (selectedSubTaskId === id) {
+                    selectedText = name;
+                    selectedFound = true;
+                }
+            }
+        }
+
+        console.log("Below is data from reloadSubTaskSelector");
+        console.log("SubTask Model: " + JSON.stringify(flatModel));
+
+        subTaskSelector.dataList = flatModel;
+        subTaskSelector.reload();
+
+        subTaskSelector.selectedId = selectedFound ? selectedSubTaskId : -1;
+        subTaskSelector.currentText = selectedFound ? selectedText : "Select Subtask";
+    }
+
     function getAllSelectedDbRecordIds() {
         return {
             accountDbId: accountSelector.selectedInstanceId,
             projectDbId: projectSelector.selectedId,
+            subProjectDbId: subProjectSelector.selectedId,
             taskDbId: taskSelector.selectedId,
+            subTaskDbId: subTaskSelector.selectedId,
             assigneeDbId: assigneeSelector.selectedId
         };
     }
@@ -216,24 +230,19 @@ Rectangle {
         width: parent.width
         spacing: units.gu(1)
 
-        // Account Row
         Row {
             width: parent.width
-            //spacing: units.gu(1)
             visible: showAccountSelector
             height: units.gu(5)
             TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
-
                 text: accountLabelText
                 verticalAlignment: Text.AlignVCenter
             }
-
             Item {
                 width: parent.width * 0.75
                 height: units.gu(5)
-                // color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "grey" : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
                 AccountSelector {
                     id: accountSelector
@@ -243,7 +252,9 @@ Rectangle {
                     editable: false
                     onAccountSelected: {
                         reloadProjectSelector(accountSelector.selectedInstanceId);
+                        reloadSubProjectSelector(accountSelector.selectedInstanceId, -1, -1);
                         reloadTaskSelector(accountSelector.selectedInstanceId);
+                        reloadSubTaskSelector(accountSelector.selectedInstanceId, -1, -1);
                         accountChanged(accountSelector.selectedInstanceId);
                         reloadAssigneeSelector(accountSelector.selectedInstanceId);
                     }
@@ -251,42 +262,106 @@ Rectangle {
             }
         }
 
-        // 🔹 Parent Project Row
         Row {
             width: parent.width
-            // spacing: units.gu(1)
             visible: showProjectSelector
             height: units.gu(5)
             TreeSelector {
                 id: projectSelector
                 enabled: !readOnly
-                labelText: "Parent Project"
+                labelText: projectLabelText
+                width: parent.width
+                height: units.gu(29)
+
+                onItemSelected: {
+                    let accountId = accountSelector.selectedInstanceId;
+                    let selectedProjectId = projectSelector.selectedId;
+
+                    let children = Project.getProjectsForAccount(accountId)
+                    .filter(function(proj) {
+                        return proj.parent_id === selectedProjectId;
+                    });
+
+                    console.log("Project Selected ID: " + selectedProjectId);
+                    console.log("Children count: " + children.length);
+                    console.log("Children JSON: " + JSON.stringify(children));
+
+                    if (children.length > 0) {
+                        showSubProjectSelector = true;
+                        reloadSubProjectSelector(accountId, selectedProjectId, -1);
+                    } else {
+                        showSubProjectSelector = false;
+                    }
+                }
+
+            }
+        }
+
+
+        Row {
+            width: parent.width
+            visible: showSubProjectSelector
+            height: units.gu(5)
+            TreeSelector {
+                id: subProjectSelector
+                enabled: !readOnly
+                labelText: subProjectLabelText
                 width: parent.width
                 height: units.gu(29)
             }
         }
 
-        // 🔹 Parent Task Row
         Row {
             width: parent.width
-            // spacing: units.gu(1)
             visible: showTaskSelector
             height: units.gu(5)
             TreeSelector {
                 id: taskSelector
                 enabled: !readOnly
-                labelText: "Parent Task"
+                labelText: taskLabelText
+                width: parent.width
+                height: units.gu(29)
+                onItemSelected: {
+                    let accountId = accountSelector.selectedInstanceId;
+                    let selectedTaskId = taskSelector.selectedId;
+
+                    let children = Task.getTasksForAccount(accountId)
+                    .filter(function(task) {
+                        return task.parent_id === selectedTaskId;
+                    });
+
+                    console.log("Task Selected ID: " + selectedTaskId);
+                    console.log("Subtask children count: " + children.length);
+                    console.log("Subtask children JSON: " + JSON.stringify(children));
+
+                    if (children.length > 0) {
+                        showSubTaskSelector = true;
+                        reloadSubTaskSelector(accountId, selectedTaskId, -1);
+                    } else {
+                        showSubTaskSelector = false;
+                    }
+                }
+
+            }
+        }
+
+        Row {
+            width: parent.width
+            visible: showSubTaskSelector
+            height: units.gu(5)
+            TreeSelector {
+                id: subTaskSelector
+                enabled: !readOnly
+                labelText: subTaskLabelText
                 width: parent.width
                 height: units.gu(29)
             }
         }
 
-        // 🔹 Assignee Row
         Row {
             width: parent.width
             visible: showAssigneeSelector
             height: units.gu(5)
-
             TreeSelector {
                 id: assigneeSelector
                 enabled: !readOnly
@@ -307,16 +382,13 @@ Rectangle {
                 if (!deferredPayload || accountSelector.model.count === 0) {
                     return;
                 }
-
                 deferredApplyTimer.stop();
-
                 let p = deferredApplyTimer.deferredPayload;
                 deferredApplyTimer.deferredPayload = null;
-
-                accountSelector.selectAccountById(p.accountId);
-                reloadProjectSelector(p.accountId, p.projectId);
-                reloadTaskSelector(p.accountId, p.taskId);
-                reloadAssigneeSelector(p.accountId, p.assigneeId);
+                applyDeferredSelection(
+                            p.accountId, p.projectId, p.subProjectId,
+                            p.taskId, p.subTaskId, p.assigneeId
+                            );
             }
         }
     }
