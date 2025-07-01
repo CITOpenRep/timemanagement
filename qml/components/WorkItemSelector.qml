@@ -1,6 +1,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+
 import "../../models/constants.js" as AppConst
 import "../../models/project.js" as Project
 import "../../models/accounts.js" as Accounts
@@ -12,216 +13,60 @@ Rectangle {
     height: contentColumn.implicitHeight
     color: "transparent"
 
-    // Visibility control properties
+    // External interface unchanged:
     property bool showAccountSelector: true
     property bool showProjectSelector: true
-    property bool showSubProjectSelector: true
     property bool showTaskSelector: true
-    property bool showSubTaskSelector: true
+    property bool showAssigneeSelector: false
+
     property bool readOnly: false
     property string accountLabelText: "Account"
     property string projectLabelText: "Project"
     property string subProjectLabelText: "Subproject"
     property string taskLabelText: "Task"
     property string subTaskLabelText: "Subtask"
-    property bool showAssigneeSelector: false
     property string assigneeLabelText: "Assignee"
 
     signal accountChanged(int accountId)
 
+    property int selectedAccountId: -1
+    property int selectedProjectId: -1
+    property int selectedTaskId: -1
+    property int selectedAssigneeId: -1
+
     function applyDeferredSelection(accountId, projectId, subProjectId, taskId, subTaskId, assigneeId) {
         if (accountSelector.model.count === 0) {
             deferredApplyTimer.deferredPayload = {
-                accountId: accountId,
-                projectId: projectId,
-                subProjectId: subProjectId,
-                taskId: taskId,
-                subTaskId: subTaskId,
-                assigneeId: assigneeId
+                accountId, projectId, subProjectId, taskId, subTaskId, assigneeId
             };
             deferredApplyTimer.start();
             return;
         }
 
-        accountSelector.selectAccountById(accountId);
-        reloadProjectSelector(accountId, projectId);
-        reloadSubProjectSelector(accountId, projectId, subProjectId);
-        reloadTaskSelector(accountId, taskId);
-        reloadSubTaskSelector(accountId, taskId, subTaskId);
-        reloadAssigneeSelector(accountId, assigneeId);
-    }
+        console.log("Loading Deferred Selection:", JSON.stringify({
+            accountId, projectId, subProjectId, taskId, subTaskId, assigneeId
+        }));
 
-    function reloadAssigneeSelector(accountId, selectedAssigneeId) {
-        let rawAssignees = Accounts.getUsers(accountId);
-        let flatModel = [];
+        selectedAccountId = accountId;
+        selectedProjectId = subProjectId !== -1 ? subProjectId : projectId;
+        selectedTaskId = subTaskId !== -1 ? subTaskId : taskId;
+        selectedAssigneeId = assigneeId;
 
-        flatModel.push({ id: -1, name: "Unassigned", parent_id: null });
+        projectSelectorWrapper.accountId = accountId;
+        projectSelectorWrapper.loadParentSelector(selectedProjectId);
 
-        let selectedText = "Unassigned";
-        let selectedFound = (selectedAssigneeId === -1);
-
-        for (let i = 0; i < rawAssignees.length; i++) {
-            let id = accountId === 0 ? rawAssignees[i].id : rawAssignees[i].odoo_record_id;
-            let name = rawAssignees[i].name;
-
-            flatModel.push({ id: id, name: name, parent_id: null });
-
-            if (selectedAssigneeId === id) {
-                selectedText = name;
-                selectedFound = true;
-            }
-        }
-
-        assigneeSelector.dataList = flatModel;
-        assigneeSelector.reload();
-
-        assigneeSelector.selectedId = selectedFound ? selectedAssigneeId : -1;
-        assigneeSelector.currentText = selectedFound ? selectedText : "Select Assignee";
-    }
-
-    function reloadProjectSelector(accountId, selectedProjectId) {
-        let rawProjects = Project.getProjectsForAccount(accountId);
-        let flatModel = [];
-
-        flatModel.push({ id: -1, name: "No Project", parent_id: null });
-
-        let selectedText = "No Project";
-        let selectedFound = (selectedProjectId === -1);
-
-        for (let i = 0; i < rawProjects.length; i++) {
-            let id = accountId === 0 ? rawProjects[i].id : rawProjects[i].odoo_record_id;
-            let name = rawProjects[i].name;
-            let parentId = rawProjects[i].parent_id;
-
-            // ✅ Only add top-level projects
-            if (parentId === null || parentId === 0) {
-                flatModel.push({ id: id, name: name, parent_id: null });
-
-                if (selectedProjectId === id) {
-                    selectedText = name;
-                    selectedFound = true;
-                }
-            }
-        }
-
-        projectSelector.dataList = flatModel;
-        projectSelector.reload();
-
-        projectSelector.selectedId = selectedFound ? selectedProjectId : -1;
-        projectSelector.currentText = selectedFound ? selectedText : "Select Project";
-    }
-
-
-    function reloadSubProjectSelector(accountId, parentProjectId, selectedSubProjectId) {
-        let rawProjects = Project.getProjectsForAccount(accountId);
-        let flatModel = [];
-
-        flatModel.push({ id: -1, name: "No SubProject", parent_id: null });
-
-        let selectedText = "No Project";
-        let selectedFound = (selectedSubProjectId === -1);
-
-
-        for (let i = 0; i < rawProjects.length; i++) {
-            let id = accountId === 0 ? rawProjects[i].id : rawProjects[i].odoo_record_id;
-            let name = rawProjects[i].name;
-            let parentId = rawProjects[i].parent_id;
-
-            if (parentId === parentProjectId) {
-                flatModel.push({ id: id, name: name, parent_id: null });
-
-                if (selectedSubProjectId === id) {
-                    selectedText = name;
-                    selectedFound = true;
-                }
-            }
-        }
-
-        console.log("Below is data fromr reloadSubProjectSelector")
-        console.log("SubProject Model: " + JSON.stringify(flatModel));
-
-        subProjectSelector.dataList = flatModel;
-        subProjectSelector.reload();
-
-        subProjectSelector.selectedId = selectedFound ? selectedSubProjectId : -1;
-        subProjectSelector.currentText = selectedFound ? selectedText : "Select Subproject";
-    }
-
-
-    function reloadTaskSelector(accountId, selectedTaskId) {
-        let rawTasks = Task.getTasksForAccount(accountId);
-        let flatModel = [];
-
-        flatModel.push({ id: -1, name: "No Task", parent_id: null });
-
-        let selectedText = "No Task";
-        let selectedFound = (selectedTaskId === -1);
-
-        for (let i = 0; i < rawTasks.length; i++) {
-            let id = accountId === 0 ? rawTasks[i].id : rawTasks[i].odoo_record_id;
-            let name = rawTasks[i].name;
-            let parentId = rawTasks[i].parent_id;
-
-            // ✅ Only add top-level tasks (no parent or parent = 0)
-            if (parentId === null || parentId === 0) {
-                flatModel.push({ id: id, name: name, parent_id: null });
-
-                if (selectedTaskId === id) {
-                    selectedText = name;
-                    selectedFound = true;
-                }
-            }
-        }
-
-        taskSelector.dataList = flatModel;
-        taskSelector.reload();
-
-        taskSelector.selectedId = selectedFound ? selectedTaskId : -1;
-        taskSelector.currentText = selectedFound ? selectedText : "Select Task";
-    }
-
-
-    function reloadSubTaskSelector(accountId, parentTaskId, selectedSubTaskId) {
-        let rawTasks = Task.getTasksForAccount(accountId);
-        let flatModel = [];
-
-        let selectedText = "No Subtask";
-        let selectedFound = (selectedSubTaskId === -1);
-
-        for (let i = 0; i < rawTasks.length; i++) {
-            let id = accountId === 0 ? rawTasks[i].id : rawTasks[i].odoo_record_id;
-            let name = rawTasks[i].name;
-            let parentId = rawTasks[i].parent_id;
-
-            if (parentId === parentTaskId) {
-                // ✅ Insert as top-level for SubTaskSelector
-                flatModel.push({ id: id, name: name, parent_id: null });
-
-                if (selectedSubTaskId === id) {
-                    selectedText = name;
-                    selectedFound = true;
-                }
-            }
-        }
-
-        console.log("Below is data from reloadSubTaskSelector");
-        console.log("SubTask Model: " + JSON.stringify(flatModel));
-
-        subTaskSelector.dataList = flatModel;
-        subTaskSelector.reload();
-
-        subTaskSelector.selectedId = selectedFound ? selectedSubTaskId : -1;
-        subTaskSelector.currentText = selectedFound ? selectedText : "Select Subtask";
+        assigneeSelectorWrapper.accountId = accountId;
+        assigneeSelectorWrapper.loadSelector(selectedAssigneeId);
     }
 
     function getAllSelectedDbRecordIds() {
         return {
-            accountDbId: accountSelector.selectedInstanceId,
-            projectDbId: projectSelector.selectedId,
-            subProjectDbId: subProjectSelector.selectedId,
-            taskDbId: taskSelector.selectedId,
-            subTaskDbId: subTaskSelector.selectedId,
-            assigneeDbId: assigneeSelector.selectedId
+            accountDbId: selectedAccountId,
+            projectDbId: projectSelectorWrapper.effectiveId,
+            subProjectDbId: -1,
+            taskDbId: taskSelectorWrapper.effectiveId,
+            subTaskDbId: -1,
+            assigneeDbId: assigneeSelectorWrapper.effectiveId
         };
     }
 
@@ -230,144 +75,126 @@ Rectangle {
         width: parent.width
         spacing: units.gu(1)
 
+        // Account Selector
         Row {
             width: parent.width
             visible: showAccountSelector
             height: units.gu(5)
+
             TSLabel {
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
                 text: accountLabelText
                 verticalAlignment: Text.AlignVCenter
             }
+
             Item {
                 width: parent.width * 0.75
                 height: units.gu(5)
                 anchors.verticalCenter: parent.verticalCenter
+
                 AccountSelector {
                     id: accountSelector
                     anchors.centerIn: parent
-                    anchors.verticalCenter: parent.verticalCenter
                     enabled: !readOnly
                     editable: false
+
                     onAccountSelected: {
-                        reloadProjectSelector(accountSelector.selectedInstanceId);
-                        reloadSubProjectSelector(accountSelector.selectedInstanceId, -1, -1);
-                        reloadTaskSelector(accountSelector.selectedInstanceId);
-                        reloadSubTaskSelector(accountSelector.selectedInstanceId, -1, -1);
-                        accountChanged(accountSelector.selectedInstanceId);
-                        reloadAssigneeSelector(accountSelector.selectedInstanceId);
+                        console.log("Account selected:", accountSelector.selectedInstanceId);
+                        selectedAccountId = accountSelector.selectedInstanceId;
+                        projectSelectorWrapper.accountId = selectedAccountId;
+                        projectSelectorWrapper.loadParentSelector(-1);
+                        taskSelectorWrapper.accountId = selectedAccountId;
+                        assigneeSelectorWrapper.accountId = selectedAccountId;
+                        accountChanged(selectedAccountId);
                     }
                 }
             }
         }
 
-        Row {
-            width: parent.width
+        // Project & Subproject Selector
+        ParentChildSelector {
+            id: projectSelectorWrapper
+            accountId: selectedAccountId
+            parentLabel: projectLabelText
+            childLabel: subProjectLabelText
+            getRecords: Project.getProjectsForAccount
             visible: showProjectSelector
-            height: units.gu(5)
-            TreeSelector {
-                id: projectSelector
-                enabled: !readOnly
-                labelText: projectLabelText
-                width: parent.width
-                height: units.gu(29)
+            width: parent.width
+            height: units.gu(10)
 
-                onItemSelected: {
-                    let accountId = accountSelector.selectedInstanceId;
-                    let selectedProjectId = projectSelector.selectedId;
+            property int effectiveId: -1
 
-                    let children = Project.getProjectsForAccount(accountId)
-                    .filter(function(proj) {
-                        return proj.parent_id === selectedProjectId;
-                    });
-
-                    console.log("Project Selected ID: " + selectedProjectId);
-                    console.log("Children count: " + children.length);
-                    console.log("Children JSON: " + JSON.stringify(children));
-
-                    if (children.length > 0) {
-                        showSubProjectSelector = true;
-                        reloadSubProjectSelector(accountId, selectedProjectId, -1);
-                    } else {
-                        showSubProjectSelector = false;
-                    }
-                }
-
+            onFinalItemSelected: {
+                effectiveId = id;
+                console.log("Effective Project ID:", effectiveId);
+                taskSelectorWrapper.accountId = selectedAccountId;
+                taskSelectorWrapper.setProjectFilter(effectiveId); // Filter tasks by project/subproject
+                taskSelectorWrapper.loadParentSelector(-1);
             }
         }
 
-
-        Row {
-            width: parent.width
-            visible: showSubProjectSelector
-            height: units.gu(5)
-            TreeSelector {
-                id: subProjectSelector
-                enabled: !readOnly
-                labelText: subProjectLabelText
-                width: parent.width
-                height: units.gu(29)
-            }
-        }
-
-        Row {
-            width: parent.width
+        // Task & Subtask Selector
+        ParentChildSelector {
+            id: taskSelectorWrapper
+            accountId: selectedAccountId
+            parentLabel: taskLabelText
+            childLabel: subTaskLabelText
             visible: showTaskSelector
-            height: units.gu(5)
-            TreeSelector {
-                id: taskSelector
-                enabled: !readOnly
-                labelText: taskLabelText
-                width: parent.width
-                height: units.gu(29)
-                onItemSelected: {
-                    let accountId = accountSelector.selectedInstanceId;
-                    let selectedTaskId = taskSelector.selectedId;
-
-                    let children = Task.getTasksForAccount(accountId)
-                    .filter(function(task) {
-                        return task.parent_id === selectedTaskId;
-                    });
-
-                    console.log("Task Selected ID: " + selectedTaskId);
-                    console.log("Subtask children count: " + children.length);
-                    console.log("Subtask children JSON: " + JSON.stringify(children));
-
-                    if (children.length > 0) {
-                        showSubTaskSelector = true;
-                        reloadSubTaskSelector(accountId, selectedTaskId, -1);
-                    } else {
-                        showSubTaskSelector = false;
-                    }
-                }
-
-            }
-        }
-
-        Row {
             width: parent.width
-            visible: showSubTaskSelector
-            height: units.gu(5)
-            TreeSelector {
-                id: subTaskSelector
-                enabled: !readOnly
-                labelText: subTaskLabelText
-                width: parent.width
-                height: units.gu(29)
+            height: units.gu(10)
+
+            property int effectiveId: -1
+            property int projectFilterId: -1
+
+            function setProjectFilter(projId) {
+                projectFilterId = projId;
+            }
+
+            getRecords: function(accountId) {
+                let allTasks = Task.getTasksForAccount(accountId);
+                if (projectFilterId === -1) {
+                    return allTasks;
+                }
+                return allTasks.filter(function(task) {
+                    return task.project_id === projectFilterId;
+                });
+            }
+
+            onFinalItemSelected: {
+                effectiveId = id;
+                console.log("Effective Task ID:", effectiveId);
             }
         }
 
-        Row {
+        // Assignee Selector
+        TreeSelector {
+            id: assigneeSelectorWrapper
+            labelText: assigneeLabelText
             width: parent.width
             visible: showAssigneeSelector
-            height: units.gu(5)
-            TreeSelector {
-                id: assigneeSelector
-                enabled: !readOnly
-                labelText: assigneeLabelText
-                width: parent.width
-                height: units.gu(29)
+            enabled: !readOnly
+
+            property int effectiveId: -1
+
+            function loadSelector(selectedId) {
+                if (selectedAccountId === -1) return;
+                let records = Accounts.getUsers(selectedAccountId);
+                let flatModel = [{ id: -1, name: "Unassigned", parent_id: null }];
+                for (let i = 0; i < records.length; i++) {
+                    let id = records[i].odoo_record_id !== undefined ? records[i].odoo_record_id : records[i].id;
+                    let name = records[i].name;
+                    flatModel.push({ id: id, name: name, parent_id: null });
+                }
+                assigneeSelectorWrapper.dataList = flatModel;
+                assigneeSelectorWrapper.reload();
+                assigneeSelectorWrapper.selectedId = selectedId !== undefined ? selectedId : -1;
+                assigneeSelectorWrapper.currentText = "Select Assignee";
+            }
+
+            onItemSelected: {
+                effectiveId = assigneeSelectorWrapper.selectedId;
+                console.log("Assignee ID:", effectiveId);
             }
         }
 
@@ -379,16 +206,14 @@ Rectangle {
             property var deferredPayload: null
 
             onTriggered: {
-                if (!deferredPayload || accountSelector.model.count === 0) {
-                    return;
-                }
+                if (!deferredPayload || accountSelector.model.count === 0) return;
                 deferredApplyTimer.stop();
                 let p = deferredApplyTimer.deferredPayload;
                 deferredApplyTimer.deferredPayload = null;
                 applyDeferredSelection(
-                            p.accountId, p.projectId, p.subProjectId,
-                            p.taskId, p.subTaskId, p.assigneeId
-                            );
+                    p.accountId, p.projectId, p.subProjectId,
+                    p.taskId, p.subTaskId, p.assigneeId
+                );
             }
         }
     }
