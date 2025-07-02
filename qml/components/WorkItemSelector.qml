@@ -208,12 +208,9 @@ Rectangle {
             childLabel: subProjectLabelText
             getRecords: Project.getProjectsForAccount
             visible: showProjectSelector
+            enabled: !readOnly
             width: parent.width
             height: units.gu(10)
-
-            // anchors.top: showAssigneeSelector ? assigneeSelectorWrapper.bottom : myRow1a.bottom
-            // anchors.left: parent.left
-            // anchors.right: parent.right
 
             property int effectiveId: -1
 
@@ -233,6 +230,7 @@ Rectangle {
             parentLabel: taskLabelText
             childLabel: subTaskLabelText
             visible: showTaskSelector
+            enabled: !readOnly
             width: parent.width
             height: units.gu(10)
 
