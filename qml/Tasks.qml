@@ -57,6 +57,14 @@ Page {
                 onTriggered: {
                     save_task_data();
                 }
+            },
+            Action {
+                iconName: "edit"
+                visible: isReadOnly && recordid !== 0
+                text: "Edit"
+                onTriggered: {
+                    switchToEditMode();
+                }
             }
         ]
     }
@@ -73,6 +81,13 @@ Page {
     property var prevtask: ""
 
     property var currentTask: {}
+
+    function switchToEditMode() {
+        // Simply change the current page to edit mode
+        if (recordid !== 0) {
+            isReadOnly = false;
+        }
+    }
 
     function save_task_data() {
         const ids = workItem.getAllSelectedDbRecordIds();
