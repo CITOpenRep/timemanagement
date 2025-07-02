@@ -94,12 +94,21 @@ Page {
     }
 
     function setDefaultAccount(accountId) {
+        console.log("Setting default account:", accountId);
+        
+        // Update the local model first
         for (let i = 0; i < accountListModel.count; i++) {
-            const isSelected = accountListModel.get(i).id === accountId ? 1 : 0;
+            const account = accountListModel.get(i);
+            const isSelected = account.id === accountId ? 1 : 0;
             accountListModel.setProperty(i, "is_default", isSelected);
+            console.log("Account", account.id, "is_default:", isSelected);
         }
 
-        Accounts.setDefaultAccount(accountId);  // Persist to DB
+        // Persist to database
+        const result = Accounts.setDefaultAccount(accountId);
+        console.log("Database update result:", result);
+        
+        // Refresh the accounts list to ensure consistency
         fetch_accounts();
     }
 
@@ -197,10 +206,20 @@ Page {
                                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                         }
                                         CheckBox {
+                                            id: defaultCheckBox
                                             checked: model.is_default === 1
                                             text: "Default"
+                                            
+                                            // Handle the click/toggle event
                                             onClicked: {
-                                                setDefaultAccount(model.id);
+                                                console.log("CheckBox clicked for account:", model.id, "current checked:", checked);
+                                                // Only set as default if this checkbox was unchecked and is now checked
+                                                if (checked) {
+                                                    setDefaultAccount(model.id);
+                                                } else {
+                                                    // Prevent unchecking - there must always be a default account
+                                                    checked = true;
+                                                }
                                             }
                                         }
                                     }
