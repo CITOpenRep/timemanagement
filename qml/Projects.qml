@@ -130,7 +130,7 @@ Page {
                 id: myRow1
                 anchors.top: myRow1a.bottom
                 anchors.left: parent.left
-                topPadding: units.gu(2)
+                topPadding: units.gu(10)
                 Column {
                     leftPadding: units.gu(2)
                     TSLabel {
