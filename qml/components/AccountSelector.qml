@@ -64,7 +64,8 @@ ComboBox {
                 name: accounts[i].name,
                 database: accounts[i].database,
                 link: accounts[i].link,
-                username: accounts[i].username
+                username: accounts[i].username,
+                is_default: accounts[i].is_default || 0
             });
         }
 
@@ -76,6 +77,11 @@ ComboBox {
                 selectAccountById(deferredAccountId);
                 shouldDeferSelection = false;
                 deferredAccountId = -1;
+            });
+        } else {
+            // Auto-select the default account if no deferred selection
+            Qt.callLater(() => {
+                selectDefaultAccount();
             });
         }
     }
@@ -93,6 +99,37 @@ ComboBox {
             selectedInstanceId = -1;
             editText = "Select an account";
         }
+    }
+
+    function selectDefaultAccount() {
+        console.log("[AccountSelector] selectDefaultAccount called");
+        
+        // First try to find the default account in the model
+        for (let i = 0; i < internalInstanceModel.count; i++) {
+            const item = internalInstanceModel.get(i);
+            if (item.is_default === 1) {
+                console.log("[AccountSelector] Found default account:", item.name);
+                suppressSignal = true;
+                currentIndex = i;
+                editText = item.name;
+                selectedInstanceId = item.id;
+                Qt.callLater(() => suppressSignal = false);
+                accountSelected(item.id, item.name);
+                return;
+            }
+        }
+        
+        // If no default found in model, try to get default ID from database
+        const defaultId = Accounts.getDefaultAccountId();
+        if (defaultId > 0) {
+            console.log("[AccountSelector] Found default account ID from DB:", defaultId);
+            selectAccountById(defaultId);
+            return;
+        }
+        
+        // If no default account found, select first account
+        console.log("[AccountSelector] No default account found, selecting first account");
+        selectFirstAccount();
     }
 
     function selectAccountById(accountId) {
@@ -123,11 +160,16 @@ ComboBox {
         console.warn("⚠️ Account ID not found:", accountId);
     }
 
+    function refreshAndSelectDefault() {
+        console.log("[AccountSelector] refreshAndSelectDefault called");
+        loadAccounts();
+        // loadAccounts will automatically call selectDefaultAccount
+    }
+
     Component.onCompleted: {
         loadAccounts();
-        if (!shouldDeferSelection) {
-            selectFirstAccount();
-        }
+        // The loadAccounts function now handles default account selection
+        // No need to call selectFirstAccount here anymore
     }
 
     onActivated: {
