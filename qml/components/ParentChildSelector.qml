@@ -88,7 +88,7 @@ Item {
 
     Column {
         anchors.fill: parent
-        spacing: units.gu(1)
+       spacing: units.gu(1)
 
         TreeSelector {
             id: parentSelector
@@ -104,9 +104,18 @@ Item {
             }
         }
 
+       Rectangle {
+            width: parentSelector.width
+            height: units.gu(1)
+           // anchors.top: parentSelector.bottom
+            color: "transparent"
+        }
+
         TreeSelector {
             id: childSelector
             labelText: childLabel
+          //  anchors.top: parentSelector.bottom
+            anchors.topMargin: units.gu(1)
             width: parent.width
             height: parent.height/4
             enabled: false // controlled dynamically
