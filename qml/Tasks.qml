@@ -31,6 +31,7 @@ import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
 import "../models/task.js" as Task
+import "../models/timesheet.js" as Timesheet
 import "../models/utils.js" as Utils
 import "../models/global.js" as Global
 import "../models/accounts.js" as Accounts
@@ -44,7 +45,6 @@ Page {
         title: taskCreate.title
         StyleHints {
             foregroundColor: "white"
-
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
@@ -207,8 +207,36 @@ Page {
             }
         }
         Row {
-            id: myRow9
+            id: add_timesheet
             anchors.top: myRow1b.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: units.gu(5)
+            visible: (recordid > 0) ? true : false
+            TSButton {
+                text: "Add Timesheet"
+                visible: (recordid > 0) ? true : false
+                width: parent.width / 2
+                height: parent.height
+                anchors.horizontalCenter: parent.horizontalCenter
+                onClicked: {
+                    let result = Timesheet.createTimesheetFromTask(recordid);
+                    if (result.success) {
+                        //We got the result success, lets open the record with the id
+                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Timesheet.qml"), {
+                            "recordid": result.id,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        console.log(result.error);
+                        notifPopup.open("Error", "Unable to create timesheet", "error");
+                    }
+                }
+            }
+        }
+        Row {
+            id: myRow9
+            anchors.top: (recordid > 0) ? add_timesheet.bottom : myRow1b.bottom //we are not showing add timesheet for a new task.
             anchors.left: parent.left
             topPadding: units.gu(5)
             Column {
