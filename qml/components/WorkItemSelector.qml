@@ -62,14 +62,23 @@ Rectangle {
         selectedTaskId = subTaskId !== -1 ? subTaskId : taskId;
         selectedAssigneeId = assigneeId;
 
+        // Set account ID for all selectors first
         projectSelectorWrapper.accountId = accountId;
+        taskSelectorWrapper.accountId = accountId;
+        assigneeSelectorWrapper.accountId = accountId;
+
+        // Load projects first
         projectSelectorWrapper.loadParentSelector(selectedProjectId);
 
-
-        taskSelectorWrapper.accountId = accountId;
+        // If we have a selected project, set the task filter and load tasks
+        if (selectedProjectId !== -1) {
+            taskSelectorWrapper.setProjectFilter(selectedProjectId);
+        } else {
+            taskSelectorWrapper.setProjectFilter(-1); // Show all tasks for account
+        }
         taskSelectorWrapper.loadParentSelector(selectedTaskId);
 
-        assigneeSelectorWrapper.accountId = accountId;
+        // Load assignees
         assigneeSelectorWrapper.loadSelector(selectedAssigneeId);
     }
 
@@ -120,6 +129,8 @@ Rectangle {
                         projectSelectorWrapper.accountId = selectedAccountId;
                         projectSelectorWrapper.loadParentSelector(-1);
                         taskSelectorWrapper.accountId = selectedAccountId;
+                        taskSelectorWrapper.setProjectFilter(-1); // Reset project filter
+                        taskSelectorWrapper.loadParentSelector(-1); // Reload tasks for new account
                         assigneeSelectorWrapper.accountId = selectedAccountId;
                         assigneeSelectorWrapper.loadSelector(-1); // Reload assignees for new account
                         accountChanged(selectedAccountId);
@@ -211,7 +222,7 @@ Rectangle {
                 console.log("Effective Project ID:", effectiveId);
                 taskSelectorWrapper.accountId = selectedAccountId;
                 taskSelectorWrapper.setProjectFilter(effectiveId); // Filter tasks by project/subproject
-                taskSelectorWrapper.loadParentSelector(-1);
+                taskSelectorWrapper.loadParentSelector(-1); // Reload tasks with project filter
             }
         }
 
