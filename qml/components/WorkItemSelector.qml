@@ -37,14 +37,24 @@ Rectangle {
     function applyDeferredSelection(accountId, projectId, subProjectId, taskId, subTaskId, assigneeId) {
         if (accountSelector.model.count === 0) {
             deferredApplyTimer.deferredPayload = {
-                accountId, projectId, subProjectId, taskId, subTaskId, assigneeId
+                accountId,
+                projectId,
+                subProjectId,
+                taskId,
+                subTaskId,
+                assigneeId
             };
             deferredApplyTimer.start();
             return;
         }
 
         console.log("Loading Deferred Selection:", JSON.stringify({
-            accountId, projectId, subProjectId, taskId, subTaskId, assigneeId
+            accountId,
+            projectId,
+            subProjectId,
+            taskId,
+            subTaskId,
+            assigneeId
         }));
 
         selectedAccountId = accountId;
@@ -54,6 +64,10 @@ Rectangle {
 
         projectSelectorWrapper.accountId = accountId;
         projectSelectorWrapper.loadParentSelector(selectedProjectId);
+
+
+        taskSelectorWrapper.accountId = accountId;
+        taskSelectorWrapper.loadParentSelector(selectedTaskId);
 
         assigneeSelectorWrapper.accountId = accountId;
         assigneeSelectorWrapper.loadSelector(selectedAssigneeId);
@@ -77,7 +91,7 @@ Rectangle {
 
         // Account Selector
         Row {
-            id : myRow1a
+            id: myRow1a
             width: parent.width
             visible: showAccountSelector
             height: units.gu(5)
@@ -107,13 +121,14 @@ Rectangle {
                         projectSelectorWrapper.loadParentSelector(-1);
                         taskSelectorWrapper.accountId = selectedAccountId;
                         assigneeSelectorWrapper.accountId = selectedAccountId;
+                        assigneeSelectorWrapper.loadSelector(-1); // Reload assignees for new account
                         accountChanged(selectedAccountId);
                     }
                 }
             }
         }
 
-          // Assignee Selector
+        // Assignee Selector
         TreeSelector {
             id: assigneeSelectorWrapper
             labelText: assigneeLabelText
@@ -122,30 +137,50 @@ Rectangle {
             enabled: !readOnly
 
             height: units.gu(5)
-         //   width: parent.width
-          //  anchors.top: myRow1a.bottom
 
-          
-
-            
-          
-
-      
+            property int accountId: selectedAccountId
             property int effectiveId: -1
 
             function loadSelector(selectedId) {
-                if (selectedAccountId === -1) return;
-                let records = Accounts.getUsers(selectedAccountId);
-                let flatModel = [{ id: -1, name: "Unassigned", parent_id: null }];
+                if (accountId === -1)
+                    return;
+                let records = Accounts.getUsers(accountId);
+                let flatModel = [
+                    {
+                        id: -1,
+                        name: "Unassigned",
+                        parent_id: null
+                    }
+                ];
+                
+                let selectedText = "Select Assignee";
+                let selectedFound = false;
+                
+                // Check if selectedId matches "Unassigned"
+                if (selectedId === -1) {
+                    selectedText = "Unassigned";
+                    selectedFound = true;
+                }
+                
                 for (let i = 0; i < records.length; i++) {
                     let id = records[i].odoo_record_id !== undefined ? records[i].odoo_record_id : records[i].id;
                     let name = records[i].name;
-                    flatModel.push({ id: id, name: name, parent_id: null });
+                    flatModel.push({
+                        id: id,
+                        name: name,
+                        parent_id: null
+                    });
+                    
+                    // Check if this is the selected assignee
+                    if (selectedId !== undefined && selectedId === id) {
+                        selectedText = name;
+                        selectedFound = true;
+                    }
                 }
                 assigneeSelectorWrapper.dataList = flatModel;
                 assigneeSelectorWrapper.reload();
                 assigneeSelectorWrapper.selectedId = selectedId !== undefined ? selectedId : -1;
-                assigneeSelectorWrapper.currentText = "Select Assignee";
+                assigneeSelectorWrapper.currentText = selectedText;
             }
 
             onItemSelected: {
@@ -164,15 +199,10 @@ Rectangle {
             visible: showProjectSelector
             width: parent.width
             height: units.gu(10)
-            
-         
 
             // anchors.top: showAssigneeSelector ? assigneeSelectorWrapper.bottom : myRow1a.bottom
             // anchors.left: parent.left
             // anchors.right: parent.right
-
-            
-          
 
             property int effectiveId: -1
 
@@ -195,9 +225,6 @@ Rectangle {
             width: parent.width
             height: units.gu(10)
 
-
-          
-
             property int effectiveId: -1
             property int projectFilterId: -1
 
@@ -205,12 +232,12 @@ Rectangle {
                 projectFilterId = projId;
             }
 
-            getRecords: function(accountId) {
+            getRecords: function (accountId) {
                 let allTasks = Task.getTasksForAccount(accountId);
                 if (projectFilterId === -1) {
                     return allTasks;
                 }
-                return allTasks.filter(function(task) {
+                return allTasks.filter(function (task) {
                     return task.project_id === projectFilterId;
                 });
             }
@@ -221,8 +248,6 @@ Rectangle {
             }
         }
 
-      
-
         Timer {
             id: deferredApplyTimer
             interval: 100
@@ -231,14 +256,12 @@ Rectangle {
             property var deferredPayload: null
 
             onTriggered: {
-                if (!deferredPayload || accountSelector.model.count === 0) return;
+                if (!deferredPayload || accountSelector.model.count === 0)
+                    return;
                 deferredApplyTimer.stop();
                 let p = deferredApplyTimer.deferredPayload;
                 deferredApplyTimer.deferredPayload = null;
-                applyDeferredSelection(
-                    p.accountId, p.projectId, p.subProjectId,
-                    p.taskId, p.subTaskId, p.assigneeId
-                );
+                applyDeferredSelection(p.accountId, p.projectId, p.subProjectId, p.taskId, p.subTaskId, p.assigneeId);
             }
         }
     }

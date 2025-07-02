@@ -262,15 +262,15 @@ Page {
             case "project.task":
                 workItem.showTaskSelector = true;
                 taskRadio.checked = true;
-                workItem.applyDeferredSelection(instanceId, -1, currentActivity.link_id, user_id);
+                workItem.applyDeferredSelection(instanceId, -1, -1, currentActivity.link_id, -1, user_id);
                 break;
             case "project.project":
                 workItem.showProjectSelector = true;
                 projectRadio.checked = true;
-                workItem.applyDeferredSelection(instanceId, currentActivity.link_id, -1, user_id);
+                workItem.applyDeferredSelection(instanceId, currentActivity.link_id, -1, -1, -1, user_id);
                 break;
             default:
-                workItem.applyDeferredSelection(instanceId, -1, -1, user_id);
+                workItem.applyDeferredSelection(instanceId, -1, -1, -1, -1, user_id);
             }
             //update due date
             date_widget.setSelectedDate(currentActivity.due_date);
@@ -279,7 +279,7 @@ Page {
             let account = Accounts.getAccountsList();
             //  console.log(account[1].name);
             reloadActivityTypeSelector(account, -1);
-            workItem.applyDeferredSelection(account, -1, -1, -1);
+            workItem.applyDeferredSelection(account, -1, -1, -1, -1, -1);
         }
     }
 
