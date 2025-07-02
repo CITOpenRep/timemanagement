@@ -77,6 +77,7 @@ Rectangle {
 
         // Account Selector
         Row {
+            id : myRow1a
             width: parent.width
             visible: showAccountSelector
             height: units.gu(5)
@@ -112,6 +113,47 @@ Rectangle {
             }
         }
 
+          // Assignee Selector
+        TreeSelector {
+            id: assigneeSelectorWrapper
+            labelText: assigneeLabelText
+            width: parent.width
+            visible: showAssigneeSelector
+            enabled: !readOnly
+
+            height: units.gu(5)
+         //   width: parent.width
+          //  anchors.top: myRow1a.bottom
+
+          
+
+            
+          
+
+      
+            property int effectiveId: -1
+
+            function loadSelector(selectedId) {
+                if (selectedAccountId === -1) return;
+                let records = Accounts.getUsers(selectedAccountId);
+                let flatModel = [{ id: -1, name: "Unassigned", parent_id: null }];
+                for (let i = 0; i < records.length; i++) {
+                    let id = records[i].odoo_record_id !== undefined ? records[i].odoo_record_id : records[i].id;
+                    let name = records[i].name;
+                    flatModel.push({ id: id, name: name, parent_id: null });
+                }
+                assigneeSelectorWrapper.dataList = flatModel;
+                assigneeSelectorWrapper.reload();
+                assigneeSelectorWrapper.selectedId = selectedId !== undefined ? selectedId : -1;
+                assigneeSelectorWrapper.currentText = "Select Assignee";
+            }
+
+            onItemSelected: {
+                effectiveId = assigneeSelectorWrapper.selectedId;
+                console.log("Assignee ID:", effectiveId);
+            }
+        }
+
         // Project & Subproject Selector
         ParentChildSelector {
             id: projectSelectorWrapper
@@ -122,6 +164,15 @@ Rectangle {
             visible: showProjectSelector
             width: parent.width
             height: units.gu(10)
+            
+         
+
+            // anchors.top: showAssigneeSelector ? assigneeSelectorWrapper.bottom : myRow1a.bottom
+            // anchors.left: parent.left
+            // anchors.right: parent.right
+
+            
+          
 
             property int effectiveId: -1
 
@@ -143,6 +194,9 @@ Rectangle {
             visible: showTaskSelector
             width: parent.width
             height: units.gu(10)
+
+
+          
 
             property int effectiveId: -1
             property int projectFilterId: -1
@@ -167,36 +221,7 @@ Rectangle {
             }
         }
 
-        // Assignee Selector
-        TreeSelector {
-            id: assigneeSelectorWrapper
-            labelText: assigneeLabelText
-            width: parent.width
-            visible: showAssigneeSelector
-            enabled: !readOnly
-
-            property int effectiveId: -1
-
-            function loadSelector(selectedId) {
-                if (selectedAccountId === -1) return;
-                let records = Accounts.getUsers(selectedAccountId);
-                let flatModel = [{ id: -1, name: "Unassigned", parent_id: null }];
-                for (let i = 0; i < records.length; i++) {
-                    let id = records[i].odoo_record_id !== undefined ? records[i].odoo_record_id : records[i].id;
-                    let name = records[i].name;
-                    flatModel.push({ id: id, name: name, parent_id: null });
-                }
-                assigneeSelectorWrapper.dataList = flatModel;
-                assigneeSelectorWrapper.reload();
-                assigneeSelectorWrapper.selectedId = selectedId !== undefined ? selectedId : -1;
-                assigneeSelectorWrapper.currentText = "Select Assignee";
-            }
-
-            onItemSelected: {
-                effectiveId = assigneeSelectorWrapper.selectedId;
-                console.log("Assignee ID:", effectiveId);
-            }
-        }
+      
 
         Timer {
             id: deferredApplyTimer
