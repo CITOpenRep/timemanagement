@@ -42,6 +42,7 @@ ListItem {
     property string quadrant: "Do"
     property int recordId: -1
     property bool isFavorite: false
+    property string status: ""
 
     signal editRequested(int recordId)
     signal viewRequested(int recordId)

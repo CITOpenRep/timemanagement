@@ -64,6 +64,15 @@ Page {
 
     function save_timesheet() {
         const ids = workItem.getAllSelectedDbRecordIds();
+
+        console.log("getAllSelectedDbRecordIds returned:");
+        console.log("   accountDbId: " + ids.accountDbId);
+        console.log("   projectDbId: " + ids.projectDbId);
+        console.log("   subProjectDbId: " + ids.subProjectDbId);
+        console.log("   taskDbId: " + ids.taskDbId);
+        console.log("   subTaskDbId: " + ids.subTaskDbId);
+        console.log("   assigneeDbId: " + ids.assigneeDbId);
+
         const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
 
         if (!user) {
@@ -265,12 +274,29 @@ Page {
                 height: units.gu(3)
             }
         }
+        Row {
+            id: automated_timesheet
+            anchors.top: spentHoursRow.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(2)
+            topPadding: units.gu(1)
+            height: units.gu(10)
+            visible: recordid
+
+            TimeRecorderWidget {
+                anchors.fill: parent
+                timesheetId: recordid
+            }
+        }
 
         /**********************************************************/
 
         Column {
             id: descriptionSection
-            anchors.top: spentHoursRow.bottom
+            anchors.top: automated_timesheet.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             spacing: units.gu(1)

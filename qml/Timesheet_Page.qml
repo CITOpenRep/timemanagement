@@ -34,6 +34,10 @@ import "components"
 Page {
     id: timesheets
     title: "Timesheets"
+
+    property string currentFilter: "all"
+    property bool workpersonaSwitchState: true
+
     header: PageHeader {
         id: timesheetsheader
         title: timesheets.title
@@ -54,16 +58,54 @@ Page {
         ]
     }
 
-    property var workpersonaSwitchState: true
-
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
     }
 
+    // Add ListHeader filter here
+    ListHeader {
+        id: timesheetListHeader
+        anchors.top: timesheetsheader.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+
+        label1: "All"
+        label2: "Active"
+
+        filter1: "all"
+        filter2: "active"
+
+        // Hide unused labels/filters
+        label3: ""
+        label4: ""
+        label5: ""
+        filter3: ""
+        filter4: ""
+        filter5: ""
+
+        showSearchBox: false
+        currentFilter: timesheets.currentFilter
+
+        onFilterSelected: {
+            timesheets.currentFilter = filterKey;
+            fetch_timesheets_list();
+        }
+    }
+
+    ListModel {
+        id: timesheetModel
+    }
+
     function fetch_timesheets_list() {
-        var timesheets_list = Model.fetch_timesheets(workpersonaSwitchState);
+        var timesheets_list;
+        if (currentFilter === "active") {
+            timesheets_list = Model.fetch_active_timesheets(workpersonaSwitchState);
+        } else {
+            timesheets_list = Model.fetch_timesheets(workpersonaSwitchState);
+        }
+
         timesheetModel.clear();
         for (var timesheet = 0; timesheet < timesheets_list.length; timesheet++) {
             timesheetModel.append({
@@ -75,21 +117,18 @@ Page {
                 'quadrant': timesheets_list[timesheet].quadrant || "Do",
                 'task': timesheets_list[timesheet].task || "Unknown Task",
                 'date': timesheets_list[timesheet].date,
-                'user': timesheets_list[timesheet].user
+                'user': timesheets_list[timesheet].user,
+                'status': timesheets_list[timesheet].status
             });
         }
     }
 
-    ListModel {
-        id: timesheetModel
-    }
-
     ListView {
         id: timesheetlist
-        anchors.top: timesheetsheader.bottom
+        anchors.top: timesheetListHeader.bottom
         anchors.bottom: parent.bottom
-        anchors.right: parent.right
         anchors.left: parent.left
+        anchors.right: parent.right
         model: timesheetModel
         delegate: TimeSheetDetailsCard {
             width: parent.width
@@ -97,11 +136,13 @@ Page {
             instance: model.instance
             project: model.project
             spentHours: model.spentHours
-            date: (model.date) ? (model.date) : ""
+            date: model.date || ""
             quadrant: model.quadrant
             task: model.task
             recordId: model.id
             user: model.user
+            status: model.status
+
             onEditRequested: {
                 apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                     "recordid": model.id,
@@ -114,7 +155,6 @@ Page {
                     "isReadOnly": true
                 });
             }
-
             onDeleteRequested: {
                 var result = Model.markTimesheetAsDeleted(model.id);
                 if (!result.success) {
@@ -125,21 +165,14 @@ Page {
                 }
             }
         }
-        currentIndex: 0
-        onCurrentIndexChanged:
-        // console.log("currentIndex changed");
-        {}
 
-        Component.onCompleted: {
-            // get_project_list(0)
-            fetch_timesheets_list();
-        }
+        Component.onCompleted: fetch_timesheets_list()
     }
+
     DialerMenu {
         id: fabMenu
         anchors.fill: parent
         z: 9999
-        //text:""
         menuModel: [
             {
                 label: "Create"
@@ -147,11 +180,11 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                // console.log("add Timesheet");
                 apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"));
             }
         }
     }
+
     onVisibleChanged: {
         if (visible) {
             fetch_timesheets_list();

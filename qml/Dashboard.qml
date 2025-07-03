@@ -86,12 +86,14 @@ Page {
         title: "Time Management"
         visible: true
 
-        NotificationBell {
+        //Later we can merge all these with Global Timer as a taskbar
+        /*NotificationBell {
             z: 9999
             anchors.centerIn: parent
             parentWindow: mainPage
             visible: false // Set to true if you want to show the notification bell
-        }
+        }*/
+
         // ActionBar {
 
         //     id: actionbar

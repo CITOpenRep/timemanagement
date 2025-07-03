@@ -2,10 +2,11 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 
-Item {
+Rectangle {
     id: topFilterBar
     width: parent ? parent.width : Screen.width
     height: showSearchBox ? units.gu(11) : units.gu(6) // Dynamic height based on search visibility
+    color: "#E0E0E0"
 
     //  anchors.margins: units.gu(0.5)
     //  anchors.leftMargin: units.gu(1)
@@ -118,6 +119,8 @@ Item {
 
                 Button {
                     text: topFilterBar.label1
+                    visible: (topFilterBar.label1) ? true : false
+                    enabled: (topFilterBar.label1) ? true : false
                     height: units.gu(6) // Adjusted height
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
@@ -142,6 +145,8 @@ Item {
 
                 Button {
                     text: topFilterBar.label2
+                    visible: (topFilterBar.label2) ? true : false
+                    enabled: (topFilterBar.label2) ? true : false
                     height: units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
@@ -165,6 +170,8 @@ Item {
 
                 Button {
                     text: topFilterBar.label3
+                    visible: (topFilterBar.label3) ? true : false
+                    enabled: (topFilterBar.label3) ? true : false
                     height: units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
@@ -188,6 +195,8 @@ Item {
 
                 Button {
                     text: topFilterBar.label4
+                    visible: (topFilterBar.label4) ? true : false
+                    enabled: (topFilterBar.label4) ? true : false
                     height: units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
@@ -213,6 +222,8 @@ Item {
 
                 Button {
                     text: topFilterBar.label5
+                    visible: (topFilterBar.label5) ? true : false
+                    enabled: (topFilterBar.label5) ? true : false
                     height: units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter5
