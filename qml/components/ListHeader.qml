@@ -15,14 +15,16 @@ Item {
     property string label1: "Today"
     property string label2: "Next Week"
     property string label3: "Next Month"
-    property string label4: "OverDue"
-    property string label5: "All"
+    property string label4: "Later"
+    property string label5: "OverDue"
+    property string label6: "All"
 
     property string filter1: "today"
     property string filter2: "next_week"
     property string filter3: "next_month"
-    property string filter4: "overdue"
-    property string filter5: "all"
+    property string filter4: "later"
+    property string filter5: "overdue"
+    property string filter6: "all"
 
     property bool showSearchBox: true
     property string currentFilter: filter1  // Track currently selected filter
@@ -231,6 +233,31 @@ Item {
                     onClicked: {
                         topFilterBar.currentFilter = topFilterBar.filter5;
                         topFilterBar.filterSelected(topFilterBar.filter5);
+                    }
+                }
+
+                Button {
+                    text: topFilterBar.label6
+                    height: units.gu(6)
+                    width: units.gu(12) // Increased width
+                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter6
+                    background: Rectangle {
+                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
+                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
+                        border.width: 1
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
+                        // text.format: Text.PlainText
+                        font.bold: parent.isHighlighted
+                        //  font.pixelSize: units.gu(1.8)
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    onClicked: {
+                        topFilterBar.currentFilter = topFilterBar.filter6;
+                        topFilterBar.filterSelected(topFilterBar.filter6);
                     }
                 }
             }

@@ -37,6 +37,8 @@
 
     <h4> 03-07-2025 : Version 1.0.6 </h4>
         <li>Added Parent-Child Selector based Tree Selector for Projects and Tasks.</li>
+         <li>Improved Task Selection While Activity Creation. </li>
+          <li>Refactored Tabs for Filters in Tasks and Activities. Introduced Later Filter, which will contain all the Tasks which are later than this Month.</li>
         <li>Added Edit Button in View Mode for Tasks to Navigate to Edit Task Page.</li>
 
 

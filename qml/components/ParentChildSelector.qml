@@ -6,13 +6,21 @@ import QtQuick.Layouts 1.1
 Item {
     id: parentChildSelector
 
-    property alias enabled: parentSelector.enabled
+    property bool enabled: true
     property int accountId: 0
     property string parentLabel: "Parent"
     property string childLabel: "Child"
     property var getRecords // function(accountId) to fetch records
+    property int projectFilterId: -1 // New property for project filtering  
+    property bool useProjectFilter: false // Enable/disable project filtering
+    property bool hasChildren: false // Track if current parent has children
 
     signal finalItemSelected(int id)
+    signal parentItemSelected(int id) // New signal for when parent is selected
+
+    function setProjectFilter(projId) {
+        projectFilterId = projId;
+    }
 
 
     function reloadSelector(options) {
@@ -44,18 +52,43 @@ Item {
 
         selector.dataList = flatModel;
         selector.reload();
-        selector.selectedId = selectedFound ? selectedId : -1;
-        selector.currentText = selectedFound ? selectedText : "Select " + defaultLabel;
+        
+        // Use Qt.callLater to ensure the selector state is properly initialized before setting values
+        Qt.callLater(() => {
+            console.log("Setting selector values:", selector.labelText, "selectedId:", selectedId, "selectedText:", selectedText);
+            selector.selectedId = selectedFound ? selectedId : -1;
+            selector.currentText = selectedFound ? selectedText : defaultLabel;
+            console.log("After setting - selectedId:", selector.selectedId, "currentText:", selector.currentText);
+        });
     }
 
     function loadParentSelector(selectedId) {
         let records = getRecords(accountId);
+        
+        // Apply project filter if enabled and set
+        let projectFilterFn;
+        let displayLabel;
+        
+        if (useProjectFilter && projectFilterId === -1) {
+            // If project filtering is enabled but no project is selected, show no tasks
+            projectFilterFn = record => false;
+            displayLabel = "Select Project First";
+        } else if (useProjectFilter && projectFilterId !== -1) {
+            // If project filtering is enabled and project is selected, show only tasks for that project
+            projectFilterFn = record => (!record.parent_id || record.parent_id === 0) && record.project_id === projectFilterId;
+            displayLabel = "Select " + parentLabel;
+        } else {
+            // If project filtering is disabled, show all parent records
+            projectFilterFn = record => !record.parent_id || record.parent_id === 0;
+            displayLabel = "Select " + parentLabel;
+        }
+        
         reloadSelector({
             selector: parentSelector,
             records: records,
             selectedId: selectedId,
-            defaultLabel: parentLabel,
-            filterFn: record => !record.parent_id || record.parent_id === 0
+            defaultLabel: displayLabel,
+            filterFn: projectFilterFn
         });
     }
 
@@ -64,24 +97,31 @@ Item {
         let children = records.filter(record => record.parent_id === parentId);
 
         if (children.length > 0) {
-            childSelector.enabled = true;
+            hasChildren = true;
+            // Apply project filter for children as well if enabled
+            let childFilterFn;
+            if (useProjectFilter && projectFilterId === -1) {
+                // If project filtering is enabled but no project is selected, show no child tasks
+                childFilterFn = record => false;
+            } else if (useProjectFilter && projectFilterId !== -1) {
+                // If project filtering is enabled and project is selected, show only child tasks for that project
+                childFilterFn = record => record.parent_id === parentId && record.project_id === projectFilterId;
+            } else {
+                // If project filtering is disabled, show all child records for the parent
+                childFilterFn = record => record.parent_id === parentId;
+            }
+            
             reloadSelector({
                 selector: childSelector,
                 records: records,
                 selectedId: selectedId,
-                defaultLabel: childLabel,
-                filterFn: record => record.parent_id === parentId
+                defaultLabel: "Select " + childLabel,
+                filterFn: childFilterFn
             });
         } else {
-            // Show child selector but disable it with "No [Child]"
-            childSelector.enabled = false;
-            reloadSelector({
-                selector: childSelector,
-                records: [],
-                selectedId: -1,
-                defaultLabel: "No " + childLabel,
-                filterFn: () => false
-            });
+            hasChildren = false;
+            // No children available - show "No [Child] Available" message
+            childSelector.currentText = "No " + childLabel + " Available";
             finalItemSelected(parentId);
         }
     }
@@ -95,12 +135,20 @@ Item {
             labelText: parentLabel
             width: parent.width
             height: parent.height/4
-            enabled: true
+            enabled: parentChildSelector.enabled && (!parentChildSelector.useProjectFilter || parentChildSelector.projectFilterId !== -1)
 
             onItemSelected: {
                 let selectedId = parentSelector.selectedId;
                 console.log(parentLabel + " Selected ID: " + selectedId);
-                loadChildSelector(selectedId, -1);
+                
+                // Emit the signal for immediate parent selection handling
+                parentItemSelected(selectedId);
+                
+                if (selectedId !== -1) {
+                    loadChildSelector(selectedId, -1);
+                } else {
+                    hasChildren = false; // Reset when no parent is selected
+                }
             }
         }
 
@@ -118,8 +166,8 @@ Item {
             anchors.topMargin: units.gu(1)
             width: parent.width
             height: parent.height/4
-            enabled: false // controlled dynamically
-             currentText: "Select " + childLabel
+            enabled: parentChildSelector.enabled && parentSelector.selectedId !== -1 && parentChildSelector.hasChildren
+            currentText: "Select " + parentChildSelector.parentLabel + " First"
 
             onItemSelected: {
                 if (!childSelector.enabled) return; // ignore clicks when disabled
