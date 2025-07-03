@@ -316,7 +316,19 @@ Page {
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            workItem.applyDeferredSelection(instanceId, parent_project_id, -1, parent_task_id, -1, assignee_id);
+            console.log("Loading task data:", JSON.stringify({
+                instanceId: instanceId,
+                parent_project_id: parent_project_id,
+                parent_task_id: parent_task_id,
+                assignee_id: assignee_id
+            }));
+
+            // Use a longer delay to ensure all components are fully initialized
+            Qt.callLater(() => {
+                Qt.callLater(() => {
+                    workItem.applyDeferredSelection(instanceId, parent_project_id, -1, parent_task_id, -1, assignee_id);
+                });
+            });
 
             name_text.text = currentTask.name || "";
             description_text.text = currentTask.description || "";

@@ -52,8 +52,14 @@ Item {
 
         selector.dataList = flatModel;
         selector.reload();
-        selector.selectedId = selectedFound ? selectedId : -1;
-        selector.currentText = selectedFound ? selectedText : "Select " + defaultLabel;
+        
+        // Use Qt.callLater to ensure the selector state is properly initialized before setting values
+        Qt.callLater(() => {
+            console.log("Setting selector values:", selector.labelText, "selectedId:", selectedId, "selectedText:", selectedText);
+            selector.selectedId = selectedFound ? selectedId : -1;
+            selector.currentText = selectedFound ? selectedText : defaultLabel;
+            console.log("After setting - selectedId:", selector.selectedId, "currentText:", selector.currentText);
+        });
     }
 
     function loadParentSelector(selectedId) {

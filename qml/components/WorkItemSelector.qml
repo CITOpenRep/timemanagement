@@ -35,7 +35,21 @@ Rectangle {
     property int selectedAssigneeId: -1
 
     function applyDeferredSelection(accountId, projectId, subProjectId, taskId, subTaskId, assigneeId) {
-        if (accountSelector.model.count === 0) {
+        console.log("applyDeferredSelection called with:", JSON.stringify({
+            accountId: accountId,
+            projectId: projectId,
+            subProjectId: subProjectId,
+            taskId: taskId,
+            subTaskId: subTaskId,
+            assigneeId: assigneeId
+        }));
+        
+        // Check if we need to defer
+        var modelCount = accountSelector.model ? accountSelector.model.count : 0;
+        console.log("Account selector model count:", modelCount);
+        
+        if (modelCount === 0) {
+            console.log("Using deferred approach. Model count:", modelCount);
             deferredApplyTimer.deferredPayload = {
                 accountId,
                 projectId,
@@ -48,7 +62,7 @@ Rectangle {
             return;
         }
 
-        console.log("Loading Deferred Selection:", JSON.stringify({
+        console.log("Loading Deferred Selection immediately:", JSON.stringify({
             accountId,
             projectId,
             subProjectId,
@@ -62,24 +76,43 @@ Rectangle {
         selectedTaskId = subTaskId !== -1 ? subTaskId : taskId;
         selectedAssigneeId = assigneeId;
 
+        // Set the account selector to show the correct account using Qt.callLater for proper timing
+        if (accountId !== -1) {
+            console.log("Setting account selector to:", accountId);
+            Qt.callLater(() => {
+                console.log("Calling accountSelector.selectAccountById with:", accountId);
+                accountSelector.selectAccountById(accountId);
+            });
+        }
+
         // Set account ID for all selectors first
         projectSelectorWrapper.accountId = accountId;
         taskSelectorWrapper.accountId = accountId;
         assigneeSelectorWrapper.accountId = accountId;
 
-        // Load projects first
-        projectSelectorWrapper.loadParentSelector(selectedProjectId);
+        // Use Qt.callLater for better timing
+        Qt.callLater(() => {
+            console.log("Loading selectors with values - project:", selectedProjectId, "task:", selectedTaskId, "assignee:", selectedAssigneeId);
+            
+            // Load projects first
+            projectSelectorWrapper.loadParentSelector(selectedProjectId);
 
-        // If we have a selected project, set the task filter and load tasks
-        if (selectedProjectId !== -1) {
-            taskSelectorWrapper.setProjectFilter(selectedProjectId);
-        } else {
-            taskSelectorWrapper.setProjectFilter(-1); // Show all tasks for account
-        }
-        taskSelectorWrapper.loadParentSelector(selectedTaskId);
+            // If we have a selected project, set the task filter and load tasks
+            if (selectedProjectId !== -1) {
+                taskSelectorWrapper.setProjectFilter(selectedProjectId);
+            } else {
+                taskSelectorWrapper.setProjectFilter(-1); // Show all tasks for account
+            }
+            taskSelectorWrapper.loadParentSelector(selectedTaskId);
 
-        // Load assignees
-        assigneeSelectorWrapper.loadSelector(selectedAssigneeId);
+            // Load assignees
+            assigneeSelectorWrapper.loadSelector(selectedAssigneeId);
+            
+            // Debug the final state after a delay
+            Qt.callLater(() => {
+                debugSelectorStates();
+            });
+        });
     }
 
     function getAllSelectedDbRecordIds() {
@@ -91,6 +124,28 @@ Rectangle {
             subTaskDbId: -1,
             assigneeDbId: assigneeSelectorWrapper.effectiveId
         };
+    }
+
+    // Debugging function to check current selector states
+    function debugSelectorStates() {
+        console.log("=== Selector States Debug ===");
+        console.log("Account Selector:");
+        console.log("  - selectedInstanceId:", accountSelector.selectedInstanceId);
+        console.log("  - currentText:", accountSelector.currentText);
+        console.log("  - model count:", accountSelector.model ? accountSelector.model.count : 0);
+        
+        console.log("Project Selector:");
+        console.log("  - selectedId:", projectSelectorWrapper.effectiveId);
+        console.log("  - parentSelector.currentText:", projectSelectorWrapper.parentSelector ? projectSelectorWrapper.parentSelector.currentText : "N/A");
+        
+        console.log("Task Selector:");
+        console.log("  - selectedId:", taskSelectorWrapper.effectiveId);
+        console.log("  - parentSelector.currentText:", taskSelectorWrapper.parentSelector ? taskSelectorWrapper.parentSelector.currentText : "N/A");
+        
+        console.log("Assignee Selector:");
+        console.log("  - selectedId:", assigneeSelectorWrapper.effectiveId);
+        console.log("  - currentText:", assigneeSelectorWrapper.currentText);
+        console.log("=== End Debug ===");
     }
 
     Column {
@@ -190,8 +245,14 @@ Rectangle {
                 }
                 assigneeSelectorWrapper.dataList = flatModel;
                 assigneeSelectorWrapper.reload();
-                assigneeSelectorWrapper.selectedId = selectedId !== undefined ? selectedId : -1;
-                assigneeSelectorWrapper.currentText = selectedText;
+                
+                // Use Qt.callLater to ensure the selector state is properly initialized before setting values
+                Qt.callLater(() => {
+                    console.log("Setting assignee selector - selectedId:", selectedId, "selectedText:", selectedText);
+                    assigneeSelectorWrapper.selectedId = selectedId !== undefined ? selectedId : -1;
+                    assigneeSelectorWrapper.currentText = selectedText;
+                    console.log("After setting assignee - selectedId:", assigneeSelectorWrapper.selectedId, "currentText:", assigneeSelectorWrapper.currentText);
+                });
             }
 
             onItemSelected: {
@@ -256,18 +317,39 @@ Rectangle {
 
         Timer {
             id: deferredApplyTimer
-            interval: 100
+            interval: 200  // Increased interval for better timing
             repeat: true
             running: false
             property var deferredPayload: null
+            property int retryCount: 0
+            property int maxRetries: 10
 
             onTriggered: {
-                if (!deferredPayload || accountSelector.model.count === 0)
+                if (!deferredPayload) {
+                    deferredApplyTimer.stop();
                     return;
-                deferredApplyTimer.stop();
-                let p = deferredApplyTimer.deferredPayload;
-                deferredApplyTimer.deferredPayload = null;
-                applyDeferredSelection(p.accountId, p.projectId, p.subProjectId, p.taskId, p.subTaskId, p.assigneeId);
+                }
+                
+                retryCount++;
+                console.log("Deferred timer retry:", retryCount, "Model count:", accountSelector.model ? accountSelector.model.count : 0);
+                
+                if ((accountSelector.model && accountSelector.model.count > 0) || retryCount >= maxRetries) {
+                    console.log("Applying deferred selection, retry:", retryCount);
+                    deferredApplyTimer.stop();
+                    let p = deferredPayload;
+                    deferredPayload = null;
+                    retryCount = 0;
+                    
+                    // Add another delay to ensure everything is ready
+                    Qt.callLater(() => {
+                        applyDeferredSelection(p.accountId, p.projectId, p.subProjectId, p.taskId, p.subTaskId, p.assigneeId);
+                    });
+                } else if (retryCount >= maxRetries) {
+                    console.warn("Max retries reached, stopping deferred timer");
+                    deferredApplyTimer.stop();
+                    retryCount = 0;
+                    deferredPayload = null;
+                }
             }
         }
     }
