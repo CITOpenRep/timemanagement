@@ -13,6 +13,7 @@ Item {
     property var getRecords // function(accountId) to fetch records
     property int projectFilterId: -1 // New property for project filtering  
     property bool useProjectFilter: false // Enable/disable project filtering
+    property bool hasChildren: false // Track if current parent has children
 
     signal finalItemSelected(int id)
 
@@ -89,6 +90,7 @@ Item {
         let children = records.filter(record => record.parent_id === parentId);
 
         if (children.length > 0) {
+            hasChildren = true;
             // Apply project filter for children as well if enabled
             let childFilterFn;
             if (useProjectFilter && projectFilterId === -1) {
@@ -110,14 +112,9 @@ Item {
                 filterFn: childFilterFn
             });
         } else {
-            // Show child selector but disable it with "No [Child]"
-            reloadSelector({
-                selector: childSelector,
-                records: [],
-                selectedId: -1,
-                defaultLabel: "No " + childLabel + " Available",
-                filterFn: () => false
-            });
+            hasChildren = false;
+            // No children available - show "No [Child] Available" message
+            childSelector.currentText = "No " + childLabel + " Available";
             finalItemSelected(parentId);
         }
     }
@@ -136,7 +133,11 @@ Item {
             onItemSelected: {
                 let selectedId = parentSelector.selectedId;
                 console.log(parentLabel + " Selected ID: " + selectedId);
-                loadChildSelector(selectedId, -1);
+                if (selectedId !== -1) {
+                    loadChildSelector(selectedId, -1);
+                } else {
+                    hasChildren = false; // Reset when no parent is selected
+                }
             }
         }
 
@@ -154,7 +155,7 @@ Item {
             anchors.topMargin: units.gu(1)
             width: parent.width
             height: parent.height/4
-            enabled: parentChildSelector.enabled && parentSelector.selectedId !== -1
+            enabled: parentChildSelector.enabled && parentSelector.selectedId !== -1 && parentChildSelector.hasChildren
             currentText: "Select " + parentChildSelector.parentLabel + " First"
 
             onItemSelected: {
