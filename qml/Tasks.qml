@@ -311,7 +311,7 @@ Page {
 
     Timer {
         id: selectorSetupTimer
-        interval: 2000  // increased delay to 2000ms for deferred loading
+        interval: 1000  // increased delay to 2000ms for deferred loading
         repeat: false
         property var instanceId: -1
         property var parentProjectId: -1
@@ -414,7 +414,9 @@ Page {
             // Include sub-project for read-only display; only positive IDs are valid
             let sub_project_id = (currentTask.sub_project_id > 0) ? currentTask.sub_project_id : -1;
             // Only positive parent IDs are valid; zero means no parent task
-            let parent_task_id = (currentTask.parent_id > 0) ? currentTask.parent_id : -1;
+            // Use the current task's own ID (odoo_record_id if available) for selector
+            let task_id = (currentTask.odoo_record_id && currentTask.odoo_record_id > 0) ? currentTask.odoo_record_id : (currentTask.id && currentTask.id > 0 ? currentTask.id : -1);
+            let parent_task_id = task_id;
             let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
             
             selectorSetupTimer.instanceId = instanceId;

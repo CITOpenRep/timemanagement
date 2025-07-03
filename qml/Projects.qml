@@ -121,6 +121,7 @@ Page {
                         taskLabelText: "Parent Task"
                         showTaskSelector: false
                         showSubProjectSelector: false
+                        showProjectSelector: !isReadOnly  // Hide project selector in read-only mode
                         width: scrollview.width - units.gu(2)
                         height: units.gu(5)
                     }
@@ -335,7 +336,7 @@ Page {
 
     Timer {
         id: finalVerificationTimer
-        interval: 500
+        interval: 1000
         repeat: false
         onTriggered: {
             console.log("Final field values verification (after 1000ms total delay):");
