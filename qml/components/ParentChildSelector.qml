@@ -59,7 +59,7 @@ Item {
         
         // Apply project filter if enabled and set
         let projectFilterFn;
-        let displayLabel = parentLabel;
+        let displayLabel;
         
         if (useProjectFilter && projectFilterId === -1) {
             // If project filtering is enabled but no project is selected, show no tasks
@@ -68,9 +68,11 @@ Item {
         } else if (useProjectFilter && projectFilterId !== -1) {
             // If project filtering is enabled and project is selected, show only tasks for that project
             projectFilterFn = record => (!record.parent_id || record.parent_id === 0) && record.project_id === projectFilterId;
+            displayLabel = "Select " + parentLabel;
         } else {
             // If project filtering is disabled, show all parent records
             projectFilterFn = record => !record.parent_id || record.parent_id === 0;
+            displayLabel = "Select " + parentLabel;
         }
         
         reloadSelector({
@@ -104,7 +106,7 @@ Item {
                 selector: childSelector,
                 records: records,
                 selectedId: selectedId,
-                defaultLabel: childLabel,
+                defaultLabel: "Select " + childLabel,
                 filterFn: childFilterFn
             });
         } else {
@@ -113,7 +115,7 @@ Item {
                 selector: childSelector,
                 records: [],
                 selectedId: -1,
-                defaultLabel: "No " + childLabel,
+                defaultLabel: "No " + childLabel + " Available",
                 filterFn: () => false
             });
             finalItemSelected(parentId);
@@ -153,7 +155,7 @@ Item {
             width: parent.width
             height: parent.height/4
             enabled: parentChildSelector.enabled && parentSelector.selectedId !== -1
-             currentText: "Select " + childLabel
+            currentText: "Select " + parentChildSelector.parentLabel + " First"
 
             onItemSelected: {
                 if (!childSelector.enabled) return; // ignore clicks when disabled
