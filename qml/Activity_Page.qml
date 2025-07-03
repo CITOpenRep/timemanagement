@@ -78,6 +78,26 @@ Page {
         return dueDateOk && searchOk;
     }
 
+    // Helper function to get project details
+    function getProjectDetails(projectId) {
+        try {
+            return Project.getProjectDetails(projectId);
+        } catch (e) {
+            console.error("Error getting project details:", e);
+            return null;
+        }
+    }
+
+    // Helper function to get task details
+    function getTaskDetails(taskId) {
+        try {
+            return Task.getTaskDetails(taskId);
+        } catch (e) {
+            console.error("Error getting task details:", e);
+            return { name: "Unknown Task" };
+        }
+    }
+
     function get_activity_list() {
         activityListModel.clear();
 
@@ -131,27 +151,37 @@ Page {
         var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
         var itemDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
 
+        // Check if item is overdue
+        var isOverdue = itemDate < today;
+
         switch (filter) {
         case "today":
-            // Show activities due today OR overdue activities
+            // Show activities due today only
             return itemDate.getTime() <= today.getTime();
         case "week":
             var weekStart = new Date(today);
+            // JavaScript getDay(): 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
             weekStart.setDate(today.getDate() - today.getDay());
             var weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 6);
             
-            // Show if due this week OR overdue
-            return (itemDate >= weekStart && itemDate <= weekEnd);
+            // Show if due this week (excluding overdue activities)
+            return (itemDate >= weekStart && itemDate <= weekEnd) && !isOverdue;
         case "month":
             var isThisMonth = itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
-            var isOverdue = itemDate < today;
             
-            // Show if due this month OR overdue
-            return isThisMonth;
-        case "favorites":
-            // Assuming favorites are marked by a specific state or flag
-            return item.state === "favorite"; // Adjust this condition based on your model
+            // Show if due this month (excluding overdue activities)
+            return isThisMonth && !isOverdue;
+        case "later":
+            // Show activities due after this month (and not overdue)
+            var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
+            var monthEndDay = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate());
+            
+            // Show if due after this month and not overdue
+            return itemDate > monthEndDay && !isOverdue;
+        case "overdue":
+            // Show only overdue activities
+            return isOverdue;
         default:
             return true;
         }
@@ -214,8 +244,9 @@ Page {
         label1: "Today"
         label2: "This Week"
         label3: "This Month"
-        label4: "All"
-        label5: "Favorites"
+        label4: "Later"
+        label5: "OverDue"
+        label6: "All"
 
         showSearchBox: false
         currentFilter: activity.currentFilter  // Bind to page's current filter
@@ -223,8 +254,9 @@ Page {
         filter1: "today"
         filter2: "week"
         filter3: "month"
-        filter4: "all"
-        filter5: "favorites"
+        filter4: "later"
+        filter5: "overdue"
+        filter6: "all"
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
@@ -268,7 +300,7 @@ Page {
                     // console.log("Requesting to Make done activity with id " + recordid);
                     //Here we need to delete the record and see? if it get synced
                     Activity.markAsDone(accountid, recordid);
-                    get_activity_list("today", "");
+                    get_activity_list();
                 }
             }
             currentIndex: 0
@@ -277,7 +309,7 @@ Page {
             {}
 
             Component.onCompleted: {
-                get_activity_list("today", "");
+                get_activity_list();
             }
         }
     }
