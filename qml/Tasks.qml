@@ -317,6 +317,7 @@ Page {
         property var parentProjectId: -1
         property var subProjectId: -1  // added to store subproject for read-only display
         property var parentTaskId: -1
+        property var subTaskId: -1       // added to store current task for selection
         property var assigneeId: -1
         onTriggered: {
             console.log("=== Setting up WorkItemSelector (Timer) ===");
@@ -325,10 +326,12 @@ Page {
                 parentProjectId: parentProjectId,
                 subProjectId: subProjectId,
                 parentTaskId: parentTaskId,
+                subTaskId: subTaskId,
                 assigneeId: assigneeId
             }));
             
-            workItem.applyDeferredSelection(instanceId, parentProjectId, subProjectId, parentTaskId, -1, assigneeId);
+            // Pass subTaskId instead of hard-coded -1 to select the current task in tasks view
+            workItem.applyDeferredSelection(instanceId, parentProjectId, subProjectId, parentTaskId, subTaskId, assigneeId);
             console.log("=== WorkItemSelector configured ===");
 
             // Set view mode to read-only after selector population
