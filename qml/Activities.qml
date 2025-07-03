@@ -8,6 +8,7 @@ import Lomiri.Components.Pickers 1.3
 import "../models/utils.js" as Utils
 import "../models/activity.js" as Activity
 import "../models/accounts.js" as Accounts
+import "../models/task.js" as Task
 import "components"
 
 Page {
@@ -118,6 +119,14 @@ Page {
                         leftPadding: projectRadio.indicator.width + projectRadio.spacing
                         verticalAlignment: Text.AlignVCenter
                     }
+                    onCheckedChanged: {
+                        if (checked) {
+                            console.log("Project radio selected");
+                            workItem.showProjectSelector = true;
+                            workItem.showTaskSelector = false;
+                            taskRadio.checked = false;
+                        }
+                    }
                 }
 
                 RadioButton {
@@ -129,6 +138,14 @@ Page {
                         color: theme.palette.normal.backgroundText
                         leftPadding: taskRadio.indicator.width + taskRadio.spacing
                         verticalAlignment: Text.AlignVCenter
+                    }
+                    onCheckedChanged: {
+                        if (checked) {
+                            console.log("Task radio selected");
+                            workItem.showProjectSelector = true;
+                            workItem.showTaskSelector = true;
+                            projectRadio.checked = false;
+                        }
                     }
                 }
             }
@@ -245,11 +262,18 @@ Page {
 
     Component.onCompleted: {
         if (recordid != 0) {
-            //  console.log("Loading activity local id " + recordid + " Account id is " + accountid);
+            console.log("Loading activity local id " + recordid + " Account id is " + accountid);
             currentActivity = Activity.getActivityById(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
             let instanceId = (currentActivity.account_id !== undefined && currentActivity.account_id !== null) ? currentActivity.account_id : -1;
             let user_id = (currentActivity.user_id !== undefined && currentActivity.user_id !== null) ? currentActivity.user_id : -1;
+
+            console.log("Activity loaded:", JSON.stringify({
+                resModel: currentActivity.resModel,
+                link_id: currentActivity.link_id,
+                instanceId: instanceId,
+                user_id: user_id
+            }));
 
             //Load the Activity Type
             reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
@@ -258,27 +282,64 @@ Page {
             //lets reset the task and project views
             workItem.showTaskSelector = false;
             workItem.showProjectSelector = false;
+            
             switch (currentActivity.resModel) {
             case "project.task":
+                // Connected to task: Show project, subproject, AND task selectors (full hierarchy)
+                // First get the task details to find which project it belongs to
+                console.log("Activity connected to task, fetching task details for link_id:", currentActivity.link_id);
+                let taskDetails = Task.getTaskDetails(currentActivity.link_id);
+                console.log("Task details:", JSON.stringify(taskDetails));
+                
+                let projectId = taskDetails.project_id || -1;
+                let subProjectId = taskDetails.sub_project_id || -1;
+                
+                workItem.showProjectSelector = true;
                 workItem.showTaskSelector = true;
                 taskRadio.checked = true;
-                workItem.applyDeferredSelection(instanceId, -1, -1, currentActivity.link_id, -1, user_id);
+                projectRadio.checked = false;
+                
+                console.log("Setting up task connection with projectId:", projectId, "subProjectId:", subProjectId, "taskId:", currentActivity.link_id);
+                
+                // Apply selection with both project and task information
+                // Use subProjectId if available, otherwise use projectId
+                workItem.applyDeferredSelection(instanceId, projectId, subProjectId, currentActivity.link_id, -1, user_id);
                 break;
+                
             case "project.project":
+                // Connected to project: Show project and subproject selectors only
+                console.log("Activity connected to project, link_id:", currentActivity.link_id);
                 workItem.showProjectSelector = true;
+                workItem.showTaskSelector = false;
                 projectRadio.checked = true;
+                taskRadio.checked = false;
+                
                 workItem.applyDeferredSelection(instanceId, currentActivity.link_id, -1, -1, -1, user_id);
                 break;
+                
             default:
+                console.log("Activity not connected to project or task");
+                // Show both selectors but no selection
+                workItem.showProjectSelector = true;
+                workItem.showTaskSelector = true;
+                taskRadio.checked = true;
+                projectRadio.checked = false;
                 workItem.applyDeferredSelection(instanceId, -1, -1, -1, -1, user_id);
             }
+            
             //update due date
             date_widget.setSelectedDate(currentActivity.due_date);
         } else {
-            //  console.log("Creatign a new activity");
+            console.log("Creating a new activity");
             let account = Accounts.getAccountsList();
-            //  console.log(account[1].name);
             reloadActivityTypeSelector(account, -1);
+            
+            // For new activities, show both selectors with task selected by default
+            workItem.showProjectSelector = true;
+            workItem.showTaskSelector = true;
+            taskRadio.checked = true;
+            projectRadio.checked = false;
+            
             workItem.applyDeferredSelection(account, -1, -1, -1, -1, -1);
         }
     }
