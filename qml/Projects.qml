@@ -120,8 +120,9 @@ Page {
                         readOnly: isReadOnly
                         taskLabelText: "Parent Task"
                         showTaskSelector: false
+                        showSubProjectSelector: false
                         width: scrollview.width - units.gu(2)
-                        height: units.gu(10)
+                        height: units.gu(5)
                     }
                 }
             }
@@ -304,11 +305,71 @@ Page {
         // onClosed: console.log("Notification dismissed")
     }
 
+    Timer {
+        id: selectorSetupTimer
+        interval: 500
+        repeat: false
+        property var projectParentId: -1
+        property var currentProjectId: -1
+        property var instanceId: -1
+        onTriggered: {
+            console.log("=== Setting up WorkItemSelector (after 500ms delay) ===");
+            // When viewing a project, show it as the selected project in the selector
+            // If it has a parent, the parent will be shown as the parent project, and this will be the subproject
+            if (projectParentId !== -1) {
+                // This project has a parent - show parent as project and this as subproject
+                console.log("Configuring selector with parent:", projectParentId, "current:", currentProjectId);
+                workItem.applyDeferredSelection(instanceId, projectParentId, currentProjectId, -1, -1, -1);
+            } else {
+                // This is a parent project - show it as the selected main project
+                console.log("Configuring selector with main project:", currentProjectId);
+                workItem.applyDeferredSelection(instanceId, currentProjectId, -1, -1, -1, -1);
+            }
+            
+            console.log("=== WorkItemSelector configured ===");
+            
+            // Start final verification timer
+            finalVerificationTimer.start();
+        }
+    }
+
+    Timer {
+        id: finalVerificationTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            console.log("Final field values verification (after 1000ms total delay):");
+            console.log("  - project_name has text property:", typeof project_name.text);
+            console.log("  - description_text has text property:", typeof description_text.text);
+            console.log("  - hours_text has text property:", typeof hours_text.text);
+            
+            // Set view mode to read-only
+            console.log("Setting isReadOnly to true for view mode");
+            isReadOnly = true;
+        }
+    }
+
     Component.onCompleted: {
+        console.log("Projects.qml Component.onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
+        
         if (recordid !== 0) {
+            console.log("=== Loading Project Details for recordid:", recordid, "===");
             let project = Project.getProjectDetails(recordid);
-            if (project && Object.keys(project).length > 0) {} else {
+            console.log("Raw project data returned:", JSON.stringify(project));
+            
+            if (project && Object.keys(project).length > 0) {
+                console.log("Project loaded successfully - field details:");
+                console.log("  - id:", project.id);
+                console.log("  - name:", project.name);
+                console.log("  - account_id:", project.account_id);
+                console.log("  - parent_id:", project.parent_id);
+                console.log("  - description:", project.description);
+                console.log("  - allocated_hours:", project.allocated_hours);
+                console.log("  - color_pallet:", project.color_pallet);
+            } else {
+                console.log("Failed to load project details - empty or null project object");
                 notifPopup.open("Failed", "Unable to open the project details", "error");
+                return;
             }
             // console.log("=== Project Details ===");
             // console.log("id:", project.id);
@@ -327,17 +388,60 @@ Page {
             // console.log("odoo_record_id:", project.odoo_record_id);
 
             let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
-            let ppid = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
+            let projectParentId = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
+            let currentProjectId = (project.odoo_record_id !== undefined && project.odoo_record_id !== null) ? project.odoo_record_id : project.id;
 
-            //dont integrate the parnet projct
-            workItem.applyDeferredSelection(instanceId, project.parent_id, -1);
-
+            // Set the form fields with project details FIRST
+            console.log("=== Setting form fields ===");
+            console.log("Setting description_text.text to:", project.description || "");
             description_text.text = project.description || "";
-
-            project_name.text = project.name;
-            project_color = project.color_pallet;
-            project_color_label.color = colorpicker.getColorByIndex(project.color_pallet);
+            
+            console.log("Setting project_name.text to:", project.name || "");
+            project_name.text = project.name || "";
+            
+            console.log("Setting hours_text.text to:", project.allocated_hours || "1");
+            // Convert HH:MM format back to hours if needed
+            let hoursValue = project.allocated_hours || "1";
+            if (typeof hoursValue === "string" && hoursValue.includes(":")) {
+                // Convert HH:MM to decimal hours
+                let parts = hoursValue.split(":");
+                let hours = parseInt(parts[0] || 0);
+                let minutes = parseInt(parts[1] || 0);
+                hoursValue = hours + (minutes / 60.0);
+                console.log("Converted time format", project.allocated_hours, "to decimal hours:", hoursValue);
+            }
+            hours_text.text = hoursValue.toString();
+            
+            console.log("Setting project_color to:", project.color_pallet || 0);
+            // Handle color_pallet - it might be an index number or a color string
+            let colorIndex = 0;
+            if (project.color_pallet) {
+                if (typeof project.color_pallet === "string" && project.color_pallet.startsWith("#")) {
+                    // It's a hex color, we need to find the corresponding index
+                    // For now, default to 0, but ideally we'd have a function to find the index
+                    console.log("Color is hex format:", project.color_pallet, "defaulting to index 0");
+                    colorIndex = 0;
+                } else {
+                    // It's likely an index number (as string or number)
+                    colorIndex = parseInt(project.color_pallet) || 0;
+                    console.log("Color parsed as index:", colorIndex);
+                }
+            }
+            project_color = colorIndex;
+            
+            console.log("Setting project_color_label.color via colorpicker.getColorByIndex");
+            project_color_label.color = colorpicker.getColorByIndex(colorIndex);
+            
+            console.log("Setting date_range_widget dates:", project.planned_start_date, project.planned_end_date);
             date_range_widget.setDateRange(project.planned_start_date, project.planned_end_date);
+            
+            console.log("=== Form fields set complete ===");
+            
+            // Store the IDs in the timer properties and start the deferred setup
+            selectorSetupTimer.instanceId = instanceId;
+            selectorSetupTimer.projectParentId = projectParentId;
+            selectorSetupTimer.currentProjectId = currentProjectId;
+            selectorSetupTimer.start();
         } else {
             //do nothing as we are creating project
             recordid = 0;

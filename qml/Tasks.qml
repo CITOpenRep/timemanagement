@@ -169,7 +169,9 @@ Page {
                     height: units.gu(10)
                     showAccountSelector: true
                     showProjectSelector: true
+                    showSubProjectSelector: true
                     showTaskSelector: true
+                    showSubTaskSelector: false
                     showAssigneeSelector: true
                 }
             }
@@ -306,40 +308,119 @@ Page {
             hours_text.text = timeStr;
         }
     }
+
+    Timer {
+        id: selectorSetupTimer
+        interval: 2000  // increased delay to 2000ms for deferred loading
+        repeat: false
+        property var instanceId: -1
+        property var parentProjectId: -1
+        property var subProjectId: -1  // added to store subproject for read-only display
+        property var parentTaskId: -1
+        property var assigneeId: -1
+        onTriggered: {
+            console.log("=== Setting up WorkItemSelector (Timer) ===");
+            console.log("Configuring selector with:", JSON.stringify({
+                instanceId: instanceId,
+                parentProjectId: parentProjectId,
+                subProjectId: subProjectId,
+                parentTaskId: parentTaskId,
+                assigneeId: assigneeId
+            }));
+            
+            workItem.applyDeferredSelection(instanceId, parentProjectId, subProjectId, parentTaskId, -1, assigneeId);
+            console.log("=== WorkItemSelector configured ===");
+
+            // Set view mode to read-only after selector population
+            isReadOnly = true;
+            console.log("Tasks.qml - switched to read-only mode");
+
+            // Start final verification timer
+            finalVerificationTimer.start();
+        }
+    }
+
+    Timer {
+        id: finalVerificationTimer
+        interval: 1000
+        repeat: false
+        onTriggered: {
+            console.log("Final field values verification:");
+            console.log("  - name_text has text property:", typeof name_text.text);
+            console.log("  - description_text has text property:", typeof description_text.text);
+            console.log("  - hours_text has text property:", typeof hours_text.text);
+            
+            // Set view mode to read-only if needed
+            if (isReadOnly) {
+                console.log("Task is in read-only mode");
+            }
+        }
+    }
+
     Component.onCompleted: {
+        console.log("Tasks.qml Component.onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
+        
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
+            console.log("=== Loading Task Details for recordid:", recordid, "===");
             currentTask = Task.getTaskDetails(recordid);
+            console.log("Raw task data returned:", JSON.stringify(currentTask));
 
-            let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
-            let parent_project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;
-            let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
-            let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
+            if (currentTask && Object.keys(currentTask).length > 0) {
+                console.log("Task loaded successfully - field details:");
+                console.log("  - id:", currentTask.id);
+                console.log("  - name:", currentTask.name);
+                console.log("  - account_id:", currentTask.account_id);
+                console.log("  - project_id:", currentTask.project_id);
+                console.log("  - parent_id:", currentTask.parent_id);
+                console.log("  - user_id:", currentTask.user_id);
+                console.log("  - description:", currentTask.description);
+                console.log("  - initial_planned_hours:", currentTask.initial_planned_hours);
+            } else {
+                console.log("Failed to load task details - empty or null task object");
+                return;
+            }
 
-            console.log("Loading task data:", JSON.stringify({
-                instanceId: instanceId,
-                parent_project_id: parent_project_id,
-                parent_task_id: parent_task_id,
-                assignee_id: assignee_id
-            }));
-
-            // Use a longer delay to ensure all components are fully initialized
-            Qt.callLater(() => {
-                Qt.callLater(() => {
-                    workItem.applyDeferredSelection(instanceId, parent_project_id, -1, parent_task_id, -1, assignee_id);
-                });
-            });
-
+            // Set the form fields with task details FIRST
+            console.log("=== Setting form fields ===");
+            console.log("Setting name_text.text to:", currentTask.name || "");
             name_text.text = currentTask.name || "";
+            
+            console.log("Setting description_text.text to:", currentTask.description || "");
             description_text.text = currentTask.description || "";
-            hours_text.text = currentTask.initial_planned_hours ? Utils.convertFloatToDuration(parseFloat(currentTask.initial_planned_hours)) : "01:00";
+            
+            console.log("Setting hours_text.text from initial_planned_hours:", currentTask.initial_planned_hours);
+            hours_text.text = currentTask.initial_planned_hours ? Utils.convertFloatToTime(parseFloat(currentTask.initial_planned_hours)) : "01:00";
 
             // Set date range
             if (currentTask.start_date && currentTask.end_date) {
+                console.log("Setting date range:", currentTask.start_date, "to", currentTask.end_date);
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
             } else if (currentTask.start_date) {
+                console.log("Setting single date:", currentTask.start_date);
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.start_date);
             }
+            
+            console.log("=== Form fields set complete ===");
+            
+            // Store the IDs in the timer properties and start the deferred setup
+            let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
+            // Use >0 test to avoid treating zero as a valid ID for view-only selectors
+            let parent_project_id = (currentTask.project_id > 0) ? currentTask.project_id : -1;
+            // Include sub-project for read-only display
+            // Include sub-project for read-only display; only positive IDs are valid
+            let sub_project_id = (currentTask.sub_project_id > 0) ? currentTask.sub_project_id : -1;
+            // Only positive parent IDs are valid; zero means no parent task
+            let parent_task_id = (currentTask.parent_id > 0) ? currentTask.parent_id : -1;
+            let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
+            
+            selectorSetupTimer.instanceId = instanceId;
+            selectorSetupTimer.parentProjectId = parent_project_id;
+            selectorSetupTimer.subProjectId = sub_project_id;
+            selectorSetupTimer.parentTaskId = parent_task_id;
+            selectorSetupTimer.assigneeId = assignee_id;
+            // Start selector setup timer so subprojects are displayed in read-only mode as well
+            selectorSetupTimer.start();
         }
     }
 }

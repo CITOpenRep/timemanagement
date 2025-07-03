@@ -16,9 +16,7 @@ Rectangle {
     // External interface unchanged:
     property bool showAccountSelector: true
     property bool showProjectSelector: true
-    property bool showSubProjectSelector: true
     property bool showTaskSelector: true
-    property bool showSubTaskSelector: true
     property bool showAssigneeSelector: false
 
     property bool readOnly: false
@@ -76,12 +74,7 @@ Rectangle {
 
         // Update internal state
         selectedAccountId = accountId;
-        // Determine main project and optional subproject
-        var mainProjectId = projectId;
-        var childProjectId = subProjectId;
-        // Select main project first
-        selectedProjectId = mainProjectId;
-        // Then select task or subtask
+        selectedProjectId = subProjectId !== -1 ? subProjectId : projectId;
         selectedTaskId = subTaskId !== -1 ? subTaskId : taskId;
         selectedAssigneeId = assigneeId;
 
@@ -98,25 +91,14 @@ Rectangle {
 
         // Load selectors in sequence with proper timing
         Qt.callLater(() => {
-            console.log("Loading project selector with main project ID:", mainProjectId);
-            projectSelectorWrapper.loadParentSelector(mainProjectId);
+            console.log("Loading project selector with ID:", selectedProjectId);
+            projectSelectorWrapper.loadParentSelector(selectedProjectId);
             
             // Force update the effective ID immediately after loading
-
-                Qt.callLater(() => {
-                    projectSelectorWrapper.effectiveId = mainProjectId;
-                    projectSelectorWrapper.syncEffectiveId(); // Sync from actual selector state
-                    console.log("Forced project effectiveId to:", projectSelectorWrapper.effectiveId);
-                    // If a subproject was provided, load and select it
-                    if (childProjectId !== -1) {
-                        console.log("Loading subproject selector with parent:", mainProjectId, "and subproject:", childProjectId);
-                        projectSelectorWrapper.loadChildSelector(mainProjectId, childProjectId);
-                    }
-                    // If a subProjectId was provided, load and select the child subproject
-                    if (subProjectId !== -1) {
-                        console.log("Loading subproject selector with parent:", selectedProjectId, "and child:", subProjectId);
-                        projectSelectorWrapper.loadChildSelector(selectedProjectId, subProjectId);
-                    }
+            Qt.callLater(() => {
+                projectSelectorWrapper.effectiveId = selectedProjectId;
+                projectSelectorWrapper.syncEffectiveId(); // Sync from actual selector state
+                console.log("Forced project effectiveId to:", projectSelectorWrapper.effectiveId);
 
                 Qt.callLater(() => {
                     console.log("Setting up task selector");
@@ -177,44 +159,28 @@ Rectangle {
         
         console.log("Project Selector:");
         console.log("  - effectiveId:", projectSelectorWrapper.effectiveId);
-        try {
-            console.log("  - parentSelector exists:", projectSelectorWrapper.parentSelector !== undefined ? "Yes" : "No");
-            if (projectSelectorWrapper.parentSelector) {
-                console.log("  - parentSelector.selectedId:", projectSelectorWrapper.parentSelector.selectedId || "undefined");
-                console.log("  - parentSelector.currentText:", projectSelectorWrapper.parentSelector.currentText || "undefined");
-            }
-        } catch (e) {
-            console.log("  - parentSelector: error accessing -", e.message);
+        console.log("  - parentSelector exists:", projectSelectorWrapper.parentSelector ? "Yes" : "No");
+        if (projectSelectorWrapper.parentSelector) {
+            console.log("  - parentSelector.selectedId:", projectSelectorWrapper.parentSelector.selectedId);
+            console.log("  - parentSelector.currentText:", projectSelectorWrapper.parentSelector.currentText);
         }
-        try {
-            console.log("  - childSelector exists:", projectSelectorWrapper.childSelector !== undefined ? "Yes" : "No");
-            if (projectSelectorWrapper.childSelector) {
-                console.log("  - childSelector.selectedId:", projectSelectorWrapper.childSelector.selectedId || "undefined");
-                console.log("  - childSelector.currentText:", projectSelectorWrapper.childSelector.currentText || "undefined");
-            }
-        } catch (e) {
-            console.log("  - childSelector: error accessing -", e.message);
+        console.log("  - childSelector exists:", projectSelectorWrapper.childSelector ? "Yes" : "No");
+        if (projectSelectorWrapper.childSelector) {
+            console.log("  - childSelector.selectedId:", projectSelectorWrapper.childSelector.selectedId);
+            console.log("  - childSelector.currentText:", projectSelectorWrapper.childSelector.currentText);
         }
         
         console.log("Task Selector:");
         console.log("  - effectiveId:", taskSelectorWrapper.effectiveId);
-        try {
-            console.log("  - parentSelector exists:", taskSelectorWrapper.parentSelector !== undefined ? "Yes" : "No");
-            if (taskSelectorWrapper.parentSelector) {
-                console.log("  - parentSelector.selectedId:", taskSelectorWrapper.parentSelector.selectedId || "undefined");
-                console.log("  - parentSelector.currentText:", taskSelectorWrapper.parentSelector.currentText || "undefined");
-            }
-        } catch (e) {
-            console.log("  - parentSelector: error accessing -", e.message);
+        console.log("  - parentSelector exists:", taskSelectorWrapper.parentSelector ? "Yes" : "No");
+        if (taskSelectorWrapper.parentSelector) {
+            console.log("  - parentSelector.selectedId:", taskSelectorWrapper.parentSelector.selectedId);
+            console.log("  - parentSelector.currentText:", taskSelectorWrapper.parentSelector.currentText);
         }
-        try {
-            console.log("  - childSelector exists:", taskSelectorWrapper.childSelector !== undefined ? "Yes" : "No");
-            if (taskSelectorWrapper.childSelector) {
-                console.log("  - childSelector.selectedId:", taskSelectorWrapper.childSelector.selectedId || "undefined");
-                console.log("  - childSelector.currentText:", taskSelectorWrapper.childSelector.currentText || "undefined");
-            }
-        } catch (e) {
-            console.log("  - childSelector: error accessing -", e.message);
+        console.log("  - childSelector exists:", taskSelectorWrapper.childSelector ? "Yes" : "No");
+        if (taskSelectorWrapper.childSelector) {
+            console.log("  - childSelector.selectedId:", taskSelectorWrapper.childSelector.selectedId);
+            console.log("  - childSelector.currentText:", taskSelectorWrapper.childSelector.currentText);
         }
         
         console.log("Assignee Selector:");
@@ -366,7 +332,6 @@ Rectangle {
             getRecords: Project.getProjectsForAccount
             visible: showProjectSelector
             enabled: !readOnly
-            showChildSelector: showSubProjectSelector
             width: parent.width
             height: units.gu(10)
 
@@ -374,10 +339,19 @@ Rectangle {
 
             // Function to sync effectiveId from actual selector state
             function syncEffectiveId() {
-                // The effectiveId should already be up-to-date from the onParentItemSelected 
-                // and onFinalItemSelected signal handlers, so just return current value
-                console.log("Project: syncEffectiveId called, current effectiveId:", effectiveId);
-                return effectiveId;
+                var actualId = -1;
+                if (childSelector && childSelector.selectedId !== -1) {
+                    actualId = childSelector.selectedId;
+                    console.log("Project: Syncing from childSelector:", actualId);
+                } else if (parentSelector && parentSelector.selectedId !== -1) {
+                    actualId = parentSelector.selectedId;
+                    console.log("Project: Syncing from parentSelector:", actualId);
+                }
+                if (actualId !== effectiveId) {
+                    console.log("Project: effectiveId changed from", effectiveId, "to", actualId);
+                    effectiveId = actualId;
+                }
+                return actualId;
             }
 
             onParentItemSelected: {
@@ -408,7 +382,6 @@ Rectangle {
             childLabel: subTaskLabelText
             visible: showTaskSelector
             enabled: !readOnly
-            showChildSelector: showSubTaskSelector
             width: parent.width
             height: units.gu(10)
             getRecords: Task.getTasksForAccount
@@ -418,10 +391,19 @@ Rectangle {
 
             // Function to sync effectiveId from actual selector state
             function syncEffectiveId() {
-                // The effectiveId should already be up-to-date from the onParentItemSelected 
-                // and onFinalItemSelected signal handlers, so just return current value
-                console.log("Task: syncEffectiveId called, current effectiveId:", effectiveId);
-                return effectiveId;
+                var actualId = -1;
+                if (childSelector && childSelector.selectedId !== -1) {
+                    actualId = childSelector.selectedId;
+                    console.log("Task: Syncing from childSelector:", actualId);
+                } else if (parentSelector && parentSelector.selectedId !== -1) {
+                    actualId = parentSelector.selectedId;
+                    console.log("Task: Syncing from parentSelector:", actualId);
+                }
+                if (actualId !== effectiveId) {
+                    console.log("Task: effectiveId changed from", effectiveId, "to", actualId);
+                    effectiveId = actualId;
+                }
+                return actualId;
             }
 
             onParentItemSelected: {

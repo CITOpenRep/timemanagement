@@ -72,7 +72,9 @@ Page {
                     showAccountSelector: true
                     showAssigneeSelector: true
                     showProjectSelector: projectRadio.checked
+                    showSubProjectSelector: false
                     showTaskSelector: taskRadio.checked
+                    showSubTaskSelector: false
                     taskLabelText: "Parent Task"
                     width: flickable.width - units.gu(2)
 

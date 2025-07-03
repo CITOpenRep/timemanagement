@@ -14,6 +14,11 @@ Item {
     property int projectFilterId: -1 // New property for project filtering  
     property bool useProjectFilter: false // Enable/disable project filtering
     property bool hasChildren: false // Track if current parent has children
+    property bool showChildSelector: true // Control visibility of child selector
+
+    // Expose child selectors for external access
+    property alias parentSelector: parentSelector
+    property alias childSelector: childSelector
 
     signal finalItemSelected(int id)
     signal parentItemSelected(int id) // New signal for when parent is selected
@@ -33,6 +38,8 @@ Item {
         } = options;
 
         let filteredRecords = records.filter(filterFn);
+        console.log("reloadSelector:", selector.labelText, "- filtered", filteredRecords.length, "from", records.length, "records");
+        
         let flatModel = [{ id: -1, name: defaultLabel, parent_id: null }];
 
         let selectedText = defaultLabel;
@@ -47,9 +54,11 @@ Item {
             if (selectedId === id) {
                 selectedText = name;
                 selectedFound = true;
+                console.log("Found matching record for selectedId", selectedId, ":", name);
             }
         }
 
+        console.log("Final model has", flatModel.length, "items, selectedFound:", selectedFound);
         selector.dataList = flatModel;
         selector.reload();
         
@@ -64,6 +73,8 @@ Item {
 
     function loadParentSelector(selectedId) {
         let records = getRecords(accountId);
+        console.log("loadParentSelector: accountId =", accountId, "selectedId =", selectedId);
+        console.log("loadParentSelector: found", records.length, "total records");
         
         // Apply project filter if enabled and set
         let projectFilterFn;
@@ -81,6 +92,15 @@ Item {
             // If project filtering is disabled, show all parent records
             projectFilterFn = record => !record.parent_id || record.parent_id === 0;
             displayLabel = "Select " + parentLabel;
+        }
+        
+        // Log a few sample records to understand the data structure
+        if (records.length > 0) {
+            console.log("Sample record:", JSON.stringify(records[0]));
+            if (selectedId !== -1) {
+                let targetRecord = records.find(r => (r.odoo_record_id !== undefined ? r.odoo_record_id : r.id) === selectedId);
+                console.log("Looking for selectedId", selectedId, "- found record:", targetRecord ? JSON.stringify(targetRecord) : "NOT FOUND");
+            }
         }
         
         reloadSelector({
@@ -157,6 +177,7 @@ Item {
             height: units.gu(1)
            // anchors.top: parentSelector.bottom
             color: "transparent"
+            visible: showChildSelector
         }
 
         TreeSelector {
@@ -168,6 +189,7 @@ Item {
             height: parent.height/4
             enabled: parentChildSelector.enabled && parentSelector.selectedId !== -1 && parentChildSelector.hasChildren
             currentText: "Select " + parentChildSelector.parentLabel + " First"
+            visible: showChildSelector
 
             onItemSelected: {
                 if (!childSelector.enabled) return; // ignore clicks when disabled
