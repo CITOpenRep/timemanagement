@@ -214,6 +214,16 @@ Rectangle {
 
             property int effectiveId: -1
 
+            onParentItemSelected: {
+                // Handle immediate project selection - enable and populate task selector
+                console.log("Project immediately selected:", id);
+                if (id !== -1) {
+                    taskSelectorWrapper.accountId = selectedAccountId;
+                    taskSelectorWrapper.setProjectFilter(id);
+                    taskSelectorWrapper.loadParentSelector(-1);
+                }
+            }
+
             onFinalItemSelected: {
                 effectiveId = id;
                 console.log("Effective Project ID:", effectiveId);

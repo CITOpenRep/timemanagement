@@ -16,6 +16,7 @@ Item {
     property bool hasChildren: false // Track if current parent has children
 
     signal finalItemSelected(int id)
+    signal parentItemSelected(int id) // New signal for when parent is selected
 
     function setProjectFilter(projId) {
         projectFilterId = projId;
@@ -133,6 +134,10 @@ Item {
             onItemSelected: {
                 let selectedId = parentSelector.selectedId;
                 console.log(parentLabel + " Selected ID: " + selectedId);
+                
+                // Emit the signal for immediate parent selection handling
+                parentItemSelected(selectedId);
+                
                 if (selectedId !== -1) {
                     loadChildSelector(selectedId, -1);
                 } else {
