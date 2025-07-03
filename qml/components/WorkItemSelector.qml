@@ -110,7 +110,7 @@ Rectangle {
             
             // Debug the final state after a delay
             Qt.callLater(() => {
-                debugSelectorStates();
+                debugSelectorStates();  // Can be remooved
             });
         });
     }
@@ -125,6 +125,8 @@ Rectangle {
             assigneeDbId: assigneeSelectorWrapper.effectiveId
         };
     }
+
+    //Can be Deleted Later after debugging
 
     // Debugging function to check current selector states
     function debugSelectorStates() {
