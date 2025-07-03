@@ -216,7 +216,7 @@ Rectangle {
                 let flatModel = [
                     {
                         id: -1,
-                        name: "Unassigned",
+                        name: "Select Assignee", // Changed from "Unassigned" to "Select Assignee"
                         parent_id: null
                     }
                 ];
@@ -226,7 +226,7 @@ Rectangle {
                 
                 // Check if selectedId matches "Unassigned"
                 if (selectedId === -1) {
-                    selectedText = "Unassigned";
+                    selectedText = "Select Assignee";
                     selectedFound = true;
                 }
                 
