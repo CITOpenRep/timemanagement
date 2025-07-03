@@ -218,7 +218,7 @@ Rectangle {
                 effectiveId = id;
                 console.log("Effective Project ID:", effectiveId);
                 taskSelectorWrapper.accountId = selectedAccountId;
-                taskSelectorWrapper.setProjectFilter(effectiveId); // Filter tasks by project/subproject
+                taskSelectorWrapper.setProjectFilter(effectiveId); // Set project filter in ParentChildSelector
                 taskSelectorWrapper.loadParentSelector(-1); // Reload tasks with project filter
             }
         }
@@ -233,23 +233,10 @@ Rectangle {
             enabled: !readOnly
             width: parent.width
             height: units.gu(10)
+            getRecords: Task.getTasksForAccount
+            useProjectFilter: true // Enable project filtering for tasks
 
             property int effectiveId: -1
-            property int projectFilterId: -1
-
-            function setProjectFilter(projId) {
-                projectFilterId = projId;
-            }
-
-            getRecords: function (accountId) {
-                let allTasks = Task.getTasksForAccount(accountId);
-                if (projectFilterId === -1) {
-                    return allTasks;
-                }
-                return allTasks.filter(function (task) {
-                    return task.project_id === projectFilterId;
-                });
-            }
 
             onFinalItemSelected: {
                 effectiveId = id;
