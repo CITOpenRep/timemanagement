@@ -324,10 +324,54 @@ Rectangle {
     }
 
 
+    function loadAssignees(accountId, selectedId = -1) {
+        console.log("Loading assignees for account:", accountId);
+
+        const rawAssignees = Accounts.getUsers(accountId);
+        let assigneeList = [];
+
+        // Always add "Unassigned"
+        assigneeList.push({
+            id: -1,
+            name: "Unassigned",
+            parent_id: null
+        });
+
+        let default_id = -1;
+        let default_name = "Unassigned";
+
+        for (let i = 0; i < rawAssignees.length; i++) {
+            let id = (accountId === 0) ? rawAssignees[i].id : rawAssignees[i].odoo_record_id;
+            let name = rawAssignees[i].name;
+
+            assigneeList.push({
+                id: id,
+                name: name,
+                parent_id: null // no hierarchy for assignees
+            });
+
+            if (selectedId === id) {
+                default_id = id;
+                default_name = name;
+            }
+        }
+
+        selectorModelMap["Assignee"] = assigneeList;
+        assignee_component.modelData = assigneeList;
+
+        assignee_component.setEnabled(assigneeList.length > 1);
+
+        if (selectedId !== -1 && assigneeList.length > 1) {
+            assignee_component.applyDeferredSelection(default_id);
+        }
+    }
+
+
 
   //End functions
     Component.onCompleted:
     {
+        //We load accounts (if not deffered)
         loadAccounts()
     }
 
@@ -437,7 +481,9 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "AccountSelected") {
-
+                        console.log("subtask_component Payload ID:", data.id);
+                        console.log("subtask_component Payload Name:", data.name);
+                        loadAssignees(data.id,-1)
                     }
                 }
             }
