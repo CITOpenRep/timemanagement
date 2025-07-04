@@ -483,6 +483,7 @@ Rectangle {
             labelText: projectLabelText
             enabledState: !readOnly
             readOnly: readOnly
+            visible: showProjectSelector
             onSelectionMade: handleSelection(id, name, selectorType)
 
             Connections {
