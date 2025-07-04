@@ -96,14 +96,28 @@ Rectangle {
             selectedProjectId = id;
             transitionTo("ProjectSelected", payload);
         } else if (selectorType === "Subproject") {
-            selectedSubProjectId = id;
-            transitionTo("SubprojectSelected", payload);
+            if (id !== -1) //user selected an active subproject
+            {
+                selectedSubProjectId = id;
+                transitionTo("SubprojectSelected", payload);
+            } else //we assume that user want the project
+            {
+                selectedSubProjectId = project_component.selectedId;
+                transitionTo("ProjectSelected", payload);
+            }
         } else if (selectorType === "Task") {
             selectedTaskId = id;
             transitionTo("TaskSelected", payload);
         } else if (selectorType === "Subtask") {
-            selectedSubTaskId = id;
-            transitionTo("SubtaskSelected", payload);
+            if (id !== -1) //user selected an active subproject
+            {
+                selectedSubProjectId = id;
+                transitionTo("SubtaskSelected", payload);
+            } else //we assume that user want the project
+            {
+                selectedSubProjectId = project_component.selectedId;
+                transitionTo("TaskSelected", payload);
+            }
         } else if (selectorType === "Assignee") {
             selectedAssigneeId = id;
             transitionTo("AssigneeSelected", payload);
@@ -453,6 +467,12 @@ Rectangle {
         }
 
         finalizeLoading("Assignee", assignee_component, assigneeList, default_id, default_name, selectedId, "AssigneeSelected");
+        //disbale the subprojects, tasks,subtasks buttons
+        if (selectedId === -1) {
+            subproject_compoent.setEnabled(false);
+            subtask_component.setEnabled(false);
+            task_component.setEnabled(false);
+        }
     }
 
     //End functions (Quiet a long one :D )
@@ -491,6 +511,7 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "AccountSelected") {
+                        project_component.update_label("No Project");
                         console.log("project_component Payload ID:", data.id);
                         console.log("project_component Payload Name:", data.name);
                         loadProjects(data.id, -1); //load projects of the selected account
@@ -516,6 +537,7 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "ProjectSelected") {
+                        subproject_compoent.update_label("No Subproject");
                         console.log("Payload ID:", data.id);
                         console.log("Payload Name:", data.name);
                         loadSubProjects(account_component.selectedId, data.id, -1);
@@ -542,6 +564,7 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "ProjectSelected" || newState === "SubprojectSelected") {
+                        task_component.update_label("No Task");
                         console.log("task_component Payload ID:", data.id);
                         console.log("task_component Payload Name:", data.name);
                         loadTasks(account_component.selectedId, data.id, -1);
@@ -568,6 +591,7 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "TaskSelected") {
+                        subtask_component.update_label("No subTask");
                         console.log("subtask_component Payload ID:", data.id);
                         console.log("subtask_component Payload Name:", data.name);
                         loadSubTasks(account_component.selectedId, data.id, -1);
