@@ -130,7 +130,7 @@ Page {
                         projectLabelText: "Parent Project"
                         showTaskSelector: false
                         showSubProjectSelector: false
-                        showAssigneeSelector: false
+                        showAssigneeSelector: true
                         showSubTaskSelector: false
                         width: scrollview.width - units.gu(2)
                         height: units.gu(10)
