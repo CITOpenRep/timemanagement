@@ -54,16 +54,25 @@ Page {
                 text: "Save"
                 visible: !isReadOnly
                 onTriggered: {
-                    const ids = workItem.getAllSelectedDbRecordIds();
-                    //  console.log("Account DB ID:", ids.accountDbId);
+                    const ids = workItem.getIds();
+                    console.log("getAllSelectedDbRecordIds returned:");
+                    console.log("   accountDbId: " + ids.account_id);
+                    console.log("   projectDbId: " + ids.project_id);
+                    console.log("   subProjectDbId: " + ids.subproject_id);
+                    console.log("   taskDbId: " + ids.task_id);
+                    console.log("   subTaskDbId: " + ids.subtask_id);
+                    if (!ids.assignee_id) {
+                        notifPopup.open("Error", "Please select the assignee", "error");
+                        return;
+                    }
 
                     // isReadOnly = !isReadOnly
                     var project_data = {
-                        'account_id': ids.accountDbId >= 0 ? ids.accountDbId : 0,
+                        'account_id': ids.account_id >= 0 ? ids.account_id : 0,
                         'name': project_name.text,
                         'planned_start_date': date_range_widget.formattedStartDate(),
                         'planned_end_date': date_range_widget.formattedEndDate(),
-                        'parent_id': (ids.projectDbId !== undefined && ids.projectDbId >= 0) ? ids.projectDbId : 0,
+                        'parent_id': ids.project_id,
                         'allocated_hours': hours_text.text,
                         'description': description_text.text,
                         'favorites': 0,
@@ -118,8 +127,11 @@ Page {
                     WorkItemSelector {
                         id: workItem
                         readOnly: isReadOnly
-                        taskLabelText: "Parent Task"
+                        projectLabelText: "Parent Project"
                         showTaskSelector: false
+                        showSubProjectSelector: false
+                        showAssigneeSelector: false
+                        showSubTaskSelector: false
                         width: scrollview.width - units.gu(2)
                         height: units.gu(10)
                     }

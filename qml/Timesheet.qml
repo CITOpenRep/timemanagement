@@ -72,24 +72,24 @@ Page {
         console.log("   subTaskDbId: " + ids.subtask_id);
         const user = Accounts.getCurrentUserOdooId(ids.account_id);
 
-          if (!user) {
+        if (!user) {
             notifPopup.open("Error", "Unable to find the user , can not save", "error");
             return;
         }
 
-        if (ids.project_id ===null) {
+        if (ids.project_id === null) {
             notifPopup.open("Error", "You need to select a project to save time sheet", "error");
             return;
         }
 
-        if (ids.task_id ===null) {
+        if (ids.task_id === null) {
             notifPopup.open("Error", "You need to select a task to save time sheet", "error");
             return;
         }
 
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
-            'instance_id':  ids.account_id < 0 ? 0 : ids.account_id,
+            'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
             'project': ids.project_id,
             'task': ids.task_id,
             'subTask': ids.subtask_id,
@@ -149,8 +149,8 @@ Page {
 
                 WorkItemSelector {
                     id: workItem
-                    readOnly: isReadOnly
-                    showAssigneeSelector:false
+                    enabled: !isReadOnly
+                    showAssigneeSelector: false
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
                     //onAccountChanged:
@@ -355,7 +355,7 @@ Page {
                 console.log("subProjectId  →", subProjectId);
                 console.log("subTaskId     →", subTaskId);
 
-                console.log("Now lets call this with workitemselector ")
+                console.log("Now lets call this with workitemselector ");
 
                 workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1); //passing -1 as no assignee is needed
                 date_widget.setSelectedDate(currentTimesheet.record_date);

@@ -110,7 +110,7 @@ Page {
                 accountId: ids.account_id < 0 ? 0 : ids.account_id,
                 name: name_text.text,
                 record_id: recordid,
-                projectId:  ids.project_id,
+                projectId: ids.project_id,
                 subProjectId: ids.subproject_id,
                 parentId: ids.task_id,
                 startDate: date_range_widget.formattedStartDate(),
@@ -176,7 +176,7 @@ Page {
                     taskLabelText: "Parent Task"
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(10)
-                    showSubTaskSelector:false
+                    showSubTaskSelector: false
                 }
             }
         }
@@ -370,10 +370,8 @@ Page {
             } else if (currentTask.start_date) {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.start_date);
             }
-        }
-        else
-        {
-             workItem.loadAccounts();
+        } else {
+            workItem.loadAccounts();
         }
     }
 }

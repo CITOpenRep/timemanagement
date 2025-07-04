@@ -14,7 +14,7 @@ Rectangle {
     // External API remains unchanged
     property bool showAccountSelector: true
     property bool showProjectSelector: true
-    property bool showSubProjectSelector:true
+    property bool showSubProjectSelector: true
     property bool showTaskSelector: true
     property bool showSubTaskSelector: true
     property bool showAssigneeSelector: true
@@ -92,7 +92,7 @@ Rectangle {
             component.applyDeferredSelection(default_id);
         }
 
-        /*if (selectedId !== -1 && list.length > 1 && transitionState) {
+    /*if (selectedId !== -1 && list.length > 1 && transitionState) {
             transitionTo(transitionState, {
                 id: default_id,
                 name: default_name
@@ -109,9 +109,8 @@ Rectangle {
         console.log("   Subtask ID:     ", subTaskId);
         console.log("   Assignee ID:    ", assigneeId);
 
-
         if (accountId !== -1) {
-            loadAccounts(accountId)
+            loadAccounts(accountId);
         }
 
         // Load Projects under account with selected projectId
@@ -126,8 +125,7 @@ Rectangle {
 
         // Load Tasks under project/subproject with selected taskId
         if (accountId !== -1 && (projectId !== -1 || subProjectId !== -1)) {
-            const parentId = subProjectId !== -1 ? subProjectId : projectId;
-            loadTasks(accountId, parentId, taskId);
+            loadTasks(accountId, projectId, taskId);
         }
 
         // Load Subtasks under task with selected subTaskId
@@ -156,7 +154,6 @@ Rectangle {
         };
     }
 
-
     //load accounts
     function loadAccounts(selectedId = -1) {
         console.log("Loading accounts");
@@ -177,13 +174,13 @@ Rectangle {
                 default_name = accounts[i].name;
             }
             accountList.push({
-                                 id: accounts[i].id,
-                                 name: accounts[i].name,
-                                 database: accounts[i].database,
-                                 link: accounts[i].link,
-                                 username: accounts[i].username,
-                                 is_default: accounts[i].is_default || 0
-                             });
+                id: accounts[i].id,
+                name: accounts[i].name,
+                database: accounts[i].database,
+                link: accounts[i].link,
+                username: accounts[i].username,
+                is_default: accounts[i].is_default || 0
+            });
         }
 
         selectorModelMap["Account"] = accountList;
@@ -193,9 +190,9 @@ Rectangle {
         // Immediately simulate state transition (Special case for an entry point for the user)
         if (selectedId === -1) {
             transitionTo("AccountSelected", {
-                             id: default_id,
-                             name: default_name
-                         });
+                id: default_id,
+                name: default_name
+            });
         }
     }
 
@@ -211,10 +208,10 @@ Rectangle {
 
         // Always add default "No Project"
         projectList.push({
-                             id: default_id,
-                             name: default_name,
-                             parent_id: null
-                         });
+            id: default_id,
+            name: default_name,
+            parent_id: null
+        });
 
         for (let i = 0; i < rawProjects.length; i++) {
             let id = (accountId === 0) ? rawProjects[i].id : rawProjects[i].odoo_record_id;
@@ -223,10 +220,10 @@ Rectangle {
 
             if (parentId === null || parentId === 0) {
                 projectList.push({
-                                     id: id,
-                                     name: name,
-                                     parent_id: parentId
-                                 });
+                    id: id,
+                    name: name,
+                    parent_id: parentId
+                });
 
                 if (selectedId === id) {
                     default_id = id;
@@ -247,10 +244,10 @@ Rectangle {
 
         // Always add default "No Subproject"
         subProjectList.push({
-                                id: -1,
-                                name: "No Subproject",
-                                parent_id: null
-                            });
+            id: -1,
+            name: "No Subproject",
+            parent_id: null
+        });
 
         let default_id = -1;
         let default_name = "No Subproject";
@@ -263,10 +260,10 @@ Rectangle {
             // Add only if this project is a child of the parentProjectId
             if (parentId === parentProjectId) {
                 subProjectList.push({
-                                        id: id,
-                                        name: name,
-                                        parent_id: parentId
-                                    });
+                    id: id,
+                    name: name,
+                    parent_id: parentId
+                });
 
                 if (selectedId === id) {
                     default_id = id;
@@ -286,32 +283,46 @@ Rectangle {
 
         // Always add "No Task" entry
         taskList.push({
-                          id: -1,
-                          name: "No Task",
-                          parent_id: null
-                      });
+            id: -1,
+            name: "No Task",
+            parent_id: null
+        });
 
         let default_id = -1;
         let default_name = "No Task";
 
         for (let i = 0; i < rawTasks.length; i++) {
-            let id = rawTasks[i].odoo_record_id; // always use remote_id
+            let id = rawTasks[i].odoo_record_id;
             let name = rawTasks[i].name;
             let projectParentId = rawTasks[i].project_id;
             let subProjectParentId = rawTasks[i].sub_project_id;
             let parentId = rawTasks[i].parent_id;
 
-            // Include only top-level tasks for the selected project/subproject
-            if ((projectParentId === projectIdOrSubprojectId || subProjectParentId === projectIdOrSubprojectId) && (parentId === null || parentId === 0)) {
+            if (selectedId !== -1) {
+                // ⚡ Deferred load: add all tasks so selectedId can match
                 taskList.push({
-                                  id: id,
-                                  name: name,
-                                  parent_id: projectParentId || subProjectParentId // reference
-                              });
+                    id: id,
+                    name: name,
+                    parent_id: projectParentId || subProjectParentId
+                });
 
                 if (selectedId === id) {
                     default_id = id;
                     default_name = name;
+                }
+            } else {
+                // Normal workflow filtering
+                if ((projectParentId === projectIdOrSubprojectId || subProjectParentId === projectIdOrSubprojectId) && (parentId === null || parentId === 0)) {
+                    taskList.push({
+                        id: id,
+                        name: name,
+                        parent_id: projectParentId || subProjectParentId
+                    });
+
+                    if (selectedId === id) {
+                        default_id = id;
+                        default_name = name;
+                    }
                 }
             }
         }
@@ -327,30 +338,44 @@ Rectangle {
 
         // Always add "No Subtask" entry
         subTaskList.push({
-                             id: -1,
-                             name: "No Subtask",
-                             parent_id: null
-                         });
+            id: -1,
+            name: "No Subtask",
+            parent_id: null
+        });
 
         let default_id = -1;
         let default_name = "No Subtask";
 
         for (let i = 0; i < rawTasks.length; i++) {
-            let id = rawTasks[i].odoo_record_id;   // ✅ always use remote_id
+            let id = rawTasks[i].odoo_record_id;   // always use remote_id
             let name = rawTasks[i].name;
             let parentId = rawTasks[i].parent_id;  // Subtasks link via parent_id to their parent task
 
-            // Only include subtasks whose parent_id matches the given parentTaskId
-            if (parentId === parentTaskId) {
+            if (selectedId !== -1) {
+                // Skip filtering if we are doing deferred loading
                 subTaskList.push({
-                                     id: id,
-                                     name: name,
-                                     parent_id: parentId
-                                 });
+                    id: id,
+                    name: name,
+                    parent_id: parentId
+                });
 
                 if (selectedId === id) {
                     default_id = id;
                     default_name = name;
+                }
+            } else {
+                // Normal workflow filtering
+                if (parentId === parentTaskId) {
+                    subTaskList.push({
+                        id: id,
+                        name: name,
+                        parent_id: parentId
+                    });
+
+                    if (selectedId === id) {
+                        default_id = id;
+                        default_name = name;
+                    }
                 }
             }
         }
@@ -366,10 +391,10 @@ Rectangle {
 
         // Always add "Unassigned"
         assigneeList.push({
-                              id: -1,
-                              name: "Unassigned",
-                              parent_id: null
-                          });
+            id: -1,
+            name: "Unassigned",
+            parent_id: null
+        });
 
         let default_id = -1;
         let default_name = "Unassigned";
@@ -379,10 +404,10 @@ Rectangle {
             let name = rawAssignees[i].name;
 
             assigneeList.push({
-                                  id: id,
-                                  name: name,
-                                  parent_id: null // no hierarchy for assignees
-                              });
+                id: id,
+                name: name,
+                parent_id: null // no hierarchy for assignees
+            });
 
             if (selectedId === id) {
                 default_id = id;
@@ -403,7 +428,7 @@ Rectangle {
         // Account Selector
         SelectionButton {
             id: account_component
-            selectorType: "Account"
+            selectorType: accountLabelText
             labelText: accountLabelText
             onSelectionMade: handleSelection(id, name, selectorType)
             Component.onCompleted: {
@@ -415,7 +440,7 @@ Rectangle {
         // Project Selector
         SelectionButton {
             id: project_component
-            selectorType: "Project"
+            selectorType: projectLabelText
             labelText: projectLabelText
             onSelectionMade: handleSelection(id, name, selectorType)
 
@@ -434,10 +459,10 @@ Rectangle {
         // Subproject Selector
         SelectionButton {
             id: subproject_compoent
-            selectorType: "Subproject"
+            selectorType: subProjectLabelText
             labelText: subProjectLabelText
             onSelectionMade: handleSelection(id, name, selectorType)
-            visible:showSubProjectSelector
+            visible: showSubProjectSelector
             Connections {
                 target: workItemSelector
                 onStateChanged: {
@@ -453,9 +478,9 @@ Rectangle {
         // Task Selector
         SelectionButton {
             id: task_component
-            selectorType: "Task"
+            selectorType: taskLabelText
             labelText: taskLabelText
-            visible:showTaskSelector
+            visible: showTaskSelector
             onSelectionMade: handleSelection(id, name, selectorType)
 
             Connections {
@@ -473,9 +498,9 @@ Rectangle {
         // Subtask Selector
         SelectionButton {
             id: subtask_component
-            selectorType: "Subtask"
+            selectorType: subTaskLabelText
             labelText: subTaskLabelText
-            visible:showSubTaskSelector
+            visible: showSubTaskSelector
             onSelectionMade: handleSelection(id, name, selectorType)
 
             Connections {
@@ -493,7 +518,7 @@ Rectangle {
         // Assignee Selector
         SelectionButton {
             id: assignee_component
-            visible:showAssigneeSelector
+            visible: showAssigneeSelector
             selectorType: "Assignee"
             labelText: assigneeLabelText
             onSelectionMade: handleSelection(id, name, selectorType)
@@ -511,3 +536,86 @@ Rectangle {
         }
     }
 }
+
+/*
+---------------------------------------------------------------
+WorkItemSelector.qml – Detailed Workflow and Architecture Notes
+---------------------------------------------------------------
+
+Purpose:
+-------------
+This QML component provides a *stateful cascading selector UI* for:
+- Account
+- Project
+- Subproject
+- Task
+- Subtask
+- Assignee
+
+It enables *dynamic loading* of related entities from Odoo (via local DB sync)
+using **state transitions** without requiring external state management.
+
+Core Concepts:
+--------------------
+*  Uses a **state machine**:
+    - `currentState` tracks the selector state.
+    - `stateChanged(newState, data)` is emitted for each transition.
+    - Each `SelectionButton` listens to relevant states and triggers data loading.
+
+*  Uses **selectorModelMap**:
+    Holds the current data for each selector type, making updates traceable.
+
+*  Uses **deferredLoadExistingRecordSet**:
+    Allows loading an existing timesheet (or related record) into the selector stack
+    without state propagation.
+
+*  Uses **finalizeLoading(...)**:
+    Centralized helper to:
+      • Assign models to selectors
+      • Enable/disable based on data length
+      • Apply deferred selection if needed.
+
+*  Uses **SelectionButton.qml**:
+    Encapsulates label+button with popover list selection, reducing repetitive UI code.
+
+Workflow:
+--------------
+- User starts with Account selection:
+    → Loads Accounts using `loadAccounts()`.
+    → On selection, triggers `"AccountSelected"`, loading Projects.
+
+- Project selection:
+    → Loads Projects for selected Account using `loadProjects()`.
+    → On selection, triggers `"ProjectSelected"`, loading Subprojects and Tasks.
+
+- Subproject selection:
+    → Loads Subprojects for Project using `loadSubProjects()`.
+    → On selection, triggers `"SubprojectSelected"`, loading Tasks for Subproject.
+
+- Task selection:
+    → Loads Tasks for selected Project or Subproject using `loadTasks()`.
+    → On selection, triggers `"TaskSelected"`, loading Subtasks.
+
+- Subtask selection:
+    → Loads Subtasks for Task using `loadSubTasks()`.
+
+- Assignee selection:
+    → Loads Assignees for Account using `loadAssignees()`.
+
+Advantages:
+----------------
+*  Highly modular and testable.
+*  Minimal coupling between selectors.
+*  State transitions remain visible and traceable.
+*  Future extensibility (e.g., auto-sync, role-based filtering) is straightforward.
+*  Clear separation of UI and data logic.
+
+---------------------------------
+This documentation ensures any developer maintaining
+or extending this component will understand its design,
+responsibilities, and how data flows between the selectors.
+
+Last updated: [2025-07-01]
+---------------------------------
+*/
+
