@@ -90,27 +90,36 @@ Page {
     }
 
     function save_task_data() {
-        const ids = workItem.getAllSelectedDbRecordIds();
-        const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
-        if (!user) {
-            notifPopup.open("Error", "Unable to find the user , can not save", "error");
+        const ids = workItem.getIds();
+        console.log("getAllSelectedDbRecordIds returned:");
+        console.log("   accountDbId: " + ids.account_id);
+        console.log("   projectDbId: " + ids.project_id);
+        console.log("   subProjectDbId: " + ids.subproject_id);
+        console.log("   taskDbId: " + ids.task_id);
+        console.log("   subTaskDbId: " + ids.subtask_id);
+        if (!ids.assignee_id) {
+            notifPopup.open("Error", "Please select the assignee", "error");
+            return;
+        }
+        if (!ids.project_id) {
+            notifPopup.open("Error", "Please select the project", "error");
             return;
         }
         if (name_text.text != "") {
             const saveData = {
-                accountId: ids.accountDbId < 0 ? 0 : ids.accountDbId,
+                accountId: ids.account_id < 0 ? 0 : ids.account_id,
                 name: name_text.text,
                 record_id: recordid,
-                projectId: ids.projectDbId < 0 ? 0 : ids.projectDbId,
-                subProjectId: 0,
-                parentId: ids.taskDbId > 0 ? ids.taskDbId : 0,
+                projectId:  ids.project_id,
+                subProjectId: ids.subproject_id,
+                parentId: ids.task_id,
                 startDate: date_range_widget.formattedStartDate(),
                 endDate: date_range_widget.formattedEndDate(),
                 deadline: date_range_widget.formattedEndDate(),
                 favorites: 0,
                 plannedHours: Utils.convertDurationToFloat(hours_text.text),
                 description: description_text.text,
-                assigneeUserId: ids.assigneeDbId < 0 ? null : ids.assigneeDbId,
+                assigneeUserId: ids.assignee_id,
                 status: "updated"
             };
 
@@ -167,10 +176,7 @@ Page {
                     taskLabelText: "Parent Task"
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(10)
-                    showAccountSelector: true
-                    showProjectSelector: true
-                    showTaskSelector: true
-                    showAssigneeSelector: true
+                    showSubTaskSelector:false
                 }
             }
         }
@@ -341,6 +347,7 @@ Page {
 
             let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
             let parent_project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;
+            let sub_project_id = (currentTask.sub_project_id !== undefined && currentTask.sub_project_id !== null) ? currentTask.sub_project_id : -1;
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
@@ -351,12 +358,7 @@ Page {
                 assignee_id: assignee_id
             }));
 
-            // Use a longer delay to ensure all components are fully initialized
-            Qt.callLater(() => {
-                Qt.callLater(() => {
-                    workItem.applyDeferredSelection(instanceId, parent_project_id, -1, parent_task_id, -1, assignee_id);
-                });
-            });
+            workItem.deferredLoadExistingRecordSet(instanceId, parent_project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
             name_text.text = currentTask.name || "";
             description_text.text = currentTask.description || "";
@@ -368,6 +370,10 @@ Page {
             } else if (currentTask.start_date) {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.start_date);
             }
+        }
+        else
+        {
+             workItem.loadAccounts();
         }
     }
 }

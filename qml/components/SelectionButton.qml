@@ -25,7 +25,7 @@ Item {
             console.log("[SelectionButton] Selected:", id, name, "for", selectorType);
             selectionButton.selectionMade(id, name, selectorType);
             selectionButton.selectedId = id;
-            entity_btn.text=name
+            entity_btn.text = name;
         }
     }
 
@@ -41,8 +41,8 @@ Item {
         }
 
         Button {
+            id: entity_btn
             text: "Select"
-            id:entity_btn
             width: parent.width * 0.45
             height: units.gu(5)
             enabled: enabledState
@@ -83,5 +83,4 @@ Item {
 
         console.log("[SelectionButton] ID", selectedId, "not found in modelData for", selectorType);
     }
-
 }

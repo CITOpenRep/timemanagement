@@ -216,7 +216,8 @@ Rectangle {
                 let flatModel = [
                     {
                         id: -1,
-                        name: "Select Assignee", // Changed from "Unassigned" to "Select Assignee"
+                        name: "Select Assignee" // Changed from "Unassigned" to "Select Assignee"
+                        ,
                         parent_id: null
                     }
                 ];

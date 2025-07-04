@@ -103,7 +103,7 @@ ComboBox {
 
     function selectDefaultAccount() {
         console.log("[AccountSelector] selectDefaultAccount called");
-        
+
         // First try to find the default account in the model
         for (let i = 0; i < internalInstanceModel.count; i++) {
             const item = internalInstanceModel.get(i);
@@ -118,7 +118,7 @@ ComboBox {
                 return;
             }
         }
-        
+
         // If no default found in model, try to get default ID from database
         const defaultId = Accounts.getDefaultAccountId();
         if (defaultId > 0) {
@@ -126,7 +126,7 @@ ComboBox {
             selectAccountById(defaultId);
             return;
         }
-        
+
         // If no default account found, select first account
         console.log("[AccountSelector] No default account found, selecting first account");
         selectFirstAccount();
@@ -163,7 +163,7 @@ ComboBox {
     function refreshAndSelectDefault() {
         console.log("[AccountSelector] refreshAndSelectDefault called");
         loadAccounts();
-        // loadAccounts will automatically call selectDefaultAccount
+    // loadAccounts will automatically call selectDefaultAccount
     }
 
     Component.onCompleted: {

@@ -32,7 +32,9 @@ Item {
                     width: parent.width
                     height: parent.height * 0.4
 
-                    model: ListModel { id: comboModel }
+                    model: ListModel {
+                        id: comboModel
+                    }
                     textRole: "text"
 
                     onActivated: {
@@ -73,8 +75,10 @@ Item {
     }
 
     function open(titleArg, modelDataArg) {
-        if (titleArg) titleText = titleArg;
-        if (modelDataArg) modelData = modelDataArg;
+        if (titleArg)
+            titleText = titleArg;
+        if (modelDataArg)
+            modelData = modelDataArg;
         PopupUtils.open(dialogComponent);
     }
 }

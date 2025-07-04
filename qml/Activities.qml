@@ -282,7 +282,7 @@ Page {
             //lets reset the task and project views
             workItem.showTaskSelector = false;
             workItem.showProjectSelector = false;
-            
+
             switch (currentActivity.resModel) {
             case "project.task":
                 // Connected to task: Show project, subproject, AND task selectors (full hierarchy)
@@ -290,22 +290,21 @@ Page {
                 console.log("Activity connected to task, fetching task details for link_id:", currentActivity.link_id);
                 let taskDetails = Task.getTaskDetails(currentActivity.link_id);
                 console.log("Task details:", JSON.stringify(taskDetails));
-                
+
                 let projectId = taskDetails.project_id || -1;
                 let subProjectId = taskDetails.sub_project_id || -1;
-                
+
                 workItem.showProjectSelector = true;
                 workItem.showTaskSelector = true;
                 taskRadio.checked = true;
                 projectRadio.checked = false;
-                
+
                 console.log("Setting up task connection with projectId:", projectId, "subProjectId:", subProjectId, "taskId:", currentActivity.link_id);
-                
+
                 // Apply selection with both project and task information
                 // Use subProjectId if available, otherwise use projectId
                 workItem.applyDeferredSelection(instanceId, projectId, subProjectId, currentActivity.link_id, -1, user_id);
                 break;
-                
             case "project.project":
                 // Connected to project: Show project and subproject selectors only
                 console.log("Activity connected to project, link_id:", currentActivity.link_id);
@@ -313,10 +312,9 @@ Page {
                 workItem.showTaskSelector = false;
                 projectRadio.checked = true;
                 taskRadio.checked = false;
-                
+
                 workItem.applyDeferredSelection(instanceId, currentActivity.link_id, -1, -1, -1, user_id);
                 break;
-                
             default:
                 console.log("Activity not connected to project or task");
                 // Show both selectors but no selection
@@ -326,20 +324,20 @@ Page {
                 projectRadio.checked = false;
                 workItem.applyDeferredSelection(instanceId, -1, -1, -1, -1, user_id);
             }
-            
+
             //update due date
             date_widget.setSelectedDate(currentActivity.due_date);
         } else {
             console.log("Creating a new activity");
             let account = Accounts.getAccountsList();
             reloadActivityTypeSelector(account, -1);
-            
+
             // For new activities, show both selectors with task selected by default
             workItem.showProjectSelector = true;
             workItem.showTaskSelector = true;
             taskRadio.checked = true;
             projectRadio.checked = false;
-            
+
             workItem.applyDeferredSelection(account, -1, -1, -1, -1, -1);
         }
     }

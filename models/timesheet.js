@@ -66,7 +66,7 @@ function fetch_active_timesheets() {
         db.transaction(function (tx) {
             var result = tx.executeSql(
                 "SELECT * FROM account_analytic_line_app " +
-                "WHERE (status = 'draft') " +
+                "WHERE (status = 'updated') " +
                 "ORDER BY last_modified DESC"
             );
 
@@ -311,7 +311,7 @@ function createTimesheetFromTask(taskRecordId) {
             'spenthours': "00:00",
             'isManualTimeRecord': false,
             'quadrant': 0,
-            'status': "draft",
+            'status': "updated",
             'user_id': task.user_id
         };
 
@@ -336,13 +336,17 @@ function createTimesheetFromTask(taskRecordId) {
 }
 
 function updateTimesheetWithDuration(timesheetId, durationHours) {
-    console.log("Updating time sheet " + timesheetId + "with the hours" + durationHours)
+    console.log("Updating timesheet " + timesheetId + " with hours " + durationHours);
+
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
+
     try {
         db.transaction(function(tx) {
-            tx.executeSql("UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ? WHERE id = ?",
-                          [durationHours, timestamp, timesheetId]);
+            tx.executeSql(
+                "UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ?, status = ? WHERE id = ?",
+                [durationHours, timestamp, "updated", timesheetId]
+            );
         });
     } catch (e) {
         console.log("updateTimesheetWithDuration failed:", e);

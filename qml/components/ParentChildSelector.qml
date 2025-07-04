@@ -11,7 +11,7 @@ Item {
     property string parentLabel: "Parent"
     property string childLabel: "Child"
     property var getRecords // function(accountId) to fetch records
-    property int projectFilterId: -1 // New property for project filtering  
+    property int projectFilterId: -1 // New property for project filtering
     property bool useProjectFilter: false // Enable/disable project filtering
     property bool hasChildren: false // Track if current parent has children
 
@@ -21,7 +21,6 @@ Item {
     function setProjectFilter(projId) {
         projectFilterId = projId;
     }
-
 
     function reloadSelector(options) {
         let {
@@ -33,7 +32,13 @@ Item {
         } = options;
 
         let filteredRecords = records.filter(filterFn);
-        let flatModel = [{ id: -1, name: defaultLabel, parent_id: null }];
+        let flatModel = [
+            {
+                id: -1,
+                name: defaultLabel,
+                parent_id: null
+            }
+        ];
 
         let selectedText = defaultLabel;
         let selectedFound = (selectedId === -1);
@@ -42,7 +47,11 @@ Item {
             let record = filteredRecords[i];
             let id = (record.odoo_record_id !== undefined) ? record.odoo_record_id : record.id;
             let name = record.name;
-            flatModel.push({ id: id, name: name, parent_id: null });
+            flatModel.push({
+                id: id,
+                name: name,
+                parent_id: null
+            });
 
             if (selectedId === id) {
                 selectedText = name;
@@ -52,7 +61,7 @@ Item {
 
         selector.dataList = flatModel;
         selector.reload();
-        
+
         // Use Qt.callLater to ensure the selector state is properly initialized before setting values
         Qt.callLater(() => {
             console.log("Setting selector values:", selector.labelText, "selectedId:", selectedId, "selectedText:", selectedText);
@@ -64,11 +73,11 @@ Item {
 
     function loadParentSelector(selectedId) {
         let records = getRecords(accountId);
-        
+
         // Apply project filter if enabled and set
         let projectFilterFn;
         let displayLabel;
-        
+
         if (useProjectFilter && projectFilterId === -1) {
             // If project filtering is enabled but no project is selected, show no tasks
             projectFilterFn = record => false;
@@ -82,7 +91,7 @@ Item {
             projectFilterFn = record => !record.parent_id || record.parent_id === 0;
             displayLabel = "Select " + parentLabel;
         }
-        
+
         reloadSelector({
             selector: parentSelector,
             records: records,
@@ -110,7 +119,7 @@ Item {
                 // If project filtering is disabled, show all child records for the parent
                 childFilterFn = record => record.parent_id === parentId;
             }
-            
+
             reloadSelector({
                 selector: childSelector,
                 records: records,
@@ -128,22 +137,22 @@ Item {
 
     Column {
         anchors.fill: parent
-       spacing: units.gu(1)
+        spacing: units.gu(1)
 
         TreeSelector {
             id: parentSelector
             labelText: parentLabel
             width: parent.width
-            height: parent.height/4
+            height: parent.height / 4
             enabled: parentChildSelector.enabled && (!parentChildSelector.useProjectFilter || parentChildSelector.projectFilterId !== -1)
 
             onItemSelected: {
                 let selectedId = parentSelector.selectedId;
                 console.log(parentLabel + " Selected ID: " + selectedId);
-                
+
                 // Emit the signal for immediate parent selection handling
                 parentItemSelected(selectedId);
-                
+
                 if (selectedId !== -1) {
                     loadChildSelector(selectedId, -1);
                 } else {
@@ -152,30 +161,30 @@ Item {
             }
         }
 
-       Rectangle {
+        Rectangle {
             width: parentSelector.width
             height: units.gu(1)
-           // anchors.top: parentSelector.bottom
+            // anchors.top: parentSelector.bottom
             color: "transparent"
         }
 
         TreeSelector {
             id: childSelector
             labelText: childLabel
-          //  anchors.top: parentSelector.bottom
+            //  anchors.top: parentSelector.bottom
             anchors.topMargin: units.gu(1)
             width: parent.width
-            height: parent.height/4
+            height: parent.height / 4
             enabled: parentChildSelector.enabled && parentSelector.selectedId !== -1 && parentChildSelector.hasChildren
             currentText: "Select " + parentChildSelector.parentLabel + " First"
 
             onItemSelected: {
-                if (!childSelector.enabled) return; // ignore clicks when disabled
+                if (!childSelector.enabled)
+                    return; // ignore clicks when disabled
                 let selectedId = childSelector.selectedId;
                 console.log(childLabel + " Selected ID: " + selectedId);
                 finalItemSelected(selectedId);
             }
         }
     }
-
 }
