@@ -25,6 +25,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
+import "../../models/timesheet.js" as Timesheet
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
 
@@ -50,6 +51,7 @@ ListItem {
     signal editRequested(int localId)
     signal deleteRequested(int localId)
     signal viewRequested(int localId)
+    signal timesheetRequested(int localId)
 
     trailingActions: ListItemActions {
         actions: [
@@ -60,6 +62,12 @@ ListItem {
             Action {
                 iconName: "edit"
                 onTriggered: editRequested(localId)
+            },
+            Action {
+                iconName: "add"
+                visible: recordId > 0
+                text: "Add Timesheet"
+                onTriggered: timesheetRequested(localId)
             }
         ]
     }
