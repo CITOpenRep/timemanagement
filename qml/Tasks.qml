@@ -72,7 +72,7 @@ Page {
 
     property string currentEditingField: ""
     property bool workpersonaSwitchState: true
-    property bool isReadOnly: false
+    property bool isReadOnly: recordid != 0 // Set read-only immediately based on recordid
     property int selectedProjectId: 0
     property int selectedparentId: 0
     property int selectedTaskId: 0
@@ -341,6 +341,8 @@ Page {
         }
     }
     Component.onCompleted: {
+        console.log("Tasks Component.onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
+        
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
             currentTask = Task.getTaskDetails(recordid);

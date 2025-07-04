@@ -12,6 +12,7 @@ Item {
     property string selectorType: ""             // "Account", "Project", etc.
     property string labelText: "Label"
     property bool enabledState: true
+    property bool readOnly: false
     property var modelData: []                   // Data to display in dialog
     property int selectedId: -1
     signal selectionMade(int id, string name, string selectorType)
@@ -75,8 +76,11 @@ Item {
                     id: mouseArea
                     anchors.fill: parent
                     hoverEnabled: true
-                    enabled: selectionButton.enabledState
+                    enabled: selectionButton.enabledState && !selectionButton.readOnly
                     onClicked: {
+                        if (!selectionButton.enabledState || selectionButton.readOnly) {
+                            return;
+                        }
                         if (modelData.length === 0) {
                             console.log("[SelectionButton] No data set for", selectorType);
                             return;

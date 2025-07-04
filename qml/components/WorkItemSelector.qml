@@ -20,6 +20,33 @@ Rectangle {
     property bool showAssigneeSelector: true
 
     property bool readOnly: false
+    
+    // Watch for readOnly property changes and update all selectors
+    onReadOnlyChanged: {
+        console.log("[WorkItemSelector] readOnly changed to:", readOnly);
+        updateAllSelectorStates();
+    }
+    
+    function updateAllSelectorStates() {
+        if (account_component) {
+            account_component.setEnabled(!readOnly);
+        }
+        if (project_component) {
+            project_component.setEnabled(!readOnly);
+        }
+        if (subproject_compoent) {
+            subproject_compoent.setEnabled(!readOnly);
+        }
+        if (task_component) {
+            task_component.setEnabled(!readOnly);
+        }
+        if (subtask_component) {
+            subtask_component.setEnabled(!readOnly);
+        }
+        if (assignee_component) {
+            assignee_component.setEnabled(!readOnly);
+        }
+    }
     property string accountLabelText: "Account"
     property string projectLabelText: "Project"
     property string subProjectLabelText: "Subproject"
@@ -430,10 +457,12 @@ Rectangle {
             id: account_component
             selectorType: accountLabelText
             labelText: accountLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
             onSelectionMade: handleSelection(id, name, selectorType)
             Component.onCompleted: {
                 account_component.setData(selectorModelMap["Account"]);
-                account_component.setEnabled(true);
+                if (!readOnly) account_component.setEnabled(true);
             }
         }
 
@@ -442,6 +471,8 @@ Rectangle {
             id: project_component
             selectorType: projectLabelText
             labelText: projectLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
             onSelectionMade: handleSelection(id, name, selectorType)
 
             Connections {
@@ -454,6 +485,9 @@ Rectangle {
                     }
                 }
             }
+            Component.onCompleted: {
+                if (!readOnly) project_component.setEnabled(true);
+            }
         }
 
         // Subproject Selector
@@ -461,6 +495,8 @@ Rectangle {
             id: subproject_compoent
             selectorType: subProjectLabelText
             labelText: subProjectLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
             onSelectionMade: handleSelection(id, name, selectorType)
             visible: showSubProjectSelector
             Connections {
@@ -473,6 +509,9 @@ Rectangle {
                     }
                 }
             }
+            Component.onCompleted: {
+                if (!readOnly) subproject_compoent.setEnabled(true);
+            }
         }
 
         // Task Selector
@@ -480,6 +519,8 @@ Rectangle {
             id: task_component
             selectorType: taskLabelText
             labelText: taskLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
             visible: showTaskSelector
             onSelectionMade: handleSelection(id, name, selectorType)
 
@@ -493,6 +534,9 @@ Rectangle {
                     }
                 }
             }
+            Component.onCompleted: {
+                if (!readOnly) task_component.setEnabled(true);
+            }
         }
 
         // Subtask Selector
@@ -500,6 +544,8 @@ Rectangle {
             id: subtask_component
             selectorType: subTaskLabelText
             labelText: subTaskLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
             visible: showSubTaskSelector
             onSelectionMade: handleSelection(id, name, selectorType)
 
@@ -513,6 +559,9 @@ Rectangle {
                     }
                 }
             }
+            Component.onCompleted: {
+                if (!readOnly) subtask_component.setEnabled(true);
+            }
         }
 
         // Assignee Selector
@@ -521,6 +570,8 @@ Rectangle {
             visible: showAssigneeSelector
             selectorType: "Assignee"
             labelText: assigneeLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
             onSelectionMade: handleSelection(id, name, selectorType)
 
             Connections {
@@ -532,6 +583,9 @@ Rectangle {
                         loadAssignees(data.id, -1);
                     }
                 }
+            }
+            Component.onCompleted: {
+                if (!readOnly) assignee_component.setEnabled(true);
             }
         }
     }
