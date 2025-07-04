@@ -28,23 +28,24 @@ Rectangle {
     }
     
     function updateAllSelectorStates() {
+        console.log("[WorkItemSelector] Updating all selector states, readOnly:", readOnly);
         if (account_component) {
-            account_component.setEnabled(!readOnly);
+            account_component.setEnabled(!readOnly && account_component.modelData.length > 1);
         }
         if (project_component) {
-            project_component.setEnabled(!readOnly);
+            project_component.setEnabled(!readOnly && project_component.modelData.length > 1);
         }
         if (subproject_compoent) {
-            subproject_compoent.setEnabled(!readOnly);
+            subproject_compoent.setEnabled(!readOnly && subproject_compoent.modelData.length > 1);
         }
         if (task_component) {
-            task_component.setEnabled(!readOnly);
+            task_component.setEnabled(!readOnly && task_component.modelData.length > 1);
         }
         if (subtask_component) {
-            subtask_component.setEnabled(!readOnly);
+            subtask_component.setEnabled(!readOnly && subtask_component.modelData.length > 1);
         }
         if (assignee_component) {
-            assignee_component.setEnabled(!readOnly);
+            assignee_component.setEnabled(!readOnly && assignee_component.modelData.length > 1);
         }
     }
     property string accountLabelText: "Account"
@@ -113,7 +114,13 @@ Rectangle {
     function finalizeLoading(selectorType, component, list, default_id, default_name, selectedId, transitionState) {
         selectorModelMap[selectorType] = list;
         component.modelData = list;
-        component.setEnabled(list.length > 1);
+        
+        // Only enable if not in read-only mode AND has data
+        if (!readOnly && list.length > 1) {
+            component.setEnabled(true);
+        } else {
+            component.setEnabled(false);
+        }
 
         if (selectedId !== -1 && list.length > 1) {
             component.applyDeferredSelection(default_id);
@@ -164,6 +171,9 @@ Rectangle {
         if (accountId !== -1) {
             loadAssignees(accountId, assigneeId);
         }
+        
+        // Force update selector states after loading data to respect read-only mode
+        Qt.callLater(updateAllSelectorStates);
     }
 
     function getIds() {

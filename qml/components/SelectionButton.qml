@@ -98,7 +98,14 @@ Item {
     }
 
     function setEnabled(isEnabled) {
-        enabledState = isEnabled;
+        // Only enable if not in read-only mode
+        if (readOnly) {
+            enabledState = false;
+            console.log("[SelectionButton] Ignoring setEnabled(" + isEnabled + ") because readOnly is true for", selectorType);
+        } else {
+            enabledState = isEnabled;
+            console.log("[SelectionButton] setEnabled(" + isEnabled + ") for", selectorType);
+        }
     }
 
     function applyDeferredSelection(selectedId) {
