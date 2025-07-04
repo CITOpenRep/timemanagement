@@ -10,7 +10,7 @@
 var timerRunning = false;
 var startTime = 0; // Epoch milliseconds
 var activeTimesheetId = null;
-var activeSheetname = ""
+var activeSheetname = "";
 var previouslyTrackedHours = 0;
 
 /**
@@ -22,25 +22,22 @@ var previouslyTrackedHours = 0;
  */
 function start(timesheetId) {
     if (timerRunning && activeTimesheetId !== null) {
-        var durationHours = getElapsedHours();
+        var durationHours = getElapsedDuration();
+        console.log("Stopping previous timer before starting new one, durationHours:", durationHours);
         Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-        startTime = 0;
-        activeTimesheetId = null;
-        previouslyTrackedHours = 0;
-        timerRunning = false;
+        resetInternal();
     }
 
-    // Fetch previous tracked hours
-    previouslyTrackedHours = Model.getTimesheetUnitAmount(timesheetId); // new function in timesheet.js
+    // Fetch previous tracked hours in HH.MM format
+    previouslyTrackedHours = Model.getTimesheetUnitAmount(timesheetId);
 
     startTime = Date.now();
     activeTimesheetId = timesheetId;
     timerRunning = true;
-    activeSheetname=Model.getTimesheetNameById(activeTimesheetId)
+    activeSheetname = Model.getTimesheetNameById(activeTimesheetId);
 
     console.log("Timer started for timesheet ID:", activeTimesheetId, "Previously tracked:", previouslyTrackedHours);
 }
-
 
 /**
  * Stop the currently running timer, calculate tracked duration,
@@ -51,75 +48,100 @@ function start(timesheetId) {
 function stop() {
     if (timerRunning) {
         var elapsedTime = getElapsedTime();
-        var durationHours = getElapsedHours();
+        var durationHours = getElapsedDuration();
+        console.log("Stopping timer. durationHours:", durationHours);
 
         if (activeTimesheetId !== null) {
             Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-            console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours):", durationHours);
+            console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
         }
 
-        // Reset state
-        timerRunning = false;
-        startTime = 0;
-        activeTimesheetId = null;
-        previouslyTrackedHours = 0;
-        activeSheetname=""
+        resetInternal();
         return elapsedTime;
     }
     return "00:00:00";
 }
 
 /**
- * Reset the timer without updating the database.
+ * Reset the timer internal state without DB updates.
  */
-function reset() {
+function resetInternal() {
     timerRunning = false;
     startTime = 0;
     activeTimesheetId = null;
-    console.log("🔄 Timer reset without saving.");
+    previouslyTrackedHours = 0;
+    activeSheetname = "";
 }
 
 /**
- * Get the elapsed tracked time in HH:MM:SS format.
+ * Reset the timer without updating the database.
  */
-function getElapsedTime() {
-    if (!startTime) {
-        // Convert previouslyTrackedHours to HH:MM:SS
-        return Utils.convertFloatToTime(previouslyTrackedHours);
+function reset() {
+    resetInternal();
+    console.log("Timer reset without saving.");
+}
+
+/**
+ * Get the elapsed tracked time as HH:MM:SS or HH.MM string for UI display.
+ * @param {string} format - "hhmm" for "HH.MM", "hhmmss" for "HH:MM:SS"
+ */
+function getElapsedTime(format = "hhmmss") {
+    var totalSeconds = 0;
+
+    if (startTime) {
+        var elapsedMs = Date.now() - startTime;
+        totalSeconds = Math.floor(elapsedMs / 1000);
     }
 
-    var elapsedMs = Date.now() - startTime;
-    var totalSeconds = Math.floor(elapsedMs / 1000);
-    var hours = Math.floor(totalSeconds / 3600);
-    var minutes = Math.floor((totalSeconds % 3600) / 60);
-    var seconds = totalSeconds % 60;
+    var prevHours = Math.floor(previouslyTrackedHours);
+    var prevMinutes = Math.round((previouslyTrackedHours - prevHours) * 60); // FIXED HERE
+    var prevTotalSeconds = prevHours * 3600 + prevMinutes * 60;
 
-    // Convert previouslyTrackedHours to seconds for adding
-    var prevTotalSeconds = Math.floor(previouslyTrackedHours * 3600);
     var combinedSeconds = totalSeconds + prevTotalSeconds;
 
-    var dispHours = Math.floor(combinedSeconds / 3600);
-    var dispMinutes = Math.floor((combinedSeconds % 3600) / 60);
-    var dispSeconds = combinedSeconds % 60;
+    var hours = Math.floor(combinedSeconds / 3600);
+    var minutes = Math.floor((combinedSeconds % 3600) / 60);
+    var seconds = combinedSeconds % 60;
 
-    return (
-                String(dispHours).padStart(2, "0") + ":" +
-                String(dispMinutes).padStart(2, "0") + ":" +
-                String(dispSeconds).padStart(2, "0")
-                );
+    if (format === "hhmm") {
+        return hours + "." + String(minutes).padStart(2, "0");
+    } else {
+        return (
+            String(hours).padStart(2, "0") + ":" +
+            String(minutes).padStart(2, "0") + ":" +
+            String(seconds).padStart(2, "0")
+        );
+    }
 }
 
 
 /**
- * Get the elapsed tracked time in decimal hours, rounded to 2 decimals.
+ * Get the elapsed tracked time in HH.MM format for database saving,
+ * preserving previously tracked fractional minutes correctly.
+ *
+ * Example:
+ * - 20 minutes => "0:20"
+ * - 1 hour 20 minutes => "1:20"
  */
-function getElapsedHours() {
-    if (!startTime) return previouslyTrackedHours;
+function getElapsedDuration() {
+    var totalSeconds = 0;
 
-    var elapsedMs = Date.now() - startTime;
-    var totalHours = elapsedMs / (1000 * 60 * 60);
-    var combinedHours = previouslyTrackedHours + totalHours;
-    return parseFloat(combinedHours.toFixed(2)); // e.g., 1.25 for 1 hr 15 min
+    if (startTime) {
+        var elapsedMs = Date.now() - startTime;
+        totalSeconds = Math.floor(elapsedMs / 1000);
+    }
+
+    var prevHours = Math.floor(previouslyTrackedHours);
+    var prevMinutes = Math.round((previouslyTrackedHours - prevHours) * 60);
+    var prevSeconds = prevHours * 3600 + prevMinutes * 60;
+
+    var combinedSeconds = totalSeconds + prevSeconds;
+
+    var hours = Math.floor(combinedSeconds / 3600);
+    var minutes = Math.floor((combinedSeconds % 3600) / 60);
+
+    // Return as "HH:MM" string for Model.updateTimesheetWithDuration
+    return hours + ":" + String(minutes).padStart(2, "0");
 }
 
 /**
@@ -143,6 +165,9 @@ function getStartTime() {
     return startTime;
 }
 
+/**
+ * Return the active timesheet name.
+ */
 function getActiveTimesheetName() {
     return activeSheetname;
 }

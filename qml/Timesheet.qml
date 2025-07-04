@@ -34,6 +34,7 @@ import Qt.labs.settings 1.0
 import "../models/timesheet.js" as Model
 import "../models/accounts.js" as Accounts
 import "../models/timer_service.js" as TimerService
+import "../models/utils.js" as Utils
 import "components"
 
 Page {
@@ -86,6 +87,9 @@ Page {
             notifPopup.open("Error", "You need to select a task to save time sheet", "error");
             return;
         }
+        let time = hours_text.text;
+        console.log("Recording " + time);
+        console.log("Decimal Representation is " + Utils.convertHHMMtoDecimalHours(time));
 
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
@@ -95,9 +99,7 @@ Page {
             'subTask': ids.subtask_id,
             'subprojectId': ids.subproject_id,
             'description': name_text.text,
-            'manualSpentHours': hours_text.text,
-            'spenthours': hours_text.text,
-            'isManualTimeRecord': isManualTime,
+            'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityCombo.currentIndex + 1,
             'user_id': user,
             'status': "updated"
@@ -263,7 +265,6 @@ Page {
                 onClicked: {
                     myTimePicker.open(1, 0);
                     isManualTime = true;
-                    hours_text.readOnly = false;
                 }
             }
             Rectangle {

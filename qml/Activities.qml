@@ -134,7 +134,7 @@ Page {
                             workItem.showSubTaskSelector = false;
                             workItem.showSubProjectSelector = false;
                             workItem.showTaskSelector = false;
-                            workItem.projectLabelText ="Parent Project"
+                            workItem.projectLabelText = "Parent Project";
                             taskRadio.checked = false;
                         }
                     }
@@ -157,8 +157,8 @@ Page {
                             workItem.showSubProjectSelector = true;
                             workItem.showTaskSelector = true;
                             workItem.showSubTaskSelector = false;
-                            workItem.taskLabelText ="Parent Task"
-                            projectRadio.checked=false;
+                            workItem.taskLabelText = "Parent Task";
+                            projectRadio.checked = false;
                         }
                     }
                 }
@@ -297,7 +297,6 @@ Page {
             workItem.showTaskSelector = false;
             workItem.showProjectSelector = false;
 
-
             switch (currentActivity.resModel) {
             case "project.task":
                 // Connected to task: Show project, subproject, AND task selectors (full hierarchy)
@@ -315,7 +314,7 @@ Page {
                 workItem.showSubProjectSelector = true;
                 taskRadio.checked = true;
                 projectRadio.checked = false;
-                workItem.taskLabelText ="Parent Task"
+                workItem.taskLabelText = "Parent Task";
 
                 console.log("Setting up task connection with projectId:", projectId, "subProjectId:", subProjectId, "taskId:", currentActivity.link_id);
 
@@ -331,7 +330,7 @@ Page {
                 workItem.showSubProjectSelector = false;
                 workItem.showTaskSelector = false;
                 taskRadio.checked = false;
-                workItem.projectLabelText ="Parent Porject"
+                workItem.projectLabelText = "Parent Porject";
 
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.link_id, -1, -1, -1, user_id);
                 break;
@@ -345,7 +344,7 @@ Page {
                 workItem.showTaskSelector = false;
                 taskRadio.checked = false;
                 projectRadio.checked = true;
-                workItem.projectLabelText ="Parent Porject" //default
+                workItem.projectLabelText = "Parent Porject"; //default
                 workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
             }
 
@@ -360,7 +359,7 @@ Page {
             taskRadio.checked = true;
             projectRadio.checked = false;
 
-            workItem.loadAccounts()
+            workItem.loadAccounts();
             workItem.showProjectSelector = true;
             workItem.showSubTaskSelector = false;
             workItem.showSubProjectSelector = true;

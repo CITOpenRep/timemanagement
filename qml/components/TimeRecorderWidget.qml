@@ -108,7 +108,7 @@ Rectangle {
         if (timesheetId > 0 && timesheetId === TimerService.getActiveTimesheetId()) {
             // Resume live tracking in this widget
             isRecording = true;
-            elapsedTime = TimerService.getFormattedElapsedTime();
+            elapsedTime = TimerService.getElapsedTime();
             updateTimer.start();
         } else {
             // Not the currently active timer

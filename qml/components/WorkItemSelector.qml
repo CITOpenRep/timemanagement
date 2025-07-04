@@ -20,13 +20,13 @@ Rectangle {
     property bool showAssigneeSelector: true
 
     property bool readOnly: false
-    
+
     // Watch for readOnly property changes and update all selectors
     onReadOnlyChanged: {
         console.log("[WorkItemSelector] readOnly changed to:", readOnly);
         updateAllSelectorStates();
     }
-    
+
     function updateAllSelectorStates() {
         console.log("[WorkItemSelector] Updating all selector states, readOnly:", readOnly);
         if (account_component) {
@@ -114,7 +114,7 @@ Rectangle {
     function finalizeLoading(selectorType, component, list, default_id, default_name, selectedId, transitionState) {
         selectorModelMap[selectorType] = list;
         component.modelData = list;
-        
+
         // Only enable if not in read-only mode AND has data
         if (!readOnly && list.length > 1) {
             component.setEnabled(true);
@@ -171,7 +171,7 @@ Rectangle {
         if (accountId !== -1) {
             loadAssignees(accountId, assigneeId);
         }
-        
+
         // Force update selector states after loading data to respect read-only mode
         Qt.callLater(updateAllSelectorStates);
     }
@@ -472,7 +472,8 @@ Rectangle {
             onSelectionMade: handleSelection(id, name, selectorType)
             Component.onCompleted: {
                 account_component.setData(selectorModelMap["Account"]);
-                if (!readOnly) account_component.setEnabled(true);
+                if (!readOnly)
+                    account_component.setEnabled(true);
             }
         }
 
@@ -497,7 +498,8 @@ Rectangle {
                 }
             }
             Component.onCompleted: {
-                if (!readOnly) project_component.setEnabled(true);
+                if (!readOnly)
+                    project_component.setEnabled(true);
             }
         }
 
@@ -521,7 +523,8 @@ Rectangle {
                 }
             }
             Component.onCompleted: {
-                if (!readOnly) subproject_compoent.setEnabled(true);
+                if (!readOnly)
+                    subproject_compoent.setEnabled(true);
             }
         }
 
@@ -546,7 +549,8 @@ Rectangle {
                 }
             }
             Component.onCompleted: {
-                if (!readOnly) task_component.setEnabled(true);
+                if (!readOnly)
+                    task_component.setEnabled(true);
             }
         }
 
@@ -571,7 +575,8 @@ Rectangle {
                 }
             }
             Component.onCompleted: {
-                if (!readOnly) subtask_component.setEnabled(true);
+                if (!readOnly)
+                    subtask_component.setEnabled(true);
             }
         }
 
@@ -596,7 +601,8 @@ Rectangle {
                 }
             }
             Component.onCompleted: {
-                if (!readOnly) assignee_component.setEnabled(true);
+                if (!readOnly)
+                    assignee_component.setEnabled(true);
             }
         }
     }

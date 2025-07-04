@@ -280,16 +280,41 @@ function getFormattedTimestampUTC() {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-/* Name: convertFloatToTime
-* This function will return HH:MM format time based on float value
-* -> value -> float value to convert HH:MM
-*/
+function convertHHMMtoDecimalHours(hhmmString) {
+    if (typeof hhmmString !== "string") {
+            console.error("Input is not a string:", hhmmString);
+            return 0;
+        }
 
-function convertFloatToTime(value) {
-    var hours = Math.floor(value);
-    var minutes = Math.round((value - hours) * 60);
-    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
+        var parts = hhmmString.split(":");
+        if (parts.length !== 2) {
+            console.error("Invalid HH:MM string:", hhmmString);
+            return 0;
+        }
+
+        var hours = parseInt(parts[0], 10);
+        var minutes = parseInt(parts[1], 10);
+
+        if (isNaN(hours) || isNaN(minutes)) {
+            console.error("Invalid numeric values in HH:MM string:", hhmmString);
+            return 0;
+        }
+
+        return parseFloat((hours + (minutes / 60)).toFixed(4));
 }
+
+/**
+ * Converts decimal hours to HH.MM format for display.
+ * E.g., 11.8333 => "11.50" (for 11 hours 50 minutes)
+ * @param {number} decimalHours
+ * @returns {string} - HH.MM string
+ */
+function convertDecimalHoursToHHMM(decimalHours) {
+    var hours = Math.floor(decimalHours);
+    var minutes = Math.round((decimalHours - hours) * 60);
+    return hours + ":" + String(minutes).padStart(2, "0");
+}
+
 
 /* Name: convertDurationToFloat
 * This function will return float value from HH:MM format

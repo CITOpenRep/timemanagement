@@ -342,7 +342,7 @@ Page {
     }
     Component.onCompleted: {
         console.log("Tasks Component.onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
-        
+
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
             currentTask = Task.getTaskDetails(recordid);

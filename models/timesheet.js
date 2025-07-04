@@ -41,7 +41,7 @@ function fetch_timesheets() {
                                        id: row.id,
                                        instance: instanceResult.rows.length > 0 ? instanceResult.rows.item(0).name : '',
                                        name: row.name || '',
-                                       spentHours: Utils.convertFloatToTime(row.unit_amount),
+                                       spentHours: Utils.convertDecimalHoursToHHMM(row.unit_amount),
                                        project: projectResult.rows.length > 0 ? projectResult.rows.item(0).name : 'Unknown Project',
                                        quadrant: quadrantMap[row.quadrant_id] || "Unknown",
                                        date: row.record_date,
@@ -102,7 +102,7 @@ function fetch_active_timesheets() {
                     id: row.id,
                     instance: instanceResult.rows.length > 0 ? instanceResult.rows.item(0).name : '',
                     name: row.name || '',
-                    spentHours: Utils.convertFloatToTime(row.unit_amount),
+                    spentHours: Utils.convertDecimalHoursToHHMM(row.unit_amount),
                     project: projectResult.rows.length > 0 ? projectResult.rows.item(0).name : 'Unknown Project',
                     quadrant: quadrantMap[row.quadrant_id] || "Unknown",
                     date: row.record_date,
@@ -187,7 +187,7 @@ function getTimeSheetDetails(record_id) {
                 'task_id': timesheet.rows.item(0).task_id,
                 'sub_task_id': timesheet.rows.item(0).sub_task_id,
                 'name': timesheet.rows.item(0).name,
-                'spentHours': Utils.convertFloatToTime(timesheet.rows.item(0).unit_amount),
+                'spentHours': Utils.convertDecimalHoursToHHMM(timesheet.rows.item(0).unit_amount),
                 'quadrant_id': timesheet.rows.item(0).quadrant_id,
                 'record_date': Utils.formatDate(new Date(timesheet.rows.item(0).record_date))
             };
@@ -212,12 +212,8 @@ function createOrSaveTimesheet(data) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
     var result = { success: false, error: "", id: null };
-
     try {
         db.transaction(function (tx) {
-            var unitAmount = data.isManualTimeRecord
-                ? Utils.convertDurationToFloat(data.manualSpentHours)
-                : Utils.convertDurationToFloat(data.spenthours);
 
             if (data.id && data.id > 0) {
                 // Updating existing timesheet
@@ -226,7 +222,7 @@ function createOrSaveTimesheet(data) {
                               sub_project_id = ?, sub_task_id = ?, quadrant_id = ?, unit_amount = ?,
                               last_modified = ?, status = ?, user_id = ? WHERE id = ?`,
                     [data.instance_id, data.record_date, data.project, data.task, data.description,
-                        data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
+                        data.subprojectId, data.subTask, data.quadrant, data.unit_amount, timestamp,
                         data.status, data.user_id, data.id]);
 
                 result.success = true;
@@ -238,7 +234,7 @@ function createOrSaveTimesheet(data) {
                               sub_task_id, quadrant_id, unit_amount, last_modified, status, user_id)
                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [data.instance_id, data.record_date, data.project, data.task, data.description,
-                        data.subprojectId, data.subTask, data.quadrant, unitAmount, timestamp,
+                        data.subprojectId, data.subTask, data.quadrant, data.unit_amount, timestamp,
                         data.status, data.user_id]);
 
                 // Retrieve the last inserted ID
@@ -268,6 +264,7 @@ function createTimesheetFromTask(taskRecordId) {
     console.log("Creating time sheet for "+ taskRecordId)
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var result = { success: false, id: null, error: "" };
+
 
     try {
         if (!taskRecordId || taskRecordId <= 0) {
@@ -340,12 +337,14 @@ function updateTimesheetWithDuration(timesheetId, durationHours) {
 
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
+    var time_taken=Utils.convertHHMMtoDecimalHours(durationHours)
+    console.log("Updating duration : "+time_taken)
 
     try {
         db.transaction(function(tx) {
             tx.executeSql(
                 "UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ?, status = ? WHERE id = ?",
-                [durationHours, timestamp, "updated", timesheetId]
+                [time_taken, timestamp, "updated", timesheetId]
             );
         });
     } catch (e) {
