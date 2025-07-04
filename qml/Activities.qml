@@ -1,5 +1,6 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
 import Qt.labs.settings 1.0
 import Lomiri.Components 1.3
@@ -10,6 +11,10 @@ import "../models/activity.js" as Activity
 import "../models/accounts.js" as Accounts
 import "../models/task.js" as Task
 import "components"
+
+// Ensure all required QML types are available
+// QtQuick.Controls 2.2 provides RadioButton, TextArea, etc.
+// QtQuick.Layouts 1.3 provides Row, Column, etc.
 
 Page {
     id: activityDetailsPage
@@ -76,9 +81,10 @@ Page {
                     taskLabelText: "Parent Task"
                     width: flickable.width - units.gu(2)
 
-                    onAccountChanged: {
-                        //reload the activity type for the account
-                        reloadActivityTypeSelector(accountId, -1);
+                    onStateChanged: {
+                        if (newState === "AccountSelected") {
+                            reloadActivityTypeSelector(data.id, -1);
+                        }
                     }
                 }
             }
@@ -296,6 +302,7 @@ Page {
 
                 workItem.showProjectSelector = true;
                 workItem.showTaskSelector = true;
+                workItem.showSubTaskSelector = true;
                 taskRadio.checked = true;
                 projectRadio.checked = false;
 
@@ -303,17 +310,18 @@ Page {
 
                 // Apply selection with both project and task information
                 // Use subProjectId if available, otherwise use projectId
-                workItem.applyDeferredSelection(instanceId, projectId, subProjectId, currentActivity.link_id, -1, user_id);
+                workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, currentActivity.link_id, -1, user_id);
                 break;
             case "project.project":
                 // Connected to project: Show project and subproject selectors only
                 console.log("Activity connected to project, link_id:", currentActivity.link_id);
                 workItem.showProjectSelector = true;
                 workItem.showTaskSelector = false;
+                workItem.showSubTaskSelector = false;
                 projectRadio.checked = true;
                 taskRadio.checked = false;
 
-                workItem.applyDeferredSelection(instanceId, currentActivity.link_id, -1, -1, -1, user_id);
+                workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.link_id, -1, -1, -1, user_id);
                 break;
             default:
                 console.log("Activity not connected to project or task");
@@ -322,7 +330,7 @@ Page {
                 workItem.showTaskSelector = true;
                 taskRadio.checked = true;
                 projectRadio.checked = false;
-                workItem.applyDeferredSelection(instanceId, -1, -1, -1, -1, user_id);
+                workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
             }
 
             //update due date
@@ -338,7 +346,7 @@ Page {
             taskRadio.checked = true;
             projectRadio.checked = false;
 
-            workItem.applyDeferredSelection(account, -1, -1, -1, -1, -1);
+            workItem.deferredLoadExistingRecordSet(account, -1, -1, -1, -1, -1);
         }
     }
 
