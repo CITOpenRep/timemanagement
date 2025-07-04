@@ -24,7 +24,6 @@ Item {
     property int radius: units.gu(0.8)
 
     function update_label(text) {
-        labelText = text;
         entity_btn_label.text = text;
     }
 

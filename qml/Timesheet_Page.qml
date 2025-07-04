@@ -30,6 +30,7 @@ import QtQuick.LocalStorage 2.7
 import "../models/timesheet.js" as Model
 import "../models/project.js" as Project
 import "components"
+import "../models/timer_service.js" as TimerService
 
 Page {
     id: timesheets
@@ -120,7 +121,8 @@ Page {
                 'task': timesheets_list[timesheet].task || "Unknown Task",
                 'date': timesheets_list[timesheet].date,
                 'user': timesheets_list[timesheet].user,
-                'status': timesheets_list[timesheet].status
+                'status': timesheets_list[timesheet].status,
+                'activetimer': (currentFilter === "active") && (TimerService.getActiveTimesheetId() === timesheets_list[timesheet].id)
             });
         }
     }
@@ -144,6 +146,7 @@ Page {
             recordId: model.id
             user: model.user
             status: model.status
+            timer_on: model.activetimer
 
             onEditRequested: {
                 apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {

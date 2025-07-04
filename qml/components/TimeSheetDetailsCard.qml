@@ -43,6 +43,7 @@ ListItem {
     property int recordId: -1
     property bool isFavorite: false
     property string status: ""
+    property bool timer_on: false
 
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
@@ -78,11 +79,37 @@ ListItem {
 
     ListItemLayout {
         anchors.fill: parent
+        // Animated dot
+        Rectangle {
+            id: indicator
+            width: units.gu(1)
+            height: units.gu(1)
+            radius: units.gu(0.5)
+            color: "#ffa500"
+            anchors.left: parent.left
+            visible: timer_on
+            SequentialAnimation on opacity {
+                loops: Animation.Infinite
+                running: indicator.visible
+                NumberAnimation {
+                    from: 0.3
+                    to: 1
+                    duration: 800
+                    easing.type: Easing.InOutQuad
+                }
+                NumberAnimation {
+                    from: 1
+                    to: 0.3
+                    duration: 800
+                    easing.type: Easing.InOutQuad
+                }
+            }
+        }
 
         Row {
-            anchors.fill: parent
+            anchors.left: indicator.right
+            anchors.right: parent.right
             spacing: units.gu(2)
-
             // Left Column
             Column {
                 width: parent.width * 0.65

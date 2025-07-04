@@ -29,7 +29,6 @@ import QtQuick.Layouts 1.11
 import "../models/dbinit.js" as DbInit
 import "components"
 
-
 /*
 Todo: Need to Visit this Page Again and Refactor it.
 This is the Main View of the Application.
