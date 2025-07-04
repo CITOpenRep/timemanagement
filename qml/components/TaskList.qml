@@ -85,7 +85,14 @@ Item {
             var odooId = row.odoo_record_id;
             var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
 
-            var projectName = Project.getProjectName(row.project_id, row.account_id);
+            var projectIdToUse = row.project_id;
+
+            if (!projectIdToUse || projectIdToUse === 0) {
+                console.log("Project ID is empty for row id", row.id, "- using sub_project_id:", row.sub_project_id);
+                projectIdToUse = row.sub_project_id;
+            }
+
+            var projectName = Project.getProjectName(projectIdToUse, row.account_id);
 
             var item = {
                 id_val: odooId,

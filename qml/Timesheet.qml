@@ -87,6 +87,7 @@ Page {
             notifPopup.open("Error", "You need to select a task to save time sheet", "error");
             return;
         }
+
         let time = hours_text.text;
         console.log("Recording " + time);
         console.log("Decimal Representation is " + Utils.convertHHMMtoDecimalHours(time));
@@ -115,6 +116,10 @@ Page {
             notifPopup.open("Error", "Unable to Save the Task", "error");
         } else {
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
+        }
+        //check if timerservice is running & active sheet is this  , then use it stop it as well to save the data
+        if (TimerService.isRunning() && TimerService.activeTimesheetId == recordid) {
+            time = TimerService.stop();
         }
     }
 
