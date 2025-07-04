@@ -133,7 +133,7 @@ Page {
         id: timesheetsDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height
+        contentHeight: parent.height + 1000
         // + 1000
         flickableDirection: Flickable.VerticalFlick
 

@@ -356,6 +356,7 @@ Page {
             console.log("Loading task data:", JSON.stringify({
                 instanceId: instanceId,
                 parent_project_id: parent_project_id,
+                sub_project_id: sub_project_id,
                 parent_task_id: parent_task_id,
                 assignee_id: assignee_id
             }));
