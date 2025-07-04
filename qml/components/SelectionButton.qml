@@ -1,6 +1,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import "../../models/constants.js" as AppConst
 
 Item {
     id: selectionButton
@@ -15,6 +16,12 @@ Item {
     property int selectedId: -1
     signal selectionMade(int id, string name, string selectorType)
 
+    // Styling properties (reference TSButton)
+    property color bgColor: enabledState ? AppConst.Colors.Button : AppConst.Colors.ButtonDisabled
+    property color fgColor: AppConst.Colors.ButtonText
+    property color hoverColor: AppConst.Colors.ButtonHover
+    property int radius: units.gu(0.8)
+
     // Internal DialogComboSelector
     DialogComboSelector {
         id: comboSelectorDialog
@@ -25,7 +32,7 @@ Item {
             console.log("[SelectionButton] Selected:", id, name, "for", selectorType);
             selectionButton.selectionMade(id, name, selectorType);
             selectionButton.selectedId = id;
-            entity_btn.text = name;
+            entity_btn_label.text = name;
         }
     }
 
@@ -40,19 +47,43 @@ Item {
             verticalAlignment: Text.AlignVCenter
         }
 
-        Button {
+        // Custom styled button (reference TSButton)
+        Item {
             id: entity_btn
-            text: "Select"
             width: parent.width * 0.45
             height: units.gu(5)
-            enabled: enabledState
+            property alias text: entity_btn_label.text
 
-            onClicked: {
-                if (modelData.length === 0) {
-                    console.log("[SelectionButton] No data set for", selectorType);
-                    return;
+            Rectangle {
+                id: buttonRect
+                anchors.fill: parent
+                anchors.margins: units.gu(0.25)
+                radius: selectionButton.radius
+                color: mouseArea.containsMouse && selectionButton.enabledState ? selectionButton.hoverColor : selectionButton.bgColor
+                opacity: selectionButton.enabledState ? 1.0 : 0.6
+
+                Text {
+                    id: entity_btn_label
+                    anchors.centerIn: parent
+                    color: selectionButton.fgColor
+                    font.bold: false
+                    font.pixelSize: units.gu(1.5)
+                    text: "Select"
                 }
-                comboSelectorDialog.open(labelText, modelData);
+
+                MouseArea {
+                    id: mouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: selectionButton.enabledState
+                    onClicked: {
+                        if (modelData.length === 0) {
+                            console.log("[SelectionButton] No data set for", selectorType);
+                            return;
+                        }
+                        comboSelectorDialog.open(labelText, modelData);
+                    }
+                }
             }
         }
     }
