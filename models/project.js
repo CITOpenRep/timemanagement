@@ -34,7 +34,7 @@ function getProjectDetails(project_id) {
                     parent_id: row.parent_id,
                     planned_start_date: row.planned_start_date ? Utils.formatDate(new Date(row.planned_start_date)) : "",
                     planned_end_date: row.planned_end_date ? Utils.formatDate(new Date(row.planned_end_date)) : "",
-                    allocated_hours: Utils.convertFloatToTime(row.allocated_hours),
+                    allocated_hours: Utils.convertDecimalHoursToHHMM(row.allocated_hours),
                     favorites: row.favorites || 0,
                     last_update_status: row.last_update_status,
                     description: row.description || "",
