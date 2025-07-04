@@ -1,5 +1,6 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
 import Qt.labs.settings 1.0
 import Lomiri.Components 1.3
@@ -10,6 +11,10 @@ import "../models/activity.js" as Activity
 import "../models/accounts.js" as Accounts
 import "../models/task.js" as Task
 import "components"
+
+// Ensure all required QML types are available
+// QtQuick.Controls 2.2 provides RadioButton, TextArea, etc.
+// QtQuick.Layouts 1.3 provides Row, Column, etc.
 
 Page {
     id: activityDetailsPage
@@ -72,13 +77,16 @@ Page {
                     showAccountSelector: true
                     showAssigneeSelector: true
                     showProjectSelector: projectRadio.checked
+                    showSubProjectSelector: false
+                    showSubTaskSelector: false
                     showTaskSelector: taskRadio.checked
                     taskLabelText: "Parent Task"
                     width: flickable.width - units.gu(2)
 
-                    onAccountChanged: {
-                        //reload the activity type for the account
-                        reloadActivityTypeSelector(accountId, -1);
+                    onStateChanged: {
+                        if (newState === "AccountSelected") {
+                            reloadActivityTypeSelector(data.id, -1);
+                        }
                     }
                 }
             }
@@ -123,7 +131,10 @@ Page {
                         if (checked) {
                             console.log("Project radio selected");
                             workItem.showProjectSelector = true;
+                            workItem.showSubTaskSelector = false;
+                            workItem.showSubProjectSelector = false;
                             workItem.showTaskSelector = false;
+                            workItem.projectLabelText ="Parent Project"
                             taskRadio.checked = false;
                         }
                     }
@@ -143,8 +154,11 @@ Page {
                         if (checked) {
                             console.log("Task radio selected");
                             workItem.showProjectSelector = true;
+                            workItem.showSubProjectSelector = true;
                             workItem.showTaskSelector = true;
-                            projectRadio.checked = false;
+                            workItem.showSubTaskSelector = false;
+                            workItem.taskLabelText ="Parent Task"
+                            projectRadio.checked=false;
                         }
                     }
                 }
@@ -282,7 +296,8 @@ Page {
             //lets reset the task and project views
             workItem.showTaskSelector = false;
             workItem.showProjectSelector = false;
-            
+
+
             switch (currentActivity.resModel) {
             case "project.task":
                 // Connected to task: Show project, subproject, AND task selectors (full hierarchy)
@@ -290,57 +305,66 @@ Page {
                 console.log("Activity connected to task, fetching task details for link_id:", currentActivity.link_id);
                 let taskDetails = Task.getTaskDetails(currentActivity.link_id);
                 console.log("Task details:", JSON.stringify(taskDetails));
-                
+
                 let projectId = taskDetails.project_id || -1;
                 let subProjectId = taskDetails.sub_project_id || -1;
-                
-                workItem.showProjectSelector = true;
+
                 workItem.showTaskSelector = true;
+                workItem.showProjectSelector = true;
+                workItem.showSubTaskSelector = false;
+                workItem.showSubProjectSelector = true;
                 taskRadio.checked = true;
                 projectRadio.checked = false;
-                
+                workItem.taskLabelText ="Parent Task"
+
                 console.log("Setting up task connection with projectId:", projectId, "subProjectId:", subProjectId, "taskId:", currentActivity.link_id);
-                
+
                 // Apply selection with both project and task information
                 // Use subProjectId if available, otherwise use projectId
-                workItem.applyDeferredSelection(instanceId, projectId, subProjectId, currentActivity.link_id, -1, user_id);
+                workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, currentActivity.link_id, -1, user_id);
                 break;
-                
             case "project.project":
                 // Connected to project: Show project and subproject selectors only
                 console.log("Activity connected to project, link_id:", currentActivity.link_id);
                 workItem.showProjectSelector = true;
+                workItem.showSubTaskSelector = false;
+                workItem.showSubProjectSelector = false;
                 workItem.showTaskSelector = false;
-                projectRadio.checked = true;
                 taskRadio.checked = false;
-                
-                workItem.applyDeferredSelection(instanceId, currentActivity.link_id, -1, -1, -1, user_id);
+                workItem.projectLabelText ="Parent Porject"
+
+                workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.link_id, -1, -1, -1, user_id);
                 break;
-                
             default:
                 console.log("Activity not connected to project or task");
                 // Show both selectors but no selection
                 workItem.showProjectSelector = true;
-                workItem.showTaskSelector = true;
-                taskRadio.checked = true;
-                projectRadio.checked = false;
-                workItem.applyDeferredSelection(instanceId, -1, -1, -1, -1, user_id);
+                workItem.showProjectSelector = false;
+                workItem.showSubTaskSelector = false;
+                workItem.showSubProjectSelector = false;
+                workItem.showTaskSelector = false;
+                taskRadio.checked = false;
+                projectRadio.checked = true;
+                workItem.projectLabelText ="Parent Porject" //default
+                workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
             }
-            
+
             //update due date
             date_widget.setSelectedDate(currentActivity.due_date);
         } else {
             console.log("Creating a new activity");
             let account = Accounts.getAccountsList();
             reloadActivityTypeSelector(account, -1);
-            
+
             // For new activities, show both selectors with task selected by default
-            workItem.showProjectSelector = true;
-            workItem.showTaskSelector = true;
             taskRadio.checked = true;
             projectRadio.checked = false;
-            
-            workItem.applyDeferredSelection(account, -1, -1, -1, -1, -1);
+
+            workItem.loadAccounts()
+            workItem.showProjectSelector = true;
+            workItem.showSubTaskSelector = false;
+            workItem.showSubProjectSelector = true;
+            workItem.showTaskSelector = true;
         }
     }
 
@@ -385,19 +409,25 @@ Page {
     }
 
     function saveActivityData() {
-        const ids = workItem.getAllSelectedDbRecordIds();
-        Utils.show_dict_data(ids);
+        const ids = workItem.getIds();
+        console.log("getAllSelectedDbRecordIds returned:");
+        console.log("   accountDbId: " + ids.account_id);
+        console.log("   projectDbId: " + ids.project_id);
+        console.log("   subProjectDbId: " + ids.subproject_id);
+        console.log("   taskDbId: " + ids.task_id);
+        console.log("   subTaskDbId: " + ids.subtask_id);
+
         var linkid = 0;
         var resId = 0;
 
         if (projectRadio.checked) {
-            linkid = ids.projectDbId;
-            resId = Accounts.getOdooModelId(ids.accountDbId, "Project");
+            linkid = ids.project_id;
+            resId = Accounts.getOdooModelId(ids.account_id, "Project");
         }
 
         if (taskRadio.checked) {
-            linkid = ids.taskDbId;
-            resId = Accounts.getOdooModelId(ids.accountDbId, "Task");
+            linkid = ids.task_id;
+            resId = Accounts.getOdooModelId(ids.account_id, "Task");
         }
 
         const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
@@ -408,7 +438,7 @@ Page {
         }
         //console.log("LINK ID is ->>>>>>>>>>> " + linkid);
 
-        const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
+        const user = Accounts.getCurrentUserOdooId(ids.account_id);
         if (!user) {
             notifPopup.open("Error", "The specified user does not exist. Unable to save.", "error");
             return;
@@ -421,7 +451,7 @@ Page {
         }
 
         const data = {
-            updatedAccount: ids.accountDbId,
+            updatedAccount: ids.account_id,
             updatedActivity: activityTypeSelector.selectedId,
             updatedSummary: Utils.cleanText(summary.displayText),
             updatedUserId: user,

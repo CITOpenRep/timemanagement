@@ -45,6 +45,7 @@ Item {
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
+    signal taskTimesheetRequested(int localId)
 
     // Add the applyFilter method
     function applyFilter(filterKey) {
@@ -261,6 +262,9 @@ Item {
                     }
                     onViewRequested: d => {
                         taskSelected(local_id);
+                    }
+                    onTimesheetRequested: localId => {
+                        taskTimesheetRequested(localId);
                     }
 
                     MouseArea {

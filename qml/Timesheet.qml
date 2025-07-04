@@ -63,39 +63,37 @@ Page {
     }
 
     function save_timesheet() {
-        const ids = workItem.getAllSelectedDbRecordIds();
-
+        const ids = workItem.getIds();
         console.log("getAllSelectedDbRecordIds returned:");
-        console.log("   accountDbId: " + ids.accountDbId);
-        console.log("   projectDbId: " + ids.projectDbId);
-        console.log("   subProjectDbId: " + ids.subProjectDbId);
-        console.log("   taskDbId: " + ids.taskDbId);
-        console.log("   subTaskDbId: " + ids.subTaskDbId);
-        console.log("   assigneeDbId: " + ids.assigneeDbId);
-
-        const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
+        console.log("   accountDbId: " + ids.account_id);
+        console.log("   projectDbId: " + ids.project_id);
+        console.log("   subProjectDbId: " + ids.subproject_id);
+        console.log("   taskDbId: " + ids.task_id);
+        console.log("   subTaskDbId: " + ids.subtask_id);
+        const user = Accounts.getCurrentUserOdooId(ids.account_id);
 
         if (!user) {
             notifPopup.open("Error", "Unable to find the user , can not save", "error");
             return;
         }
 
-        if (ids.projectDbId < 0) {
+        if (ids.project_id === null) {
             notifPopup.open("Error", "You need to select a project to save time sheet", "error");
             return;
         }
 
-        if (ids.taskDbId < 0) {
+        if (ids.task_id === null) {
             notifPopup.open("Error", "You need to select a task to save time sheet", "error");
             return;
         }
 
         var timesheet_data = {
-            'instance_id': ids.accountDbId < 0 ? 0 : ids.accountDbId,
             'record_date': date_widget.formattedDate(),
-            'project': ids.projectDbId,
-            'task': ids.taskDbId,
-            'subprojectId': 0,
+            'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
+            'project': ids.project_id,
+            'task': ids.task_id,
+            'subTask': ids.subtask_id,
+            'subprojectId': ids.subproject_id,
             'description': name_text.text,
             'manualSpentHours': hours_text.text,
             'spenthours': hours_text.text,
@@ -135,7 +133,7 @@ Page {
         id: timesheetsDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height
+        contentHeight: parent.height + 1000
         // + 1000
         flickableDirection: Flickable.VerticalFlick
 
@@ -151,12 +149,13 @@ Page {
 
                 WorkItemSelector {
                     id: workItem
-                    readOnly: isReadOnly
+                    enabled: !isReadOnly
+                    showAssigneeSelector: false
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
-                    onAccountChanged:
+                    //onAccountChanged:
                     // console.log("Account id is ->>>>" + accountId);
-                    {}
+                    //{}
                 }
             }
         }
@@ -264,7 +263,7 @@ Page {
                 onClicked: {
                     myTimePicker.open(1, 0);
                     isManualTime = true;
-                    // hours_text.readOnly = false;
+                    hours_text.readOnly = false;
                 }
             }
             Rectangle {
@@ -348,15 +347,17 @@ Page {
                 let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
                 let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
                 let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
-                /* console.log("Timesheet Field Values:");
+                console.log("Timesheet Field Values:");
                 console.log("Recordid     →" + recordid);
                 console.log("instanceId    →", instanceId);
                 console.log("projectId     →", projectId);
                 console.log("taskId        →", taskId);
                 console.log("subProjectId  →", subProjectId);
-                console.log("subTaskId     →", subTaskId);*/
+                console.log("subTaskId     →", subTaskId);
 
-                workItem.applyDeferredSelection(instanceId, projectId, taskId);
+                console.log("Now lets call this with workitemselector ");
+
+                workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1); //passing -1 as no assignee is needed
                 date_widget.setSelectedDate(currentTimesheet.record_date);
 
                 name_text.text = currentTimesheet.name;
@@ -368,7 +369,7 @@ Page {
                 }
             } else //we are creating a new timesheet
             {
-                workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
+                workItem.loadAccounts();
             }
         }
     }

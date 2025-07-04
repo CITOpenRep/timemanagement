@@ -95,7 +95,7 @@ Page {
 
     function setDefaultAccount(accountId) {
         console.log("Setting default account:", accountId);
-        
+
         // Update the local model first
         for (let i = 0; i < accountListModel.count; i++) {
             const account = accountListModel.get(i);
@@ -107,7 +107,7 @@ Page {
         // Persist to database
         const result = Accounts.setDefaultAccount(accountId);
         console.log("Database update result:", result);
-        
+
         // Refresh the accounts list to ensure consistency
         fetch_accounts();
     }
@@ -209,7 +209,7 @@ Page {
                                             id: defaultCheckBox
                                             checked: model.is_default === 1
                                             text: "Default"
-                                            
+
                                             // Handle the click/toggle event
                                             onClicked: {
                                                 console.log("CheckBox clicked for account:", model.id, "current checked:", checked);

@@ -249,6 +249,8 @@ Rectangle {
 
                 Button {
                     text: topFilterBar.label6
+                    visible: (topFilterBar.label6) ? true : false
+                    enabled: (topFilterBar.label6) ? true : false
                     height: units.gu(6)
                     width: units.gu(12) // Increased width
                     property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter6

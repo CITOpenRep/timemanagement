@@ -1,10 +1,8 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
-
-import "../../models/constants.js" as AppConst
-import "../../models/project.js" as Project
 import "../../models/accounts.js" as Accounts
+import "../../models/project.js" as Project
 import "../../models/task.js" as Task
 
 Rectangle {
@@ -13,13 +11,43 @@ Rectangle {
     height: contentColumn.implicitHeight
     color: "transparent"
 
-    // External interface unchanged:
+    // External API remains unchanged
     property bool showAccountSelector: true
     property bool showProjectSelector: true
+    property bool showSubProjectSelector: true
     property bool showTaskSelector: true
-    property bool showAssigneeSelector: false
+    property bool showSubTaskSelector: true
+    property bool showAssigneeSelector: true
 
     property bool readOnly: false
+    
+    // Watch for readOnly property changes and update all selectors
+    onReadOnlyChanged: {
+        console.log("[WorkItemSelector] readOnly changed to:", readOnly);
+        updateAllSelectorStates();
+    }
+    
+    function updateAllSelectorStates() {
+        console.log("[WorkItemSelector] Updating all selector states, readOnly:", readOnly);
+        if (account_component) {
+            account_component.setEnabled(!readOnly && account_component.modelData.length > 1);
+        }
+        if (project_component) {
+            project_component.setEnabled(!readOnly && project_component.modelData.length > 1);
+        }
+        if (subproject_compoent) {
+            subproject_compoent.setEnabled(!readOnly && subproject_compoent.modelData.length > 1);
+        }
+        if (task_component) {
+            task_component.setEnabled(!readOnly && task_component.modelData.length > 1);
+        }
+        if (subtask_component) {
+            subtask_component.setEnabled(!readOnly && subtask_component.modelData.length > 1);
+        }
+        if (assignee_component) {
+            assignee_component.setEnabled(!readOnly && assignee_component.modelData.length > 1);
+        }
+    }
     property string accountLabelText: "Account"
     property string projectLabelText: "Project"
     property string subProjectLabelText: "Subproject"
@@ -27,128 +55,407 @@ Rectangle {
     property string subTaskLabelText: "Subtask"
     property string assigneeLabelText: "Assignee"
 
-    signal accountChanged(int accountId)
+    signal stateChanged(string newState, var data)
 
+    // Selected IDs
     property int selectedAccountId: -1
     property int selectedProjectId: -1
+    property int selectedSubProjectId: -1
     property int selectedTaskId: -1
+    property int selectedSubTaskId: -1
     property int selectedAssigneeId: -1
 
-    function applyDeferredSelection(accountId, projectId, subProjectId, taskId, subTaskId, assigneeId) {
-        console.log("applyDeferredSelection called with:", JSON.stringify({
-            accountId: accountId,
-            projectId: projectId,
-            subProjectId: subProjectId,
-            taskId: taskId,
-            subTaskId: subTaskId,
-            assigneeId: assigneeId
-        }));
-        
-        // Check if we need to defer
-        var modelCount = accountSelector.model ? accountSelector.model.count : 0;
-        console.log("Account selector model count:", modelCount);
-        
-        if (modelCount === 0) {
-            console.log("Using deferred approach. Model count:", modelCount);
-            deferredApplyTimer.deferredPayload = {
-                accountId,
-                projectId,
-                subProjectId,
-                taskId,
-                subTaskId,
-                assigneeId
-            };
-            deferredApplyTimer.start();
-            return;
-        }
+    property string currentState: "Init"
 
-        console.log("Loading Deferred Selection immediately:", JSON.stringify({
-            accountId,
-            projectId,
-            subProjectId,
-            taskId,
-            subTaskId,
-            assigneeId
-        }));
-
-        selectedAccountId = accountId;
-        selectedProjectId = subProjectId !== -1 ? subProjectId : projectId;
-        selectedTaskId = subTaskId !== -1 ? subTaskId : taskId;
-        selectedAssigneeId = assigneeId;
-
-        // Set the account selector to show the correct account using Qt.callLater for proper timing
-        if (accountId !== -1) {
-            console.log("Setting account selector to:", accountId);
-            Qt.callLater(() => {
-                console.log("Calling accountSelector.selectAccountById with:", accountId);
-                accountSelector.selectAccountById(accountId);
-            });
-        }
-
-        // Set account ID for all selectors first
-        projectSelectorWrapper.accountId = accountId;
-        taskSelectorWrapper.accountId = accountId;
-        assigneeSelectorWrapper.accountId = accountId;
-
-        // Use Qt.callLater for better timing
-        Qt.callLater(() => {
-            console.log("Loading selectors with values - project:", selectedProjectId, "task:", selectedTaskId, "assignee:", selectedAssigneeId);
-            
-            // Load projects first
-            projectSelectorWrapper.loadParentSelector(selectedProjectId);
-
-            // If we have a selected project, set the task filter and load tasks
-            if (selectedProjectId !== -1) {
-                taskSelectorWrapper.setProjectFilter(selectedProjectId);
-            } else {
-                taskSelectorWrapper.setProjectFilter(-1); // Show all tasks for account
-            }
-            taskSelectorWrapper.loadParentSelector(selectedTaskId);
-
-            // Load assignees
-            assigneeSelectorWrapper.loadSelector(selectedAssigneeId);
-            
-            // Debug the final state after a delay
-            Qt.callLater(() => {
-                debugSelectorStates();  // Can be remooved
-            });
-        });
+    //The model for each selector
+    property var selectorModelMap: {
+        "Account": [],
+        "Project": [],
+        "Subproject": [],
+        "Task": [],
+        "Subtask": [],
+        "Assignee": []
     }
 
-    function getAllSelectedDbRecordIds() {
+    function transitionTo(newState, data) {
+        console.log("[WorkItemSelector] Transition:", currentState, "→", newState, JSON.stringify(data));
+        currentState = newState;
+        stateChanged(newState, data);
+    }
+
+    function handleSelection(id, name, selectorType) {
+        console.log("[WorkItemSelector] Selection made:", id, name, selectorType);
+        let payload = {
+            id: id,
+            name: name
+        };
+        if (selectorType === "Account") {
+            selectedAccountId = id;
+            transitionTo("AccountSelected", payload);
+        } else if (selectorType === "Project") {
+            selectedProjectId = id;
+            transitionTo("ProjectSelected", payload);
+        } else if (selectorType === "Subproject") {
+            selectedSubProjectId = id;
+            transitionTo("SubprojectSelected", payload);
+        } else if (selectorType === "Task") {
+            selectedTaskId = id;
+            transitionTo("TaskSelected", payload);
+        } else if (selectorType === "Subtask") {
+            selectedSubTaskId = id;
+            transitionTo("SubtaskSelected", payload);
+        } else if (selectorType === "Assignee") {
+            selectedAssigneeId = id;
+            transitionTo("AssigneeSelected", payload);
+        }
+    }
+
+    //Functiosn to populate the models starts here
+    function finalizeLoading(selectorType, component, list, default_id, default_name, selectedId, transitionState) {
+        selectorModelMap[selectorType] = list;
+        component.modelData = list;
+        
+        // Only enable if not in read-only mode AND has data
+        if (!readOnly && list.length > 1) {
+            component.setEnabled(true);
+        } else {
+            component.setEnabled(false);
+        }
+
+        if (selectedId !== -1 && list.length > 1) {
+            component.applyDeferredSelection(default_id);
+        }
+
+    /*if (selectedId !== -1 && list.length > 1 && transitionState) {
+            transitionTo(transitionState, {
+                id: default_id,
+                name: default_name
+            });
+        }*/
+    }
+
+    function deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, assigneeId) {
+        console.log("[Deferred Load] Loading existing record set:");
+        console.log("   Account ID:     ", accountId);
+        console.log("   Project ID:     ", projectId);
+        console.log("   Subproject ID:  ", subProjectId);
+        console.log("   Task ID:        ", taskId);
+        console.log("   Subtask ID:     ", subTaskId);
+        console.log("   Assignee ID:    ", assigneeId);
+
+        if (accountId !== -1) {
+            loadAccounts(accountId);
+        }
+
+        // Load Projects under account with selected projectId
+        if (accountId !== -1) {
+            loadProjects(accountId, projectId);
+        }
+
+        // Load Subprojects under project with selected subProjectId
+        if (accountId !== -1 && projectId !== -1) {
+            loadSubProjects(accountId, projectId, subProjectId);
+        }
+
+        // Load Tasks under project/subproject with selected taskId
+        if (accountId !== -1 && (projectId !== -1 || subProjectId !== -1)) {
+            loadTasks(accountId, projectId, taskId);
+        }
+
+        // Load Subtasks under task with selected subTaskId
+        if (accountId !== -1 && taskId !== -1) {
+            loadSubTasks(accountId, taskId, subTaskId);
+        }
+
+        // Load Assignees with selected assigneeId
+        if (accountId !== -1) {
+            loadAssignees(accountId, assigneeId);
+        }
+        
+        // Force update selector states after loading data to respect read-only mode
+        Qt.callLater(updateAllSelectorStates);
+    }
+
+    function getIds() {
+        function normalize(id) {
+            return id === -1 ? null : id;
+        }
+
         return {
-            accountDbId: selectedAccountId,
-            projectDbId: projectSelectorWrapper.effectiveId,
-            subProjectDbId: -1,
-            taskDbId: taskSelectorWrapper.effectiveId,
-            subTaskDbId: -1,
-            assigneeDbId: assigneeSelectorWrapper.effectiveId
+            account_id: normalize(account_component.selectedId),
+            project_id: normalize(project_component.selectedId),
+            subproject_id: normalize(subproject_compoent.selectedId),
+            task_id: normalize(task_component.selectedId),
+            subtask_id: normalize(subtask_component.selectedId),
+            assignee_id: normalize(assignee_component.selectedId)
         };
     }
 
-    //Can be Deleted Later after debugging
+    //load accounts
+    function loadAccounts(selectedId = -1) {
+        console.log("Loading accounts");
 
-    // Debugging function to check current selector states
-    function debugSelectorStates() {
-        console.log("=== Selector States Debug ===");
-        console.log("Account Selector:");
-        console.log("  - selectedInstanceId:", accountSelector.selectedInstanceId);
-        console.log("  - currentText:", accountSelector.currentText);
-        console.log("  - model count:", accountSelector.model ? accountSelector.model.count : 0);
-        
-        console.log("Project Selector:");
-        console.log("  - selectedId:", projectSelectorWrapper.effectiveId);
-        console.log("  - parentSelector.currentText:", projectSelectorWrapper.parentSelector ? projectSelectorWrapper.parentSelector.currentText : "N/A");
-        
-        console.log("Task Selector:");
-        console.log("  - selectedId:", taskSelectorWrapper.effectiveId);
-        console.log("  - parentSelector.currentText:", taskSelectorWrapper.parentSelector ? taskSelectorWrapper.parentSelector.currentText : "N/A");
-        
-        console.log("Assignee Selector:");
-        console.log("  - selectedId:", assigneeSelectorWrapper.effectiveId);
-        console.log("  - currentText:", assigneeSelectorWrapper.currentText);
-        console.log("=== End Debug ===");
+        let default_id;
+        if (selectedId === -1) {
+            default_id = Accounts.getDefaultAccountId();
+        } else {
+            default_id = selectedId;
+        }
+
+        let default_name = "";
+        const accounts = Accounts.getAccountsList();
+        let accountList = [];
+
+        for (let i = 0; i < accounts.length; i++) {
+            if (accounts[i].id === default_id) {
+                default_name = accounts[i].name;
+            }
+            accountList.push({
+                id: accounts[i].id,
+                name: accounts[i].name,
+                database: accounts[i].database,
+                link: accounts[i].link,
+                username: accounts[i].username,
+                is_default: accounts[i].is_default || 0
+            });
+        }
+
+        selectorModelMap["Account"] = accountList;
+        account_component.modelData = accountList;
+        account_component.applyDeferredSelection(default_id);
+
+        // Immediately simulate state transition (Special case for an entry point for the user)
+        if (selectedId === -1) {
+            transitionTo("AccountSelected", {
+                id: default_id,
+                name: default_name
+            });
+        }
     }
+
+    //load projects
+    function loadProjects(accountId, selectedId = -1) {
+        console.log("Loading projects for account:", accountId);
+
+        const rawProjects = Project.getProjectsForAccount(accountId);
+        let projectList = [];
+
+        let default_id = -1;
+        let default_name = "No Project";
+
+        // Always add default "No Project"
+        projectList.push({
+            id: default_id,
+            name: default_name,
+            parent_id: null
+        });
+
+        for (let i = 0; i < rawProjects.length; i++) {
+            let id = (accountId === 0) ? rawProjects[i].id : rawProjects[i].odoo_record_id;
+            let name = rawProjects[i].name;
+            let parentId = rawProjects[i].parent_id;
+
+            if (parentId === null || parentId === 0) {
+                projectList.push({
+                    id: id,
+                    name: name,
+                    parent_id: parentId
+                });
+
+                if (selectedId === id) {
+                    default_id = id;
+                    default_name = name;
+                }
+            }
+        }
+
+        finalizeLoading("Project", project_component, projectList, default_id, default_name, selectedId, "ProjectSelected");
+    }
+
+    // Load subprojects for a given account and parent project
+    function loadSubProjects(accountId, parentProjectId, selectedId = -1) {
+        console.log("Loading subprojects for account:", accountId, "parentProjectId:", parentProjectId);
+
+        const rawProjects = Project.getProjectsForAccount(accountId);
+        let subProjectList = [];
+
+        // Always add default "No Subproject"
+        subProjectList.push({
+            id: -1,
+            name: "No Subproject",
+            parent_id: null
+        });
+
+        let default_id = -1;
+        let default_name = "No Subproject";
+
+        for (let i = 0; i < rawProjects.length; i++) {
+            let id = (accountId === 0) ? rawProjects[i].id : rawProjects[i].odoo_record_id;
+            let name = rawProjects[i].name;
+            let parentId = rawProjects[i].parent_id;
+
+            // Add only if this project is a child of the parentProjectId
+            if (parentId === parentProjectId) {
+                subProjectList.push({
+                    id: id,
+                    name: name,
+                    parent_id: parentId
+                });
+
+                if (selectedId === id) {
+                    default_id = id;
+                    default_name = name;
+                }
+            }
+        }
+
+        finalizeLoading("Subproject", subproject_compoent, subProjectList, default_id, default_name, selectedId, "SubprojectSelected");
+    }
+
+    function loadTasks(accountId, projectIdOrSubprojectId, selectedId = -1) {
+        console.log("Loading tasks for account:", accountId, "parentId (project/subproject):", projectIdOrSubprojectId);
+
+        const rawTasks = Task.getTasksForAccount(accountId);
+        let taskList = [];
+
+        // Always add "No Task" entry
+        taskList.push({
+            id: -1,
+            name: "No Task",
+            parent_id: null
+        });
+
+        let default_id = -1;
+        let default_name = "No Task";
+
+        for (let i = 0; i < rawTasks.length; i++) {
+            let id = rawTasks[i].odoo_record_id;
+            let name = rawTasks[i].name;
+            let projectParentId = rawTasks[i].project_id;
+            let subProjectParentId = rawTasks[i].sub_project_id;
+            let parentId = rawTasks[i].parent_id;
+
+            if (selectedId !== -1) {
+                // ⚡ Deferred load: add all tasks so selectedId can match
+                taskList.push({
+                    id: id,
+                    name: name,
+                    parent_id: projectParentId || subProjectParentId
+                });
+
+                if (selectedId === id) {
+                    default_id = id;
+                    default_name = name;
+                }
+            } else {
+                // Normal workflow filtering
+                if ((projectParentId === projectIdOrSubprojectId || subProjectParentId === projectIdOrSubprojectId) && (parentId === null || parentId === 0)) {
+                    taskList.push({
+                        id: id,
+                        name: name,
+                        parent_id: projectParentId || subProjectParentId
+                    });
+
+                    if (selectedId === id) {
+                        default_id = id;
+                        default_name = name;
+                    }
+                }
+            }
+        }
+
+        finalizeLoading("Task", task_component, taskList, default_id, default_name, selectedId, "TaskSelected");
+    }
+
+    function loadSubTasks(accountId, parentTaskId, selectedId = -1) {
+        console.log("Loading subtasks for account:", accountId, "parentTaskId:", parentTaskId);
+
+        const rawTasks = Task.getTasksForAccount(accountId);
+        let subTaskList = [];
+
+        // Always add "No Subtask" entry
+        subTaskList.push({
+            id: -1,
+            name: "No Subtask",
+            parent_id: null
+        });
+
+        let default_id = -1;
+        let default_name = "No Subtask";
+
+        for (let i = 0; i < rawTasks.length; i++) {
+            let id = rawTasks[i].odoo_record_id;   // always use remote_id
+            let name = rawTasks[i].name;
+            let parentId = rawTasks[i].parent_id;  // Subtasks link via parent_id to their parent task
+
+            if (selectedId !== -1) {
+                // Skip filtering if we are doing deferred loading
+                subTaskList.push({
+                    id: id,
+                    name: name,
+                    parent_id: parentId
+                });
+
+                if (selectedId === id) {
+                    default_id = id;
+                    default_name = name;
+                }
+            } else {
+                // Normal workflow filtering
+                if (parentId === parentTaskId) {
+                    subTaskList.push({
+                        id: id,
+                        name: name,
+                        parent_id: parentId
+                    });
+
+                    if (selectedId === id) {
+                        default_id = id;
+                        default_name = name;
+                    }
+                }
+            }
+        }
+
+        finalizeLoading("Subtask", subtask_component, subTaskList, default_id, default_name, selectedId, "SubtaskSelected");
+    }
+
+    function loadAssignees(accountId, selectedId = -1) {
+        console.log("Loading assignees for account:", accountId);
+
+        const rawAssignees = Accounts.getUsers(accountId);
+        let assigneeList = [];
+
+        // Always add "Unassigned"
+        assigneeList.push({
+            id: -1,
+            name: "Unassigned",
+            parent_id: null
+        });
+
+        let default_id = -1;
+        let default_name = "Unassigned";
+
+        for (let i = 0; i < rawAssignees.length; i++) {
+            let id = (accountId === 0) ? rawAssignees[i].id : rawAssignees[i].odoo_record_id;
+            let name = rawAssignees[i].name;
+
+            assigneeList.push({
+                id: id,
+                name: name,
+                parent_id: null // no hierarchy for assignees
+            });
+
+            if (selectedId === id) {
+                default_id = id;
+                default_name = name;
+            }
+        }
+
+        finalizeLoading("Assignee", assignee_component, assigneeList, default_id, default_name, selectedId, "AssigneeSelected");
+    }
+
+    //End functions (Quiet a long one :D )
 
     Column {
         id: contentColumn
@@ -156,203 +463,224 @@ Rectangle {
         spacing: units.gu(1)
 
         // Account Selector
-        Row {
-            id: myRow1a
-            width: parent.width
-            visible: showAccountSelector
-            height: units.gu(5)
-
-            TSLabel {
-                width: parent.width * 0.25
-                anchors.verticalCenter: parent.verticalCenter
-                text: accountLabelText
-                verticalAlignment: Text.AlignVCenter
+        SelectionButton {
+            id: account_component
+            selectorType: accountLabelText
+            labelText: accountLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
+            onSelectionMade: handleSelection(id, name, selectorType)
+            Component.onCompleted: {
+                account_component.setData(selectorModelMap["Account"]);
+                if (!readOnly) account_component.setEnabled(true);
             }
+        }
 
-            Item {
-                width: parent.width * 0.75
-                height: units.gu(5)
-                anchors.verticalCenter: parent.verticalCenter
+        // Project Selector
+        SelectionButton {
+            id: project_component
+            selectorType: projectLabelText
+            labelText: projectLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
+            visible: showProjectSelector
+            onSelectionMade: handleSelection(id, name, selectorType)
 
-                AccountSelector {
-                    id: accountSelector
-                    anchors.centerIn: parent
-                    enabled: !readOnly
-                    editable: false
-
-                    onAccountSelected: {
-                        console.log("Account selected:", accountSelector.selectedInstanceId);
-                        selectedAccountId = accountSelector.selectedInstanceId;
-                        projectSelectorWrapper.accountId = selectedAccountId;
-                        projectSelectorWrapper.loadParentSelector(-1);
-                        taskSelectorWrapper.accountId = selectedAccountId;
-                        taskSelectorWrapper.setProjectFilter(-1); // Reset project filter
-                        taskSelectorWrapper.loadParentSelector(-1); // Reload tasks for new account
-                        assigneeSelectorWrapper.accountId = selectedAccountId;
-                        assigneeSelectorWrapper.loadSelector(-1); // Reload assignees for new account
-                        accountChanged(selectedAccountId);
+            Connections {
+                target: workItemSelector
+                onStateChanged: {
+                    if (newState === "AccountSelected") {
+                        console.log("project_component Payload ID:", data.id);
+                        console.log("project_component Payload Name:", data.name);
+                        loadProjects(data.id, -1); //load projects of the selected account
                     }
                 }
+            }
+            Component.onCompleted: {
+                if (!readOnly) project_component.setEnabled(true);
+            }
+        }
+
+        // Subproject Selector
+        SelectionButton {
+            id: subproject_compoent
+            selectorType: subProjectLabelText
+            labelText: subProjectLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
+            onSelectionMade: handleSelection(id, name, selectorType)
+            visible: showSubProjectSelector
+            Connections {
+                target: workItemSelector
+                onStateChanged: {
+                    if (newState === "ProjectSelected") {
+                        console.log("Payload ID:", data.id);
+                        console.log("Payload Name:", data.name);
+                        loadSubProjects(account_component.selectedId, data.id, -1);
+                    }
+                }
+            }
+            Component.onCompleted: {
+                if (!readOnly) subproject_compoent.setEnabled(true);
+            }
+        }
+
+        // Task Selector
+        SelectionButton {
+            id: task_component
+            selectorType: taskLabelText
+            labelText: taskLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
+            visible: showTaskSelector
+            onSelectionMade: handleSelection(id, name, selectorType)
+
+            Connections {
+                target: workItemSelector
+                onStateChanged: {
+                    if (newState === "ProjectSelected" || newState === "SubprojectSelected") {
+                        console.log("task_component Payload ID:", data.id);
+                        console.log("task_component Payload Name:", data.name);
+                        loadTasks(account_component.selectedId, data.id, -1);
+                    }
+                }
+            }
+            Component.onCompleted: {
+                if (!readOnly) task_component.setEnabled(true);
+            }
+        }
+
+        // Subtask Selector
+        SelectionButton {
+            id: subtask_component
+            selectorType: subTaskLabelText
+            labelText: subTaskLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
+            visible: showSubTaskSelector
+            onSelectionMade: handleSelection(id, name, selectorType)
+
+            Connections {
+                target: workItemSelector
+                onStateChanged: {
+                    if (newState === "TaskSelected") {
+                        console.log("subtask_component Payload ID:", data.id);
+                        console.log("subtask_component Payload Name:", data.name);
+                        loadSubTasks(account_component.selectedId, data.id, -1);
+                    }
+                }
+            }
+            Component.onCompleted: {
+                if (!readOnly) subtask_component.setEnabled(true);
             }
         }
 
         // Assignee Selector
-        TreeSelector {
-            id: assigneeSelectorWrapper
-            labelText: assigneeLabelText
-            width: parent.width
+        SelectionButton {
+            id: assignee_component
             visible: showAssigneeSelector
-            enabled: !readOnly
+            selectorType: "Assignee"
+            labelText: assigneeLabelText
+            enabledState: !readOnly
+            readOnly: readOnly
+            onSelectionMade: handleSelection(id, name, selectorType)
 
-            height: units.gu(5)
-
-            property int accountId: selectedAccountId
-            property int effectiveId: -1
-
-            function loadSelector(selectedId) {
-                if (accountId === -1)
-                    return;
-                let records = Accounts.getUsers(accountId);
-                let flatModel = [
-                    {
-                        id: -1,
-                        name: "Select Assignee", // Changed from "Unassigned" to "Select Assignee"
-                        parent_id: null
-                    }
-                ];
-                
-                let selectedText = "Select Assignee";
-                let selectedFound = false;
-                
-                // Check if selectedId matches "Unassigned"
-                if (selectedId === -1) {
-                    selectedText = "Select Assignee";
-                    selectedFound = true;
-                }
-                
-                for (let i = 0; i < records.length; i++) {
-                    let id = records[i].odoo_record_id !== undefined ? records[i].odoo_record_id : records[i].id;
-                    let name = records[i].name;
-                    flatModel.push({
-                        id: id,
-                        name: name,
-                        parent_id: null
-                    });
-                    
-                    // Check if this is the selected assignee
-                    if (selectedId !== undefined && selectedId === id) {
-                        selectedText = name;
-                        selectedFound = true;
+            Connections {
+                target: workItemSelector
+                onStateChanged: {
+                    if (newState === "AccountSelected") {
+                        console.log("subtask_component Payload ID:", data.id);
+                        console.log("subtask_component Payload Name:", data.name);
+                        loadAssignees(data.id, -1);
                     }
                 }
-                assigneeSelectorWrapper.dataList = flatModel;
-                assigneeSelectorWrapper.reload();
-                
-                // Use Qt.callLater to ensure the selector state is properly initialized before setting values
-                Qt.callLater(() => {
-                    console.log("Setting assignee selector - selectedId:", selectedId, "selectedText:", selectedText);
-                    assigneeSelectorWrapper.selectedId = selectedId !== undefined ? selectedId : -1;
-                    assigneeSelectorWrapper.currentText = selectedText;
-                    console.log("After setting assignee - selectedId:", assigneeSelectorWrapper.selectedId, "currentText:", assigneeSelectorWrapper.currentText);
-                });
             }
-
-            onItemSelected: {
-                effectiveId = assigneeSelectorWrapper.selectedId;
-                console.log("Assignee ID:", effectiveId);
-            }
-        }
-
-        // Project & Subproject Selector
-        ParentChildSelector {
-            id: projectSelectorWrapper
-            accountId: selectedAccountId
-            parentLabel: projectLabelText
-            childLabel: subProjectLabelText
-            getRecords: Project.getProjectsForAccount
-            visible: showProjectSelector
-            enabled: !readOnly
-            width: parent.width
-            height: units.gu(10)
-
-            property int effectiveId: -1
-
-            onParentItemSelected: {
-                // Handle immediate project selection - enable and populate task selector
-                console.log("Project immediately selected:", id);
-                if (id !== -1) {
-                    taskSelectorWrapper.accountId = selectedAccountId;
-                    taskSelectorWrapper.setProjectFilter(id);
-                    taskSelectorWrapper.loadParentSelector(-1);
-                }
-            }
-
-            onFinalItemSelected: {
-                effectiveId = id;
-                console.log("Effective Project ID:", effectiveId);
-                taskSelectorWrapper.accountId = selectedAccountId;
-                taskSelectorWrapper.setProjectFilter(effectiveId); // Set project filter in ParentChildSelector
-                taskSelectorWrapper.loadParentSelector(-1); // Reload tasks with project filter
-            }
-        }
-
-        // Task & Subtask Selector
-        ParentChildSelector {
-            id: taskSelectorWrapper
-            accountId: selectedAccountId
-            parentLabel: taskLabelText
-            childLabel: subTaskLabelText
-            visible: showTaskSelector
-            enabled: !readOnly
-            width: parent.width
-            height: units.gu(10)
-            getRecords: Task.getTasksForAccount
-            useProjectFilter: true // Enable project filtering for tasks
-
-            property int effectiveId: -1
-
-            onFinalItemSelected: {
-                effectiveId = id;
-                console.log("Effective Task ID:", effectiveId);
-            }
-        }
-
-        Timer {
-            id: deferredApplyTimer
-            interval: 200  // Increased interval for better timing
-            repeat: true
-            running: false
-            property var deferredPayload: null
-            property int retryCount: 0
-            property int maxRetries: 10
-
-            onTriggered: {
-                if (!deferredPayload) {
-                    deferredApplyTimer.stop();
-                    return;
-                }
-                
-                retryCount++;
-                console.log("Deferred timer retry:", retryCount, "Model count:", accountSelector.model ? accountSelector.model.count : 0);
-                
-                if ((accountSelector.model && accountSelector.model.count > 0) || retryCount >= maxRetries) {
-                    console.log("Applying deferred selection, retry:", retryCount);
-                    deferredApplyTimer.stop();
-                    let p = deferredPayload;
-                    deferredPayload = null;
-                    retryCount = 0;
-                    
-                    // Add another delay to ensure everything is ready
-                    Qt.callLater(() => {
-                        applyDeferredSelection(p.accountId, p.projectId, p.subProjectId, p.taskId, p.subTaskId, p.assigneeId);
-                    });
-                } else if (retryCount >= maxRetries) {
-                    console.warn("Max retries reached, stopping deferred timer");
-                    deferredApplyTimer.stop();
-                    retryCount = 0;
-                    deferredPayload = null;
-                }
+            Component.onCompleted: {
+                if (!readOnly) assignee_component.setEnabled(true);
             }
         }
     }
 }
+
+/*
+---------------------------------------------------------------
+WorkItemSelector.qml – Detailed Workflow and Architecture Notes
+---------------------------------------------------------------
+
+Purpose:
+-------------
+This QML component provides a *stateful cascading selector UI* for:
+- Account
+- Project
+- Subproject
+- Task
+- Subtask
+- Assignee
+
+It enables *dynamic loading* of related entities from Odoo (via local DB sync)
+using **state transitions** without requiring external state management.
+
+Core Concepts:
+--------------------
+*  Uses a **state machine**:
+    - `currentState` tracks the selector state.
+    - `stateChanged(newState, data)` is emitted for each transition.
+    - Each `SelectionButton` listens to relevant states and triggers data loading.
+
+*  Uses **selectorModelMap**:
+    Holds the current data for each selector type, making updates traceable.
+
+*  Uses **deferredLoadExistingRecordSet**:
+    Allows loading an existing timesheet (or related record) into the selector stack
+    without state propagation.
+
+*  Uses **finalizeLoading(...)**:
+    Centralized helper to:
+      • Assign models to selectors
+      • Enable/disable based on data length
+      • Apply deferred selection if needed.
+
+*  Uses **SelectionButton.qml**:
+    Encapsulates label+button with popover list selection, reducing repetitive UI code.
+
+Workflow:
+--------------
+- User starts with Account selection:
+    → Loads Accounts using `loadAccounts()`.
+    → On selection, triggers `"AccountSelected"`, loading Projects.
+
+- Project selection:
+    → Loads Projects for selected Account using `loadProjects()`.
+    → On selection, triggers `"ProjectSelected"`, loading Subprojects and Tasks.
+
+- Subproject selection:
+    → Loads Subprojects for Project using `loadSubProjects()`.
+    → On selection, triggers `"SubprojectSelected"`, loading Tasks for Subproject.
+
+- Task selection:
+    → Loads Tasks for selected Project or Subproject using `loadTasks()`.
+    → On selection, triggers `"TaskSelected"`, loading Subtasks.
+
+- Subtask selection:
+    → Loads Subtasks for Task using `loadSubTasks()`.
+
+- Assignee selection:
+    → Loads Assignees for Account using `loadAssignees()`.
+
+Advantages:
+----------------
+*  Highly modular and testable.
+*  Minimal coupling between selectors.
+*  State transitions remain visible and traceable.
+*  Future extensibility (e.g., auto-sync, role-based filtering) is straightforward.
+*  Clear separation of UI and data logic.
+
+---------------------------------
+This documentation ensures any developer maintaining
+or extending this component will understand its design,
+responsibilities, and how data flows between the selectors.
+
+Last updated: [2025-07-01]
+---------------------------------
+*/
+

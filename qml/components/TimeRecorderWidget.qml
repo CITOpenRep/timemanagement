@@ -103,16 +103,6 @@ Rectangle {
                 }
             }
         }
-        TSButton {
-            id: finaliseButton
-            width: parent.width * 0.2
-            text: "Finalise"
-            enabled: true
-            anchors.verticalCenter: parent.verticalCenter
-            onClicked: {
-                console.log("The timesheet is ready to submit for server, update the status to updated");
-            }
-        }
     }
     Component.onCompleted: {
         if (timesheetId > 0 && timesheetId === TimerService.getActiveTimesheetId()) {

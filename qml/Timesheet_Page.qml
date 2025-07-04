@@ -81,9 +81,11 @@ Page {
         label3: ""
         label4: ""
         label5: ""
+        label6: ""
         filter3: ""
         filter4: ""
         filter5: ""
+        filter6: ""
 
         showSearchBox: false
         currentFilter: timesheets.currentFilter

@@ -94,7 +94,9 @@ Page {
             return Task.getTaskDetails(taskId);
         } catch (e) {
             console.error("Error getting task details:", e);
-            return { name: "Unknown Task" };
+            return {
+                name: "Unknown Task"
+            };
         }
     }
 
@@ -141,7 +143,7 @@ Page {
         if (filter === "all") {
             return true;
         }
-        
+
         // Activities without dates should only appear in "all" filter
         if (!dueDateStr) {
             return false;
@@ -164,19 +166,19 @@ Page {
             weekStart.setDate(today.getDate() - today.getDay());
             var weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 6);
-            
+
             // Show if due this week (excluding overdue activities)
             return (itemDate >= weekStart && itemDate <= weekEnd) && !isOverdue;
         case "month":
             var isThisMonth = itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
-            
+
             // Show if due this month (excluding overdue activities)
             return isThisMonth && !isOverdue;
         case "later":
             // Show activities due after this month (and not overdue)
             var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
             var monthEndDay = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate());
-            
+
             // Show if due after this month and not overdue
             return itemDate > monthEndDay && !isOverdue;
         case "overdue":
