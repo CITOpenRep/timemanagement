@@ -54,16 +54,25 @@ Page {
                 text: "Save"
                 visible: !isReadOnly
                 onTriggered: {
-                    const ids = workItem.getAllSelectedDbRecordIds();
-                    //  console.log("Account DB ID:", ids.accountDbId);
+                    const ids = workItem.getIds();
+                    console.log("getAllSelectedDbRecordIds returned:");
+                    console.log("   accountDbId: " + ids.account_id);
+                    console.log("   projectDbId: " + ids.project_id);
+                    console.log("   subProjectDbId: " + ids.subproject_id);
+                    console.log("   taskDbId: " + ids.task_id);
+                    console.log("   subTaskDbId: " + ids.subtask_id);
+                    if (!ids.assignee_id) {
+                        notifPopup.open("Error", "Please select the assignee", "error");
+                        return;
+                    }
 
                     // isReadOnly = !isReadOnly
                     var project_data = {
-                        'account_id': ids.accountDbId >= 0 ? ids.accountDbId : 0,
+                        'account_id': ids.account_id >= 0 ? ids.account_id : 0,
                         'name': project_name.text,
                         'planned_start_date': date_range_widget.formattedStartDate(),
                         'planned_end_date': date_range_widget.formattedEndDate(),
-                        'parent_id': (ids.projectDbId !== undefined && ids.projectDbId >= 0) ? ids.projectDbId : 0,
+                        'parent_id': ids.project_id,
                         'allocated_hours': hours_text.text,
                         'description': description_text.text,
                         'favorites': 0,
@@ -118,8 +127,11 @@ Page {
                     WorkItemSelector {
                         id: workItem
                         readOnly: isReadOnly
-                        taskLabelText: "Parent Task"
+                        projectLabelText: "Parent Project"
                         showTaskSelector: false
+                        showSubProjectSelector: false
+                        showAssigneeSelector: true
+                        showSubTaskSelector: false
                         width: scrollview.width - units.gu(2)
                         height: units.gu(10)
                     }
@@ -130,7 +142,7 @@ Page {
                 id: myRow1
                 anchors.top: myRow1a.bottom
                 anchors.left: parent.left
-                topPadding: units.gu(2)
+                topPadding: units.gu(10)
                 Column {
                     leftPadding: units.gu(2)
                     TSLabel {
@@ -307,42 +319,35 @@ Page {
     Component.onCompleted: {
         if (recordid !== 0) {
             let project = Project.getProjectDetails(recordid);
-            if (project && Object.keys(project).length > 0) {} else {
+            if (project && Object.keys(project).length > 0) {
+                // Set all fields with project details
+                let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
+                let parentId = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
+
+                // Set parent project selection
+                if (workItem.deferredLoadExistingRecordSet) {
+                    workItem.deferredLoadExistingRecordSet(instanceId, parentId, -1, -1, -1, -1);
+                } else if (workItem.applyDeferredSelection) {
+                    workItem.applyDeferredSelection(instanceId, parentId, -1);
+                }
+
+                project_name.text = project.name || "";
+                description_text.text = project.description || "";
+                project_color = project.color_pallet || 0;
+                project_color_label.color = colorpicker.getColorByIndex(project.color_pallet || 0);
+                date_range_widget.setDateRange(project.planned_start_date || "", project.planned_end_date || "");
+                hours_text.text = project.allocated_hours !== undefined && project.allocated_hours !== null ? String(project.allocated_hours) : "1";
+            } else {
                 notifPopup.open("Failed", "Unable to open the project details", "error");
             }
-            // console.log("=== Project Details ===");
-            // console.log("id:", project.id);
-            // console.log("name:", project.name);
-            // console.log("account_id:", project.account_id);
-            // console.log("parent_id:", project.parent_id);
-            // console.log("planned_start_date:", project.planned_start_date);
-            // console.log("planned_end_date:", project.planned_end_date);
-            // console.log("allocated_hours:", project.allocated_hours);
-            // console.log("favorites:", project.favorites);
-            // console.log("last_update_status:", project.last_update_status);
-            // console.log("description:", project.description);
-            // console.log("last_modified:", project.last_modified);
-            // console.log("color_pallet:", project.color_pallet);
-            // console.log("status:", project.status);
-            // console.log("odoo_record_id:", project.odoo_record_id);
-
-            let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
-            let ppid = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
-
-            //dont integrate the parnet projct
-            workItem.applyDeferredSelection(instanceId, project.parent_id, -1);
-
-            description_text.text = project.description || "";
-
-            project_name.text = project.name;
-            project_color = project.color_pallet;
-            project_color_label.color = colorpicker.getColorByIndex(project.color_pallet);
-            date_range_widget.setDateRange(project.planned_start_date, project.planned_end_date);
         } else {
             //do nothing as we are creating project
             recordid = 0;
-            workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
-            //accountCombo.load()
+            if (workItem.deferredLoadExistingRecordSet) {
+                workItem.deferredLoadExistingRecordSet(Accounts.getDefaultAccountId(), -1, -1, -1, -1, -1);
+            } else if (workItem.applyDeferredSelection) {
+                workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
+            }
         }
     }
 }

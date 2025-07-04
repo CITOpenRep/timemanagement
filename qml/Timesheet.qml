@@ -34,6 +34,7 @@ import Qt.labs.settings 1.0
 import "../models/timesheet.js" as Model
 import "../models/accounts.js" as Accounts
 import "../models/timer_service.js" as TimerService
+import "../models/utils.js" as Utils
 import "components"
 
 Page {
@@ -63,34 +64,43 @@ Page {
     }
 
     function save_timesheet() {
-        const ids = workItem.getAllSelectedDbRecordIds();
-        const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
+        const ids = workItem.getIds();
+        console.log("getAllSelectedDbRecordIds returned:");
+        console.log("   accountDbId: " + ids.account_id);
+        console.log("   projectDbId: " + ids.project_id);
+        console.log("   subProjectDbId: " + ids.subproject_id);
+        console.log("   taskDbId: " + ids.task_id);
+        console.log("   subTaskDbId: " + ids.subtask_id);
+        const user = Accounts.getCurrentUserOdooId(ids.account_id);
 
         if (!user) {
             notifPopup.open("Error", "Unable to find the user , can not save", "error");
             return;
         }
 
-        if (ids.projectDbId < 0) {
+        if (ids.project_id === null) {
             notifPopup.open("Error", "You need to select a project to save time sheet", "error");
             return;
         }
 
-        if (ids.taskDbId < 0) {
+        if (ids.task_id === null) {
             notifPopup.open("Error", "You need to select a task to save time sheet", "error");
             return;
         }
 
+        let time = hours_text.text;
+        console.log("Recording " + time);
+        console.log("Decimal Representation is " + Utils.convertHHMMtoDecimalHours(time));
+
         var timesheet_data = {
-            'instance_id': ids.accountDbId < 0 ? 0 : ids.accountDbId,
             'record_date': date_widget.formattedDate(),
-            'project': ids.projectDbId,
-            'task': ids.taskDbId,
-            'subprojectId': 0,
+            'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
+            'project': ids.project_id,
+            'task': ids.task_id,
+            'subTask': ids.subtask_id,
+            'subprojectId': ids.subproject_id,
             'description': name_text.text,
-            'manualSpentHours': hours_text.text,
-            'spenthours': hours_text.text,
-            'isManualTimeRecord': isManualTime,
+            'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityCombo.currentIndex + 1,
             'user_id': user,
             'status': "updated"
@@ -106,6 +116,10 @@ Page {
             notifPopup.open("Error", "Unable to Save the Task", "error");
         } else {
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
+        }
+        //check if timerservice is running & active sheet is this  , then use it stop it as well to save the data
+        if (TimerService.isRunning() && TimerService.activeTimesheetId == recordid) {
+            time = TimerService.stop();
         }
     }
 
@@ -126,7 +140,7 @@ Page {
         id: timesheetsDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height
+        contentHeight: parent.height + 1000
         // + 1000
         flickableDirection: Flickable.VerticalFlick
 
@@ -142,12 +156,13 @@ Page {
 
                 WorkItemSelector {
                     id: workItem
-                    readOnly: isReadOnly
+                    enabled: !isReadOnly
+                    showAssigneeSelector: false
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
-                    onAccountChanged:
+                    //onAccountChanged:
                     // console.log("Account id is ->>>>" + accountId);
-                    {}
+                    //{}
                 }
             }
         }
@@ -255,7 +270,6 @@ Page {
                 onClicked: {
                     myTimePicker.open(1, 0);
                     isManualTime = true;
-                    // hours_text.readOnly = false;
                 }
             }
             Rectangle {
@@ -265,12 +279,29 @@ Page {
                 height: units.gu(3)
             }
         }
+        Row {
+            id: automated_timesheet
+            anchors.top: spentHoursRow.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(2)
+            topPadding: units.gu(1)
+            height: units.gu(10)
+            visible: recordid
+
+            TimeRecorderWidget {
+                anchors.fill: parent
+                timesheetId: recordid
+            }
+        }
 
         /**********************************************************/
 
         Column {
             id: descriptionSection
-            anchors.top: spentHoursRow.bottom
+            anchors.top: automated_timesheet.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             spacing: units.gu(1)
@@ -322,15 +353,17 @@ Page {
                 let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
                 let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
                 let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
-                /* console.log("Timesheet Field Values:");
+                console.log("Timesheet Field Values:");
                 console.log("Recordid     →" + recordid);
                 console.log("instanceId    →", instanceId);
                 console.log("projectId     →", projectId);
                 console.log("taskId        →", taskId);
                 console.log("subProjectId  →", subProjectId);
-                console.log("subTaskId     →", subTaskId);*/
+                console.log("subTaskId     →", subTaskId);
 
-                workItem.applyDeferredSelection(instanceId, projectId, taskId);
+                console.log("Now lets call this with workitemselector ");
+
+                workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1); //passing -1 as no assignee is needed
                 date_widget.setSelectedDate(currentTimesheet.record_date);
 
                 name_text.text = currentTimesheet.name;
@@ -342,7 +375,7 @@ Page {
                 }
             } else //we are creating a new timesheet
             {
-                workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
+                workItem.loadAccounts();
             }
         }
     }

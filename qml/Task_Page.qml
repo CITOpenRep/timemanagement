@@ -28,6 +28,7 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import QtQml.Models 2.3
 import "../models/timesheet.js" as Model
+import "../models/timesheet.js" as Timesheet
 import "../models/project.js" as Project
 import "../models/task.js" as Task
 import "../models/utils.js" as Utils
@@ -122,14 +123,16 @@ Page {
         label1: "Today"
         label2: "This Week"
         label3: "This Month"
-        label4: "OverDue"
-        label5: "All"
+        label4: "Later"
+        label5: "OverDue"
+        label6: "All"
 
         filter1: "today"
         filter2: "this_week"
         filter3: "this_month"
-        filter4: "overdue"
-        filter5: "all"
+        filter4: "later"
+        filter5: "overdue"
+        filter6: "all"
 
         showSearchBox: false
         currentFilter: task.currentFilter
@@ -165,6 +168,19 @@ Page {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
+            }
+            onTaskTimesheetRequested: {
+                let result = Timesheet.createTimesheetFromTask(localId);
+                if (result.success) {
+                    //We got the result success, lets open the record with the id
+                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Timesheet.qml"), {
+                        "recordid": result.id,
+                        "isReadOnly": false
+                    });
+                } else {
+                    console.log(result.error);
+                    notifPopup.open("Error", "Unable to create timesheet", "error");
+                }
             }
             onTaskDeleteRequested: {
                 var result = Task.markTaskAsDeleted(recordId);

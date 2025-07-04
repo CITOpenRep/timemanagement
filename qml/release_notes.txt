@@ -32,12 +32,26 @@
         through seamless integration with Odoo.
     </p>
 
-   <h3>Change History : (Version 1.0.5) Alpha Draft </h3>
+   <h3>Change History : (Version 1.0.6) Alpha Draft </h3>
     <ul>
+
+    <h4> 04-07-2025 : Version 1.0.6 </h4>
+    <li>Added "Timer" for Timesheets with a Filter to Display active timesheets which are not synced to Server.</li>
+        <li>Added Parent-Child Selector based Tree Selector for Projects and Tasks.</li>
+         <li>Improved Task Selection While Activity Creation. </li>
+          <li>Refactored Tabs for Filters in Tasks and Activities. Introduced Later Filter, which will contain all the Tasks which are later than this Month.</li>
+        <li>Added Edit Button in View Mode for Tasks to Navigate to Edit Task Page.</li>
+        <li>Added Trailing Action Button For Adding timesheets from Tasks List.</li>
+        <li>Added Option to Add TimeSheets from Tasks View Mode.</li>
+        <li>There is known issue in Tasks ListView, where the Parent and Subtask hierarchy are not correctly displayed.</li>
+    
+
+
+          <br> 
 
      <h4> 27-06-2025 : Version 1.0.5 </h4>
         <li>Added OverDue Tab for Tasks. All the OverDue Tasks will be Displayed in the OverDue Tab.</li>
-          <li>Currently We are not handling the stages for a task, so Completed Tasks Will also be displayed in the OverDue Tab, which is a Known Issue. This issue is expected to be fixed in next release.</li>
+          <li>Currently We are not handling the stages for a task, so Completed Tasks Will also be displayed in the OverDue Tab, which is a Known Issue. This issue is expected to be fixed in next releases.</li>
 
 
           <br> 

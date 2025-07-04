@@ -27,6 +27,7 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
 import "../models/dbinit.js" as DbInit
+import "components"
 
 
 /*
@@ -46,6 +47,14 @@ MainView {
     //  width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
     // width: units.gu(50) //GM: for testing with only one column
     // height: units.gu(95)
+
+    GlobalTimerWidget {
+        z: 9999
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        visible: false
+    }
 
     AdaptivePageLayout {
         id: apLayout

@@ -1,26 +1,26 @@
 /*
-* MIT License
-*
-* Copyright (c) 2025 CIT-Services
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+ * MIT License
+ *
+ * Copyright (c) 2025 CIT-Services
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
@@ -31,6 +31,7 @@ import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
 import "../models/task.js" as Task
+import "../models/timesheet.js" as Timesheet
 import "../models/utils.js" as Utils
 import "../models/global.js" as Global
 import "../models/accounts.js" as Accounts
@@ -44,29 +45,34 @@ Page {
         title: taskCreate.title
         StyleHints {
             foregroundColor: "white"
-
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
 
-        //    enable: true
         trailingActionBar.actions: [
             Action {
                 iconSource: "images/save.svg"
                 visible: !isReadOnly
                 text: "Save"
                 onTriggered: {
-                    isReadOnly = !isReadOnly;
                     save_task_data();
+                }
+            },
+            Action {
+                iconName: "edit"
+                visible: isReadOnly && recordid !== 0
+                text: "Edit"
+                onTriggered: {
+                    switchToEditMode();
                 }
             }
         ]
     }
-    property var recordid: 0 //0 means creatiion mode
+    property var recordid: 0 //0 means creation mode
 
     property string currentEditingField: ""
     property bool workpersonaSwitchState: true
-    property bool isReadOnly: false
+    property bool isReadOnly: recordid != 0 // Set read-only immediately based on recordid
     property int selectedProjectId: 0
     property int selectedparentId: 0
     property int selectedTaskId: 0
@@ -76,28 +82,44 @@ Page {
 
     property var currentTask: {}
 
+    function switchToEditMode() {
+        // Simply change the current page to edit mode
+        if (recordid !== 0) {
+            isReadOnly = false;
+        }
+    }
+
     function save_task_data() {
-        const ids = workItem.getAllSelectedDbRecordIds();
-        const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
-        if (!user) {
-            notifPopup.open("Error", "Unable to find the user , can not save", "error");
+        const ids = workItem.getIds();
+        console.log("getAllSelectedDbRecordIds returned:");
+        console.log("   accountDbId: " + ids.account_id);
+        console.log("   projectDbId: " + ids.project_id);
+        console.log("   subProjectDbId: " + ids.subproject_id);
+        console.log("   taskDbId: " + ids.task_id);
+        console.log("   subTaskDbId: " + ids.subtask_id);
+        if (!ids.assignee_id) {
+            notifPopup.open("Error", "Please select the assignee", "error");
+            return;
+        }
+        if (!ids.project_id) {
+            notifPopup.open("Error", "Please select the project", "error");
             return;
         }
         if (name_text.text != "") {
             const saveData = {
-                accountId: ids.accountDbId < 0 ? 0 : ids.accountDbId,
+                accountId: ids.account_id < 0 ? 0 : ids.account_id,
                 name: name_text.text,
                 record_id: recordid,
-                projectId: ids.projectDbId < 0 ? 0 : ids.projectDbId,
-                subProjectId: 0,
-                parentId: ids.taskDbId > 0 ? ids.taskDbId : 0,
+                projectId: ids.project_id,
+                subProjectId: ids.subproject_id,
+                parentId: ids.task_id,
                 startDate: date_range_widget.formattedStartDate(),
                 endDate: date_range_widget.formattedEndDate(),
                 deadline: date_range_widget.formattedEndDate(),
                 favorites: 0,
                 plannedHours: Utils.convertDurationToFloat(hours_text.text),
                 description: description_text.text,
-                assigneeUserId: ids.assigneeDbId < 0 ? null : ids.assigneeDbId,
+                assigneeUserId: ids.assignee_id,
                 status: "updated"
             };
 
@@ -136,7 +158,6 @@ Page {
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
         contentHeight: parent.height + 500
-        // + 1000
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -154,7 +175,8 @@ Page {
                     readOnly: isReadOnly
                     taskLabelText: "Parent Task"
                     width: tasksDetailsPageFlickable.width - units.gu(2)
-                    showAssigneeSelector: true
+                    height: units.gu(10)
+                    showSubTaskSelector: false
                 }
             }
         }
@@ -162,7 +184,7 @@ Page {
             id: myRow1b
             anchors.top: myRow1a.bottom
             anchors.left: parent.left
-            topPadding: units.gu(5)
+            topPadding: units.gu(25)
             Column {
                 id: myCol88
                 leftPadding: units.gu(1)
@@ -173,10 +195,8 @@ Page {
                     Label {
                         id: name_label
                         text: "Name"
-                        // font.bold: true
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
                     }
                 }
             }
@@ -193,8 +213,36 @@ Page {
             }
         }
         Row {
-            id: myRow9
+            id: add_timesheet
             anchors.top: myRow1b.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: units.gu(5)
+            visible: (recordid > 0) ? true : false
+            TSButton {
+                text: "Add Timesheet"
+                visible: (recordid > 0) ? true : false
+                width: parent.width / 2
+                height: parent.height
+                anchors.horizontalCenter: parent.horizontalCenter
+                onClicked: {
+                    let result = Timesheet.createTimesheetFromTask(recordid);
+                    if (result.success) {
+                        //We got the result success, lets open the record with the id
+                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Timesheet.qml"), {
+                            "recordid": result.id,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        console.log(result.error);
+                        notifPopup.open("Error", "Unable to create timesheet", "error");
+                    }
+                }
+            }
+        }
+        Row {
+            id: myRow9
+            anchors.top: (recordid > 0) ? add_timesheet.bottom : myRow1b.bottom //we are not showing add timesheet for a new task.
             anchors.left: parent.left
             topPadding: units.gu(5)
             Column {
@@ -207,10 +255,8 @@ Page {
                     Label {
                         id: description_label
                         text: "Description"
-                        // font.bold: true
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
                     }
                 }
             }
@@ -266,7 +312,6 @@ Page {
 
                 onClicked: {
                     myTimePicker.open(1, 0);
-                    // hours_text.readOnly = false;
                 }
             }
         }
@@ -292,36 +337,44 @@ Page {
         id: myTimePicker
         onTimeSelected: {
             let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
-            hours_text.text = timeStr;  // for example, update a field
+            hours_text.text = timeStr;
         }
     }
     Component.onCompleted: {
-        //Utils.updateOdooUsers(assigneeModel);
-        if (recordid != 0) // We are loading a time sheet, depends on readonly value it could be for view/edit
+        console.log("Tasks Component.onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
+
+        if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
             currentTask = Task.getTaskDetails(recordid);
 
             let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
             let parent_project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;
+            let sub_project_id = (currentTask.sub_project_id !== undefined && currentTask.sub_project_id !== null) ? currentTask.sub_project_id : -1;
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
-            let user_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
+            let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            workItem.applyDeferredSelection(instanceId, parent_project_id, parent_task_id, user_id);
-            //We do not now setting the parent task
+            console.log("Loading task data:", JSON.stringify({
+                instanceId: instanceId,
+                parent_project_id: parent_project_id,
+                sub_project_id: sub_project_id,
+                parent_task_id: parent_task_id,
+                assignee_id: assignee_id
+            }));
 
-            date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
+            workItem.deferredLoadExistingRecordSet(instanceId, parent_project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
-            name_text.text = currentTask.name;
-            if (currentTask.initial_planned_hours && currentTask.initial_planned_hours !== "") {
-                hours_text.text = currentTask.initial_planned_hours;
+            name_text.text = currentTask.name || "";
+            description_text.text = currentTask.description || "";
+            hours_text.text = currentTask.initial_planned_hours ? Utils.convertFloatToDuration(parseFloat(currentTask.initial_planned_hours)) : "01:00";
+
+            // Set date range
+            if (currentTask.start_date && currentTask.end_date) {
+                date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
+            } else if (currentTask.start_date) {
+                date_range_widget.setDateRange(currentTask.start_date, currentTask.start_date);
             }
-
-            description_text.text = currentTask.description;
-        } else //we are creating a new Task
-        {
-            //  console.log("Creating a new task");
-
-            workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1, -1);
+        } else {
+            workItem.loadAccounts();
         }
     }
 }
