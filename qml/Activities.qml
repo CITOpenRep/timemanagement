@@ -383,19 +383,25 @@ Page {
     }
 
     function saveActivityData() {
-        const ids = workItem.getAllSelectedDbRecordIds();
-        Utils.show_dict_data(ids);
+        const ids = workItem.getIds();
+        console.log("getAllSelectedDbRecordIds returned:");
+        console.log("   accountDbId: " + ids.account_id);
+        console.log("   projectDbId: " + ids.project_id);
+        console.log("   subProjectDbId: " + ids.subproject_id);
+        console.log("   taskDbId: " + ids.task_id);
+        console.log("   subTaskDbId: " + ids.subtask_id);
+
         var linkid = 0;
         var resId = 0;
 
         if (projectRadio.checked) {
-            linkid = ids.projectDbId;
-            resId = Accounts.getOdooModelId(ids.accountDbId, "Project");
+            linkid = ids.project_id;
+            resId = Accounts.getOdooModelId(ids.account_id, "Project");
         }
 
         if (taskRadio.checked) {
-            linkid = ids.taskDbId;
-            resId = Accounts.getOdooModelId(ids.accountDbId, "Task");
+            linkid = ids.task_id;
+            resId = Accounts.getOdooModelId(ids.account_id, "Task");
         }
 
         const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
@@ -406,7 +412,7 @@ Page {
         }
         //console.log("LINK ID is ->>>>>>>>>>> " + linkid);
 
-        const user = Accounts.getCurrentUserOdooId(ids.accountDbId);
+        const user = Accounts.getCurrentUserOdooId(ids.account_id);
         if (!user) {
             notifPopup.open("Error", "The specified user does not exist. Unable to save.", "error");
             return;
@@ -419,7 +425,7 @@ Page {
         }
 
         const data = {
-            updatedAccount: ids.accountDbId,
+            updatedAccount: ids.account_id,
             updatedActivity: activityTypeSelector.selectedId,
             updatedSummary: Utils.cleanText(summary.displayText),
             updatedUserId: user,
