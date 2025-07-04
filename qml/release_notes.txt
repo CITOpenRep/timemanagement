@@ -36,7 +36,7 @@
     <ul>
 
     <h4> 04-07-2025 : Version 1.0.6 </h4>
-    <li>Added Timer for Timesheets with a Filter to Display active timesheets which are not synced to Server.</li>
+    <li>Added "Timer" for Timesheets with a Filter to Display active timesheets which are not synced to Server.</li>
         <li>Added Parent-Child Selector based Tree Selector for Projects and Tasks.</li>
          <li>Improved Task Selection While Activity Creation. </li>
           <li>Refactored Tabs for Filters in Tasks and Activities. Introduced Later Filter, which will contain all the Tasks which are later than this Month.</li>
