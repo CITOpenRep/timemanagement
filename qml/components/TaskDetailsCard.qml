@@ -64,7 +64,7 @@ ListItem {
                 onTriggered: editRequested(localId)
             },
             Action {
-                iconName: "add"
+                iconName: "reminder-new"
                 visible: recordId > 0
                 text: "Add Timesheet"
                 onTriggered: timesheetRequested(localId)
