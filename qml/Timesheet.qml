@@ -64,6 +64,15 @@ Page {
     }
 
     function save_timesheet() {
+        //check if timer is running
+        console.log(TimerService.getActiveTimesheetId())
+        console.log("Record id is" + recordid)
+        if (recordid===TimerService.getActiveTimesheetId())
+        {
+            notifPopup.open("Error", "Please stop the timer before saving the record", "error");
+            return
+        }
+
         const ids = workItem.getIds();
         console.log("getAllSelectedDbRecordIds returned:");
         console.log("   accountDbId: " + ids.account_id);
@@ -88,7 +97,7 @@ Page {
             return;
         }
 
-        let time = hours_text.text;
+        let time = time_sheet_widget.elapsedTime;
         console.log("Recording " + time);
         console.log("Decimal Representation is " + Utils.convertHHMMtoDecimalHours(time));
 
@@ -103,7 +112,7 @@ Page {
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityCombo.currentIndex + 1,
             'user_id': user,
-            'status': "updated"
+            'status': "draft"
         };
 
         //Finally check if the record is not empty (Usecase Edit)
@@ -217,8 +226,36 @@ Page {
         }
 
         Row {
-            id: myRow1
+            id: time_sheet_row
             anchors.top: myRow7.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(2)
+            topPadding: units.gu(1)
+            height: recordid ? units.gu(20) : units.gu(5)
+            TimeRecorderWidget {
+                id: time_sheet_widget
+                enabled: !isReadOnly
+                anchors.fill: time_sheet_row
+                timesheetId: recordid
+                visible: recordid
+            }
+            Label {
+
+                anchors.fill: parent
+                anchors.margins: units.gu(1)
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: !recordid
+                text: "Please save the timesheet before recording your working hours."
+                color: "red"
+                font.italic: true
+            }
+        }
+        Row {
+            id: myRow1
+            anchors.top: time_sheet_row.bottom
             anchors.left: parent.left
             Column {
                 leftPadding: units.gu(1)
@@ -232,76 +269,11 @@ Page {
             }
         }
 
-        // Row for Spent Hours and Manual Entry
-        Row {
-            id: spentHoursRow
-            anchors.top: myRow1.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(2)
-            topPadding: units.gu(1)
-
-            TSLabel {
-                id: hours_label
-                text: "Spent Hours"
-                width: parent.width * 0.3
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            TSLabel {
-                id: hours_text
-                text: "01:00"
-                enabled: !isReadOnly
-                width: parent.width * 0.3
-                fontBold: true
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            TSButton {
-                text: "Manual"
-                objectName: "button_manual"
-                enabled: !isReadOnly
-                width: parent.width * 0.2
-                height: units.gu(5)
-                anchors.verticalCenter: parent.verticalCenter
-
-                onClicked: {
-                    myTimePicker.open(1, 0);
-                    isManualTime = true;
-                }
-            }
-            Rectangle {
-                id: spacer
-                color: "red"
-                Layout.fillWidth: true
-                height: units.gu(3)
-            }
-        }
-        Row {
-            id: automated_timesheet
-            anchors.top: spentHoursRow.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(2)
-            topPadding: units.gu(1)
-            height: units.gu(10)
-            visible: recordid
-
-            TimeRecorderWidget {
-                anchors.fill: parent
-                timesheetId: recordid
-            }
-        }
-
         /**********************************************************/
 
         Column {
             id: descriptionSection
-            anchors.top: automated_timesheet.bottom
+            anchors.top: myRow1.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             spacing: units.gu(1)
@@ -334,15 +306,6 @@ Page {
             }
         }
 
-        TimePickerPopup {
-            id: myTimePicker
-            onTimeSelected: {
-                let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
-                console.log("Selected time:", timeStr);
-                hours_text.text = timeStr;  // for example, update a field
-            }
-        }
-
         Component.onCompleted: {
             console.log("XXXX From Timesheet got record id : " + recordid);
             if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
@@ -368,7 +331,7 @@ Page {
 
                 name_text.text = currentTimesheet.name;
                 if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
-                    hours_text.text = currentTimesheet.spentHours;
+                    time_sheet_widget.elapsedTime = currentTimesheet.spentHours;
                 }
                 if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
                     priorityCombo.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1

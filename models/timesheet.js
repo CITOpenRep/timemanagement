@@ -66,7 +66,7 @@ function fetch_active_timesheets() {
         db.transaction(function (tx) {
             var result = tx.executeSql(
                 "SELECT * FROM account_analytic_line_app " +
-                "WHERE (status = 'updated') " +
+                "WHERE (status = 'draft') " +
                 "ORDER BY last_modified DESC"
             );
 
@@ -308,7 +308,7 @@ function createTimesheetFromTask(taskRecordId) {
             'spenthours': "00:00",
             'isManualTimeRecord': false,
             'quadrant': 0,
-            'status': "updated",
+            'status': "draft",
             'user_id': task.user_id
         };
 
@@ -344,7 +344,7 @@ function updateTimesheetWithDuration(timesheetId, durationHours) {
         db.transaction(function(tx) {
             tx.executeSql(
                 "UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ?, status = ? WHERE id = ?",
-                [time_taken, timestamp, "updated", timesheetId]
+                [time_taken, timestamp, "draft", timesheetId]
             );
         });
     } catch (e) {
@@ -352,6 +352,47 @@ function updateTimesheetWithDuration(timesheetId, durationHours) {
     }
 }
 
+function markTimesheetAsDraftById(timesheetId) {
+    console.log("Marking timesheet " + timesheetId + " as draft");
+
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timestamp = Utils.getFormattedTimestampUTC();
+
+    try {
+        db.transaction(function(tx) {
+            tx.executeSql(
+                "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
+                [timestamp, "draft", timesheetId]
+            );
+        });
+        console.log("Timesheet " + timesheetId + " marked as draft successfully.");
+    } catch (e) {
+        console.log("markTimesheetAsDraftById failed:", e);
+    }
+}
+
+function markTimesheetAsReadyById(timesheetId) {
+     var result = { success: false, error: "", id: null };
+    console.log("Marking timesheet " + timesheetId + " as draft");
+
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timestamp = Utils.getFormattedTimestampUTC();
+
+    try {
+        db.transaction(function(tx) {
+            tx.executeSql(
+                "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
+                [timestamp, "updated", timesheetId]
+            );
+        });
+        console.log("Timesheet " + timesheetId + " marked as draft successfully.");
+        result.success = true;
+    } catch (e) {
+        console.log("markTimesheetAsDraftById failed:", e);
+          result.success = false;
+    }
+    return result;
+}
 
 function getTimesheetUnitAmount(timesheetId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);

@@ -32,8 +32,18 @@
         through seamless integration with Odoo.
     </p>
 
-   <h3>Change History : (Version 1.0.6) Alpha Draft </h3>
+   <h3>Change History : (Version 1.0.7) Alpha Draft </h3>
     <ul>
+
+
+     <h4> 05-07-2025 : Version 1.0.7 </h4>
+        <li>Fixes in Labels for WorkItemSelectors.</li>
+          <li>Fixes in Timer for Active Timesheets. </li>
+          <li>Fixes in hierarchy of Task and Subtask in Task ListView. </li>
+
+
+
+          <br> 
 
     <h4> 04-07-2025 : Version 1.0.6 </h4>
     <li>Added "Timer" for Timesheets with a Filter to Display active timesheets which are not synced to Server.</li>

@@ -255,9 +255,9 @@ Rectangle {
         let projectList = [];
 
         let default_id = -1;
-        let default_name = "No Project";
+        let default_name = "Select";
 
-        // Always add default "No Project"
+        // Always add default "Select"
         projectList.push({
             id: default_id,
             name: default_name,
@@ -296,12 +296,12 @@ Rectangle {
         // Always add default "No Subproject"
         subProjectList.push({
             id: -1,
-            name: "No Subproject",
+            name: "Select",
             parent_id: null
         });
 
         let default_id = -1;
-        let default_name = "No Subproject";
+        let default_name = "Select";
 
         for (let i = 0; i < rawProjects.length; i++) {
             let id = (accountId === 0) ? rawProjects[i].id : rawProjects[i].odoo_record_id;
@@ -335,12 +335,12 @@ Rectangle {
         // Always add "No Task" entry
         taskList.push({
             id: -1,
-            name: "No Task",
+            name: "Select",
             parent_id: null
         });
 
         let default_id = -1;
-        let default_name = "No Task";
+        let default_name = "Select";
 
         for (let i = 0; i < rawTasks.length; i++) {
             let id = rawTasks[i].odoo_record_id;
@@ -390,12 +390,12 @@ Rectangle {
         // Always add "No Subtask" entry
         subTaskList.push({
             id: -1,
-            name: "No Subtask",
+            name: "Select",
             parent_id: null
         });
 
         let default_id = -1;
-        let default_name = "No Subtask";
+        let default_name = "Select";
 
         for (let i = 0; i < rawTasks.length; i++) {
             let id = rawTasks[i].odoo_record_id;   // always use remote_id
@@ -443,7 +443,7 @@ Rectangle {
         // Always add "Unassigned"
         assigneeList.push({
             id: -1,
-            name: "Unassigned",
+            name: "--------------------------",
             parent_id: null
         });
 
@@ -511,7 +511,7 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "AccountSelected") {
-                        project_component.update_label("No Project");
+                        project_component.update_label("Select");
                         console.log("project_component Payload ID:", data.id);
                         console.log("project_component Payload Name:", data.name);
                         loadProjects(data.id, -1); //load projects of the selected account
@@ -537,7 +537,7 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "ProjectSelected") {
-                        subproject_compoent.update_label("No Subproject");
+                        subproject_compoent.update_label("Select");
                         console.log("Payload ID:", data.id);
                         console.log("Payload Name:", data.name);
                         loadSubProjects(account_component.selectedId, data.id, -1);
@@ -564,7 +564,7 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "ProjectSelected" || newState === "SubprojectSelected") {
-                        task_component.update_label("No Task");
+                        task_component.update_label("Select");
                         console.log("task_component Payload ID:", data.id);
                         console.log("task_component Payload Name:", data.name);
                         loadTasks(account_component.selectedId, data.id, -1);
@@ -591,7 +591,7 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "TaskSelected") {
-                        subtask_component.update_label("No subTask");
+                        subtask_component.update_label("Select");
                         console.log("subtask_component Payload ID:", data.id);
                         console.log("subtask_component Payload Name:", data.name);
                         loadSubTasks(account_component.selectedId, data.id, -1);

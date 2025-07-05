@@ -30,7 +30,7 @@ import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
 
 /**************************
-* Taskwise graph        
+* Taskwise graph
 * This is a Bar Chart for Taskwise Time Spent
 * It is only visible in Convergence Mode
 * Todo : The Chart Files need to be revisited and Merged in a Single File with all the Different Charts.
