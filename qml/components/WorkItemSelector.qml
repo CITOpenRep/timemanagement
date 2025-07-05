@@ -296,7 +296,7 @@ Rectangle {
         // Always add default "No Subproject"
         subProjectList.push({
             id: -1,
-            name:  "Select",
+            name: "Select",
             parent_id: null
         });
 
@@ -335,7 +335,7 @@ Rectangle {
         // Always add "No Task" entry
         taskList.push({
             id: -1,
-            name:  "Select",
+            name: "Select",
             parent_id: null
         });
 
@@ -390,7 +390,7 @@ Rectangle {
         // Always add "No Subtask" entry
         subTaskList.push({
             id: -1,
-            name:  "Select",
+            name: "Select",
             parent_id: null
         });
 
@@ -443,7 +443,7 @@ Rectangle {
         // Always add "Unassigned"
         assigneeList.push({
             id: -1,
-            name:  "--------------------------",
+            name: "--------------------------",
             parent_id: null
         });
 

@@ -35,6 +35,8 @@ function start(timesheetId) {
     activeTimesheetId = timesheetId;
     timerRunning = true;
     activeSheetname = Model.getTimesheetNameById(activeTimesheetId);
+    //Lets mark as done
+    Model.markTimesheetAsDraftById(activeTimesheetId)
 
     console.log("Timer started for timesheet ID:", activeTimesheetId, "Previously tracked:", previouslyTrackedHours);
 }
