@@ -35,6 +35,8 @@ Item {
             let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
             console.log("Selected time:", timeStr);
             elapsedTime = timeStr;  // for example, update a field
+            timeDisplay.text=elapsedTime;
+            TimeSheet.updateTimesheetWithDuration(timesheetId, timeDisplay.text);
         }
     }
 
@@ -122,6 +124,7 @@ Item {
             }
             TSButton {
                 text: "Finalize"
+                enabled:!isRecording
                 width: units.gu(10)
                 onClicked: {
                     console.log("Finalized manual entry: " + timeDisplay.text);
@@ -143,12 +146,13 @@ Item {
         running: isRecording && autoMode
         onTriggered: {
             if (TimerService.isRunning()) {
-                timeDisplay.text = "Tracking your time ...";
+                timeDisplay.text = TimerService.getElapsedTime("hhmm");
                 isRecording = true;
             } else {
-                timeDisplay.text = Utils.convertDecimalHoursToHHMM(TimeSheet.getTimesheetUnitAmount(timesheetId));
                 isRecording = false;
+                timeDisplay.text = Utils.convertDecimalHoursToHHMM(TimeSheet.getTimesheetUnitAmount(timesheetId))
             }
+            elapsedTime= timeDisplay.text
         }
     }
 

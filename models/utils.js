@@ -281,6 +281,7 @@ function getFormattedTimestampUTC() {
 }
 
 function convertHHMMtoDecimalHours(hhmmString) {
+    console.log("Input string is " + hhmmString)
     if (typeof hhmmString !== "string") {
             console.error("Input is not a string:", hhmmString);
             return 0;

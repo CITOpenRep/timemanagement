@@ -64,6 +64,15 @@ Page {
     }
 
     function save_timesheet() {
+        //check if timer is running
+        console.log(TimerService.getActiveTimesheetId())
+        console.log("Record id is" + recordid)
+        if (recordid===TimerService.getActiveTimesheetId())
+        {
+            notifPopup.open("Error", "Please stop the timer before saving the record", "error");
+            return
+        }
+
         const ids = workItem.getIds();
         console.log("getAllSelectedDbRecordIds returned:");
         console.log("   accountDbId: " + ids.account_id);
@@ -88,7 +97,7 @@ Page {
             return;
         }
 
-        let time = time_sheet_widget.elapsed_time;
+        let time = time_sheet_widget.elapsedTime;
         console.log("Recording " + time);
         console.log("Decimal Representation is " + Utils.convertHHMMtoDecimalHours(time));
 
