@@ -270,7 +270,7 @@ function createTimesheet(instance_id,userid) {
                               "Draft Timesheet",                        // name/description
                               null,                      // sub_project_id
                               null,                      // sub_task_id
-                              null,                      // quadrant_id
+                              0,                      // quadrant_id
                               0,                         // unit_amount
                               timestamp,                 // last_modified
                               "draft",                   // status
@@ -314,14 +314,14 @@ function createTimesheet(instance_id,userid) {
 
          var task = null;
          db.readTransaction(function(tx) {
-             var rs = tx.executeSql("SELECT * FROM project_task_app WHERE id = ?", [taskRecordId]);
+             var rs = tx.executeSql("SELECT * FROM project_task_app WHERE odoo_record_id = ?", [taskRecordId]);
              if (rs.rows.length > 0) {
                  task = rs.rows.item(0);
              }
          });
 
          if (!task) {
-             result.error = "Task not found in local DB.";
+             result.error = "Task not found in local DB." +taskRecordId;
              return result;
          }
 

@@ -76,6 +76,12 @@ Page {
         onTimerStarted: {
             fetch_timesheets_list();
         }
+        onTimerPaused: {
+            fetch_timesheets_list();
+        }
+        onTimerResumed: {
+            fetch_timesheets_list();
+        }
     }
 
     NotificationPopup {

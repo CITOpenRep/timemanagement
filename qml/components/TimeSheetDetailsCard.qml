@@ -122,14 +122,11 @@ ListItem {
             Action {
                 id: startstopaction
                 iconSource: "../images/stop.png"
-                visible: timer_on
+                visible: recordId > 0
                 text: "update Timesheet"
                 onTriggered: {
-                    if (TimerService.isRunning())
+                    if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId()))
                         TimerService.stop();
-                    else {
-                        TimerService.start(recordId);
-                    }
                 }
             }
         ]

@@ -83,11 +83,16 @@ function resume() {
  */
 function pause() {
     if (timerRunning && !paused) {
+        var durationHours = getElapsedDuration();
+        Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
+
         paused = true;
         pauseStartTime = Date.now();
-        console.log("Timer paused at:", new Date(pauseStartTime).toISOString());
+
+        console.log("Timer paused at:", new Date(pauseStartTime).toISOString(), "Duration saved:", durationHours);
     }
 }
+
 
 /**
  * Stop the currently running timer, calculate tracked duration,
