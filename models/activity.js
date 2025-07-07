@@ -1,6 +1,8 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
+.import "task.js" as Task
+.import "project.js" as Project
 
 /**
  * Retrieves all activity records from the `mail_activity_app` table.
@@ -46,22 +48,7 @@ function getAllActivities() {
     return activityList;
 }
 
-/**
- * Retrieves a specific activity record from the local SQLite database based on the
- * provided Odoo record ID and account ID.
- *
- * @function getActivityById
- * @param {number} odoo_record_id - The ID of the activity record from Odoo.
- * @param {number} account_id - The local account ID associated with the activity.
- * @returns {Object|null} - Returns the activity object if found, otherwise null.
- *
- * @description
- * Opens a local SQLite database transaction and queries the `mail_activity_app` table
- * for a record matching the given `odoo_record_id` and `account_id`.
- * Converts the result row to a JavaScript object using `DBCommon.rowToObject()`.
- * Logs any exception encountered during the operation via `DBCommon.logException()`.
- */
-function getActivityById(odoo_record_id, account_id) {
+function getActivityById(record_id, account_id) {
     var activity = null;
 
     try {
@@ -69,25 +56,120 @@ function getActivityById(odoo_record_id, account_id) {
 
         db.transaction(function (tx) {
             var query = `
-            SELECT *
-            FROM mail_activity_app
-            WHERE id = ? AND account_id = ?
-            LIMIT 1
+                SELECT *
+                FROM mail_activity_app
+                WHERE id = ? AND account_id = ?
+                LIMIT 1
             `;
-
-            var rs = tx.executeSql(query, [odoo_record_id, account_id]);
+            var rs = tx.executeSql(query, [record_id, account_id]);
 
             if (rs.rows.length > 0) {
                 activity = DBCommon.rowToObject(rs.rows.item(0));
+
+                // Initialize enrichment defaults
+                activity.project_id = -1;
+                activity.sub_project_id = -1;
+                activity.parent_task_id = -1;
+                activity.task_id = -1;
+                activity.sub_task_id = -1;
+                activity.linkedType = "other";
+
+                console.log("Base activity loaded:", JSON.stringify(activity));
+
+                if (activity.resModel === "project.task" && activity.link_id) {
+                    console.log("Activity linked to project.task, link_id (Odoo ID):", activity.link_id);
+
+                    // Retrieve local ID from odoo_record_id
+                    var local_task_id = -1;
+                    var rs_task = tx.executeSql(
+                        'SELECT id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
+                        [activity.link_id, activity.account_id]
+                    );
+                    if (rs_task.rows.length > 0) {
+                        local_task_id = rs_task.rows.item(0).id;
+                    } else {
+                        console.error("No local task found for odoo_record_id:", activity.link_id, "account_id:", activity.account_id);
+                    }
+
+                    if (local_task_id !== -1) {
+                        let taskDetails = Task.getTaskDetails(local_task_id);
+                        console.log("Task details fetched:", JSON.stringify(taskDetails));
+
+                        if (taskDetails && taskDetails.id) {
+                            var parent_task_id = (taskDetails.parent_task_id !== undefined && taskDetails.parent_task_id !== null) ? taskDetails.parent_task_id : -1;
+                            var project_id = (taskDetails.project_id !== undefined && taskDetails.project_id !== null) ? taskDetails.project_id : -1;
+                            var sub_project_id = (taskDetails.sub_project_id !== undefined && taskDetails.sub_project_id !== null) ? taskDetails.sub_project_id : -1;
+
+                            if (parent_task_id > 0) {
+                                // This is a subtask
+                                activity.sub_task_id = activity.link_id;
+                                activity.task_id = parent_task_id;
+                            } else {
+                                // This is a parent task
+                                activity.task_id = activity.link_id;
+                                activity.sub_task_id = -1;
+                            }
+
+                            activity.parent_task_id = parent_task_id;
+                            activity.project_id = project_id;
+                            activity.sub_project_id = sub_project_id;
+                            activity.linkedType = "task";
+                        } else {
+                            console.error("Task details are empty for local_task_id:", local_task_id);
+                        }
+                    }
+
+                } else if (activity.resModel === "project.project" && activity.link_id) {
+
+                    // Retrieve local ID from odoo_record_id
+                    var local_project_id = -1;
+                    var rs_project = tx.executeSql(
+                        'SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
+                        [activity.link_id, activity.account_id]
+                    );
+                    if (rs_project.rows.length > 0) {
+                        local_project_id = rs_project.rows.item(0).id;
+                    } else {
+                        console.error("No local project found for odoo_record_id:", activity.link_id, "account_id:", activity.account_id);
+                    }
+
+                    if (local_project_id !== -1) {
+                        let projectDetails = Project.getProjectDetails(local_project_id);
+                        console.log("Project details fetched:", JSON.stringify(projectDetails));
+
+                        if (projectDetails && projectDetails.id) {
+                            var parent_project_id = (projectDetails.parent_id !== undefined && projectDetails.parent_id !== null) ? projectDetails.parent_id : -1;
+
+                            if (parent_project_id > 0) {
+                                // It is a subproject
+                                activity.project_id = parent_project_id;
+                                activity.sub_project_id = activity.link_id;
+                            } else {
+                                // It is a top-level project
+                                activity.project_id = activity.link_id;
+                                activity.sub_project_id = -1;
+                            }
+                            activity.linkedType = "project";
+                        } else {
+                            console.error("Project details are empty for local_project_id:", local_project_id);
+                        }
+                    }
+
+                } else {
+                    console.log("Activity not linked to recognized model, using defaults.");
+                }
+            } else {
+                console.error("No activity found for record_id:", record_id, "account_id:", account_id);
             }
         });
-
     } catch (e) {
-        DBCommon.logException("getActivityByOdooId", e);
+        DBCommon.logException("getActivityById", e);
     }
 
     return activity;
 }
+
+
 
 /**
  * Retrieves the name of an activity type from the local SQLite database

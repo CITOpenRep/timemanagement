@@ -77,8 +77,8 @@ Page {
                     showAccountSelector: true
                     showAssigneeSelector: true
                     showProjectSelector: projectRadio.checked
-                    showSubProjectSelector: false
-                    showSubTaskSelector: false
+                    showSubProjectSelector: projectRadio.checked
+                    showSubTaskSelector: taskRadio.checked
                     showTaskSelector: taskRadio.checked
                     taskLabelText: "Parent Task"
                     width: flickable.width - units.gu(2)
@@ -121,6 +121,7 @@ Page {
                     id: projectRadio
                     text: "Project"
                     checked: false
+                    enabled: !isReadOnly
                     contentItem: Text {
                         text: projectRadio.text
                         color: theme.palette.normal.backgroundText
@@ -129,12 +130,6 @@ Page {
                     }
                     onCheckedChanged: {
                         if (checked) {
-                            console.log("Project radio selected");
-                            workItem.showProjectSelector = true;
-                            workItem.showSubTaskSelector = false;
-                            workItem.showSubProjectSelector = false;
-                            workItem.showTaskSelector = false;
-                            workItem.projectLabelText = "Parent Project";
                             taskRadio.checked = false;
                         }
                     }
@@ -144,6 +139,7 @@ Page {
                     id: taskRadio
                     text: "Task"
                     checked: true
+                    enabled: !isReadOnly
                     contentItem: Text {
                         text: taskRadio.text
                         color: theme.palette.normal.backgroundText
@@ -152,12 +148,6 @@ Page {
                     }
                     onCheckedChanged: {
                         if (checked) {
-                            console.log("Task radio selected");
-                            workItem.showProjectSelector = true;
-                            workItem.showSubProjectSelector = true;
-                            workItem.showTaskSelector = true;
-                            workItem.showSubTaskSelector = false;
-                            workItem.taskLabelText = "Parent Task";
                             projectRadio.checked = false;
                         }
                     }
@@ -302,91 +292,74 @@ Page {
             console.log("Loading activity local id " + recordid + " Account id is " + accountid);
             currentActivity = Activity.getActivityById(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
-            let instanceId = (currentActivity.account_id !== undefined && currentActivity.account_id !== null) ? currentActivity.account_id : -1;
-            let user_id = (currentActivity.user_id !== undefined && currentActivity.user_id !== null) ? currentActivity.user_id : -1;
+
+            let instanceId = currentActivity.account_id;
+            let user_id = currentActivity.user_id;
 
             console.log("Activity loaded:", JSON.stringify({
                 resModel: currentActivity.resModel,
                 link_id: currentActivity.link_id,
                 instanceId: instanceId,
-                user_id: user_id
+                user_id: user_id,
+                linkedType: currentActivity.linkedType,
+                project_id: currentActivity.project_id,
+                sub_project_id: currentActivity.sub_project_id,
+                task_id: currentActivity.task_id,
+                sub_task_id: currentActivity.sub_task_id
             }));
 
-            //Load the Activity Type
+            // Load the Activity Type
             reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
 
-            //Now we need to smartly use the workitem , because an activity can have a related item , which can be project or task
-            //lets reset the task and project views
-            workItem.showTaskSelector = false;
-            workItem.showProjectSelector = false;
+            // Reset all selectors
+            workItem.showTaskSelector = true;
+            workItem.showProjectSelector = true;
+            workItem.showSubTaskSelector = true;
+            workItem.showSubProjectSelector = true;
 
-            switch (currentActivity.resModel) {
-            case "project.task":
-                // Connected to task: Show project, subproject, AND task selectors (full hierarchy)
-                // First get the task details to find which project it belongs to
-                console.log("Activity connected to task, fetching task details for link_id:", currentActivity.link_id);
-                let taskDetails = Task.getTaskDetails(currentActivity.link_id);
-                console.log("Task details:", JSON.stringify(taskDetails));
+            // Default radio selection
+            taskRadio.checked = false;
+            projectRadio.checked = false;
 
-                let projectId = taskDetails.project_id || -1;
-                let subProjectId = taskDetails.sub_project_id || -1;
-
-                workItem.showTaskSelector = true;
-                workItem.showProjectSelector = true;
-                workItem.showSubTaskSelector = false;
-                workItem.showSubProjectSelector = true;
+            switch (currentActivity.linkedType) {
+            case "task":
+                // Connected to task: Show project, subproject, and task selectors
+                console.log("Setting up task connection");
                 taskRadio.checked = true;
-                projectRadio.checked = false;
-                workItem.taskLabelText = "Parent Task";
-
-                console.log("Setting up task connection with projectId:", projectId, "subProjectId:", subProjectId, "taskId:", currentActivity.link_id);
-
-                // Apply selection with both project and task information
-                // Use subProjectId if available, otherwise use projectId
-                workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, currentActivity.link_id, -1, user_id);
-                break;
-            case "project.project":
-                // Connected to project: Show project and subproject selectors only
-                console.log("Activity connected to project, link_id:", currentActivity.link_id);
-                workItem.showProjectSelector = true;
-                workItem.showSubTaskSelector = false;
+                console.log("Using deferredLoadExistingRecordSet with:", "projectId:", currentActivity.project_id, "subProjectId:", currentActivity.sub_project_id, "taskId:", currentActivity.task_id);
+                workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
+                workItem.showProjectSelector = false;
                 workItem.showSubProjectSelector = false;
+                workItem.showTaskSelector = true;
+                workItem.showSubTaskSelector = true;
+                break;
+            case "project":
+                // Connected to project/subproject: Show project and subproject selectors
+                console.log("Setting up project connection");
+                workItem.showSubProjectSelector = (currentActivity.sub_project_id !== -1);
+                projectRadio.checked = true;
+                workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
+                workItem.showProjectSelector = true;
+                workItem.showSubProjectSelector = true;
                 workItem.showTaskSelector = false;
-                taskRadio.checked = false;
-                workItem.projectLabelText = "Parent Porject";
-
-                workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.link_id, -1, -1, -1, user_id);
+                workItem.showSubTaskSelector = false;
                 break;
             default:
-                console.log("Activity not connected to project or task");
-                // Show both selectors but no selection
-                workItem.showProjectSelector = true;
-                workItem.showProjectSelector = false;
-                workItem.showSubTaskSelector = false;
-                workItem.showSubProjectSelector = false;
-                workItem.showTaskSelector = false;
-                taskRadio.checked = false;
-                projectRadio.checked = true;
-                workItem.projectLabelText = "Parent Porject"; //default
                 workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
             }
 
-            //update due date
+            // Update due date
             date_widget.setSelectedDate(currentActivity.due_date);
         } else {
             console.log("Creating a new activity");
+
             let account = Accounts.getAccountsList();
             reloadActivityTypeSelector(account, -1);
 
             // For new activities, show both selectors with task selected by default
             taskRadio.checked = true;
             projectRadio.checked = false;
-
             workItem.loadAccounts();
-            workItem.showProjectSelector = true;
-            workItem.showSubTaskSelector = false;
-            workItem.showSubProjectSelector = true;
-            workItem.showTaskSelector = true;
         }
     }
 
