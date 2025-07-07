@@ -57,6 +57,17 @@ ListItem {
         }
     }*/
 
+    Connections {
+        target: globalTmerWidget
+
+        onTimerStopped: {
+            timer_on = false;
+        }
+        onTimerStarted: {
+            timer_on = true;
+        }
+    }
+
     leadingActions: ListItemActions {
         actions: [
             Action {

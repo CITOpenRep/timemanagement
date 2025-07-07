@@ -65,12 +65,11 @@ Page {
 
     function save_timesheet() {
         //check if timer is running
-        console.log(TimerService.getActiveTimesheetId())
-        console.log("Record id is" + recordid)
-        if (recordid===TimerService.getActiveTimesheetId())
-        {
+        console.log(TimerService.getActiveTimesheetId());
+        console.log("Record id is" + recordid);
+        if (recordid === TimerService.getActiveTimesheetId()) {
             notifPopup.open("Error", "Please stop the timer before saving the record", "error");
-            return
+            return;
         }
 
         const ids = workItem.getIds();
@@ -241,6 +240,9 @@ Page {
                 anchors.fill: time_sheet_row
                 timesheetId: recordid
                 visible: recordid
+                onInvalidtimesheet: {
+                    notifPopup.open("Error", "Save the time sheet first", "error");
+                }
             }
             Label {
 

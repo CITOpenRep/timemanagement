@@ -15,6 +15,8 @@ Rectangle {
     z: 999
 
     property string elapsedDisplay: ""
+    signal timerStopped
+    signal timerStarted
 
     Timer {
         interval: 1000
@@ -24,8 +26,10 @@ Rectangle {
             if (TimerService.isRunning()) {
                 globalTimer.visible = true;
                 globalTimer.elapsedDisplay = TimerService.getElapsedTime() + " " + TimerService.getActiveTimesheetName();
+                globalTimer.timerStarted();
             } else {
                 globalTimer.visible = false;
+                globalTimer.timerStopped(); //lets inform everyone that no more time tracking
             }
         }
     }
@@ -57,17 +61,43 @@ Rectangle {
         }
     }
 
+    // pause Button
+    Image {
+        id: pausebutton
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.top: parent.top
+        anchors.right: stopbutton.left
+        anchors.margins: units.gu(1)
+        width: units.gu(5)
+        height: units.gu(5)
+        source: "../images/pause.png"
+        fillMode: Image.PreserveAspectFit
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked:
+            //pausing
+            {}
+        }
+    }
+
     // Stop Button
-    TSButton {
+    Image {
         id: stopbutton
-        text: "Stop"
+        anchors.verticalCenter: parent.verticalCenter
         anchors.top: parent.top
         anchors.right: parent.right
-        width: units.gu(10)
         anchors.margins: units.gu(1)
-        onClicked: {
-            console.log("Stopping the Timesheet");
-            TimerService.stop();
+        width: units.gu(5)
+        height: units.gu(5)
+        source: "../images/stop.png"
+        fillMode: Image.PreserveAspectFit
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                TimerService.stop();
+            }
         }
     }
 

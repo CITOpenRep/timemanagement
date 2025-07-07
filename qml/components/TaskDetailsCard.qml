@@ -26,6 +26,7 @@ import QtQuick.Controls 2.2
 import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
 import "../../models/timesheet.js" as Timesheet
+import "../../models/timer_service.js" as TimerService
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
 
@@ -47,11 +48,25 @@ ListItem {
     property int recordId: -1
     property bool hasChildren: false
     property int childCount: 0
+    property bool timesheet_running: false
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
     signal viewRequested(int localId)
     signal timesheetRequested(int localId)
+
+    Connections {
+        target: globalTmerWidget
+
+        onTimerStopped: {
+            //disconnect it
+            taskCard.timesheet_running = Timesheet.doesTaskIdMatchSheetInDraft(recordId, TimerService.activeTimesheetId);
+        }
+        onTimerStarted: {
+            //connect it
+            taskCard.timesheet_running = Timesheet.doesTaskIdMatchSheetInDraft(recordId, TimerService.activeTimesheetId);
+        }
+    }
 
     trailingActions: ListItemActions {
         actions: [
@@ -64,7 +79,7 @@ ListItem {
                 onTriggered: editRequested(localId)
             },
             Action {
-                iconName: "reminder-new"
+                iconSource: "../images/play.png"
                 visible: recordId > 0
                 text: "Add Timesheet"
                 onTriggered: timesheetRequested(localId)
@@ -126,6 +141,34 @@ ListItem {
                             fillMode: Image.PreserveAspectFit
                             width: units.gu(4)
                             height: units.gu(4)
+                            visible: !timesheet_running //if a active time sheet is on , we will use this area to indicate it.constructor
+                        }
+                        // Animated dot if there is a active time sheet on it
+                        Rectangle {
+                            id: indicator
+                            width: units.gu(4)
+                            height: units.gu(4)
+                            radius: units.gu(2)
+                            color: "#ffa500"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: timesheet_running
+                            SequentialAnimation on opacity {
+                                loops: Animation.Infinite
+                                running: indicator.visible
+                                NumberAnimation {
+                                    from: 0.3
+                                    to: 1
+                                    duration: 800
+                                    easing.type: Easing.InOutQuad
+                                }
+                                NumberAnimation {
+                                    from: 1
+                                    to: 0.3
+                                    duration: 800
+                                    easing.type: Easing.InOutQuad
+                                }
+                            }
                         }
                     }
 
@@ -234,5 +277,9 @@ ListItem {
 
         // Split by space to remove time
         return datetimeStr.split(" ")[0];
+    }
+
+    Component.onCompleted: {
+        taskCard.timesheet_running = Timesheet.doesTaskIdMatchSheetInDraft(recordId, TimerService.activeTimesheetId);
     }
 }
