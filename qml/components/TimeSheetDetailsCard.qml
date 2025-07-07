@@ -101,7 +101,17 @@ ListItem {
             },
             Action {
                 id: playpauseaction
-                iconSource: (recordId === TimerService.getActiveTimesheetId()) ? (timer_paused ? "../images/play.png" : "../images/pause.png") : "../images/play.png"
+                iconSource: {
+                    if (recordId === TimerService.getActiveTimesheetId()) {
+                        if (TimerService.isPaused()) {
+                            return "../images/play.png";
+                        } else {
+                            return "../images/pause.png";
+                        }
+                    } else {
+                        return "../images/play.png";
+                    }
+                }
                 visible: recordId > 0
                 text: "update Timesheet"
                 onTriggered: {
