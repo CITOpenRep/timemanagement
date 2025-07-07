@@ -200,7 +200,7 @@ Page {
 
                       // Custom styling for border highlighting
                 Rectangle {
-                    id: borderRect
+                    visible: !isReadOnly
                     anchors.fill: parent
                     color: "transparent"
                     radius: units.gu(0.5)
@@ -247,6 +247,7 @@ Page {
 
                       // Custom styling for border highlighting
                 Rectangle {
+                    visible: !isReadOnly
                 
                     anchors.fill: parent
                     color: "transparent"
