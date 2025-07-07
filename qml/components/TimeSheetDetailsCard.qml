@@ -45,6 +45,7 @@ ListItem {
     property bool isFavorite: false
     property string status: ""
     property bool timer_on: false
+    property bool timer_paused: false
 
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
@@ -62,10 +63,24 @@ ListItem {
         target: globalTimerWidget
 
         onTimerStopped: {
-            timer_on = false;
+            if (recordId === TimerService.getActiveTimesheetId()) {
+                timer_on = false;
+            }
         }
         onTimerStarted: {
-            timer_on = true;
+            if (recordId === TimerService.getActiveTimesheetId()) {
+                timer_on = true;
+            }
+        }
+        onTimerPaused: {
+            if (recordId === TimerService.getActiveTimesheetId()) {
+                timer_paused = true;
+            }
+        }
+        onTimerResumed: {
+            if (recordId === TimerService.getActiveTimesheetId()) {
+                timer_paused = false;
+            }
         }
     }
 
@@ -85,8 +100,29 @@ ListItem {
                 onTriggered: editRequested(recordId)
             },
             Action {
-                iconSource: timer_on ? "../images/stop.png" : "../images/play.png"
+                id: playpauseaction
+                iconSource: (recordId === TimerService.getActiveTimesheetId()) ? (timer_paused ? "../images/play.png" : "../images/pause.png") : "../images/play.png"
                 visible: recordId > 0
+                text: "update Timesheet"
+                onTriggered: {
+                    if (recordId === TimerService.getActiveTimesheetId()) {
+                        if (TimerService.isRunning() && !TimerService.isPaused()) {
+                            // If running and not paused, pause it
+                            TimerService.pause();
+                        } else if (TimerService.isPaused()) {
+                            // If paused, resume it
+                            TimerService.start(recordId);
+                        }
+                    } else {
+                        // Start this timesheet, pausing any other running one
+                        TimerService.start(recordId);
+                    }
+                }
+            },
+            Action {
+                id: startstopaction
+                iconSource: "../images/stop.png"
+                visible: timer_on
                 text: "update Timesheet"
                 onTriggered: {
                     if (TimerService.isRunning())

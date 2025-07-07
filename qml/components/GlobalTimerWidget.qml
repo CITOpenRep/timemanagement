@@ -17,7 +17,10 @@ Rectangle {
     property string elapsedDisplay: ""
     signal timerStopped
     signal timerStarted
+    signal timerPaused
+    signal timerResumed
     property bool previousRunningState: false
+    property bool previousPausedState: false
     property int previousTimesheetId: -1
 
     Timer {
@@ -26,8 +29,10 @@ Rectangle {
         repeat: true
         onTriggered: {
             const currentlyRunning = TimerService.isRunning();
+            const currentlyPaused = TimerService.isPaused();
             const currentTimesheetId = TimerService.getActiveTimesheetId() !== null ? TimerService.getActiveTimesheetId() : -1;
 
+            // Update display and visibility
             if (currentlyRunning) {
                 globalTimer.visible = true;
                 globalTimer.elapsedDisplay = TimerService.getElapsedTime() + " " + TimerService.getActiveTimesheetName();
@@ -35,16 +40,26 @@ Rectangle {
                 globalTimer.visible = false;
             }
 
+            // Emit started/stopped signals
             if (currentlyRunning && (!globalTimer.previousRunningState || currentTimesheetId !== globalTimer.previousTimesheetId)) {
-                // Transition: stopped → running OR switched timesheet while running
                 globalTimer.timerStarted();
             } else if (!currentlyRunning && globalTimer.previousRunningState) {
-                // Transition: running → stopped
                 globalTimer.timerStopped();
             }
 
+            // Emit paused/resumed signals
+            if (currentlyPaused && !globalTimer.previousPausedState) {
+                globalTimer.timerPaused();
+                pausebutton.source = "../images/play.png";
+            } else if (!currentlyPaused && globalTimer.previousPausedState) {
+                globalTimer.timerResumed();
+                pausebutton.source = "../images/pause.png";
+            }
+
+            // Update previous states
             globalTimer.previousRunningState = currentlyRunning;
             globalTimer.previousTimesheetId = currentTimesheetId;
+            globalTimer.previousPausedState = currentlyPaused;
         }
     }
 
@@ -75,7 +90,8 @@ Rectangle {
         }
     }
 
-    // pause Button
+    // play/pause Button
+    // play/pause Button with simple click feedback
     Image {
         id: pausebutton
         anchors.verticalCenter: parent.verticalCenter
@@ -89,9 +105,17 @@ Rectangle {
 
         MouseArea {
             anchors.fill: parent
-            onClicked:
-            //pausing
-            {}
+
+            onPressed: pausebutton.opacity = 0.5
+            onReleased: pausebutton.opacity = 1.0
+            onCanceled: pausebutton.opacity = 1.0
+
+            onClicked: {
+                if (TimerService.isPaused())
+                    TimerService.start(TimerService.getActiveTimesheetId());
+                else
+                    TimerService.pause();
+            }
         }
     }
 
@@ -109,6 +133,9 @@ Rectangle {
 
         MouseArea {
             anchors.fill: parent
+            onPressed: stopbutton.opacity = 0.5
+            onReleased: stopbutton.opacity = 1.0
+            onCanceled: stopbutton.opacity = 1.0
             onClicked: {
                 TimerService.stop();
             }

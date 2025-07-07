@@ -119,7 +119,7 @@ Page {
             timesheet_data.id = recordid;
         }
 
-        const result = Model.createOrSaveTimesheet(timesheet_data);
+        const result = Model.saveTimesheet(timesheet_data);
         if (!result.success) {
             notifPopup.open("Error", "Unable to Save the Task", "error");
         } else {
@@ -245,7 +245,6 @@ Page {
                 }
             }
             Label {
-
                 anchors.fill: parent
                 anchors.margins: units.gu(1)
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -310,6 +309,7 @@ Page {
 
         Component.onCompleted: {
             console.log("XXXX From Timesheet got record id : " + recordid);
+
             if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
             {
                 currentTimesheet = Model.getTimeSheetDetails(recordid);
@@ -338,9 +338,9 @@ Page {
                 if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
                     priorityCombo.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
                 }
-            } else //we are creating a new timesheet
+            } else //Should not happen
             {
-                workItem.loadAccounts();
+                notifPopup("Error", "Error, you should not see this message, Something bad", "error");
             }
         }
     }

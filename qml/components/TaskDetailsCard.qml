@@ -48,7 +48,8 @@ ListItem {
     property int recordId: -1
     property bool hasChildren: false
     property int childCount: 0
-    property bool timesheet_running: false
+    property bool timer_on: false
+    property bool timer_paused: false
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -65,12 +66,24 @@ ListItem {
         target: globalTimerWidget
 
         onTimerStopped: {
-            //disconnect it
-            taskCard.timesheet_running = Timesheet.doesTaskIdMatchSheetInDraft(recordId, TimerService.activeTimesheetId);
+            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_on = false;
+            }
         }
         onTimerStarted: {
-            //connect it
-            taskCard.timesheet_running = Timesheet.doesTaskIdMatchSheetInDraft(recordId, TimerService.activeTimesheetId);
+            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_on = true;
+            }
+        }
+        onTimerPaused: {
+            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_paused = true;
+            }
+        }
+        onTimerResumed: {
+            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_paused = false;
+            }
         }
     }
 
@@ -85,15 +98,21 @@ ListItem {
                 onTriggered: editRequested(localId)
             },
             Action {
-                iconSource: timesheet_running ? "../images/stop.png" : "../images/play.png"
+                id: playpauseaction
+                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../images/play.png" : "../images/pause.png") : "../images/play.png"
                 visible: recordId > 0
-                text: "Add Timesheet"
+                text: "update Timesheet"
                 onTriggered: {
-                    if (TimerService.isRunning())
-                        TimerService.stop();
-                    else {
-                        //lets create a timesheet entry
-                        let result = Timesheet.createTimesheetFromTask(localId);
+                    if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                        if (TimerService.isRunning() && !TimerService.isPaused()) {
+                            // If running and not paused, pause it
+                            TimerService.pause();
+                        } else if (TimerService.isPaused()) {
+                            // If paused, resume it
+                            TimerService.start(TimerService.getActiveTimesheetId());
+                        }
+                    } else {
+                        let result = Timesheet.createTimesheetFromTask(recordId);
                         if (result.success) {
                             TimerService.start(result.id);
                             //do we need to show a success popup ? why?
@@ -101,6 +120,19 @@ ListItem {
                             console.log(result.error);
                             notifPopup.open("Error", "Unable to create timesheet", "error");
                         }
+                    }
+                }
+            },
+            Action {
+                id: startstopaction
+                iconSource: "../images/stop.png"
+                visible: timer_on
+                text: "update Timesheet"
+                onTriggered: {
+                    if (TimerService.isRunning())
+                        TimerService.stop();
+                    else {
+                        TimerService.start(recordId);
                     }
                 }
             }
@@ -161,7 +193,7 @@ ListItem {
                             fillMode: Image.PreserveAspectFit
                             width: units.gu(4)
                             height: units.gu(4)
-                            visible: !timesheet_running //if a active time sheet is on , we will use this area to indicate it.constructor
+                            visible: !timer_on //if a active time sheet is on , we will use this area to indicate it.constructor
                         }
                         // Animated dot if there is a active time sheet on it
                         Rectangle {
@@ -172,7 +204,7 @@ ListItem {
                             color: "#ffa500"
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            visible: timesheet_running
+                            visible: timer_on
                             SequentialAnimation on opacity {
                                 loops: Animation.Infinite
                                 running: indicator.visible
@@ -300,6 +332,6 @@ ListItem {
     }
 
     Component.onCompleted: {
-        taskCard.timesheet_running = Timesheet.doesTaskIdMatchSheetInDraft(recordId, TimerService.activeTimesheetId);
+        taskCard.timer_on = Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.activeTimesheetId);
     }
 }

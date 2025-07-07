@@ -140,7 +140,11 @@ Item {
                             return;
                         }
                         if (!isRecording) {
-                            TimerService.start(timesheetId);
+                            if (TimeSheet.isTimesheetReadyToRecord(timesheetId)) {
+                                TimerService.start(timesheetId);
+                            } else {
+                                notifPopup.open("Incomplete Timesheet", "To start recording, please select and save an associated project and task.", "error");
+                            }
                         } else {
                             TimerService.stop();
                         }
@@ -165,7 +169,6 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
 
                     onPressed: finalizeIcon.opacity = 0.6
                     onReleased: finalizeIcon.opacity = 1.0

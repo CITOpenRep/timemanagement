@@ -12,6 +12,8 @@ var startTime = 0; // Epoch milliseconds
 var activeTimesheetId = null;
 var activeSheetname = "";
 var previouslyTrackedHours = 0;
+var paused = false;
+var pauseStartTime = 0;
 
 /**
  * Start the timer for a specific timesheet.
@@ -21,24 +23,70 @@ var previouslyTrackedHours = 0;
  * @param {number} timesheetId - The ID of the timesheet to start tracking.
  */
 function start(timesheetId) {
-    if (timerRunning && activeTimesheetId !== null) {
-        var durationHours = getElapsedDuration();
-        console.log("Stopping previous timer before starting new one, durationHours:", durationHours);
-        Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-        resetInternal();
+    if (timerRunning) {
+        if (paused && (timesheetId === undefined || activeTimesheetId === timesheetId)) {
+            // Resume if paused on the same timesheet
+            resume();
+            return;
+        }
+        if (activeTimesheetId !== null && timesheetId !== undefined && activeTimesheetId !== timesheetId) {
+            // Switching to a new timesheet while paused or running:
+            var durationHours = getElapsedDuration();
+            console.log("Pausing previous timer before starting new one, durationHours:", durationHours);
+            Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
+            // Leave previous in paused state
+            paused = true;
+            pauseStartTime = Date.now();
+            console.log("Previous timesheet paused. Starting new timesheet...");
+        }
+        // If already running on the same timesheet and not paused, ignore redundant start
+        else if (!paused && activeTimesheetId === timesheetId) {
+            console.log("Timer already running on timesheet ID:", timesheetId);
+            return;
+        }
     }
 
-    // Fetch previous tracked hours in HH.MM format
-    previouslyTrackedHours = Model.getTimesheetUnitAmount(timesheetId);
+    // Start the new timesheet
+    if (timesheetId !== undefined) {
+        previouslyTrackedHours = Model.getTimesheetUnitAmount(timesheetId);
+        startTime = Date.now();
+        activeTimesheetId = timesheetId;
+        timerRunning = true;
+        paused = false;
+        pauseStartTime = 0;
+        activeSheetname = Model.getTimesheetNameById(activeTimesheetId);
+        Model.markTimesheetAsActiveById(activeTimesheetId);
 
-    startTime = Date.now();
-    activeTimesheetId = timesheetId;
-    timerRunning = true;
-    activeSheetname = Model.getTimesheetNameById(activeTimesheetId);
-    //Lets mark as done
-    Model.markTimesheetAsDraftById(activeTimesheetId)
+        console.log("Timer started for timesheet ID:", activeTimesheetId, "Previously tracked:", previouslyTrackedHours);
+    }
+}
 
-    console.log("Timer started for timesheet ID:", activeTimesheetId, "Previously tracked:", previouslyTrackedHours);
+
+/**
+ * Resume the paused timer, adjusting the start time to account for the paused duration.
+ */
+function resume() {
+    if (timerRunning && paused) {
+        var pausedDuration = Date.now() - pauseStartTime;
+        startTime += pausedDuration; // skip the paused time
+        paused = false;
+        pauseStartTime = 0;
+        console.log("Timer resumed after being paused for", Math.floor(pausedDuration / 1000), "seconds.");
+    } else {
+        console.log("Resume called, but timer is not paused or not running.");
+    }
+}
+
+
+/**
+ * Pause the currently running timer without finalizing the timesheet.
+ */
+function pause() {
+    if (timerRunning && !paused) {
+        paused = true;
+        pauseStartTime = Date.now();
+        console.log("Timer paused at:", new Date(pauseStartTime).toISOString());
+    }
 }
 
 /**
@@ -49,17 +97,35 @@ function start(timesheetId) {
  */
 function stop() {
     if (timerRunning) {
-        var elapsedTime = getElapsedTime();
-        var durationHours = getElapsedDuration();
-        console.log("Stopping timer. durationHours:", durationHours);
+        if (paused) {
+            // If paused, calculate elapsed time up to pause
+            var elapsedTime = getElapsedTime();
+            var durationHours = getElapsedDuration();
+            console.log("Stopping paused timer. durationHours:", durationHours);
 
-        if (activeTimesheetId !== null) {
-            Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-            console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
+            if (activeTimesheetId !== null) {
+                Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
+                Model.markTimesheetAsReadyById(activeTimesheetId);
+                console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
+            }
+
+            resetInternal();
+            return elapsedTime;
+        } else {
+            // Normal running case
+            var elapsedTime = getElapsedTime();
+            var durationHours = getElapsedDuration();
+            console.log("Stopping timer. durationHours:", durationHours);
+
+            if (activeTimesheetId !== null) {
+                Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
+                Model.markTimesheetAsReadyById(activeTimesheetId);
+                console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
+            }
+
+            resetInternal();
+            return elapsedTime;
         }
-
-        resetInternal();
-        return elapsedTime;
     }
     return "00:00:00";
 }
@@ -69,6 +135,7 @@ function stop() {
  */
 function resetInternal() {
     timerRunning = false;
+    paused = false;
     startTime = 0;
     activeTimesheetId = null;
     previouslyTrackedHours = 0;
@@ -91,12 +158,13 @@ function getElapsedTime(format = "hhmmss") {
     var totalSeconds = 0;
 
     if (startTime) {
-        var elapsedMs = Date.now() - startTime;
+        var now = paused ? pauseStartTime : Date.now();
+        var elapsedMs = now - startTime;
         totalSeconds = Math.floor(elapsedMs / 1000);
     }
 
     var prevHours = Math.floor(previouslyTrackedHours);
-    var prevMinutes = Math.round((previouslyTrackedHours - prevHours) * 60); // FIXED HERE
+    var prevMinutes = Math.round((previouslyTrackedHours - prevHours) * 60);
     var prevTotalSeconds = prevHours * 3600 + prevMinutes * 60;
 
     var combinedSeconds = totalSeconds + prevTotalSeconds;
@@ -115,6 +183,7 @@ function getElapsedTime(format = "hhmmss") {
         );
     }
 }
+
 
 
 /**
@@ -151,6 +220,10 @@ function getElapsedDuration() {
  */
 function isRunning() {
     return timerRunning;
+}
+
+function isPaused() {
+    return paused;
 }
 
 /**

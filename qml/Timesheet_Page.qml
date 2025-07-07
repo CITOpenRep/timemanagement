@@ -29,6 +29,7 @@ import Ubuntu.Components 1.3 as Ubuntu
 import QtQuick.LocalStorage 2.7
 import "../models/timesheet.js" as Model
 import "../models/project.js" as Project
+import "../models/accounts.js" as Account
 import "components"
 import "../models/timer_service.js" as TimerService
 
@@ -53,7 +54,15 @@ Page {
                 iconName: "reminder-new"
                 text: "New"
                 onTriggered: {
-                    apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"));
+                    const result = Model.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                    if (result.success) {
+                        apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
+                            "recordid": result.id,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        notifPopup.open("Error", result.message, "error");
+                    }
                 }
             }
         ]
@@ -84,16 +93,17 @@ Page {
 
         label1: "All"
         label2: "Active"
+        label3: "Draft"
 
         filter1: "all"
         filter2: "active"
-
+        filter3: "draft"
         // Hide unused labels/filters
-        label3: ""
+
         label4: ""
         label5: ""
         label6: ""
-        filter3: ""
+
         filter4: ""
         filter5: ""
         filter6: ""
@@ -113,12 +123,7 @@ Page {
 
     function fetch_timesheets_list() {
         var timesheets_list;
-        if (currentFilter === "active") {
-            timesheets_list = Model.fetch_active_timesheets(workpersonaSwitchState);
-        } else {
-            timesheets_list = Model.fetch_timesheets(workpersonaSwitchState);
-        }
-
+        timesheets_list = Model.fetchTimesheetsByStatus(currentFilter);
         timesheetModel.clear();
         for (var timesheet = 0; timesheet < timesheets_list.length; timesheet++) {
             timesheetModel.append({
@@ -195,7 +200,15 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"));
+                const result = Model.createTimesheet(Accounts.getDefaultAccountId(), Accounts.getCurrentUserOdooId(Accounts.getDefaultAccountId()));
+                if (result.success) {
+                    apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
+                        "recordid": result.id,
+                        "isReadOnly": false
+                    });
+                } else {
+                    notifPopup.open("Error", result.message, "error");
+                }
             }
         }
     }

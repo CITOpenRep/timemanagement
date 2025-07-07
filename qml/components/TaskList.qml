@@ -47,6 +47,17 @@ Item {
     signal taskDeleteRequested(int recordId)
     signal taskTimesheetRequested(int localId)
 
+    Connections {
+        target: globalTimerWidget
+
+        onTimerStopped: {
+            refreshWithFilter(); //lets refresh the list
+        }
+        onTimerStarted: {
+            refreshWithFilter();
+        }
+    }
+
     // Add the applyFilter method
     function applyFilter(filterKey) {
         currentFilter = filterKey;
