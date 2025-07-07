@@ -210,15 +210,15 @@ Page {
                     anchors.centerIn: parent.centerIn
                     text: ""
 
-                       Rectangle {
-                visible: !isReadOnly
-                    anchors.fill: parent
-                    color: "transparent"
-                    radius: units.gu(0.5)
-                    border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                    border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                    // z: -1
-                }
+                    Rectangle {
+                        visible: !isReadOnly
+                        anchors.fill: parent
+                        color: "transparent"
+                        radius: units.gu(0.5)
+                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                        // z: -1
+                    }
                 }
             }
         }
@@ -283,15 +283,15 @@ Page {
                     anchors.centerIn: parent.centerIn
                     text: ""
 
-                       Rectangle {
-                visible: !isReadOnly
-                    anchors.fill: parent
-                    color: "transparent"
-                    radius: units.gu(0.5)
-                    border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                    border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                    // z: -1
-                }
+                    Rectangle {
+                        visible: !isReadOnly
+                        anchors.fill: parent
+                        color: "transparent"
+                        radius: units.gu(0.5)
+                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                        // z: -1
+                    }
                 }
             }
         }

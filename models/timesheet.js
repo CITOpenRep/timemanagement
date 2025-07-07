@@ -338,7 +338,7 @@ function createTimesheetFromTask(taskRecordId) {
 }
 
 function doesTaskIdMatchSheetInDraft(taskId, sheetId) {
-    console.log("Checking if sheet ID " + sheetId + " has task ID " + taskId + " in DRAFT status...");
+    //console.log("Checking if sheet ID " + sheetId + " has task ID " + taskId + " in DRAFT status...");
 
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var matches = false;
@@ -353,8 +353,6 @@ function doesTaskIdMatchSheetInDraft(taskId, sheetId) {
             if (rs.rows.length > 0) {
                 console.log("Sheet ID " + sheetId + " with task ID " + taskId + " found in DRAFT timesheets.");
                 matches = true;
-            } else {
-                console.log("Sheet ID " + sheetId + " with task ID " + taskId + " not found in any DRAFT timesheets.");
             }
         });
     } catch (e) {

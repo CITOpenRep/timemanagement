@@ -17,20 +17,34 @@ Rectangle {
     property string elapsedDisplay: ""
     signal timerStopped
     signal timerStarted
+    property bool previousRunningState: false
+    property int previousTimesheetId: -1
 
     Timer {
         interval: 1000
         running: true
         repeat: true
         onTriggered: {
-            if (TimerService.isRunning()) {
+            const currentlyRunning = TimerService.isRunning();
+            const currentTimesheetId = TimerService.getActiveTimesheetId() !== null ? TimerService.getActiveTimesheetId() : -1;
+
+            if (currentlyRunning) {
                 globalTimer.visible = true;
                 globalTimer.elapsedDisplay = TimerService.getElapsedTime() + " " + TimerService.getActiveTimesheetName();
-                globalTimer.timerStarted();
             } else {
                 globalTimer.visible = false;
-                globalTimer.timerStopped(); //lets inform everyone that no more time tracking
             }
+
+            if (currentlyRunning && (!globalTimer.previousRunningState || currentTimesheetId !== globalTimer.previousTimesheetId)) {
+                // Transition: stopped → running OR switched timesheet while running
+                globalTimer.timerStarted();
+            } else if (!currentlyRunning && globalTimer.previousRunningState) {
+                // Transition: running → stopped
+                globalTimer.timerStopped();
+            }
+
+            globalTimer.previousRunningState = currentlyRunning;
+            globalTimer.previousTimesheetId = currentTimesheetId;
         }
     }
 
@@ -110,7 +124,7 @@ Rectangle {
         anchors.topMargin: units.gu(3)
         anchors.left: indicator.right
         anchors.margins: units.gu(1)
-        anchors.right: stopbutton.left
+        anchors.right: pausebutton.left
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
     }

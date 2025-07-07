@@ -24,6 +24,17 @@ Item {
     property int timesheetId: 0
     signal invalidtimesheet
 
+    Connections {
+        target: globalTimerWidget
+
+        onTimerStopped: {
+            updateTimer.running = false;
+        }
+        onTimerStarted: {
+            updateTimer.running = true;
+        }
+    }
+
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
@@ -73,7 +84,6 @@ Item {
                 checked: !autoMode
                 onClicked: {
                     autoMode = false;
-                    updateUiMode();
                 }
             }
 
@@ -89,7 +99,6 @@ Item {
                 checked: autoMode
                 onClicked: {
                     autoMode = true;
-                    updateUiMode();
                 }
             }
         }
@@ -98,18 +107,16 @@ Item {
             spacing: units.gu(1)
             anchors.horizontalCenter: parent.horizontalCenter
 
-            Label {
+            TSButton {
                 id: timeDisplay
                 text: elapsedTime
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
-                font.pixelSize: units.gu(2)
+                width: units.gu(10)
+                enabled: !autoMode
+                onClicked: {
+                    myTimePicker.open(1, 0);
+                    console.log("Finalized manual entry: " + timeDisplay.text);
+                }
             }
-        }
-
-        RowLayout {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: units.gu(1)
-
             Item {
                 id: recordIconContainer
                 visible: autoMode
@@ -132,31 +139,15 @@ Item {
                             autoRecorder.invalidtimesheet();
                             return;
                         }
-
                         if (!isRecording) {
                             TimerService.start(timesheetId);
-                            isRecording = true;
-                            updateTimer.start();
                         } else {
-                            TimerService.stop(timesheetId);
-                            isRecording = false;
-                            updateTimer.stop();
+                            TimerService.stop();
                         }
                     }
                 }
             }
 
-            TSButton {
-                text: "Set"
-                visible: !autoMode
-                width: units.gu(10)
-                onClicked: {
-                    myTimePicker.open(1, 0);
-                    // Here we can make the Entry as updated
-                    // TimerService.manualEntry(timesheetId, timeDisplay.text)
-                    console.log("Finalized manual entry: " + timeDisplay.text);
-                }
-            }
             Item {
                 id: finalizeIconContainer
                 visible: autoMode
@@ -167,7 +158,7 @@ Item {
                     id: finalizeIcon
                     anchors.fill: parent
                     anchors.margins: units.gu(0.3)
-                    source: "../images/stop.png"    // replace with your stop icon path
+                    source: "../images/stop.png"
                     fillMode: Image.PreserveAspectFit
                 }
 
@@ -206,24 +197,12 @@ Item {
         running: isRecording && autoMode
         onTriggered: {
             if (TimerService.isRunning()) {
-                timeDisplay.text = TimerService.getElapsedTime("hhmm");
-                isRecording = true;
+                timeDisplay.text = TimerService.getElapsedTime();
             } else {
                 isRecording = false;
                 timeDisplay.text = Utils.convertDecimalHoursToHHMM(TimeSheet.getTimesheetUnitAmount(timesheetId));
             }
             elapsedTime = timeDisplay.text;
-        }
-    }
-
-    function updateUiMode() {
-        console.log("Switched to mode:", autoMode ? "Automated" : "Manual");
-        if (!autoMode) {
-            if (isRecording) {
-                TimerService.stop(timesheetId);
-                isRecording = false;
-                updateTimer.stop();
-            }
         }
     }
 

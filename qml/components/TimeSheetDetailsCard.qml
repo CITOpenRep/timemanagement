@@ -27,6 +27,7 @@ import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
 import "../../models/utils.js" as Utils
 import "../../models/constants.js" as AppConst
+import "../../models/timer_service.js" as TimerService
 
 ListItem {
     id: timesheetItem
@@ -58,7 +59,7 @@ ListItem {
     }*/
 
     Connections {
-        target: globalTmerWidget
+        target: globalTimerWidget
 
         onTimerStopped: {
             timer_on = false;
@@ -82,6 +83,18 @@ ListItem {
             Action {
                 iconName: "edit"
                 onTriggered: editRequested(recordId)
+            },
+            Action {
+                iconSource: timer_on ? "../images/stop.png" : "../images/play.png"
+                visible: recordId > 0
+                text: "update Timesheet"
+                onTriggered: {
+                    if (TimerService.isRunning())
+                        TimerService.stop();
+                    else {
+                        TimerService.start(recordId);
+                    }
+                }
             }
         ]
     }
@@ -93,9 +106,9 @@ ListItem {
         // Animated dot
         Rectangle {
             id: indicator
-            width: units.gu(1)
-            height: units.gu(1)
-            radius: units.gu(0.5)
+            width: units.gu(2)
+            height: units.gu(2)
+            radius: units.gu(1)
             color: "#ffa500"
             anchors.left: parent.left
             visible: timer_on

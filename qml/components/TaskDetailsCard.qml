@@ -55,8 +55,14 @@ ListItem {
     signal viewRequested(int localId)
     signal timesheetRequested(int localId)
 
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+    }
+
     Connections {
-        target: globalTmerWidget
+        target: globalTimerWidget
 
         onTimerStopped: {
             //disconnect it
@@ -79,10 +85,24 @@ ListItem {
                 onTriggered: editRequested(localId)
             },
             Action {
-                iconSource: "../images/play.png"
+                iconSource: timesheet_running ? "../images/stop.png" : "../images/play.png"
                 visible: recordId > 0
                 text: "Add Timesheet"
-                onTriggered: timesheetRequested(localId)
+                onTriggered: {
+                    if (TimerService.isRunning())
+                        TimerService.stop();
+                    else {
+                        //lets create a timesheet entry
+                        let result = Timesheet.createTimesheetFromTask(localId);
+                        if (result.success) {
+                            TimerService.start(result.id);
+                            //do we need to show a success popup ? why?
+                        } else {
+                            console.log(result.error);
+                            notifPopup.open("Error", "Unable to create timesheet", "error");
+                        }
+                    }
+                }
             }
         ]
     }
@@ -146,9 +166,9 @@ ListItem {
                         // Animated dot if there is a active time sheet on it
                         Rectangle {
                             id: indicator
-                            width: units.gu(4)
-                            height: units.gu(4)
-                            radius: units.gu(2)
+                            width: units.gu(2)
+                            height: units.gu(2)
+                            radius: units.gu(1)
                             color: "#ffa500"
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
