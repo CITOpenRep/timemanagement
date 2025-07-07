@@ -50,6 +50,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             font.bold: true
+            color : theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
             anchors.horizontalCenter: parent.horizontalCenter
             height: units.gu(2)
         }
@@ -61,6 +62,13 @@ Item {
             RadioButton {
                 id: manualRadio
                 text: "Manual"
+                contentItem: Text {
+                        text: manualRadio.text
+                        color: theme.palette.normal.backgroundText
+                        leftPadding: manualRadio.indicator.width + manualRadio.spacing
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                
                 checked: !autoMode
                 onClicked: {
                     autoMode = false;
@@ -71,6 +79,12 @@ Item {
             RadioButton {
                 id: automatedRadio
                 text: "Automated"
+                contentItem: Text {
+                        text: automatedRadio.text
+                        color: theme.palette.normal.backgroundText
+                        leftPadding: automatedRadio.indicator.width + automatedRadio.spacing
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 checked: autoMode
                 onClicked: {
                     autoMode = true;
@@ -86,6 +100,7 @@ Item {
             Label {
                 id: timeDisplay
                 text: elapsedTime
+                color : theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
                 font.pixelSize: units.gu(2)
             }
         }
