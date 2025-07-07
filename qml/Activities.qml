@@ -247,7 +247,7 @@ Page {
 
                       // Custom styling for border highlighting
                 Rectangle {
-                    id: borderRect
+                
                     anchors.fill: parent
                     color: "transparent"
                     radius: units.gu(0.5)
