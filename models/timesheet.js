@@ -443,6 +443,13 @@ function markTimesheetAsActiveById(timesheetId) {
 
 function markTimesheetAsReadyById(timesheetId) {
     var result = { success: false, error: "", id: null };
+    //first see if is ready to update?
+    if(!isTimesheetReadyToRecord(timesheetId))
+    {
+        result.success =false
+        return result
+    }
+
     console.log("Marking timesheet " + timesheetId + " as draft");
 
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);

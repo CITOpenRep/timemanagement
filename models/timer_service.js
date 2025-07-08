@@ -23,6 +23,15 @@ var pauseStartTime = 0;
  * @param {number} timesheetId - The ID of the timesheet to start tracking.
  */
 function start(timesheetId) {
+     var result = { success: true, error: "", id: null };
+    //Lets check if the timesheet is good to start ?
+    if(!Model.isTimesheetReadyToRecord(timesheetId))
+    {
+        result.error="Unable to start, Missing mandatory Project/task information, please update before start tracking tme";
+        result.success=false
+        return result
+    }
+
     if (timerRunning) {
         if (paused && (timesheetId === undefined || activeTimesheetId === timesheetId)) {
             // Resume if paused on the same timesheet
@@ -59,6 +68,7 @@ function start(timesheetId) {
 
         console.log("Timer started for timesheet ID:", activeTimesheetId, "Previously tracked:", previouslyTrackedHours);
     }
+    return result
 }
 
 

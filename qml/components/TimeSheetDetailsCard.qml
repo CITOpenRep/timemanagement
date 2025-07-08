@@ -28,6 +28,7 @@ import QtQuick.Layouts 1.1
 import "../../models/utils.js" as Utils
 import "../../models/constants.js" as AppConst
 import "../../models/timer_service.js" as TimerService
+import "../../models/timesheet.js" as Timesheet
 
 ListItem {
     id: timesheetItem
@@ -51,6 +52,7 @@ ListItem {
     signal viewRequested(int recordId)
     signal deleteRequested(int recordId)
     signal toggleFavorite(int recordId, bool currentState)
+    signal refresh
 
     /* leadingActions: ListItemActions {
         actions: Action {
@@ -58,6 +60,41 @@ ListItem {
             onTriggered: toggleFavorite(recordId, isFavorite)
         }
     }*/
+
+    function play_pause_workflow() {
+        if (recordId === TimerService.getActiveTimesheetId()) {
+            if (TimerService.isRunning() && !TimerService.isPaused()) {
+                // If running and not paused, pause it
+                TimerService.pause();
+            } else if (TimerService.isPaused()) {
+                // If paused, resume it
+                const result = TimerService.start(recordId);
+                if (!result.success) {
+                    notifPopup.open("Error", result.error, "error");
+                }
+            }
+        } else {
+            // Start this timesheet, pausing any other running one
+            const result = TimerService.start(recordId);
+            if (!result.success) {
+                notifPopup.open("Error", result.error, "error");
+            }
+        }
+    }
+
+    function stop_workflow() {
+        if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId()))
+            TimerService.stop();
+    }
+
+    function save_workflow() {
+        const result = Timesheet.markTimesheetAsReadyById(recordId);
+        if (result.success) {
+            timesheetItem.refresh();
+        } else {
+            notifPopup.open("Update needed", "Timesheet is missing mandatory Project/Task information, Not ready to sync", "error");
+        }
+    }
 
     Connections {
         target: globalTimerWidget
@@ -115,28 +152,25 @@ ListItem {
                 visible: recordId > 0
                 text: "update Timesheet"
                 onTriggered: {
-                    if (recordId === TimerService.getActiveTimesheetId()) {
-                        if (TimerService.isRunning() && !TimerService.isPaused()) {
-                            // If running and not paused, pause it
-                            TimerService.pause();
-                        } else if (TimerService.isPaused()) {
-                            // If paused, resume it
-                            TimerService.start(recordId);
-                        }
-                    } else {
-                        // Start this timesheet, pausing any other running one
-                        TimerService.start(recordId);
-                    }
+                    play_pause_workflow();
                 }
             },
             Action {
                 id: startstopaction
                 iconSource: "../images/stop.png"
-                visible: recordId > 0
+                visible: ((recordId === TimerService.getActiveTimesheetId()) && (TimerService.isRunning()))
                 text: "update Timesheet"
                 onTriggered: {
-                    if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId()))
-                        TimerService.stop();
+                    stop_workflow();
+                }
+            },
+            Action {
+                id: readyAction
+                visible: (recordId !== TimerService.getActiveTimesheetId()) //Dont show this for the active running entry
+                iconSource: "../images/save.svg"
+                text: "update Timesheet"
+                onTriggered: {
+                    save_workflow();
                 }
             }
         ]

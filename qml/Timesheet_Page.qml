@@ -192,6 +192,9 @@ Page {
                     fetch_timesheets_list();
                 }
             }
+            onRefresh: {
+                fetch_timesheets_list();
+            }
         }
 
         Component.onCompleted: fetch_timesheets_list()

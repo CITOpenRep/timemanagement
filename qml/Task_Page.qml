@@ -153,7 +153,7 @@ Page {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-          anchors.topMargin: units.gu(1)
+        anchors.topMargin: units.gu(1)
         clip: true
 
         TaskList {
