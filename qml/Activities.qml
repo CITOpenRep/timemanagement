@@ -76,8 +76,8 @@ Page {
                     readOnly: isReadOnly
                     showAccountSelector: true
                     showAssigneeSelector: true
-                    showProjectSelector: projectRadio.checked
-                    showSubProjectSelector: projectRadio.checked
+                    showProjectSelector: projectRadio.checked || taskRadio.checked
+                    showSubProjectSelector: projectRadio.checked || taskRadio.checked
                     showSubTaskSelector: taskRadio.checked
                     showTaskSelector: taskRadio.checked
                     taskLabelText: "Parent Task"
@@ -328,8 +328,8 @@ Page {
                 taskRadio.checked = true;
                 console.log("Using deferredLoadExistingRecordSet with:", "projectId:", currentActivity.project_id, "subProjectId:", currentActivity.sub_project_id, "taskId:", currentActivity.task_id);
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
-                workItem.showProjectSelector = false;
-                workItem.showSubProjectSelector = false;
+                workItem.showProjectSelector = true;
+                workItem.showSubProjectSelector = true;
                 workItem.showTaskSelector = true;
                 workItem.showSubTaskSelector = true;
                 break;
