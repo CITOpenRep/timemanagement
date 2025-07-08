@@ -27,6 +27,8 @@ import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
 import "../../models/utils.js" as Utils
 import "../../models/constants.js" as AppConst
+import "../../models/timer_service.js" as TimerService
+import "../../models/timesheet.js" as Timesheet
 
 ListItem {
     id: timesheetItem
@@ -44,11 +46,13 @@ ListItem {
     property bool isFavorite: false
     property string status: ""
     property bool timer_on: false
+    property bool timer_paused: false
 
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
     signal deleteRequested(int recordId)
     signal toggleFavorite(int recordId, bool currentState)
+    signal refresh
 
     /* leadingActions: ListItemActions {
         actions: Action {
@@ -56,6 +60,66 @@ ListItem {
             onTriggered: toggleFavorite(recordId, isFavorite)
         }
     }*/
+
+    function play_pause_workflow() {
+        if (recordId === TimerService.getActiveTimesheetId()) {
+            if (TimerService.isRunning() && !TimerService.isPaused()) {
+                // If running and not paused, pause it
+                TimerService.pause();
+            } else if (TimerService.isPaused()) {
+                // If paused, resume it
+                const result = TimerService.start(recordId);
+                if (!result.success) {
+                    notifPopup.open("Error", result.error, "error");
+                }
+            }
+        } else {
+            // Start this timesheet, pausing any other running one
+            const result = TimerService.start(recordId);
+            if (!result.success) {
+                notifPopup.open("Error", result.error, "error");
+            }
+        }
+    }
+
+    function stop_workflow() {
+        if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId()))
+            TimerService.stop();
+    }
+
+    function save_workflow() {
+        const result = Timesheet.markTimesheetAsReadyById(recordId);
+        if (result.success) {
+            timesheetItem.refresh();
+        } else {
+            notifPopup.open("Update needed", "Timesheet is missing mandatory Project/Task information, Not ready to sync", "error");
+        }
+    }
+
+    Connections {
+        target: globalTimerWidget
+
+        onTimerStopped: {
+            if (recordId === TimerService.getActiveTimesheetId()) {
+                timer_on = false;
+            }
+        }
+        onTimerStarted: {
+            if (recordId === TimerService.getActiveTimesheetId()) {
+                timer_on = true;
+            }
+        }
+        onTimerPaused: {
+            if (recordId === TimerService.getActiveTimesheetId()) {
+                timer_paused = true;
+            }
+        }
+        onTimerResumed: {
+            if (recordId === TimerService.getActiveTimesheetId()) {
+                timer_paused = false;
+            }
+        }
+    }
 
     leadingActions: ListItemActions {
         actions: [
@@ -71,6 +135,43 @@ ListItem {
             Action {
                 iconName: "edit"
                 onTriggered: editRequested(recordId)
+            },
+            Action {
+                id: playpauseaction
+                iconSource: {
+                    if (recordId === TimerService.getActiveTimesheetId()) {
+                        if (TimerService.isPaused()) {
+                            return "../images/play.png";
+                        } else {
+                            return "../images/pause.png";
+                        }
+                    } else {
+                        return "../images/play.png";
+                    }
+                }
+                visible: recordId > 0
+                text: "update Timesheet"
+                onTriggered: {
+                    play_pause_workflow();
+                }
+            },
+            Action {
+                id: startstopaction
+                iconSource: "../images/stop.png"
+                visible: ((recordId === TimerService.getActiveTimesheetId()) && (TimerService.isRunning()))
+                text: "update Timesheet"
+                onTriggered: {
+                    stop_workflow();
+                }
+            },
+            Action {
+                id: readyAction
+                visible: (recordId !== TimerService.getActiveTimesheetId()) //Dont show this for the active running entry
+                iconSource: "../images/save.svg"
+                text: "update Timesheet"
+                onTriggered: {
+                    save_workflow();
+                }
             }
         ]
     }
@@ -82,9 +183,9 @@ ListItem {
         // Animated dot
         Rectangle {
             id: indicator
-            width: units.gu(1)
-            height: units.gu(1)
-            radius: units.gu(0.5)
+            width: units.gu(2)
+            height: units.gu(2)
+            radius: units.gu(1)
             color: "#ffa500"
             anchors.left: parent.left
             visible: timer_on

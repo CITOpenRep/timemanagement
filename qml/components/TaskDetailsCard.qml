@@ -26,6 +26,7 @@ import QtQuick.Controls 2.2
 import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
 import "../../models/timesheet.js" as Timesheet
+import "../../models/timer_service.js" as TimerService
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
 
@@ -47,11 +48,73 @@ ListItem {
     property int recordId: -1
     property bool hasChildren: false
     property int childCount: 0
+    property bool timer_on: false
+    property bool timer_paused: false
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
     signal viewRequested(int localId)
     signal timesheetRequested(int localId)
+
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+    }
+
+    Connections {
+        target: globalTimerWidget
+
+        onTimerStopped: {
+            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_on = false;
+            }
+        }
+        onTimerStarted: {
+            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_on = true;
+            }
+        }
+        onTimerPaused: {
+            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_paused = true;
+            }
+        }
+        onTimerResumed: {
+            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_paused = false;
+            }
+        }
+    }
+
+    function play_pause_workflow() {
+        if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (TimerService.isRunning() && !TimerService.isPaused()) {
+                // If running and not paused, pause it
+                TimerService.pause();
+            } else if (TimerService.isPaused()) {
+                // If paused, resume it
+                TimerService.start(TimerService.getActiveTimesheetId());
+            }
+        } else {
+            let result = Timesheet.createTimesheetFromTask(recordId);
+            if (result.success) {
+                const result_start = TimerService.start(result.id);
+                if (!result_start.success) {
+                    notifPopup.open("Error", result_start.error, "error");
+                }
+                //do we need to show a success popup ? why?
+            } else {
+                console.log(result.error);
+                notifPopup.open("Error", "Unable to create timesheet", "error");
+            }
+        }
+    }
+
+    function stop_workflow() {
+        if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId()))
+            TimerService.stop();
+    }
 
     trailingActions: ListItemActions {
         actions: [
@@ -64,10 +127,22 @@ ListItem {
                 onTriggered: editRequested(localId)
             },
             Action {
-                iconName: "reminder-new"
+                id: playpauseaction
+                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../images/play.png" : "../images/pause.png") : "../images/play.png"
                 visible: recordId > 0
-                text: "Add Timesheet"
-                onTriggered: timesheetRequested(localId)
+                text: "update Timesheet"
+                onTriggered: {
+                    play_pause_workflow();
+                }
+            },
+            Action {
+                id: startstopaction
+                visible: recordId > 0
+                iconSource: "../images/stop.png"
+                text: "update Timesheet"
+                onTriggered: {
+                    stop_workflow();
+                }
             }
         ]
     }
@@ -126,6 +201,34 @@ ListItem {
                             fillMode: Image.PreserveAspectFit
                             width: units.gu(4)
                             height: units.gu(4)
+                            visible: !timer_on //if a active time sheet is on , we will use this area to indicate it.constructor
+                        }
+                        // Animated dot if there is a active time sheet on it
+                        Rectangle {
+                            id: indicator
+                            width: units.gu(2)
+                            height: units.gu(2)
+                            radius: units.gu(1)
+                            color: "#ffa500"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: timer_on
+                            SequentialAnimation on opacity {
+                                loops: Animation.Infinite
+                                running: indicator.visible
+                                NumberAnimation {
+                                    from: 0.3
+                                    to: 1
+                                    duration: 800
+                                    easing.type: Easing.InOutQuad
+                                }
+                                NumberAnimation {
+                                    from: 1
+                                    to: 0.3
+                                    duration: 800
+                                    easing.type: Easing.InOutQuad
+                                }
+                            }
                         }
                     }
 
@@ -234,5 +337,9 @@ ListItem {
 
         // Split by space to remove time
         return datetimeStr.split(" ")[0];
+    }
+
+    Component.onCompleted: {
+        taskCard.timer_on = Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.activeTimesheetId);
     }
 }

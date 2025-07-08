@@ -48,6 +48,7 @@ MainView {
     // height: units.gu(95)
 
     GlobalTimerWidget {
+        id: globalTimerWidget
         z: 9999
         anchors.bottom: parent.bottom
         anchors.left: parent.left

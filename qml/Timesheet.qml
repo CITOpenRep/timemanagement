@@ -65,12 +65,11 @@ Page {
 
     function save_timesheet() {
         //check if timer is running
-        console.log(TimerService.getActiveTimesheetId())
-        console.log("Record id is" + recordid)
-        if (recordid===TimerService.getActiveTimesheetId())
-        {
+        console.log(TimerService.getActiveTimesheetId());
+        console.log("Record id is" + recordid);
+        if (recordid === TimerService.getActiveTimesheetId()) {
             notifPopup.open("Error", "Please stop the timer before saving the record", "error");
-            return
+            return;
         }
 
         const ids = workItem.getIds();
@@ -120,7 +119,7 @@ Page {
             timesheet_data.id = recordid;
         }
 
-        const result = Model.createOrSaveTimesheet(timesheet_data);
+        const result = Model.saveTimesheet(timesheet_data);
         if (!result.success) {
             notifPopup.open("Error", "Unable to Save the Task", "error");
         } else {
@@ -167,6 +166,11 @@ Page {
                     id: workItem
                     enabled: !isReadOnly
                     showAssigneeSelector: false
+                    showAccountSelector: true
+                    showProjectSelector: true
+                    showSubProjectSelector: true
+                    showTaskSelector: true
+                    showSubTaskSelector: true
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
                     //onAccountChanged:
@@ -241,9 +245,11 @@ Page {
                 anchors.fill: time_sheet_row
                 timesheetId: recordid
                 visible: recordid
+                onInvalidtimesheet: {
+                    notifPopup.open("Error", "Save the time sheet first", "error");
+                }
             }
             Label {
-
                 anchors.fill: parent
                 anchors.margins: units.gu(1)
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -308,6 +314,7 @@ Page {
 
         Component.onCompleted: {
             console.log("XXXX From Timesheet got record id : " + recordid);
+
             if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
             {
                 currentTimesheet = Model.getTimeSheetDetails(recordid);
@@ -336,9 +343,9 @@ Page {
                 if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
                     priorityCombo.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
                 }
-            } else //we are creating a new timesheet
+            } else //Should not happen
             {
-                workItem.loadAccounts();
+                notifPopup("Error", "Error, you should not see this message, Something bad", "error");
             }
         }
     }

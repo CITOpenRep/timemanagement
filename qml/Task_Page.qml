@@ -150,12 +150,16 @@ Page {
 
     LomiriShape {
         anchors.top: taskListHeader.bottom
-        height: parent.height - taskheader.height - taskListHeader.height
-        width: parent.width
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.topMargin: units.gu(1)
+        clip: true
 
         TaskList {
             id: tasklist
             anchors.fill: parent
+            clip: true
 
             onTaskEditRequested: {
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
