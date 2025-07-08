@@ -323,13 +323,6 @@ Page {
                 let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
                 let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
                 let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
-                console.log("Timesheet Field Values:");
-                console.log("Recordid     →" + recordid);
-                console.log("instanceId    →", instanceId);
-                console.log("projectId     →", projectId);
-                console.log("taskId        →", taskId);
-                console.log("subProjectId  →", subProjectId);
-                console.log("subTaskId     →", subTaskId);
 
                 console.log("Now lets call this with workitemselector ");
 
@@ -343,9 +336,6 @@ Page {
                 if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
                     priorityCombo.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
                 }
-            } else //Should not happen
-            {
-                notifPopup("Error", "Error, you should not see this message, Something bad", "error");
             }
         }
     }

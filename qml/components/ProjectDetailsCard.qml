@@ -74,7 +74,7 @@ ListItem {
             spacing: 2
 
             Rectangle {
-                width: units.gu(0.5)
+                width: units.gu(1)
                 height: parent.height
                 color: Utils.getColorFromOdooIndex(colorPallet)
             }

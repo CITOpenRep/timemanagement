@@ -106,7 +106,7 @@ ListItem {
                 //do we need to show a success popup ? why?
             } else {
                 console.log(result.error);
-                notifPopup.open("Error", "Unable to create timesheet", "error");
+                notifPopup.open("Error", result.error, "error");
             }
         }
     }

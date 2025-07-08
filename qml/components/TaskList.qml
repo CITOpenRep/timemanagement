@@ -259,7 +259,7 @@ Item {
                     localId: model.local_id
                     height: parent.height
                     width: parent.width
-                    recordId: model.recordId
+                    recordId: (model.recordId) ? (model.recordId) : -1
                     taskName: model.taskName
                     allocatedHours: model.allocatedHours
                     deadline: model.deadline
