@@ -373,7 +373,7 @@ Rectangle {
                     parent_id: projectParentId || subProjectParentId
                 });
                 default_id = id;
-                default_name = name + " (from different project)";
+                default_name = name;//+ " (from different project)";
             }
         }
 

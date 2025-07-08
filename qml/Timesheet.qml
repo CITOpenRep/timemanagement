@@ -170,7 +170,7 @@ Page {
                     showProjectSelector: true
                     showSubProjectSelector: true
                     showTaskSelector: true
-                    showSubTaskSelector: false
+                    showSubTaskSelector: true
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
                     //onAccountChanged:
