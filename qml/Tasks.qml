@@ -174,9 +174,14 @@ Page {
                     id: workItem
                     readOnly: isReadOnly
                     taskLabelText: "Parent Task"
+                    showAccountSelector: true
+                    showAssigneeSelector: true
+                    showProjectSelector: true
+                    showSubProjectSelector: true
+                    showTaskSelector: true
+                    showSubTaskSelector: false
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(10)
-                    showSubTaskSelector: false
                 }
             }
         }

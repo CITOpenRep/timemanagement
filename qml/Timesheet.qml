@@ -166,6 +166,11 @@ Page {
                     id: workItem
                     enabled: !isReadOnly
                     showAssigneeSelector: false
+                    showAccountSelector: true
+                    showProjectSelector: true
+                    showSubProjectSelector: true
+                    showTaskSelector: true
+                    showSubTaskSelector: false
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
                     //onAccountChanged:

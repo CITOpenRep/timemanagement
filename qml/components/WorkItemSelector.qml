@@ -327,7 +327,7 @@ Rectangle {
     }
 
     function loadTasks(accountId, projectIdOrSubprojectId, selectedId = -1) {
-        console.log("Loading tasks for account:", accountId, "parentId (project/subproject):", projectIdOrSubprojectId);
+        console.log("Loading tasks for account:", accountId, "parentId (project/subproject):", projectIdOrSubprojectId, "selectedId:", selectedId);
 
         const rawTasks = Task.getTasksForAccount(accountId);
         let taskList = [];
@@ -341,6 +341,7 @@ Rectangle {
 
         let default_id = -1;
         let default_name = "Select";
+        let filteredCount = 0;
 
         for (let i = 0; i < rawTasks.length; i++) {
             let id = rawTasks[i].odoo_record_id;
@@ -349,34 +350,34 @@ Rectangle {
             let subProjectParentId = rawTasks[i].sub_project_id;
             let parentId = rawTasks[i].parent_id;
 
-            if (selectedId !== -1) {
-                // ⚡ Deferred load: add all tasks so selectedId can match
+            // Apply filtering regardless of selectedId to ensure only relevant tasks are shown
+            if ((projectParentId === projectIdOrSubprojectId || subProjectParentId === projectIdOrSubprojectId) && (parentId === null || parentId === 0)) {
                 taskList.push({
                     id: id,
                     name: name,
                     parent_id: projectParentId || subProjectParentId
                 });
+                filteredCount++;
 
                 if (selectedId === id) {
                     default_id = id;
                     default_name = name;
                 }
-            } else {
-                // Normal workflow filtering
-                if ((projectParentId === projectIdOrSubprojectId || subProjectParentId === projectIdOrSubprojectId) && (parentId === null || parentId === 0)) {
-                    taskList.push({
-                        id: id,
-                        name: name,
-                        parent_id: projectParentId || subProjectParentId
-                    });
-
-                    if (selectedId === id) {
-                        default_id = id;
-                        default_name = name;
-                    }
-                }
+            } else if (selectedId !== -1 && selectedId === id) {
+                // Special case: if this task matches selectedId but doesn't match current filter,
+                // still add it so it can be displayed, but log a warning
+                console.log("Warning: Selected task", id, "doesn't belong to current project/subproject", projectIdOrSubprojectId);
+                taskList.push({
+                    id: id,
+                    name: name + " (from different project)",
+                    parent_id: projectParentId || subProjectParentId
+                });
+                default_id = id;
+                default_name = name + " (from different project)";
             }
         }
+
+        console.log("Task filtering complete: found", filteredCount, "tasks for project/subproject", projectIdOrSubprojectId);
 
         finalizeLoading("Task", task_component, taskList, default_id, default_name, selectedId, "TaskSelected");
     }
