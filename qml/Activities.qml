@@ -411,6 +411,7 @@ Page {
         console.log("   subProjectDbId: " + ids.subproject_id);
         console.log("   taskDbId: " + ids.task_id);
         console.log("   subTaskDbId: " + ids.subtask_id);
+        console.log("   assigneeDbId: " + ids.assignee_id);
 
         var linkid = 0;
         var resId = 0;
@@ -433,9 +434,10 @@ Page {
         }
         //console.log("LINK ID is ->>>>>>>>>>> " + linkid);
 
-        const user = Accounts.getCurrentUserOdooId(ids.account_id);
+        // Use the selected assignee, or fall back to current user if no assignee selected
+        const user = ids.assignee_id || Accounts.getCurrentUserOdooId(ids.account_id);
         if (!user) {
-            notifPopup.open("Error", "The specified user does not exist. Unable to save.", "error");
+            notifPopup.open("Error", "Please select an assignee for this activity.", "error");
             return;
         }
 

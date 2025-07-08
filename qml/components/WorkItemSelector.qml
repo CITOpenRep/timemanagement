@@ -443,7 +443,7 @@ Rectangle {
         // Always add "Unassigned"
         assigneeList.push({
             id: -1,
-            name: "--------------------------",
+            name: "Select Assignee",
             parent_id: null
         });
 
