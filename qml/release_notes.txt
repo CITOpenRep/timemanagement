@@ -41,7 +41,7 @@
         <li>Introduced swipe to left on Timesheets and Tasks to Play, Pause ans stop a Timesheet. Finalise Button has been removed. </li>
           <li>Fixes in WorkItem Selector throughout the application. Only relevent Tasks Will be Displayed , even in Edit Mode. </li>
           <li>Fixes in UI for ListViews and Name and Description Field. Added Highlighting When Selected or in Use. </li>
-
+          <li>There are known Issues in Tasks. Like Creating a Task from Device and Then Trying to Create a Timesheet for It After Syncing gives an Error. The Known Issues in Tasks Will be fixed in next release. </li>
 
 
           <br> 
