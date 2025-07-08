@@ -154,7 +154,9 @@ Page {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
+        anchors.topMargin: units.gu(1)
         model: timesheetModel
+        clip: true
         delegate: TimeSheetDetailsCard {
             width: parent.width
             name: model.name

@@ -276,12 +276,16 @@ Page {
 
     LomiriShape {
         anchors.top: listheader.bottom
-        height: parent.height
-        width: parent.width
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+       // anchors.topMargin: units.gu(1)
+        clip: true
 
         LomiriListView {
             id: activitylist
             anchors.fill: parent
+            clip: true
             model: activityListModel
             delegate: ActivityDetailsCard {
                 id: activityCard
