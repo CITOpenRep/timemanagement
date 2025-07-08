@@ -131,6 +131,7 @@ Page {
                     onCheckedChanged: {
                         if (checked) {
                             taskRadio.checked = false;
+                            console.log("Project radio selected - subproject selector should be visible");
                         }
                     }
                 }
@@ -336,7 +337,6 @@ Page {
             case "project":
                 // Connected to project/subproject: Show project and subproject selectors
                 console.log("Setting up project connection");
-                workItem.showSubProjectSelector = (currentActivity.sub_project_id !== -1);
                 projectRadio.checked = true;
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
                 workItem.showProjectSelector = true;
@@ -417,8 +417,10 @@ Page {
         var resId = 0;
 
         if (projectRadio.checked) {
-            linkid = ids.project_id;
+            // Use subproject if selected, otherwise use main project
+            linkid = ids.subproject_id || ids.project_id;
             resId = Accounts.getOdooModelId(ids.account_id, "Project");
+            console.log("Project mode - linking to:", ids.subproject_id ? "subproject " + ids.subproject_id : "project " + ids.project_id);
         }
 
         if (taskRadio.checked) {
