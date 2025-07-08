@@ -127,7 +127,7 @@ Item {
                     id: recordIcon
                     anchors.fill: parent
                     anchors.margins: units.gu(0.3)     // add subtle padding
-                    source: isRecording ? "../images/pause.png" : "../images/start.png"
+                    source: isRecording ? "../images/pause.png" : "../images/play (1).png"
                     fillMode: Image.PreserveAspectFit
                 }
 
