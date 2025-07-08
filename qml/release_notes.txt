@@ -32,8 +32,18 @@
         through seamless integration with Odoo.
     </p>
 
-   <h3>Change History : (Version 1.0.7) Alpha Draft </h3>
+   <h3>Change History : (Version 1.0.8) Alpha Draft </h3>
     <ul>
+
+     <h4> 08-07-2025 : Version 1.0.8 </h4>
+     <li>Fixed Timer for Timesheets, Active Timesheets will be displayed in Active Tab and Timesheets which are not synced will move to Draft Stage. Only the Timesheets from All Tab will be Synced to Odoo.</li>
+        <li>Introduced new Filters and Methods to create Timesheets. "All" ,"Active" , "Draft" </li>
+          <li>Fixes in WorkItem Selector throughout the application. Only relevent Tasks Will be Displayed , even in Edit Mode. </li>
+          <li>Fixes in UI for ListViews and Name and Description Field. Added Highlighting When Selected or in Use. </li>
+
+
+
+          <br> 
 
 
      <h4> 05-07-2025 : Version 1.0.7 </h4>
