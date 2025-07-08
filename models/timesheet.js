@@ -267,7 +267,7 @@ function createTimesheet(instance_id,userid) {
                               Utils.getToday(),      // record_date, fallback to today
                               null,                      // project_id
                               null,                      // task_id
-                              "Draft Timesheet",                        // name/description
+                              "",                        // name/description
                               null,                      // sub_project_id
                               null,                      // sub_task_id
                               0,                      // quadrant_id
