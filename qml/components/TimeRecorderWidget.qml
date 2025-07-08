@@ -143,7 +143,7 @@ Item {
                             if (TimeSheet.isTimesheetReadyToRecord(timesheetId)) {
                                 TimerService.start(timesheetId);
                             } else {
-                                notifPopup.open("Incomplete Timesheet", "To start recording, please select and save an associated project and task.", "error");
+                                notifPopup.open("Incomplete Timesheet", "To start the Timer, Please Save the Timesheet first.", "error");
                             }
                         } else {
                             TimerService.stop();
