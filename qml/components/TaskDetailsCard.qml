@@ -87,6 +87,35 @@ ListItem {
         }
     }
 
+    function play_pause_workflow() {
+        if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (TimerService.isRunning() && !TimerService.isPaused()) {
+                // If running and not paused, pause it
+                TimerService.pause();
+            } else if (TimerService.isPaused()) {
+                // If paused, resume it
+                TimerService.start(TimerService.getActiveTimesheetId());
+            }
+        } else {
+            let result = Timesheet.createTimesheetFromTask(recordId);
+            if (result.success) {
+                const result_start = TimerService.start(result.id);
+                if (!result_start.success) {
+                    notifPopup.open("Error", result_start.error, "error");
+                }
+                //do we need to show a success popup ? why?
+            } else {
+                console.log(result.error);
+                notifPopup.open("Error", "Unable to create timesheet", "error");
+            }
+        }
+    }
+
+    function stop_workflow() {
+        if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId()))
+            TimerService.stop();
+    }
+
     trailingActions: ListItemActions {
         actions: [
             Action {
@@ -103,24 +132,7 @@ ListItem {
                 visible: recordId > 0
                 text: "update Timesheet"
                 onTriggered: {
-                    if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
-                        if (TimerService.isRunning() && !TimerService.isPaused()) {
-                            // If running and not paused, pause it
-                            TimerService.pause();
-                        } else if (TimerService.isPaused()) {
-                            // If paused, resume it
-                            TimerService.start(TimerService.getActiveTimesheetId());
-                        }
-                    } else {
-                        let result = Timesheet.createTimesheetFromTask(recordId);
-                        if (result.success) {
-                            TimerService.start(result.id);
-                            //do we need to show a success popup ? why?
-                        } else {
-                            console.log(result.error);
-                            notifPopup.open("Error", "Unable to create timesheet", "error");
-                        }
-                    }
+                    play_pause_workflow();
                 }
             },
             Action {
@@ -129,8 +141,7 @@ ListItem {
                 iconSource: "../images/stop.png"
                 text: "update Timesheet"
                 onTriggered: {
-                    if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId()))
-                        TimerService.stop();
+                    stop_workflow();
                 }
             }
         ]
