@@ -128,6 +128,12 @@ Page {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
+                
+                // Navigate to Task_Page.qml only when creating a new task
+                // For existing tasks, stay on the same page for better editing experience
+                if (recordid === 0) {
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Task_Page.qml"));
+                }
             }
         } else {
             notifPopup.open("Error", "Please add a Name to the task", "error");

@@ -472,7 +472,12 @@ Page {
             notifPopup.open("Error", "Unable to save the Activity", "error");
         } else {
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
-            apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Activity_Page.qml"));
+            
+            // Navigate to Activity_Page.qml only when creating a new activity
+            // For existing activities, stay on the same page for better editing experience
+            if (recordid === 0) {
+                apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Activity_Page.qml"));
+            }
         }
     }
 }
