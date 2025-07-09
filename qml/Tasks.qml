@@ -396,7 +396,7 @@ Page {
             if (currentTask.start_date && currentTask.end_date) {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
             } else if (currentTask.start_date) {
-                date_range_widget.setDateRange(currentTask.start_date, currentTask.start_date);
+                date_range_widget.setDateRange(currentTask.start_date, null);
             }
         } else {
             workItem.loadAccounts();
