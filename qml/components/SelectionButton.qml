@@ -47,17 +47,21 @@ Item {
 
         TSLabel {
             text: labelText
-            width: parent.width * 0.45
+            width: parent.width * 0.4
             height: units.gu(5)
             verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.WordWrap
+            elide: Text.ElideRight
+            maximumLineCount: 2
         }
 
         // Custom styled button (reference TSButton)
         Item {
             id: entity_btn
-            width: parent.width * 0.45
+            width: parent.width * 0.5
             height: units.gu(5)
             property alias text: entity_btn_label.text
+            clip: true
 
             Rectangle {
                 id: buttonRect
@@ -66,14 +70,25 @@ Item {
                 radius: selectionButton.radius
                 color: mouseArea.containsMouse && selectionButton.enabledState ? selectionButton.hoverColor : selectionButton.bgColor
                 opacity: selectionButton.enabledState ? 1.0 : 0.6
+                clip: true
 
                 Text {
                     id: entity_btn_label
-                    anchors.centerIn: parent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: units.gu(1.0)
+                    anchors.rightMargin: units.gu(1.0)
                     color: selectionButton.fgColor
                     font.bold: false
                     font.pixelSize: units.gu(1.5)
                     text: "Select"
+                    elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.NoWrap
+                    clip: true
+                    maximumLineCount: 1
                 }
 
                 MouseArea {

@@ -13,12 +13,17 @@ LomiriShape {
     property alias horizontalAlignment: label.horizontalAlignment
     property alias verticalAlignment: label.verticalAlignment
     property alias fontBold: label.font.bold
+    property alias wrapMode: label.wrapMode
+    property alias elide: label.elide
+    property alias maximumLineCount: label.maximumLineCount
 
     Label {
         id: label
         anchors.fill: parent
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignLeft
-        wrapMode: Text.NoWrap
+        wrapMode: Text.WordWrap
+        elide: Text.ElideRight
+        maximumLineCount: 2
     }
 }
