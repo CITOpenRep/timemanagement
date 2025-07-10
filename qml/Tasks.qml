@@ -403,5 +403,6 @@ Page {
         } else {
             workItem.loadAccounts();
         }
+        console.log("currentTask loaded:", JSON.stringify(currentTask));
     }
 }
