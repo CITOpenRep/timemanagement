@@ -322,6 +322,12 @@ Page {
             taskRadio.checked = false;
             projectRadio.checked = false;
 
+            // If project and subproject are the same, treat it as no subproject selected.
+            if (currentActivity.project_id && currentActivity.project_id === currentActivity.sub_project_id) {
+                console.log("Project and Sub-project are the same. Setting sub-project to none.");
+                currentActivity.sub_project_id = -1;
+            }
+
             switch (currentActivity.linkedType) {
             case "task":
                 // Connected to task: Show project, subproject, and task selectors
