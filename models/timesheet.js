@@ -10,72 +10,120 @@
  * to enrich the timesheet list with human-readable project, task, instance, and user names.
  *
  * @returns {Array<Object>} - A list of enriched timesheet entries.
- */function fetchTimesheetsByStatus(status) {
-     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-     var timesheetList = [];
+ */
 
-     try {
-         db.transaction(function (tx) {
-             var query = "";
-             var params = [];
+function fetchTimesheetsByStatus(status) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timesheetList = [];
 
-             if (!status || status.toLowerCase() === "all") {
-                 query = "SELECT * FROM account_analytic_line_app WHERE (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
-             } else {
-                 query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC";
-                 params = [status];
-             }
+    try {
+        db.transaction(function (tx) {
+            var query = "";
+            var params = [];
 
-             var result = tx.executeSql(query, params);
+            if (!status || status.toLowerCase() === "all") {
+                query = "SELECT * FROM account_analytic_line_app WHERE (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+            } else {
+                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC";
+                params = [status];
+            }
 
-             for (var i = 0; i < result.rows.length; i++) {
-                 var row = result.rows.item(i);
+            var result = tx.executeSql(query, params);
 
-                 var quadrantMap = {
-                     0: "Unknown",
-                     1: "Do",
-                     2: "Plan",
-                     3: "Delegate",
-                     4: "Delete"
-                 };
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
 
-                 var projectResult = tx.executeSql(
-                     "SELECT name FROM project_project_app WHERE odoo_record_id = ?",
-                     [row.project_id]
-                 );
-                 var taskResult = tx.executeSql(
-                     "SELECT name FROM project_task_app WHERE odoo_record_id = ?",
-                     [row.task_id]
-                 );
-                 var instanceResult = tx.executeSql(
-                     "SELECT name FROM users WHERE id = ?",
-                     [row.account_id]
-                 );
-                 var userResult = tx.executeSql(
-                     "SELECT name FROM res_users_app WHERE odoo_record_id = ?",
-                     [row.user_id]
-                 );
+                var quadrantMap = {
+                    0: "Unknown",
+                    1: "Do",
+                    2: "Plan",
+                    3: "Delegate",
+                    4: "Delete"
+                };
 
-                 timesheetList.push({
-                     id: row.id,
-                     instance: instanceResult.rows.length > 0 ? instanceResult.rows.item(0).name : '',
-                     name: row.name || '',
-                     spentHours: Utils.convertDecimalHoursToHHMM(row.unit_amount),
-                     project: projectResult.rows.length > 0 ? projectResult.rows.item(0).name : 'Unknown Project',
-                     quadrant: quadrantMap[row.quadrant_id] || "Unknown",
-                     date: row.record_date,
-                     status: row.status,
-                     task: taskResult.rows.length > 0 ? taskResult.rows.item(0).name : 'Unknown Task',
-                     user: userResult.rows.length > 0 ? userResult.rows.item(0).name : ''
-                 });
-             }
-         });
-     } catch (e) {
-         DBCommon.logException("fetchTimesheetsByStatus", e);
-     }
+                // Resolve project name with subproject handling
+                var projectName = "Unknown Project";
+                if (row.project_id) {
+                    var rs_project = tx.executeSql(
+                        "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                        [row.project_id]
+                    );
+                    if (rs_project.rows.length > 0) {
+                        var project_row = rs_project.rows.item(0);
+                        if (project_row.parent_id && project_row.parent_id > 0) {
+                            // If subproject, fetch parent project name
+                            var rs_parent_project = tx.executeSql(
+                                "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                                [project_row.parent_id]
+                            );
+                            if (rs_parent_project.rows.length > 0) {
+                                projectName = rs_parent_project.rows.item(0).name + " / " + project_row.name;
+                            } else {
+                                projectName = project_row.name;
+                            }
+                        } else {
+                            projectName = project_row.name;
+                        }
+                    }
+                }
 
-     return timesheetList;
- }
+                // Resolve task name
+                var taskName = "Unknown Task";
+                if (row.task_id) {
+                    var rs_task = tx.executeSql(
+                        "SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [row.task_id]
+                    );
+                    if (rs_task.rows.length > 0) {
+                        taskName = rs_task.rows.item(0).name;
+                    }
+                }
+
+                // Resolve instance name
+                var instanceName = "";
+                if (row.account_id) {
+                    var rs_instance = tx.executeSql(
+                        "SELECT name FROM users WHERE id = ? LIMIT 1",
+                        [row.account_id]
+                    );
+                    if (rs_instance.rows.length > 0) {
+                        instanceName = rs_instance.rows.item(0).name;
+                    }
+                }
+
+                // Resolve user name
+                var userName = "";
+                if (row.user_id) {
+                    var rs_user = tx.executeSql(
+                        "SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1",
+                        [row.user_id]
+                    );
+                    if (rs_user.rows.length > 0) {
+                        userName = rs_user.rows.item(0).name;
+                    }
+                }
+
+                timesheetList.push({
+                    id: row.id,
+                    instance: instanceName,
+                    name: row.name || '',
+                    spentHours: Utils.convertDecimalHoursToHHMM(row.unit_amount),
+                    project: projectName,
+                    quadrant: quadrantMap[row.quadrant_id] || "Unknown",
+                    date: row.record_date,
+                    status: row.status,
+                    task: taskName,
+                    user: userName
+                });
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("fetchTimesheetsByStatus", e);
+    }
+
+    return timesheetList;
+}
+
 
 function getTimesheetNameById(timesheetId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
