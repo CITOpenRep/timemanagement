@@ -347,8 +347,8 @@ Page {
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
                 workItem.showProjectSelector = true;
                 workItem.showSubProjectSelector = true;
-                workItem.showTaskSelector = false;
-                workItem.showSubTaskSelector = false;
+                workItem.showTaskSelector = true;
+                workItem.showSubTaskSelector = true;
                 break;
             default:
                 workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);

@@ -186,7 +186,6 @@ Item {
                             notifPopup.open("Error", "Unable to finalise the timesheet", "error");
                         } else {
                             notifPopup.open("Saved", "Timesheet has been finalised successfully", "success");
-                            
                         }
                     }
                 }

@@ -392,7 +392,7 @@ Rectangle {
                 console.log("Warning: Selected task", id, "doesn't belong to current project/subproject", projectIdOrSubprojectId);
                 taskList.push({
                     id: id,
-                    name: name + " (from different project)",
+                    name: name,
                     parent_id: projectParentId || subProjectParentId
                 });
                 default_id = id;
