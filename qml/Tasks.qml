@@ -380,6 +380,12 @@ Page {
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
+            // If project and subproject are the same, treat it as no subproject selected.
+            if (parent_project_id !== -1 && parent_project_id === sub_project_id) {
+                console.log("Project and Sub-project are the same. Setting sub-project to none.");
+                sub_project_id = -1;
+            }
+
             console.log("Loading task data:", JSON.stringify({
                 instanceId: instanceId,
                 parent_project_id: parent_project_id,
