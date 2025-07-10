@@ -361,7 +361,6 @@ Page {
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-
             console.log("Loading task data:", JSON.stringify({
                 instanceId: instanceId,
                 project_id: project_id,
