@@ -58,7 +58,7 @@ Page {
         id: flickable
         anchors.fill: parent
         anchors.topMargin: units.gu(6)
-        contentHeight: parent.height + 500
+        contentHeight: parent.height + 1000
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
