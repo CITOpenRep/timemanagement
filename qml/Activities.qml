@@ -80,9 +80,7 @@ Page {
                     showSubProjectSelector: projectRadio.checked || taskRadio.checked
                     showSubTaskSelector: taskRadio.checked
                     showTaskSelector: taskRadio.checked
-                    taskLabelText: "Parent Task"
                     width: flickable.width - units.gu(2)
-
                     onStateChanged: {
                         if (newState === "AccountSelected") {
                             reloadActivityTypeSelector(data.id, -1);
