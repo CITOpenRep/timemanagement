@@ -417,7 +417,7 @@ Page {
         console.log("   subTaskDbId: " + ids.subtask_id);
         console.log("   assigneeDbId: " + ids.assignee_id);
 
-        var linkid = 0;
+        var linkid = -1;
         var resId = 0;
 
         if (projectRadio.checked) {
@@ -428,17 +428,23 @@ Page {
         }
 
         if (taskRadio.checked) {
-            linkid = ids.task_id;
+            if (ids.sub_task_id <= 0) //if subtask_id is not selected, we make the task as linkid
+            {
+                linkid = ids.task_id;
+            } else {
+                linkid = ids.subtask_id;
+            }
+
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
         }
 
         const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
 
-        if (linkid === 0 || resId === 0) {
+        if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
+            console.log(linkid + "is the value of linkid");
             notifPopup.open("Error", "Activity must be connected to a project or task", "error");
             return;
         }
-        //console.log("LINK ID is ->>>>>>>>>>> " + linkid);
 
         // Use the selected assignee, or fall back to current user if no assignee selected
         const user = ids.assignee_id || Accounts.getCurrentUserOdooId(ids.account_id);
