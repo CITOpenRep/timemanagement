@@ -310,12 +310,6 @@ Page {
             // Load the Activity Type
             reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
 
-            // Reset all selectors
-            workItem.showTaskSelector = true;
-            workItem.showProjectSelector = true;
-            workItem.showSubTaskSelector = true;
-            workItem.showSubProjectSelector = true;
-
             // Default radio selection
             taskRadio.checked = false;
             projectRadio.checked = false;
@@ -333,20 +327,12 @@ Page {
                 taskRadio.checked = true;
                 console.log("Using deferredLoadExistingRecordSet with:", "projectId:", currentActivity.project_id, "subProjectId:", currentActivity.sub_project_id, "taskId:", currentActivity.task_id);
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
-                workItem.showProjectSelector = true;
-                workItem.showSubProjectSelector = true;
-                workItem.showTaskSelector = true;
-                workItem.showSubTaskSelector = true;
                 break;
             case "project":
                 // Connected to project/subproject: Show project and subproject selectors
                 console.log("Setting up project connection");
                 projectRadio.checked = true;
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
-                workItem.showProjectSelector = true;
-                workItem.showSubProjectSelector = true;
-                workItem.showTaskSelector = true;
-                workItem.showSubTaskSelector = true;
                 break;
             default:
                 workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
