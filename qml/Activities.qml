@@ -58,7 +58,7 @@ Page {
         id: flickable
         anchors.fill: parent
         anchors.topMargin: units.gu(6)
-        contentHeight: parent.height + 500
+        contentHeight: parent.height + 1500
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -80,9 +80,7 @@ Page {
                     showSubProjectSelector: projectRadio.checked || taskRadio.checked
                     showSubTaskSelector: taskRadio.checked
                     showTaskSelector: taskRadio.checked
-                    taskLabelText: "Parent Task"
                     width: flickable.width - units.gu(2)
-
                     onStateChanged: {
                         if (newState === "AccountSelected") {
                             reloadActivityTypeSelector(data.id, -1);
@@ -312,15 +310,15 @@ Page {
             // Load the Activity Type
             reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
 
-            // Reset all selectors
-            workItem.showTaskSelector = true;
-            workItem.showProjectSelector = true;
-            workItem.showSubTaskSelector = true;
-            workItem.showSubProjectSelector = true;
-
             // Default radio selection
             taskRadio.checked = false;
             projectRadio.checked = false;
+
+            // If project and subproject are the same, treat it as no subproject selected.
+            if (currentActivity.project_id && currentActivity.project_id === currentActivity.sub_project_id) {
+                console.log("Project and Sub-project are the same. Setting sub-project to none.");
+                currentActivity.sub_project_id = -1;
+            }
 
             switch (currentActivity.linkedType) {
             case "task":
@@ -329,20 +327,12 @@ Page {
                 taskRadio.checked = true;
                 console.log("Using deferredLoadExistingRecordSet with:", "projectId:", currentActivity.project_id, "subProjectId:", currentActivity.sub_project_id, "taskId:", currentActivity.task_id);
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
-                workItem.showProjectSelector = true;
-                workItem.showSubProjectSelector = true;
-                workItem.showTaskSelector = true;
-                workItem.showSubTaskSelector = true;
                 break;
             case "project":
                 // Connected to project/subproject: Show project and subproject selectors
                 console.log("Setting up project connection");
                 projectRadio.checked = true;
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
-                workItem.showProjectSelector = true;
-                workItem.showSubProjectSelector = true;
-                workItem.showTaskSelector = false;
-                workItem.showSubTaskSelector = false;
                 break;
             default:
                 workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
@@ -413,7 +403,7 @@ Page {
         console.log("   subTaskDbId: " + ids.subtask_id);
         console.log("   assigneeDbId: " + ids.assignee_id);
 
-        var linkid = 0;
+        var linkid = -1;
         var resId = 0;
 
         if (projectRadio.checked) {
@@ -424,17 +414,17 @@ Page {
         }
 
         if (taskRadio.checked) {
-            linkid = ids.task_id;
+         linkid = ids.sub_task_id || ids.task_id;
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
         }
 
         const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
 
-        if (linkid === 0 || resId === 0) {
+        if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
+            console.log(linkid + "is the value of linkid");
             notifPopup.open("Error", "Activity must be connected to a project or task", "error");
             return;
         }
-        //console.log("LINK ID is ->>>>>>>>>>> " + linkid);
 
         // Use the selected assignee, or fall back to current user if no assignee selected
         const user = ids.assignee_id || Accounts.getCurrentUserOdooId(ids.account_id);
@@ -472,7 +462,8 @@ Page {
             notifPopup.open("Error", "Unable to save the Activity", "error");
         } else {
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
-            apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Activity_Page.qml"));
+            // No navigation - stay on the same page like Timesheet.qml
+            // User can use back button to return to list page
         }
     }
 }

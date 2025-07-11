@@ -154,13 +154,41 @@ function getTaskDetails(task_id) {
             if (result.rows.length > 0) {
                 var row = result.rows.item(0);
 
+                // Extract initial project_id
+                var project_id = (row.project_id !== undefined && row.project_id !== null && row.project_id > 0) ? row.project_id : -1;
+                var sub_project_id = -1;
+
+                if (project_id > 0) {
+                    // Look up project_project_app to check if this project has a parent_id (indicating it is a subproject)
+                    var rs_project = tx.executeSql(
+                        'SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1',
+                        [project_id]
+                    );
+
+                    if (rs_project.rows.length > 0) {
+                        var parent_id = rs_project.rows.item(0).parent_id;
+                        if (parent_id !== undefined && parent_id !== null && parent_id > 0) {
+                            // This project is a subproject
+                            sub_project_id = project_id;
+                            project_id = parent_id;
+                            console.log("Subproject detected: sub_project_id =", sub_project_id, ", parent project_id =", project_id);
+                        } else {
+                            // Top-level project
+                            sub_project_id = -1;
+                            console.log("Top-level project detected, project_id =", project_id);
+                        }
+                    } else {
+                        console.error("Project lookup failed for project_id:", project_id);
+                    }
+                }
+
                 task_detail = {
                     id: row.id,
                     name: row.name,
                     account_id: row.account_id,
-                    project_id: row.project_id,
-                    sub_project_id: row.sub_project_id,
-                    parent_id: row.parent_id,
+                    project_id: project_id,
+                    sub_project_id: sub_project_id,
+                    parent_id: row.parent_id, // remains for parent task reference
                     start_date: row.start_date ? Utils.formatDate(new Date(row.start_date)) : "",
                     end_date: row.end_date ? Utils.formatDate(new Date(row.end_date)) : "",
                     deadline: row.deadline ? Utils.formatDate(new Date(row.deadline)) : "",
@@ -173,11 +201,15 @@ function getTaskDetails(task_id) {
                     status: row.status || "",
                     odoo_record_id: row.odoo_record_id
                 };
+
+                console.log("getTaskDetails enriched task:", JSON.stringify(task_detail));
+            } else {
+                console.error("No task found for local task_id:", task_id);
             }
         });
 
     } catch (e) {
-        DBCommon.logException(e);
+        DBCommon.logException("getTaskDetails", e);
     }
 
     return task_detail;

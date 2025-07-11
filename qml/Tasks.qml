@@ -35,6 +35,7 @@ import "../models/timesheet.js" as Timesheet
 import "../models/utils.js" as Utils
 import "../models/global.js" as Global
 import "../models/accounts.js" as Accounts
+import "../models/timer_service.js" as TimerService
 
 import "components"
 
@@ -128,6 +129,8 @@ Page {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
+                // No navigation - stay on the same page like Timesheet.qml
+                // User can use back button to return to list page
             }
         } else {
             notifPopup.open("Error", "Please add a Name to the task", "error");
@@ -232,28 +235,8 @@ Page {
             anchors.top: myRow1b.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            height: units.gu(5)
-            visible: (recordid > 0) ? true : false
-            TSButton {
-                text: "Add Timesheet"
-                visible: (recordid > 0) ? true : false
-                width: parent.width / 2
-                height: parent.height
-                anchors.horizontalCenter: parent.horizontalCenter
-                onClicked: {
-                    let result = Timesheet.createTimesheetFromTask(recordid);
-                    if (result.success) {
-                        //We got the result success, lets open the record with the id
-                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Timesheet.qml"), {
-                            "recordid": result.id,
-                            "isReadOnly": false
-                        });
-                    } else {
-                        console.log(result.error);
-                        notifPopup.open("Error", "Unable to create timesheet", "error");
-                    }
-                }
-            }
+            height: units.gu(1)
+            visible: false
         }
         Row {
             id: myRow9
@@ -373,20 +356,20 @@ Page {
             currentTask = Task.getTaskDetails(recordid);
 
             let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
-            let parent_project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null) ? currentTask.project_id : -1;
+            let project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null && currentTask.project_id > 0) ? currentTask.project_id : -1;
             let sub_project_id = (currentTask.sub_project_id !== undefined && currentTask.sub_project_id !== null) ? currentTask.sub_project_id : -1;
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
             console.log("Loading task data:", JSON.stringify({
                 instanceId: instanceId,
-                parent_project_id: parent_project_id,
+                project_id: project_id,
                 sub_project_id: sub_project_id,
                 parent_task_id: parent_task_id,
                 assignee_id: assignee_id
             }));
 
-            workItem.deferredLoadExistingRecordSet(instanceId, parent_project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
+            workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
             name_text.text = currentTask.name || "";
             description_text.text = currentTask.description || "";
@@ -396,10 +379,11 @@ Page {
             if (currentTask.start_date && currentTask.end_date) {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
             } else if (currentTask.start_date) {
-                date_range_widget.setDateRange(currentTask.start_date, currentTask.start_date);
+                date_range_widget.setDateRange(currentTask.start_date, null);
             }
         } else {
             workItem.loadAccounts();
         }
+        console.log("currentTask loaded:", JSON.stringify(currentTask));
     }
 }

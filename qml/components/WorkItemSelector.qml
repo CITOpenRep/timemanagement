@@ -4,6 +4,7 @@ import Lomiri.Components 1.3
 import "../../models/accounts.js" as Accounts
 import "../../models/project.js" as Project
 import "../../models/task.js" as Task
+import QtQml 2.7
 
 Rectangle {
     id: workItemSelector
@@ -280,6 +281,17 @@ Rectangle {
                     default_id = id;
                     default_name = name;
                 }
+            } else if (selectedId !== -1 && selectedId === id) {
+                // Special case: if this project matches selectedId but is a sub-project,
+                // still add it so it can be displayed.
+                console.log("Warning: Selected project", id, "is a sub-project. Adding to list for display.");
+                projectList.push({
+                    id: id,
+                    name: name,
+                    parent_id: parentId
+                });
+                default_id = id;
+                default_name = name;
             }
         }
 
@@ -320,6 +332,17 @@ Rectangle {
                     default_id = id;
                     default_name = name;
                 }
+            } else if (selectedId !== -1 && selectedId === id) {
+                // Special case: if this subproject matches selectedId but doesn't match current filter,
+                // still add it so it can be displayed.
+                console.log("Warning: Selected sub-project", id, "doesn't belong to current parent project", parentProjectId, ". Adding to list for display.");
+                subProjectList.push({
+                    id: id,
+                    name: name,
+                    parent_id: parentId
+                });
+                default_id = id;
+                default_name = name;
             }
         }
 
@@ -369,7 +392,7 @@ Rectangle {
                 console.log("Warning: Selected task", id, "doesn't belong to current project/subproject", projectIdOrSubprojectId);
                 taskList.push({
                     id: id,
-                    name: name + " (from different project)",
+                    name: name,
                     parent_id: projectParentId || subProjectParentId
                 });
                 default_id = id;

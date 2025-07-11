@@ -28,6 +28,8 @@ import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
+import "../models/timesheet.js" as TimesheetModel
+import "../models/accounts.js" as Account
 
 Page {
     id: listpage
@@ -45,10 +47,17 @@ Page {
         trailingActionBar.actions: [
             Action {
                 iconName: "reminder-new"
-
-                text: "Theme"
+                text: "New Timesheet"
                 onTriggered: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet.qml"));
+                    const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                    if (result.success) {
+                        apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet.qml"), {
+                            "recordid": result.id,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        console.log("Error creating timesheet: " + result.message);
+                    }
                     page = 1;
                     apLayout.setCurrentPage(page);
                 }
