@@ -58,7 +58,7 @@ Page {
         id: flickable
         anchors.fill: parent
         anchors.topMargin: units.gu(6)
-        contentHeight: parent.height + 1000
+        contentHeight: parent.height + 1500
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -414,13 +414,7 @@ Page {
         }
 
         if (taskRadio.checked) {
-            if (ids.sub_task_id <= 0) //if subtask_id is not selected, we make the task as linkid
-            {
-                linkid = ids.task_id;
-            } else {
-                linkid = ids.subtask_id;
-            }
-
+         linkid = ids.sub_task_id || ids.task_id;
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
         }
 
