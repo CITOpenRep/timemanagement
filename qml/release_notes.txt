@@ -32,8 +32,18 @@
         through seamless integration with Odoo.
     </p>
 
-   <h3>Change History : (Version 1.0.8) Alpha Draft </h3>
+   <h3>Change History : (Version 1.0.9) Alpha Draft </h3>
     <ul>
+
+     <h4> 11-07-2025 : Version 1.0.9 </h4>
+        <li>Fixes in WorkItem Selctors for Activities, Timesheets , Tasks.</li>
+          <li>Removed the Button to Create Timesheet from the Tasks view and Edit Mode. Instead Timesheets can created from TaskListView trailing action by scrolling from right. </li>
+          <li>Fixes in View Mode of Activities when connected to Project. </li>
+           <li>Fixes in Overflowing Text from the Selection buttons. Fixes in End Date Logic. Fixes in Navigation in Activities. </li>
+
+           <br>
+
+
 
      <h4> 08-07-2025 : Version 1.0.8 </h4>
      <li>Fixed Timer for Timesheets, Active Timesheets will be displayed in Active Tab and Timesheets which are not synced will move to Draft Stage. Only the Timesheets from All Tab will be Synced to Odoo.</li>
