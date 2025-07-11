@@ -24,6 +24,7 @@
 
 import QtQuick 2.7
 import Lomiri.Components 1.3
+import Ubuntu.Components 1.3 as Ubuntu
 import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
@@ -31,6 +32,8 @@ import "../models/Main.js" as Model
 import "../models/project.js" as Project
 import "../models/notifications.js" as Notifications
 import "../models/utils.js" as Utils
+import "../models/timesheet.js" as TimesheetModel
+import "../models/accounts.js" as Account
 import io.thp.pyotherside 1.4
 import "components"
 
@@ -239,7 +242,15 @@ Page {
             }
             if (index === 1) {
                 console.log("add time sheet");
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"));
+                const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                if (result.success) {
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                        "recordid": result.id,
+                        "isReadOnly": false
+                    });
+                } else {
+                    console.log("Error creating timesheet: " + result.message);
+                }
             }
         }
     }

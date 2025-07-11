@@ -211,7 +211,7 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                const result = Model.createTimesheet(Accounts.getDefaultAccountId(), Accounts.getCurrentUserOdooId(Accounts.getDefaultAccountId()));
+                const result = Model.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
                 if (result.success) {
                     apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                         "recordid": result.id,
