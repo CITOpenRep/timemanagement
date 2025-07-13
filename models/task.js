@@ -25,6 +25,7 @@ function saveOrUpdateTask(data) {
                                   timestamp, data.status, data.record_id
                               ]
                               );
+                              
             } else {
                 // INSERT
                 tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, favorites, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
@@ -154,6 +155,7 @@ function getTaskDetails(task_id) {
             if (result.rows.length > 0) {
                 var row = result.rows.item(0);
 
+                    
                 // Extract initial project_id
                 var project_id = (row.project_id !== undefined && row.project_id !== null && row.project_id > 0) ? row.project_id : -1;
                 var sub_project_id = -1;
@@ -174,7 +176,7 @@ function getTaskDetails(task_id) {
                             console.log("Subproject detected: sub_project_id =", sub_project_id, ", parent project_id =", project_id);
                         } else {
                             // Top-level project
-                            sub_project_id = -1;
+                            sub_project_id = row.sub_project_id;
                             console.log("Top-level project detected, project_id =", project_id);
                         }
                     } else {
