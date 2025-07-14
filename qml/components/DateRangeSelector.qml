@@ -79,7 +79,7 @@ Item {
                 id: presetCombo
                 width: parent.width / 2
                 model: ["Today", "This Week", "This Month"]
-                currentIndex: 0
+                currentIndex: 1
                 visible: !dateRangeSelector.readOnly
                 background: Rectangle {
                     color: "transparent"
