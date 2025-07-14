@@ -314,7 +314,7 @@ Page {
                                                 anchors.fill: parent
                                                 visible: syncContainer.syncing
                                                 color: "#0078d4"
-                                                radius: 4
+                                                radius: units.gu(0.5)
                                                 border.color: "#0056a0"
                                                 border.width: 1
 
