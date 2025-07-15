@@ -73,13 +73,30 @@ Page {
 
     Connections {
         target: python
-        onSyncDone: {
-            console.log("✅Hurray  Sync completed");
+        onSyncDone: function (accountId) {
+            console.log("✅Hurray  Sync completed for account:", accountId);
+            syncingAccountId = -1;
+            syncTimeoutTimer.stop(); // Stop timeout timer since sync completed
         }
     }
 
     property bool loading: false
     property string loadingMessage: ""
+    property int syncingAccountId: -1
+
+    // Fallback timer to reset sync state in case signal doesn't arrive
+    Timer {
+        id: syncTimeoutTimer
+        interval: 15000 // 15 seconds timeout
+        running: false
+        repeat: false
+        onTriggered: {
+            if (syncingAccountId !== -1) {
+                console.warn("⚠️  Sync timeout - resetting sync state for account:", syncingAccountId);
+                syncingAccountId = -1;
+            }
+        }
+    }
 
     ListModel {
         id: accountListModel
@@ -250,28 +267,85 @@ Page {
                                                 });
                                             }
                                         }
-                                        TSButton {
-                                            id: syncBtn
+                                        Rectangle {
+                                            id: syncContainer
                                             visible: (model.id !== 0)
                                             width: units.gu(10)
                                             height: units.gu(4)
-                                            fontSize: units.gu(1.5)
-                                            text: "Sync"
-                                            onClicked: {
-                                                python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
-                                                    if (path === "") {
-                                                        console.warn("DB not found.");
-                                                    } else {
-                                                        //   console.log("Actual DB path resolved by Python:", path);
-                                                        python.call("backend.start_sync_in_background", [path, model.id], function (result) {
-                                                            if (result) {
-                                                                console.log("Background sync started...");
-                                                            } else {
-                                                                console.warn("Failed to start sync");
-                                                            }
-                                                        });
+                                            color: "transparent"
+
+                                            property bool syncing: syncingAccountId === model.id
+
+                                            TSButton {
+                                                id: syncBtn
+                                                anchors.fill: parent
+                                                visible: !syncContainer.syncing
+                                                fontSize: units.gu(1.5)
+                                                text: "Sync"
+                                                onClicked: {
+                                                    console.log("🔄 Starting sync for account:", model.id);
+                                                    syncingAccountId = model.id;
+                                                    syncTimeoutTimer.start(); // Start timeout timer
+
+                                                    python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                                                        if (path === "") {
+                                                            console.warn("DB not found.");
+                                                            syncingAccountId = -1;
+                                                            syncTimeoutTimer.stop();
+                                                        } else {
+                                                            //   console.log("Actual DB path resolved by Python:", path);
+                                                            python.call("backend.start_sync_in_background", [path, model.id], function (result) {
+                                                                if (result) {
+                                                                    console.log("Background sync started for account:", model.id);
+                                                                    // Keep syncing = true, will be set to false in onSyncDone
+                                                                } else {
+                                                                    console.warn("Failed to start sync for account:", model.id);
+                                                                    syncingAccountId = -1;
+                                                                    syncTimeoutTimer.stop();
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            }
+
+                                            Rectangle {
+                                                id: loadingIndicator
+                                                anchors.fill: parent
+                                                visible: syncContainer.syncing
+                                                color: "#0078d4"
+                                                radius: units.gu(0.5)
+                                                border.color: "#0056a0"
+                                                border.width: 1
+
+                                                // Pulsing animation for loading indicator
+                                                SequentialAnimation {
+                                                    running: syncContainer.syncing
+                                                    loops: Animation.Infinite
+
+                                                    PropertyAnimation {
+                                                        target: loadingIndicator
+                                                        property: "opacity"
+                                                        from: 1.0
+                                                        to: 0.6
+                                                        duration: 800
                                                     }
-                                                });
+
+                                                    PropertyAnimation {
+                                                        target: loadingIndicator
+                                                        property: "opacity"
+                                                        from: 0.6
+                                                        to: 1.0
+                                                        duration: 800
+                                                    }
+                                                }
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "Syncing..."
+                                                    color: "white"
+                                                    font.pixelSize: units.gu(1.2)
+                                                }
                                             }
                                         }
                                     }
