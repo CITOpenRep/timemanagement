@@ -100,112 +100,137 @@ Page {
     property var recordid: 0
     property int project_color: 0
     property var project: {}
+    property bool descriptionExpanded: false
+    property real expandedHeight: units.gu(60)
 
-    ScrollView {
-        id: scrollview
-        anchors.top: header.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: parent.height
-        anchors.bottom: parent.bottom
-        LomiriShape {
-            id: rect1
-            anchors.top: parent.bottom
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+    }
+
+    Flickable {
+        id: projectDetailsPageFlickable
+        anchors.topMargin: units.gu(6)
+        anchors.fill: parent
+        contentHeight: parent.height + 1500
+        flickableDirection: Flickable.VerticalFlick
+
+        width: parent.width
+
+        Row {
+            id: myRow1a
+            anchors.left: parent.left
+            topPadding: units.gu(5)
+
+            Column {
+                leftPadding: units.gu(1)
+
+                WorkItemSelector {
+                    id: workItem
+                    readOnly: isReadOnly
+                    projectLabelText: "Parent Project"
+                    showTaskSelector: false
+                    showSubProjectSelector: false
+                    showAssigneeSelector: true
+                    showSubTaskSelector: false
+                    width: projectDetailsPageFlickable.width - units.gu(2)
+                    height: units.gu(10)
+                }
+            }
+        }
+
+        Row {
+            id: myRow1
+            anchors.top: myRow1a.bottom
+            anchors.left: parent.left
+            topPadding: units.gu(10)
+            Column {
+                id: myCol88
+                leftPadding: units.gu(1)
+                LomiriShape {
+                    width: units.gu(10)
+                    height: units.gu(5)
+                    aspect: LomiriShape.Flat
+                    Label {
+                        id: project_label
+                        text: "Project Name"
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+            Column {
+                id: myCol99
+                leftPadding: units.gu(3)
+                TextField {
+                    id: project_name
+                    readOnly: isReadOnly
+                    width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(15) : projectDetailsPageFlickable.width - units.gu(10)
+                    anchors.centerIn: parent.centerIn
+                    text: ""
+
+                    Rectangle {
+                        visible: !isReadOnly
+                        anchors.fill: parent
+                        color: "transparent"
+                        radius: units.gu(0.5)
+                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                        // z: -1
+                    }
+                }
+            }
+        }
+
+        Row {
+            id: myRow9
+            anchors.top: myRow1.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            radius: "large"
-            width: parent.width
-            height: parent.height
+            topPadding: units.gu(5)
 
-            Row {
-                id: myRow1a
-                anchors.left: parent.left
-                topPadding: 10
-                Column {
-                    leftPadding: units.gu(3)
-                    WorkItemSelector {
-                        id: workItem
-                        readOnly: isReadOnly
-                        projectLabelText: "Parent Project"
-                        showTaskSelector: false
-                        showSubProjectSelector: false
-                        showAssigneeSelector: true
-                        showSubTaskSelector: false
-                        width: scrollview.width - units.gu(2)
-                        height: units.gu(10)
+            Column {
+                id: myCol8
+                leftPadding: units.gu(1)
+                LomiriShape {
+                    width: units.gu(10)
+                    height: units.gu(5)
+                    aspect: LomiriShape.Flat
+                    Label {
+                        id: description_label
+                        text: "Description"
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
             }
 
-            Row {
-                id: myRow1
-                anchors.top: myRow1a.bottom
-                anchors.left: parent.left
-                topPadding: units.gu(10)
-                Column {
-                    leftPadding: units.gu(2)
-                    TSLabel {
-                        id: project_label
-                        width: units.gu(10)
-                        height: units.gu(5)
-                        text: "Project Name"
-                    }
-                }
-                Column {
-                    leftPadding: units.gu(3)
-                    TextField {
-                        id: project_name
-                        readOnly: isReadOnly
-                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        text: ""
+            Column {
+                id: myCol9
+                leftPadding: units.gu(3)
 
-                        Rectangle {
+                Item {
+                    id: textAreaContainer
+                    width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(15) : projectDetailsPageFlickable.width - units.gu(10)
+                    height: description_text.height
 
-                            anchors.fill: parent
-                            color: "transparent"
-                            radius: units.gu(0.5)
-                            border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                            border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                            // z: -1
-                        }
-                    }
-                }
-            }
-
-            Row {
-                id: myRow9
-                anchors.top: myRow1.bottom
-                anchors.left: parent.left
-                topPadding: units.gu(2)
-                Column {
-                    id: myCol8
-                    leftPadding: units.gu(2)
-                    LomiriShape {
-                        width: units.gu(10)
-                        height: units.gu(5)
-                        aspect: LomiriShape.Flat
-                        Label {
-                            id: description_label
-                            text: "Description"
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
-                        }
-                    }
-                }
-                Column {
-                    id: myCol9
-                    leftPadding: units.gu(3)
                     TextArea {
                         id: description_text
                         readOnly: isReadOnly
                         textFormat: Text.RichText
                         autoSize: false
                         maximumLineCount: 0
-                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                        width: parent.width
+                        height: units.gu(10) // Start with collapsed height
                         anchors.centerIn: parent.centerIn
                         text: ""
+                        wrapMode: TextArea.Wrap
+                        selectByMouse: true
+
+                        onHeightChanged: {
+                            console.log("Description TextArea height changed to:", height, "Expanded state:", projectCreate.descriptionExpanded);
+                        }
 
                         Rectangle {
                             visible: !isReadOnly
@@ -217,106 +242,165 @@ Page {
                             // z: -1
                         }
                     }
-                }
-            }
 
-            Row {
-                id: myRow4
-                anchors.top: myRow9.bottom
-                anchors.left: parent.left
-                anchors.rightMargin: 10
-                height: units.gu(5)
-                topPadding: units.gu(2)
-                spacing: units.gu(2) // Spacing between columns
-                Column {
-                    leftPadding: units.gu(2)
-                    LomiriShape {
-                        width: units.gu(10)
-                        height: units.gu(5)
-                        aspect: LomiriShape.Flat
-                        Label {
-                            id: hours_label
-                            text: "Allocated Hours"
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
-                        }
-                    }
-                }
-                Column {
-                    id: planColumn
-                    leftPadding: units.gu(5)
-                    TextField {
-                        id: hours_text
-                        readOnly: isReadOnly
-                        width: units.gu(20)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: "1"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        validator: IntValidator {
-                            bottom: 0
-                        }
-                    }
-                }
-            }
+                    // Floating Action Button
+                    Item {
+                        id: floatingActionButton
+                        width: units.gu(3)
+                        height: units.gu(3)
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.rightMargin: units.gu(1)
+                        anchors.bottomMargin: units.gu(1)
+                        z: 10
+                        visible: !isReadOnly
 
-            Row {
-                id: colorRow
-                anchors.top: myRow4.bottom
-                anchors.left: parent.left
-                topPadding: units.gu(4)
-                Column {
-                    leftPadding: units.gu(2)
-                    LomiriShape {
-                        width: units.gu(10)
-                        height: units.gu(5)
-                        aspect: LomiriShape.Flat
-                        Label {
-                            id: color_Label
-                            text: "Color"
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
+                        // Circular background
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: LomiriColors.orange
+
+                            // Shadow effect
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.topMargin: units.gu(0.15)
+                                anchors.leftMargin: units.gu(0.15)
+                                radius: parent.radius
+                                color: "#30000000"
+                                z: -1
+                            }
                         }
-                    }
-                }
-                Column {
-                    leftPadding: units.gu(3)
-                    Rectangle {
-                        id: project_color_label
-                        width: units.gu(4)
-                        height: units.gu(4)
-                        color: "red"
-                        enabled: !isReadOnly
+
+                        Icon {
+                            id: expandIcon
+                            anchors.centerIn: parent
+                            width: units.gu(1.5)
+                            height: units.gu(1.5)
+                            name: projectCreate.descriptionExpanded ? "up" : "down"
+                            color: "white"
+                        }
+
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                colorpicker.open();
+                                console.log("Floating button clicked! Current state:", projectCreate.descriptionExpanded);
+                                projectCreate.descriptionExpanded = !projectCreate.descriptionExpanded;
+                                console.log("New state:", projectCreate.descriptionExpanded);
+
+                                // Force height update with smooth transition
+                                if (projectCreate.descriptionExpanded) {
+                                    description_text.height = projectCreate.expandedHeight;
+                                } else {
+                                    description_text.height = units.gu(10);
+                                }
+                            }
+
+                            onPressed: {
+                                parent.scale = 0.95;
+                            }
+
+                            onReleased: {
+                                parent.scale = 1.0;
                             }
                         }
                     }
                 }
             }
+        }
 
-            Row {
-                id: myRow6
-                anchors.top: colorRow.bottom
-                anchors.left: parent.left
-                topPadding: units.gu(1)
-                Column {
-                    leftPadding: units.gu(1)
-                    DateRangeSelector {
-                        id: date_range_widget
-                        readOnly: isReadOnly
-                        width: scrollview.width < units.gu(361) ? scrollview.width - units.gu(15) : scrollview.width - units.gu(10)
-                        height: units.gu(4)
-                        anchors.centerIn: parent.centerIn
+        Row {
+            id: myRow4
+            anchors.top: myRow9.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(2)
+            topPadding: units.gu(1)
+
+            TSLabel {
+                id: hours_label
+                text: "Allocated Hours"
+                width: parent.width * 0.3
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            TextField {
+                id: hours_text
+                readOnly: isReadOnly
+                width: parent.width * 0.3
+                anchors.verticalCenter: parent.verticalCenter
+                text: "1"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                validator: IntValidator {
+                    bottom: 0
+                }
+
+                Rectangle {
+                    visible: !isReadOnly
+                    anchors.fill: parent
+                    color: "transparent"
+                    radius: units.gu(0.5)
+                    border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                    border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                    z: -1
+                }
+            }
+        }
+
+        Row {
+            id: colorRow
+            anchors.top: myRow4.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(2)
+            topPadding: units.gu(1)
+
+            TSLabel {
+                id: color_Label
+                text: "Color"
+                width: parent.width * 0.3
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Rectangle {
+                id: project_color_label
+                width: units.gu(4)
+                height: units.gu(4)
+                color: "red"
+                enabled: !isReadOnly
+                anchors.verticalCenter: parent.verticalCenter
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        colorpicker.open();
                     }
                 }
             }
         }
+
+        Row {
+            id: myRow6
+            anchors.top: colorRow.bottom
+            anchors.left: parent.left
+            topPadding: units.gu(1)
+            Column {
+                leftPadding: units.gu(1)
+                DateRangeSelector {
+                    id: date_range_widget
+                    readOnly: isReadOnly
+                    width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(35) : projectDetailsPageFlickable.width - units.gu(30)
+                    height: units.gu(4)
+                    anchors.centerIn: parent.centerIn
+                }
+            }
+        }
     }
+
     ColorPicker {
         id: colorpicker
         width: units.gu(80)
@@ -327,13 +411,6 @@ Page {
             project_color_label.color = value;
             project_color = index;
         }
-    }
-
-    NotificationPopup {
-        id: notifPopup
-        width: units.gu(80)
-        height: units.gu(100)
-        // onClosed: console.log("Notification dismissed")
     }
 
     Component.onCompleted: {
