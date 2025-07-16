@@ -69,15 +69,21 @@ Item {
     ColumnLayout {
         anchors.fill: parent
 
+           RowLayout {
+            spacing: units.gu(1.2)
+
+
         TSLabel {
             id: rangeLabel
             text: "Date Range"
         }
         Item {
             Layout.fillWidth: true
+          
             ComboBox {
                 id: presetCombo
-                width: parent.width / 2
+                height: units.gu(5)
+                width: parent.width / 1.5
                 model: ["Today", "This Week", "This Month"]
                 currentIndex: 1
                 visible: !dateRangeSelector.readOnly
@@ -85,7 +91,7 @@ Item {
                     color: "transparent"
                     border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#636161"
                     border.width: 1
-                    radius: units.gu ? units.gu(0.5) : 4
+                    radius: units.gu ? units.gu(0.5) : units.gu(0.5)
                 }
                 contentItem: Text {
                     text: presetCombo.displayText
@@ -93,7 +99,7 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                     anchors.verticalCenter: parent.verticalCenter
-                    leftPadding: units.gu ? units.gu(2) : 8
+                    leftPadding: units.gu ? units.gu(2) : units.gu(1)
                 }
                 delegate: ItemDelegate {
                     width: presetCombo.width
@@ -101,7 +107,7 @@ Item {
                     contentItem: Text {
                         text: modelData
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                        leftPadding: units.gu ? units.gu(1) : 4
+                        leftPadding: units.gu ? units.gu(1) : units.gu(0.5)
                         elide: Text.ElideRight
                     }
                     background: Rectangle {
@@ -114,13 +120,14 @@ Item {
                 onAccepted: updateDates()
             }
         }
+           }
 
         RowLayout {
             spacing: units.gu(1.2)
 
             // Start Date Picker Field
             ColumnLayout {
-                spacing: 4
+                spacing: units.gu(0.5)
                 TSLabel {
                     text: "Start Date"
                     enabled: !dateRangeSelector.readOnly
