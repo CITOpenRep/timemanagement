@@ -285,9 +285,9 @@ Page {
                         wrapMode: TextArea.Wrap
                         selectByMouse: true
 
-                        onHeightChanged: {
-                            console.log("Description TextArea height changed to:", height, "Expanded state:", taskCreate.descriptionExpanded);
-                        }
+                        // onHeightChanged: {
+                        //     console.log("Description TextArea height changed to:", height, "Expanded state:", taskCreate.descriptionExpanded);
+                        // }
 
                         Rectangle {
                             visible: !isReadOnly

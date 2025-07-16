@@ -20,6 +20,8 @@ Page {
     id: activityDetailsPage
     title: "Activity"
     property var recordid: 0
+    property bool descriptionExpanded: false
+    property real expandedHeight: units.gu(60)
     property var currentActivity: {
         "summary": "",
         "notes": "",
@@ -226,24 +228,101 @@ Page {
             Column {
                 id: myCol999
                 leftPadding: units.gu(3)
-                TextArea {
-                    id: notes
-                    readOnly: isReadOnly
-                    textFormat: Text.RichText
-                    width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
-                    anchors.centerIn: parent.centerIn
-                    text: currentActivity.notes
 
-                    // Custom styling for border highlighting
-                    Rectangle {
+                Item {
+                    id: notesContainer
+                    width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
+                    height: notes.height
+
+                    TextArea {
+                        id: notes
+                        readOnly: isReadOnly
+                        textFormat: Text.RichText
+                        autoSize: false
+                        width: parent.width
+                        height: units.gu(10) // Start with collapsed height
+                        anchors.centerIn: parent.centerIn
+                        text: currentActivity.notes
+                        selectByMouse: true
+                        wrapMode: TextArea.Wrap
+
+                        onHeightChanged: {
+                            console.log("Notes TextArea height changed to:", height, "Expanded state:", activityDetailsPage.descriptionExpanded);
+                        }
+
+                        // Custom styling for border highlighting
+                        Rectangle {
+                            visible: !isReadOnly
+                            anchors.fill: parent
+                            color: "transparent"
+                            radius: units.gu(0.5)
+                            border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                            border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                            // z: -1
+                        }
+                    }
+
+                    // Floating Action Button
+                    Item {
+                        id: floatingActionButton
+                        width: units.gu(3)
+                        height: units.gu(3)
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.rightMargin: units.gu(1)
+                        anchors.bottomMargin: units.gu(1)
+                        z: 10
                         visible: !isReadOnly
 
-                        anchors.fill: parent
-                        color: "transparent"
-                        radius: units.gu(0.5)
-                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                        // z: -1
+                        // Circular background
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: LomiriColors.orange
+
+                            // Shadow effect
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.topMargin: units.gu(0.15)
+                                anchors.leftMargin: units.gu(0.15)
+                                radius: parent.radius
+                                color: "#30000000"
+                                z: -1
+                            }
+                        }
+
+                        Icon {
+                            id: expandIcon
+                            anchors.centerIn: parent
+                            width: units.gu(1.5)
+                            height: units.gu(1.5)
+                            name: activityDetailsPage.descriptionExpanded ? "up" : "down"
+                            color: "white"
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                console.log("Floating button clicked! Current state:", activityDetailsPage.descriptionExpanded);
+                                activityDetailsPage.descriptionExpanded = !activityDetailsPage.descriptionExpanded;
+                                console.log("New state:", activityDetailsPage.descriptionExpanded);
+
+                                // Force height update with smooth transition
+                                if (activityDetailsPage.descriptionExpanded) {
+                                    notes.height = activityDetailsPage.expandedHeight;
+                                } else {
+                                    notes.height = units.gu(10);
+                                }
+                            }
+
+                            onPressed: {
+                                parent.scale = 0.95;
+                            }
+
+                            onReleased: {
+                                parent.scale = 1.0;
+                            }
+                        }
                     }
                 }
             }
@@ -414,7 +493,7 @@ Page {
         }
 
         if (taskRadio.checked) {
-         linkid = ids.sub_task_id || ids.task_id;
+            linkid = ids.sub_task_id || ids.task_id;
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
         }
 
