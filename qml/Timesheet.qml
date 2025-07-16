@@ -6,7 +6,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -137,6 +137,8 @@ Page {
     property var recordid: 0 //0 means creatiion mode
     property bool isReadOnly: false //edit or view mode
     property var currentTimesheet: {}
+    property bool descriptionExpanded: false
+    property real expandedHeight: units.gu(60)
 
     NotificationPopup {
         id: notifPopup
@@ -283,11 +285,38 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             spacing: units.gu(1)
-            topPadding: units.gu(1)
+            topPadding: units.gu(2)
             leftPadding: units.gu(1)
 
-            Label {
-                text: "Description"
+            Row {
+                width: parent.width
+                spacing: units.gu(3)
+
+                Label {
+                    text: "Description"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Button {
+                    id: expandButton
+                    text: timeSheet.descriptionExpanded ? "Collapse" : "Expand"
+                    width: units.gu(12)
+                    height: units.gu(4)
+                    enabled: !isReadOnly
+
+                    onClicked: {
+                        console.log("Button clicked! Current state:", timeSheet.descriptionExpanded);
+                        timeSheet.descriptionExpanded = !timeSheet.descriptionExpanded;
+                        console.log("New state:", timeSheet.descriptionExpanded);
+
+                        // Force height update
+                        if (timeSheet.descriptionExpanded) {
+                            name_text.height = timeSheet.expandedHeight;
+                        } else {
+                            name_text.height = units.gu(10);
+                        }
+                    }
+                }
             }
 
             TextArea {
@@ -295,9 +324,20 @@ Page {
                 enabled: !isReadOnly
                 text: ""
                 width: parent.width - units.gu(2)
-                height: Math.max(units.gu(10), contentHeight + units.gu(2))
+                height: units.gu(10) // Start with collapsed height
                 wrapMode: TextArea.Wrap
                 selectByMouse: true
+
+                onHeightChanged: {
+                    console.log("TextArea height changed to:", height, "Expanded state:", timeSheet.descriptionExpanded);
+                }
+
+                Behavior on height {
+                    NumberAnimation {
+                        duration: 300
+                        easing.type: Easing.InOutQuad
+                    }
+                }
 
                 // Custom styling for border highlighting
                 Rectangle {
