@@ -60,7 +60,7 @@ Page {
         id: flickable
         anchors.fill: parent
         anchors.topMargin: units.gu(6)
-        contentHeight: descriptionExpanded ? parent.height + 1600 : parent.height + 550
+        contentHeight: descriptionExpanded ? parent.height + 1900 : parent.height + 850
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
