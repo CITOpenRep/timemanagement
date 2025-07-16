@@ -162,7 +162,7 @@ Page {
         id: tasksDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height + 500
+        contentHeight: descriptionExpanded ?  parent.height + 1600 :  parent.height + 550
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
