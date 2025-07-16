@@ -113,7 +113,7 @@ Page {
         id: projectDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height + 1500
+        contentHeight: descriptionExpanded ? parent.height + 1500 : parent.height + 500
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -144,7 +144,7 @@ Page {
             id: myRow1
             anchors.top: myRow1a.bottom
             anchors.left: parent.left
-            topPadding: units.gu(10)
+            topPadding: units.gu(12)
             Column {
                 id: myCol88
                 leftPadding: units.gu(1)
@@ -171,7 +171,7 @@ Page {
                     text: ""
 
                     Rectangle {
-                        visible: !isReadOnly
+                       // visible: !isReadOnly
                         anchors.fill: parent
                         color: "transparent"
                         radius: units.gu(0.5)
@@ -188,7 +188,7 @@ Page {
             anchors.top: myRow1.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            topPadding: units.gu(5)
+            topPadding: units.gu(1)
 
             Column {
                 id: myCol8
@@ -233,7 +233,7 @@ Page {
                         }
 
                         Rectangle {
-                            visible: !isReadOnly
+                          //  visible: !isReadOnly
                             anchors.fill: parent
                             color: "transparent"
                             radius: units.gu(0.5)
@@ -253,7 +253,7 @@ Page {
                         anchors.rightMargin: units.gu(1)
                         anchors.bottomMargin: units.gu(1)
                         z: 10
-                        visible: !isReadOnly
+                      //  visible: !isReadOnly
 
                         // Circular background
                         Rectangle {
@@ -339,13 +339,13 @@ Page {
                 }
 
                 Rectangle {
-                    visible: !isReadOnly
+                  //  visible: !isReadOnly
                     anchors.fill: parent
                     color: "transparent"
                     radius: units.gu(0.5)
                     border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
                     border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                    z: -1
+                   // z: -1
                 }
             }
         }
