@@ -6,7 +6,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -137,6 +137,8 @@ Page {
     property var recordid: 0 //0 means creatiion mode
     property bool isReadOnly: false //edit or view mode
     property var currentTimesheet: {}
+    property bool descriptionExpanded: false
+    property real expandedHeight: units.gu(60)
 
     NotificationPopup {
         id: notifPopup
@@ -148,7 +150,7 @@ Page {
         id: timesheetsDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height + 1500
+        contentHeight: descriptionExpanded ? parent.height + 1600 : parent.height + 550
         // + 1000
         flickableDirection: Flickable.VerticalFlick
 
@@ -283,31 +285,106 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             spacing: units.gu(1)
-            topPadding: units.gu(1)
+            topPadding: units.gu(2)
             leftPadding: units.gu(1)
 
             Label {
                 text: "Description"
+               // leftPadding: 0
+              //  bottomPadding: units.gu(1)
             }
 
-            TextArea {
-                id: name_text
-                enabled: !isReadOnly
-                text: ""
+            Item {
+                id: textAreaContainer
                 width: parent.width - units.gu(2)
-                height: Math.max(units.gu(10), contentHeight + units.gu(2))
-                wrapMode: TextArea.Wrap
-                selectByMouse: true
+                height: name_text.height
 
-                // Custom styling for border highlighting
-                Rectangle {
-                    id: borderRect
-                    anchors.fill: parent
-                    color: "transparent"
-                    radius: units.gu(0.5)
-                    border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                    border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                    // z: -1
+                TextArea {
+                    id: name_text
+                    enabled: !isReadOnly
+                    text: ""
+                    width: parent.width
+                    height: units.gu(10) // Start with collapsed height
+                    wrapMode: TextArea.Wrap
+                    selectByMouse: true
+
+                    onHeightChanged: {
+                        console.log("TextArea height changed to:", height, "Expanded state:", timeSheet.descriptionExpanded);
+                    }
+
+                    // Custom styling for border highlighting
+                    Rectangle {
+                        id: borderRect
+                        anchors.fill: parent
+                        color: "transparent"
+                        radius: units.gu(0.5)
+                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                        // z: -1
+                    }
+                }
+
+                // Floating Action Button
+                Item {
+                    id: floatingActionButton
+                    width: units.gu(3)
+                    height: units.gu(3)
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.rightMargin: units.gu(1)
+                    anchors.bottomMargin: units.gu(1)
+                    z: 10
+                   // visible: !isReadOnly // Making the FAB always visible 
+
+                    // Circular background
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: LomiriColors.orange
+
+                        // Shadow effect
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.topMargin: units.gu(0.15)
+                            anchors.leftMargin: units.gu(0.15)
+                            radius: parent.radius
+                            color: "#30000000"
+                            z: -1
+                        }
+                    }
+
+                    Icon {
+                        id: expandIcon
+                        anchors.centerIn: parent
+                        width: units.gu(1.5)
+                        height: units.gu(1.5)
+                        name: timeSheet.descriptionExpanded ? "up" : "down"
+                        color: "white"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            console.log("Floating button clicked! Current state:", timeSheet.descriptionExpanded);
+                            timeSheet.descriptionExpanded = !timeSheet.descriptionExpanded;
+                            console.log("New state:", timeSheet.descriptionExpanded);
+
+                            // Force height update with smooth transition
+                            if (timeSheet.descriptionExpanded) {
+                                name_text.height = timeSheet.expandedHeight;
+                            } else {
+                                name_text.height = units.gu(10);
+                            }
+                        }
+
+                        onPressed: {
+                            parent.scale = 0.95;
+                        }
+
+                        onReleased: {
+                            parent.scale = 1.0;
+                        }
+                    }
                 }
             }
         }
