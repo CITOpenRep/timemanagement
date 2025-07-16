@@ -334,7 +334,7 @@ Page {
                     anchors.rightMargin: units.gu(1)
                     anchors.bottomMargin: units.gu(1)
                     z: 10
-                    visible: !isReadOnly
+                   // visible: !isReadOnly // Making the FAB always visible 
 
                     // Circular background
                     Rectangle {
