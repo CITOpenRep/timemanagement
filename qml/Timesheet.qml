@@ -150,7 +150,7 @@ Page {
         id: timesheetsDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height + 1500
+        contentHeight: descriptionExpanded ? parent.height + 1600 : parent.height + 550
         // + 1000
         flickableDirection: Flickable.VerticalFlick
 
@@ -334,7 +334,7 @@ Page {
                     anchors.rightMargin: units.gu(1)
                     anchors.bottomMargin: units.gu(1)
                     z: 10
-                    visible: !isReadOnly
+                   // visible: !isReadOnly // Making the FAB always visible 
 
                     // Circular background
                     Rectangle {
