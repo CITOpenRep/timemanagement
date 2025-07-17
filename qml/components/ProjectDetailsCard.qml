@@ -120,7 +120,7 @@ ListItem {
                             maximumLineCount: 2
                             clip: true
                             width: parent.width - units.gu(2)
-                            height: units.gu(5)
+                            // height: units.gu(5)
                         }
 
                         Text {
@@ -132,6 +132,7 @@ ListItem {
                             height: units.gu(2)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                         }
+
                         Label {
                             id: details
                             text: "Details"
@@ -146,6 +147,15 @@ ListItem {
                                     viewRequested(localId);
                                 }
                             }
+                        }
+
+                        Text {
+                            text: (childCount > 0 ? " [+" + childCount + "] Projects " : "")
+                            visible: childCount > 0
+                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
+                            font.pixelSize: units.gu(1.5)
+                            //  horizontalAlignment: Text.AlignRight
+                            width: parent.width
                         }
                     }
                 }
@@ -179,19 +189,19 @@ ListItem {
                     }
 
                     Text {
+                        text: "End Date: " + (endDate !== "" ? endDate : "Not set")
+                        font.pixelSize: units.gu(1.5)
+                        horizontalAlignment: Text.AlignRight
+                        width: parent.width
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
+                    }
+
+                    Text {
                         text: Utils.getTimeStatusInText(endDate)
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
-                    }
-                    Text {
-                        text: (childCount > 0 ? " [+" + childCount + "] Projects " : "")
-                        visible: childCount > 0
-                        color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                        font.pixelSize: units.gu(1.5)
-                        horizontalAlignment: Text.AlignRight
-                        width: parent.width
                     }
                 }
             }
