@@ -206,8 +206,9 @@ Page {
                 Icon {
                     id: helpIcon
                     name: "help"
-                    width: units.gu(3)
-                    height: units.gu(3)
+                    width: units.gu(2.5)
+                    height: units.gu(2.5)
+                    color: theme.palette.normal.backgroundText
                     anchors.verticalCenter: priority_label.verticalCenter
                     MouseArea {
                         anchors.fill: parent
@@ -221,19 +222,19 @@ Page {
             Grid {
                 id: priorityGrid
                 columns: 2
-               // spacing: units.gu(1)
+                spacing: units.gu(0.5)
                 width: parent.width - units.gu(2)
 
                 property int currentIndex: 0
 
                 RadioButton {
                     id: priority1
-                    text: "Do First (Important & Urgent)"
+                    text: "Important, Urgent (1)"
                     enabled: !isReadOnly
                     checked: priorityGrid.currentIndex === 0
                     contentItem: Text {
                         text: priority1.text
-                         font.pixelSize: units.gu(1.25)
+                         font.pixelSize: units.gu(1.5)
                         color: theme.palette.normal.backgroundText
                         leftPadding: priority1.indicator.width + priority1.spacing
                         verticalAlignment: Text.AlignVCenter
@@ -247,12 +248,12 @@ Page {
 
                 RadioButton {
                     id: priority2
-                    text: "Do Next (Important & Not Urgent)"
+                    text: "Important, Not Urgent (2)"
                     enabled: !isReadOnly
                     checked: priorityGrid.currentIndex === 1
                     contentItem: Text {
                         text: priority2.text
-                         font.pixelSize: units.gu(1.25)
+                         font.pixelSize: units.gu(1.5)
                         color: theme.palette.normal.backgroundText
                         leftPadding: priority2.indicator.width + priority2.spacing
                         verticalAlignment: Text.AlignVCenter
@@ -266,11 +267,11 @@ Page {
 
                 RadioButton {
                     id: priority3
-                    text: "Do Later (Urgent & Not Important)"
+                    text: "Urgent, Not Important (3)"
                     enabled: !isReadOnly
                     checked: priorityGrid.currentIndex === 2
                     contentItem: Text {
-                         font.pixelSize: units.gu(1.25)
+                         font.pixelSize: units.gu(1.5)
                         text: priority3.text
                         color: theme.palette.normal.backgroundText
                         leftPadding: priority3.indicator.width + priority3.spacing
@@ -285,12 +286,12 @@ Page {
 
                 RadioButton {
                     id: priority4
-                    text: "Don't do (Not Urgent & Not Important)"
+                    text: "Not Urgent, Not Important (4)"
                     enabled: !isReadOnly
                     checked: priorityGrid.currentIndex === 3
                     contentItem: Text {
                         text: priority4.text
-                         font.pixelSize: units.gu(1.25)
+                        font.pixelSize: units.gu(1.5)
                         color: theme.palette.normal.backgroundText
                         leftPadding: priority4.indicator.width + priority4.spacing
                         verticalAlignment: Text.AlignVCenter
