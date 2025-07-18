@@ -42,12 +42,12 @@
           <li>Fixes in Task Screen Crashing the app in Volla and FairPhone 4. </li>
            <li>Fixes in Default Period Selection in Date Range Selector. </li>
            <li>Added floating expand button for Description fields throughout the app. </li>
-           li>UI Fixes in Project Screen, Date Range Selector </li>
+           <li>UI Fixes in Project Screen, Date Range Selector </li>
            <li>Added "Next Week" and "Next Month" Period Selection in Date Range Selector. </li>
            <li>Added the End Dates in Task and Project List OverView. </li>
             <li>Added the End Dates in Task and Project List OverView. </li>
                <li>Added Radio buttons for Priority Selection in grid layout to Timesheet Screen. </li>
-            <li>Introducing Theme Preference Selection from the Settings Page. The theme preference you can set from the Settings Page, and toggle from Dashboard screen can still be used to toggle between themes. </li>
+            <li>Introducing Theme Preference Selection from the Settings Page. The theme preference you can set from the Settings Page and the app will remember your choice, also toggle from Dashboard screen can still be used to toggle between themes. </li>
 
            <br>
 
