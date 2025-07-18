@@ -92,7 +92,6 @@ Page {
 
     function save_task_data() {
         const ids = workItem.getIds();
-        console.log("getAllSelectedDbRecordIds returned:");
         console.log("   accountDbId: " + ids.account_id);
         console.log("   projectDbId: " + ids.project_id);
         console.log("   subProjectDbId: " + ids.subproject_id);
@@ -119,12 +118,13 @@ Page {
                 deadline: date_range_widget.formattedEndDate(),
                 favorites: 0,
                 plannedHours: Utils.convertDurationToFloat(hours_text.text),
-                description: description_text.text,
+                description: description_text.fullText,
                 assigneeUserId: ids.assignee_id,
                 status: "updated"
             };
 
             const result = Task.saveOrUpdateTask(saveData);
+            console.log("save subProjectId: "+ saveData.subProjectId);
             if (!result.success) {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
             } else {
@@ -148,6 +148,31 @@ Page {
                 hrs--;
             hours_text.text = hrs;
         }
+    }
+
+    // Helper function to count words in text
+    function countWords(text) {
+        if (!text) return 0;
+        // Remove HTML tags and split by whitespace
+        var plainText = text.replace(/<[^>]*>/g, '');
+        var words = plainText.split(/\s+/).filter(function(word) {
+            return word.length > 0;
+        });
+        return words.length;
+    }
+
+    // Helper function to get first N words
+    function getFirstNWords(text, n) {
+        if (!text) return "";
+        // Remove HTML tags AND CSS rules
+        var cleanText = text.replace(/<[^>]*>/g, '')
+                        .replace(/p, li \{ white-space: pre-wrap; \}/g, '')
+                        .replace(/^\s+/g, ''); // Remove leading whitespace
+        var words = cleanText.split(/\s+/).filter(function(word) {
+            return word.length > 0;
+        });
+        if (words.length <= n) return cleanText;
+        return words.slice(0, n).join(' ') + '...';
     }
 
     NotificationPopup {
@@ -261,15 +286,35 @@ Page {
             Column {
                 id: myCol9
                 leftPadding: units.gu(3)
+                spacing: units.gu(1)
+                
+                property int wordLimit: 20
+                property bool isDescriptionLong: countWords(description_text.fullText) > wordLimit
+                
                 TextArea {
                     id: description_text
                     readOnly: isReadOnly
-                    textFormat: Text.RichText
+                    textFormat: Text.PlainText  // Changed from Text.RichText to Text.PlainText
                     autoSize: false
-                    maximumLineCount: 0
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
-                    text: ""
+                    
+                    // Property to store the full text
+                    property string fullText: ""
+                    
+                    // Show truncated text if more than 20 words, otherwise show full text
+                    text: myCol9.isDescriptionLong ? getFirstNWords(fullText, myCol9.wordLimit) : fullText
+                    wrapMode: TextArea.Wrap
+                    
+                    function setFullText(newText) {
+                        fullText = newText || "";
+                    }
+                    
+                    onTextChanged: {
+                        if (text !== fullText && !isReadOnly && !myCol9.isDescriptionLong) {
+                            fullText = text;
+                        }
+                    }
 
                     Rectangle {
                         visible: !isReadOnly
@@ -278,7 +323,19 @@ Page {
                         radius: units.gu(0.5)
                         border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
                         border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                        // z: -1
+                        z: -1
+                    }
+                }
+                
+                TSButton {
+                    visible: myCol9.isDescriptionLong
+                    text: isReadOnly ? "Read More" : "Edit Full Text"
+                    width: units.gu(12)
+                    height: units.gu(4)
+                    anchors.right: parent.right
+                    
+                    onClicked: {
+                        descriptionPopup.open("Task Description", description_text.fullText, !isReadOnly);
                     }
                 }
             }
@@ -341,6 +398,7 @@ Page {
             }
         }
     }
+    
     TimePickerPopup {
         id: myTimePicker
         onTimeSelected: {
@@ -348,6 +406,15 @@ Page {
             hours_text.text = timeStr;
         }
     }
+
+    TextPopup {
+        id: descriptionPopup
+        
+        onTextContentChanged: {
+            description_text.setFullText(newText);
+        }
+    }
+    
     Component.onCompleted: {
         console.log("Tasks Component.onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
 
@@ -372,7 +439,7 @@ Page {
             workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
             name_text.text = currentTask.name || "";
-            description_text.text = currentTask.description || "";
+            description_text.setFullText(currentTask.description || "");
             hours_text.text = currentTask.initial_planned_hours ? Utils.convertFloatToDuration(parseFloat(currentTask.initial_planned_hours)) : "01:00";
 
             // Set date range
