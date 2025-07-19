@@ -31,7 +31,7 @@ Column {
         height: (attachmentModel.count === 0)?units.gu(1):parent.height - units.gu(8)
         color: "transparent"
         border.color: "#ccc"
-        border.width: 1
+        border.width:  (attachmentModel.count === 0)?0:1
         radius: units.gu(0.5) // Optional rounded corners
 
         GridView {

@@ -104,7 +104,7 @@ function getAttachmentsForProject(odooRecordId) {
             }
         });
     } catch (e) {
-        console.error("❌ getAttachmentsForProject failed:", e);
+        console.error("getAttachmentsForProject failed:", e);
     }
 
     return attachmentList;

@@ -411,6 +411,7 @@ Page {
             anchors.top: plannedh_row.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
+            height: units.gu(30)
             Column {
                 leftPadding: units.gu(1)
                 DateRangeSelector {
@@ -420,6 +421,18 @@ Page {
                     height: units.gu(4)
                     anchors.centerIn: parent.centerIn
                 }
+            }
+        }
+        Item {
+            id: attachmentRow
+            anchors.bottom: parent.bottom
+            anchors.top: myRow6.bottom
+            width: parent.width
+            //height: units.gu(30)
+            anchors.margins:  units.gu(1)
+            AttachmentViewer {
+                id: attachments_widget
+                anchors.fill: parent
             }
         }
     }
@@ -463,6 +476,7 @@ Page {
             } else if (currentTask.start_date) {
                 date_range_widget.setDateRange(currentTask.start_date, null);
             }
+            attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
         } else {
             workItem.loadAccounts();
         }
