@@ -399,6 +399,17 @@ Page {
                 }
             }
         }
+
+        Row {
+            id: attachmentRow
+            anchors.top: myRow6.bottom
+            anchors.left: parent.left
+            AttachmentViewer
+            {
+                id:attachments_widget
+                anchors.fill: parent
+            }
+        }
     }
 
     ColorPicker {
@@ -434,6 +445,7 @@ Page {
                 project_color_label.color = colorpicker.getColorByIndex(project.color_pallet || 0);
                 date_range_widget.setDateRange(project.planned_start_date || "", project.planned_end_date || "");
                 hours_text.text = project.allocated_hours !== undefined && project.allocated_hours !== null ? String(project.allocated_hours) : "1";
+                attachments_widget.attachments=Project.getAttachmentsForProject(project.odoo_record_id)
             } else {
                 notifPopup.open("Failed", "Unable to open the project details", "error");
             }

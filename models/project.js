@@ -79,6 +79,38 @@ function getAllProjects() {
     return projectList;
 }
 
+function getAttachmentsForProject(odooRecordId) {
+    var attachmentList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT name, mimetype, datas
+                FROM ir_attachment_app
+                WHERE res_model = 'project.project' AND res_id = ?
+                ORDER BY name COLLATE NOCASE ASC
+            `;
+
+            var result = tx.executeSql(query, [odooRecordId]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                attachmentList.push({
+                    name: result.rows.item(i).name,
+                    mimetype: result.rows.item(i).mimetype,
+                    datas: result.rows.item(i).datas
+                });
+            }
+        });
+    } catch (e) {
+        console.error("❌ getAttachmentsForProject failed:", e);
+    }
+
+    return attachmentList;
+}
+
+
 /**
  * Retrieves all projects associated with a specific user account from the local SQLite database.
  *

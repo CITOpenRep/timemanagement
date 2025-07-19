@@ -71,5 +71,24 @@
         "name": "name",
         "id": "odoo_record_id",
         "display_name":"technical_name"
+    },
+    "ir.attachment": {
+        "name": "name",
+        "description": "description",
+        "res_model": "res_model",
+        "res_id": "res_id",
+        "file_size": "file_size",
+        "mimetype": "mimetype",
+        "datas": "datas",
+        "store_fname": "store_fname",
+        "checksum": "checksum",
+        "access_token": "access_token",
+        "url": "url",
+        "image_width": "image_width",
+        "image_height": "image_height",
+        "write_date": "last_modified",
+        "id": "odoo_record_id"
     }
+
+
 }
