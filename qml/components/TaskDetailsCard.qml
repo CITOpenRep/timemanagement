@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import QtQuick 2.7
+import QtQuick 2.12
 import QtQuick.Controls 2.2
 import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
@@ -50,6 +50,7 @@ ListItem {
     property int childCount: 0
     property bool timer_on: false
     property bool timer_paused: false
+    property int color_pallet:0
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -162,7 +163,22 @@ ListItem {
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
-
+        // subtle color fade on the left
+        Rectangle {
+            width: parent.width * 0.1
+            height: parent.height
+            anchors.left: parent.left
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: Utils.getColorFromOdooIndex(colorPallet) }
+                GradientStop { position: 1.0; color: Qt.rgba(
+                                                         Utils.getColorFromOdooIndex(colorPallet).r,
+                                                         Utils.getColorFromOdooIndex(colorPallet).g,
+                                                         Utils.getColorFromOdooIndex(colorPallet).b,
+                                                         0.0
+                                                         ) }
+            }
+        }
         Row {
             anchors.fill: parent
             spacing: 2

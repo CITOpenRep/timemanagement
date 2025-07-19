@@ -120,7 +120,8 @@ Item {
                 deadline: row.deadline || "",
                 description: row.description || "",
                 isFavorite: row.favorites === 1,
-                hasChildren: false
+                hasChildren: false,
+                color_pallet:color_pallet
             };
 
             if (!tempMap[parentOdooId])
@@ -190,7 +191,8 @@ Item {
                 deadline: row.deadline || "",
                 description: row.description || "",
                 isFavorite: row.favorites === 1,
-                hasChildren: false
+                hasChildren: false,
+                color_pallet:color_pallet
             };
 
             if (!tempMap[parentOdooId])
@@ -270,6 +272,7 @@ Item {
                     hasChildren: model.hasChildren
                     childCount: model.childCount
                     projectName: model.project
+                    color_pallet:model.color_pallet
                     //accountId:model.account_id
 
                     onEditRequested: id => {
