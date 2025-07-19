@@ -121,7 +121,7 @@ Item {
                 description: row.description || "",
                 isFavorite: row.favorites === 1,
                 hasChildren: false,
-                color_pallet:color_pallet
+                color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0
             };
 
             if (!tempMap[parentOdooId])
@@ -176,6 +176,7 @@ Item {
 
             var projectName = Project.getProjectName(row.project_id, row.account_id); // import projects.js as Project
 
+
             var item = {
                 id_val: odooId,
                 local_id: row.id,
@@ -192,7 +193,7 @@ Item {
                 description: row.description || "",
                 isFavorite: row.favorites === 1,
                 hasChildren: false,
-                color_pallet:color_pallet
+                color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0
             };
 
             if (!tempMap[parentOdooId])
@@ -272,7 +273,7 @@ Item {
                     hasChildren: model.hasChildren
                     childCount: model.childCount
                     projectName: model.project
-                    color_pallet:model.color_pallet
+                    colorPallet:model.color_pallet
                     //accountId:model.account_id
 
                     onEditRequested: id => {

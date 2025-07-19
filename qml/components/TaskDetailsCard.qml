@@ -50,7 +50,6 @@ ListItem {
     property int childCount: 0
     property bool timer_on: false
     property bool timer_paused: false
-    property int color_pallet:0
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -179,16 +178,10 @@ ListItem {
                                                          ) }
             }
         }
+
         Row {
             anchors.fill: parent
             spacing: 2
-
-            // side bar on left
-            Rectangle {
-                width: units.gu(0.5)
-                height: parent.height
-                color: Utils.getColorFromOdooIndex(colorPallet)
-            }
 
             Rectangle {
                 width: parent.width - units.gu(20)
@@ -200,7 +193,7 @@ ListItem {
                     height: parent.height
                     spacing: units.gu(0.4)
 
-                    // 🟫 Wrap gray block in a Column to align it to the bottom
+                    // Wrap gray block in a Column to align it to the bottom
                     Column {
                         width: units.gu(4)
                         height: parent.height
@@ -211,13 +204,25 @@ ListItem {
                             Layout.fillHeight: true
                         }
 
-                        Image {
-                            id: starIcon
-                            source: isFavorite ? "../images/star-active.svg" : "../images/starinactive.svg"
-                            fillMode: Image.PreserveAspectFit
+                        Item {
                             width: units.gu(4)
-                            height: units.gu(4)
-                            visible: !timer_on //if a active time sheet is on , we will use this area to indicate it.constructor
+                            height: parent.height
+                            z: 2
+
+                            Image {
+                                id: starIcon
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                source: isFavorite
+                                    ? (theme.name === "Ubuntu.Components.Themes.SuruDark"
+                                        ? "../images/star_dark.png"
+                                        : "../images/star_light.png")
+                                    : ""
+                                fillMode: Image.PreserveAspectFit
+                                width: units.gu(3.2)
+                                height: units.gu(3.2)
+                            }
+
                         }
                         // Animated dot if there is a active time sheet on it
                         Rectangle {
