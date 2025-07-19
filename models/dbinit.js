@@ -217,6 +217,53 @@ function initializeDatabase() {
                                   'notes TEXT', 'odoo_record_id INTEGER', 'last_modified datetime', 'link_id INTEGER', 'project_id INTEGER',
                                   'task_id INTEGER', 'resId INTEGER', 'resModel TEXT', 'state TEXT', 'status TEXT DEFAULT ""']
                                  );
+    DBCommon.createOrUpdateTable("ir_attachment_app",
+        "CREATE TABLE IF NOT EXISTS ir_attachment_app (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "account_id INTEGER," +
+            "name TEXT," +
+            "description TEXT," +
+            "res_model TEXT," +
+            "res_id INTEGER," +
+            "store_fname TEXT," +
+            "file_path TEXT," +
+            "datas TEXT," + // optional if storing on disk only
+            "file_size INTEGER," +
+            "checksum TEXT," +
+            "mimetype TEXT," +
+            "access_token TEXT," +
+            "url TEXT," +
+            "image_width INTEGER," +
+            "image_height INTEGER," +
+            "local_url TEXT," +
+            "odoo_record_id INTEGER," +
+            "last_modified datetime," +
+            "status TEXT DEFAULT ''," +
+            "UNIQUE (odoo_record_id, account_id)" +
+        ")",
+        [
+            "id INTEGER",
+            "account_id INTEGER",
+            "name TEXT",
+            "description TEXT",
+            "res_model TEXT",
+            "res_id INTEGER",
+            "store_fname TEXT",
+            "file_path TEXT",
+            "datas TEXT",
+            "file_size INTEGER",
+            "checksum TEXT",
+            "mimetype TEXT",
+            "access_token TEXT",
+            "url TEXT",
+            "image_width INTEGER",
+            "image_height INTEGER",
+            "local_url TEXT",
+            "odoo_record_id INTEGER",
+            "last_modified datetime",
+            "status TEXT DEFAULT ''"
+        ]
+    );
 
 
 }

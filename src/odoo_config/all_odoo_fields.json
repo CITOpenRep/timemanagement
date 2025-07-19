@@ -2182,6 +2182,10 @@
             "string": "Companies that refers to partner",
             "type": "one2many"
         },
+        "supplier_invoice_count": {
+            "string": "# Vendor Bills",
+            "type": "integer"
+        },
         "has_unreconciled_entries": {
             "string": "Has Unreconciled Entries",
             "type": "boolean"
@@ -2225,6 +2229,10 @@
         "duplicated_bank_account_partners_count": {
             "string": "Duplicated Bank Account Partners Count",
             "type": "integer"
+        },
+        "is_coa_installed": {
+            "string": "Is Coa Installed",
+            "type": "boolean"
         },
         "task_ids": {
             "string": "Tasks",
@@ -2852,6 +2860,132 @@
         "is_mail_thread_sms": {
             "string": "Mail Thread SMS",
             "type": "boolean"
+        }
+    },
+    "ir.attachment": {
+        "name": {
+            "string": "Name",
+            "type": "char"
+        },
+        "description": {
+            "string": "Description",
+            "type": "text"
+        },
+        "res_name": {
+            "string": "Resource Name",
+            "type": "char"
+        },
+        "res_model": {
+            "string": "Resource Model",
+            "type": "char"
+        },
+        "res_field": {
+            "string": "Resource Field",
+            "type": "char"
+        },
+        "res_id": {
+            "string": "Resource ID",
+            "type": "many2one_reference"
+        },
+        "company_id": {
+            "string": "Company",
+            "type": "many2one"
+        },
+        "type": {
+            "string": "Type",
+            "type": "selection"
+        },
+        "url": {
+            "string": "Url",
+            "type": "char"
+        },
+        "public": {
+            "string": "Is public document",
+            "type": "boolean"
+        },
+        "access_token": {
+            "string": "Access Token",
+            "type": "char"
+        },
+        "raw": {
+            "string": "File Content (raw)",
+            "type": "binary"
+        },
+        "datas": {
+            "string": "File Content (base64)",
+            "type": "binary"
+        },
+        "db_datas": {
+            "string": "Database Data",
+            "type": "binary"
+        },
+        "store_fname": {
+            "string": "Stored Filename",
+            "type": "char"
+        },
+        "file_size": {
+            "string": "File Size",
+            "type": "integer"
+        },
+        "checksum": {
+            "string": "Checksum/SHA1",
+            "type": "char"
+        },
+        "mimetype": {
+            "string": "Mime Type",
+            "type": "char"
+        },
+        "index_content": {
+            "string": "Indexed Content",
+            "type": "text"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "create_date": {
+            "string": "Created on",
+            "type": "datetime"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "write_date": {
+            "string": "Last Updated on",
+            "type": "datetime"
+        },
+        "local_url": {
+            "string": "Attachment URL",
+            "type": "char"
+        },
+        "image_src": {
+            "string": "Image Src",
+            "type": "char"
+        },
+        "image_width": {
+            "string": "Image Width",
+            "type": "integer"
+        },
+        "image_height": {
+            "string": "Image Height",
+            "type": "integer"
+        },
+        "original_id": {
+            "string": "Original (unoptimized, unresized) attachment",
+            "type": "many2one"
         }
     }
 }

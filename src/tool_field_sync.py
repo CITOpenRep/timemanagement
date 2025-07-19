@@ -64,7 +64,7 @@ def main():
 
     # Fetch fields
     fields_data = {}
-    for model in ["project.project", "project.task","account.analytic.line","res.users","mail.activity","ir.model"]:
+    for model in ["project.project", "project.task","account.analytic.line","res.users","mail.activity","ir.model","ir.attachment"]:
         print(f"Fetching fields for {model}...")
         fields_data[model] = fetch_fields(
             model, models, selected["database"], uid, selected["api_key"]
@@ -74,7 +74,7 @@ def main():
     with open("odoo_config/all_odoo_fields.json", "w") as f:
         json.dump(fields_data, f, indent=4)
 
-    print("✅ Field metadata saved to odoo_fields.json")
+    print("Field metadata saved to odoo_fields.json")
 
 
 if __name__ == "__main__":
