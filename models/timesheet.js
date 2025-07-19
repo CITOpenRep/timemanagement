@@ -125,6 +125,38 @@ function fetchTimesheetsByStatus(status) {
 }
 
 
+function getAttachmentsForTimesheet(odooRecordId) {
+    var attachmentList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT name, mimetype, datas
+                FROM ir_attachment_app
+                WHERE res_model = 'hr_timesheet.sheet' AND res_id = ?
+                ORDER BY name COLLATE NOCASE ASC
+            `;
+
+            var result = tx.executeSql(query, [odooRecordId]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                attachmentList.push({
+                    name: result.rows.item(i).name,
+                    mimetype: result.rows.item(i).mimetype,
+                    datas: result.rows.item(i).datas
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getAttachmentsForTask failed:", e);
+    }
+
+    return attachmentList;
+}
+
+
 function getTimesheetNameById(timesheetId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var name = "";
