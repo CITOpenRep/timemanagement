@@ -37,7 +37,8 @@ ListItem {
     property bool isFavorite: true
     property string projectName: ""
     property string accountName: ""
-    property string allocatedHours: ""
+    property double allocatedHours: 0
+    property double remainingHours:0
     property string startDate: ""
     property string endDate: ""
     property string deadline: ""
@@ -84,6 +85,22 @@ ListItem {
                                                          0.0
                                                          ) }
             }
+        }
+        Rectangle
+        {
+            anchors.bottom: parent.bottom
+            width:parent.width
+            height: units.gu(1)
+            visible: allocatedHours > 0
+            color:"transparent"
+            TSProgressbar {
+                id: determinateBar
+                anchors.fill: parent
+                minimumValue: 0
+                maximumValue: allocatedHours > 0 ? allocatedHours : 1  // prevent divide-by-zero
+                value: Math.min(allocatedHours - remainingHours, maximumValue)
+            }
+
         }
 
 
@@ -190,7 +207,7 @@ ListItem {
                     width: parent.width
 
                     Text {
-                        text: "Planned (H): " + (allocatedHours !== "" ? allocatedHours : "N/A")
+                        text: "Planned (H): " + allocatedHours
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width

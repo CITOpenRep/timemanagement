@@ -353,6 +353,7 @@ ListItem {
                 }
             }
         }
+
     }
     function truncateText(text, maxLength) {
         if (text.length > maxLength) {

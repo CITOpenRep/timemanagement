@@ -129,7 +129,8 @@ Item {
                 projectName: row.name || "Untitled",
                 accountName: accountName,
                 recordId: odooId,
-                allocatedHours: row.allocated_hours ? String(row.allocated_hours) : "0",
+                allocatedHours: row.allocated_hours ? row.allocated_hours : 0,
+                remainingHours: row.remaining_hours ? row.remaining_hours : 0,
                 startDate: row.planned_start_date || "",
                 endDate: row.planned_end_date || "",
                 deadline: row.planned_end_date || "",
@@ -199,7 +200,7 @@ Item {
 
             delegate: Item {
                 width: parent.width
-                height: units.gu(10)
+                height: units.gu(13)
 
                 ProjectDetailsCard {
                     id: projectCard
@@ -208,6 +209,7 @@ Item {
                     recordId: model.recordId
                     projectName: model.projectName
                     allocatedHours: model.allocatedHours
+                    remainingHours: model.remainingHours
                     deadline: model.deadline
                     startDate: model.startDate
                     endDate: model.endDate
