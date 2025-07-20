@@ -40,7 +40,7 @@ ListItem {
     property string projectName: ""
     property string accountName: ""
     property double allocatedHours: 0
-    property double remainingHours:0
+    property double remainingHours: 0
     property string startDate: ""
     property string endDate: ""
     property string deadline: ""
@@ -135,7 +135,6 @@ ListItem {
         ]
     }
 
-
     Rectangle {
         anchors.fill: parent
         border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#dcdcdc"
@@ -150,22 +149,22 @@ ListItem {
             anchors.left: parent.left
             gradient: Gradient {
                 orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: Utils.getColorFromOdooIndex(colorPallet) }
-                GradientStop { position: 1.0; color: Qt.rgba(
-                                                         Utils.getColorFromOdooIndex(colorPallet).r,
-                                                         Utils.getColorFromOdooIndex(colorPallet).g,
-                                                         Utils.getColorFromOdooIndex(colorPallet).b,
-                                                         0.0
-                                                         ) }
+                GradientStop {
+                    position: 0.0
+                    color: Utils.getColorFromOdooIndex(colorPallet)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
+                }
             }
         }
-        Rectangle
-        {
+        Rectangle {
             anchors.bottom: parent.bottom
-            width:parent.width
+            width: parent.width
             height: units.gu(1)
             visible: allocatedHours > 0
-            color:"transparent"
+            color: "transparent"
             TSProgressbar {
                 id: determinateBar
                 anchors.fill: parent
@@ -173,9 +172,7 @@ ListItem {
                 maximumValue: allocatedHours > 0 ? allocatedHours : 1  // prevent divide-by-zero
                 value: Math.min(allocatedHours - remainingHours, maximumValue)
             }
-
         }
-
 
         Row {
             anchors.fill: parent
@@ -185,7 +182,7 @@ ListItem {
                 width: parent.width - units.gu(17)
                 height: parent.height
                 color: "transparent"
-                 z: 1
+                z: 1
 
                 Row {
                     width: parent.width
@@ -201,11 +198,7 @@ ListItem {
                             id: starIcon
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.horizontalCenter: parent.horizontalCenter
-                            source: isFavorite
-                                ? (theme.name === "Ubuntu.Components.Themes.SuruDark"
-                                    ? "../images/star_dark.png"
-                                    : "../images/star_light.png")
-                                : ""
+                            source: isFavorite ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../images/star_dark.png" : "../images/star_light.png") : ""
                             fillMode: Image.PreserveAspectFit
                             width: units.gu(4)
                             height: units.gu(4)
@@ -238,9 +231,7 @@ ListItem {
                                 }
                             }
                         }
-
                     }
-
 
                     Column {
                         width: parent.width - units.gu(4)
