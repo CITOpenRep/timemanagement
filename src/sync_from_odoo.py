@@ -27,6 +27,7 @@ import sqlite3
 from xmlrpc.client import ServerProxy
 from odoo_client import OdooClient
 import logging
+from datetime import timezone
 from datetime import datetime
 from common import sanitize_datetime, safe_sql_execute,add_notification
 from pathlib import Path
@@ -69,30 +70,27 @@ def load_field_mapping(model_name, config_path="field_config.json"):
 def should_update_local(odoo_write_date: str, local_last_modified: str) -> bool:
     """
     Determine if local record should be updated based on timestamps.
-    
-    Args:
-        odoo_write_date (str): Write date from Odoo record in ISO format
-        local_last_modified (str): Last modified timestamp of local record
-        
-    Returns:
-        bool: True if local record should be updated, False otherwise
-        
-    Note:
-        Returns True if odoo_write_date is newer than local_last_modified,
-        or if local_last_modified is None. Returns False if odoo_write_date is None.
+    Handles timezone normalization.
     """
     if not odoo_write_date:
         return False
     if not local_last_modified:
         return True
     try:
+        # Normalize Odoo time (assume it's UTC, replace Z)
         odoo_dt = datetime.fromisoformat(odoo_write_date.replace("Z", "+00:00"))
+        if odoo_dt.tzinfo is None:
+            odoo_dt = odoo_dt.replace(tzinfo=timezone.utc)
+
+        # Normalize local time (assume it's stored in UTC, or naive)
         local_dt = datetime.fromisoformat(local_last_modified)
+        if local_dt.tzinfo is None:
+            local_dt = local_dt.replace(tzinfo=timezone.utc)
+
         return odoo_dt > local_dt
     except Exception as e:
         log.warning(f"[WARN] Failed to compare timestamps: {e}")
         return True
-
 
 def insert_record(
     table_name,

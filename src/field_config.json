@@ -5,6 +5,7 @@
         "date_start": "planned_start_date",
         "date": "planned_end_date",
         "allocated_hours": "allocated_hours",
+        "remaining_hours":"remaining_hours",
         "description": "description",
         "color": "color_pallet",
         "last_update_status": "last_update_status",
