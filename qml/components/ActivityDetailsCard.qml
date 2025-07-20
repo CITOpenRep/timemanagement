@@ -1,4 +1,4 @@
-import QtQuick 2.7
+import QtQuick 2.12
 import Lomiri.Components 1.3
 import "../../models/utils.js" as Utils
 import "../../models/activity.js" as Activity
@@ -18,6 +18,7 @@ ListItem {
     property int id: -1
     property var odoo_record_id
     property var account_id
+    property int colorPallet: 0
 
     signal cardClicked(int accountid, int recordid)
     signal markAsDone(int accountid, int recordId)
@@ -66,21 +67,37 @@ ListItem {
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
+        // subtle color fade on the left
 
         Row {
             anchors.fill: parent
             spacing: units.gu(2)
 
-            anchors.leftMargin: units.gu(1.5)
-
-            Image {
-                width: parent.height / 2
-                height: parent.height / 2
-                fillMode: Image.PreserveAspectFit
-                source: "../images/" + Activity.getActivityIconForType(activity_type_name)
-                anchors.verticalCenter: parent.verticalCenter
-                //anchors.margins: units.gu(2)
-                // anchors.leftMargin: units.gu(3)
+            //anchors.leftMargin: units.gu(1.5)
+            Rectangle {
+                width: parent.width * 0.1
+                height: parent.height
+                // anchors.left: parent.left
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop {
+                        position: 0.0
+                        color: Utils.getColorFromOdooIndex(colorPallet)
+                    }
+                    GradientStop {
+                        position: 1.0
+                        color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
+                    }
+                }
+                Image {
+                    width: parent.height / 2
+                    height: parent.height / 2
+                    fillMode: Image.PreserveAspectFit
+                    source: "../images/" + Activity.getActivityIconForType(activity_type_name)
+                    anchors.verticalCenter: parent.verticalCenter
+                    //anchors.margins: units.gu(2)
+                    // anchors.leftMargin: units.gu(3)
+                }
             }
 
             Rectangle {

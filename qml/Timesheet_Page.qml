@@ -143,7 +143,8 @@ Page {
                 'date': timesheets_list[timesheet].date,
                 'user': timesheets_list[timesheet].user,
                 'status': timesheets_list[timesheet].status,
-                'activetimer': (currentFilter === "active") && (TimerService.getActiveTimesheetId() === timesheets_list[timesheet].id)
+                'activetimer': (currentFilter === "active") && (TimerService.getActiveTimesheetId() === timesheets_list[timesheet].id),
+                'color_pallet': timesheets_list[timesheet].color_pallet
             });
         }
     }
@@ -170,6 +171,7 @@ Page {
             user: model.user
             status: model.status
             timer_on: model.activetimer
+            colorPallet: model.color_pallet
 
             onEditRequested: {
                 apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {

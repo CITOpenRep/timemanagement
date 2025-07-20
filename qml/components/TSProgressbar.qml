@@ -8,7 +8,7 @@ Item {
     property real minimumValue: 0
     property real maximumValue: 100
     property real value: 40
-    visible: (maximumValue>0)?true:false
+    visible: (maximumValue > 0) ? true : false
 
     function setValue(newValue, newMax) {
         if (isNaN(newValue) || isNaN(newMax) || newMax <= 0) {

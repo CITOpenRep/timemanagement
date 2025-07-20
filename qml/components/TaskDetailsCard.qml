@@ -169,13 +169,14 @@ ListItem {
             anchors.left: parent.left
             gradient: Gradient {
                 orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: Utils.getColorFromOdooIndex(colorPallet) }
-                GradientStop { position: 1.0; color: Qt.rgba(
-                                                         Utils.getColorFromOdooIndex(colorPallet).r,
-                                                         Utils.getColorFromOdooIndex(colorPallet).g,
-                                                         Utils.getColorFromOdooIndex(colorPallet).b,
-                                                         0.0
-                                                         ) }
+                GradientStop {
+                    position: 0.0
+                    color: Utils.getColorFromOdooIndex(colorPallet)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
+                }
             }
         }
 
@@ -213,16 +214,11 @@ ListItem {
                                 id: starIcon
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                source: isFavorite
-                                    ? (theme.name === "Ubuntu.Components.Themes.SuruDark"
-                                        ? "../images/star_dark.png"
-                                        : "../images/star_light.png")
-                                    : ""
+                                source: isFavorite ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../images/star_dark.png" : "../images/star_light.png") : ""
                                 fillMode: Image.PreserveAspectFit
                                 width: units.gu(3.2)
                                 height: units.gu(3.2)
                             }
-
                         }
                         // Animated dot if there is a active time sheet on it
                         Rectangle {
@@ -352,7 +348,6 @@ ListItem {
                 }
             }
         }
-
     }
     function truncateText(text, maxLength) {
         if (text.length > maxLength) {
