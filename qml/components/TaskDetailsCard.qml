@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import QtQuick 2.7
+import QtQuick 2.12
 import QtQuick.Controls 2.2
 import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
@@ -162,17 +162,26 @@ ListItem {
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
+        // subtle color fade on the left
+        Rectangle {
+            width: parent.width * 0.1
+            height: parent.height
+            anchors.left: parent.left
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: Utils.getColorFromOdooIndex(colorPallet) }
+                GradientStop { position: 1.0; color: Qt.rgba(
+                                                         Utils.getColorFromOdooIndex(colorPallet).r,
+                                                         Utils.getColorFromOdooIndex(colorPallet).g,
+                                                         Utils.getColorFromOdooIndex(colorPallet).b,
+                                                         0.0
+                                                         ) }
+            }
+        }
 
         Row {
             anchors.fill: parent
             spacing: 2
-
-            // side bar on left
-            Rectangle {
-                width: units.gu(0.5)
-                height: parent.height
-                color: Utils.getColorFromOdooIndex(colorPallet)
-            }
 
             Rectangle {
                 width: parent.width - units.gu(20)
@@ -184,7 +193,7 @@ ListItem {
                     height: parent.height
                     spacing: units.gu(0.4)
 
-                    // 🟫 Wrap gray block in a Column to align it to the bottom
+                    // Wrap gray block in a Column to align it to the bottom
                     Column {
                         width: units.gu(4)
                         height: parent.height
@@ -195,13 +204,25 @@ ListItem {
                             Layout.fillHeight: true
                         }
 
-                        Image {
-                            id: starIcon
-                            source: isFavorite ? "../images/star-active.svg" : "../images/starinactive.svg"
-                            fillMode: Image.PreserveAspectFit
+                        Item {
                             width: units.gu(4)
-                            height: units.gu(4)
-                            visible: !timer_on //if a active time sheet is on , we will use this area to indicate it.constructor
+                            height: parent.height
+                            z: 2
+
+                            Image {
+                                id: starIcon
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                source: isFavorite
+                                    ? (theme.name === "Ubuntu.Components.Themes.SuruDark"
+                                        ? "../images/star_dark.png"
+                                        : "../images/star_light.png")
+                                    : ""
+                                fillMode: Image.PreserveAspectFit
+                                width: units.gu(3.2)
+                                height: units.gu(3.2)
+                            }
+
                         }
                         // Animated dot if there is a active time sheet on it
                         Rectangle {
@@ -331,6 +352,7 @@ ListItem {
                 }
             }
         }
+
     }
     function truncateText(text, maxLength) {
         if (text.length > maxLength) {

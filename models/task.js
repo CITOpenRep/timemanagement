@@ -260,22 +260,44 @@ function getAllTasks() {
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
 
         db.transaction(function (tx) {
+            // Step 1: Build map of odoo_record_id -> color_pallet
+            var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+            var projectResult = tx.executeSql(projectQuery);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            // Step 2: Fetch tasks and attach inherited color_pallet
             var query = "SELECT * FROM project_task_app WHERE status IS NULL OR status != 'deleted' ORDER BY name COLLATE NOCASE ASC";
             var result = tx.executeSql(query);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                taskList.push(DBCommon.rowToObject(row));
+                var task = DBCommon.rowToObject(row);
+
+                // Inherit color from sub_project or project
+                var inheritedColor = 0;
+                if (projectColorMap[task.sub_project_id]) {
+                    inheritedColor = projectColorMap[task.sub_project_id];
+                } else if (projectColorMap[task.project_id]) {
+                    inheritedColor = projectColorMap[task.project_id];
+                }
+                task.color_pallet = inheritedColor;
+
+                taskList.push(task);
             }
         });
     } catch (e) {
-        console.error("❌ getAllTasks failed:", e);
+        console.error("getAllTasks failed:", e);
     }
 
     return taskList;
 }
+
 
 /**
  * Filters tasks based on date criteria and search query

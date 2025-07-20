@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-import QtQuick 2.7
+import QtQuick 2.12
 import QtQuick.Controls 2.2
 import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
@@ -39,7 +39,8 @@ ListItem {
     property bool isFavorite: true
     property string projectName: ""
     property string accountName: ""
-    property string allocatedHours: ""
+    property double allocatedHours: 0
+    property double remainingHours:0
     property string startDate: ""
     property string endDate: ""
     property string deadline: ""
@@ -134,6 +135,7 @@ ListItem {
         ]
     }
 
+
     Rectangle {
         anchors.fill: parent
         border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#dcdcdc"
@@ -141,39 +143,69 @@ ListItem {
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
+        // subtle color fade on the left
+        Rectangle {
+            width: parent.width * 0.1
+            height: parent.height
+            anchors.left: parent.left
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: Utils.getColorFromOdooIndex(colorPallet) }
+                GradientStop { position: 1.0; color: Qt.rgba(
+                                                         Utils.getColorFromOdooIndex(colorPallet).r,
+                                                         Utils.getColorFromOdooIndex(colorPallet).g,
+                                                         Utils.getColorFromOdooIndex(colorPallet).b,
+                                                         0.0
+                                                         ) }
+            }
+        }
+        Rectangle
+        {
+            anchors.bottom: parent.bottom
+            width:parent.width
+            height: units.gu(1)
+            visible: allocatedHours > 0
+            color:"transparent"
+            TSProgressbar {
+                id: determinateBar
+                anchors.fill: parent
+                minimumValue: 0
+                maximumValue: allocatedHours > 0 ? allocatedHours : 1  // prevent divide-by-zero
+                value: Math.min(allocatedHours - remainingHours, maximumValue)
+            }
+
+        }
+
 
         Row {
             anchors.fill: parent
             spacing: 2
 
             Rectangle {
-                width: units.gu(1)
-                height: parent.height
-                color: Utils.getColorFromOdooIndex(colorPallet)
-            }
-
-            Rectangle {
                 width: parent.width - units.gu(17)
                 height: parent.height
                 color: "transparent"
+                 z: 1
 
                 Row {
                     width: parent.width
                     height: parent.height
                     spacing: units.gu(1)
 
-                    Column {
+                    Item {
                         width: units.gu(4)
                         height: parent.height
-                        spacing: 0
-
-                        Item {
-                            Layout.fillHeight: true
-                        }
+                        z: 2
 
                         Image {
                             id: starIcon
-                            source: isFavorite ? "../images/star-active.svg" : "../images/starinactive.svg"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            source: isFavorite
+                                ? (theme.name === "Ubuntu.Components.Themes.SuruDark"
+                                    ? "../images/star_dark.png"
+                                    : "../images/star_light.png")
+                                : ""
                             fillMode: Image.PreserveAspectFit
                             width: units.gu(4)
                             height: units.gu(4)
@@ -206,7 +238,9 @@ ListItem {
                                 }
                             }
                         }
+
                     }
+
 
                     Column {
                         width: parent.width - units.gu(4)
@@ -274,7 +308,7 @@ ListItem {
                     width: parent.width
 
                     Text {
-                        text: "Planned (H): " + (allocatedHours !== "" ? allocatedHours : "N/A")
+                        text: "Planned (H): " + allocatedHours
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width

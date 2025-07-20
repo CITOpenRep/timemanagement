@@ -58,9 +58,8 @@ function initializeDatabase() {
     DBCommon.ensureDefaultLocalAccountExists()
     //Local account ends
 
-
     DBCommon.createOrUpdateTable("project_project_app",
-                                 'CREATE TABLE IF NOT EXISTS project_project_app (\
+        'CREATE TABLE IF NOT EXISTS project_project_app (\
             id INTEGER PRIMARY KEY AUTOINCREMENT,\
             name TEXT NOT NULL,\
             account_id INTEGER,\
@@ -68,6 +67,7 @@ function initializeDatabase() {
             planned_start_date date,\
             planned_end_date date,\
             allocated_hours FLOAT,\
+            remaining_hours FLOAT,\
             favorites INTEGER,\
             last_update_status TEXT,\
             description TEXT,\
@@ -77,10 +77,25 @@ function initializeDatabase() {
             odoo_record_id INTEGER,\
             UNIQUE (odoo_record_id, account_id)\
         )',
-                                 ['id INTEGER', 'name TEXT', 'account_id INTEGER', 'parent_id INTEGER', 'planned_start_date date', 'planned_end_date date',
-                                  'allocated_hours FLOAT', 'favorites INTEGER', 'last_update_status TEXT', 'description TEXT', 'last_modified datetime',
-                                  'color_pallet TEXT', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
-                                 );
+        [
+            'id INTEGER',
+            'name TEXT',
+            'account_id INTEGER',
+            'parent_id INTEGER',
+            'planned_start_date date',
+            'planned_end_date date',
+            'allocated_hours FLOAT',
+            'remaining_hours FLOAT',
+            'favorites INTEGER',
+            'last_update_status TEXT',
+            'description TEXT',
+            'last_modified datetime',
+            'color_pallet TEXT',
+            'status TEXT DEFAULT ""',
+            'odoo_record_id INTEGER'
+        ]
+    );
+
 
     DBCommon.createOrUpdateTable("res_users_app",
                                  "CREATE TABLE IF NOT EXISTS res_users_app (" +
