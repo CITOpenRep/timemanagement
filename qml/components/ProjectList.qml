@@ -96,7 +96,8 @@ Item {
     signal projectSelected(int recordId)
     signal projectEditRequested(int recordId)
     signal projectDeleteRequested(int recordId)
-
+    signal projectTimesheetRequested(int localId)
+    
     function refresh() {
         navigationStackModel.clear();
         currentParentId = -1;
@@ -225,7 +226,10 @@ Item {
                     onViewRequested: id => {
                         projectSelected(local_id);
                     }
-
+                    onTimesheetRequested: localId => {
+                        // Forward the signal to the parent page
+                        projectTimesheetRequested(localId);
+                    }
                     MouseArea {
                         anchors.fill: parent
                         enabled: model.hasChildren
