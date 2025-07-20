@@ -69,7 +69,7 @@ Page {
                     var newTheme = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
                     Theme.name = newTheme;
 
-                    // // Save theme preference to persist across app restarts // We are not saving the theme preference from here. 
+                    // // Save theme preference to persist across app restarts // We are not saving the theme preference from here.
                     // if (typeof mainView !== 'undefined' && mainView.saveThemePreference) {
                     //     mainView.saveThemePreference(newTheme);
                     // }

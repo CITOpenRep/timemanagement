@@ -188,7 +188,7 @@ ListItem {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             visible: timer_on
-                            
+
                             SequentialAnimation on opacity {
                                 loops: Animation.Infinite
                                 running: indicator.visible

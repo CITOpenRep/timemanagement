@@ -162,7 +162,7 @@ Page {
         id: tasksDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: descriptionExpanded ?  parent.height + 1600 :  parent.height + 550
+        contentHeight: descriptionExpanded ? parent.height + 1600 : parent.height + 550
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -221,7 +221,7 @@ Page {
                     text: ""
 
                     Rectangle {
-                      //  visible: !isReadOnly
+                        //  visible: !isReadOnly
                         anchors.fill: parent
                         color: "transparent"
                         radius: units.gu(0.5)
@@ -290,7 +290,7 @@ Page {
                         // }
 
                         Rectangle {
-                          //  visible: !isReadOnly
+                            //  visible: !isReadOnly
                             anchors.fill: parent
                             color: "transparent"
                             radius: units.gu(0.5)
@@ -310,7 +310,7 @@ Page {
                         anchors.rightMargin: units.gu(1)
                         anchors.bottomMargin: units.gu(1)
                         z: 10
-                       // visible: !isReadOnly
+                        // visible: !isReadOnly
 
                         // Circular background
                         Rectangle {
@@ -429,7 +429,7 @@ Page {
             anchors.top: myRow6.bottom
             width: parent.width
             //height: units.gu(30)
-            anchors.margins:  units.gu(1)
+            anchors.margins: units.gu(1)
             AttachmentViewer {
                 id: attachments_widget
                 anchors.fill: parent

@@ -28,10 +28,10 @@ Column {
     Rectangle {
         width: parent.width - units.gu(2) // leave some margin so centering makes sense
         anchors.horizontalCenter: parent.horizontalCenter
-        height: (attachmentModel.count === 0)?units.gu(1):parent.height - units.gu(8)
+        height: (attachmentModel.count === 0) ? units.gu(1) : parent.height - units.gu(8)
         color: "transparent"
         border.color: "#ccc"
-        border.width:  (attachmentModel.count === 0)?0:1
+        border.width: (attachmentModel.count === 0) ? 0 : 1
         radius: units.gu(0.5) // Optional rounded corners
 
         GridView {
@@ -52,13 +52,12 @@ Column {
                 datas: model.datas
 
                 onImageClicked: {
-                    dialogImageSource = "data:" + mimetype + ";base64," + datas
-                    attachmentDialog.open()
+                    dialogImageSource = "data:" + mimetype + ";base64," + datas;
+                    attachmentDialog.open();
                 }
             }
         }
     }
-
 
     Dialog {
         id: attachmentDialog

@@ -277,13 +277,13 @@ ListItem {
                         }
 
                         Text {
-                        text: (childCount > 0 ? " [+" + childCount + "] Tasks" : "")
-                        visible: childCount > 0
-                        color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                        font.pixelSize: units.gu(1.5)
-                      //  horizontalAlignment: Text.AlignRight
-                        width: parent.width
-                    }
+                            text: (childCount > 0 ? " [+" + childCount + "] Tasks" : "")
+                            visible: childCount > 0
+                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
+                            font.pixelSize: units.gu(1.5)
+                            //  horizontalAlignment: Text.AlignRight
+                            width: parent.width
+                        }
                     }
                 }
             }
@@ -313,7 +313,7 @@ ListItem {
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                     }
-                     Text {
+                    Text {
                         text: "End Date: " + (endDate !== "" ? toDateOnly(endDate) : "Not set")
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
@@ -328,7 +328,6 @@ ListItem {
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                     }
-                    
                 }
             }
         }

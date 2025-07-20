@@ -171,7 +171,7 @@ Page {
                     text: ""
 
                     Rectangle {
-                       // visible: !isReadOnly
+                        // visible: !isReadOnly
                         anchors.fill: parent
                         color: "transparent"
                         radius: units.gu(0.5)
@@ -233,7 +233,7 @@ Page {
                         }
 
                         Rectangle {
-                          //  visible: !isReadOnly
+                            //  visible: !isReadOnly
                             anchors.fill: parent
                             color: "transparent"
                             radius: units.gu(0.5)
@@ -253,7 +253,7 @@ Page {
                         anchors.rightMargin: units.gu(1)
                         anchors.bottomMargin: units.gu(1)
                         z: 10
-                      //  visible: !isReadOnly
+                        //  visible: !isReadOnly
 
                         // Circular background
                         Rectangle {
@@ -339,13 +339,13 @@ Page {
                 }
 
                 Rectangle {
-                  //  visible: !isReadOnly
+                    //  visible: !isReadOnly
                     anchors.fill: parent
                     color: "transparent"
                     radius: units.gu(0.5)
                     border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
                     border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                   // z: -1
+                    // z: -1
                 }
             }
         }
@@ -407,7 +407,7 @@ Page {
             anchors.top: myRow6.bottom
             width: parent.width
             //height: units.gu(30)
-            anchors.margins:  units.gu(1)
+            anchors.margins: units.gu(1)
             AttachmentViewer {
                 id: attachments_widget
                 anchors.fill: parent

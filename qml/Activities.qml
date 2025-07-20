@@ -192,7 +192,7 @@ Page {
 
                     // Custom styling for border highlighting
                     Rectangle {
-                       // visible: !isReadOnly
+                        // visible: !isReadOnly
                         anchors.fill: parent
                         color: "transparent"
                         radius: units.gu(0.5)
@@ -253,7 +253,7 @@ Page {
 
                         // Custom styling for border highlighting
                         Rectangle {
-                           // visible: !isReadOnly
+                            // visible: !isReadOnly
                             anchors.fill: parent
                             color: "transparent"
                             radius: units.gu(0.5)
@@ -273,7 +273,7 @@ Page {
                         anchors.rightMargin: units.gu(1)
                         anchors.bottomMargin: units.gu(1)
                         z: 10
-                      //  visible: !isReadOnly
+                        //  visible: !isReadOnly
 
                         // Circular background
                         Rectangle {

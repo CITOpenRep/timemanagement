@@ -97,7 +97,7 @@ Item {
     signal projectEditRequested(int recordId)
     signal projectDeleteRequested(int recordId)
     signal projectTimesheetRequested(int localId)
-    
+
     function refresh() {
         navigationStackModel.clear();
         currentParentId = -1;

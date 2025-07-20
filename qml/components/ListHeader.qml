@@ -73,7 +73,7 @@ Rectangle {
                 placeholderTextColor: "#888888"
                 selectByMouse: true
                 onAccepted: topFilterBar.customSearch(text)
-               // onTextChanged: topFilterBar.customSearch(text)
+                // onTextChanged: topFilterBar.customSearch(text)
             }
 
             Button {

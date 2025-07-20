@@ -22,18 +22,18 @@ Item {
             id: iconLoader
             width: units.gu(8)
             height: units.gu(8)
-             anchors.horizontalCenter: parent.horizontalCenter
+            anchors.horizontalCenter: parent.horizontalCenter
             sourceComponent: mimetype && mimetype.startsWith("image/") ? imageIcon : fileIcon
         }
         Text {
-             text: name
+            text: name
             elide: Text.ElideRight
             wrapMode: Text.Wrap
             maximumLineCount: 2
             width: parent.width
             font.pixelSize: units.gu(1.6)
             anchors.horizontalCenter: parent.horizontalCenter
-             horizontalAlignment: Text.AlignHCenter
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 
