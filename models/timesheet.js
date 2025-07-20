@@ -186,6 +186,10 @@ function isTimesheetReadyToRecord(timesheetId) {
 
             if (rs.rows.length > 0) {
                 var row = rs.rows.item(0);
+              //  console.log("Project id " +row.project_id)
+              //  console.log("SubProject id " + row.sub_project_id)
+              //  console.log("Task id " +row.task_id  )
+              //  console.log("SubTask id " +row.sub_task_id)
 
                 var hasProjectOrSubproject = (row.project_id && row.project_id > 0) ||
                                              (row.sub_project_id && row.sub_project_id > 0);
@@ -194,7 +198,7 @@ function isTimesheetReadyToRecord(timesheetId) {
                                        (row.sub_task_id && row.sub_task_id > 0);
 
                 if (hasProjectOrSubproject) {
-                    // For project-level timesheets, only project is required
+                    // For project-level timesheets, only project is required : TODO check with Richard is its correct
                     ready = true;
                 } else if (hasTaskOrSubtask) {
                     // For task-level timesheets, both project and task should be present
