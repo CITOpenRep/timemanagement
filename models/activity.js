@@ -25,19 +25,50 @@ function getAllActivities() {
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
 
         db.transaction(function (tx) {
-            var query = `
-            SELECT *
-            FROM mail_activity_app
-            WHERE state != 'done'
-            ORDER BY due_date ASC
-            `;
+            // Step 1: Build project color map
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var row = projectResult.rows.item(j);
+                projectColorMap[row.odoo_record_id] = row.color_pallet;
+            }
 
-            var rs = tx.executeSql(query);
+            // Step 2: Fetch activities
+            var rs = tx.executeSql(`
+                SELECT * FROM mail_activity_app
+                WHERE state != 'done'
+                ORDER BY due_date ASC
+            `);
 
             for (var i = 0; i < rs.rows.length; i++) {
-                activityList.push(DBCommon.rowToObject(rs.rows.item(i)));
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(row);
+
+                // Step 3: Determine color_pallet
+                let inheritedColor = 0;
+
+                if (activity.resModel === "project.project" && activity.link_id) {
+                    inheritedColor = projectColorMap[activity.link_id] || 0;
+
+                } else if (activity.resModel === "project.task" && activity.link_id) {
+                    // Fetch task's project_id
+                    var taskRs = tx.executeSql(
+                        "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [activity.link_id]
+                    );
+
+                    if (taskRs.rows.length > 0) {
+                        var taskProjectId = taskRs.rows.item(0).project_id;
+                        inheritedColor = projectColorMap[taskProjectId] || 0;
+                    }
+                }
+
+                // Convert to integer safely
+                activity.color_pallet = parseInt(inheritedColor) || 0;
+
+                activityList.push(activity);
             }
         });
 
