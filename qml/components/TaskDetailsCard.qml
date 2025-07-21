@@ -214,7 +214,7 @@ ListItem {
                                 id: starIcon
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                source: isFavorite ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../images/star_dark.png" : "../images/star_light.png") : ""
+                                source: isFavorite ? "../images/star.png" : ""
                                 fillMode: Image.PreserveAspectFit
                                 width: units.gu(3.2)
                                 height: units.gu(3.2)
