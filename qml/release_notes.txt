@@ -48,6 +48,11 @@
             <li>Added the End Dates in Task and Project List OverView. </li>
                <li>Added Radio buttons for Priority Selection in grid layout to Timesheet Screen. </li>
             <li>Introducing Theme Preference Selection from the Settings Page. The theme preference you can set from the Settings Page and the app will remember your choice, also toggle from Dashboard screen can still be used to toggle between themes. </li>
+ <li>Added Smart Play Button for Timesheet in Project List OverView. </li>
+          <li>Enhanced visual identification by applying project-specific colors to related Tasks and Timesheets.</li>
+            <li>Added Project Progress bar in Project List OverView. </li>
+               <li>Enabled content attachments from the server to be accessed within the app. File attachments are now viewable directly on-device in both Projects and Tasks.</li>
+
 
            <br>
 
