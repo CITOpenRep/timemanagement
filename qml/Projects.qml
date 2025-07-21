@@ -444,8 +444,20 @@ Page {
 
                 project_name.text = project.name || "";
                 description_text.text = project.description || "";
-                project_color = project.color_pallet || 0;
-                project_color_label.color = colorpicker.getColorByIndex(project.color_pallet || 0);
+
+                // Handle color inheritance for subprojects
+                let projectColor = project.color_pallet || 0;
+
+                // If this is a subproject (has parentId) and doesn't have its own color, inherit from parent
+                if (parentId !== -1 && (!project.color_pallet || parseInt(project.color_pallet) === 0)) {
+                    let parentProject = Project.getProjectDetails(parentId);
+                    if (parentProject && parentProject.color_pallet) {
+                        projectColor = parentProject.color_pallet;
+                    }
+                }
+
+                project_color = projectColor;
+                project_color_label.color = colorpicker.getColorByIndex(projectColor);
                 date_range_widget.setDateRange(project.planned_start_date || "", project.planned_end_date || "");
                 hours_text.text = project.allocated_hours !== undefined && project.allocated_hours !== null ? String(project.allocated_hours) : "1";
                 attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id));

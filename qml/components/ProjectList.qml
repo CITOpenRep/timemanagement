@@ -116,11 +116,25 @@ Item {
 
         var tempMap = {};
 
+        // First pass: Create project color map for inheritance lookup
+        var projectColorMap = {};
+        allProjects.forEach(function (row) {
+            projectColorMap[row.odoo_record_id] = row.color_pallet ? parseInt(row.color_pallet) : 0;
+        });
+
         allProjects.forEach(function (row) {
             var odooId = row.odoo_record_id;
             var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
 
             var accountName = Accounts.getAccountName(row.account_id);
+
+            // Determine color with inheritance logic
+            var inheritedColor = row.color_pallet ? parseInt(row.color_pallet) : 0;
+
+            // If this is a subproject (has parent) and doesn't have its own color, inherit from parent
+            if (parentOdooId !== -1 && (!row.color_pallet || parseInt(row.color_pallet) === 0)) {
+                inheritedColor = projectColorMap[parentOdooId] || 0;
+            }
 
             var item = {
                 id_val: odooId,
@@ -136,7 +150,7 @@ Item {
                 endDate: row.planned_end_date || "",
                 deadline: row.planned_end_date || "",
                 description: row.description || "",
-                colorPallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
+                colorPallet: inheritedColor,
                 isFavorite: row.favorites === 1,
                 hasChildren: false
             };
