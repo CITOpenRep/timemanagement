@@ -88,7 +88,7 @@ Page {
     // Fallback timer to reset sync state in case signal doesn't arrive
     Timer {
         id: syncTimeoutTimer
-        interval: 15000 // 15 seconds timeout
+        interval: 20000 // 20 seconds timeout
         running: false
         repeat: false
         onTriggered: {

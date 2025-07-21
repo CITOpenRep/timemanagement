@@ -10,6 +10,7 @@ function validId(value) {
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var resolvedParentId = (data.subproject_id && data.subproject_id > 0) ? data.subproject_id : data.project_id;
         var timestamp =  Utils.getFormattedTimestampUTC();
         db.transaction(function (tx) {
             if (data.record_id) {
@@ -19,7 +20,7 @@ function saveOrUpdateTask(data) {
                     start_date = ?, end_date = ?, deadline = ?, last_modified = ?, status = ? WHERE id = ?',
                               [
                                   data.accountId, data.name, data.projectId,
-                                  validId(data.parentId), data.plannedHours, data.favorites,
+                                  resolvedParentId, data.plannedHours, data.favorites,
                                   data.description, data.assigneeUserId, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
                                   timestamp, data.status, data.record_id
