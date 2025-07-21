@@ -33,7 +33,7 @@ function saveOrUpdateTask(data) {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
                                   data.accountId, data.name, data.projectId,
-                                  validId(data.parentId), data.startDate, data.endDate,
+                                   resolvedParentId, data.startDate, data.endDate,
                                   data.deadline, data.favorites, data.plannedHours,
                                   data.description, data.assigneeUserId,
                                   data.subProjectId, timestamp, data.status
