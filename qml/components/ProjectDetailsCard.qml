@@ -144,7 +144,7 @@ ListItem {
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
         // subtle color fade on the left
         Rectangle {
-            width: parent.width * 0.1
+            width: parent.width * 0.05
             height: parent.height
             anchors.left: parent.left
             gradient: Gradient {

@@ -75,7 +75,7 @@ ListItem {
 
             //anchors.leftMargin: units.gu(1.5)
             Rectangle {
-                width: parent.width * 0.1
+                width: parent.width * 0.05
                 height: parent.height
                 // anchors.left: parent.left
                 gradient: Gradient {

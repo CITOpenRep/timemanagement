@@ -180,7 +180,7 @@ ListItem {
     clip: true
     Rectangle {
         id: coloripalletwidget
-        width: parent.width * 0.1
+         width: parent.width * 0.05
         height: parent.height
         anchors.left: parent.left
         gradient: Gradient {
