@@ -222,7 +222,7 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
 function getColorFromOdooIndex(index) {
     //standard from odoo pallet
     const colorMap = [
-                       "#FFFFFF", "#EB6E67", "#F39C5A", "#F6C342",
+                       "transparent", "#EB6E67", "#F39C5A", "#F6C342",
                        "#6CC1E1", "#854D76", "#ED8888", "#2C8397",
                        "#49597C", "#DE3F7C", "#45C486", "#9B6CC3"
                    ];
