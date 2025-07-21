@@ -187,7 +187,6 @@ function getTaskDetails(task_id) {
             if (result.rows.length > 0) {
                 var row = result.rows.item(0);
 
-                    
                 // Extract initial project_id
                 var project_id = (row.project_id !== undefined && row.project_id !== null && row.project_id > 0) ? row.project_id : -1;
                 var sub_project_id = -1;
@@ -223,10 +222,10 @@ function getTaskDetails(task_id) {
                     project_id: project_id,
                     sub_project_id: sub_project_id,
                     parent_id: row.parent_id, // remains for parent task reference
-                    start_date: row.start_date ? Utils.formatDate(new Date(row.start_date)) : "",
-                    end_date: row.end_date ? Utils.formatDate(new Date(row.end_date)) : "",
-                    deadline: row.deadline ? Utils.formatDate(new Date(row.deadline)) : "",
-                    initial_planned_hours: row.initial_planned_hours,
+                    start_date: row.start_date || "",  // Keep original date format from database
+                    end_date: row.end_date || "",      // Keep original date format from database
+                    deadline: row.deadline || "",      // Keep original date format from database
+                    initial_planned_hours: row.initial_planned_hours || 0,  // Ensure it's not null/undefined
                     favorites: row.favorites || 0,
                     state: row.state || "",
                     description: row.description || "",

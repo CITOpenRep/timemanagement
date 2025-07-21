@@ -126,11 +126,18 @@ Page {
                 status: "updated"
             };
 
+            console.log("Saving task data:", JSON.stringify(saveData));
+
             const result = Task.saveOrUpdateTask(saveData);
             if (!result.success) {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
+                // Reload the task data to reflect changes
+                if (recordid !== 0) {
+                    currentTask = Task.getTaskDetails(recordid);
+                    console.log("Reloaded task after save:", JSON.stringify(currentTask));
+                }
                 // No navigation - stay on the same page like Timesheet.qml
                 // User can use back button to return to list page
             }
@@ -468,14 +475,24 @@ Page {
 
             name_text.text = currentTask.name || "";
             description_text.text = currentTask.description || "";
-            hours_text.text = currentTask.initial_planned_hours ? Utils.convertFloatToDuration(parseFloat(currentTask.initial_planned_hours)) : "01:00";
 
-            // Set date range
+            // Handle planned hours more carefully
+            if (currentTask.initial_planned_hours !== undefined && currentTask.initial_planned_hours !== null && currentTask.initial_planned_hours > 0) {
+                hours_text.text = Utils.convertDecimalHoursToHHMM(parseFloat(currentTask.initial_planned_hours));
+            } else {
+                hours_text.text = "01:00";  // Default value
+            }
+
+            // Set date range more carefully to preserve original dates
+            console.log("Setting dates - start_date:", currentTask.start_date, "end_date:", currentTask.end_date);
             if (currentTask.start_date && currentTask.end_date) {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
             } else if (currentTask.start_date) {
                 date_range_widget.setDateRange(currentTask.start_date, null);
+            } else if (currentTask.end_date) {
+                date_range_widget.setDateRange(null, currentTask.end_date);
             }
+            // If no dates are set, don't call setDateRange to avoid defaulting to today
             attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
         } else {
             workItem.loadAccounts();
