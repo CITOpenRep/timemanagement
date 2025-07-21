@@ -10,7 +10,17 @@ function validId(value) {
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        var resolvedParentId = (data.subproject_id && data.subproject_id > 0) ? data.subproject_id : data.project_id;
+        let resolvedParentId = null;
+
+
+if (data.parentId && data.parentId > 0) {
+    resolvedParentId = data.parentId;
+} else if (data.subProjectId && data.subProjectId > 0) {
+    resolvedParentId = data.subProjectId;
+} else {
+    resolvedParentId = data.projectId;
+}
+        console.log("resolvedParentId:", resolvedParentId);
         var timestamp =  Utils.getFormattedTimestampUTC();
         db.transaction(function (tx) {
             if (data.record_id) {
