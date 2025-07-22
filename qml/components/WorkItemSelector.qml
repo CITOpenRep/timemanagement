@@ -269,6 +269,9 @@ Rectangle {
 
         // Immediately simulate state transition (Special case for an entry point for the user)
         if (selectedId === -1) {
+            if (restrictAccountToLocalOnly) {
+                console.log("[WorkItemSelector] Auto-selecting local account (id=" + default_id + ", name='" + default_name + "') for new project creation");
+            }
             transitionTo("AccountSelected", {
                 id: default_id,
                 name: default_name
