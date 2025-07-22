@@ -41,7 +41,12 @@ Rectangle {
             }
         }
         if (project_component) {
-            project_component.setEnabled(!readOnly && project_component.modelData.length > 1);
+            // For new project creation, project selector should start disabled until account is selected
+            if (restrictAccountToLocalOnly && currentState === "Init") {
+                project_component.setEnabled(false);
+            } else {
+                project_component.setEnabled(!readOnly && project_component.modelData.length > 1);
+            }
         }
         if (subproject_compoent) {
             subproject_compoent.setEnabled(!readOnly && subproject_compoent.modelData.length > 1);
@@ -53,7 +58,12 @@ Rectangle {
             subtask_component.setEnabled(!readOnly && subtask_component.modelData.length > 1);
         }
         if (assignee_component) {
-            assignee_component.setEnabled(!readOnly && assignee_component.modelData.length > 1);
+            // For new project creation, assignee selector should start disabled until account is selected
+            if (restrictAccountToLocalOnly && currentState === "Init") {
+                assignee_component.setEnabled(false);
+            } else {
+                assignee_component.setEnabled(!readOnly && assignee_component.modelData.length > 1);
+            }
         }
     }
     property string accountLabelText: "Account"
@@ -570,12 +580,17 @@ Rectangle {
                         console.log("project_component Payload ID:", data.id);
                         console.log("project_component Payload Name:", data.name);
                         loadProjects(data.id, -1); //load projects of the selected account
+                        
+                        // Enable project selector after account is selected
+                        if (!readOnly) {
+                            project_component.setEnabled(true);
+                        }
                     }
                 }
             }
             Component.onCompleted: {
-                if (!readOnly)
-                    project_component.setEnabled(true);
+                // Start disabled - will be enabled when account is selected
+                project_component.setEnabled(false);
             }
         }
 
@@ -673,15 +688,20 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "AccountSelected") {
-                        console.log("subtask_component Payload ID:", data.id);
-                        console.log("subtask_component Payload Name:", data.name);
+                        console.log("assignee_component Payload ID:", data.id);
+                        console.log("assignee_component Payload Name:", data.name);
                         loadAssignees(data.id, -1);
+                        
+                        // Enable assignee selector after account is selected
+                        if (!readOnly) {
+                            assignee_component.setEnabled(true);
+                        }
                     }
                 }
             }
             Component.onCompleted: {
-                if (!readOnly)
-                    assignee_component.setEnabled(true);
+                // Start disabled - will be enabled when account is selected
+                assignee_component.setEnabled(false);
             }
         }
     }
