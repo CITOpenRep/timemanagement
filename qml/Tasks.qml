@@ -279,95 +279,19 @@ Page {
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
                     height: description_text.height
 
-                    TextArea {
+                    RichTextPreview {
                         id: description_text
-                        readOnly: isReadOnly
-                        textFormat: Text.RichText
-                        autoSize: false
-                        maximumLineCount: 0
                         width: parent.width
                         height: units.gu(10) // Start with collapsed height
                         anchors.centerIn: parent.centerIn
                         text: ""
-                        wrapMode: TextArea.Wrap
-                        selectByMouse: true
-
-                        // onHeightChanged: {
-                        //     console.log("Description TextArea height changed to:", height, "Expanded state:", taskCreate.descriptionExpanded);
-                        // }
-
-                        Rectangle {
-                            //  visible: !isReadOnly
-                            anchors.fill: parent
-                            color: "transparent"
-                            radius: units.gu(0.5)
-                            border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                            border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                            // z: -1
-                        }
-                    }
-
-                    // Floating Action Button
-                    Item {
-                        id: floatingActionButton
-                        width: units.gu(3)
-                        height: units.gu(3)
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        anchors.rightMargin: units.gu(1)
-                        anchors.bottomMargin: units.gu(1)
-                        z: 10
-                        // visible: !isReadOnly
-
-                        // Circular background
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: width / 2
-                            color: LomiriColors.orange
-
-                            // Shadow effect
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.topMargin: units.gu(0.15)
-                                anchors.leftMargin: units.gu(0.15)
-                                radius: parent.radius
-                                color: "#30000000"
-                                z: -1
+                        is_read_only:isReadOnly
+                        onClicked: {
+                                apLayout.addPageToNextColumn(taskCreate,Qt.resolvedUrl("ReadMorePage.qml"), {
+                                    fullText: text,
+                                    isReadOnly:isReadOnly
+                                });
                             }
-                        }
-
-                        Icon {
-                            id: expandIcon
-                            anchors.centerIn: parent
-                            width: units.gu(1.5)
-                            height: units.gu(1.5)
-                            name: taskCreate.descriptionExpanded ? "up" : "down"
-                            color: "white"
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                console.log("Floating button clicked! Current state:", taskCreate.descriptionExpanded);
-                                taskCreate.descriptionExpanded = !taskCreate.descriptionExpanded;
-                                console.log("New state:", taskCreate.descriptionExpanded);
-
-                                // Force height update with smooth transition
-                                if (taskCreate.descriptionExpanded) {
-                                    description_text.height = taskCreate.expandedHeight;
-                                } else {
-                                    description_text.height = units.gu(10);
-                                }
-                            }
-
-                            onPressed: {
-                                parent.scale = 0.95;
-                            }
-
-                            onReleased: {
-                                parent.scale = 1.0;
-                            }
-                        }
                     }
                 }
             }
