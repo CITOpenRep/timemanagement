@@ -21,6 +21,7 @@ Rectangle {
     property bool showAssigneeSelector: true
 
     property bool readOnly: false
+    property bool restrictAccountToLocalOnly: false  // When true, only show local account for new project creation
 
     // Watch for readOnly property changes and update all selectors
     onReadOnlyChanged: {
@@ -31,7 +32,13 @@ Rectangle {
     function updateAllSelectorStates() {
         console.log("[WorkItemSelector] Updating all selector states, readOnly:", readOnly);
         if (account_component) {
-            account_component.setEnabled(!readOnly && account_component.modelData.length > 1);
+            // Special handling for account selector when restricted to local only
+            if (restrictAccountToLocalOnly && !readOnly) {
+                console.log("[WorkItemSelector] Enabling account selector (restricted to local only) in updateAllSelectorStates");
+                account_component.setEnabled(true);
+            } else {
+                account_component.setEnabled(!readOnly && account_component.modelData.length > 1);
+            }
         }
         if (project_component) {
             project_component.setEnabled(!readOnly && project_component.modelData.length > 1);
@@ -208,11 +215,17 @@ Rectangle {
 
     //load accounts
     function loadAccounts(selectedId = -1) {
-        console.log("Loading accounts");
+        console.log("Loading accounts, restrictAccountToLocalOnly:", restrictAccountToLocalOnly);
 
         let default_id;
         if (selectedId === -1) {
-            default_id = Accounts.getDefaultAccountId();
+            // When restricted to local only, always default to local account (id === 0)
+            if (restrictAccountToLocalOnly) {
+                default_id = 0;
+                console.log("[WorkItemSelector] Forcing default to local account (id = 0) due to restriction");
+            } else {
+                default_id = Accounts.getDefaultAccountId();
+            }
         } else {
             default_id = selectedId;
         }
@@ -222,6 +235,11 @@ Rectangle {
         let accountList = [];
 
         for (let i = 0; i < accounts.length; i++) {
+            // If restrictAccountToLocalOnly is true, only include local account (id === 0)
+            if (restrictAccountToLocalOnly && accounts[i].id !== 0) {
+                continue;
+            }
+
             if (accounts[i].id === default_id) {
                 default_name = accounts[i].name;
             }
@@ -238,6 +256,16 @@ Rectangle {
         selectorModelMap["Account"] = accountList;
         account_component.modelData = accountList;
         account_component.applyDeferredSelection(default_id);
+
+        // Special handling for account selector when restricted to local only
+        if (restrictAccountToLocalOnly && !readOnly) {
+            // Always enable account selector when restricted to show local account is selected
+            console.log("[WorkItemSelector] Enabling account selector (restricted to local only)");
+            account_component.setEnabled(true);
+        } else {
+            // Use standard logic: enable only if more than 1 option and not read-only
+            account_component.setEnabled(!readOnly && accountList.length > 1);
+        }
 
         // Immediately simulate state transition (Special case for an entry point for the user)
         if (selectedId === -1) {

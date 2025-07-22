@@ -185,6 +185,7 @@ Page {
                 WorkItemSelector {
                     id: workItem
                     readOnly: isReadOnly
+                    restrictAccountToLocalOnly: recordid === 0  // Only restrict to local when creating new projects
                     projectLabelText: "Parent Project"
                     showTaskSelector: false
                     showSubProjectSelector: false
