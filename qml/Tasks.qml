@@ -80,6 +80,7 @@ Page {
     property int favorites: 0
     property int subProjectId: 0
     property var prevtask: ""
+    property var textkey:""
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
 
@@ -249,124 +250,32 @@ Page {
         }
         Row {
             id: myRow9
-            anchors.top: (recordid > 0) ? add_timesheet.bottom : myRow1b.bottom //we are not showing add timesheet for a new task.
+            anchors.top: (recordid > 0) ? add_timesheet.bottom : myRow1b.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             topPadding: units.gu(5)
 
             Column {
-                id: myCol8
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: description_label
-                        text: "Description"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-            }
-
-            Column {
                 id: myCol9
-                leftPadding: units.gu(3)
 
                 Item {
                     id: textAreaContainer
-                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
+                    width: tasksDetailsPageFlickable.width
                     height: description_text.height
 
-                    TextArea {
+                    RichTextPreview {
                         id: description_text
-                        readOnly: isReadOnly
-                        textFormat: Text.RichText
-                        autoSize: false
-                        maximumLineCount: 0
                         width: parent.width
-                        height: units.gu(10) // Start with collapsed height
+                        height: units.gu(20) // Start with collapsed height
                         anchors.centerIn: parent.centerIn
                         text: ""
-                        wrapMode: TextArea.Wrap
-                        selectByMouse: true
-
-                        // onHeightChanged: {
-                        //     console.log("Description TextArea height changed to:", height, "Expanded state:", taskCreate.descriptionExpanded);
-                        // }
-
-                        Rectangle {
-                            //  visible: !isReadOnly
-                            anchors.fill: parent
-                            color: "transparent"
-                            radius: units.gu(0.5)
-                            border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                            border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                            // z: -1
-                        }
-                    }
-
-                    // Floating Action Button
-                    Item {
-                        id: floatingActionButton
-                        width: units.gu(3)
-                        height: units.gu(3)
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        anchors.rightMargin: units.gu(1)
-                        anchors.bottomMargin: units.gu(1)
-                        z: 10
-                        // visible: !isReadOnly
-
-                        // Circular background
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: width / 2
-                            color: LomiriColors.orange
-
-                            // Shadow effect
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.topMargin: units.gu(0.15)
-                                anchors.leftMargin: units.gu(0.15)
-                                radius: parent.radius
-                                color: "#30000000"
-                                z: -1
-                            }
-                        }
-
-                        Icon {
-                            id: expandIcon
-                            anchors.centerIn: parent
-                            width: units.gu(1.5)
-                            height: units.gu(1.5)
-                            name: taskCreate.descriptionExpanded ? "up" : "down"
-                            color: "white"
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                console.log("Floating button clicked! Current state:", taskCreate.descriptionExpanded);
-                                taskCreate.descriptionExpanded = !taskCreate.descriptionExpanded;
-                                console.log("New state:", taskCreate.descriptionExpanded);
-
-                                // Force height update with smooth transition
-                                if (taskCreate.descriptionExpanded) {
-                                    description_text.height = taskCreate.expandedHeight;
-                                } else {
-                                    description_text.height = units.gu(10);
-                                }
-                            }
-
-                            onPressed: {
-                                parent.scale = 0.95;
-                            }
-
-                            onReleased: {
-                                parent.scale = 1.0;
-                            }
+                        is_read_only:isReadOnly
+                        onClicked: {
+                            //set the data to a global Slore and pass the key to the page
+                            Global.description_temporary_holder=text
+                            apLayout.addPageToNextColumn(taskCreate,Qt.resolvedUrl("ReadMorePage.qml"), {
+                                                             isReadOnly:isReadOnly
+                                                         });
                         }
                     }
                 }
@@ -463,13 +372,13 @@ Page {
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            console.log("Loading task data:", JSON.stringify({
-                instanceId: instanceId,
-                project_id: project_id,
-                sub_project_id: sub_project_id,
-                parent_task_id: parent_task_id,
-                assignee_id: assignee_id
-            }));
+          /*  console.log("Loading task data:", JSON.stringify({
+                                                                 instanceId: instanceId,
+                                                                 project_id: project_id,
+                                                                 sub_project_id: sub_project_id,
+                                                                 parent_task_id: parent_task_id,
+                                                                 assignee_id: assignee_id
+                                                             }));*/
 
             workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
@@ -497,6 +406,18 @@ Page {
         } else {
             workItem.loadAccounts();
         }
-        console.log("currentTask loaded:", JSON.stringify(currentTask));
+      //  console.log("currentTask loaded:", JSON.stringify(currentTask));
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
+                description_text.text=Global.description_temporary_holder
+                Global.description_temporary_holder=""
+            }
+        }else
+        {
+            Global.description_temporary_holder=""
+        }
     }
 }

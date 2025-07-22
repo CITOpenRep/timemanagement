@@ -10,6 +10,7 @@ import "../models/utils.js" as Utils
 import "../models/activity.js" as Activity
 import "../models/accounts.js" as Accounts
 import "../models/task.js" as Task
+import "../models/global.js" as Global
 import "components"
 
 // Ensure all required QML types are available
@@ -205,133 +206,44 @@ Page {
         }
 
         Row {
-            id: row3
+            id: myRow9
             anchors.top: row2.bottom
             anchors.left: parent.left
+            anchors.right: parent.right
             topPadding: units.gu(1)
+            height: units.gu(20)
+
+
             Column {
-                id: myCol888
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    TSLabel {
-                        id: notes_label
-                        text: "Notes"
-                        // font.bold: true
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                id: myCol999
-                leftPadding: units.gu(3)
+                id: myCol9
+                anchors.fill: parent
 
                 Item {
-                    id: notesContainer
-                    width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
-                    height: notes.height
-
-                    TextArea {
+                    id: textAreaContainer
+                    anchors.fill: parent
+                    RichTextPreview {
                         id: notes
-                        readOnly: isReadOnly
-                        textFormat: Text.RichText
-                        autoSize: false
-                        width: parent.width
-                        height: units.gu(10) // Start with collapsed height
+                        anchors.fill: parent
+                        title:"Notes"
                         anchors.centerIn: parent.centerIn
-                        text: currentActivity.notes
-                        selectByMouse: true
-                        wrapMode: TextArea.Wrap
-
-                        onHeightChanged: {
-                            console.log("Notes TextArea height changed to:", height, "Expanded state:", activityDetailsPage.descriptionExpanded);
-                        }
-
-                        // Custom styling for border highlighting
-                        Rectangle {
-                            // visible: !isReadOnly
-                            anchors.fill: parent
-                            color: "transparent"
-                            radius: units.gu(0.5)
-                            border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                            border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                            // z: -1
-                        }
-                    }
-
-                    // Floating Action Button
-                    Item {
-                        id: floatingActionButton
-                        width: units.gu(3)
-                        height: units.gu(3)
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        anchors.rightMargin: units.gu(1)
-                        anchors.bottomMargin: units.gu(1)
-                        z: 10
-                        //  visible: !isReadOnly
-
-                        // Circular background
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: width / 2
-                            color: LomiriColors.orange
-
-                            // Shadow effect
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.topMargin: units.gu(0.15)
-                                anchors.leftMargin: units.gu(0.15)
-                                radius: parent.radius
-                                color: "#30000000"
-                                z: -1
-                            }
-                        }
-
-                        Icon {
-                            id: expandIcon
-                            anchors.centerIn: parent
-                            width: units.gu(1.5)
-                            height: units.gu(1.5)
-                            name: activityDetailsPage.descriptionExpanded ? "up" : "down"
-                            color: "white"
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                console.log("Floating button clicked! Current state:", activityDetailsPage.descriptionExpanded);
-                                activityDetailsPage.descriptionExpanded = !activityDetailsPage.descriptionExpanded;
-                                console.log("New state:", activityDetailsPage.descriptionExpanded);
-
-                                // Force height update with smooth transition
-                                if (activityDetailsPage.descriptionExpanded) {
-                                    notes.height = activityDetailsPage.expandedHeight;
-                                } else {
-                                    notes.height = units.gu(10);
-                                }
-                            }
-
-                            onPressed: {
-                                parent.scale = 0.95;
-                            }
-
-                            onReleased: {
-                                parent.scale = 1.0;
-                            }
+                        text: "No Notes"
+                        is_read_only:isReadOnly
+                        onClicked: {
+                            //set the data to a global Slore and pass the key to the page
+                            Global.description_temporary_holder=text
+                            apLayout.addPageToNextColumn(activityDetailsPage,Qt.resolvedUrl("ReadMorePage.qml"), {
+                                                             isReadOnly:isReadOnly
+                                                         });
                         }
                     }
                 }
             }
         }
 
+
         Row {
             id: row4
-            anchors.top: row3.bottom
+            anchors.top: myRow9.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
             height: units.gu(5)
@@ -544,6 +456,17 @@ Page {
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
             // No navigation - stay on the same page like Timesheet.qml
             // User can use back button to return to list page
+        }
+    }
+    onVisibleChanged: {
+        if (visible) {
+            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
+                notes.text=Global.description_temporary_holder
+                Global.description_temporary_holder=""
+            }
+        }else
+        {
+            Global.description_temporary_holder=""
         }
     }
 }

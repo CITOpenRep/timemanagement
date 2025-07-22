@@ -115,6 +115,7 @@ Item {
                 taskName: row.name || "Untitled",
                 recordId: odooId,
                 allocatedHours: row.initial_planned_hours ? String(row.initial_planned_hours) : "0",
+                spentHours:row.spent_hours?row.spent_hours : 0,
                 startDate: row.start_date || "",
                 endDate: row.end_date || "",
                 deadline: row.deadline || "",
@@ -185,7 +186,8 @@ Item {
                 name: row.name || "Untitled",
                 taskName: row.name || "Untitled",
                 recordId: odooId,
-                allocatedHours: row.initial_planned_hours ? String(row.initial_planned_hours) : "0",
+                allocatedHours: row.initial_planned_hours ? row.initial_planned_hours : 0,
+                spentHours:row.spent_hours?row.spent_hours : 0,
                 startDate: row.start_date || "",
                 endDate: row.end_date || "",
                 deadline: row.deadline || "",
@@ -254,7 +256,7 @@ Item {
 
             delegate: Item {
                 width: parent.width
-                height: units.gu(10)
+                height: units.gu(12)
 
                 TaskDetailsCard {
                     id: taskCard
@@ -264,6 +266,7 @@ Item {
                     recordId: (model.recordId) ? (model.recordId) : -1
                     taskName: model.taskName
                     allocatedHours: model.allocatedHours
+                    spentHours: model.spentHours
                     deadline: model.deadline
                     startDate: model.startDate
                     endDate: model.endDate

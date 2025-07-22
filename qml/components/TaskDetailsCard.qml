@@ -33,12 +33,13 @@ import QtQuick.Layouts 1.1
 ListItem {
     id: taskCard
     width: parent.width
-    height: units.gu(20)
+    height: units.gu(28)
     property int screenWidth: parent.width
     property bool isFavorite: true
     property string taskName: ""
     property string projectName: ""
-    property string allocatedHours: ""
+    property double allocatedHours: 0
+    property double spentHours: 0
     property string deadline: ""
     property string startDate: ""
     property string endDate: ""
@@ -179,9 +180,51 @@ ListItem {
                 }
             }
         }
+        Rectangle {
+            id:progressindicator
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: units.gu(2)
+            visible: !hasChildren //if there are tasks with child tasks then we will hide this view
+            color: "transparent"
+
+            // Show progress bar only if planned hours > 0 and spentHours > 0
+             TSProgressbar {
+                    id: determinateBar
+                    anchors.fill: parent
+                    anchors.margins:  units.gu(0.5)
+                    visible: allocatedHours > 0 && spentHours > 0
+                    minimumValue: 0
+                    maximumValue: parseInt(allocatedHours)
+                    value: parseInt(Math.min(spentHours, allocatedHours))
+            }
+            // Case: spentHours > 0 but planned = 0 → warning
+            Label {
+                anchors.centerIn: parent
+                visible: allocatedHours === 0 && spentHours > 0
+                text: "Unable to track progress – no planned hours"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
+                font.pixelSize: units.gu(1.5)
+                anchors.bottomMargin: units.gu(.5)
+            }
+
+            // Case: spentHours = 0 → no progress
+            Label {
+                anchors.centerIn: parent
+                visible: spentHours === 0
+                text: "No progress yet"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
+                font.pixelSize: units.gu(1.5)
+                anchors.bottomMargin: units.gu(.5)
+            }
+        }
+
 
         Row {
-            anchors.fill: parent
+            anchors.top: parent.top
+            anchors.bottom: progressindicator.top
+            anchors.left: parent.left
+            anchors.right: parent.right
             spacing: 2
 
             Rectangle {
@@ -317,7 +360,7 @@ ListItem {
                     spacing: units.gu(0.4)
                     width: parent.width
                     Text {
-                        text: "Planned (H): " + (allocatedHours !== "" ? allocatedHours : "N/A")
+                        text: "Planned (H): " + (allocatedHours !== 0 ? allocatedHours : "N/A")
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width

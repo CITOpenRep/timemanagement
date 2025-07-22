@@ -159,20 +159,7 @@ ListItem {
                 }
             }
         }
-        Rectangle {
-            anchors.bottom: parent.bottom
-            width: parent.width
-            height: units.gu(.5)
-            visible: allocatedHours > 0
-            color: "transparent"
-            TSProgressbar {
-                id: determinateBar
-                anchors.fill: parent
-                minimumValue: 0
-                maximumValue: allocatedHours > 0 ? allocatedHours : 1  // prevent divide-by-zero
-                value: Math.min(allocatedHours - remainingHours, maximumValue)
-            }
-        }
+
 
         Row {
             anchors.fill: parent
