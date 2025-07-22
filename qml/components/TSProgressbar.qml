@@ -22,14 +22,23 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#ddd"  // background color
+        color: "transparent"  // background color
         radius: height / 2
 
         Rectangle {
             width: Math.max(0, (value - minimumValue) / (maximumValue - minimumValue)) * parent.width
             height: parent.height
-            color: "#ff4c4c"  // progress fill color
+            color: "#acc9e0"  // progress fill color
             radius: height / 2
         }
+
+        // Rectangle {
+        //     //anchors.centerIn: parent
+        //     width: height * 0.8
+        //     height: height * 0.8
+        //     color: "#8f1c1c"  // center circle color
+        //     radius: width / 2
+        //     z:10
+        // }
     }
 }

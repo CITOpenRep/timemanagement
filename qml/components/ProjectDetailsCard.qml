@@ -144,7 +144,7 @@ ListItem {
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
         // subtle color fade on the left
         Rectangle {
-            width: parent.width * 0.05
+            width: parent.width * 0.025
             height: parent.height
             anchors.left: parent.left
             gradient: Gradient {
@@ -162,7 +162,7 @@ ListItem {
         Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width
-            height: units.gu(1)
+            height: units.gu(.5)
             visible: allocatedHours > 0
             color: "transparent"
             TSProgressbar {
@@ -198,10 +198,11 @@ ListItem {
                             id: starIcon
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.leftMargin: units.gu(0.5)
                             source: isFavorite ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../images/star.png" : "../images/star.png") : ""
                             fillMode: Image.PreserveAspectFit
-                            width: units.gu(4)
-                            height: units.gu(4)
+                            width: units.gu(2)
+                            height: units.gu(2)
                             visible: !timer_on
                         }
                         Rectangle {
