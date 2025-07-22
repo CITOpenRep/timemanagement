@@ -66,6 +66,12 @@ Page {
                         return;
                     }
 
+                    // Validate hours format before saving
+                    if (!hours_text.isValid) {
+                        notifPopup.open("Error", "Please enter allocated hours in HH:MM format (e.g., 1000:30 for large projects)", "error");
+                        return;
+                    }
+
                     // isReadOnly = !isReadOnly
                     var project_data = {
                         'account_id': ids.account_id >= 0 ? ids.account_id : 0,
@@ -80,11 +86,22 @@ Page {
                         'status': "updated"
                     };
                     //  console.log(JSON.stringify(project_data, null, 4));
-                    var recordid = 0; //project creation
+
+                    // Use the current recordid (0 for new projects, existing ID for updates)
                     var response = Project.createUpdateProject(project_data, recordid);
                     if (response) {
                         if (response.is_success) {
                             notifPopup.open("Saved", response.message, "success");
+
+                            // Update recordid if it was a new project creation
+                            if (recordid === 0 && response.record_id) {
+                                recordid = response.record_id;
+                            }
+
+                            // Reload the project data to reflect the saved state
+                            if (recordid !== 0) {
+                                loadProjectData(recordid);
+                            }
                         } else {
                             notifPopup.open("Failed", response.message, "error");
                         }
@@ -102,6 +119,45 @@ Page {
     property var project: {}
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
+
+    // Helper function to load project data
+    function loadProjectData(projectId) {
+        let project = Project.getProjectDetails(projectId);
+        if (project && Object.keys(project).length > 0) {
+            // Set all fields with project details
+            let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
+            let parentId = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
+
+            // Set parent project selection
+            if (workItem.deferredLoadExistingRecordSet) {
+                workItem.deferredLoadExistingRecordSet(instanceId, parentId, -1, -1, -1, -1);
+            } else if (workItem.applyDeferredSelection) {
+                workItem.applyDeferredSelection(instanceId, parentId, -1);
+            }
+
+            project_name.text = project.name || "";
+            description_text.text = project.description || "";
+
+            // Handle color inheritance for subprojects
+            let projectColor = project.color_pallet || 0;
+
+            // If this is a subproject (has parentId) and doesn't have its own color, inherit from parent
+            if (parentId !== -1 && (!project.color_pallet || parseInt(project.color_pallet) === 0)) {
+                let parentProject = Project.getProjectDetails(parentId);
+                if (parentProject && parentProject.color_pallet) {
+                    projectColor = parentProject.color_pallet;
+                }
+            }
+
+            project_color = projectColor;
+            project_color_label.color = colorpicker.getColorByIndex(projectColor);
+            date_range_widget.setDateRange(project.planned_start_date || "", project.planned_end_date || "");
+            hours_text.text = project.allocated_hours !== undefined && project.allocated_hours !== null ? String(project.allocated_hours) : "01:00";
+            attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id));
+            return true;
+        }
+        return false;
+    }
 
     NotificationPopup {
         id: notifPopup
@@ -331,12 +387,22 @@ Page {
                 readOnly: isReadOnly
                 width: parent.width * 0.3
                 anchors.verticalCenter: parent.verticalCenter
-                text: "1"
+                text: "01:00"
+                placeholderText: "HH:MM (e.g., 1000:30 for large projects)"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
-                validator: IntValidator {
-                    bottom: 0
+                // Custom validation for HH:MM format (allowing 1000+ hours for project allocation)
+                property bool isValid: {
+                    if (!/^[0-9]{1,4}:[0-5][0-9]$/.test(text))
+                        return false;
+                    var parts = text.split(":");
+                    var hours = parseInt(parts[0]);
+                    var minutes = parseInt(parts[1]);
+                    return hours >= 0 && hours <= 9999 && minutes <= 59;
                 }
+
+                // Visual feedback for invalid input
+                color: isValid ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black") : "red"
 
                 Rectangle {
                     //  visible: !isReadOnly
@@ -432,39 +498,7 @@ Page {
 
     Component.onCompleted: {
         if (recordid !== 0) {
-            let project = Project.getProjectDetails(recordid);
-            if (project && Object.keys(project).length > 0) {
-                // Set all fields with project details
-                let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
-                let parentId = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
-
-                // Set parent project selection
-                if (workItem.deferredLoadExistingRecordSet) {
-                    workItem.deferredLoadExistingRecordSet(instanceId, parentId, -1, -1, -1, -1);
-                } else if (workItem.applyDeferredSelection) {
-                    workItem.applyDeferredSelection(instanceId, parentId, -1);
-                }
-
-                project_name.text = project.name || "";
-                description_text.text = project.description || "";
-
-                // Handle color inheritance for subprojects
-                let projectColor = project.color_pallet || 0;
-
-                // If this is a subproject (has parentId) and doesn't have its own color, inherit from parent
-                if (parentId !== -1 && (!project.color_pallet || parseInt(project.color_pallet) === 0)) {
-                    let parentProject = Project.getProjectDetails(parentId);
-                    if (parentProject && parentProject.color_pallet) {
-                        projectColor = parentProject.color_pallet;
-                    }
-                }
-
-                project_color = projectColor;
-                project_color_label.color = colorpicker.getColorByIndex(projectColor);
-                date_range_widget.setDateRange(project.planned_start_date || "", project.planned_end_date || "");
-                hours_text.text = project.allocated_hours !== undefined && project.allocated_hours !== null ? String(project.allocated_hours) : "1";
-                attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id));
-            } else {
+            if (!loadProjectData(recordid)) {
                 notifPopup.open("Failed", "Unable to open the project details", "error");
             }
         } else {

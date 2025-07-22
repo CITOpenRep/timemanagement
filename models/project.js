@@ -177,6 +177,8 @@ function createUpdateProject(project_data, recordid) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var messageObj = {};
     var timestamp = Utils.getFormattedTimestampUTC();
+    var newRecordId = recordid; // Keep track of the record ID
+    
     db.transaction(function (tx) {
         try {
             if (recordid == 0) {
@@ -186,7 +188,13 @@ function createUpdateProject(project_data, recordid) {
                             Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)',
                               [project_data.account_id, project_data.name, project_data.parent_id,
                                project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status])
+                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status]);
+                
+                // Get the ID of the newly inserted project
+                var result = tx.executeSql("SELECT last_insert_rowid() as id");
+                if (result.rows.length > 0) {
+                    newRecordId = result.rows.item(0).id;
+                }
             } else {
                 tx.executeSql('UPDATE project_project_app SET \
                             account_id = ?, name = ?, parent_id = ?, planned_start_date = ?, planned_end_date = ?, \
@@ -194,10 +202,11 @@ function createUpdateProject(project_data, recordid) {
                             where id = ?',
                               [project_data.account_id, project_data.name, project_data.parent_id,
                                project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, recordid])
+                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, recordid]);
             }
             messageObj['is_success'] = true;
             messageObj['message'] = 'Project saved Successfully!';
+            messageObj['record_id'] = newRecordId; // Return the record ID
         } catch (error) {
             messageObj['is_success'] = false;
             messageObj['message'] = 'Project could not be saved!\n' + error;

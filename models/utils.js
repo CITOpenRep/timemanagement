@@ -326,8 +326,8 @@ function convertDurationToFloat(value) {
     let vals = value.split(":");
     let hours = parseFloat(vals[0]);
     let minutes = parseFloat(vals[1]);
-    let days = Math.floor(hours / 24);
-    hours = hours % 24;
+    // Remove the day calculation and modulo operation for project hours
+    // Project allocation can be any number of hours, not limited to 24-hour days
     let convertedMinutes = minutes / 60.0;
     return hours + convertedMinutes;
 }
