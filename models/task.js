@@ -263,11 +263,11 @@ function getTaskDetails(task_id) {
     return task_detail;
 }
 
-
 /**
- * Retrieves all non-deleted tasks from the `project_task_app` table.
+ * Retrieves all non-deleted tasks from the `project_task_app` table,
+ * and adds inherited color and total hours spent from timesheet entries.
  *
- * @returns {Array<Object>} A list of task objects as plain JS objects.
+ * @returns {Array<Object>} A list of task objects with color and spentHours.
  */
 function getAllTasks() {
     var taskList = [];
@@ -285,7 +285,7 @@ function getAllTasks() {
                 projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
             }
 
-            // Step 2: Fetch tasks and attach inherited color_pallet
+            // Step 2: Fetch tasks and attach inherited color and total hours
             var query = "SELECT * FROM project_task_app WHERE status IS NULL OR status != 'deleted' ORDER BY name COLLATE NOCASE ASC";
             var result = tx.executeSql(query);
 
@@ -302,6 +302,14 @@ function getAllTasks() {
                 }
                 task.color_pallet = inheritedColor;
 
+                // Step 3: Calculate total hours spent from timesheet entries
+                var timeQuery = "SELECT SUM(unit_amount) as total_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ?";
+                var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, task.account_id]);  // or task.task_account_id
+                if (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null) {
+                    task.spent_hours = timeResult.rows.item(0).total_hours;
+                } else {
+                    task.spent_hours = 0;
+                }
                 taskList.push(task);
             }
         });
