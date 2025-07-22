@@ -250,7 +250,7 @@ Page {
         }
         Row {
             id: myRow9
-            anchors.top: (recordid > 0) ? add_timesheet.bottom : myRow1b.bottom //we are not showing add timesheet for a new task.
+            anchors.top: (recordid > 0) ? add_timesheet.bottom : myRow1b.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             topPadding: units.gu(5)

@@ -185,124 +185,32 @@ Page {
 
         Row {
             id: myRow9
-            anchors.top: myRow1.bottom
+            anchors.top: (recordid > 0) ? myRow1.bottom : myRow1.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            topPadding: units.gu(1)
-
-            Column {
-                id: myCol8
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: description_label
-                        text: "Description"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-            }
+            topPadding: units.gu(5)
 
             Column {
                 id: myCol9
-                leftPadding: units.gu(3)
 
                 Item {
                     id: textAreaContainer
-                    width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(15) : projectDetailsPageFlickable.width - units.gu(10)
+                    width: projectDetailsPageFlickable.width
                     height: description_text.height
 
-                    TextArea {
+                    RichTextPreview {
                         id: description_text
-                        readOnly: isReadOnly
-                        textFormat: Text.RichText
-                        autoSize: false
-                        maximumLineCount: 0
                         width: parent.width
-                        height: units.gu(10) // Start with collapsed height
+                        height: units.gu(20) // Start with collapsed height
                         anchors.centerIn: parent.centerIn
                         text: ""
-                        wrapMode: TextArea.Wrap
-                        selectByMouse: true
-
-                        onHeightChanged: {
-                            console.log("Description TextArea height changed to:", height, "Expanded state:", projectCreate.descriptionExpanded);
-                        }
-
-                        Rectangle {
-                            //  visible: !isReadOnly
-                            anchors.fill: parent
-                            color: "transparent"
-                            radius: units.gu(0.5)
-                            border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                            border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                            // z: -1
-                        }
-                    }
-
-                    // Floating Action Button
-                    Item {
-                        id: floatingActionButton
-                        width: units.gu(3)
-                        height: units.gu(3)
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        anchors.rightMargin: units.gu(1)
-                        anchors.bottomMargin: units.gu(1)
-                        z: 10
-                        //  visible: !isReadOnly
-
-                        // Circular background
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: width / 2
-                            color: LomiriColors.orange
-
-                            // Shadow effect
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.topMargin: units.gu(0.15)
-                                anchors.leftMargin: units.gu(0.15)
-                                radius: parent.radius
-                                color: "#30000000"
-                                z: -1
-                            }
-                        }
-
-                        Icon {
-                            id: expandIcon
-                            anchors.centerIn: parent
-                            width: units.gu(1.5)
-                            height: units.gu(1.5)
-                            name: projectCreate.descriptionExpanded ? "up" : "down"
-                            color: "white"
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                console.log("Floating button clicked! Current state:", projectCreate.descriptionExpanded);
-                                projectCreate.descriptionExpanded = !projectCreate.descriptionExpanded;
-                                console.log("New state:", projectCreate.descriptionExpanded);
-
-                                // Force height update with smooth transition
-                                if (projectCreate.descriptionExpanded) {
-                                    description_text.height = projectCreate.expandedHeight;
-                                } else {
-                                    description_text.height = units.gu(10);
-                                }
-                            }
-
-                            onPressed: {
-                                parent.scale = 0.95;
-                            }
-
-                            onReleased: {
-                                parent.scale = 1.0;
-                            }
+                        is_read_only:isReadOnly
+                        onClicked: {
+                            //set the data to a global Slore and pass the key to the page
+                            Global.description_temporary_holder=text
+                            apLayout.addPageToNextColumn(projectCreate,Qt.resolvedUrl("ReadMorePage.qml"), {
+                                                             isReadOnly:isReadOnly
+                                                         });
                         }
                     }
                 }
@@ -475,6 +383,17 @@ Page {
             } else if (workItem.applyDeferredSelection) {
                 workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
             }
+        }
+    }
+    onVisibleChanged: {
+        if (visible) {
+            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
+                description_text.text=Global.description_temporary_holder
+                Global.description_temporary_holder=""
+            }
+        }else
+        {
+            Global.description_temporary_holder=""
         }
     }
 }

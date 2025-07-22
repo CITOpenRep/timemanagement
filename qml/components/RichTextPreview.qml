@@ -4,7 +4,7 @@ import Lomiri.Components 1.3
 Rectangle {
     id: root
     property alias text: previewText.text
-    property string title: "Details"
+    property string title: "Description"
     property bool is_read_only: true
     width: parent.width
     height: parent.height//column.implicitHeight
@@ -18,7 +18,7 @@ Rectangle {
         height:parent.height
         spacing: units.gu(0)
         Label {
-            text:"Description"
+            text:title
             anchors.left:parent.left
             anchors.leftMargin: units.gu(2)
         }
