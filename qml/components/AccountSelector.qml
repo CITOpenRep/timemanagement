@@ -59,6 +59,11 @@ ComboBox {
         const accounts = Accounts.getAccountsList();
 
         for (let i = 0; i < accounts.length; i++) {
+            // If restrictToLocalOnly is true, only show local account (id === 0)
+            if (restrictToLocalOnly && accounts[i].id !== 0) {
+                continue;
+            }
+
             internalInstanceModel.append({
                 id: accounts[i].id,
                 name: accounts[i].name,
