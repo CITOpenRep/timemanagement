@@ -1,4 +1,5 @@
 import QtQuick 2.7
+import Lomiri.Components 1.3
 
 Item {
     id: customProgressBar
@@ -28,17 +29,10 @@ Item {
         Rectangle {
             width: Math.max(0, (value - minimumValue) / (maximumValue - minimumValue)) * parent.width
             height: parent.height
-            color: "#acc9e0"  // progress fill color
+            color:   LomiriColors.orange  // progress fill color
             radius: height / 2
         }
 
-        // Rectangle {
-        //     //anchors.centerIn: parent
-        //     width: height * 0.8
-        //     height: height * 0.8
-        //     color: "#8f1c1c"  // center circle color
-        //     radius: width / 2
-        //     z:10
-        // }
+      
     }
 }
