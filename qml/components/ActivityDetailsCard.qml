@@ -71,7 +71,7 @@ ListItem {
 
         Row {
             anchors.fill: parent
-            spacing: units.gu(2)
+            spacing: units.gu(1)
 
             //anchors.leftMargin: units.gu(1.5)
             Rectangle {
@@ -89,7 +89,9 @@ ListItem {
                         color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
                     }
                 }
-                Image {
+                
+            }
+            Image {
                     width: parent.height / 2
                     height: parent.height / 2
                     fillMode: Image.PreserveAspectFit
@@ -98,7 +100,6 @@ ListItem {
                     // anchors.margins: units.gu(2)
                     //  anchors.leftMargin: units.gu(3)
                 }
-            }
 
             Rectangle {
                 id: leftrect
