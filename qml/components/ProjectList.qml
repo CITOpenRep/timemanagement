@@ -89,6 +89,7 @@ Item {
     anchors.fill: parent
 
     property int currentParentId: -1
+    property int currentAccountId: -1
     property ListModel navigationStackModel: ListModel {}
     property var childrenMap: ({})
     property bool childrenMapReady: false
@@ -98,9 +99,38 @@ Item {
     signal projectDeleteRequested(int recordId)
     signal projectTimesheetRequested(int localId)
 
+    function navigateToProject(projectId, accountId) {
+        // Ensure we have valid IDs before proceeding
+        if (projectId === undefined || accountId === undefined) {
+            console.error("navigateToProject called with undefined values:", projectId, accountId);
+            return;
+        }
+
+        console.log("Navigating to subprojects - from parent:", currentParentId, "account:", currentAccountId, "to parent:", projectId, "account:", accountId);
+        navigationStackModel.append({
+            parentId: currentParentId !== undefined ? currentParentId : -1,
+            accountId: currentAccountId !== undefined ? currentAccountId : -1
+        });
+        currentParentId = projectId;
+        currentAccountId = accountId;
+    }
+
+    function selectProject(localId) {
+        projectSelected(localId);
+    }
+
+    function editProject(localId) {
+        projectEditRequested(localId);
+    }
+
+    function requestTimesheet(localId) {
+        projectTimesheetRequested(localId);
+    }
+
     function refresh() {
         navigationStackModel.clear();
         currentParentId = -1;
+        currentAccountId = -1;
         populateProjectChildrenMap(true);
     }
 
@@ -125,8 +155,9 @@ Item {
         allProjects.forEach(function (row) {
             var odooId = row.odoo_record_id;
             var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
+            var accountId = row.account_id;
 
-            var accountName = Accounts.getAccountName(row.account_id);
+            var accountName = Accounts.getAccountName(accountId);
 
             // Determine color with inheritance logic
             var inheritedColor = row.color_pallet ? parseInt(row.color_pallet) : 0;
@@ -140,6 +171,7 @@ Item {
                 id_val: odooId,
                 local_id: row.id,
                 parent_id: parentOdooId,
+                account_id: accountId,
                 name: row.name || "Untitled",
                 projectName: row.name || "Untitled",
                 accountName: accountName,
@@ -155,37 +187,93 @@ Item {
                 hasChildren: false
             };
 
-            if (!tempMap[parentOdooId])
-                tempMap[parentOdooId] = [];
+            // Use compound key: parent_id + account_id for proper hierarchy grouping
+            var hierarchyKey = parentOdooId + "_" + accountId;
 
-            tempMap[parentOdooId].push(item);
+            if (!tempMap[hierarchyKey])
+                tempMap[hierarchyKey] = [];
+
+            tempMap[hierarchyKey].push(item);
         });
 
-        // Tag children info
-        for (var parent in tempMap) {
-            tempMap[parent].forEach(function (child) {
-                if (tempMap[child.id_val]) {
+        // Tag children info - updated to work with compound keys
+        for (var hierarchyKey in tempMap) {
+            tempMap[hierarchyKey].forEach(function (child) {
+                // Check if this project has children by looking for compound key
+                var childHierarchyKey = child.id_val + "_" + child.account_id;
+                if (tempMap[childHierarchyKey]) {
                     child.hasChildren = true;
-                    child.childCount = tempMap[child.id_val].length;
+                    child.childCount = tempMap[childHierarchyKey].length;
                 }
             });
         }
 
-        // Convert to QML ListModels
+        // Convert to QML ListModels with sorting
         for (var key in tempMap) {
             var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+
+            // Sort the projects by name before adding to model
+            tempMap[key].sort(function (a, b) {
+                return a.projectName.localeCompare(b.projectName);
+            });
+
             tempMap[key].forEach(function (entry) {
                 model.append(entry);
             });
             childrenMap[key] = model;
+            console.log("Created model for key:", key, "with", model.count, "projects");
         }
 
         childrenMapReady = true;
     }
 
     function getCurrentModel() {
-        var model = childrenMap[currentParentId];
-        return model || Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+        console.log("getCurrentModel called - currentParentId:", currentParentId, "currentAccountId:", currentAccountId);
+
+        // Find the model that matches current parent and account
+        // For root level (currentParentId = -1), we need to find models for all accounts
+        if (currentParentId === -1) {
+            // Combine all root level projects from all accounts
+            var combinedModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+            var allRootProjects = [];
+
+            for (var key in childrenMap) {
+                if (key.startsWith("-1_")) {
+                    // Root level projects
+                    var model = childrenMap[key];
+                    console.log("Adding root level projects from key:", key, "count:", model.count);
+                    for (var i = 0; i < model.count; i++) {
+                        allRootProjects.push(model.get(i));
+                    }
+                }
+            }
+
+            // Sort all root projects alphabetically by project name
+            allRootProjects.sort(function (a, b) {
+                return a.projectName.localeCompare(b.projectName);
+            });
+
+            // Add sorted projects to the combined model
+            allRootProjects.forEach(function (project) {
+                combinedModel.append(project);
+            });
+
+            console.log("Root level combined model count:", combinedModel.count);
+            return combinedModel;
+        } else {
+            // For specific parent, we need to find the account context
+            // This will be set when navigating into a project
+            var targetKey = currentParentId + "_" + currentAccountId;
+            console.log("Looking for target key:", targetKey);
+            var model = childrenMap[targetKey];
+            if (model) {
+                console.log("Found model with count:", model.count);
+            } else {
+                console.log("No model found for key:", targetKey);
+                console.log("Available keys:", Object.keys(childrenMap));
+            }
+            return model || Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+        }
     }
 
     Column {
@@ -200,9 +288,11 @@ Item {
             visible: navigationStackModel.count
             onClicked: {
                 if (navigationStackModel.count > 0) {
-                    var last = navigationStackModel.get(navigationStackModel.count - 1).parentId;
+                    var last = navigationStackModel.get(navigationStackModel.count - 1);
                     navigationStackModel.remove(navigationStackModel.count - 1);
-                    currentParentId = last;
+                    currentParentId = last.parentId !== undefined ? last.parentId : -1;
+                    currentAccountId = last.accountId !== undefined ? last.accountId : -1;
+                    console.log("Back navigation - restored parent:", currentParentId, "account:", currentAccountId);
                 }
             }
         }
@@ -236,27 +326,29 @@ Item {
                     childCount: (model.hasChildren) ? model.childCount : 0
                     localId: model.local_id
 
+                    // Store model properties in the delegate scope for signal handlers
+                    property bool projectHasChildren: model.hasChildren || false
+                    property int projectIdVal: model.id_val || 0
+                    property int projectAccountId: model.account_id || 0
+                    property int projectLocalId: model.local_id || 0
+
                     onEditRequested: id => {
-                        projectEditRequested(local_id);
+                        editProject(projectLocalId);
                     }
                     onViewRequested: id => {
-                        projectSelected(local_id);
+                        console.log("View requested for project with hasChildren:", projectHasChildren, "projectIdVal:", projectIdVal, "projectAccountId:", projectAccountId);
+                        if (projectHasChildren && projectIdVal > 0 && projectAccountId >= 0) {
+                            navigateToProject(projectIdVal, projectAccountId);
+                        } else if (!projectHasChildren) {
+                            // For leaf projects (no children), emit the projectSelected signal
+                            selectProject(projectLocalId);
+                        } else {
+                            console.warn("Invalid project data for navigation:", projectIdVal, projectAccountId, projectHasChildren);
+                        }
                     }
                     onTimesheetRequested: localId => {
                         // Forward the signal to the parent page
-                        projectTimesheetRequested(localId);
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        enabled: model.hasChildren
-                        onClicked: {
-                            if (model.hasChildren) {
-                                navigationStackModel.append({
-                                    parentId: currentParentId
-                                });
-                                currentParentId = model.id_val;
-                            }
-                        }
+                        requestTimesheet(localId);
                     }
                 }
             }
@@ -273,6 +365,12 @@ Item {
     }
 
     onCurrentParentIdChanged: {
+        if (childrenMapReady) {
+            projectListView.model = getCurrentModel();
+        }
+    }
+
+    onCurrentAccountIdChanged: {
         if (childrenMapReady) {
             projectListView.model = getCurrentModel();
         }
