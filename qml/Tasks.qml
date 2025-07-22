@@ -80,6 +80,7 @@ Page {
     property int favorites: 0
     property int subProjectId: 0
     property var prevtask: ""
+    property var textkey:""
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
 
@@ -255,43 +256,27 @@ Page {
             topPadding: units.gu(5)
 
             Column {
-                id: myCol8
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: description_label
-                        text: "Description"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-            }
-
-            Column {
                 id: myCol9
-                leftPadding: units.gu(3)
 
                 Item {
                     id: textAreaContainer
-                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
+                    width: tasksDetailsPageFlickable.width
                     height: description_text.height
 
                     RichTextPreview {
                         id: description_text
                         width: parent.width
-                        height: units.gu(10) // Start with collapsed height
+                        height: units.gu(20) // Start with collapsed height
                         anchors.centerIn: parent.centerIn
                         text: ""
                         is_read_only:isReadOnly
                         onClicked: {
-                                apLayout.addPageToNextColumn(taskCreate,Qt.resolvedUrl("ReadMorePage.qml"), {
-                                    fullText: text,
-                                    isReadOnly:isReadOnly
-                                });
-                            }
+                            //set the data to a global Slore and pass the key to the page
+                            Global.description_temporary_holder=text
+                            apLayout.addPageToNextColumn(taskCreate,Qt.resolvedUrl("ReadMorePage.qml"), {
+                                                             isReadOnly:isReadOnly
+                                                         });
+                        }
                     }
                 }
             }
@@ -387,13 +372,13 @@ Page {
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            console.log("Loading task data:", JSON.stringify({
-                instanceId: instanceId,
-                project_id: project_id,
-                sub_project_id: sub_project_id,
-                parent_task_id: parent_task_id,
-                assignee_id: assignee_id
-            }));
+          /*  console.log("Loading task data:", JSON.stringify({
+                                                                 instanceId: instanceId,
+                                                                 project_id: project_id,
+                                                                 sub_project_id: sub_project_id,
+                                                                 parent_task_id: parent_task_id,
+                                                                 assignee_id: assignee_id
+                                                             }));*/
 
             workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
@@ -421,6 +406,18 @@ Page {
         } else {
             workItem.loadAccounts();
         }
-        console.log("currentTask loaded:", JSON.stringify(currentTask));
+      //  console.log("currentTask loaded:", JSON.stringify(currentTask));
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
+                description_text.text=Global.description_temporary_holder
+                Global.description_temporary_holder=""
+            }
+        }else
+        {
+            Global.description_temporary_holder=""
+        }
     }
 }

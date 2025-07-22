@@ -7,7 +7,7 @@ Rectangle {
     property string title: "Details"
     property bool is_read_only: true
     width: parent.width
-    height: column.implicitHeight
+    height: parent.height//column.implicitHeight
     color: "transparent"
 
     signal clicked()
@@ -15,7 +15,13 @@ Rectangle {
     Column {
         id: column
         width: parent.width
-        spacing: units.gu(1)
+        height:parent.height
+        spacing: units.gu(0)
+        Label {
+            text:"Description"
+            anchors.left:parent.left
+            anchors.leftMargin: units.gu(2)
+        }
 
         Item {
             id: textContainer
@@ -23,13 +29,13 @@ Rectangle {
             height: maxHeight
             clip: true
 
-            property int maxHeight: units.gu(10)
+            property int maxHeight: units.gu(16)
 
             Text {
                 id: previewText
                 textFormat: Text.RichText
                 wrapMode: Text.WordWrap
-                width: parent.width - units.gu(4)
+                width: parent.width
                 anchors.horizontalCenter: parent.horizontalCenter
                 padding: units.gu(2)
             }
@@ -37,11 +43,12 @@ Rectangle {
 
         Label {
             id: readMoreLabel
-            visible: previewText.paintedHeight > textContainer.maxHeight
+            visible: previewText.paintedHeight > textContainer.maxHeight || !is_read_only
             text: is_read_only ? "Read More" : "Edit"
             font.underline: true
             color: "blue"
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.right:parent.right
+            anchors.rightMargin: units.gu(2)
 
             MouseArea {
                 anchors.fill: parent
