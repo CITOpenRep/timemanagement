@@ -216,8 +216,8 @@ ListItem {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 source: isFavorite ? "../images/star.png" : ""
                                 fillMode: Image.PreserveAspectFit
-                                width: units.gu(3.2)
-                                height: units.gu(3.2)
+                                width: units.gu(2)
+                                height: units.gu(2)
                             }
                         }
                         // Animated dot if there is a active time sheet on it
