@@ -89,17 +89,16 @@ ListItem {
                         color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
                     }
                 }
-                
             }
             Image {
-                    width: parent.height / 2
-                    height: parent.height / 2
-                    fillMode: Image.PreserveAspectFit
-                    source: "../images/" + Activity.getActivityIconForType(activity_type_name)
-                    anchors.verticalCenter: parent.verticalCenter
-                    // anchors.margins: units.gu(2)
-                    //  anchors.leftMargin: units.gu(3)
-                }
+                width: parent.height / 2
+                height: parent.height / 2
+                fillMode: Image.PreserveAspectFit
+                source: "../images/" + Activity.getActivityIconForType(activity_type_name)
+                anchors.verticalCenter: parent.verticalCenter
+                // anchors.margins: units.gu(2)
+                //  anchors.leftMargin: units.gu(3)
+            }
 
             Rectangle {
                 id: leftrect

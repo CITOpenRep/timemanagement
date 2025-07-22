@@ -29,11 +29,8 @@ Item {
         Rectangle {
             width: Math.max(0, (value - minimumValue) / (maximumValue - minimumValue)) * parent.width
             height: parent.height
-            color:  value === maximumValue ? "#06d644" :  LomiriColors.orange  // progress fill color
+            color: value === maximumValue ? "#06d644" : LomiriColors.orange  // progress fill color
             radius: height / 2
-            
         }
-
-      
     }
 }

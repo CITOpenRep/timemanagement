@@ -12,14 +12,18 @@ function saveOrUpdateTask(data) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         let resolvedParentId = null;
 
+        console.log("data.parentId :", data.parentId );
+        console.log("data.subProjectId:", data.subProjectId);
+        console.log("data.projectId:", data.projectId);
 
-if (data.parentId && data.parentId > 0) {
-    resolvedParentId = data.parentId;
-} else if (data.subProjectId && data.subProjectId > 0) {
-    resolvedParentId = data.subProjectId;
-} else {
-    resolvedParentId = data.projectId;
-}
+        if (data.parentId && data.parentId > 0) {
+            resolvedParentId = data.parentId;
+        } else if (data.subProjectId && data.subProjectId > 0) {
+            data.projectId=data.subProjectId //We shall need a better way to fix it (TODO)
+            resolvedParentId = 0;
+        } else {
+            resolvedParentId = 0;
+        }
         console.log("resolvedParentId:", resolvedParentId);
         var timestamp =  Utils.getFormattedTimestampUTC();
         db.transaction(function (tx) {
