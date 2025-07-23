@@ -213,7 +213,6 @@ Page {
             topPadding: units.gu(1)
             height: units.gu(20)
 
-
             Column {
                 id: myCol9
                 anchors.fill: parent
@@ -224,22 +223,21 @@ Page {
                     RichTextPreview {
                         id: notes
                         anchors.fill: parent
-                        title:"Notes"
+                        title: "Notes"
                         anchors.centerIn: parent.centerIn
                         text: ""
-                        is_read_only:isReadOnly
+                        is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
-                            Global.description_temporary_holder=text
-                            apLayout.addPageToNextColumn(activityDetailsPage,Qt.resolvedUrl("ReadMorePage.qml"), {
-                                                             isReadOnly:isReadOnly
-                                                         });
+                            Global.description_temporary_holder = text;
+                            apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
+                                isReadOnly: isReadOnly
+                            });
                         }
                     }
                 }
             }
         }
-
 
         Row {
             id: row4
@@ -329,6 +327,10 @@ Page {
             default:
                 workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
             }
+
+            // Update fields with loaded data
+            summary.text = currentActivity.summary || "";
+            notes.text = currentActivity.notes || "";
 
             // Update due date
             date_widget.setSelectedDate(currentActivity.due_date);
@@ -434,10 +436,10 @@ Page {
         const data = {
             updatedAccount: ids.account_id,
             updatedActivity: activityTypeSelector.selectedId,
-            updatedSummary: Utils.cleanText(summary.displayText),
+            updatedSummary: Utils.cleanText(summary.text),
             updatedUserId: user,
             updatedDate: date_widget.selectedDate,
-            updatedNote: Utils.cleanText(notes.displayText),
+            updatedNote: Utils.cleanText(notes.text),
             resModel: resModel,
             resId: resId,
             link_id: linkid,
@@ -460,13 +462,13 @@ Page {
     }
     onVisibleChanged: {
         if (visible) {
-            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
-                notes.text=Global.description_temporary_holder
-                Global.description_temporary_holder=""
+            if (Global.description_temporary_holder !== "") {
+                //Check if you are coming back from the ReadMore page
+                notes.text = Global.description_temporary_holder;
+                Global.description_temporary_holder = "";
             }
-        }else
-        {
-            Global.description_temporary_holder=""
+        } else {
+            Global.description_temporary_holder = "";
         }
     }
 }
