@@ -14,7 +14,15 @@ Page {
 
     header: PageHeader {
         id:header
-        title: "Rich Text Editor"
+        title: "Description"
+
+          StyleHints {
+
+            foregroundColor: "white"
+
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
+        }
     }
 
     Column {
