@@ -343,6 +343,10 @@ Page {
     // Store current filter and search state
     property string currentFilter: "today"
     property string currentSearchQuery: ""
-}
-// Store current filter and search state
 
+    onVisibleChanged: {
+        if (visible) {
+            get_activity_list();
+        }
+    }
+}
