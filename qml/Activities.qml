@@ -68,7 +68,6 @@ Page {
 
         Row {
             id: row1
-            anchors.left: parent.left
             topPadding: units.gu(5)
 
             Column {
@@ -86,7 +85,10 @@ Page {
                     width: flickable.width - units.gu(2)
                     onStateChanged: {
                         if (newState === "AccountSelected") {
-                            reloadActivityTypeSelector(data.id, -1);
+                            // Only reset activity type for new activities, not when loading existing ones
+                            if (recordid === 0) {
+                                reloadActivityTypeSelector(data.id, -1);
+                            }
                         }
                     }
                 }
@@ -96,7 +98,6 @@ Page {
         Row {
             id: row1w
             anchors.top: row1.bottom
-            anchors.left: parent.left
             topPadding: units.gu(1)
             Column {
                 id: myCol88w
@@ -108,10 +109,7 @@ Page {
                     TSLabel {
                         id: resource_label
                         text: "Connected to"
-                        // font.bold: true
-                        anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
                     }
                 }
             }
@@ -297,6 +295,10 @@ Page {
                 sub_task_id: currentActivity.sub_task_id
             }));
 
+            console.log("Before calling reloadActivityTypeSelector:");
+            console.log("Instance ID:", instanceId);
+            console.log("Activity Type ID:", currentActivity.activity_type_id);
+
             // Load the Activity Type
             reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
 
@@ -362,6 +364,11 @@ Page {
         let selectedText = "No Type";
         let selectedFound = (selectedTypeId === -1);
 
+        console.log("Reloading Activity Type Selector:");
+        console.log("Account ID:", accountId);
+        console.log("Selected Type ID:", selectedTypeId);
+        console.log("Raw Types:", rawTypes);
+
         for (let i = 0; i < rawTypes.length; i++) {
             let id = accountId === 0 ? rawTypes[i].id : rawTypes[i].odoo_record_id;
             let name = rawTypes[i].name;
@@ -372,11 +379,17 @@ Page {
                 parent_id: null  // no hierarchy assumed
             });
 
+            console.log("Checking Type:", id, name);
+
             if (selectedTypeId !== undefined && selectedTypeId !== null && selectedTypeId === id) {
                 selectedText = name;
                 selectedFound = true;
+                console.log("Selected Type Found:", selectedText);
             }
         }
+
+        console.log("Final Selected Text:", selectedText);
+        console.log("Selected Found:", selectedFound);
 
         // Push to the model and reload selector
         activityTypeSelector.dataList = flatModel;
