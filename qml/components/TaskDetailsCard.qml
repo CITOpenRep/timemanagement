@@ -181,7 +181,7 @@ ListItem {
             }
         }
         Rectangle {
-            id:progressindicator
+            id: progressindicator
             anchors.bottom: parent.bottom
             width: parent.width
             height: units.gu(2)
@@ -189,19 +189,20 @@ ListItem {
             color: "transparent"
 
             // Show progress bar only if planned hours > 0 and spentHours > 0
-             TSProgressbar {
-                    id: determinateBar
-                    anchors.fill: parent
-                    anchors.margins:  units.gu(0.5)
-                    visible: allocatedHours > 0 && spentHours > 0
-                    minimumValue: 0
-                    maximumValue: parseInt(allocatedHours)
-                    value: parseInt(Math.min(spentHours, allocatedHours))
+            TSProgressbar {
+                id: determinateBar
+                anchors.fill: parent
+                anchors.margins: units.gu(0.5)
+                visible: allocatedHours > 0 && spentHours > 0
+                minimumValue: 0
+                maximumValue: parseInt(allocatedHours)
+                value: parseInt(Math.min(spentHours, allocatedHours))
             }
             // Case: spentHours > 0 but planned = 0 → warning
             Label {
                 anchors.centerIn: parent
-                visible: allocatedHours === 0 && spentHours > 0
+                //visible: allocatedHours === 0 && spentHours > 0
+                visible: false
                 text: "Unable to track progress – no planned hours"
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                 font.pixelSize: units.gu(1.5)
@@ -211,14 +212,14 @@ ListItem {
             // Case: spentHours = 0 → no progress
             Label {
                 anchors.centerIn: parent
-                visible: spentHours === 0
+               // visible: spentHours === 0
+               visible: false
                 text: "No progress yet"
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                 font.pixelSize: units.gu(1.5)
                 anchors.bottomMargin: units.gu(.5)
             }
         }
-
 
         Row {
             anchors.top: parent.top

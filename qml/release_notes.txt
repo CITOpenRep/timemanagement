@@ -36,7 +36,7 @@
     <ul>
 
 
-     <h4> 22-07-2025 : Version 1.1.0 </h4>
+     <h4> 23-07-2025 : Version 1.1.0 </h4>
         <li>Fixes for Sub-Project in Task missing after Sync, in Tasks. </li>
           <li>Added Sync Animated Button, that will be displayed after clicking on Sync. </li>
           <li>Fixes in Task Screen Crashing the app in Volla and FairPhone 4. </li>
