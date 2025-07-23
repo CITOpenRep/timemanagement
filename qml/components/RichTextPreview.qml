@@ -61,7 +61,7 @@ Rectangle {
 
         Label {
             id: readMoreLabel
-            visible: previewText.paintedHeight > textContainer.maxHeight || !is_read_only
+            visible: true
             text: is_read_only ? "Read More" : "Edit"
             font.underline: true
             color: "blue"
