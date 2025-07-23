@@ -261,17 +261,15 @@ Page {
                         height: units.gu(20) // Start with collapsed height
                         anchors.centerIn: parent.centerIn
                         text: ""
-                       is_read_only: isReadOnly
+                        is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
-                            Global.description_temporary_holder=text
-                            apLayout.addPageToNextColumn(projectCreate,Qt.resolvedUrl("ReadMorePage.qml"), {
-                                                             isReadOnly:isReadOnly
-                                                         });
+                            Global.description_temporary_holder = text;
+                            apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
+                                isReadOnly: isReadOnly
+                            });
                         }
                     }
-
-                   
                 }
             }
         }
@@ -415,22 +413,23 @@ Page {
         } else {
             //do nothing as we are creating project
             recordid = 0;
+            // For new projects, force local account (id = 0) to respect restrictAccountToLocalOnly
             if (workItem.deferredLoadExistingRecordSet) {
-                workItem.deferredLoadExistingRecordSet(Accounts.getDefaultAccountId(), -1, -1, -1, -1, -1);
+                workItem.deferredLoadExistingRecordSet(0, -1, -1, -1, -1, -1); // Use local account (id = 0)
             } else if (workItem.applyDeferredSelection) {
-                workItem.applyDeferredSelection(Accounts.getDefaultAccountId(), -1, -1);
+                workItem.applyDeferredSelection(0, -1, -1); // Use local account (id = 0)
             }
         }
     }
     onVisibleChanged: {
         if (visible) {
-            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
-                description_text.text=Global.description_temporary_holder
-                Global.description_temporary_holder=""
+            if (Global.description_temporary_holder !== "") {
+                //Check if you are coming back from the ReadMore page
+                description_text.text = Global.description_temporary_holder;
+                Global.description_temporary_holder = "";
             }
-        }else
-        {
-            Global.description_temporary_holder=""
+        } else {
+            Global.description_temporary_holder = "";
         }
     }
 }
