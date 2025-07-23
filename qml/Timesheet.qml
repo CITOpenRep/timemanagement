@@ -372,13 +372,13 @@ Page {
                         height: units.gu(20) // Start with collapsed height
                         anchors.centerIn: parent.centerIn
                         text: ""
-                        is_read_only: isReadOnly
+                        is_read_only: false
                         onClicked: {
                             //set the data to a global store and pass the key to the page
-                            Global.description_temporary_holder = text
+                            Global.description_temporary_holder = text;
                             apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                                             isReadOnly: isReadOnly
-                                                         });
+                                isReadOnly: isReadOnly
+                            });
                         }
                     }
                 }
@@ -415,12 +415,13 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
-            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
-                description_text.text = Global.description_temporary_holder
-                Global.description_temporary_holder = ""
+            if (Global.description_temporary_holder !== "") {
+                //Check if you are coming back from the ReadMore page
+                description_text.text = Global.description_temporary_holder;
+                Global.description_temporary_holder = "";
             }
         } else {
-            Global.description_temporary_holder = ""
+            Global.description_temporary_holder = "";
         }
     }
 }
