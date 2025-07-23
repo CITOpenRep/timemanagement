@@ -60,6 +60,14 @@ Page {
                 onTriggered: {
                     save_timesheet();
                 }
+            },
+            Action {
+                iconName: "edit"
+                visible: isReadOnly && recordid !== 0
+                text: "Edit"
+                onTriggered: {
+                    switchToEditMode();
+                }
             }
         ]
     }
@@ -132,11 +140,18 @@ Page {
         }
     }
 
+    function switchToEditMode() {
+        // Simply change the current page to edit mode
+        if (recordid !== 0) {
+            isReadOnly = false;
+        }
+    }
+
     property bool isManualTime: false
     property bool running: false
     property int selectedSubTaskId: 0
-    property var recordid: 0 //0 means creatiion mode
-    property bool isReadOnly: false //edit or view mode
+    property var recordid: 0 //0 means creation mode
+    property bool isReadOnly: false // Can be overridden when page is opened
     property var currentTimesheet: {}
 
     NotificationPopup {
@@ -164,7 +179,7 @@ Page {
 
                 WorkItemSelector {
                     id: workItem
-                    enabled: !isReadOnly
+                    readOnly: isReadOnly
                     showAssigneeSelector: false
                     showAccountSelector: true
                     showProjectSelector: true
@@ -386,7 +401,7 @@ Page {
         }
 
         Component.onCompleted: {
-            console.log("XXXX From Timesheet got record id : " + recordid);
+            console.log("Timesheet Component.onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
 
             if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
             {
@@ -409,6 +424,9 @@ Page {
                 if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
                     priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
                 }
+            } else {
+                workItem.loadAccounts();
+                console.log("----------------------------------------------Creating new timesheet, setting default values-----------------------------------------------------");
             }
         }
     }

@@ -227,7 +227,7 @@ Page {
                         title:"Notes"
                         anchors.centerIn: parent.centerIn
                         text: ""
-                        is_read_only:false
+                        is_read_only:isReadOnly
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
                             Global.description_temporary_holder=text
