@@ -35,6 +35,7 @@ import "../models/timesheet.js" as Model
 import "../models/accounts.js" as Accounts
 import "../models/timer_service.js" as TimerService
 import "../models/utils.js" as Utils
+import "../models/global.js" as Global
 import "components"
 
 Page {
@@ -107,7 +108,7 @@ Page {
             'task': ids.task_id,
             'subTask': ids.subtask_id,
             'subprojectId': ids.subproject_id,
-            'description': name_text.text,
+            'description': description_text.text,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
@@ -137,8 +138,6 @@ Page {
     property var recordid: 0 //0 means creatiion mode
     property bool isReadOnly: false //edit or view mode
     property var currentTimesheet: {}
-    property bool descriptionExpanded: false
-    property real expandedHeight: units.gu(60)
 
     NotificationPopup {
         id: notifPopup
@@ -150,8 +149,7 @@ Page {
         id: timesheetsDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: descriptionExpanded ? parent.height + 1600 : parent.height + 550
-        // + 1000
+        contentHeight: parent.height + units.gu(50)
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -353,110 +351,34 @@ Page {
 
         /**********************************************************/
 
-        Column {
-            id: descriptionSection
+        Row {
+            id: myRow9
             anchors.top: myRow1.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            spacing: units.gu(1)
-            topPadding: units.gu(2)
-            leftPadding: units.gu(1)
+            topPadding: units.gu(5)
 
-            Label {
-                text: "Description"
-                // leftPadding: 0
-                //  bottomPadding: units.gu(1)
-            }
+            Column {
+                id: myCol9
 
-            Item {
-                id: textAreaContainer
-                width: parent.width - units.gu(2)
-                height: name_text.height
-
-                TextArea {
-                    id: name_text
-                    enabled: !isReadOnly
-                    text: ""
-                    width: parent.width
-                    height: units.gu(10) // Start with collapsed height
-                    wrapMode: TextArea.Wrap
-                    selectByMouse: true
-
-                    onHeightChanged: {
-                        console.log("TextArea height changed to:", height, "Expanded state:", timeSheet.descriptionExpanded);
-                    }
-
-                    // Custom styling for border highlighting
-                    Rectangle {
-                        id: borderRect
-                        anchors.fill: parent
-                        color: "transparent"
-                        radius: units.gu(0.5)
-                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                        // z: -1
-                    }
-                }
-
-                // Floating Action Button
                 Item {
-                    id: floatingActionButton
-                    width: units.gu(3)
-                    height: units.gu(3)
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.rightMargin: units.gu(1)
-                    anchors.bottomMargin: units.gu(1)
-                    z: 10
-                    // visible: !isReadOnly // Making the FAB always visible
+                    id: textAreaContainer
+                    width: timesheetsDetailsPageFlickable.width
+                    height: description_text.height
 
-                    // Circular background
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: width / 2
-                        color: LomiriColors.orange
-
-                        // Shadow effect
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.topMargin: units.gu(0.15)
-                            anchors.leftMargin: units.gu(0.15)
-                            radius: parent.radius
-                            color: "#30000000"
-                            z: -1
-                        }
-                    }
-
-                    Icon {
-                        id: expandIcon
-                        anchors.centerIn: parent
-                        width: units.gu(1.5)
-                        height: units.gu(1.5)
-                        name: timeSheet.descriptionExpanded ? "up" : "down"
-                        color: "white"
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
+                    RichTextPreview {
+                        id: description_text
+                        width: parent.width
+                        height: units.gu(20) // Start with collapsed height
+                        anchors.centerIn: parent.centerIn
+                        text: ""
+                        is_read_only: isReadOnly
                         onClicked: {
-                            console.log("Floating button clicked! Current state:", timeSheet.descriptionExpanded);
-                            timeSheet.descriptionExpanded = !timeSheet.descriptionExpanded;
-                            console.log("New state:", timeSheet.descriptionExpanded);
-
-                            // Force height update with smooth transition
-                            if (timeSheet.descriptionExpanded) {
-                                name_text.height = timeSheet.expandedHeight;
-                            } else {
-                                name_text.height = units.gu(10);
-                            }
-                        }
-
-                        onPressed: {
-                            parent.scale = 0.95;
-                        }
-
-                        onReleased: {
-                            parent.scale = 1.0;
+                            //set the data to a global store and pass the key to the page
+                            Global.description_temporary_holder = text
+                            apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
+                                                             isReadOnly: isReadOnly
+                                                         });
                         }
                     }
                 }
@@ -480,7 +402,7 @@ Page {
                 workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1); //passing -1 as no assignee is needed
                 date_widget.setSelectedDate(currentTimesheet.record_date);
 
-                name_text.text = currentTimesheet.name;
+                description_text.text = currentTimesheet.name;
                 if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
                     time_sheet_widget.elapsedTime = currentTimesheet.spentHours;
                 }
@@ -488,6 +410,17 @@ Page {
                     priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
                 }
             }
+        }
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
+                description_text.text = Global.description_temporary_holder
+                Global.description_temporary_holder = ""
+            }
+        } else {
+            Global.description_temporary_holder = ""
         }
     }
 }
