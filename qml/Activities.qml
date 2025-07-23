@@ -10,6 +10,7 @@ import "../models/utils.js" as Utils
 import "../models/activity.js" as Activity
 import "../models/accounts.js" as Accounts
 import "../models/task.js" as Task
+import "../models/global.js" as Global
 import "components"
 
 // Ensure all required QML types are available
@@ -20,6 +21,8 @@ Page {
     id: activityDetailsPage
     title: "Activity"
     property var recordid: 0
+    property bool descriptionExpanded: false
+    property real expandedHeight: units.gu(60)
     property var currentActivity: {
         "summary": "",
         "notes": "",
@@ -58,7 +61,7 @@ Page {
         id: flickable
         anchors.fill: parent
         anchors.topMargin: units.gu(6)
-        contentHeight: parent.height + 1500
+        contentHeight: descriptionExpanded ? parent.height + 1900 : parent.height + 850
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -184,12 +187,13 @@ Page {
                     textFormat: Text.RichText
                     readOnly: isReadOnly
                     width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
+                    height: units.gu(5) // Start with collapsed height
                     anchors.centerIn: parent.centerIn
                     text: currentActivity.summary
 
                     // Custom styling for border highlighting
                     Rectangle {
-                        visible: !isReadOnly
+                        // visible: !isReadOnly
                         anchors.fill: parent
                         color: "transparent"
                         radius: units.gu(0.5)
@@ -202,56 +206,44 @@ Page {
         }
 
         Row {
-            id: row3
+            id: myRow9
             anchors.top: row2.bottom
             anchors.left: parent.left
+            anchors.right: parent.right
             topPadding: units.gu(1)
-            Column {
-                id: myCol888
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    TSLabel {
-                        id: notes_label
-                        text: "Notes"
-                        // font.bold: true
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
-                    }
-                }
-            }
-            Column {
-                id: myCol999
-                leftPadding: units.gu(3)
-                TextArea {
-                    id: notes
-                    readOnly: isReadOnly
-                    textFormat: Text.RichText
-                    width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
-                    anchors.centerIn: parent.centerIn
-                    text: currentActivity.notes
+            height: units.gu(20)
 
-                    // Custom styling for border highlighting
-                    Rectangle {
-                        visible: !isReadOnly
 
+            Column {
+                id: myCol9
+                anchors.fill: parent
+
+                Item {
+                    id: textAreaContainer
+                    anchors.fill: parent
+                    RichTextPreview {
+                        id: notes
                         anchors.fill: parent
-                        color: "transparent"
-                        radius: units.gu(0.5)
-                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                        // z: -1
+                        title:"Notes"
+                        anchors.centerIn: parent.centerIn
+                        text: ""
+                        is_read_only:false
+                        onClicked: {
+                            //set the data to a global Slore and pass the key to the page
+                            Global.description_temporary_holder=text
+                            apLayout.addPageToNextColumn(activityDetailsPage,Qt.resolvedUrl("ReadMorePage.qml"), {
+                                                             isReadOnly:isReadOnly
+                                                         });
+                        }
                     }
                 }
             }
         }
+
 
         Row {
             id: row4
-            anchors.top: row3.bottom
+            anchors.top: myRow9.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
             height: units.gu(5)
@@ -414,7 +406,7 @@ Page {
         }
 
         if (taskRadio.checked) {
-         linkid = ids.sub_task_id || ids.task_id;
+            linkid = ids.sub_task_id || ids.task_id;
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
         }
 
@@ -464,6 +456,17 @@ Page {
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
             // No navigation - stay on the same page like Timesheet.qml
             // User can use back button to return to list page
+        }
+    }
+    onVisibleChanged: {
+        if (visible) {
+            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
+                notes.text=Global.description_temporary_holder
+                Global.description_temporary_holder=""
+            }
+        }else
+        {
+            Global.description_temporary_holder=""
         }
     }
 }

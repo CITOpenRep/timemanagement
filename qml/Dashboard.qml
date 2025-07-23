@@ -122,6 +122,11 @@ Page {
                 text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
                 onTriggered: {
                     Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+
+                    // // Save theme preference to persist across app restarts
+                    // if (typeof mainView !== 'undefined' && mainView.saveThemePreference) {
+                    //     mainView.saveThemePreference(newTheme);
+                    // }
                 }
             },
             Action {

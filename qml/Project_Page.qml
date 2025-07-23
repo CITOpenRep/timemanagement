@@ -77,6 +77,18 @@ Page {
                     "isReadOnly": true
                 });
             }
+            onProjectTimesheetRequested: localId => {
+                let result = Timesheet.createTimesheetFromProject(localId);
+                if (result.success) {
+                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Timesheet.qml"), {
+                        "recordid": result.id,
+                        "isReadOnly": false
+                    });
+                } else {
+                    console.log(result.error);
+                    // You might want to add error notification here
+                }
+            }
         }
     }
 

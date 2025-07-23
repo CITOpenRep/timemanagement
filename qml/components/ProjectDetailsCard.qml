@@ -22,10 +22,12 @@
  * SOFTWARE.
  */
 
-import QtQuick 2.7
+import QtQuick 2.12
 import QtQuick.Controls 2.2
 import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
+import "../../models/timesheet.js" as Timesheet
+import "../../models/timer_service.js" as TimerService
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
 
@@ -37,7 +39,8 @@ ListItem {
     property bool isFavorite: true
     property string projectName: ""
     property string accountName: ""
-    property string allocatedHours: ""
+    property double allocatedHours: 0
+    property double remainingHours: 0
     property string startDate: ""
     property string endDate: ""
     property string deadline: ""
@@ -47,15 +50,86 @@ ListItem {
     property int localId: -1
     property bool hasChildren: false
     property int childCount: 0
+    property bool timer_on: false
+    property bool timer_paused: false
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
+    signal timesheetRequested(int localId)
+
+    Connections {
+        target: globalTimerWidget
+        onTimerStopped: {
+            if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_on = false;
+            }
+        }
+        onTimerStarted: {
+            if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_on = true;
+            }
+        }
+        onTimerPaused: {
+            if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_paused = true;
+            }
+        }
+        onTimerResumed: {
+            if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+                timer_paused = false;
+            }
+        }
+    }
+
+    function play_pause_workflow() {
+        if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (TimerService.isRunning() && !TimerService.isPaused()) {
+                // If running and not paused, pause it
+                TimerService.pause();
+            } else if (TimerService.isPaused()) {
+                // If paused, resume it
+                TimerService.start(TimerService.getActiveTimesheetId());
+            }
+        } else {
+            let result = Timesheet.createTimesheetFromProject(recordId);
+            if (result.success) {
+                const result_start = TimerService.start(result.id);
+                if (!result_start.success) {
+                    console.log("Timer start failed:", result_start.error);
+                }
+            } else {
+                console.log("Timesheet creation failed:", result.error);
+            }
+        }
+    }
+
+    function stop_workflow() {
+        if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            TimerService.stop();
+        }
+    }
 
     trailingActions: ListItemActions {
         actions: [
             Action {
                 iconName: "view-on"
+                onTriggered: viewRequested(localId)
+            },
+            Action {
+                id: playpauseaction
+                iconSource: timer_on ? (timer_paused ? "../images/play.png" : "../images/pause.png") : "../images/play.png"
+                visible: recordId > 0
+                text: "Start Timer"
                 onTriggered: {
-                    viewRequested(localId);
+                    play_pause_workflow();
+                }
+            },
+            Action {
+                id: startstopaction
+                visible: recordId > 0
+                iconSource: "../images/stop.png"
+                text: "Stop Timer"
+                onTriggered: {
+                    stop_workflow();
                 }
             }
         ]
@@ -68,42 +142,82 @@ ListItem {
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
+        // subtle color fade on the left
+        Rectangle {
+            width: parent.width * 0.025
+            height: parent.height
+            anchors.left: parent.left
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop {
+                    position: 0.0
+                    color: Utils.getColorFromOdooIndex(colorPallet)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
+                }
+            }
+        }
+
 
         Row {
             anchors.fill: parent
             spacing: 2
 
             Rectangle {
-                width: units.gu(1)
-                height: parent.height
-                color: Utils.getColorFromOdooIndex(colorPallet)
-            }
-
-            Rectangle {
                 width: parent.width - units.gu(17)
                 height: parent.height
                 color: "transparent"
+                z: 1
 
                 Row {
                     width: parent.width
                     height: parent.height
                     spacing: units.gu(1)
 
-                    Column {
+                    Item {
                         width: units.gu(4)
                         height: parent.height
-                        spacing: 0
-
-                        Item {
-                            Layout.fillHeight: true
-                        }
+                        z: 2
 
                         Image {
                             id: starIcon
-                            source: isFavorite ? "../images/star-active.svg" : "../images/starinactive.svg"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.leftMargin: units.gu(0.5)
+                            source: isFavorite ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../images/star.png" : "../images/star.png") : ""
                             fillMode: Image.PreserveAspectFit
-                            width: units.gu(4)
-                            height: units.gu(4)
+                            width: units.gu(2)
+                            height: units.gu(2)
+                            visible: !timer_on
+                        }
+                        Rectangle {
+                            id: indicator
+                            width: units.gu(2)
+                            height: units.gu(2)
+                            radius: units.gu(1)
+                            color: "#ffa500"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: timer_on
+
+                            SequentialAnimation on opacity {
+                                loops: Animation.Infinite
+                                running: indicator.visible
+                                NumberAnimation {
+                                    from: 0.3
+                                    to: 1
+                                    duration: 800
+                                    easing.type: Easing.InOutQuad
+                                }
+                                NumberAnimation {
+                                    from: 1
+                                    to: 0.3
+                                    duration: 800
+                                    easing.type: Easing.InOutQuad
+                                }
+                            }
                         }
                     }
 
@@ -120,7 +234,7 @@ ListItem {
                             maximumLineCount: 2
                             clip: true
                             width: parent.width - units.gu(2)
-                            height: units.gu(5)
+                            // height: units.gu(5)
                         }
 
                         Text {
@@ -132,6 +246,7 @@ ListItem {
                             height: units.gu(2)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                         }
+
                         Label {
                             id: details
                             text: "Details"
@@ -146,6 +261,15 @@ ListItem {
                                     viewRequested(localId);
                                 }
                             }
+                        }
+
+                        Text {
+                            text: (childCount > 0 ? " [+" + childCount + "] Projects " : "")
+                            visible: childCount > 0
+                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
+                            font.pixelSize: units.gu(1.5)
+                            //  horizontalAlignment: Text.AlignRight
+                            width: parent.width
                         }
                     }
                 }
@@ -163,7 +287,7 @@ ListItem {
                     width: parent.width
 
                     Text {
-                        text: "Planned (H): " + (allocatedHours !== "" ? allocatedHours : "N/A")
+                        text: "Planned (H): " + allocatedHours
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
@@ -179,19 +303,19 @@ ListItem {
                     }
 
                     Text {
+                        text: "End Date: " + (endDate !== "" ? endDate : "Not set")
+                        font.pixelSize: units.gu(1.5)
+                        horizontalAlignment: Text.AlignRight
+                        width: parent.width
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
+                    }
+
+                    Text {
                         text: Utils.getTimeStatusInText(endDate)
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
-                    }
-                    Text {
-                        text: (childCount > 0 ? " [+" + childCount + "] Projects " : "")
-                        visible: childCount > 0
-                        color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                        font.pixelSize: units.gu(1.5)
-                        horizontalAlignment: Text.AlignRight
-                        width: parent.width
                     }
                 }
             }

@@ -10,6 +10,21 @@ function validId(value) {
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        let resolvedParentId = null;
+
+        console.log("data.parentId :", data.parentId );
+        console.log("data.subProjectId:", data.subProjectId);
+        console.log("data.projectId:", data.projectId);
+
+        if (data.parentId && data.parentId > 0) {
+            resolvedParentId = data.parentId;
+        } else if (data.subProjectId && data.subProjectId > 0) {
+            data.projectId=data.subProjectId //We shall need a better way to fix it (TODO)
+            resolvedParentId = 0;
+        } else {
+            resolvedParentId = 0;
+        }
+        console.log("resolvedParentId:", resolvedParentId);
         var timestamp =  Utils.getFormattedTimestampUTC();
         db.transaction(function (tx) {
             if (data.record_id) {
@@ -19,19 +34,20 @@ function saveOrUpdateTask(data) {
                     start_date = ?, end_date = ?, deadline = ?, last_modified = ?, status = ? WHERE id = ?',
                               [
                                   data.accountId, data.name, data.projectId,
-                                  validId(data.parentId), data.plannedHours, data.favorites,
+                                  resolvedParentId, data.plannedHours, data.favorites,
                                   data.description, data.assigneeUserId, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
                                   timestamp, data.status, data.record_id
                               ]
                               );
+                              
             } else {
                 // INSERT
                 tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, favorites, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
                                   data.accountId, data.name, data.projectId,
-                                  validId(data.parentId), data.startDate, data.endDate,
+                                   resolvedParentId, data.startDate, data.endDate,
                                   data.deadline, data.favorites, data.plannedHours,
                                   data.description, data.assigneeUserId,
                                   data.subProjectId, timestamp, data.status
@@ -46,6 +62,38 @@ function saveOrUpdateTask(data) {
         return { success: false, error: e.message };
     }
 }
+
+function getAttachmentsForTask(odooRecordId) {
+    var attachmentList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT name, mimetype, datas
+                FROM ir_attachment_app
+                WHERE res_model = 'project.task' AND res_id = ?
+                ORDER BY name COLLATE NOCASE ASC
+            `;
+
+            var result = tx.executeSql(query, [odooRecordId]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                attachmentList.push({
+                    name: result.rows.item(i).name,
+                    mimetype: result.rows.item(i).mimetype,
+                    datas: result.rows.item(i).datas
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getAttachmentsForTask failed:", e);
+    }
+
+    return attachmentList;
+}
+
 
 
 function markTaskAsDeleted(taskId) {
@@ -174,7 +222,7 @@ function getTaskDetails(task_id) {
                             console.log("Subproject detected: sub_project_id =", sub_project_id, ", parent project_id =", project_id);
                         } else {
                             // Top-level project
-                            sub_project_id = -1;
+                            sub_project_id = row.sub_project_id;
                             console.log("Top-level project detected, project_id =", project_id);
                         }
                     } else {
@@ -189,10 +237,10 @@ function getTaskDetails(task_id) {
                     project_id: project_id,
                     sub_project_id: sub_project_id,
                     parent_id: row.parent_id, // remains for parent task reference
-                    start_date: row.start_date ? Utils.formatDate(new Date(row.start_date)) : "",
-                    end_date: row.end_date ? Utils.formatDate(new Date(row.end_date)) : "",
-                    deadline: row.deadline ? Utils.formatDate(new Date(row.deadline)) : "",
-                    initial_planned_hours: row.initial_planned_hours,
+                    start_date: row.start_date || "",  // Keep original date format from database
+                    end_date: row.end_date || "",      // Keep original date format from database
+                    deadline: row.deadline || "",      // Keep original date format from database
+                    initial_planned_hours: row.initial_planned_hours || 0,  // Ensure it's not null/undefined
                     favorites: row.favorites || 0,
                     state: row.state || "",
                     description: row.description || "",
@@ -215,33 +263,63 @@ function getTaskDetails(task_id) {
     return task_detail;
 }
 
-
 /**
- * Retrieves all non-deleted tasks from the `project_task_app` table.
+ * Retrieves all non-deleted tasks from the `project_task_app` table,
+ * and adds inherited color and total hours spent from timesheet entries.
  *
- * @returns {Array<Object>} A list of task objects as plain JS objects.
+ * @returns {Array<Object>} A list of task objects with color and spentHours.
  */
 function getAllTasks() {
     var taskList = [];
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
 
         db.transaction(function (tx) {
+            // Step 1: Build map of odoo_record_id -> color_pallet
+            var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+            var projectResult = tx.executeSql(projectQuery);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            // Step 2: Fetch tasks and attach inherited color and total hours
             var query = "SELECT * FROM project_task_app WHERE status IS NULL OR status != 'deleted' ORDER BY name COLLATE NOCASE ASC";
             var result = tx.executeSql(query);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                taskList.push(DBCommon.rowToObject(row));
+                var task = DBCommon.rowToObject(row);
+
+                // Inherit color from sub_project or project
+                var inheritedColor = 0;
+                if (projectColorMap[task.sub_project_id]) {
+                    inheritedColor = projectColorMap[task.sub_project_id];
+                } else if (projectColorMap[task.project_id]) {
+                    inheritedColor = projectColorMap[task.project_id];
+                }
+                task.color_pallet = inheritedColor;
+
+                // Step 3: Calculate total hours spent from timesheet entries
+                var timeQuery = "SELECT SUM(unit_amount) as total_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ?";
+                var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, task.account_id]);  // or task.task_account_id
+                if (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null) {
+                    task.spent_hours = timeResult.rows.item(0).total_hours;
+                } else {
+                    task.spent_hours = 0;
+                }
+                taskList.push(task);
             }
         });
     } catch (e) {
-        console.error("❌ getAllTasks failed:", e);
+        console.error("getAllTasks failed:", e);
     }
 
     return taskList;
 }
+
 
 /**
  * Filters tasks based on date criteria and search query

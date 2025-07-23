@@ -80,6 +80,9 @@ Page {
     property int favorites: 0
     property int subProjectId: 0
     property var prevtask: ""
+    property var textkey:""
+    property bool descriptionExpanded: false
+    property real expandedHeight: units.gu(60)
 
     property var currentTask: {}
 
@@ -124,11 +127,18 @@ Page {
                 status: "updated"
             };
 
+            console.log("Saving task data:", JSON.stringify(saveData));
+
             const result = Task.saveOrUpdateTask(saveData);
             if (!result.success) {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
+                // Reload the task data to reflect changes
+                if (recordid !== 0) {
+                    currentTask = Task.getTaskDetails(recordid);
+                    console.log("Reloaded task after save:", JSON.stringify(currentTask));
+                }
                 // No navigation - stay on the same page like Timesheet.qml
                 // User can use back button to return to list page
             }
@@ -160,7 +170,7 @@ Page {
         id: tasksDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height + 500
+        contentHeight: descriptionExpanded ? parent.height + units.gu(120) : parent.height + units.gu(50)
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -219,7 +229,7 @@ Page {
                     text: ""
 
                     Rectangle {
-                        visible: !isReadOnly
+                        //  visible: !isReadOnly
                         anchors.fill: parent
                         color: "transparent"
                         radius: units.gu(0.5)
@@ -240,45 +250,33 @@ Page {
         }
         Row {
             id: myRow9
-            anchors.top: (recordid > 0) ? add_timesheet.bottom : myRow1b.bottom //we are not showing add timesheet for a new task.
+            anchors.top: (recordid > 0) ? add_timesheet.bottom : myRow1b.bottom
             anchors.left: parent.left
+            anchors.right: parent.right
             topPadding: units.gu(5)
-            Column {
-                id: myCol8
-                leftPadding: units.gu(1)
-                LomiriShape {
-                    width: units.gu(10)
-                    height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: description_label
-                        text: "Description"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-            }
+
             Column {
                 id: myCol9
-                leftPadding: units.gu(3)
-                TextArea {
-                    id: description_text
-                    readOnly: isReadOnly
-                    textFormat: Text.RichText
-                    autoSize: false
-                    maximumLineCount: 0
-                    width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
-                    anchors.centerIn: parent.centerIn
-                    text: ""
 
-                    Rectangle {
-                        visible: !isReadOnly
-                        anchors.fill: parent
-                        color: "transparent"
-                        radius: units.gu(0.5)
-                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                        // z: -1
+                Item {
+                    id: textAreaContainer
+                    width: tasksDetailsPageFlickable.width
+                    height: description_text.height
+
+                    RichTextPreview {
+                        id: description_text
+                        width: parent.width
+                        height: units.gu(20) // Start with collapsed height
+                        anchors.centerIn: parent.centerIn
+                        text: ""
+                        is_read_only: false
+                        onClicked: {
+                            //set the data to a global Slore and pass the key to the page
+                            Global.description_temporary_holder=text
+                            apLayout.addPageToNextColumn(taskCreate,Qt.resolvedUrl("ReadMorePage.qml"), {
+                                                             isReadOnly:isReadOnly
+                                                         });
+                        }
                     }
                 }
             }
@@ -329,6 +327,7 @@ Page {
             anchors.top: plannedh_row.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
+            height: units.gu(30)
             Column {
                 leftPadding: units.gu(1)
                 DateRangeSelector {
@@ -338,6 +337,18 @@ Page {
                     height: units.gu(4)
                     anchors.centerIn: parent.centerIn
                 }
+            }
+        }
+        Item {
+            id: attachmentRow
+            anchors.bottom: parent.bottom
+            anchors.top: myRow6.bottom
+            width: parent.width
+            //height: units.gu(30)
+            anchors.margins: units.gu(1)
+            AttachmentViewer {
+                id: attachments_widget
+                anchors.fill: parent
             }
         }
     }
@@ -361,29 +372,52 @@ Page {
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
             let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-            console.log("Loading task data:", JSON.stringify({
-                instanceId: instanceId,
-                project_id: project_id,
-                sub_project_id: sub_project_id,
-                parent_task_id: parent_task_id,
-                assignee_id: assignee_id
-            }));
+          /*  console.log("Loading task data:", JSON.stringify({
+                                                                 instanceId: instanceId,
+                                                                 project_id: project_id,
+                                                                 sub_project_id: sub_project_id,
+                                                                 parent_task_id: parent_task_id,
+                                                                 assignee_id: assignee_id
+                                                             }));*/
 
             workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
             name_text.text = currentTask.name || "";
             description_text.text = currentTask.description || "";
-            hours_text.text = currentTask.initial_planned_hours ? Utils.convertFloatToDuration(parseFloat(currentTask.initial_planned_hours)) : "01:00";
 
-            // Set date range
+            // Handle planned hours more carefully
+            if (currentTask.initial_planned_hours !== undefined && currentTask.initial_planned_hours !== null && currentTask.initial_planned_hours > 0) {
+                hours_text.text = Utils.convertDecimalHoursToHHMM(parseFloat(currentTask.initial_planned_hours));
+            } else {
+                hours_text.text = "01:00";  // Default value
+            }
+
+            // Set date range more carefully to preserve original dates
+            console.log("Setting dates - start_date:", currentTask.start_date, "end_date:", currentTask.end_date);
             if (currentTask.start_date && currentTask.end_date) {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
             } else if (currentTask.start_date) {
                 date_range_widget.setDateRange(currentTask.start_date, null);
+            } else if (currentTask.end_date) {
+                date_range_widget.setDateRange(null, currentTask.end_date);
             }
+            // If no dates are set, don't call setDateRange to avoid defaulting to today
+            attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
         } else {
             workItem.loadAccounts();
         }
-        console.log("currentTask loaded:", JSON.stringify(currentTask));
+      //  console.log("currentTask loaded:", JSON.stringify(currentTask));
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
+                description_text.text=Global.description_temporary_holder
+                Global.description_temporary_holder=""
+            }
+        }else
+        {
+            Global.description_temporary_holder=""
+        }
     }
 }

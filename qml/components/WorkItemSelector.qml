@@ -21,6 +21,7 @@ Rectangle {
     property bool showAssigneeSelector: true
 
     property bool readOnly: false
+    property bool restrictAccountToLocalOnly: false  // When true, only show local account for new project creation
 
     // Watch for readOnly property changes and update all selectors
     onReadOnlyChanged: {
@@ -31,10 +32,21 @@ Rectangle {
     function updateAllSelectorStates() {
         console.log("[WorkItemSelector] Updating all selector states, readOnly:", readOnly);
         if (account_component) {
-            account_component.setEnabled(!readOnly && account_component.modelData.length > 1);
+            // Special handling for account selector when restricted to local only
+            if (restrictAccountToLocalOnly && !readOnly) {
+                console.log("[WorkItemSelector] Enabling account selector (restricted to local only) in updateAllSelectorStates");
+                account_component.setEnabled(true);
+            } else {
+                account_component.setEnabled(!readOnly && account_component.modelData.length > 1);
+            }
         }
         if (project_component) {
-            project_component.setEnabled(!readOnly && project_component.modelData.length > 1);
+            // For new project creation, project selector should start disabled until account is selected
+            if (restrictAccountToLocalOnly && currentState === "Init") {
+                project_component.setEnabled(false);
+            } else {
+                project_component.setEnabled(!readOnly && project_component.modelData.length > 1);
+            }
         }
         if (subproject_compoent) {
             subproject_compoent.setEnabled(!readOnly && subproject_compoent.modelData.length > 1);
@@ -46,7 +58,12 @@ Rectangle {
             subtask_component.setEnabled(!readOnly && subtask_component.modelData.length > 1);
         }
         if (assignee_component) {
-            assignee_component.setEnabled(!readOnly && assignee_component.modelData.length > 1);
+            // For new project creation, assignee selector should start disabled until account is selected
+            if (restrictAccountToLocalOnly && currentState === "Init") {
+                assignee_component.setEnabled(false);
+            } else {
+                assignee_component.setEnabled(!readOnly && assignee_component.modelData.length > 1);
+            }
         }
     }
     property string accountLabelText: "Account"
@@ -208,11 +225,17 @@ Rectangle {
 
     //load accounts
     function loadAccounts(selectedId = -1) {
-        console.log("Loading accounts");
+        console.log("Loading accounts, restrictAccountToLocalOnly:", restrictAccountToLocalOnly);
 
         let default_id;
         if (selectedId === -1) {
-            default_id = Accounts.getDefaultAccountId();
+            // When restricted to local only, always default to local account (id === 0)
+            if (restrictAccountToLocalOnly) {
+                default_id = 0;
+                console.log("[WorkItemSelector] Forcing default to local account (id = 0) due to restriction");
+            } else {
+                default_id = Accounts.getDefaultAccountId();
+            }
         } else {
             default_id = selectedId;
         }
@@ -222,6 +245,11 @@ Rectangle {
         let accountList = [];
 
         for (let i = 0; i < accounts.length; i++) {
+            // If restrictAccountToLocalOnly is true, only include local account (id === 0)
+            if (restrictAccountToLocalOnly && accounts[i].id !== 0) {
+                continue;
+            }
+
             if (accounts[i].id === default_id) {
                 default_name = accounts[i].name;
             }
@@ -239,8 +267,21 @@ Rectangle {
         account_component.modelData = accountList;
         account_component.applyDeferredSelection(default_id);
 
+        // Special handling for account selector when restricted to local only
+        if (restrictAccountToLocalOnly && !readOnly) {
+            // Always enable account selector when restricted to show local account is selected
+            console.log("[WorkItemSelector] Enabling account selector (restricted to local only)");
+            account_component.setEnabled(true);
+        } else {
+            // Use standard logic: enable only if more than 1 option and not read-only
+            account_component.setEnabled(!readOnly && accountList.length > 1);
+        }
+
         // Immediately simulate state transition (Special case for an entry point for the user)
         if (selectedId === -1) {
+            if (restrictAccountToLocalOnly) {
+                console.log("[WorkItemSelector] Auto-selecting local account (id=" + default_id + ", name='" + default_name + "') for new project creation");
+            }
             transitionTo("AccountSelected", {
                 id: default_id,
                 name: default_name
@@ -539,12 +580,17 @@ Rectangle {
                         console.log("project_component Payload ID:", data.id);
                         console.log("project_component Payload Name:", data.name);
                         loadProjects(data.id, -1); //load projects of the selected account
+                        
+                        // Enable project selector after account is selected
+                        if (!readOnly) {
+                            project_component.setEnabled(true);
+                        }
                     }
                 }
             }
             Component.onCompleted: {
-                if (!readOnly)
-                    project_component.setEnabled(true);
+                // Start disabled - will be enabled when account is selected
+                project_component.setEnabled(false);
             }
         }
 
@@ -642,15 +688,20 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "AccountSelected") {
-                        console.log("subtask_component Payload ID:", data.id);
-                        console.log("subtask_component Payload Name:", data.name);
+                        console.log("assignee_component Payload ID:", data.id);
+                        console.log("assignee_component Payload Name:", data.name);
                         loadAssignees(data.id, -1);
+                        
+                        // Enable assignee selector after account is selected
+                        if (!readOnly) {
+                            assignee_component.setEnabled(true);
+                        }
                     }
                 }
             }
             Component.onCompleted: {
-                if (!readOnly)
-                    assignee_component.setEnabled(true);
+                // Start disabled - will be enabled when account is selected
+                assignee_component.setEnabled(false);
             }
         }
     }

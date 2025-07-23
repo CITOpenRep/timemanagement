@@ -222,7 +222,7 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
 function getColorFromOdooIndex(index) {
     //standard from odoo pallet
     const colorMap = [
-                       "#FFFFFF", "#EB6E67", "#F39C5A", "#F6C342",
+                       "transparent", "#EB6E67", "#F39C5A", "#F6C342",
                        "#6CC1E1", "#854D76", "#ED8888", "#2C8397",
                        "#49597C", "#DE3F7C", "#45C486", "#9B6CC3"
                    ];
@@ -326,8 +326,8 @@ function convertDurationToFloat(value) {
     let vals = value.split(":");
     let hours = parseFloat(vals[0]);
     let minutes = parseFloat(vals[1]);
-    let days = Math.floor(hours / 24);
-    hours = hours % 24;
+    // Remove the day calculation and modulo operation for project hours
+    // Project allocation can be any number of hours, not limited to 24-hour days
     let convertedMinutes = minutes / 60.0;
     return hours + convertedMinutes;
 }

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import QtQuick 2.7
+import QtQuick 2.12
 import QtQuick.Controls 2.2
 import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
@@ -33,12 +33,13 @@ import QtQuick.Layouts 1.1
 ListItem {
     id: taskCard
     width: parent.width
-    height: units.gu(20)
+    height: units.gu(28)
     property int screenWidth: parent.width
     property bool isFavorite: true
     property string taskName: ""
     property string projectName: ""
-    property string allocatedHours: ""
+    property double allocatedHours: 0
+    property double spentHours: 0
     property string deadline: ""
     property string startDate: ""
     property string endDate: ""
@@ -162,17 +163,70 @@ ListItem {
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
+        // subtle color fade on the left
+        Rectangle {
+            width: parent.width * 0.025
+            height: parent.height
+            anchors.left: parent.left
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop {
+                    position: 0.0
+                    color: Utils.getColorFromOdooIndex(colorPallet)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
+                }
+            }
+        }
+        Rectangle {
+            id: progressindicator
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: units.gu(2)
+            visible: !hasChildren //if there are tasks with child tasks then we will hide this view
+            color: "transparent"
+
+            // Show progress bar only if planned hours > 0 and spentHours > 0
+            TSProgressbar {
+                id: determinateBar
+                anchors.fill: parent
+                anchors.margins: units.gu(0.5)
+                visible: allocatedHours > 0 && spentHours > 0
+                minimumValue: 0
+                maximumValue: parseInt(allocatedHours)
+                value: parseInt(Math.min(spentHours, allocatedHours))
+            }
+            // Case: spentHours > 0 but planned = 0 → warning
+            Label {
+                anchors.centerIn: parent
+                //visible: allocatedHours === 0 && spentHours > 0
+                visible: false
+                text: "Unable to track progress – no planned hours"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
+                font.pixelSize: units.gu(1.5)
+                anchors.bottomMargin: units.gu(.5)
+            }
+
+            // Case: spentHours = 0 → no progress
+            Label {
+                anchors.centerIn: parent
+               // visible: spentHours === 0
+               visible: false
+                text: "No progress yet"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
+                font.pixelSize: units.gu(1.5)
+                anchors.bottomMargin: units.gu(.5)
+            }
+        }
 
         Row {
-            anchors.fill: parent
+            anchors.top: parent.top
+            anchors.bottom: progressindicator.top
+            anchors.left: parent.left
+            anchors.right: parent.right
             spacing: 2
-
-            // side bar on left
-            Rectangle {
-                width: units.gu(0.5)
-                height: parent.height
-                color: Utils.getColorFromOdooIndex(colorPallet)
-            }
 
             Rectangle {
                 width: parent.width - units.gu(20)
@@ -184,7 +238,7 @@ ListItem {
                     height: parent.height
                     spacing: units.gu(0.4)
 
-                    // 🟫 Wrap gray block in a Column to align it to the bottom
+                    // Wrap gray block in a Column to align it to the bottom
                     Column {
                         width: units.gu(4)
                         height: parent.height
@@ -195,13 +249,20 @@ ListItem {
                             Layout.fillHeight: true
                         }
 
-                        Image {
-                            id: starIcon
-                            source: isFavorite ? "../images/star-active.svg" : "../images/starinactive.svg"
-                            fillMode: Image.PreserveAspectFit
+                        Item {
                             width: units.gu(4)
-                            height: units.gu(4)
-                            visible: !timer_on //if a active time sheet is on , we will use this area to indicate it.constructor
+                            height: parent.height
+                            z: 2
+
+                            Image {
+                                id: starIcon
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                source: isFavorite ? "../images/star.png" : ""
+                                fillMode: Image.PreserveAspectFit
+                                width: units.gu(2)
+                                height: units.gu(2)
+                            }
                         }
                         // Animated dot if there is a active time sheet on it
                         Rectangle {
@@ -275,6 +336,15 @@ ListItem {
                                 }
                             }
                         }
+
+                        Text {
+                            text: (childCount > 0 ? " [+" + childCount + "] Tasks" : "")
+                            visible: childCount > 0
+                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
+                            font.pixelSize: units.gu(1.5)
+                            //  horizontalAlignment: Text.AlignRight
+                            width: parent.width
+                        }
                     }
                 }
             }
@@ -291,7 +361,7 @@ ListItem {
                     spacing: units.gu(0.4)
                     width: parent.width
                     Text {
-                        text: "Planned (H): " + (allocatedHours !== "" ? allocatedHours : "N/A")
+                        text: "Planned (H): " + (allocatedHours !== 0 ? allocatedHours : "N/A")
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
@@ -304,6 +374,13 @@ ListItem {
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                     }
+                    Text {
+                        text: "End Date: " + (endDate !== "" ? toDateOnly(endDate) : "Not set")
+                        font.pixelSize: units.gu(1.5)
+                        horizontalAlignment: Text.AlignRight
+                        width: parent.width
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
+                    }
 
                     Text {
                         text: Utils.getTimeStatusInText(endDate)
@@ -311,14 +388,6 @@ ListItem {
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
-                    }
-                    Text {
-                        text: (childCount > 0 ? " [+" + childCount + "] Tasks" : "")
-                        visible: childCount > 0
-                        color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                        font.pixelSize: units.gu(1.5)
-                        horizontalAlignment: Text.AlignRight
-                        width: parent.width
                     }
                 }
             }

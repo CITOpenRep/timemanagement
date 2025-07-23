@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import QtQuick 2.7
+import QtQuick 2.12
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
@@ -47,6 +47,7 @@ ListItem {
     property string status: ""
     property bool timer_on: false
     property bool timer_paused: false
+    property int colorPallet: 0
 
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
@@ -177,18 +178,37 @@ ListItem {
     }
 
     clip: true
+    Rectangle {
+        id: coloripalletwidget
+        width: parent.width * 0.025
+        height: parent.height
+        anchors.left: parent.left
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop {
+                position: 0.0
+                color: Utils.getColorFromOdooIndex(colorPallet)
+            }
+            GradientStop {
+                position: 1.0
+                color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
+            }
+        }
+    }
 
     ListItemLayout {
         anchors.fill: parent
+        // subtle color fade on the left
+
         // Animated dot
         Rectangle {
             id: indicator
             width: units.gu(2)
             height: units.gu(2)
             radius: units.gu(1)
-            color: "#ffa500"
+            color: timer_on ? "#ffa500" : "transparent"
             anchors.left: parent.left
-            visible: timer_on
+            //visible: timer_on
             SequentialAnimation on opacity {
                 loops: Animation.Infinite
                 running: indicator.visible
@@ -210,7 +230,7 @@ ListItem {
         Row {
             anchors.left: indicator.right
             anchors.right: parent.right
-            spacing: units.gu(2)
+            spacing: units.gu(1)
             // Left Column
             Column {
                 width: parent.width * 0.65

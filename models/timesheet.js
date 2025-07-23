@@ -11,13 +11,20 @@
  *
  * @returns {Array<Object>} - A list of enriched timesheet entries.
  */
-
 function fetchTimesheetsByStatus(status) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheetList = [];
 
     try {
         db.transaction(function (tx) {
+            // Build map of odoo_record_id -> color_pallet
+            var projectColorMap = {};
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
             var query = "";
             var params = [];
 
@@ -41,28 +48,35 @@ function fetchTimesheetsByStatus(status) {
                     4: "Delete"
                 };
 
-                // Resolve project name with subproject handling
+                // Resolve project name and parent name
                 var projectName = "Unknown Project";
+                var inheritedColor = 0;
+
                 if (row.project_id) {
                     var rs_project = tx.executeSql(
                         "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
                         [row.project_id]
                     );
+
                     if (rs_project.rows.length > 0) {
                         var project_row = rs_project.rows.item(0);
                         if (project_row.parent_id && project_row.parent_id > 0) {
-                            // If subproject, fetch parent project name
-                            var rs_parent_project = tx.executeSql(
+                            // Subproject case
+                            var rs_parent = tx.executeSql(
                                 "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
                                 [project_row.parent_id]
                             );
-                            if (rs_parent_project.rows.length > 0) {
-                                projectName = rs_parent_project.rows.item(0).name + " / " + project_row.name;
+                            if (rs_parent.rows.length > 0) {
+                                projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
                             } else {
                                 projectName = project_row.name;
                             }
+
+                            // Inherit color from subproject
+                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
                         } else {
                             projectName = project_row.name;
+                            inheritedColor = projectColorMap[row.project_id] || 0;
                         }
                     }
                 }
@@ -79,28 +93,16 @@ function fetchTimesheetsByStatus(status) {
                     }
                 }
 
-                // Resolve instance name
-                var instanceName = "";
+                // Resolve instance and user names
+                var instanceName = "", userName = "";
                 if (row.account_id) {
-                    var rs_instance = tx.executeSql(
-                        "SELECT name FROM users WHERE id = ? LIMIT 1",
-                        [row.account_id]
-                    );
-                    if (rs_instance.rows.length > 0) {
-                        instanceName = rs_instance.rows.item(0).name;
-                    }
+                    var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
+                    if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
                 }
 
-                // Resolve user name
-                var userName = "";
                 if (row.user_id) {
-                    var rs_user = tx.executeSql(
-                        "SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1",
-                        [row.user_id]
-                    );
-                    if (rs_user.rows.length > 0) {
-                        userName = rs_user.rows.item(0).name;
-                    }
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                    if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
                 }
 
                 timesheetList.push({
@@ -113,7 +115,8 @@ function fetchTimesheetsByStatus(status) {
                     date: row.record_date,
                     status: row.status,
                     task: taskName,
-                    user: userName
+                    user: userName,
+                    color_pallet: parseInt(inheritedColor) || 0
                 });
             }
         });
@@ -122,6 +125,38 @@ function fetchTimesheetsByStatus(status) {
     }
 
     return timesheetList;
+}
+
+
+function getAttachmentsForTimesheet(odooRecordId) {
+    var attachmentList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT name, mimetype, datas
+                FROM ir_attachment_app
+                WHERE res_model = 'hr_timesheet.sheet' AND res_id = ?
+                ORDER BY name COLLATE NOCASE ASC
+            `;
+
+            var result = tx.executeSql(query, [odooRecordId]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                attachmentList.push({
+                    name: result.rows.item(i).name,
+                    mimetype: result.rows.item(i).mimetype,
+                    datas: result.rows.item(i).datas
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getAttachmentsForTask failed:", e);
+    }
+
+    return attachmentList;
 }
 
 
@@ -154,6 +189,10 @@ function isTimesheetReadyToRecord(timesheetId) {
 
             if (rs.rows.length > 0) {
                 var row = rs.rows.item(0);
+              //  console.log("Project id " +row.project_id)
+              //  console.log("SubProject id " + row.sub_project_id)
+              //  console.log("Task id " +row.task_id  )
+              //  console.log("SubTask id " +row.sub_task_id)
 
                 var hasProjectOrSubproject = (row.project_id && row.project_id > 0) ||
                                              (row.sub_project_id && row.sub_project_id > 0);
@@ -161,7 +200,13 @@ function isTimesheetReadyToRecord(timesheetId) {
                 var hasTaskOrSubtask = (row.task_id && row.task_id > 0) ||
                                        (row.sub_task_id && row.sub_task_id > 0);
 
-                ready = hasProjectOrSubproject && hasTaskOrSubtask;
+                if (hasProjectOrSubproject) {
+                    // For project-level timesheets, only project is required : TODO check with Richard is its correct
+                    ready = true;
+                } else if (hasTaskOrSubtask) {
+                    // For task-level timesheets, both project and task should be present
+                    ready = hasProjectOrSubproject && hasTaskOrSubtask;
+                }
             } else {
                 console.log("Timesheet ID " + timesheetId + " not found in DB.");
             }
@@ -423,6 +468,104 @@ function createTimesheet(instance_id,userid) {
      return result;
  }
 
+
+function createTimesheetFromProject(projectRecordId) {
+    console.log("Creating timesheet for project " + projectRecordId);
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var result = { success: false, id: null, error: "" };
+    
+    try {
+        var project = null;
+        db.readTransaction(function(tx) {
+            var rs = tx.executeSql("SELECT * FROM project_project_app WHERE odoo_record_id = ?", [projectRecordId]);
+            if (rs.rows.length > 0) {
+                project = rs.rows.item(0);
+                console.log("Project data:", JSON.stringify(project));
+                console.log("Account ID:", project.account_id);
+                console.log("User ID:", project.user_id);
+            }
+        });
+
+        if (!project) {
+            result.error = "Project not found in local DB: " + projectRecordId;
+            return result;
+        }
+
+        if (!project.account_id || project.account_id <= 0) {
+            result.error = "Project missing required account_id. Current value: " + project.account_id;
+            return result;
+        }
+
+        // **Handle missing user_id by using a default or current user**
+        var userId = project.user_id;
+        if (!userId || userId === undefined || userId === null) {
+            // Option 1: Use a default user ID or get current logged-in user
+            // You'll need to implement getCurrentUserId() or use a default
+            userId = 1; // Fallback to user ID 1
+            console.log("Project missing user_id, using fallback:", userId);
+        }
+
+        // Create empty timesheet
+        var tsResult = createTimesheet(project.account_id, userId);
+        if (!tsResult.success) {
+            result.error = tsResult.error || "Failed to create base timesheet record.";
+            return result;
+        }
+
+        var timesheetId = tsResult.id;
+        var today = Utils.getToday();
+        
+        // Update timesheet with project data
+        var timesheet_data = {
+            id: timesheetId,
+            instance_id: project.account_id,
+            record_date: today,
+            project: project.odoo_record_id,
+            task: null, // No specific task for project-level timesheet
+            subprojectId: null,
+            subTask: null,
+            description: "Project Timesheet (" + today + ") " + (project.name || ""),
+            unit_amount: 0,
+            status: "draft",
+            user_id: userId // Use the resolved user ID
+        };
+
+        var updateResult = saveTimesheet(timesheet_data);
+        if (updateResult.success) {
+            result.success = true;
+            result.id = timesheetId;
+        } else {
+            result.error = updateResult.error || "Failed to update timesheet with project data.";
+        }
+
+    } catch (e) {
+        result.error = e.toString();
+    }
+
+    return result;
+}
+
+
+function doesProjectIdMatchSheetInActive(projectId, sheetId) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var matches = false;
+    
+    try {
+        db.transaction(function(tx) {
+            var rs = tx.executeSql(
+                "SELECT id FROM account_analytic_line_app WHERE id = ? AND status = ? AND project_id = ? LIMIT 1",
+                [sheetId, "active", projectId]
+            );
+            if (rs.rows.length > 0) {
+                matches = true;
+            }
+        });
+    } catch (e) {
+        console.log("doesProjectIdMatchSheetInActive failed:", e);
+    }
+    
+    return matches;
+}
 
 function doesTaskIdMatchSheetInActive(taskId, sheetId) {
     //console.log("Checking if sheet ID " + sheetId + " has task ID " + taskId + " in DRAFT status...");

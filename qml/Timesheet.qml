@@ -6,7 +6,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -35,6 +35,7 @@ import "../models/timesheet.js" as Model
 import "../models/accounts.js" as Accounts
 import "../models/timer_service.js" as TimerService
 import "../models/utils.js" as Utils
+import "../models/global.js" as Global
 import "components"
 
 Page {
@@ -107,9 +108,9 @@ Page {
             'task': ids.task_id,
             'subTask': ids.subtask_id,
             'subprojectId': ids.subproject_id,
-            'description': name_text.text,
+            'description': description_text.text,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
-            'quadrant': priorityCombo.currentIndex + 1,
+            'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
             'status': "draft"
         };
@@ -148,8 +149,7 @@ Page {
         id: timesheetsDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: parent.height + 1000
-        // + 1000
+        contentHeight: parent.height + units.gu(50)
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -180,50 +180,124 @@ Page {
             }
         }
 
-        Row {
+        Column {
             id: myRow7
             anchors.top: myRow1a.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
-
-            spacing: units.gu(1.5)
+            spacing: units.gu(1)
             topPadding: units.gu(2)
 
-            Label {
-                id: priority_label
-                text: "Priority"
-                width: units.gu(7)
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignLeft
+            Row {
+                spacing: units.gu(1.5)
+
+                Label {
+                    id: priority_label
+                    text: "Priority"
+                    width: units.gu(7)
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignLeft
+                }
+
+                Icon {
+                    id: helpIcon
+                    name: "help"
+                    width: units.gu(2.5)
+                    height: units.gu(2.5)
+                    color: theme.palette.normal.backgroundText
+                    anchors.verticalCenter: priority_label.verticalCenter
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            notifPopup.open("Priority Help", "What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom Important.<br><br><b>1. Important & Urgent:</b><br>Here you write down important activities, which also have to be done immediately. These are urgent problems or projects with a hard deadline. I.e. If you manage a restaurant and an employee has not shown up, it is a rather urgent and acute problem. All signals are on red, so this is a typical activity for the first quadrant.<br><br><b>2. Important & Not Urgent:</b><br>If you leave the activities in this quadrant for the coming week, nothing will immediately go wrong. But be careful: These are activities and projects that will help you in the long term. Think of thinking about a strategy, improving work processes in your team, investing in relationships and investing in yourself. i.e. You are a team leader who has just been told during his performance review that more creative input is expected. Such an outcome of a performance review is an assignment that will never feel urgent, but is very important. You can quickly recognize the important & non-urgent activities by answering the question: if I don't do this, will it get me into trouble in the long run? If the answer is yes, then you have an important & non-urgent activity. If the answer is no, then it is a non-important & non-urgent activity.<br><br><b>3. Urgent & Not Important:</b><br>This quadrant concerns activities that do not help you in the long run, but that are screaming for your attention this week. An adjustment in a presentation that has to be done for a colleague on the spur of the moment or the milk that is almost empty. With tasks in this quadrant it is very important to check whether they are actually urgent. Requests from others in particular often seem very urgent, while they can sometimes wait a day or a week. It is usually fine to postpone this work to a more suitable moment, provided that I communicate well about this. If you have the opportunity to delegate or outsource these tasks in this quadrant, do so. If you work for yourself, this is not always possible. In that case, I advise you to organize your working day in such a way that you are guided as little as possible by these urgent tasks, if necessary by reserving a fixed time block each day for these types of emergencies. That way you keep control over your agenda.<br><br><b>4. Not Important & Not Urgent:</b><br>This type of work that you want to have on your plate as little as possible, because it does not help you in any way. Constantly refreshing your mailbox, for example. But meetings without a clear goal also fall into this category. You can undoubtedly point out more of these types of 'busy work' examples yourself: things that you do, but that do not really benefit anyone. Sometimes these activities are a great short break from your work, but usually they are a great excuse to postpone your important work for a while.", "info");
+                        }
+                    }
+                }
             }
 
-            Item {
-                width: units.gu(2.4)
-                height: units.gu(5)
-            }
+            Grid {
+                id: priorityGrid
+                columns: 2
+                spacing: units.gu(0.5)
+                width: parent.width - units.gu(2)
 
-            TSCombobox {
-                id: priorityCombo
-                width: units.gu(32.5)
-                height: units.gu(5)
+                property int currentIndex: 0
 
-                model: ["Do First (Important & Urgent )", "Do Next (Important & Not Urgent)", "Do Later (Urgent & Not Important)", "Don't do (Not Urgent & Not Important)"]
-                enabled: !isReadOnly
-                currentIndex: 0
-            }
+                RadioButton {
+                    id: priority1
+                    text: "Important, Urgent (1)"
+                    enabled: !isReadOnly
+                    checked: priorityGrid.currentIndex === 0
+                    contentItem: Text {
+                        text: priority1.text
+                        font.pixelSize: units.gu(1.5)
+                        color: theme.palette.normal.backgroundText
+                        leftPadding: priority1.indicator.width + priority1.spacing
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.WordWrap
+                    }
+                    onCheckedChanged: {
+                        if (checked)
+                            priorityGrid.currentIndex = 0;
+                    }
+                }
 
-            Icon {
-                id: helpIcon
-                name: "help"
-                width: units.gu(3)
-                height: units.gu(3)
-                anchors.verticalCenter: priorityCombo.verticalCenter
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        notifPopup.open("Priority Help", "What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom Important.<br><br><b>1. Important & Urgent:</b><br>Here you write down important activities, which also have to be done immediately. These are urgent problems or projects with a hard deadline. I.e. If you manage a restaurant and an employee has not shown up, it is a rather urgent and acute problem. All signals are on red, so this is a typical activity for the first quadrant.<br><br><b>2. Important & Not Urgent:</b><br>If you leave the activities in this quadrant for the coming week, nothing will immediately go wrong. But be careful: These are activities and projects that will help you in the long term. Think of thinking about a strategy, improving work processes in your team, investing in relationships and investing in yourself. i.e. You are a team leader who has just been told during his performance review that more creative input is expected. Such an outcome of a performance review is an assignment that will never feel urgent, but is very important. You can quickly recognize the important & non-urgent activities by answering the question: if I don't do this, will it get me into trouble in the long run? If the answer is yes, then you have an important & non-urgent activity. If the answer is no, then it is a non-important & non-urgent activity.<br><br><b>3. Urgent & Not Important:</b><br>This quadrant concerns activities that do not help you in the long run, but that are screaming for your attention this week. An adjustment in a presentation that has to be done for a colleague on the spur of the moment or the milk that is almost empty. With tasks in this quadrant it is very important to check whether they are actually urgent. Requests from others in particular often seem very urgent, while they can sometimes wait a day or a week. It is usually fine to postpone this work to a more suitable moment, provided that I communicate well about this. If you have the opportunity to delegate or outsource these tasks in this quadrant, do so. If you work for yourself, this is not always possible. In that case, I advise you to organize your working day in such a way that you are guided as little as possible by these urgent tasks, if necessary by reserving a fixed time block each day for these types of emergencies. That way you keep control over your agenda.<br><br><b>4. Not Important & Not Urgent:</b><br>This type of work that you want to have on your plate as little as possible, because it does not help you in any way. Constantly refreshing your mailbox, for example. But meetings without a clear goal also fall into this category. You can undoubtedly point out more of these types of 'busy work' examples yourself: things that you do, but that do not really benefit anyone. Sometimes these activities are a great short break from your work, but usually they are a great excuse to postpone your important work for a while.", "info");
+                RadioButton {
+                    id: priority2
+                    text: "Important, Not Urgent (2)"
+                    enabled: !isReadOnly
+                    checked: priorityGrid.currentIndex === 1
+                    contentItem: Text {
+                        text: priority2.text
+                        font.pixelSize: units.gu(1.5)
+                        color: theme.palette.normal.backgroundText
+                        leftPadding: priority2.indicator.width + priority2.spacing
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.WordWrap
+                    }
+                    onCheckedChanged: {
+                        if (checked)
+                            priorityGrid.currentIndex = 1;
+                    }
+                }
+
+                RadioButton {
+                    id: priority3
+                    text: "Urgent, Not Important (3)"
+                    enabled: !isReadOnly
+                    checked: priorityGrid.currentIndex === 2
+                    contentItem: Text {
+                        font.pixelSize: units.gu(1.5)
+                        text: priority3.text
+                        color: theme.palette.normal.backgroundText
+                        leftPadding: priority3.indicator.width + priority3.spacing
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.WordWrap
+                    }
+                    onCheckedChanged: {
+                        if (checked)
+                            priorityGrid.currentIndex = 2;
+                    }
+                }
+
+                RadioButton {
+                    id: priority4
+                    text: "Not Urgent, Not Important (4)"
+                    enabled: !isReadOnly
+                    checked: priorityGrid.currentIndex === 3
+                    contentItem: Text {
+                        text: priority4.text
+                        font.pixelSize: units.gu(1.5)
+                        color: theme.palette.normal.backgroundText
+                        leftPadding: priority4.indicator.width + priority4.spacing
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.WordWrap
+                    }
+                    onCheckedChanged: {
+                        if (checked)
+                            priorityGrid.currentIndex = 3;
                     }
                 }
             }
@@ -277,37 +351,36 @@ Page {
 
         /**********************************************************/
 
-        Column {
-            id: descriptionSection
+        Row {
+            id: myRow9
             anchors.top: myRow1.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            spacing: units.gu(1)
-            topPadding: units.gu(1)
-            leftPadding: units.gu(1)
+            topPadding: units.gu(5)
 
-            Label {
-                text: "Description"
-            }
+            Column {
+                id: myCol9
 
-            TextArea {
-                id: name_text
-                enabled: !isReadOnly
-                text: ""
-                width: parent.width - units.gu(2)
-                height: Math.max(units.gu(10), contentHeight + units.gu(2))
-                wrapMode: TextArea.Wrap
-                selectByMouse: true
+                Item {
+                    id: textAreaContainer
+                    width: timesheetsDetailsPageFlickable.width
+                    height: description_text.height
 
-                // Custom styling for border highlighting
-                Rectangle {
-                    id: borderRect
-                    anchors.fill: parent
-                    color: "transparent"
-                    radius: units.gu(0.5)
-                    border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                    border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                    // z: -1
+                    RichTextPreview {
+                        id: description_text
+                        width: parent.width
+                        height: units.gu(20) // Start with collapsed height
+                        anchors.centerIn: parent.centerIn
+                        text: ""
+                        is_read_only: isReadOnly
+                        onClicked: {
+                            //set the data to a global store and pass the key to the page
+                            Global.description_temporary_holder = text;
+                            apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
+                                isReadOnly: isReadOnly
+                            });
+                        }
+                    }
                 }
             }
         }
@@ -329,14 +402,26 @@ Page {
                 workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1); //passing -1 as no assignee is needed
                 date_widget.setSelectedDate(currentTimesheet.record_date);
 
-                name_text.text = currentTimesheet.name;
+                description_text.text = currentTimesheet.name;
                 if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
                     time_sheet_widget.elapsedTime = currentTimesheet.spentHours;
                 }
                 if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
-                    priorityCombo.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
+                    priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
                 }
             }
+        }
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            if (Global.description_temporary_holder !== "") {
+                //Check if you are coming back from the ReadMore page
+                description_text.text = Global.description_temporary_holder;
+                Global.description_temporary_holder = "";
+            }
+        } else {
+            Global.description_temporary_holder = "";
         }
     }
 }

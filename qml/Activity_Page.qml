@@ -129,7 +129,8 @@ Page {
                         account_id: item.account_id,
                         resId: item.resId,
                         resModel: item.resModel,
-                        last_modified: item.last_modified
+                        last_modified: item.last_modified,
+                        color_pallet: item.color_pallet
                     });
                 }
             }
@@ -297,6 +298,7 @@ Page {
                 account_id: model.account_id
                 due_date: model.due_date
                 state: model.state
+                colorPallet: model.color_pallet
 
                 onCardClicked: function (accountid, recordid) {
                     //  console.log("Page : Loading record " + recordid + " account id " + accountid);
