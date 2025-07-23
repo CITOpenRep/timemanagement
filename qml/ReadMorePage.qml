@@ -14,7 +14,7 @@ Page {
 
     header: PageHeader {
         id:header
-        title: "Rich Text Editor"
+        title: "Description"
     }
 
     Column {
