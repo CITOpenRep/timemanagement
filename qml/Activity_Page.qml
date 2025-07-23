@@ -105,7 +105,9 @@ Page {
 
         try {
             const allActivities = Activity.getAllActivities();
+            var filteredActivities = [];
 
+            // First filter the activities
             for (let i = 0; i < allActivities.length; i++) {
                 var item = allActivities[i];
                 if (shouldIncludeItem(item)) {
@@ -114,7 +116,7 @@ Page {
                     var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";  // Assuming you have getTaskDetails()
                     var user = Accounts.getUserNameByOdooId(item.user_id);
 
-                    activityListModel.append({
+                    filteredActivities.push({
                         id: item.id,
                         summary: item.summary,
                         due_date: item.due_date,
@@ -133,6 +135,18 @@ Page {
                         color_pallet: item.color_pallet
                     });
                 }
+            }
+
+            // Sort activities alphabetically by summary
+            filteredActivities.sort(function (a, b) {
+                var summaryA = (a.summary || "").toLowerCase();
+                var summaryB = (b.summary || "").toLowerCase();
+                return summaryA.localeCompare(summaryB);
+            });
+
+            // Add sorted activities to the model
+            for (let j = 0; j < filteredActivities.length; j++) {
+                activityListModel.append(filteredActivities[j]);
             }
         } catch (e) {
             console.error("❌ Error in get_activity_list():", e);
