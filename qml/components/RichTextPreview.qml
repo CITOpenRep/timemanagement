@@ -16,7 +16,7 @@ Rectangle {
         id: column
         width: parent.width
         height:parent.height
-        spacing: units.gu(0)
+        spacing: units.gu(1)
         Label {
             text:title
             anchors.left:parent.left
@@ -31,13 +31,15 @@ Rectangle {
 
             property int maxHeight: units.gu(16)
 
-            Text {
+            TextArea {
                 id: previewText
                 textFormat: Text.RichText
+                color : theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                 wrapMode: Text.WordWrap
+              //  elide: Text.ElideRight
                 width: parent.width
                 anchors.horizontalCenter: parent.horizontalCenter
-                padding: units.gu(2)
+              //  padding: units.gu(2)
             }
         }
 
