@@ -52,7 +52,10 @@
           <li>Enhanced visual identification by applying project-specific colors to related Tasks and Timesheets.</li>
             <li>Added Project Progress bar in Project List OverView. Enhanced ProjectBar as its color will change to green when the Project is Completed. </li>
                <li>Enabled content attachments from the server to be accessed within the app. File attachments are now viewable directly on-device in both Projects and Tasks.</li>
-
+<li>Moved the ProgressBar From ProjectList View to Task ListView.  </li>
+           <li>Restricted Project creation for Local Account Only. Project Creation Page will be improved more in next release with special optimisation for Local profile. </li>
+           <li>Added new Read More Page for Description. It can be accessed by clicking on the expansion icon in both read and edit mode. </li>
+           <li>Known Issue in attachments feature. It might not work for all the Servers.  </li>
 
            <br>
 

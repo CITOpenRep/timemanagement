@@ -15,6 +15,14 @@ Page {
     header: PageHeader {
         id:header
         title: "Description"
+
+          StyleHints {
+
+            foregroundColor: "white"
+
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
+        }
     }
 
     Column {
