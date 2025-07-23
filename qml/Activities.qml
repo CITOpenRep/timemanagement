@@ -226,7 +226,7 @@ Page {
                         anchors.fill: parent
                         title:"Notes"
                         anchors.centerIn: parent.centerIn
-                        text: "No Notes"
+                        text: ""
                         is_read_only:false
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
