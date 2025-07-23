@@ -141,9 +141,10 @@ Page {
     }
 
     function switchToEditMode() {
-        // Simply change the current page to edit mode
+        console.log("switchToEditMode called - recordid:", recordid);
         if (recordid !== 0) {
             isReadOnly = false;
+            console.log("Switched to edit mode - isReadOnly:", isReadOnly);
         }
     }
 
@@ -401,10 +402,9 @@ Page {
         }
 
         Component.onCompleted: {
-            console.log("Timesheet Component.onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
+            console.log("Timesheet onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
 
-            if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
-            {
+            if (recordid != 0) {
                 currentTimesheet = Model.getTimeSheetDetails(recordid);
                 let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
                 let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
@@ -412,21 +412,29 @@ Page {
                 let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
                 let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
 
-                console.log("Now lets call this with workitemselector ");
+                console.log("Timesheet data - instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId);
 
-                workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1); //passing -1 as no assignee is needed
+                // Check if this is a newly created timesheet (has recordid but no project/task data)
+                if (projectId === -1 && taskId === -1) {
+                    console.log("NEW timesheet - loading with account only");
+                    // For new timesheets, load with account but no project/task data
+                    workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, -1);
+                } else {
+                    console.log("EXISTING timesheet - loading with full data");
+                    workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1);
+                }
+
                 date_widget.setSelectedDate(currentTimesheet.record_date);
-
                 description_text.text = currentTimesheet.name;
                 if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
                     time_sheet_widget.elapsedTime = currentTimesheet.spentHours;
                 }
                 if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
-                    priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
+                    priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1;
                 }
             } else {
+                console.log("NO recordid - calling loadAccounts()");
                 workItem.loadAccounts();
-                console.log("----------------------------------------------Creating new timesheet, setting default values-----------------------------------------------------");
             }
         }
     }

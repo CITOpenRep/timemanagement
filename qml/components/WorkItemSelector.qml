@@ -277,11 +277,10 @@ Rectangle {
             account_component.setEnabled(!readOnly && accountList.length > 1);
         }
 
-        // Immediately simulate state transition (Special case for an entry point for the user)
-        if (selectedId === -1) {
-            if (restrictAccountToLocalOnly) {
-                console.log("[WorkItemSelector] Auto-selecting local account (id=" + default_id + ", name='" + default_name + "') for new project creation");
-            }
+        // Immediately simulate state transition to trigger filters
+        // This happens for new timesheets (selectedId === -1) or when loading default account
+        if (selectedId === -1 || default_id !== -1) {
+            console.log("[WorkItemSelector] Auto-selecting account (id=" + default_id + ", name='" + default_name + "') to trigger filters");
             transitionTo("AccountSelected", {
                 id: default_id,
                 name: default_name
@@ -556,9 +555,8 @@ Rectangle {
             readOnly: readOnly
             onSelectionMade: handleSelection(id, name, selectorType)
             Component.onCompleted: {
-                account_component.setData(selectorModelMap["Account"]);
-                if (!readOnly)
-                    account_component.setEnabled(true);
+                // Load accounts and auto-select default account to trigger state transitions
+                loadAccounts(-1);
             }
         }
 
@@ -580,10 +578,20 @@ Rectangle {
                         console.log("project_component Payload ID:", data.id);
                         console.log("project_component Payload Name:", data.name);
                         loadProjects(data.id, -1); //load projects of the selected account
-                        
+
                         // Enable project selector after account is selected
                         if (!readOnly) {
                             project_component.setEnabled(true);
+                        }
+                    } else if (newState === "ProjectSelected") {
+                        // Enable subproject and task selectors after project is selected
+                        if (!readOnly) {
+                            if (subproject_compoent && showSubProjectSelector) {
+                                subproject_compoent.setEnabled(true);
+                            }
+                            if (task_component && showTaskSelector) {
+                                task_component.setEnabled(true);
+                            }
                         }
                     }
                 }
@@ -615,8 +623,8 @@ Rectangle {
                 }
             }
             Component.onCompleted: {
-                if (!readOnly)
-                    subproject_compoent.setEnabled(true);
+                // Start disabled - will be enabled when project is selected
+                subproject_compoent.setEnabled(false);
             }
         }
 
@@ -642,8 +650,8 @@ Rectangle {
                 }
             }
             Component.onCompleted: {
-                if (!readOnly)
-                    task_component.setEnabled(true);
+                // Start disabled - will be enabled when project is selected
+                task_component.setEnabled(false);
             }
         }
 
@@ -669,8 +677,8 @@ Rectangle {
                 }
             }
             Component.onCompleted: {
-                if (!readOnly)
-                    subtask_component.setEnabled(true);
+                // Start disabled - will be enabled when task is selected
+                subtask_component.setEnabled(false);
             }
         }
 
@@ -691,7 +699,7 @@ Rectangle {
                         console.log("assignee_component Payload ID:", data.id);
                         console.log("assignee_component Payload Name:", data.name);
                         loadAssignees(data.id, -1);
-                        
+
                         // Enable assignee selector after account is selected
                         if (!readOnly) {
                             assignee_component.setEnabled(true);
