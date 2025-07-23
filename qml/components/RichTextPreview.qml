@@ -29,18 +29,34 @@ Rectangle {
             height: maxHeight
             clip: true
 
+            anchors.margins: units.gu(2)
+
             property int maxHeight: units.gu(16)
 
             TextArea {
                 id: previewText
                 textFormat: Text.RichText
+                readOnly: is_read_only
                 color : theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                 wrapMode: Text.WordWrap
-              //  elide: Text.ElideRight
-                width: parent.width
+       
+                width: parent.width - units.gu(2)
                 anchors.horizontalCenter: parent.horizontalCenter
+
+                  Rectangle {
+                        // visible: !isReadOnly
+                        anchors.fill: parent
+                        color: "transparent"
+                        radius: units.gu(0.5)
+                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                        // z: -1
+                    }
               //  padding: units.gu(2)
             }
+
+
+        
         }
 
         Label {

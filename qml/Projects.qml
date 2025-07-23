@@ -261,7 +261,7 @@ Page {
                         height: units.gu(20) // Start with collapsed height
                         anchors.centerIn: parent.centerIn
                         text: ""
-                        is_read_only:false
+                       is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
                             Global.description_temporary_holder=text
@@ -271,14 +271,7 @@ Page {
                         }
                     }
 
-                    Rectangle {
-                        anchors.fill: parent
-                        color: "transparent"
-                        radius: units.gu(0.5)
-                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                        visible: !isReadOnly
-                    }
+                   
                 }
             }
         }
