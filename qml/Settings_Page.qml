@@ -72,14 +72,14 @@ Page {
         }
     }
 
-    Connections {
-        target: python
-        onSyncDone: function (accountId) {
-            console.log("✅Hurray  Sync completed for account:", accountId);
-            syncingAccountId = -1;
-            syncTimeoutTimer.stop(); // Stop timeout timer since sync completed
-        }
-    }
+    // Connections {
+    //     target: python
+    //     onSyncDone: function (accountId) {
+    //         console.log("✅Hurray  Sync completed for account:", accountId);
+    //         syncingAccountId = -1;
+    //         syncTimeoutTimer.stop(); // Stop timeout timer since sync completed
+    //     }
+    // }
 
     property bool loading: false
     property string loadingMessage: ""
@@ -191,7 +191,7 @@ Page {
         // color:  theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#181a20" : "transparent"
         Rectangle {
             anchors.fill: parent
-            anchors.top: pageHeader.bottom
+         //   anchors.top: pageHeader.bottom
             anchors.topMargin: units.gu(5)
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
             Flickable {
