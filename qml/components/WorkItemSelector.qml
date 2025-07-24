@@ -25,16 +25,18 @@ Rectangle {
 
     // Watch for readOnly property changes and update all selectors
     onReadOnlyChanged: {
-        console.log("[WorkItemSelector] readOnly changed to:", readOnly);
+      
         updateAllSelectorStates();
     }
 
     function updateAllSelectorStates() {
-        console.log("[WorkItemSelector] Updating all selector states, readOnly:", readOnly);
+     
         if (account_component) {
             // Special handling for account selector when restricted to local only
             if (restrictAccountToLocalOnly && !readOnly) {
-                console.log("[WorkItemSelector] Enabling account selector (restricted to local only) in updateAllSelectorStates");
+              
+
+
                 account_component.setEnabled(true);
             } else {
                 account_component.setEnabled(!readOnly && account_component.modelData.length > 1);
@@ -96,13 +98,13 @@ Rectangle {
     }
 
     function transitionTo(newState, data) {
-        console.log("[WorkItemSelector] Transition:", currentState, "→", newState, JSON.stringify(data));
+       
         currentState = newState;
         stateChanged(newState, data);
     }
 
     function handleSelection(id, name, selectorType) {
-        console.log("[WorkItemSelector] Selection made:", id, name, selectorType);
+      
         let payload = {
             id: id,
             name: name
@@ -167,14 +169,7 @@ Rectangle {
     }
 
     function deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, assigneeId) {
-        console.log("[Deferred Load] Loading existing record set:");
-        console.log("   Account ID:     ", accountId);
-        console.log("   Project ID:     ", projectId);
-        console.log("   Subproject ID:  ", subProjectId);
-        console.log("   Task ID:        ", taskId);
-        console.log("   Subtask ID:     ", subTaskId);
-        console.log("   Assignee ID:    ", assigneeId);
-
+   
         if (accountId !== -1) {
             loadAccounts(accountId);
         }
@@ -225,14 +220,14 @@ Rectangle {
 
     //load accounts
     function loadAccounts(selectedId = -1) {
-        console.log("Loading accounts, restrictAccountToLocalOnly:", restrictAccountToLocalOnly);
+      
 
         let default_id;
         if (selectedId === -1) {
             // When restricted to local only, always default to local account (id === 0)
             if (restrictAccountToLocalOnly) {
                 default_id = 0;
-                console.log("[WorkItemSelector] Forcing default to local account (id = 0) due to restriction");
+               
             } else {
                 default_id = Accounts.getDefaultAccountId();
             }
@@ -270,7 +265,7 @@ Rectangle {
         // Special handling for account selector when restricted to local only
         if (restrictAccountToLocalOnly && !readOnly) {
             // Always enable account selector when restricted to show local account is selected
-            console.log("[WorkItemSelector] Enabling account selector (restricted to local only)");
+           // console.log("[WorkItemSelector] Enabling account selector (restricted to local only)");
             account_component.setEnabled(true);
         } else {
             // Use standard logic: enable only if more than 1 option and not read-only
@@ -280,7 +275,7 @@ Rectangle {
         // Immediately simulate state transition to trigger filters
         // This happens for new timesheets (selectedId === -1) or when loading default account
         if (selectedId === -1 || default_id !== -1) {
-            console.log("[WorkItemSelector] Auto-selecting account (id=" + default_id + ", name='" + default_name + "') to trigger filters");
+        //    console.log("[WorkItemSelector] Auto-selecting account (id=" + default_id + ", name='" + default_name + "') to trigger filters");
             transitionTo("AccountSelected", {
                 id: default_id,
                 name: default_name
@@ -290,7 +285,7 @@ Rectangle {
 
     //load projects
     function loadProjects(accountId, selectedId = -1) {
-        console.log("Loading projects for account:", accountId);
+       // console.log("Loading projects for account:", accountId);
 
         const rawProjects = Project.getProjectsForAccount(accountId);
         let projectList = [];
@@ -324,7 +319,7 @@ Rectangle {
             } else if (selectedId !== -1 && selectedId === id) {
                 // Special case: if this project matches selectedId but is a sub-project,
                 // still add it so it can be displayed.
-                console.log("Warning: Selected project", id, "is a sub-project. Adding to list for display.");
+              // console.log("Warning: Selected project", id, "is a sub-project. Adding to list for display.");
                 projectList.push({
                     id: id,
                     name: name,
@@ -340,7 +335,7 @@ Rectangle {
 
     // Load subprojects for a given account and parent project
     function loadSubProjects(accountId, parentProjectId, selectedId = -1) {
-        console.log("Loading subprojects for account:", accountId, "parentProjectId:", parentProjectId);
+
 
         const rawProjects = Project.getProjectsForAccount(accountId);
         let subProjectList = [];
@@ -375,7 +370,7 @@ Rectangle {
             } else if (selectedId !== -1 && selectedId === id) {
                 // Special case: if this subproject matches selectedId but doesn't match current filter,
                 // still add it so it can be displayed.
-                console.log("Warning: Selected sub-project", id, "doesn't belong to current parent project", parentProjectId, ". Adding to list for display.");
+              //  console.log("Warning: Selected sub-project", id, "doesn't belong to current parent project", parentProjectId, ". Adding to list for display.");
                 subProjectList.push({
                     id: id,
                     name: name,
@@ -390,7 +385,7 @@ Rectangle {
     }
 
     function loadTasks(accountId, projectIdOrSubprojectId, selectedId = -1) {
-        console.log("Loading tasks for account:", accountId, "parentId (project/subproject):", projectIdOrSubprojectId, "selectedId:", selectedId);
+       // console.log("Loading tasks for account:", accountId, "parentId (project/subproject):", projectIdOrSubprojectId, "selectedId:", selectedId);
 
         const rawTasks = Task.getTasksForAccount(accountId);
         let taskList = [];
@@ -429,7 +424,7 @@ Rectangle {
             } else if (selectedId !== -1 && selectedId === id) {
                 // Special case: if this task matches selectedId but doesn't match current filter,
                 // still add it so it can be displayed, but log a warning
-                console.log("Warning: Selected task", id, "doesn't belong to current project/subproject", projectIdOrSubprojectId);
+               // console.log("Warning: Selected task", id, "doesn't belong to current project/subproject", projectIdOrSubprojectId);
                 taskList.push({
                     id: id,
                     name: name,
@@ -440,13 +435,13 @@ Rectangle {
             }
         }
 
-        console.log("Task filtering complete: found", filteredCount, "tasks for project/subproject", projectIdOrSubprojectId);
+       /// console.log("Task filtering complete: found", filteredCount, "tasks for project/subproject", projectIdOrSubprojectId);
 
         finalizeLoading("Task", task_component, taskList, default_id, default_name, selectedId, "TaskSelected");
     }
 
     function loadSubTasks(accountId, parentTaskId, selectedId = -1) {
-        console.log("Loading subtasks for account:", accountId, "parentTaskId:", parentTaskId);
+     //   console.log("Loading subtasks for account:", accountId, "parentTaskId:", parentTaskId);
 
         const rawTasks = Task.getTasksForAccount(accountId);
         let subTaskList = [];
@@ -575,8 +570,7 @@ Rectangle {
                 onStateChanged: {
                     if (newState === "AccountSelected") {
                         project_component.update_label("Select");
-                        console.log("project_component Payload ID:", data.id);
-                        console.log("project_component Payload Name:", data.name);
+                    
                         loadProjects(data.id, -1); //load projects of the selected account
 
                         // Enable project selector after account is selected
@@ -616,8 +610,7 @@ Rectangle {
                 onStateChanged: {
                     if (newState === "ProjectSelected") {
                         subproject_compoent.update_label("Select");
-                        console.log("Payload ID:", data.id);
-                        console.log("Payload Name:", data.name);
+              
                         loadSubProjects(account_component.selectedId, data.id, -1);
                     }
                 }
@@ -643,8 +636,7 @@ Rectangle {
                 onStateChanged: {
                     if (newState === "ProjectSelected" || newState === "SubprojectSelected") {
                         task_component.update_label("Select");
-                        console.log("task_component Payload ID:", data.id);
-                        console.log("task_component Payload Name:", data.name);
+                      
                         loadTasks(account_component.selectedId, data.id, -1);
                     }
                 }
@@ -670,8 +662,7 @@ Rectangle {
                 onStateChanged: {
                     if (newState === "TaskSelected") {
                         subtask_component.update_label("Select");
-                        console.log("subtask_component Payload ID:", data.id);
-                        console.log("subtask_component Payload Name:", data.name);
+                      
                         loadSubTasks(account_component.selectedId, data.id, -1);
                     }
                 }
@@ -696,8 +687,7 @@ Rectangle {
                 target: workItemSelector
                 onStateChanged: {
                     if (newState === "AccountSelected") {
-                        console.log("assignee_component Payload ID:", data.id);
-                        console.log("assignee_component Payload Name:", data.name);
+                     
                         loadAssignees(data.id, -1);
 
                         // Enable assignee selector after account is selected

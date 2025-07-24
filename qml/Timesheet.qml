@@ -74,20 +74,14 @@ Page {
 
     function save_timesheet() {
         //check if timer is running
-        console.log(TimerService.getActiveTimesheetId());
-        console.log("Record id is" + recordid);
+
         if (recordid === TimerService.getActiveTimesheetId()) {
             notifPopup.open("Error", "Please stop the timer before saving the record", "error");
             return;
         }
 
         const ids = workItem.getIds();
-        console.log("getAllSelectedDbRecordIds returned:");
-        console.log("   accountDbId: " + ids.account_id);
-        console.log("   projectDbId: " + ids.project_id);
-        console.log("   subProjectDbId: " + ids.subproject_id);
-        console.log("   taskDbId: " + ids.task_id);
-        console.log("   subTaskDbId: " + ids.subtask_id);
+
         const user = Accounts.getCurrentUserOdooId(ids.account_id);
 
         if (!user) {
@@ -106,8 +100,6 @@ Page {
         }
 
         let time = time_sheet_widget.elapsedTime;
-        console.log("Recording " + time);
-        console.log("Decimal Representation is " + Utils.convertHHMMtoDecimalHours(time));
 
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
@@ -141,10 +133,8 @@ Page {
     }
 
     function switchToEditMode() {
-        console.log("switchToEditMode called - recordid:", recordid);
         if (recordid !== 0) {
             isReadOnly = false;
-            console.log("Switched to edit mode - isReadOnly:", isReadOnly);
         }
     }
 
@@ -402,7 +392,7 @@ Page {
         }
 
         Component.onCompleted: {
-            console.log("Timesheet onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
+            // console.log("Timesheet onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
 
             if (recordid != 0) {
                 currentTimesheet = Model.getTimeSheetDetails(recordid);
@@ -412,15 +402,15 @@ Page {
                 let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
                 let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
 
-                console.log("Timesheet data - instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId);
+                //    console.log("Timesheet data - instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId);
 
                 // Check if this is a newly created timesheet (has recordid but no project/task data)
                 if (projectId === -1 && taskId === -1) {
-                    console.log("NEW timesheet - loading with account only");
+                    // console.log("NEW timesheet - loading with account only");
                     // For new timesheets, load with account but no project/task data
                     workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, -1);
                 } else {
-                    console.log("EXISTING timesheet - loading with full data");
+                    //  console.log("EXISTING timesheet - loading with full data");
                     workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1);
                 }
 
@@ -433,7 +423,7 @@ Page {
                     priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1;
                 }
             } else {
-                console.log("NO recordid - calling loadAccounts()");
+                //  console.log("NO recordid - calling loadAccounts()");
                 workItem.loadAccounts();
             }
         }

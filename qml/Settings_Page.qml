@@ -93,7 +93,7 @@ Page {
         repeat: false
         onTriggered: {
             if (syncingAccountId !== -1) {
-                console.warn("⚠️  Sync timeout - resetting sync state for account:", syncingAccountId);
+               // console.warn("⚠️  Sync timeout - resetting sync state for account:", syncingAccountId);
                 syncingAccountId = -1;
             }
         }
@@ -115,9 +115,9 @@ Page {
             // Update checkboxes
             updateThemeCheckboxes();
 
-            console.log("Theme preference applied and saved:", themeName);
+           // console.log("Theme preference applied and saved:", themeName);
         } catch (e) {
-            console.warn("Error setting theme preference:", e);
+            console.error("Error setting theme preference:", e);
         }
     }
 
@@ -133,7 +133,7 @@ Page {
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['theme_preference', themeName]);
             });
 
-            console.log("Theme preference saved to database:", themeName);
+           // console.log("Theme preference saved to database:", themeName);
         } catch (e) {
             console.warn("Error saving theme to database:", e);
         }
@@ -161,19 +161,19 @@ Page {
     }
 
     function setDefaultAccount(accountId) {
-        console.log("Setting default account:", accountId);
+       // console.log("Setting default account:", accountId);
 
         // Update the local model first
         for (let i = 0; i < accountListModel.count; i++) {
             const account = accountListModel.get(i);
             const isSelected = account.id === accountId ? 1 : 0;
             accountListModel.setProperty(i, "is_default", isSelected);
-            console.log("Account", account.id, "is_default:", isSelected);
+          //  console.log("Account", account.id, "is_default:", isSelected);
         }
 
         // Persist to database
         const result = Accounts.setDefaultAccount(accountId);
-        console.log("Database update result:", result);
+      //  console.log("Database update result:", result);
 
         // Refresh the accounts list to ensure consistency
         fetch_accounts();
@@ -468,7 +468,7 @@ Page {
 
                                                 // Handle the click/toggle event
                                                 onClicked: {
-                                                    console.log("CheckBox clicked for account:", model.id, "current checked:", checked);
+                                                  //  console.log("CheckBox clicked for account:", model.id, "current checked:", checked);
                                                     // Only set as default if this checkbox was unchecked and is now checked
                                                     if (checked) {
                                                         setDefaultAccount(model.id);

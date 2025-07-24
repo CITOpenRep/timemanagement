@@ -55,12 +55,7 @@ Page {
                 visible: !isReadOnly
                 onTriggered: {
                     const ids = workItem.getIds();
-                    console.log("getAllSelectedDbRecordIds returned:");
-                    console.log("   accountDbId: " + ids.account_id);
-                    console.log("   projectDbId: " + ids.project_id);
-                    console.log("   subProjectDbId: " + ids.subproject_id);
-                    console.log("   taskDbId: " + ids.task_id);
-                    console.log("   subTaskDbId: " + ids.subtask_id);
+                  
                     if (!ids.assignee_id) {
                         notifPopup.open("Error", "Please select the assignee", "error");
                         return;

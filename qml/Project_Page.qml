@@ -85,7 +85,7 @@ Page {
                         "isReadOnly": false
                     });
                 } else {
-                    console.log(result.error);
+                    console.error(result.error);
                     // You might want to add error notification here
                 }
             }

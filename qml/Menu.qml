@@ -57,7 +57,7 @@ Page {
                             "isReadOnly": false
                         });
                     } else {
-                        console.log("Error creating timesheet: " + result.message);
+                        console.error("Error creating timesheet: " + result.message);
                     }
                     page = 1;
                     apLayout.setCurrentPage(page);

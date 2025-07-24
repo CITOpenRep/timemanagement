@@ -34,7 +34,7 @@ Item {
         height: units.gu(10)
 
         onSelectionMade: {
-            console.log("[SelectionButton] Selected:", id, name, "for", selectorType);
+           // console.log("[SelectionButton] Selected:", id, name, "for", selectorType);
             selectionButton.selectionMade(id, name, selectorType);
             selectionButton.selectedId = id;
             entity_btn_label.text = name;
@@ -101,7 +101,7 @@ Item {
                             return;
                         }
                         if (modelData.length === 0) {
-                            console.log("[SelectionButton] No data set for", selectorType);
+                           // console.log("[SelectionButton] No data set for", selectorType);
                             return;
                         }
                         comboSelectorDialog.open(labelText, modelData);
@@ -123,13 +123,13 @@ Item {
             console.log("[SelectionButton] Ignoring setEnabled(" + isEnabled + ") because readOnly is true for", selectorType);
         } else {
             enabledState = isEnabled;
-            console.log("[SelectionButton] setEnabled(" + isEnabled + ") for", selectorType);
+         //   console.log("[SelectionButton] setEnabled(" + isEnabled + ") for", selectorType);
         }
     }
 
     function applyDeferredSelection(selectedId) {
         if (!modelData || modelData.length === 0) {
-            console.log("[SelectionButton] No model data loaded for applyDeferredSelection for", selectorType);
+         //  console.log("[SelectionButton] No model data loaded for applyDeferredSelection for", selectorType);
             return;
         }
 
@@ -137,11 +137,11 @@ Item {
             if (modelData[i].id === selectedId) {
                 entity_btn.text = modelData[i].name;
                 selectionButton.selectedId = selectedId;
-                console.log("[SelectionButton] Deferred selection applied for", selectorType, ":", selectedId, modelData[i].name);
+              //  console.log("[SelectionButton] Deferred selection applied for", selectorType, ":", selectedId, modelData[i].name);
                 return;
             }
         }
 
-        console.log("[SelectionButton] ID", selectedId, "not found in modelData for", selectorType);
+      //  console.log("[SelectionButton] ID", selectedId, "not found in modelData for", selectorType);
     }
 }

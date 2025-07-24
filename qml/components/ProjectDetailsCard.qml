@@ -94,10 +94,10 @@ ListItem {
             if (result.success) {
                 const result_start = TimerService.start(result.id);
                 if (!result_start.success) {
-                    console.log("Timer start failed:", result_start.error);
+                    console.warn("Timer start failed:", result_start.error);
                 }
             } else {
-                console.log("Timesheet creation failed:", result.error);
+                console.warn("Timesheet creation failed:", result.error);
             }
         }
     }

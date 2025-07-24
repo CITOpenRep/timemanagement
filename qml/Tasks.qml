@@ -95,12 +95,7 @@ Page {
 
     function save_task_data() {
         const ids = workItem.getIds();
-        console.log("getAllSelectedDbRecordIds returned:");
-        console.log("   accountDbId: " + ids.account_id);
-        console.log("   projectDbId: " + ids.project_id);
-        console.log("   subProjectDbId: " + ids.subproject_id);
-        console.log("   taskDbId: " + ids.task_id);
-        console.log("   subTaskDbId: " + ids.subtask_id);
+    
         if (!ids.assignee_id) {
             notifPopup.open("Error", "Please select the assignee", "error");
             return;
@@ -127,7 +122,7 @@ Page {
                 status: "updated"
             };
 
-            console.log("Saving task data:", JSON.stringify(saveData));
+         
 
             const result = Task.saveOrUpdateTask(saveData);
             if (!result.success) {
@@ -137,7 +132,7 @@ Page {
                 // Reload the task data to reflect changes
                 if (recordid !== 0) {
                     currentTask = Task.getTaskDetails(recordid);
-                    console.log("Reloaded task after save:", JSON.stringify(currentTask));
+                   
                 }
                 // No navigation - stay on the same page like Timesheet.qml
                 // User can use back button to return to list page
@@ -360,7 +355,7 @@ Page {
         }
     }
     Component.onCompleted: {
-        console.log("Tasks Component.onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
+
 
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
@@ -393,7 +388,7 @@ Page {
             }
 
             // Set date range more carefully to preserve original dates
-            console.log("Setting dates - start_date:", currentTask.start_date, "end_date:", currentTask.end_date);
+          
             if (currentTask.start_date && currentTask.end_date) {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
             } else if (currentTask.start_date) {

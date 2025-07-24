@@ -45,7 +45,7 @@ Item {
         id: myTimePicker
         onTimeSelected: {
             let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
-            console.log("Selected time:", timeStr);
+        
             elapsedTime = timeStr;  // for example, update a field
             timeDisplay.text = elapsedTime;
             TimeSheet.updateTimesheetWithDuration(timesheetId, timeDisplay.text);
@@ -114,7 +114,7 @@ Item {
                 enabled: !autoMode
                 onClicked: {
                     myTimePicker.open(1, 0);
-                    console.log("Finalized manual entry: " + timeDisplay.text);
+                  
                 }
             }
             Item {
@@ -180,7 +180,7 @@ Item {
                             return;
                         }
 
-                        console.log("Finalized manual entry: " + timeDisplay.text);
+                   
                         const result = TimeSheet.markTimesheetAsReadyById(timesheetId);
                         if (!result.success) {
                             notifPopup.open("Error", "Unable to finalise the timesheet", "error");
