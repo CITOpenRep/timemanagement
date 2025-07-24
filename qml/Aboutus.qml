@@ -49,16 +49,22 @@ Page {
 
     header: PageHeader {
         title: "About"
+        StyleHints {
+            foregroundColor: "white"
+
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
+        }
     }
 
-    Flickable {
+    ScrollView {
         id: flick
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        contentWidth: parent.width
-        contentHeight: contentContainer.height
+        
+        anchors.margins: units.gu(2)
         clip: true
 
         Column {
