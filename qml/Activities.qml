@@ -182,7 +182,7 @@ Page {
                 leftPadding: units.gu(3)
                 TextArea {
                     id: summary
-                    textFormat: Text.RichText
+                    textFormat: Text //Do not make this RichText
                     readOnly: isReadOnly
                     width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
                     height: units.gu(5) // Start with collapsed height
