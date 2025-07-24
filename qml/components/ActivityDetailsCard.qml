@@ -196,7 +196,7 @@ ListItem {
                             height: units.gu(3)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "#222"
                         //    anchors.right: parent.right
-                            anchors.bottom: root.bottom
+                          //  anchors.bottom: root.bottom
                         }
                     }
                 }
