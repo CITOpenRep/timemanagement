@@ -137,11 +137,9 @@ Page {
                 }
             }
 
-            // Sort activities alphabetically by summary
+            // Sort activities alphabetically by summary (same as projects)
             filteredActivities.sort(function (a, b) {
-                var summaryA = (a.summary || "").toLowerCase();
-                var summaryB = (b.summary || "").toLowerCase();
-                return summaryA.localeCompare(summaryB);
+                return (a.summary || "").localeCompare(b.summary || "");
             });
 
             // Add sorted activities to the model
