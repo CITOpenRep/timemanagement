@@ -130,7 +130,6 @@ Page {
                     onCheckedChanged: {
                         if (checked) {
                             taskRadio.checked = false;
-                         
                         }
                     }
                 }
@@ -276,14 +275,11 @@ Page {
 
     Component.onCompleted: {
         if (recordid != 0) {
-           
             currentActivity = Activity.getActivityById(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
 
             let instanceId = currentActivity.account_id;
             let user_id = currentActivity.user_id;
-
-           
 
             // Load the Activity Type
             reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
@@ -294,21 +290,20 @@ Page {
 
             // If project and subproject are the same, treat it as no subproject selected.
             if (currentActivity.project_id && currentActivity.project_id === currentActivity.sub_project_id) {
-              
                 currentActivity.sub_project_id = -1;
             }
 
             switch (currentActivity.linkedType) {
             case "task":
                 // Connected to task: Show project, subproject, and task selectors
-               
+
                 taskRadio.checked = true;
-               
+
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
                 break;
             case "project":
                 // Connected to project/subproject: Show project and subproject selectors
-              
+
                 projectRadio.checked = true;
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
                 break;
@@ -323,8 +318,6 @@ Page {
             // Update due date
             date_widget.setSelectedDate(currentActivity.due_date);
         } else {
-          
-
             let account = Accounts.getAccountsList();
             reloadActivityTypeSelector(account, -1);
 
@@ -350,7 +343,6 @@ Page {
         let selectedText = "No Type";
         let selectedFound = (selectedTypeId === -1);
 
-       
         for (let i = 0; i < rawTypes.length; i++) {
             let id = accountId === 0 ? rawTypes[i].id : rawTypes[i].odoo_record_id;
             let name = rawTypes[i].name;
@@ -361,16 +353,15 @@ Page {
                 parent_id: null  // no hierarchy assumed
             });
 
-         //   console.log("Checking Type:", id, name);
+            //   console.log("Checking Type:", id, name);
 
             if (selectedTypeId !== undefined && selectedTypeId !== null && selectedTypeId === id) {
                 selectedText = name;
                 selectedFound = true;
-               // console.log("Selected Type Found:", selectedText);
+                // console.log("Selected Type Found:", selectedText);
             }
         }
 
-     
         // Push to the model and reload selector
         activityTypeSelector.dataList = flatModel;
         activityTypeSelector.reload();
@@ -382,7 +373,7 @@ Page {
 
     function saveActivityData() {
         const ids = workItem.getIds();
-       
+        console.log("DEBUG Activities.qml - getIds() returned:", JSON.stringify(ids));
 
         var linkid = -1;
         var resId = 0;
@@ -391,18 +382,19 @@ Page {
             // Use subproject if selected, otherwise use main project
             linkid = ids.subproject_id || ids.project_id;
             resId = Accounts.getOdooModelId(ids.account_id, "Project");
-         //   console.log("Project mode - linking to:", ids.subproject_id ? "subproject " + ids.subproject_id : "project " + ids.project_id);
+            //   console.log("Project mode - linking to:", ids.subproject_id ? "subproject " + ids.subproject_id : "project " + ids.project_id);
         }
 
         if (taskRadio.checked) {
-            linkid = ids.sub_task_id || ids.task_id;
+            linkid = ids.subtask_id || ids.task_id;
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
+            console.log("DEBUG Activities.qml - Task mode linkid:", linkid, "subtask_id:", ids.subtask_id, "task_id:", ids.task_id);
         }
 
         const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
 
         if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
-           // console.log(linkid + "is the value of linkid");
+            // console.log(linkid + "is the value of linkid");
             notifPopup.open("Error", "Activity must be connected to a project or task", "error");
             return;
         }
@@ -436,6 +428,7 @@ Page {
             status: "updated"
         };
 
+        console.log("DEBUG Activities.qml - Final activity data before save:", JSON.stringify(data));
         Utils.show_dict_data(data);
 
         const result = Activity.saveActivityData(data);
