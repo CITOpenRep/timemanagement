@@ -379,6 +379,7 @@ Page {
                         anchors.centerIn: parent.centerIn
                         text: ""
                         is_read_only: isReadOnly
+                        useRichText: false
                         onClicked: {
                             //set the data to a global store and pass the key to the page
                             Global.description_temporary_holder = text;

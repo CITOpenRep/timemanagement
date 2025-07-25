@@ -6,6 +6,7 @@ Rectangle {
     property alias text: previewText.text
     property string title: "Description"
     property bool is_read_only: true
+    property bool useRichText: true
     width: parent.width
     height: parent.height//column.implicitHeight
     color: "transparent"
@@ -35,7 +36,7 @@ Rectangle {
 
             TextArea {
                 id: previewText
-                textFormat: Text.RichText
+                textFormat: useRichText ? Text.RichText : Text.PlainText
                 readOnly: is_read_only
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                 // wrapMode: Text.WordWrap
@@ -53,45 +54,43 @@ Rectangle {
                     // z: -1
                 }
 
-                  Item {
-            id: floatingActionButton
-            width: units.gu(3)
-            height: units.gu(3)
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.rightMargin: units.gu(1)
-            anchors.bottomMargin: units.gu(1)
-            z: 10
-            visible: true
+                Item {
+                    id: floatingActionButton
+                    width: units.gu(3)
+                    height: units.gu(3)
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.rightMargin: units.gu(1)
+                    anchors.bottomMargin: units.gu(1)
+                    z: 10
+                    visible: true
 
-            Rectangle {
+                    Rectangle {
 
-                radius: units.gu(.5)
-                color: LomiriColors.orange
-                anchors.fill: parent
-                Image {
-                    id: expansionIcon
-
-                    source: "../images/expansion.png"
-                    width: units.gu(1.5)
-                    height: units.gu(1.5)
-                    // anchors.right: parent.right
-                    //  anchors.rightMargin: units.gu(2)
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    MouseArea {
+                        radius: units.gu(.5)
+                        color: LomiriColors.orange
                         anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.clicked()
+                        Image {
+                            id: expansionIcon
+
+                            source: "../images/expansion.png"
+                            width: units.gu(1.5)
+                            height: units.gu(1.5)
+                            // anchors.right: parent.right
+                            //  anchors.rightMargin: units.gu(2)
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.clicked()
+                            }
+                        }
                     }
                 }
-            }
-        }
                 //  padding: units.gu(2)
             }
         }
-
-      
     }
 }

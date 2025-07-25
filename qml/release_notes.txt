@@ -32,8 +32,19 @@
         through seamless integration with Odoo.
     </p>
 
-   <h3>Change History : (Version 1.1.0) Alpha Draft </h3>
+   <h3>Change History : (Version 1.1.1) Alpha Draft </h3>
     <ul>
+
+
+       <h4> 25-07-2025 : Version 1.1.1 </h4>
+        <li>Fixes in WorkItem Selctors for Activities, Timesheets, Tasks and Projects.</li>
+          <li>Added Edit Option in Timesheet View Mode to go to Edit Mode.</li>
+          <li>Fixes in Activities Notes , Now fully functional and supports richText. </li>
+           <li>Fixes in title in Timesheets and Tasks. </li>
+           <li>Added About us page in Convergence Mode Menu. </li>
+            <li>Fixed the Description Filed in timesheets to be plainText. </li>
+
+           <br>
 
 
      <h4> 23-07-2025 : Version 1.1.0 </h4>
