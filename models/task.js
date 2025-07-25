@@ -12,28 +12,18 @@ function saveOrUpdateTask(data) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         let resolvedParentId = 0; // Default to 0 (no parent)
 
-        console.log("data.parentId :", data.parentId );
-        console.log("data.subProjectId:", data.subProjectId);
-        console.log("data.projectId:", data.projectId);
-
         // Handle parent_id for subtask creation
         if (data.parentId && data.parentId > 0) {
             resolvedParentId = data.parentId;
-            console.log("Setting parent_id for subtask creation:", resolvedParentId);
         } else {
             resolvedParentId = 0; // This is a parent task, not a subtask
-            console.log("Creating parent task (no parent_id)");
         }
 
         // Handle project_id - if subproject is specified, use it; otherwise use main project
         let finalProjectId = data.projectId;
         if (data.subProjectId && data.subProjectId > 0) {
             finalProjectId = data.subProjectId;
-            console.log("Using subproject as project_id:", finalProjectId);
         }
-        
-        console.log("Final resolvedParentId:", resolvedParentId);
-        console.log("Final finalProjectId:", finalProjectId);
         
         var timestamp =  Utils.getFormattedTimestampUTC();
         db.transaction(function (tx) {
@@ -53,21 +43,16 @@ function saveOrUpdateTask(data) {
                               
             } else {
                 // INSERT
-                // For locally created tasks, generate a negative odoo_record_id to distinguish from Odoo synced records
-                let localOdooRecordId = -Date.now(); // Use negative timestamp as unique local ID
-                
-                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, favorites, initial_planned_hours, description, user_id, sub_project_id, last_modified, status, odoo_record_id) \
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, favorites, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
                                   data.deadline, data.favorites, data.plannedHours,
                                   data.description, data.assigneeUserId,
-                                  data.subProjectId, timestamp, data.status, localOdooRecordId
+                                  data.subProjectId, timestamp, data.status
                               ]
                               );
-                              
-                console.log("Created new task with local odoo_record_id:", localOdooRecordId);
             }
         });
 
