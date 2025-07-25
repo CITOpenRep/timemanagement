@@ -178,7 +178,7 @@ ListItem {
                         }
 
                         Text {
-                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? smartTruncate(root.notes, 50) : "No Notes"
+                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? smartTruncate(root.notes, 40) : "No Notes"
                             textFormat: Text.RichText
                             font.pixelSize: units.gu(1.6)
                             maximumLineCount: 1
