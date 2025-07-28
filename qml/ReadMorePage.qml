@@ -45,6 +45,10 @@ Page {
             width: parent.width - units.gu(4)
             height: (parent.height -header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
             clip: true
+
+            onTextChanged: {
+                Global.description_temporary_holder = editor.text;
+            }
         }
 
         Button {
