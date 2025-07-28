@@ -254,7 +254,7 @@ Rectangle {
         // Special handling for account selector when restricted to local only
         if (restrictAccountToLocalOnly && !readOnly) {
             // Always enable account selector when restricted to show local account is selected
-            // console.log("[WorkItemSelector] Enabling account selector (restricted to local only)");
+            
             account_component.setEnabled(true);
         } else {
             // Use standard logic: enable only if more than 1 option and not read-only
