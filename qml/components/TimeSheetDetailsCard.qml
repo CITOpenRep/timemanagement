@@ -250,13 +250,13 @@ ListItem {
                 }
 
                 Text {
-                    text: (project ? project : "No Project")
+                    text: (project ? Utils.truncateText(project, 30): "No Project")
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
                 Text {
-                    text: task
+                    text: (typeof task === "string" && task.trim() !== "") ? Utils.truncateText(task, 30) : "No Task" ;
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
