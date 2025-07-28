@@ -167,7 +167,7 @@ ListItem {
                         spacing: units.gu(0.2)
 
                         Text {
-                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? smartTruncate(root.summary, 60) : "No Summary"
+                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? smartTruncate(root.summary, 40) : "No Summary"
                             textFormat: Text.RichText
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                             font.pixelSize: units.gu(2)
@@ -178,11 +178,11 @@ ListItem {
                         }
 
                         Text {
-                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? smartTruncate(root.notes, 40) : "No Notes"
+                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? smartTruncate(root.notes, 20) : "No Notes"
                             textFormat: Text.RichText
                             font.pixelSize: units.gu(1.6)
                             maximumLineCount: 1
-                            wrapMode: Text.WordWrap
+                          //  wrapMode: Text.WordWrap
                             elide: Text.ElideRight
                             width: parent.width - units.gu(2)
                             height: units.gu(2)
