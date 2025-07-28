@@ -106,7 +106,7 @@ Item {
             return;
         }
 
-        console.log("Navigating to subprojects - from parent:", currentParentId, "account:", currentAccountId, "to parent:", projectId, "account:", accountId);
+      //  console.log("Navigating to subprojects - from parent:", currentParentId, "account:", currentAccountId, "to parent:", projectId, "account:", accountId);
         navigationStackModel.append({
             parentId: currentParentId !== undefined ? currentParentId : -1,
             accountId: currentAccountId !== undefined ? currentAccountId : -1
@@ -221,14 +221,14 @@ Item {
                 model.append(entry);
             });
             childrenMap[key] = model;
-            console.log("Created model for key:", key, "with", model.count, "projects");
+        //
         }
 
         childrenMapReady = true;
     }
 
     function getCurrentModel() {
-        console.log("getCurrentModel called - currentParentId:", currentParentId, "currentAccountId:", currentAccountId);
+
 
         // Find the model that matches current parent and account
         // For root level (currentParentId = -1), we need to find models for all accounts
@@ -241,7 +241,7 @@ Item {
                 if (key.startsWith("-1_")) {
                     // Root level projects
                     var model = childrenMap[key];
-                    console.log("Adding root level projects from key:", key, "count:", model.count);
+                  //  console.log("Adding root level projects from key:", key, "count:", model.count);
                     for (var i = 0; i < model.count; i++) {
                         allRootProjects.push(model.get(i));
                     }
@@ -258,20 +258,15 @@ Item {
                 combinedModel.append(project);
             });
 
-            console.log("Root level combined model count:", combinedModel.count);
+           // console.log("Root level combined model count:", combinedModel.count);
             return combinedModel;
         } else {
             // For specific parent, we need to find the account context
             // This will be set when navigating into a project
             var targetKey = currentParentId + "_" + currentAccountId;
-            console.log("Looking for target key:", targetKey);
+          //  console.log("Looking for target key:", targetKey);
             var model = childrenMap[targetKey];
-            if (model) {
-                console.log("Found model with count:", model.count);
-            } else {
-                console.log("No model found for key:", targetKey);
-                console.log("Available keys:", Object.keys(childrenMap));
-            }
+           
             return model || Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
         }
     }
@@ -292,7 +287,7 @@ Item {
                     navigationStackModel.remove(navigationStackModel.count - 1);
                     currentParentId = last.parentId !== undefined ? last.parentId : -1;
                     currentAccountId = last.accountId !== undefined ? last.accountId : -1;
-                    console.log("Back navigation - restored parent:", currentParentId, "account:", currentAccountId);
+                  //  console.log("Back navigation - restored parent:", currentParentId, "account:", currentAccountId);
                 }
             }
         }
@@ -336,7 +331,7 @@ Item {
                         editProject(projectLocalId);
                     }
                     onViewRequested: id => {
-                        console.log("View requested for project with hasChildren:", projectHasChildren, "projectIdVal:", projectIdVal, "projectAccountId:", projectAccountId);
+                       // console.log("View requested for project with hasChildren:", projectHasChildren, "projectIdVal:", projectIdVal, "projectAccountId:", projectAccountId);
                         if (projectHasChildren && projectIdVal > 0 && projectAccountId >= 0) {
                             navigateToProject(projectIdVal, projectAccountId);
                         } else if (!projectHasChildren) {

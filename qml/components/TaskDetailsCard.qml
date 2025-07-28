@@ -106,7 +106,7 @@ ListItem {
                 }
                 //do we need to show a success popup ? why?
             } else {
-                console.log(result.error);
+                console.error(result.error);
                 notifPopup.open("Error", result.error, "error");
             }
         }

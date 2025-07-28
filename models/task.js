@@ -10,21 +10,21 @@ function validId(value) {
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        let resolvedParentId = null;
+        let resolvedParentId = 0; // Default to 0 (no parent)
 
-        console.log("data.parentId :", data.parentId );
-        console.log("data.subProjectId:", data.subProjectId);
-        console.log("data.projectId:", data.projectId);
-
+        // Handle parent_id for subtask creation
         if (data.parentId && data.parentId > 0) {
             resolvedParentId = data.parentId;
-        } else if (data.subProjectId && data.subProjectId > 0) {
-            data.projectId=data.subProjectId //We shall need a better way to fix it (TODO)
-            resolvedParentId = 0;
         } else {
-            resolvedParentId = 0;
+            resolvedParentId = 0; // This is a parent task, not a subtask
         }
-        console.log("resolvedParentId:", resolvedParentId);
+
+        // Handle project_id - if subproject is specified, use it; otherwise use main project
+        let finalProjectId = data.projectId;
+        if (data.subProjectId && data.subProjectId > 0) {
+            finalProjectId = data.subProjectId;
+        }
+        
         var timestamp =  Utils.getFormattedTimestampUTC();
         db.transaction(function (tx) {
             if (data.record_id) {
@@ -33,7 +33,7 @@ function saveOrUpdateTask(data) {
                     account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, favorites = ?, description = ?, user_id = ?, sub_project_id = ?, \
                     start_date = ?, end_date = ?, deadline = ?, last_modified = ?, status = ? WHERE id = ?',
                               [
-                                  data.accountId, data.name, data.projectId,
+                                  data.accountId, data.name, finalProjectId,
                                   resolvedParentId, data.plannedHours, data.favorites,
                                   data.description, data.assigneeUserId, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
@@ -46,7 +46,7 @@ function saveOrUpdateTask(data) {
                 tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, favorites, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
-                                  data.accountId, data.name, data.projectId,
+                                  data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
                                   data.deadline, data.favorites, data.plannedHours,
                                   data.description, data.assigneeUserId,

@@ -30,6 +30,56 @@ ListItem {
         return text;
     }
 
+    function stripHtmlTags(text) {
+        // Simple HTML tag removal for truncation purposes
+        return text.replace(/<[^>]*>/g, '');
+    }
+
+    function hasHtmlTags(text) {
+        // Check if text contains HTML tags
+        return /<[^>]*>/.test(text);
+    }
+
+    function smartTruncate(text, maxLength) {
+        // Check if text contains HTML tags
+        if (hasHtmlTags(text)) {
+            // Use rich text truncation
+            return truncateRichText(text, maxLength);
+        } else {
+            // Use simple truncation for plain text
+            return truncateText(text, maxLength);
+        }
+    }
+
+    function truncateRichText(text, maxLength) {
+        // Strip HTML tags for length calculation, but return original for display
+        var strippedText = stripHtmlTags(text);
+        if (strippedText.length > maxLength) {
+            // Find the cutoff point in the original text that corresponds to maxLength characters of content
+            var currentLength = 0;
+            var result = "";
+            var inTag = false;
+
+            for (var i = 0; i < text.length && currentLength < maxLength; i++) {
+                var currentChar = text.charAt(i);
+                if (currentChar === '<') {
+                    inTag = true;
+                } else if (currentChar === '>') {
+                    inTag = false;
+                    result += currentChar;
+                    continue;
+                }
+
+                result += currentChar;
+                if (!inTag) {
+                    currentLength++;
+                }
+            }
+            return result + '...';
+        }
+        return text;
+    }
+
     clip: true
     trailingActions: ListItemActions {
         actions: [
@@ -114,10 +164,11 @@ ListItem {
                     Column {
                         width: parent.width - units.gu(4)
                         height: parent.height - units.gu(2)
-                        spacing: 0
+                        spacing: units.gu(0.2)
 
                         Text {
-                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? truncateText(root.summary, 40) : "No Summary"
+                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? smartTruncate(root.summary, 60) : "No Summary"
+                            textFormat: Text.RichText
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                             font.pixelSize: units.gu(2)
                             wrapMode: Text.WordWrap
@@ -127,9 +178,11 @@ ListItem {
                         }
 
                         Text {
-                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? truncateText(root.notes, 40) : "No Notes"
+                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? smartTruncate(root.notes, 40) : "No Notes"
+                            textFormat: Text.RichText
                             font.pixelSize: units.gu(1.6)
-                            wrapMode: Text.NoWrap
+                            maximumLineCount: 1
+                            wrapMode: Text.WordWrap
                             elide: Text.ElideRight
                             width: parent.width - units.gu(2)
                             height: units.gu(2)
@@ -142,6 +195,8 @@ ListItem {
                             font.pixelSize: units.gu(1.6)
                             height: units.gu(3)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "#222"
+                        //    anchors.right: parent.right
+                          //  anchors.bottom: root.bottom
                         }
                     }
                 }

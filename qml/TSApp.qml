@@ -240,26 +240,23 @@ MainView {
     // Function to load saved theme preference and apply it
     function loadAndApplyTheme() {
         try {
-            console.log("🎨 Loading theme preference...");
             var savedTheme = getSavedThemePreference();
-            console.log("🎨 Retrieved saved theme:", savedTheme);
 
             if (savedTheme !== "" && savedTheme !== null && savedTheme !== undefined) {
                 Theme.name = savedTheme;
-                console.log("🎨 Applied saved theme:", savedTheme);
             } else {
                 // No saved theme found, set and save a default theme
-                console.log("🎨 No saved theme found, setting default theme");
+
 
                 // Set Light Mode as default (you can change this to SuruDark if you prefer dark)
                 var defaultTheme = "Ubuntu.Components.Themes.Ambiance";
                 Theme.name = defaultTheme;
                 saveThemePreference(defaultTheme);
 
-                console.log("🎨 Applied and saved default theme:", defaultTheme);
+               
             }
         } catch (e) {
-            console.warn("🎨 Error loading theme preference:", e);
+
             // Fallback to light theme if there's an error
             Theme.name = "Ubuntu.Components.Themes.Ambiance";
         }
@@ -268,7 +265,7 @@ MainView {
     // Function to get saved theme preference from database
     function getSavedThemePreference() {
         try {
-            console.log("🗄️ Opening database for theme preference...");
+            //   console.log("🗄️ Opening database for theme preference...");
             var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
             var themeName = "";
 
@@ -278,12 +275,10 @@ MainView {
 
                 // Get saved theme
                 var result = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', ['theme_preference']);
-                console.log("🗄️ Database query result rows:", result.rows.length);
+                //   console.log("🗄️ Database query result rows:", result.rows.length);
                 if (result.rows.length > 0) {
                     themeName = result.rows.item(0).value;
-                    console.log("🗄️ Found saved theme in database:", themeName);
-                } else {
-                    console.log("🗄️ No theme preference found in database");
+                    // console.log("🗄️ Found saved theme in database:", themeName);
                 }
             });
 
@@ -297,7 +292,7 @@ MainView {
     // Function to save theme preference to database
     function saveThemePreference(themeName) {
         try {
-            console.log("💾 Saving theme preference to database:", themeName);
+            // console.log("💾 Saving theme preference to database:", themeName);
             var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
             db.transaction(function (tx) {
@@ -306,10 +301,10 @@ MainView {
 
                 // Save theme preference (INSERT OR REPLACE)
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['theme_preference', themeName]);
-                console.log("💾 Theme preference saved successfully:", themeName);
+                //    console.log("💾 Theme preference saved successfully:", themeName);
             });
 
-            console.log("💾 Database transaction completed for theme:", themeName);
+            //    console.log("💾 Database transaction completed for theme:", themeName);
         } catch (e) {
             console.warn("💾 Error saving theme preference:", e);
         }

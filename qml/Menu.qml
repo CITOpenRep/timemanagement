@@ -34,6 +34,7 @@ import "../models/accounts.js" as Account
 Page {
     id: listpage
     title: "Menu"
+    property bool isMultiColumn: apLayout.columns > 1
     anchors.fill: parent
     header: PageHeader {
         id: header
@@ -56,7 +57,7 @@ Page {
                             "isReadOnly": false
                         });
                     } else {
-                        console.log("Error creating timesheet: " + result.message);
+                        console.error("Error creating timesheet: " + result.message);
                     }
                     page = 1;
                     apLayout.setCurrentPage(page);
@@ -238,34 +239,34 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             }
-            // ListItem {
-            //     height: units.gu(6)
-            //     Rectangle {
-            //         color: "transparent"
-            //         anchors.fill: parent
-            //         anchors.left: parent.left
-            //         anchors.leftMargin: units.gu(3)
-            //         Row {
-            //             anchors.verticalCenter: parent.verticalCenter
-            //             spacing: units.gu(2)
-            //             Icon {
-            //                 width: 20
-            //                 height: 20
-            //                 name: "sync"
-            //             }
-            //             Label {
-            //                 verticalAlignment: Text.AlignVCenter
-            //                 horizontalAlignment: Text.AlignLeft
-            //                 text: "Sync"
-            //             }
-            //         }
-            //     }
-            //     onClicked: {
-            //         apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Sync_Page.qml"));
-            //         page = 5;
-            //         apLayout.setCurrentPage(page);
-            //     }
-            // }
+            ListItem {
+                height: units.gu(6)
+                Rectangle {
+                    color: "transparent"
+                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.leftMargin: units.gu(3)
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: units.gu(2)
+                        Icon {
+                            width: 20
+                            height: 20
+                            name: "info"
+                        }
+                        Label {
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignLeft
+                            text: "About Us"
+                        }
+                    }
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Aboutus.qml"));
+                    page = 5;
+                    apLayout.setCurrentPage(page);
+                }
+            }
             ListItem {
                 height: units.gu(6)
                 Rectangle {

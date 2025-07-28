@@ -182,7 +182,7 @@ Page {
                         "isReadOnly": false
                     });
                 } else {
-                    console.log(result.error);
+                   
                     notifPopup.open("Error", "Unable to create timesheet", "error");
                 }
             }

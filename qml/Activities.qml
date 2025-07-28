@@ -68,7 +68,6 @@ Page {
 
         Row {
             id: row1
-            anchors.left: parent.left
             topPadding: units.gu(5)
 
             Column {
@@ -86,7 +85,10 @@ Page {
                     width: flickable.width - units.gu(2)
                     onStateChanged: {
                         if (newState === "AccountSelected") {
-                            reloadActivityTypeSelector(data.id, -1);
+                            // Only reset activity type for new activities, not when loading existing ones
+                            if (recordid === 0) {
+                                reloadActivityTypeSelector(data.id, -1);
+                            }
                         }
                     }
                 }
@@ -96,7 +98,6 @@ Page {
         Row {
             id: row1w
             anchors.top: row1.bottom
-            anchors.left: parent.left
             topPadding: units.gu(1)
             Column {
                 id: myCol88w
@@ -108,10 +109,7 @@ Page {
                     TSLabel {
                         id: resource_label
                         text: "Connected to"
-                        // font.bold: true
-                        anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        //textSize: Label.Large
                     }
                 }
             }
@@ -132,7 +130,6 @@ Page {
                     onCheckedChanged: {
                         if (checked) {
                             taskRadio.checked = false;
-                            console.log("Project radio selected - subproject selector should be visible");
                         }
                     }
                 }
@@ -184,7 +181,7 @@ Page {
                 leftPadding: units.gu(3)
                 TextArea {
                     id: summary
-                    textFormat: Text.RichText
+                    textFormat: Text //Do not make this RichText
                     readOnly: isReadOnly
                     width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
                     height: units.gu(5) // Start with collapsed height
@@ -213,7 +210,6 @@ Page {
             topPadding: units.gu(1)
             height: units.gu(20)
 
-
             Column {
                 id: myCol9
                 anchors.fill: parent
@@ -224,22 +220,21 @@ Page {
                     RichTextPreview {
                         id: notes
                         anchors.fill: parent
-                        title:"Notes"
+                        title: "Notes"
                         anchors.centerIn: parent.centerIn
                         text: ""
-                        is_read_only:false
+                        is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
-                            Global.description_temporary_holder=text
-                            apLayout.addPageToNextColumn(activityDetailsPage,Qt.resolvedUrl("ReadMorePage.qml"), {
-                                                             isReadOnly:isReadOnly
-                                                         });
+                            Global.description_temporary_holder = text;
+                            apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
+                                isReadOnly: isReadOnly
+                            });
                         }
                     }
                 }
             }
         }
-
 
         Row {
             id: row4
@@ -280,24 +275,11 @@ Page {
 
     Component.onCompleted: {
         if (recordid != 0) {
-            console.log("Loading activity local id " + recordid + " Account id is " + accountid);
             currentActivity = Activity.getActivityById(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
 
             let instanceId = currentActivity.account_id;
             let user_id = currentActivity.user_id;
-
-            console.log("Activity loaded:", JSON.stringify({
-                resModel: currentActivity.resModel,
-                link_id: currentActivity.link_id,
-                instanceId: instanceId,
-                user_id: user_id,
-                linkedType: currentActivity.linkedType,
-                project_id: currentActivity.project_id,
-                sub_project_id: currentActivity.sub_project_id,
-                task_id: currentActivity.task_id,
-                sub_task_id: currentActivity.sub_task_id
-            }));
 
             // Load the Activity Type
             reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
@@ -308,21 +290,20 @@ Page {
 
             // If project and subproject are the same, treat it as no subproject selected.
             if (currentActivity.project_id && currentActivity.project_id === currentActivity.sub_project_id) {
-                console.log("Project and Sub-project are the same. Setting sub-project to none.");
                 currentActivity.sub_project_id = -1;
             }
 
             switch (currentActivity.linkedType) {
             case "task":
                 // Connected to task: Show project, subproject, and task selectors
-                console.log("Setting up task connection");
+
                 taskRadio.checked = true;
-                console.log("Using deferredLoadExistingRecordSet with:", "projectId:", currentActivity.project_id, "subProjectId:", currentActivity.sub_project_id, "taskId:", currentActivity.task_id);
+
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
                 break;
             case "project":
                 // Connected to project/subproject: Show project and subproject selectors
-                console.log("Setting up project connection");
+
                 projectRadio.checked = true;
                 workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
                 break;
@@ -330,11 +311,13 @@ Page {
                 workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
             }
 
+            // Update fields with loaded data
+            summary.text = currentActivity.summary || "";
+            notes.text = currentActivity.notes || "";
+
             // Update due date
             date_widget.setSelectedDate(currentActivity.due_date);
         } else {
-            console.log("Creating a new activity");
-
             let account = Accounts.getAccountsList();
             reloadActivityTypeSelector(account, -1);
 
@@ -370,9 +353,12 @@ Page {
                 parent_id: null  // no hierarchy assumed
             });
 
+            //   console.log("Checking Type:", id, name);
+
             if (selectedTypeId !== undefined && selectedTypeId !== null && selectedTypeId === id) {
                 selectedText = name;
                 selectedFound = true;
+                // console.log("Selected Type Found:", selectedText);
             }
         }
 
@@ -387,13 +373,7 @@ Page {
 
     function saveActivityData() {
         const ids = workItem.getIds();
-        console.log("getAllSelectedDbRecordIds returned:");
-        console.log("   accountDbId: " + ids.account_id);
-        console.log("   projectDbId: " + ids.project_id);
-        console.log("   subProjectDbId: " + ids.subproject_id);
-        console.log("   taskDbId: " + ids.task_id);
-        console.log("   subTaskDbId: " + ids.subtask_id);
-        console.log("   assigneeDbId: " + ids.assignee_id);
+        console.log("DEBUG Activities.qml - getIds() returned:", JSON.stringify(ids));
 
         var linkid = -1;
         var resId = 0;
@@ -402,18 +382,19 @@ Page {
             // Use subproject if selected, otherwise use main project
             linkid = ids.subproject_id || ids.project_id;
             resId = Accounts.getOdooModelId(ids.account_id, "Project");
-            console.log("Project mode - linking to:", ids.subproject_id ? "subproject " + ids.subproject_id : "project " + ids.project_id);
+            //   console.log("Project mode - linking to:", ids.subproject_id ? "subproject " + ids.subproject_id : "project " + ids.project_id);
         }
 
         if (taskRadio.checked) {
-            linkid = ids.sub_task_id || ids.task_id;
+            linkid = ids.subtask_id || ids.task_id;
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
+            console.log("DEBUG Activities.qml - Task mode linkid:", linkid, "subtask_id:", ids.subtask_id, "task_id:", ids.task_id);
         }
 
         const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
 
         if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
-            console.log(linkid + "is the value of linkid");
+            // console.log(linkid + "is the value of linkid");
             notifPopup.open("Error", "Activity must be connected to a project or task", "error");
             return;
         }
@@ -434,10 +415,10 @@ Page {
         const data = {
             updatedAccount: ids.account_id,
             updatedActivity: activityTypeSelector.selectedId,
-            updatedSummary: Utils.cleanText(summary.displayText),
+            updatedSummary: Utils.cleanText(summary.text),
             updatedUserId: user,
             updatedDate: date_widget.selectedDate,
-            updatedNote: Utils.cleanText(notes.displayText),
+            updatedNote: Utils.cleanText(notes.text),
             resModel: resModel,
             resId: resId,
             link_id: linkid,
@@ -447,6 +428,7 @@ Page {
             status: "updated"
         };
 
+        console.log("DEBUG Activities.qml - Final activity data before save:", JSON.stringify(data));
         Utils.show_dict_data(data);
 
         const result = Activity.saveActivityData(data);
@@ -460,13 +442,13 @@ Page {
     }
     onVisibleChanged: {
         if (visible) {
-            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
-                notes.text=Global.description_temporary_holder
-                Global.description_temporary_holder=""
+            if (Global.description_temporary_holder !== "") {
+                //Check if you are coming back from the ReadMore page
+                notes.text = Global.description_temporary_holder;
+                Global.description_temporary_holder = "";
             }
-        }else
-        {
-            Global.description_temporary_holder=""
+        } else {
+            Global.description_temporary_holder = "";
         }
     }
 }

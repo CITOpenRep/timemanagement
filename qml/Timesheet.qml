@@ -60,26 +60,28 @@ Page {
                 onTriggered: {
                     save_timesheet();
                 }
+            },
+            Action {
+                iconName: "edit"
+                visible: isReadOnly && recordid !== 0
+                text: "Edit"
+                onTriggered: {
+                    switchToEditMode();
+                }
             }
         ]
     }
 
     function save_timesheet() {
         //check if timer is running
-        console.log(TimerService.getActiveTimesheetId());
-        console.log("Record id is" + recordid);
+
         if (recordid === TimerService.getActiveTimesheetId()) {
             notifPopup.open("Error", "Please stop the timer before saving the record", "error");
             return;
         }
 
         const ids = workItem.getIds();
-        console.log("getAllSelectedDbRecordIds returned:");
-        console.log("   accountDbId: " + ids.account_id);
-        console.log("   projectDbId: " + ids.project_id);
-        console.log("   subProjectDbId: " + ids.subproject_id);
-        console.log("   taskDbId: " + ids.task_id);
-        console.log("   subTaskDbId: " + ids.subtask_id);
+
         const user = Accounts.getCurrentUserOdooId(ids.account_id);
 
         if (!user) {
@@ -98,8 +100,6 @@ Page {
         }
 
         let time = time_sheet_widget.elapsedTime;
-        console.log("Recording " + time);
-        console.log("Decimal Representation is " + Utils.convertHHMMtoDecimalHours(time));
 
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
@@ -132,11 +132,17 @@ Page {
         }
     }
 
+    function switchToEditMode() {
+        if (recordid !== 0) {
+            isReadOnly = false;
+        }
+    }
+
     property bool isManualTime: false
     property bool running: false
     property int selectedSubTaskId: 0
-    property var recordid: 0 //0 means creatiion mode
-    property bool isReadOnly: false //edit or view mode
+    property var recordid: 0 //0 means creation mode
+    property bool isReadOnly: false // Can be overridden when page is opened
     property var currentTimesheet: {}
 
     NotificationPopup {
@@ -164,7 +170,7 @@ Page {
 
                 WorkItemSelector {
                     id: workItem
-                    enabled: !isReadOnly
+                    readOnly: isReadOnly
                     showAssigneeSelector: false
                     showAccountSelector: true
                     showProjectSelector: true
@@ -373,6 +379,7 @@ Page {
                         anchors.centerIn: parent.centerIn
                         text: ""
                         is_read_only: isReadOnly
+                        useRichText: false
                         onClicked: {
                             //set the data to a global store and pass the key to the page
                             Global.description_temporary_holder = text;
@@ -386,10 +393,9 @@ Page {
         }
 
         Component.onCompleted: {
-            console.log("XXXX From Timesheet got record id : " + recordid);
+            // console.log("Timesheet onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
 
-            if (recordid != 0) // We are loading a time sheet , depends on readonly value it could be for view/edit
-            {
+            if (recordid != 0) {
                 currentTimesheet = Model.getTimeSheetDetails(recordid);
                 let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
                 let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
@@ -397,18 +403,29 @@ Page {
                 let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
                 let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
 
-                console.log("Now lets call this with workitemselector ");
+                //    console.log("Timesheet data - instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId);
 
-                workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1); //passing -1 as no assignee is needed
+                // Check if this is a newly created timesheet (has recordid but no project/task data)
+                if (projectId === -1 && taskId === -1) {
+                    // console.log("NEW timesheet - loading with account only");
+                    // For new timesheets, load with account but no project/task data
+                    workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, -1);
+                } else {
+                    //  console.log("EXISTING timesheet - loading with full data");
+                    workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1);
+                }
+
                 date_widget.setSelectedDate(currentTimesheet.record_date);
-
                 description_text.text = currentTimesheet.name;
                 if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
                     time_sheet_widget.elapsedTime = currentTimesheet.spentHours;
                 }
                 if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
-                    priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1; //index=id-1
+                    priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1;
                 }
+            } else {
+                //  console.log("NO recordid - calling loadAccounts()");
+                workItem.loadAccounts();
             }
         }
     }

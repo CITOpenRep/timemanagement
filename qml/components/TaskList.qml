@@ -99,7 +99,7 @@ Item {
             var projectIdToUse = row.project_id;
 
             if (!projectIdToUse || projectIdToUse === 0) {
-                console.log("Project ID is empty for row id", row.id, "- using sub_project_id:", row.sub_project_id);
+               // console.log("Project ID is empty for row id", row.id, "- using sub_project_id:", row.sub_project_id);
                 projectIdToUse = row.sub_project_id;
             }
 

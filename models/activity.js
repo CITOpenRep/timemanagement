@@ -179,7 +179,7 @@ function resolveProjectLinkage(tx, link_id, account_id) {
             let row = rs_project.rows.item(0);
             let parent_id = sanitizeId(row.parent_id);
 
-            if (parent_id > 0) {
+            if (parent_id !== -1 && parent_id !== 0) {  // Has a valid parent (not -1 for invalid, not 0 for no parent)
                 result.project_id = parent_id;
                 result.sub_project_id = row.odoo_record_id;
             } else {
@@ -208,64 +208,114 @@ function resolveActivityLinkage(tx, link_id, account_id) {
     };
 
     try {
+        console.log("resolveActivityLinkage: Starting with link_id:", link_id, "account_id:", account_id);
+        
         // Step 1: Determine if link_id is subtask or task
         let rs_task = tx.executeSql(
-            `SELECT odoo_record_id, parent_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
+            `SELECT odoo_record_id, parent_id, project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
             [link_id, account_id]
         );
 
         let resolved_task_id = -1;
         let resolved_sub_task_id = -1;
+        let task_project_id = -1;
 
         if (rs_task.rows.length > 0) {
             let row_task = rs_task.rows.item(0);
+            console.log("resolveActivityLinkage: Found task row:", JSON.stringify({
+                odoo_record_id: row_task.odoo_record_id,
+                parent_id: row_task.parent_id,
+                project_id: row_task.project_id
+            }));
 
-            if (sanitizeId(row_task.parent_id) > 0) {
+            let parent_id = sanitizeId(row_task.parent_id);
+            console.log("resolveActivityLinkage: Sanitized parent_id:", parent_id, "from raw value:", row_task.parent_id, "type:", typeof row_task.parent_id);
+
+            if (parent_id !== -1 && parent_id !== 0) {  // Has a valid parent (not -1 for invalid, not 0 for no parent)
                 // It is a subtask
-                resolved_task_id = row_task.parent_id;
+                resolved_task_id = parent_id;
                 resolved_sub_task_id = row_task.odoo_record_id;
+                console.log("resolveActivityLinkage: Identified as SUBTASK. Parent task_id:", resolved_task_id, "Sub task_id:", resolved_sub_task_id);
+                
+                // For subtask, we need to get project_id from the parent task
+                let rs_parent_task = tx.executeSql(
+                    `SELECT project_id, odoo_record_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
+                    [resolved_task_id, account_id]
+                );
+                
+                if (rs_parent_task.rows.length > 0) {
+                    task_project_id = sanitizeId(rs_parent_task.rows.item(0).project_id);
+                    console.log("resolveActivityLinkage: Found parent task with odoo_record_id:", rs_parent_task.rows.item(0).odoo_record_id, "project_id:", task_project_id);
+                } else {
+                    console.warn("resolveActivityLinkage: Parent task not found for resolved_task_id:", resolved_task_id);
+                    
+                    // Fallback: try to find parent task by local database id (in case parent_id references local id instead of odoo_record_id)
+                    let rs_parent_by_id = tx.executeSql(
+                        `SELECT project_id, odoo_record_id FROM project_task_app WHERE id = ? AND account_id = ? LIMIT 1`,
+                        [resolved_task_id, account_id]
+                    );
+                    
+                    if (rs_parent_by_id.rows.length > 0) {
+                        task_project_id = sanitizeId(rs_parent_by_id.rows.item(0).project_id);
+                        console.log("resolveActivityLinkage: Found parent task by local id:", resolved_task_id, "odoo_record_id:", rs_parent_by_id.rows.item(0).odoo_record_id, "project_id:", task_project_id);
+                        // Update resolved_task_id to use the correct odoo_record_id
+                        resolved_task_id = rs_parent_by_id.rows.item(0).odoo_record_id;
+                        console.log("resolveActivityLinkage: Updated resolved_task_id to odoo_record_id:", resolved_task_id);
+                    } else {
+                        // FINAL FALLBACK: Maybe parent_id is negative (local record), try searching for negative values
+                        let rs_parent_negative = tx.executeSql(
+                            `SELECT project_id, odoo_record_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
+                            [resolved_task_id, account_id]
+                        );
+                        
+                        if (rs_parent_negative.rows.length > 0) {
+                            task_project_id = sanitizeId(rs_parent_negative.rows.item(0).project_id);
+                            console.log("resolveActivityLinkage: Found parent task with negative odoo_record_id:", resolved_task_id, "project_id:", task_project_id);
+                        } else {
+                            task_project_id = sanitizeId(row_task.project_id); // Final fallback to subtask's project_id
+                            console.log("resolveActivityLinkage: Using final fallback project_id from subtask:", task_project_id);
+                        }
+                    }
+                }
             } else {
                 // It is a parent task
                 resolved_task_id = row_task.odoo_record_id;
                 resolved_sub_task_id = -1;
+                task_project_id = sanitizeId(row_task.project_id);
+                console.log("resolveActivityLinkage: Identified as PARENT TASK. Task_id:", resolved_task_id, "Project_id:", task_project_id);
             }
         } else {
             console.warn("Link_id is not a valid task in project_task_app:", link_id, "account_id:", account_id);
             return result; // early return if not found
         }
 
-        // Step 2: Fetch the project_id from resolved task_id
-        let rs_task_project = tx.executeSql(
-            `SELECT project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
-            [resolved_task_id, account_id]
-        );
-
-        if (rs_task_project.rows.length > 0) {
-            let project_id_candidate = sanitizeId(rs_task_project.rows.item(0).project_id);
-
-            // Step 3: Determine if project_id_candidate is subproject or top-level
+        // Step 2: Determine if project_id is subproject or top-level
+        if (task_project_id !== -1) {  // Changed from > 0 to !== -1 to allow negative values
             let rs_project = tx.executeSql(
                 `SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
-                [project_id_candidate, account_id]
+                [task_project_id, account_id]
             );
 
             if (rs_project.rows.length > 0) {
                 let parent_project_id = sanitizeId(rs_project.rows.item(0).parent_id);
+                console.log("resolveActivityLinkage: Project parent_id:", parent_project_id);
 
-                if (parent_project_id > 0) {
+                if (parent_project_id !== -1 && parent_project_id !== 0) {  // Has a valid parent
                     result.project_id = parent_project_id;         // parent project
-                    result.sub_project_id = project_id_candidate;  // subproject
+                    result.sub_project_id = task_project_id;  // subproject
+                    console.log("resolveActivityLinkage: Project is SUBPROJECT. Parent:", parent_project_id, "Sub:", task_project_id);
                 } else {
-                    result.project_id = project_id_candidate;     // top-level project
+                    result.project_id = task_project_id;     // top-level project
                     result.sub_project_id = -1;
+                    console.log("resolveActivityLinkage: Project is TOP-LEVEL:", task_project_id);
                 }
             } else {
-                console.warn("Project lookup failed for project_id_candidate:", project_id_candidate);
-                result.project_id = project_id_candidate;
+                console.warn("Project lookup failed for task_project_id:", task_project_id);
+                result.project_id = task_project_id;
                 result.sub_project_id = -1;
             }
         } else {
-            console.warn("Project lookup failed using resolved_task_id:", resolved_task_id);
+            console.warn("resolveActivityLinkage: Invalid task_project_id:", task_project_id);
             result.project_id = -1;
             result.sub_project_id = -1;
         }
@@ -283,7 +333,24 @@ function resolveActivityLinkage(tx, link_id, account_id) {
 }
 
 function sanitizeId(value) {
-    return (typeof value === "number" && value > 0) ? value : -1;
+    // Handle different data types that SQLite might return
+    if (value === null || value === undefined || value === '') {
+        return -1;
+    }
+    
+    // Special case: 0 is valid for parent_id (means "no parent")
+    if (value === 0) {
+        return 0;
+    }
+    
+    const numValue = typeof value === 'string' ? parseInt(value, 10) : Number(value);
+    // Allow negative values (for locally created records) and positive values, but not NaN
+    if (isNaN(numValue)) {
+        return -1;
+    }
+    
+    // Return the value if it's a valid number (positive, negative, or zero)
+    return numValue;
 }
 
 //enrichment over
@@ -478,8 +545,8 @@ function saveActivityData(data) {
                               data.status
                           ]
                           );
-
         });
+        
         return { success: true };
     }catch (e) {
         console.error("Database operation failed:", e.message);
