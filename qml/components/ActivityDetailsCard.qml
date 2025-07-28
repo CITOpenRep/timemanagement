@@ -47,7 +47,7 @@ ListItem {
             return truncateRichText(text, maxLength);
         } else {
             // Use simple truncation for plain text
-            return truncateText(text, maxLength);
+            return truncateText(text, 25);
         }
     }
 
@@ -167,8 +167,8 @@ ListItem {
                         spacing: units.gu(0.2)
 
                         Text {
-                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? smartTruncate(root.summary, 40) : "No Summary"
-                            textFormat: Text.RichText
+                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? truncateText(root.summary, 30): "No Summary"
+                            textFormat: Text.PlainText
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                             font.pixelSize: units.gu(2)
                             wrapMode: Text.WordWrap
@@ -178,11 +178,11 @@ ListItem {
                         }
 
                         Text {
-                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? smartTruncate(root.notes, 20) : "No Notes"
+                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? smartTruncate(root.notes, 40) : "No Notes"
                             textFormat: Text.RichText
                             font.pixelSize: units.gu(1.6)
                             maximumLineCount: 1
-                          //  wrapMode: Text.WordWrap
+                            wrapMode: Text.WordWrap
                             elide: Text.ElideRight
                             width: parent.width - units.gu(2)
                             height: units.gu(2)

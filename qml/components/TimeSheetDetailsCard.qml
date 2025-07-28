@@ -287,8 +287,8 @@ ListItem {
                 spacing: units.gu(0.5)
 
                 Text {
-                    text: smartTruncate(name, 30)
-                    textFormat: Text.RichText
+                    text:(typeof name === "string" && name.trim() !== "") ? Utils.truncateText(name, 30) : "No Description" ;
+                    textFormat: Text.PlainText
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
                     width: parent.width
