@@ -37,7 +37,7 @@
 
 
        <h4> 25-07-2025 : Version 1.1.1 </h4>
-        <li>Fixes in WorkItem Selctors for Activities, Timesheets, Tasks and Projects.</li>
+        <li>Fixes in WorkItem Selectors for Activities, Timesheets, Tasks and Projects.</li>
           <li>Added Edit Option in Timesheet View Mode to go to Edit Mode.</li>
           <li>Fixes in Activities Notes , Now fully functional and supports richText. </li>
            <li>Fixes in title in Timesheets and Tasks. </li>
