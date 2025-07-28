@@ -97,56 +97,10 @@ ListItem {
         }
     }
 
-    function stripHtmlTags(text) {
-        // Simple HTML tag removal for truncation purposes
-        return text.replace(/<[^>]*>/g, '');
-    }
+  
+ 
 
-    function hasHtmlTags(text) {
-        // Check if text contains HTML tags
-        return /<[^>]*>/.test(text);
-    }
-
-    function smartTruncate(text, maxLength) {
-        // Check if text contains HTML tags
-        if (hasHtmlTags(text)) {
-            // Use rich text truncation
-            return truncateRichText(text, maxLength);
-        } else {
-            // Use simple truncation for plain text
-            return Utils.truncateText(text, maxLength);
-        }
-    }
-
-    function truncateRichText(text, maxLength) {
-        // Strip HTML tags for length calculation, but return original for display
-        var strippedText = stripHtmlTags(text);
-        if (strippedText.length > maxLength) {
-            // Find the cutoff point in the original text that corresponds to maxLength characters of content
-            var currentLength = 0;
-            var result = "";
-            var inTag = false;
-
-            for (var i = 0; i < text.length && currentLength < maxLength; i++) {
-                var currentChar = text.charAt(i);
-                if (currentChar === '<') {
-                    inTag = true;
-                } else if (currentChar === '>') {
-                    inTag = false;
-                    result += currentChar;
-                    continue;
-                }
-
-                result += currentChar;
-                if (!inTag) {
-                    currentLength++;
-                }
-            }
-            return result + '...';
-        }
-        return text;
-    }
-
+  
     Connections {
         target: globalTimerWidget
 
