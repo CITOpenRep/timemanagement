@@ -287,7 +287,7 @@ ListItem {
                 spacing: units.gu(0.5)
 
                 Text {
-                    text: smartTruncate(name, 60)
+                    text: smartTruncate(name, 30)
                     textFormat: Text.RichText
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
