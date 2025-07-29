@@ -394,6 +394,16 @@ function getFilteredTasks(filterType, searchQuery) {
         }
     }
     
+    // Fourth pass: include all children of included parent tasks to maintain hierarchy
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        
+        // If this task has a parent that is included, include this task too
+        if (task.parent_id && task.parent_id > 0 && includedTaskIds.has(task.parent_id)) {
+            includedTaskIds.add(task.odoo_record_id);
+        }
+    }
+    
     // Final pass: build the filtered tasks list
     for (var i = 0; i < allTasks.length; i++) {
         var task = allTasks[i];
