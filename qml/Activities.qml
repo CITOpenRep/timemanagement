@@ -228,7 +228,8 @@ Page {
                             //set the data to a global Slore and pass the key to the page
                             Global.description_temporary_holder = text;
                             apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
+                                isReadOnly: isReadOnly,
+                                //useRichText: false
                             });
                         }
                     }

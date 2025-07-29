@@ -384,7 +384,8 @@ Page {
                             //set the data to a global store and pass the key to the page
                             Global.description_temporary_holder = text;
                             apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
+                                isReadOnly: isReadOnly,
+                                useRichText: false
                             });
                         }
                     }

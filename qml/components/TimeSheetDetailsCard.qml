@@ -97,56 +97,10 @@ ListItem {
         }
     }
 
-    function stripHtmlTags(text) {
-        // Simple HTML tag removal for truncation purposes
-        return text.replace(/<[^>]*>/g, '');
-    }
+  
+ 
 
-    function hasHtmlTags(text) {
-        // Check if text contains HTML tags
-        return /<[^>]*>/.test(text);
-    }
-
-    function smartTruncate(text, maxLength) {
-        // Check if text contains HTML tags
-        if (hasHtmlTags(text)) {
-            // Use rich text truncation
-            return truncateRichText(text, maxLength);
-        } else {
-            // Use simple truncation for plain text
-            return Utils.truncateText(text, maxLength);
-        }
-    }
-
-    function truncateRichText(text, maxLength) {
-        // Strip HTML tags for length calculation, but return original for display
-        var strippedText = stripHtmlTags(text);
-        if (strippedText.length > maxLength) {
-            // Find the cutoff point in the original text that corresponds to maxLength characters of content
-            var currentLength = 0;
-            var result = "";
-            var inTag = false;
-
-            for (var i = 0; i < text.length && currentLength < maxLength; i++) {
-                var currentChar = text.charAt(i);
-                if (currentChar === '<') {
-                    inTag = true;
-                } else if (currentChar === '>') {
-                    inTag = false;
-                    result += currentChar;
-                    continue;
-                }
-
-                result += currentChar;
-                if (!inTag) {
-                    currentLength++;
-                }
-            }
-            return result + '...';
-        }
-        return text;
-    }
-
+  
     Connections {
         target: globalTimerWidget
 
@@ -287,8 +241,8 @@ ListItem {
                 spacing: units.gu(0.5)
 
                 Text {
-                    text: smartTruncate(name, 60)
-                    textFormat: Text.RichText
+                    text:(typeof name === "string" && name.trim() !== "") ? Utils.truncateText(name, 30) : "No Description" ;
+                    textFormat: Text.PlainText
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
                     width: parent.width
@@ -296,13 +250,13 @@ ListItem {
                 }
 
                 Text {
-                    text: (project ? project : "No Project")
+                    text: (project ? Utils.truncateText(project, 30): "No Project")
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
                 Text {
-                    text: task
+                    text: (typeof task === "string" && task.trim() !== "") ? Utils.truncateText(task, 30) : "No Task" ;
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"

@@ -31,8 +31,41 @@ ListItem {
     }
 
     function stripHtmlTags(text) {
-        // Simple HTML tag removal for truncation purposes
-        return text.replace(/<[^>]*>/g, '');
+        if (!text || typeof text !== "string")
+            return "";
+
+        // Enhanced HTML document and tag removal
+        var cleaned = text
+        // Remove DOCTYPE declarations
+        .replace(/<!DOCTYPE[^>]*>/gi, '')
+        // Remove HTML comments
+        .replace(/<!--[\s\S]*?-->/gi, '')
+        // Remove style blocks completely (including CSS)
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        // Remove script blocks completely
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        // Remove head section completely
+        .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+        // Remove all HTML tags with their attributes (most comprehensive approach)
+        .replace(/<\/?[^>]+(>|$)/gi, '')
+        // Clean up any remaining tag fragments
+        .replace(/<[^>]*$/gi, '').replace(/^[^<]*>/gi, '')
+        // Replace line break tags specifically (in case they survived)
+        .replace(/&lt;br\s*\/?&gt;/gi, ' ').replace(/&lt;\/br&gt;/gi, ' ')
+        // Replace common HTML entities
+        .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/&apos;/gi, "'").replace(/&hellip;/gi, '...').replace(/&mdash;/gi, '—').replace(/&ndash;/gi, '–').replace(/&copy;/gi, '©').replace(/&reg;/gi, '®').replace(/&trade;/gi, '™')
+        // Handle numeric HTML entities (like &#160; for &nbsp;)
+        .replace(/&#\d+;/gi, ' ').replace(/&#x[0-9a-f]+;/gi, ' ')
+        // Remove CSS style declarations that might remain as text
+        .replace(/\s*{\s*[^}]*}\s*/gi, ' ').replace(/[a-zA-Z-]+\s*:\s*[^;]+;/gi, '')
+        // Remove extra whitespace, line breaks, and tabs
+        .replace(/\s+/g, ' ').replace(/\n+/g, ' ').replace(/\r+/g, ' ').replace(/\t+/g, ' ')
+        // Remove any remaining < or > characters
+        .replace(/[<>]/g, '')
+        // Remove leading/trailing whitespace
+        .trim();
+
+        return cleaned;
     }
 
     function hasHtmlTags(text) {
@@ -47,7 +80,7 @@ ListItem {
             return truncateRichText(text, maxLength);
         } else {
             // Use simple truncation for plain text
-            return truncateText(text, maxLength);
+            return truncateText(text, 25);
         }
     }
 
@@ -167,8 +200,8 @@ ListItem {
                         spacing: units.gu(0.2)
 
                         Text {
-                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? smartTruncate(root.summary, 60) : "No Summary"
-                            textFormat: Text.RichText
+                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? Utils.truncateText(root.summary, 20) : "No Summary"
+                            textFormat: Text.PlainText
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                             font.pixelSize: units.gu(2)
                             wrapMode: Text.WordWrap
@@ -178,8 +211,8 @@ ListItem {
                         }
 
                         Text {
-                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? smartTruncate(root.notes, 40) : "No Notes"
-                            textFormat: Text.RichText
+                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? Utils.truncateText(root.stripHtmlTags(root.notes), 30) : "No Notes"
+                            textFormat: Text.PlainText
                             font.pixelSize: units.gu(1.6)
                             maximumLineCount: 1
                             wrapMode: Text.WordWrap
@@ -195,8 +228,8 @@ ListItem {
                             font.pixelSize: units.gu(1.6)
                             height: units.gu(3)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "#222"
-                        //    anchors.right: parent.right
-                          //  anchors.bottom: root.bottom
+                            //    anchors.right: parent.right
+                            //  anchors.bottom: root.bottom
                         }
                     }
                 }

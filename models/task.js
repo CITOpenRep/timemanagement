@@ -322,30 +322,94 @@ function getAllTasks() {
 
 
 /**
- * Filters tasks based on date criteria and search query
+ * Filters tasks based on date criteria and search query while preserving parent-child hierarchy
  * @param {string} filterType - The filter type: "today", "this_week", "next_week", "later", "completed"
  * @param {string} searchQuery - The search query string
- * @returns {Array<Object>} Filtered list of tasks
+ * @returns {Array<Object>} Filtered list of tasks with hierarchy preserved
  */
 function getFilteredTasks(filterType, searchQuery) {
     var allTasks = getAllTasks();
     var filteredTasks = [];
     var currentDate = new Date();
+    var includedTaskIds = new Set();
+    var taskById = {};
     
+    // Create a map of tasks by their odoo_record_id for quick lookup
+    for (var i = 0; i < allTasks.length; i++) {
+        taskById[allTasks[i].odoo_record_id] = allTasks[i];
+    }
+    
+    // First pass: identify tasks that match the filter criteria
     for (var i = 0; i < allTasks.length; i++) {
         var task = allTasks[i];
         
+        var passesFilter = true;
+        
         // Apply date filter
         if (!passesDateFilter(task, filterType, currentDate)) {
-            continue;
+            passesFilter = false;
         }
         
         // Apply search filter
-        if (searchQuery && !passesSearchFilter(task, searchQuery)) {
-            continue;
+        if (passesFilter && searchQuery && !passesSearchFilter(task, searchQuery)) {
+            passesFilter = false;
         }
         
-        filteredTasks.push(task);
+        if (passesFilter) {
+            includedTaskIds.add(task.odoo_record_id);
+        }
+    }
+    
+    // Second pass: include parent tasks if they have children that match the filter
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        
+        // Check if this task has children that are included
+        var hasIncludedChildren = false;
+        for (var j = 0; j < allTasks.length; j++) {
+            var potentialChild = allTasks[j];
+            if (potentialChild.parent_id === task.odoo_record_id && includedTaskIds.has(potentialChild.odoo_record_id)) {
+                hasIncludedChildren = true;
+                break;
+            }
+        }
+        
+        if (hasIncludedChildren) {
+            includedTaskIds.add(task.odoo_record_id);
+        }
+    }
+    
+    // Third pass: include parent chain for included tasks to maintain hierarchy
+    var toProcess = Array.from(includedTaskIds);
+    for (var i = 0; i < toProcess.length; i++) {
+        var taskId = toProcess[i];
+        var task = taskById[taskId];
+        
+        if (task && task.parent_id && task.parent_id > 0 && !includedTaskIds.has(task.parent_id)) {
+            var parentTask = taskById[task.parent_id];
+            if (parentTask) {
+                includedTaskIds.add(task.parent_id);
+                toProcess.push(task.parent_id);
+            }
+        }
+    }
+    
+    // Fourth pass: include all children of included parent tasks to maintain hierarchy
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        
+        // If this task has a parent that is included, include this task too
+        if (task.parent_id && task.parent_id > 0 && includedTaskIds.has(task.parent_id)) {
+            includedTaskIds.add(task.odoo_record_id);
+        }
+    }
+    
+    // Final pass: build the filtered tasks list
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        if (includedTaskIds.has(task.odoo_record_id)) {
+            filteredTasks.push(task);
+        }
     }
     
     return filteredTasks;
