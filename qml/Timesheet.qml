@@ -393,10 +393,13 @@ Page {
             }
         }
 
-        Component.onCompleted: {
+     Component.onCompleted: {
             // console.log("Timesheet onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
 
             if (recordid != 0) {
+                // Set flag before loading to prevent auto-initialization
+                workItem.deferredLoadingPlanned = true;
+                
                 currentTimesheet = Model.getTimeSheetDetails(recordid);
                 let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
                 let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
@@ -414,6 +417,7 @@ Page {
                 } else {
                     //  console.log("EXISTING timesheet - loading with full data");
                     workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1);
+                    console.log("Loaded existing timesheet with recordid:", recordid, "instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId, "subProjectId:", subProjectId, "subTaskId:", subTaskId);
                 }
 
                 date_widget.setSelectedDate(currentTimesheet.record_date);
@@ -427,6 +431,7 @@ Page {
             } else {
                 //  console.log("NO recordid - calling loadAccounts()");
                 workItem.loadAccounts();
+                console.log("New timesheet - loading accounts for creation mode");
             }
         }
     }

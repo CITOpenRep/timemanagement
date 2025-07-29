@@ -23,6 +23,9 @@ Rectangle {
     property bool readOnly: false
     property bool restrictAccountToLocalOnly: false  // When true, only show local account for new project creation
 
+    // Add flag to prevent auto-loading when deferred loading is planned
+    property bool deferredLoadingPlanned: false
+
     // Watch for readOnly property changes and update all selectors
     onReadOnlyChanged: {
         updateAllSelectorStates();
@@ -162,6 +165,11 @@ Rectangle {
     }
 
     function deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, assigneeId) {
+        console.log("[WorkItemSelector] Starting deferred loading for existing record");
+        
+        // Set flag to prevent auto-loading
+        deferredLoadingPlanned = true;
+        
         if (accountId !== -1) {
             loadAccounts(accountId);
         }
@@ -169,11 +177,13 @@ Rectangle {
         // Load Projects under account with selected projectId
         if (accountId !== -1) {
             loadProjects(accountId, projectId);
+            console.log("Loaded projects for account:", accountId, "with selected projectId:", projectId);
         }
 
         // Load Subprojects under project with selected subProjectId
         if (accountId !== -1 && projectId !== -1) {
             loadSubProjects(accountId, projectId, subProjectId);
+            console.log("Loaded subprojects for account:", accountId, "projectId:", projectId, "with selected subProjectId:", subProjectId);
         }
 
         // Load Tasks under project/subproject with selected taskId
@@ -193,6 +203,11 @@ Rectangle {
 
         // Force update selector states after loading data to respect read-only mode
         Qt.callLater(updateAllSelectorStates);
+        
+        // Reset the flag after loading is complete
+        Qt.callLater(function() {
+            deferredLoadingPlanned = false;
+        });
     }
 
     function getIds() {
@@ -261,10 +276,9 @@ Rectangle {
             account_component.setEnabled(!readOnly && accountList.length > 1);
         }
 
-        // Immediately simulate state transition to trigger filters
-        // This happens for new timesheets (selectedId === -1) or when loading default account
-        if (selectedId === -1 || default_id !== -1) {
-            //    console.log("[WorkItemSelector] Auto-selecting account (id=" + default_id + ", name='" + default_name + "') to trigger filters");
+        // Only auto-select and trigger state transitions for new records (not during deferred loading)
+        if (!deferredLoadingPlanned && (selectedId === -1 || default_id !== -1)) {
+            console.log("[WorkItemSelector] Auto-selecting account (id=" + default_id + ", name='" + default_name + "') to trigger filters");
             transitionTo("AccountSelected", {
                 id: default_id,
                 name: default_name
@@ -533,8 +547,13 @@ Rectangle {
             readOnly: readOnly
             onSelectionMade: handleSelection(id, name, selectorType)
             Component.onCompleted: {
-                // Load accounts and auto-select default account to trigger state transitions
-                loadAccounts(-1);
+                // Only auto-load accounts for new records (when deferred loading is not planned)
+                // if (!deferredLoadingPlanned) {
+                //     console.log("[WorkItemSelector] Account component initializing - auto-loading accounts");
+                //     loadAccounts(-1);
+                // } else {
+                //     console.log("[WorkItemSelector] Account component initializing - skipping auto-load (deferred loading planned)");
+                // }
             }
         }
 
@@ -555,6 +574,7 @@ Rectangle {
                         project_component.update_label("Select");
 
                         loadProjects(data.id, -1); //load projects of the selected account
+                        console.log("Loaded projects for account:", data.id, "with selected projectId:-->>", -1);
 
                         // Enable project selector after account is selected
                         if (!readOnly) {
@@ -576,6 +596,7 @@ Rectangle {
             Component.onCompleted: {
                 // Start disabled - will be enabled when account is selected
                 project_component.setEnabled(false);
+                console.log("[WorkItemSelector] Project component initialized");
             }
         }
 
@@ -595,12 +616,14 @@ Rectangle {
                         subproject_compoent.update_label("Select");
 
                         loadSubProjects(account_component.selectedId, data.id, -1);
+                        console.log("Loaded subprojects for account:", account_component.selectedId, "projectId:", data.id);
                     }
                 }
             }
             Component.onCompleted: {
                 // Start disabled - will be enabled when project is selected
                 subproject_compoent.setEnabled(false);
+                console.log("[WorkItemSelector] Subproject component initialized");
             }
         }
 
@@ -686,7 +709,6 @@ Rectangle {
         }
     }
 }
-
 /*
 ---------------------------------------------------------------
 WorkItemSelector.qml – Detailed Workflow and Architecture Notes
