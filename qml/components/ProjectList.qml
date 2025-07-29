@@ -314,6 +314,7 @@ Item {
                     startDate: model.startDate
                     endDate: model.endDate
                     accountName: model.accountName
+                    accountId: model.account_id 
                     description: model.description
                     colorPallet: model.colorPallet
                     isFavorite: model.isFavorite
@@ -330,17 +331,14 @@ Item {
                     onEditRequested: id => {
                         editProject(projectLocalId);
                     }
-                    onViewRequested: id => {
-                       // console.log("View requested for project with hasChildren:", projectHasChildren, "projectIdVal:", projectIdVal, "projectAccountId:", projectAccountId);
-                        if (projectHasChildren && projectIdVal > 0 && projectAccountId >= 0) {
-                            navigateToProject(projectIdVal, projectAccountId);
-                        } else if (!projectHasChildren) {
-                            // For leaf projects (no children), emit the projectSelected signal
-                            selectProject(projectLocalId);
-                        } else {
-                            console.warn("Invalid project data for navigation:", projectIdVal, projectAccountId, projectHasChildren);
-                        }
-                    }
+                     onViewRequested: id => {
+        selectProject(projectLocalId);
+    }
+
+    onNavigationRequested: (projectId, accountId) => {
+        console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
+        navigateToProject(projectId, accountId);
+    }
                     onTimesheetRequested: localId => {
                         // Forward the signal to the parent page
                         requestTimesheet(localId);
