@@ -200,7 +200,7 @@ ListItem {
                         spacing: units.gu(0.2)
 
                         Text {
-                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? Utils.truncateText(root.summary, 30) : "No Summary"
+                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? Utils.truncateText(root.summary, 20) : "No Summary"
                             textFormat: Text.PlainText
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                             font.pixelSize: units.gu(2)

@@ -72,7 +72,9 @@ Item {
 
     // New function to refresh with filter applied
     function refreshWithFilter() {
-        if (currentFilter && currentFilter !== "" || currentSearchQuery) {
+        if (currentFilter === "all" && !currentSearchQuery) {
+            populateTaskChildrenMap(); // Use original function for "all" filter without search
+        } else if (currentFilter && currentFilter !== "" || currentSearchQuery) {
             var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
             updateDisplayedTasks(filteredTasks);
         } else {
@@ -99,7 +101,7 @@ Item {
             var projectIdToUse = row.project_id;
 
             if (!projectIdToUse || projectIdToUse === 0) {
-               // console.log("Project ID is empty for row id", row.id, "- using sub_project_id:", row.sub_project_id);
+                // console.log("Project ID is empty for row id", row.id, "- using sub_project_id:", row.sub_project_id);
                 projectIdToUse = row.sub_project_id;
             }
 
@@ -115,7 +117,7 @@ Item {
                 taskName: row.name || "Untitled",
                 recordId: odooId,
                 allocatedHours: row.initial_planned_hours ? String(row.initial_planned_hours) : "0",
-                spentHours:row.spent_hours?row.spent_hours : 0,
+                spentHours: row.spent_hours ? row.spent_hours : 0,
                 startDate: row.start_date || "",
                 endDate: row.end_date || "",
                 deadline: row.deadline || "",
@@ -187,7 +189,7 @@ Item {
                 taskName: row.name || "Untitled",
                 recordId: odooId,
                 allocatedHours: row.initial_planned_hours ? row.initial_planned_hours : 0,
-                spentHours:row.spent_hours?row.spent_hours : 0,
+                spentHours: row.spent_hours ? row.spent_hours : 0,
                 startDate: row.start_date || "",
                 endDate: row.end_date || "",
                 deadline: row.deadline || "",
