@@ -36,6 +36,17 @@
     <ul>
 
 
+       <h4> 29-07-2025 : Version 1.1.2 </h4>
+        <li>Fixes in Activity List overview , Text Overflow Issue Fixed.</li>
+          <li>Fixes in Timesheet List overview. Text Overflow Issue is Fixed. </li>
+          <li>RichText support from Timesheet is removed, as Odoo also doesnot support it. If you see HTML Tags in Your Timesheet Description , please remove it. It is happening due to RichText support it, in Previous release. </li>
+           <li>Fixes in Read More Page. Now the Description page will remember the context even if you go back , without saving it. </li>
+           <li>Fixes in Task-SubTask Hierarchy where the Child Task were not displaying in the Today Tab. Now if the Parent falls under Date filter , It will display the parent-child Hierarchy with all its Child Task properly. </li>
+        
+
+           <br>
+
+
        <h4> 25-07-2025 : Version 1.1.1 </h4>
         <li>Fixes in WorkItem Selectors for Activities, Timesheets, Tasks and Projects.</li>
           <li>Added Edit Option in Timesheet View Mode to go to Edit Mode.</li>
