@@ -130,6 +130,10 @@ Page {
         if (TimerService.isRunning() && TimerService.activeTimesheetId == recordid) {
             time = TimerService.stop();
         }
+
+        // If the timesheet was saved successfully, reset TO VIEW mode
+        isReadOnly = true;
+    //
     }
 
     function switchToEditMode() {
@@ -393,13 +397,13 @@ Page {
             }
         }
 
-     Component.onCompleted: {
+        Component.onCompleted: {
             // console.log("Timesheet onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
 
             if (recordid != 0) {
                 // Set flag before loading to prevent auto-initialization
                 workItem.deferredLoadingPlanned = true;
-                
+
                 currentTimesheet = Model.getTimeSheetDetails(recordid);
                 let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
                 let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
