@@ -116,7 +116,7 @@ Item {
                 name: row.name || "Untitled",
                 taskName: row.name || "Untitled",
                 recordId: odooId,
-                allocatedHours: row.initial_planned_hours ? String(row.initial_planned_hours) : "0",
+                allocatedHours: row.initial_planned_hours ? row.initial_planned_hours : 0,
                 spentHours: row.spent_hours ? row.spent_hours : 0,
                 startDate: row.start_date || "",
                 endDate: row.end_date || "",

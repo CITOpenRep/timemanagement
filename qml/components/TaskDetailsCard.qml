@@ -185,7 +185,7 @@ ListItem {
             anchors.bottom: parent.bottom
             width: parent.width
             height: units.gu(2)
-            visible: !hasChildren //if there are tasks with child tasks then we will hide this view
+          //  visible: !hasChildren //if there are tasks with child tasks then we will hide this view
             color: "transparent"
 
             // Show progress bar only if planned hours > 0 and spentHours > 0
