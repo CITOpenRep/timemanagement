@@ -141,7 +141,7 @@ Page {
             notifPopup.open("Error", "Please add a Name to the task", "error");
         }
 
-        isReadOnly = true; // Switch back to read-only mode after saving
+      //  isReadOnly = true; // Switch back to read-only mode after saving
     }
 
     function incdecHrs(value) {

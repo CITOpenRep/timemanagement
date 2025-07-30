@@ -301,7 +301,7 @@ ListItem {
 
                         Text {
                             id: projectTitleText
-                            text: (taskName !== "" ? truncateText(taskName, 300) : "Unnamed Task")
+                            text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
                             color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                             font.pixelSize: units.gu(2)
                             wrapMode: Text.WordWrap
