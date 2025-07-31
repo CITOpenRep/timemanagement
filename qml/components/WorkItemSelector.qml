@@ -140,17 +140,20 @@ Rectangle {
         }
     }
 
-    //Functiosn to populate the models starts here
+    //Functions to populate the models starts here
     function finalizeLoading(selectorType, component, list, default_id, default_name, selectedId, transitionState) {
         selectorModelMap[selectorType] = list;
         component.modelData = list;
 
-        // Only enable if not in read-only mode AND has data
-        if (!readOnly && list.length > 1) {
-            component.setEnabled(true);
-        } else {
-            component.setEnabled(false);
+        // Enable selector based on data availability and read-only state
+        var shouldEnable = !readOnly && list.length > 1;
+        
+        // Special case for existing records in edit mode - enable if there's data
+        if (!readOnly && deferredLoadingPlanned && list.length > 0) {
+            shouldEnable = true;
         }
+        
+        component.setEnabled(shouldEnable);
 
         if (selectedId !== -1 && list.length > 1) {
             component.applyDeferredSelection(default_id);
@@ -201,8 +204,10 @@ Rectangle {
             loadAssignees(accountId, assigneeId);
         }
 
-        // Force update selector states after loading data to respect read-only mode
-        Qt.callLater(updateAllSelectorStates);
+        // Force update selector states after loading data - with delay to ensure all data is loaded
+        Qt.callLater(function() {
+            Qt.callLater(updateAllSelectorStates);
+        });
         
         // Reset the flag after loading is complete
         Qt.callLater(function() {
@@ -269,7 +274,6 @@ Rectangle {
         // Special handling for account selector when restricted to local only
         if (restrictAccountToLocalOnly && !readOnly) {
             // Always enable account selector when restricted to show local account is selected
-            
             account_component.setEnabled(true);
         } else {
             // Use standard logic: enable only if more than 1 option and not read-only
@@ -523,7 +527,7 @@ Rectangle {
         }
 
         finalizeLoading("Assignee", assignee_component, assigneeList, default_id, default_name, selectedId, "AssigneeSelected");
-        //disbale the subprojects, tasks,subtasks buttons
+        //disable the subprojects, tasks,subtasks buttons
         if (selectedId === -1) {
             subproject_compoent.setEnabled(false);
             subtask_component.setEnabled(false);
