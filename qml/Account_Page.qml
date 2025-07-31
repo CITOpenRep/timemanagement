@@ -45,6 +45,8 @@ Page {
     property string single_db: ""
     property bool activeBackendAccount: false
     property bool isManualDbMode: false
+    
+    property bool isReadOnly: false
 
     header: PageHeader {
         id: pageHeader
@@ -58,11 +60,27 @@ Page {
         trailingActionBar.actions: [
             Action {
                 iconSource: "images/save.svg"
+                visible: !isReadOnly
+                text: "Save"
                 onTriggered: {
                     handleAccountSave();
                 }
+            },
+            Action {
+                iconName: "edit"
+                visible: isReadOnly
+                text: "Edit"
+                onTriggered: {
+                    switchToEditMode();
+                }
             }
         ]
+    }
+
+    function switchToEditMode() {
+        
+            isReadOnly = false;
+        
     }
 
     function handleAccountSave() {
@@ -88,6 +106,8 @@ Page {
                     notifPopup.open("Error", "You already have this account", "error");
                 } else {
                     notifPopup.open("Saved", "Your account has been saved, Enjoy using the app !", "success");
+                   
+                    isReadOnly = true;
                 }
             } else {
                 notifPopup.open("Error", "Unable to save the Account, Please check the URL , Database name or your credentials", "error");
@@ -160,6 +180,7 @@ Page {
                         height: units.gu(5)
                         TextField {
                             id: accountNameInput
+                            enabled: !isReadOnly
                             anchors.horizontalCenter: parent.horizontalCenter
                             placeholderText: "Account Name"
                             width: parent.width
@@ -193,6 +214,7 @@ Page {
                         height: units.gu(4)
                         TextField {
                             id: linkInput
+                            enabled: !isReadOnly
                             placeholderText: "Enter Odoo URL here"
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
@@ -205,6 +227,7 @@ Page {
                     TSButton {
                         id: fetch_db_button
                         text: "Fetch Databases"
+                         enabled: !isReadOnly
                         width: units.gu(28)
                         height: units.gu(4)
                         onClicked: {
@@ -273,6 +296,7 @@ Page {
                         ComboBox {
                             id: database_combo
                             width: parent.width
+                            enabled: !isReadOnly
                             height: parent.height
                             background: Rectangle {
                                 color: "transparent"
@@ -346,6 +370,7 @@ Page {
                         TextField {
                             id: usernameInput
                             visible: activeBackendAccount
+                            enabled: !isReadOnly
                             placeholderText: "Username"
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
@@ -375,6 +400,7 @@ Page {
                     leftPadding: units.gu(1)
                     ComboBox {
                         id: connectWith_combo
+                        enabled: !isReadOnly
                         width: units.gu(28)
                         height: units.gu(5)
                         visible: activeBackendAccount
@@ -438,6 +464,7 @@ Page {
                         height: units.gu(5)
                         TextField {
                             id: passwordInput
+                            enabled: !isReadOnly
                             visible: activeBackendAccount
                             echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
                             placeholderText: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
@@ -448,6 +475,7 @@ Page {
                 }
                 Column {
                     TSButton {
+                         enabled: !isReadOnly
                         width: units.gu(5)
                         height: passwordInput.height
                         visible: activeBackendAccount
