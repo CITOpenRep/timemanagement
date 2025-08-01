@@ -112,7 +112,7 @@ Page {
                 text: "About"
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Aboutus.qml"));
-                  //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
+                    //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
                     page = 7;
                     apLayout.setCurrentPage(page);
                 }
@@ -134,7 +134,7 @@ Page {
                 text: "Timesheet"
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
-                  //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
+                    //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
                     page = 7;
                     apLayout.setCurrentPage(page);
                 }
@@ -195,7 +195,7 @@ Page {
     property variant task_data: []
 
     function get_project_chart_data() {
-     //   console.log("get_project_chart_data called");
+        //   console.log("get_project_chart_data called");
         project_data = Model.get_projects_spent_hours();
         var count = 0;
         var timeval;
@@ -211,7 +211,7 @@ Page {
     }
 
     function get_task_chart_data() {
-      //  console.log("get_task_chart_data called");
+        //  console.log("get_task_chart_data called");
         task_data = Model.get_tasks_spent_hours();
         var count = 0;
         var timeval;
@@ -236,17 +236,20 @@ Page {
             {
                 label: "Timesheet"
             },
+            {
+                label: "Activity"
+            },
         ]
         onMenuItemSelected: {
             if (index === 0) {
-               // console.log("add task");
+                // console.log("add task");
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
                 });
             }
             if (index === 1) {
-               // console.log("add time sheet");
+                // console.log("add time sheet");
                 const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
                 if (result.success) {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
@@ -256,6 +259,13 @@ Page {
                 } else {
                     console.error("Error creating timesheet: " + result.message);
                 }
+            }
+            if (index === 2) {
+              //   console.log("add activity");
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
+                   // "recordid": 0,
+                    "isReadOnly": false
+                });
             }
         }
     }
@@ -309,9 +319,9 @@ Page {
                         quadrant2Hours: "65.5"
                         quadrant3Hours: "55.0"
                         quadrant4Hours: "178.1"
-                        onQuadrantClicked: {
-                          //  console.log("Quadrant clicked:", quadrant);
-                        }
+                        onQuadrantClicked:
+                        //  console.log("Quadrant clicked:", quadrant);
+                        {}
                     }
                 }
             }
@@ -360,7 +370,7 @@ Page {
             // load3.active = false;
             // load4.active = false;
             {}
-          //  console.log("Flickable flick ended");
+            //  console.log("Flickable flick ended");
             //load.active = true;
             // load2.active = true;
             if (apLayout.columns === 1)
@@ -382,7 +392,7 @@ Page {
         repeat: false
         onTriggered: {
             if (apLayout.columns === 3) {
-               // console.log("In Dashboard timer columns: " + apLayout.columns);
+                // console.log("In Dashboard timer columns: " + apLayout.columns);
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml"));
             }
         }
