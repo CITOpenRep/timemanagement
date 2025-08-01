@@ -286,7 +286,7 @@ function getAllTasks() {
             }
 
             // Step 2: Fetch tasks and attach inherited color and total hours
-            var query = "SELECT * FROM project_task_app WHERE status IS NULL OR status != 'deleted' ORDER BY name COLLATE NOCASE ASC";
+            var query = "SELECT * FROM project_task_app WHERE status IS NULL OR status != 'deleted' ORDER BY last_modified DESC";
             var result = tx.executeSql(query);
 
             for (var i = 0; i < result.rows.length; i++) {
