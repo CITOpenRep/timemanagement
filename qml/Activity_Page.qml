@@ -137,9 +137,14 @@ Page {
                 }
             }
 
-            // Sort activities alphabetically by summary (same as projects)
+            // Sort activities by last_modified time (most recent first)
             filteredActivities.sort(function (a, b) {
-                return (a.summary || "").localeCompare(b.summary || "");
+                // If either last_modified is missing, fall back to summary
+                if (!a.last_modified || !b.last_modified) {
+                    return (a.summary || "").localeCompare(b.summary || "");
+                }
+                // Sort in descending order (newest first)
+                return new Date(b.last_modified) - new Date(a.last_modified);
             });
 
             // Add sorted activities to the model

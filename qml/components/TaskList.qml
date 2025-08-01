@@ -92,6 +92,14 @@ Item {
             return;
         }
 
+        // Sort tasks by last_modified (most recent first)
+        tasks.sort(function (a, b) {
+            if (!a.last_modified || !b.last_modified) {
+                return (a.name || "").localeCompare(b.name || "");
+            }
+            return new Date(b.last_modified) - new Date(a.last_modified);
+        });
+
         var tempMap = {};
 
         tasks.forEach(function (row) {
@@ -124,7 +132,8 @@ Item {
                 description: row.description || "",
                 isFavorite: row.favorites === 1,
                 hasChildren: false,
-                color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0
+                color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
+                last_modified: row.last_modified || ""
             };
 
             if (!tempMap[parentOdooId])
@@ -168,8 +177,11 @@ Item {
         var allTasks = Task.getAllTasks(); // import tasks.js as Task
 
         if (allTasks.length === 0) {
+            childrenMapReady = true;
             return;
         }
+
+        // Tasks are already sorted by last_modified in the Task.getAllTasks() SQL query
 
         var tempMap = {};
 
@@ -196,7 +208,8 @@ Item {
                 description: row.description || "",
                 isFavorite: row.favorites === 1,
                 hasChildren: false,
-                color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0
+                color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
+                last_modified: row.last_modified || ""
             };
 
             if (!tempMap[parentOdooId])
