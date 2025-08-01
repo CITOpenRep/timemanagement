@@ -331,12 +331,14 @@ function getFilteredTasks(filterType, searchQuery) {
     var allTasks = getAllTasks();
     var filteredTasks = [];
     var currentDate = new Date();
-    var includedTaskIds = new Set();
+    var includedTaskIds = new Map(); // Changed to Map to store composite keys of odoo_record_id and account_id
     var taskById = {};
     
-    // Create a map of tasks by their odoo_record_id for quick lookup
+    // Create a map of tasks by a composite key of odoo_record_id and account_id for quick lookup
     for (var i = 0; i < allTasks.length; i++) {
-        taskById[allTasks[i].odoo_record_id] = allTasks[i];
+        var task = allTasks[i];
+        var compositeKey = task.odoo_record_id + '_' + task.account_id;
+        taskById[compositeKey] = task;
     }
     
     // First pass: identify tasks that match the filter criteria
@@ -356,7 +358,8 @@ function getFilteredTasks(filterType, searchQuery) {
         }
         
         if (passesFilter) {
-            includedTaskIds.add(task.odoo_record_id);
+            var compositeKey = task.odoo_record_id + '_' + task.account_id;
+            includedTaskIds.set(compositeKey, task);
         }
     }
     
@@ -368,28 +371,41 @@ function getFilteredTasks(filterType, searchQuery) {
         var hasIncludedChildren = false;
         for (var j = 0; j < allTasks.length; j++) {
             var potentialChild = allTasks[j];
-            if (potentialChild.parent_id === task.odoo_record_id && includedTaskIds.has(potentialChild.odoo_record_id)) {
+            var childKey = potentialChild.odoo_record_id + '_' + potentialChild.account_id;
+            // Match parent-child relationship and ensure they are in the same account
+            if (potentialChild.parent_id === task.odoo_record_id && 
+                potentialChild.account_id === task.account_id && 
+                includedTaskIds.has(childKey)) {
                 hasIncludedChildren = true;
                 break;
             }
         }
         
         if (hasIncludedChildren) {
-            includedTaskIds.add(task.odoo_record_id);
+            var compositeKey = task.odoo_record_id + '_' + task.account_id;
+            includedTaskIds.set(compositeKey, task);
         }
     }
     
     // Third pass: include parent chain for included tasks to maintain hierarchy
-    var toProcess = Array.from(includedTaskIds);
+    var toProcess = Array.from(includedTaskIds.values());
     for (var i = 0; i < toProcess.length; i++) {
-        var taskId = toProcess[i];
-        var task = taskById[taskId];
+        var task = toProcess[i];
         
-        if (task && task.parent_id && task.parent_id > 0 && !includedTaskIds.has(task.parent_id)) {
-            var parentTask = taskById[task.parent_id];
-            if (parentTask) {
-                includedTaskIds.add(task.parent_id);
-                toProcess.push(task.parent_id);
+        if (task && task.parent_id && task.parent_id > 0) {
+            // Look for parent with matching account_id
+            for (var j = 0; j < allTasks.length; j++) {
+                var parentCandidate = allTasks[j];
+                if (parentCandidate.odoo_record_id === task.parent_id && 
+                    parentCandidate.account_id === task.account_id) {
+                    
+                    var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
+                    if (!includedTaskIds.has(parentKey)) {
+                        includedTaskIds.set(parentKey, parentCandidate);
+                        toProcess.push(parentCandidate);
+                    }
+                    break;
+                }
             }
         }
     }
@@ -399,15 +415,30 @@ function getFilteredTasks(filterType, searchQuery) {
         var task = allTasks[i];
         
         // If this task has a parent that is included, include this task too
-        if (task.parent_id && task.parent_id > 0 && includedTaskIds.has(task.parent_id)) {
-            includedTaskIds.add(task.odoo_record_id);
+        // But only if the parent is from the same account
+        if (task.parent_id && task.parent_id > 0) {
+            // Check if any parent with matching account_id is included
+            for (var j = 0; j < allTasks.length; j++) {
+                var parentCandidate = allTasks[j];
+                if (parentCandidate.odoo_record_id === task.parent_id && 
+                    parentCandidate.account_id === task.account_id) {
+                    
+                    var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
+                    if (includedTaskIds.has(parentKey)) {
+                        var taskKey = task.odoo_record_id + '_' + task.account_id;
+                        includedTaskIds.set(taskKey, task);
+                        break;
+                    }
+                }
+            }
         }
     }
     
     // Final pass: build the filtered tasks list
     for (var i = 0; i < allTasks.length; i++) {
         var task = allTasks[i];
-        if (includedTaskIds.has(task.odoo_record_id)) {
+        var taskKey = task.odoo_record_id + '_' + task.account_id;
+        if (includedTaskIds.has(taskKey)) {
             filteredTasks.push(task);
         }
     }
@@ -461,6 +492,9 @@ function passesDateFilter(task, filterType, currentDate) {
  * @returns {boolean} True if task matches the search
  */
 function passesSearchFilter(task, searchQuery) {
+    // Safety check for task object
+    if (!task) return false;
+    
     if (!searchQuery || searchQuery.trim() === "") {
         return true;
     }
