@@ -25,7 +25,9 @@ function saveOrUpdateTask(data) {
             finalProjectId = data.subProjectId;
         }
         
-        var timestamp =  Utils.getFormattedTimestampUTC();
+        var timestamp = Utils.getFormattedTimestampUTC();
+        var taskRecordId = data.record_id;
+        
         db.transaction(function (tx) {
             if (data.record_id) {
                 // UPDATE
@@ -53,10 +55,34 @@ function saveOrUpdateTask(data) {
                                   data.subProjectId, timestamp, data.status
                               ]
                               );
+                              
+                // Get the newly inserted task ID
+                var result = tx.executeSql("SELECT last_insert_rowid() as id");
+                if (result.rows.length > 0) {
+                    taskRecordId = result.rows.item(0).id;
+                }
+            }
+            
+            // Handle multiple assignees if provided
+            if (data.multipleAssignees && data.multipleAssignees.length > 0) {
+                // First, clear existing assignees for this task (soft delete)
+                tx.executeSql(
+                    "UPDATE project_task_assignee_app SET status = 'deleted', last_modified = ? WHERE task_id = ? AND account_id = ?",
+                    [timestamp, taskRecordId, data.accountId]
+                );
+                
+                // Insert new assignees
+                for (let i = 0; i < data.multipleAssignees.length; i++) {
+                    let assignee = data.multipleAssignees[i];
+                    tx.executeSql(
+                        'INSERT OR REPLACE INTO project_task_assignee_app (task_id, account_id, user_id, last_modified, status) VALUES (?, ?, ?, ?, ?)',
+                        [taskRecordId, data.accountId, assignee.id, timestamp, "active"]
+                    );
+                }
             }
         });
 
-        return { success: true };
+        return { success: true, taskId: taskRecordId };
     } catch (e) {
         console.error("Database operation failed:", e.message);
         return { success: false, error: e.message };
@@ -92,6 +118,44 @@ function getAttachmentsForTask(odooRecordId) {
     }
 
     return attachmentList;
+}
+
+/**
+ * Gets the assignees for a specific task
+ * @param {number} taskId - The local task ID
+ * @param {number} accountId - The account ID
+ * @returns {Array} Array of assignee objects with id and name
+ */
+function getTaskAssignees(taskId, accountId) {
+    var assignees = [];
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function (tx) {
+            var query = `
+                SELECT ta.user_id, u.name
+                FROM project_task_assignee_app ta
+                JOIN res_users_app u ON ta.user_id = u.odoo_record_id AND ta.account_id = u.account_id
+                WHERE ta.task_id = ? AND ta.account_id = ? AND (ta.status IS NULL OR ta.status != 'deleted')
+                ORDER BY u.name COLLATE NOCASE ASC
+            `;
+            
+            var result = tx.executeSql(query, [taskId, accountId]);
+            
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                assignees.push({
+                    id: row.user_id,
+                    name: row.name
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getTaskAssignees failed:", e);
+    }
+    
+    return assignees;
 }
 
 

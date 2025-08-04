@@ -280,5 +280,26 @@ function initializeDatabase() {
         ]
     );
 
+    // Task-Assignee relationship table for multiple assignees per task
+    DBCommon.createOrUpdateTable("project_task_assignee_app",
+                                 'CREATE TABLE IF NOT EXISTS project_task_assignee_app (\
+            id INTEGER PRIMARY KEY AUTOINCREMENT,\
+            task_id INTEGER,\
+            account_id INTEGER,\
+            user_id INTEGER,\
+            last_modified datetime,\
+            status TEXT DEFAULT "",\
+            UNIQUE (task_id, account_id, user_id)\
+        )',
+                                 [
+                                     "id INTEGER",
+                                     "task_id INTEGER",
+                                     "account_id INTEGER", 
+                                     "user_id INTEGER",
+                                     "last_modified datetime",
+                                     "status TEXT DEFAULT ''"
+                                 ]
+                                 );
+
 
 }
