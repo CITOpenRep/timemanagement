@@ -112,8 +112,8 @@ def insert_record(
         config_path (str): Path to the field configuration JSON file
         
     Note:
-        Handles data type conversion for SQLite compatibility and flattens
-        one2many/many2many fields to their first element. Adds notification
+        Handles data type conversion for SQLite compatibility and converts
+        one2many/many2many fields to comma-separated strings. Adds notification
         on failure.
     """
     try:
@@ -124,9 +124,14 @@ def insert_record(
         for odoo_field, sqlite_field in field_map.items():
             val = record.get(odoo_field)
 
-            # Flatten one2many or many2many to first element
-            if isinstance(val, list) and val and isinstance(val[0], (int, float)):
-                val = val[0]
+            # Convert one2many or many2many fields to comma-separated string of IDs
+            if isinstance(val, list) and val:
+                if all(isinstance(v, (int, int)) for v in val):
+                    val = ",".join(str(v) for v in val)
+                else:
+                     val = val[0]
+                #     # Handles case like [[id, "name"], [id, "name"]] (Odoo returns tuples)
+                #     val = ",".join(str(v[0]) if isinstance(v, (list, tuple)) else str(v) for v in val)
 
             # Convert boolean to integer (SQLite doesn't support bool)
             if isinstance(val, bool):

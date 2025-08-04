@@ -80,7 +80,7 @@ Page {
     property int favorites: 0
     property int subProjectId: 0
     property var prevtask: ""
-    property var textkey:""
+    property var textkey: ""
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
 
@@ -95,9 +95,17 @@ Page {
 
     function save_task_data() {
         const ids = workItem.getIds();
-    
-        if (!ids.assignee_id) {
-            notifPopup.open("Error", "Please select the assignee", "error");
+
+        // Check for assignees - either single or multiple
+        var hasAssignees = false;
+        if (workItem.enableMultipleAssignees) {
+            hasAssignees = ids.multiple_assignees && ids.multiple_assignees.length > 0;
+        } else {
+            hasAssignees = ids.assignee_id !== null;
+        }
+
+        if (!hasAssignees) {
+            notifPopup.open("Error", "Please select at least one assignee", "error");
             return;
         }
         if (!ids.project_id) {
@@ -122,7 +130,10 @@ Page {
                 status: "updated"
             };
 
-         
+            // Add multiple assignees if enabled
+            if (workItem.enableMultipleAssignees && ids.multiple_assignees) {
+                saveData.multipleAssignees = ids.multiple_assignees;
+            }
 
             const result = Task.saveOrUpdateTask(saveData);
             if (!result.success) {
@@ -132,7 +143,6 @@ Page {
                 // Reload the task data to reflect changes
                 if (recordid !== 0) {
                     currentTask = Task.getTaskDetails(recordid);
-                   
                 }
                 // No navigation - stay on the same page like Timesheet.qml
                 // User can use back button to return to list page
@@ -141,7 +151,7 @@ Page {
             notifPopup.open("Error", "Please add a Name to the task", "error");
         }
 
-      //  isReadOnly = true; // Switch back to read-only mode after saving
+    //  isReadOnly = true; // Switch back to read-only mode after saving
     }
 
     function incdecHrs(value) {
@@ -167,7 +177,7 @@ Page {
         id: tasksDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: descriptionExpanded ? parent.height + units.gu(120) : parent.height + units.gu(50)
+        contentHeight: descriptionExpanded ? parent.height + units.gu(140) : parent.height + units.gu(70)
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -176,7 +186,7 @@ Page {
             id: myRow1a
             anchors.left: parent.left
             topPadding: units.gu(5)
-
+            z: 999
             Column {
                 leftPadding: units.gu(1)
 
@@ -186,6 +196,7 @@ Page {
                     taskLabelText: "Parent Task"
                     showAccountSelector: true
                     showAssigneeSelector: true
+                    enableMultipleAssignees: true  // Enable multiple assignee selection
                     showProjectSelector: true
                     showSubProjectSelector: true
                     showTaskSelector: true
@@ -199,7 +210,7 @@ Page {
             id: myRow1b
             anchors.top: myRow1a.bottom
             anchors.left: parent.left
-            topPadding: units.gu(25)
+            topPadding: units.gu(40)
             Column {
                 id: myCol88
                 leftPadding: units.gu(1)
@@ -269,10 +280,10 @@ Page {
                         is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
-                            Global.description_temporary_holder=text
-                            apLayout.addPageToNextColumn(taskCreate,Qt.resolvedUrl("ReadMorePage.qml"), {
-                                                             isReadOnly:isReadOnly
-                                                         });
+                            Global.description_temporary_holder = text;
+                            apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
+                                isReadOnly: isReadOnly
+                            });
                         }
                     }
                 }
@@ -357,8 +368,6 @@ Page {
         }
     }
     Component.onCompleted: {
-
-
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
             currentTask = Task.getTaskDetails(recordid);
@@ -367,9 +376,23 @@ Page {
             let project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null && currentTask.project_id > 0) ? currentTask.project_id : -1;
             let sub_project_id = (currentTask.sub_project_id !== undefined && currentTask.sub_project_id !== null) ? currentTask.sub_project_id : -1;
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
-            let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
 
-          /*  console.log("Loading task data:", JSON.stringify({
+            // Handle assignee_id - extract first ID if comma-separated (for single assignee mode)
+            let assignee_id = -1;
+            if (currentTask.user_id !== undefined && currentTask.user_id !== null && currentTask.user_id !== "") {
+                let userIdStr = currentTask.user_id.toString();
+                if (userIdStr.indexOf(',') >= 0) {
+                    // Multiple assignees stored as comma-separated - take the first one for single assignee mode
+                    let firstId = parseInt(userIdStr.split(',')[0].trim());
+                    assignee_id = isNaN(firstId) ? -1 : firstId;
+                } else {
+                    // Single assignee
+                    let singleId = parseInt(userIdStr);
+                    assignee_id = isNaN(singleId) ? -1 : singleId;
+                }
+            }
+
+            /*  console.log("Loading task data:", JSON.stringify({
                                                                  instanceId: instanceId,
                                                                  project_id: project_id,
                                                                  sub_project_id: sub_project_id,
@@ -390,7 +413,7 @@ Page {
             }
 
             // Set date range more carefully to preserve original dates
-          
+
             if (currentTask.start_date && currentTask.end_date) {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
             } else if (currentTask.start_date) {
@@ -399,22 +422,29 @@ Page {
                 date_range_widget.setDateRange(null, currentTask.end_date);
             }
             // If no dates are set, don't call setDateRange to avoid defaulting to today
+
+            // Load multiple assignees if enabled
+            if (workItem.enableMultipleAssignees) {
+                var existingAssignees = Task.getTaskAssignees(recordid, instanceId);
+                workItem.setMultipleAssignees(existingAssignees);
+            }
+
             attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
         } else {
             workItem.loadAccounts();
         }
-      //  console.log("currentTask loaded:", JSON.stringify(currentTask));
+        //  console.log("currentTask loaded:", JSON.stringify(currentTask));
     }
 
     onVisibleChanged: {
         if (visible) {
-            if (Global.description_temporary_holder !== "") { //Check if you are coming back from the ReadMore page
-                description_text.text=Global.description_temporary_holder
-                Global.description_temporary_holder=""
+            if (Global.description_temporary_holder !== "") {
+                //Check if you are coming back from the ReadMore page
+                description_text.text = Global.description_temporary_holder;
+                Global.description_temporary_holder = "";
             }
-        }else
-        {
-            Global.description_temporary_holder=""
+        } else {
+            Global.description_temporary_holder = "";
         }
     }
 }

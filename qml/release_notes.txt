@@ -38,17 +38,22 @@
 
       <h4> 08-08-2025 : Version 1.1.3 </h4>
 
-
+ <h5> Fixes and Improvements </h5>
        
         <li> Fixed the Project Missing Issue in Timesheet View Mode.</li>
           <li> Fixed the Naviagtion Issue in Projects, Where the User was not able to view the details about a parent Project. </li>
-          <li> Added Enhancement to set the TimeSheet Page , Account Page to View only Mode after Saving. The User will still have option to Edit it after clicking the Edit Icon from the top. </li>
+         
            <li> Fixed the Overflow Issue in Project Pie Chart, Global Timer Widget. </li>
            <li> Fixed the Task Search issue where Task from Multiple Instance were returned. </li>
-                 <li> Added feature to create Activity from Home Screen via FAB menu. </li>
+                
            <li> Sorted the Activities and Tasks based on Last Modified Date. </li>
         
 
+
+ <h5> New Features </h5>
+
+ <li> Added Enhancement to set the TimeSheet Page , Account Page to View only Mode after Saving. The User will still have option to Edit it after clicking the Edit Icon from the top. </li>
+  <li> Added feature to create Activity from Home Screen via FAB menu. </li>
            <br>
 
 

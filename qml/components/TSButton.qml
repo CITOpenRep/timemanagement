@@ -35,7 +35,7 @@ Item {
     property alias text: label.text
     property alias fontSize: label.font.pixelSize
     property alias fontBold: label.font.bold
-
+    property bool enabled: true
     signal clicked
 
     // Customizable colors
