@@ -161,7 +161,7 @@ Item {
                             Label {
                                 id: assigneeLabel
                                 text: selectedAssignees[index].name
-                                 
+
                                 color: "white"
                                 font.pixelSize: units.gu(1.2)
                                 anchors.verticalCenter: parent.verticalCenter
@@ -170,7 +170,7 @@ Item {
                             TSButton {
                                 id: removeButton
                                 text: "×"
-                                
+
                                 enabled: !readOnly && enabledState
                                 width: units.gu(2)
                                 height: units.gu(2)
@@ -276,24 +276,27 @@ Item {
 
                     Row {
                         width: parent.width
+                        height: units.gu(5)
+                        spacing: units.gu(2)
 
-                        TSLabel {
+                        anchors.margins: units.gu(2)
+
+                        Label {
                             text: "Select Assignees"
-                            // font.bold: true
-                            //font.pixelSize: units.gu(2)
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                            font.bold: true
+                            font.pixelSize: units.gu(2)
 
-                        Item {
-                            width: parent.width - closeButton.width - parent.children[0].width
-                            height: units.gu(1)
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
                         }
 
                         TSButton {
                             id: closeButton
-                            text: "×"
+                            text: "x"
                             width: units.gu(4)
                             height: units.gu(4)
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             onClicked: {
                                 dialogContainer.visible = false;
                             }
