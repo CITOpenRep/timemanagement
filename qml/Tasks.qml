@@ -177,7 +177,7 @@ Page {
         id: tasksDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: descriptionExpanded ? parent.height + units.gu(120) : parent.height + units.gu(50)
+        contentHeight: descriptionExpanded ? parent.height + units.gu(140) : parent.height + units.gu(70)
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -210,7 +210,7 @@ Page {
             id: myRow1b
             anchors.top: myRow1a.bottom
             anchors.left: parent.left
-            topPadding: units.gu(35)
+            topPadding: units.gu(40)
             Column {
                 id: myCol88
                 leftPadding: units.gu(1)

@@ -29,7 +29,7 @@ import "../../models/accounts.js" as Accounts
 Item {
     id: multiAssigneeSelector
     width: width * 0.5
-    height: units.gu(55)
+    height: units.gu(50)
 
     property bool readOnly: false
     property string labelText: "Assignees"
@@ -218,7 +218,7 @@ Item {
             id: assigneeDialog
             anchors.fill: parent
             color: "black"
-            opacity: 0.8
+            opacity: 0.9
 
             MouseArea {
                 anchors.fill: parent
@@ -231,7 +231,7 @@ Item {
             Rectangle {
                 id: dialogContent
                 width: parent.width * 0.8
-                height: parent.height * 0.8
+                height: parent.height * 0.5
                 anchors.centerIn: parent
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2C2C" : "white"
                 radius: units.gu(1)
@@ -288,7 +288,7 @@ Item {
 
                         Rectangle {
                             width: parent.width * 0.7
-                            height: units.gu(25)
+                            height: units.gu(30)
                             border.color: "#CCCCCC"
                             border.width: 1
                             color: "transparent"
@@ -324,7 +324,7 @@ Item {
 
                                             Rectangle {
                                                 anchors.fill: parent
-                                                color: isSelected ? "#E0E0E0" : "transparent"  // Light grey
+                                                color: isSelected ? "#bbb8b8" : "transparent"  // Light grey
                                                 border.color: "#999999"  // Grey
                                                 border.width: 1
                                                 radius: units.gu(0.5)
@@ -353,7 +353,16 @@ Item {
                                                             visible: isSelected
                                                         }
 
-                                                        MouseArea {
+                                                       
+                                                    }
+
+                                                    TSLabel {
+                                                        text: assignee.name
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                    }
+                                                }
+
+                                                 MouseArea {
                                                             anchors.fill: parent
                                                             onClicked: {
                                                                 if (isSelected) {
@@ -369,13 +378,6 @@ Item {
                                                                 }
                                                             }
                                                         }
-                                                    }
-
-                                                    TSLabel {
-                                                        text: assignee.name
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                    }
-                                                }
                                             }
                                         }
                                     }
