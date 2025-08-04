@@ -28,8 +28,8 @@ import "../../models/accounts.js" as Accounts
 
 Item {
     id: multiAssigneeSelector
-    width: parent ? parent.width : 400
-    height: mainColumn.implicitHeight + units.gu(2)
+    width: width * 0.5
+    height: units.gu(55)
 
     property bool readOnly: false
     property string labelText: "Assignees"
@@ -215,8 +215,8 @@ Item {
 
         Rectangle {
             id: dialogContent
-            width: units.gu(60)
-            height: units.gu(50)
+            width: parent.width * 0.8
+            height: parent.height * 0.8
             anchors.centerIn: parent
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2C2C" : "white"
             radius: units.gu(1)
@@ -261,99 +261,107 @@ Item {
                     }
                 }
 
-                TSLabel {
-                    text: "Available Assignees:"
-                    // font.bold: true
-                }
-
-                Rectangle {
+                Row {
                     width: parent.width
-                    height: parent.height - units.gu(15)
-                    border.color: "#CCCCCC"
-                    border.width: 1
-                    color: "transparent"
 
-                    Flickable {
-                        id: assigneeFlickable
-                        anchors.fill: parent
-                        anchors.margins: units.gu(1)
-                        contentHeight: assigneeColumn.height
-                        clip: true
+                    spacing: units.gu(1)
 
-                        Column {
-                            id: assigneeColumn
-                            width: parent.width
-                            spacing: units.gu(0.5)
+                    TSLabel {
+                        text: "Available Assignees:"
+                        // font.bold: true
+                    }
 
-                            Repeater {
-                                model: availableAssignees.length
 
-                                delegate: Item {
-                                    width: assigneeColumn.width
-                                    height: units.gu(5)
 
-                                    property var assignee: availableAssignees[index]
-                                    property bool isSelected: {
-                                        for (let i = 0; i < selectedAssignees.length; i++) {
-                                            if (selectedAssignees[i].id === assignee.id) {
-                                                return true;
-                                            }
-                                        }
-                                        return false;
-                                    }
+                    Rectangle {
+                        width: parent.width * 0.7
+                        height:  units.gu(25)
+                        border.color: "#CCCCCC"
+                        border.width: 1
+                        color: "transparent"
 
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        color: isSelected ? "#E0E0E0" : "transparent"  // Light grey
-                                        border.color: "#999999"  // Grey
-                                        border.width: 1
-                                        radius: units.gu(0.5)
+                        Flickable {
+                            id: assigneeFlickable
+                            anchors.fill: parent
+                            anchors.margins: units.gu(1)
+                            contentHeight: assigneeColumn.height
+                            clip: true
 
-                                        Row {
-                                            anchors.left: parent.left
-                                            anchors.leftMargin: units.gu(1)
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            spacing: units.gu(1)
+                            Column {
+                                id: assigneeColumn
+                                width: parent.width
+                                spacing: units.gu(0.5)
 
-                                            Rectangle {
-                                                id: checkbox
-                                                width: units.gu(3)
-                                                height: units.gu(3)
-                                                color: isSelected ? "#3498db" : "transparent"
-                                                border.color: "#666666"
-                                                border.width: 1
-                                                radius: units.gu(0.3)
-                                                anchors.verticalCenter: parent.verticalCenter
+                                Repeater {
+                                    model: availableAssignees.length
 
-                                                Text {
-                                                    text: "✓"
-                                                    color: "white"
-                                                    font.bold: true
-                                                    anchors.centerIn: parent
-                                                    visible: isSelected
+                                    delegate: Item {
+                                        width: assigneeColumn.width
+                                        height: units.gu(5)
+
+                                        property var assignee: availableAssignees[index]
+                                        property bool isSelected: {
+                                            for (let i = 0; i < selectedAssignees.length; i++) {
+                                                if (selectedAssignees[i].id === assignee.id) {
+                                                    return true;
                                                 }
+                                            }
+                                            return false;
+                                        }
 
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    onClicked: {
-                                                        if (isSelected) {
-                                                            // Find and remove
-                                                            for (let i = 0; i < selectedAssignees.length; i++) {
-                                                                if (selectedAssignees[i].id === assignee.id) {
-                                                                    removeAssignee(i);
-                                                                    break;
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: isSelected ? "#E0E0E0" : "transparent"  // Light grey
+                                            border.color: "#999999"  // Grey
+                                            border.width: 1
+                                            radius: units.gu(0.5)
+
+                                            Row {
+                                                anchors.left: parent.left
+                                                anchors.leftMargin: units.gu(1)
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                spacing: units.gu(1)
+
+                                                Rectangle {
+                                                    id: checkbox
+                                                    width: units.gu(3)
+                                                    height: units.gu(3)
+                                                    color: isSelected ? "#3498db" : "transparent"
+                                                    border.color: "#666666"
+                                                    border.width: 1
+                                                    radius: units.gu(0.3)
+                                                    anchors.verticalCenter: parent.verticalCenter
+
+                                                    Text {
+                                                        text: "✓"
+                                                        color: "white"
+                                                        font.bold: true
+                                                        anchors.centerIn: parent
+                                                        visible: isSelected
+                                                    }
+
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        onClicked: {
+                                                            if (isSelected) {
+                                                                // Find and remove
+                                                                for (let i = 0; i < selectedAssignees.length; i++) {
+                                                                    if (selectedAssignees[i].id === assignee.id) {
+                                                                        removeAssignee(i);
+                                                                        break;
+                                                                    }
                                                                 }
+                                                            } else {
+                                                                addAssignee(assignee);
                                                             }
-                                                        } else {
-                                                            addAssignee(assignee);
                                                         }
                                                     }
                                                 }
-                                            }
 
-                                            TSLabel {
-                                                text: assignee.name
-                                                anchors.verticalCenter: parent.verticalCenter
+                                                TSLabel {
+                                                    text: assignee.name
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                }
                                             }
                                         }
                                     }
@@ -364,13 +372,8 @@ Item {
                 }
 
                 Row {
-                    width: parent.width
+                    width: parent.width * .5
                     spacing: units.gu(1)
-
-                    Item {
-                        width: parent.width - clearButton.width - doneButton.width - units.gu(1)
-                        height: units.gu(1)
-                    }
 
                     TSButton {
                         id: clearButton

@@ -186,7 +186,7 @@ Page {
             id: myRow1a
             anchors.left: parent.left
             topPadding: units.gu(5)
-
+z : 999
             Column {
                 leftPadding: units.gu(1)
 
@@ -210,7 +210,7 @@ Page {
             id: myRow1b
             anchors.top: myRow1a.bottom
             anchors.left: parent.left
-            topPadding: units.gu(25)
+            topPadding: units.gu(35)
             Column {
                 id: myCol88
                 leftPadding: units.gu(1)
