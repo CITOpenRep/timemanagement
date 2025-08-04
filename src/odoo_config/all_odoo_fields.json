@@ -2987,5 +2987,171 @@
             "string": "Original (unoptimized, unresized) attachment",
             "type": "many2one"
         }
+    },
+    "project.update": {
+        "activity_ids": {
+            "string": "Activities",
+            "type": "one2many"
+        },
+        "activity_state": {
+            "string": "Activity State",
+            "type": "selection"
+        },
+        "activity_user_id": {
+            "string": "Responsible User",
+            "type": "many2one"
+        },
+        "activity_type_id": {
+            "string": "Next Activity Type",
+            "type": "many2one"
+        },
+        "activity_type_icon": {
+            "string": "Activity Type Icon",
+            "type": "char"
+        },
+        "activity_date_deadline": {
+            "string": "Next Activity Deadline",
+            "type": "date"
+        },
+        "my_activity_date_deadline": {
+            "string": "My Activity Deadline",
+            "type": "date"
+        },
+        "activity_summary": {
+            "string": "Next Activity Summary",
+            "type": "char"
+        },
+        "activity_exception_decoration": {
+            "string": "Activity Exception Decoration",
+            "type": "selection"
+        },
+        "activity_exception_icon": {
+            "string": "Icon",
+            "type": "char"
+        },
+        "message_is_follower": {
+            "string": "Is Follower",
+            "type": "boolean"
+        },
+        "message_follower_ids": {
+            "string": "Followers",
+            "type": "one2many"
+        },
+        "message_partner_ids": {
+            "string": "Followers (Partners)",
+            "type": "many2many"
+        },
+        "message_ids": {
+            "string": "Messages",
+            "type": "one2many"
+        },
+        "has_message": {
+            "string": "Has Message",
+            "type": "boolean"
+        },
+        "message_needaction": {
+            "string": "Action Needed",
+            "type": "boolean"
+        },
+        "message_needaction_counter": {
+            "string": "Number of Actions",
+            "type": "integer"
+        },
+        "message_has_error": {
+            "string": "Message Delivery error",
+            "type": "boolean"
+        },
+        "message_has_error_counter": {
+            "string": "Number of errors",
+            "type": "integer"
+        },
+        "message_attachment_count": {
+            "string": "Attachment Count",
+            "type": "integer"
+        },
+        "message_main_attachment_id": {
+            "string": "Main Attachment",
+            "type": "many2one"
+        },
+        "website_message_ids": {
+            "string": "Website Messages",
+            "type": "one2many"
+        },
+        "message_has_sms_error": {
+            "string": "SMS Delivery error",
+            "type": "boolean"
+        },
+        "email_cc": {
+            "string": "Email cc",
+            "type": "char"
+        },
+        "name": {
+            "string": "Title",
+            "type": "char"
+        },
+        "status": {
+            "string": "Status",
+            "type": "selection"
+        },
+        "color": {
+            "string": "Color",
+            "type": "integer"
+        },
+        "progress": {
+            "string": "Progress",
+            "type": "integer"
+        },
+        "progress_percentage": {
+            "string": "Progress Percentage",
+            "type": "float"
+        },
+        "user_id": {
+            "string": "Author",
+            "type": "many2one"
+        },
+        "description": {
+            "string": "Description",
+            "type": "html"
+        },
+        "date": {
+            "string": "Date",
+            "type": "date"
+        },
+        "project_id": {
+            "string": "Project",
+            "type": "many2one"
+        },
+        "name_cropped": {
+            "string": "Name Cropped",
+            "type": "char"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "create_date": {
+            "string": "Created on",
+            "type": "datetime"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "write_date": {
+            "string": "Last Updated on",
+            "type": "datetime"
+        }
     }
 }
