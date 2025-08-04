@@ -1,3 +1,24 @@
+/*
+ * MULTIPLE ASSIGNEES IMPLEMENTATION
+ * =================================
+ * 
+ * This module now supports multiple assignees per task by storing them as comma-separated 
+ * user IDs in the user_id field of the project_task_app table.
+ * 
+ * Key changes:
+ * - Multiple assignee IDs are stored as comma-separated string in user_id field
+ * - getTaskAssignees() parses the comma-separated IDs and returns assignee objects
+ * - setTaskAssignees() updates task with multiple assignees
+ * - saveOrUpdateTask() handles both single and multiple assignees
+ * - migrateTaskAssignees() provides backward compatibility
+ * 
+ * Usage:
+ * - For single assignee: store single ID in user_id field (backward compatible)
+ * - For multiple assignees: store comma-separated IDs like "123,456,789" in user_id field
+ * - Use getTaskAssignees(taskId, accountId) to get array of assignee objects
+ * - Use setTaskAssignees(taskId, accountId, assignees) to update assignees
+ */
+
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
@@ -5,6 +26,28 @@
 // Helper to handle -1/null
 function validId(value) {
     return (value !== undefined && value > 0) ? value : null;
+}
+
+// Helper to parse comma-separated user IDs from user_id field
+function parseAssigneeIds(userIdField) {
+    if (!userIdField) {
+        return [];
+    }
+    return userIdField.toString().split(',').map(function(id) {
+        return parseInt(id.trim());
+    }).filter(function(id) {
+        return !isNaN(id) && id > 0;
+    });
+}
+
+// Helper to convert assignee array to comma-separated string
+function formatAssigneeIds(assignees) {
+    if (!assignees || assignees.length === 0) {
+        return "";
+    }
+    return assignees.map(function(assignee) {
+        return assignee.id;
+    }).join(',');
 }
 
 function saveOrUpdateTask(data) {
@@ -28,6 +71,12 @@ function saveOrUpdateTask(data) {
         var timestamp = Utils.getFormattedTimestampUTC();
         var taskRecordId = data.record_id;
         
+        // Determine the user_id value (single assignee or comma-separated multiple assignees)
+        var userIdValue = data.assigneeUserId;
+        if (data.multipleAssignees && data.multipleAssignees.length > 0) {
+            userIdValue = formatAssigneeIds(data.multipleAssignees);
+        }
+        
         db.transaction(function (tx) {
             if (data.record_id) {
                 // UPDATE
@@ -37,7 +86,7 @@ function saveOrUpdateTask(data) {
                               [
                                   data.accountId, data.name, finalProjectId,
                                   resolvedParentId, data.plannedHours, data.favorites,
-                                  data.description, data.assigneeUserId, data.subProjectId,
+                                  data.description, userIdValue, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
                                   timestamp, data.status, data.record_id
                               ]
@@ -51,7 +100,7 @@ function saveOrUpdateTask(data) {
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
                                   data.deadline, data.favorites, data.plannedHours,
-                                  data.description, data.assigneeUserId,
+                                  data.description, userIdValue,
                                   data.subProjectId, timestamp, data.status
                               ]
                               );
@@ -60,24 +109,6 @@ function saveOrUpdateTask(data) {
                 var result = tx.executeSql("SELECT last_insert_rowid() as id");
                 if (result.rows.length > 0) {
                     taskRecordId = result.rows.item(0).id;
-                }
-            }
-            
-            // Handle multiple assignees if provided
-            if (data.multipleAssignees && data.multipleAssignees.length > 0) {
-                // First, clear existing assignees for this task (soft delete)
-                tx.executeSql(
-                    "UPDATE project_task_assignee_app SET status = 'deleted', last_modified = ? WHERE task_id = ? AND account_id = ?",
-                    [timestamp, taskRecordId, data.accountId]
-                );
-                
-                // Insert new assignees
-                for (let i = 0; i < data.multipleAssignees.length; i++) {
-                    let assignee = data.multipleAssignees[i];
-                    tx.executeSql(
-                        'INSERT OR REPLACE INTO project_task_assignee_app (task_id, account_id, user_id, last_modified, status) VALUES (?, ?, ?, ?, ?)',
-                        [taskRecordId, data.accountId, assignee.id, timestamp, "active"]
-                    );
                 }
             }
         });
@@ -133,22 +164,41 @@ function getTaskAssignees(taskId, accountId) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         
         db.transaction(function (tx) {
-            var query = `
-                SELECT ta.user_id, u.name
-                FROM project_task_assignee_app ta
-                JOIN res_users_app u ON ta.user_id = u.odoo_record_id AND ta.account_id = u.account_id
-                WHERE ta.task_id = ? AND ta.account_id = ? AND (ta.status IS NULL OR ta.status != 'deleted')
-                ORDER BY u.name COLLATE NOCASE ASC
-            `;
+            // First get the user_id field from project_task_app
+            var taskQuery = "SELECT user_id FROM project_task_app WHERE id = ? AND account_id = ?";
+            var taskResult = tx.executeSql(taskQuery, [taskId, accountId]);
             
-            var result = tx.executeSql(query, [taskId, accountId]);
-            
-            for (var i = 0; i < result.rows.length; i++) {
-                var row = result.rows.item(i);
-                assignees.push({
-                    id: row.user_id,
-                    name: row.name
-                });
+            if (taskResult.rows.length > 0) {
+                var userIdField = taskResult.rows.item(0).user_id;
+                
+                if (userIdField) {
+                    // Parse the comma-separated user IDs
+                    var userIds = parseAssigneeIds(userIdField);
+                    
+                    if (userIds.length > 0) {
+                        // Create placeholders for IN clause
+                        var placeholders = userIds.map(function() { return '?'; }).join(',');
+                        
+                        // Get user details for each ID
+                        var userQuery = `
+                            SELECT odoo_record_id as user_id, name
+                            FROM res_users_app 
+                            WHERE account_id = ? AND odoo_record_id IN (${placeholders})
+                            ORDER BY name COLLATE NOCASE ASC
+                        `;
+                        
+                        var queryParams = [accountId].concat(userIds);
+                        var userResult = tx.executeSql(userQuery, queryParams);
+                        
+                        for (var i = 0; i < userResult.rows.length; i++) {
+                            var row = userResult.rows.item(i);
+                            assignees.push({
+                                id: row.user_id,
+                                name: row.name
+                            });
+                        }
+                    }
+                }
             }
         });
     } catch (e) {
@@ -158,6 +208,80 @@ function getTaskAssignees(taskId, accountId) {
     return assignees;
 }
 
+/**
+ * Sets multiple assignees for a task using the user_id field
+ * @param {number} taskId - The local task ID
+ * @param {number} accountId - The account ID
+ * @param {Array} assignees - Array of assignee objects with id property
+ * @returns {Object} Success/error result
+ */
+function setTaskAssignees(taskId, accountId, assignees) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var timestamp = Utils.getFormattedTimestampUTC();
+        
+        db.transaction(function (tx) {
+            var assigneeIds = formatAssigneeIds(assignees);
+            
+            // Update the user_id field with the comma-separated assignee IDs
+            tx.executeSql(
+                'UPDATE project_task_app SET user_id = ?, last_modified = ? WHERE id = ? AND account_id = ?',
+                [assigneeIds, timestamp, taskId, accountId]
+            );
+        });
+        
+        return { success: true };
+    } catch (e) {
+        console.error("setTaskAssignees failed:", e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Migrates task assignees from project_task_assignee_app table to user_id field in project_task_app
+ * This is for backward compatibility with existing data
+ */
+function migrateTaskAssignees() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var timestamp = Utils.getFormattedTimestampUTC();
+        
+        console.log("Starting task assignee migration...");
+        
+        db.transaction(function (tx) {
+            // Get all tasks that have assignees in the old table but empty user_id in the main table
+            var query = `
+                SELECT ta.task_id, ta.account_id, GROUP_CONCAT(ta.user_id) as assignee_ids
+                FROM project_task_assignee_app ta
+                JOIN project_task_app t ON ta.task_id = t.id AND ta.account_id = t.account_id
+                WHERE (ta.status IS NULL OR ta.status != 'deleted') 
+                  AND (t.user_id IS NULL OR t.user_id = '' OR t.user_id = '0')
+                GROUP BY ta.task_id, ta.account_id
+            `;
+            
+            var result = tx.executeSql(query);
+            
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                
+                // Update the task with the migrated assignee IDs
+                tx.executeSql(
+                    'UPDATE project_task_app SET user_id = ?, last_modified = ? WHERE id = ? AND account_id = ?',
+                    [row.assignee_ids, timestamp, row.task_id, row.account_id]
+                );
+                
+                console.log("Migrated task", row.task_id, "with assignees:", row.assignee_ids);
+            }
+            
+            console.log("Migration completed. Migrated", result.rows.length, "tasks.");
+        });
+        
+        return { success: true, migratedCount: result.rows.length };
+    } catch (e) {
+        console.error("Task assignee migration failed:", e);
+        return { success: false, error: e.message };
+    }
+}
 
 
 function markTaskAsDeleted(taskId) {

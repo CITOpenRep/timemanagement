@@ -376,7 +376,21 @@ Page {
             let project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null && currentTask.project_id > 0) ? currentTask.project_id : -1;
             let sub_project_id = (currentTask.sub_project_id !== undefined && currentTask.sub_project_id !== null) ? currentTask.sub_project_id : -1;
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
-            let assignee_id = (currentTask.user_id !== undefined && currentTask.user_id !== null) ? currentTask.user_id : -1;
+
+            // Handle assignee_id - extract first ID if comma-separated (for single assignee mode)
+            let assignee_id = -1;
+            if (currentTask.user_id !== undefined && currentTask.user_id !== null && currentTask.user_id !== "") {
+                let userIdStr = currentTask.user_id.toString();
+                if (userIdStr.indexOf(',') >= 0) {
+                    // Multiple assignees stored as comma-separated - take the first one for single assignee mode
+                    let firstId = parseInt(userIdStr.split(',')[0].trim());
+                    assignee_id = isNaN(firstId) ? -1 : firstId;
+                } else {
+                    // Single assignee
+                    let singleId = parseInt(userIdStr);
+                    assignee_id = isNaN(singleId) ? -1 : singleId;
+                }
+            }
 
             /*  console.log("Loading task data:", JSON.stringify({
                                                                  instanceId: instanceId,
