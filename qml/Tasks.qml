@@ -186,7 +186,7 @@ Page {
             id: myRow1a
             anchors.left: parent.left
             topPadding: units.gu(5)
-z : 999
+            z: 999
             Column {
                 leftPadding: units.gu(1)
 

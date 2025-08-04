@@ -113,7 +113,7 @@ Item {
 
                 onClicked: {
                     if (!readOnly) {
-                        assigneeDialog.visible = true;
+                        dialogContainer.visible = true;
                     }
                 }
             }
@@ -197,170 +197,184 @@ Item {
     }
 
     // Modal dialog for selecting multiple assignees
-    Rectangle {
-        id: assigneeDialog
+    // Use Item as a container and position it at the root level
+    Item {
+        id: dialogContainer
         visible: false
-        anchors.fill: parent
-        color: "black"
-        opacity: 0.8
         z: 1000
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                // Close dialog when clicking outside
-                assigneeDialog.visible = false;
+        // Get the root window/application area
+        parent: {
+            var root = multiAssigneeSelector;
+            while (root.parent) {
+                root = root.parent;
             }
+            return root;
         }
 
+        anchors.fill: parent
+
         Rectangle {
-            id: dialogContent
-            width: parent.width * 0.8
-            height: parent.height * 0.8
-            anchors.centerIn: parent
-            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2C2C" : "white"
-            radius: units.gu(1)
-            border.color: "#CCCCCC"
-            border.width: 2
+            id: assigneeDialog
+            anchors.fill: parent
+            color: "black"
+            opacity: 0.8
 
             MouseArea {
                 anchors.fill: parent
-                onClicked:
-                // Prevent closing when clicking inside dialog
-                {}
+                onClicked: {
+                    // Close dialog when clicking outside
+                    dialogContainer.visible = false;
+                }
             }
 
-            Column {
-                anchors.fill: parent
-                anchors.margins: units.gu(2)
-                spacing: units.gu(1)
+            Rectangle {
+                id: dialogContent
+                width: parent.width * 0.8
+                height: parent.height * 0.8
+                anchors.centerIn: parent
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2C2C" : "white"
+                radius: units.gu(1)
+                border.color: "#CCCCCC"
+                border.width: 2
 
-                Row {
-                    width: parent.width
-
-                    TSLabel {
-                        text: "Select Assignees"
-                        // font.bold: true
-                        //font.pixelSize: units.gu(2)
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    Item {
-                        width: parent.width - closeButton.width - parent.children[0].width
-                        height: units.gu(1)
-                    }
-
-                    TSButton {
-                        id: closeButton
-                        text: "×"
-                        width: units.gu(4)
-                        height: units.gu(4)
-                        onClicked: {
-                            assigneeDialog.visible = false;
-                        }
-                    }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked:
+                    // Prevent closing when clicking inside dialog
+                    {}
                 }
 
-                Row {
-                    width: parent.width
-
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: units.gu(2)
                     spacing: units.gu(1)
 
-                    TSLabel {
-                        text: "Available Assignees:"
-                        // font.bold: true
+                    Row {
+                        width: parent.width
+
+                        TSLabel {
+                            text: "Select Assignees"
+                            // font.bold: true
+                            //font.pixelSize: units.gu(2)
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Item {
+                            width: parent.width - closeButton.width - parent.children[0].width
+                            height: units.gu(1)
+                        }
+
+                        TSButton {
+                            id: closeButton
+                            text: "×"
+                            width: units.gu(4)
+                            height: units.gu(4)
+                            onClicked: {
+                                dialogContainer.visible = false;
+                            }
+                        }
                     }
 
+                    Row {
+                        width: parent.width
 
+                        spacing: units.gu(2)
 
-                    Rectangle {
-                        width: parent.width * 0.7
-                        height:  units.gu(25)
-                        border.color: "#CCCCCC"
-                        border.width: 1
-                        color: "transparent"
+                        TSLabel {
+                            text: "Available Assignees:"
+                            // font.bold: true
+                        }
 
-                        Flickable {
-                            id: assigneeFlickable
-                            anchors.fill: parent
-                            anchors.margins: units.gu(1)
-                            contentHeight: assigneeColumn.height
-                            clip: true
+                        Rectangle {
+                            width: parent.width * 0.7
+                            height: units.gu(25)
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                            color: "transparent"
 
-                            Column {
-                                id: assigneeColumn
-                                width: parent.width
-                                spacing: units.gu(0.5)
+                            Flickable {
+                                id: assigneeFlickable
+                                anchors.fill: parent
+                                anchors.margins: units.gu(1)
+                                contentHeight: assigneeColumn.height
+                                clip: true
 
-                                Repeater {
-                                    model: availableAssignees.length
+                                Column {
+                                    id: assigneeColumn
+                                    width: parent.width
+                                    spacing: units.gu(0.5)
 
-                                    delegate: Item {
-                                        width: assigneeColumn.width
-                                        height: units.gu(5)
+                                    Repeater {
+                                        model: availableAssignees.length
 
-                                        property var assignee: availableAssignees[index]
-                                        property bool isSelected: {
-                                            for (let i = 0; i < selectedAssignees.length; i++) {
-                                                if (selectedAssignees[i].id === assignee.id) {
-                                                    return true;
-                                                }
-                                            }
-                                            return false;
-                                        }
+                                        delegate: Item {
+                                            width: assigneeColumn.width
+                                            height: units.gu(5)
 
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            color: isSelected ? "#E0E0E0" : "transparent"  // Light grey
-                                            border.color: "#999999"  // Grey
-                                            border.width: 1
-                                            radius: units.gu(0.5)
-
-                                            Row {
-                                                anchors.left: parent.left
-                                                anchors.leftMargin: units.gu(1)
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                spacing: units.gu(1)
-
-                                                Rectangle {
-                                                    id: checkbox
-                                                    width: units.gu(3)
-                                                    height: units.gu(3)
-                                                    color: isSelected ? "#3498db" : "transparent"
-                                                    border.color: "#666666"
-                                                    border.width: 1
-                                                    radius: units.gu(0.3)
-                                                    anchors.verticalCenter: parent.verticalCenter
-
-                                                    Text {
-                                                        text: "✓"
-                                                        color: "white"
-                                                        font.bold: true
-                                                        anchors.centerIn: parent
-                                                        visible: isSelected
+                                            property var assignee: availableAssignees[index]
+                                            property bool isSelected: {
+                                                for (let i = 0; i < selectedAssignees.length; i++) {
+                                                    if (selectedAssignees[i].id === assignee.id) {
+                                                        return true;
                                                     }
+                                                }
+                                                return false;
+                                            }
 
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        onClicked: {
-                                                            if (isSelected) {
-                                                                // Find and remove
-                                                                for (let i = 0; i < selectedAssignees.length; i++) {
-                                                                    if (selectedAssignees[i].id === assignee.id) {
-                                                                        removeAssignee(i);
-                                                                        break;
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                color: isSelected ? "#E0E0E0" : "transparent"  // Light grey
+                                                border.color: "#999999"  // Grey
+                                                border.width: 1
+                                                radius: units.gu(0.5)
+
+                                                Row {
+                                                    anchors.left: parent.left
+                                                    anchors.leftMargin: units.gu(1)
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    spacing: units.gu(1)
+
+                                                    Rectangle {
+                                                        id: checkbox
+                                                        width: units.gu(3)
+                                                        height: units.gu(3)
+                                                        color: isSelected ? "#3498db" : "transparent"
+                                                        border.color: "#666666"
+                                                        border.width: 1
+                                                        radius: units.gu(0.3)
+                                                        anchors.verticalCenter: parent.verticalCenter
+
+                                                        Text {
+                                                            text: "✓"
+                                                            color: "white"
+                                                            font.bold: true
+                                                            anchors.centerIn: parent
+                                                            visible: isSelected
+                                                        }
+
+                                                        MouseArea {
+                                                            anchors.fill: parent
+                                                            onClicked: {
+                                                                if (isSelected) {
+                                                                    // Find and remove
+                                                                    for (let i = 0; i < selectedAssignees.length; i++) {
+                                                                        if (selectedAssignees[i].id === assignee.id) {
+                                                                            removeAssignee(i);
+                                                                            break;
+                                                                        }
                                                                     }
+                                                                } else {
+                                                                    addAssignee(assignee);
                                                                 }
-                                                            } else {
-                                                                addAssignee(assignee);
                                                             }
                                                         }
                                                     }
-                                                }
 
-                                                TSLabel {
-                                                    text: assignee.name
-                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    TSLabel {
+                                                        text: assignee.name
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                    }
                                                 }
                                             }
                                         }
@@ -369,27 +383,27 @@ Item {
                             }
                         }
                     }
-                }
 
-                Row {
-                    width: parent.width * .5
-                    spacing: units.gu(1)
+                    Row {
+                        width: parent.width * .5
+                        spacing: units.gu(1)
 
-                    TSButton {
-                        id: clearButton
-                        text: "Clear All"
-                        onClicked: {
-                            selectedAssignees = [];
-                            updateDisplayText();
-                            assigneesChanged(selectedAssignees);
+                        TSButton {
+                            id: clearButton
+                            text: "Clear All"
+                            onClicked: {
+                                selectedAssignees = [];
+                                updateDisplayText();
+                                assigneesChanged(selectedAssignees);
+                            }
                         }
-                    }
 
-                    TSButton {
-                        id: doneButton
-                        text: "Done"
-                        onClicked: {
-                            assigneeDialog.visible = false;
+                        TSButton {
+                            id: doneButton
+                            text: "Done"
+                            onClicked: {
+                                dialogContainer.visible = false;
+                            }
                         }
                     }
                 }

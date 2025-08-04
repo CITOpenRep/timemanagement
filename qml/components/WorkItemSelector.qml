@@ -96,6 +96,20 @@ Rectangle {
             assignee_component.setEnabled(shouldEnableAssignee);
             console.log("[WorkItemSelector] Assignee enabled:", shouldEnableAssignee, "modelData length:", assignee_component.modelData.length);
         }
+
+        // Handle MultiAssigneeSelector enabling
+        if (multiAssignee_component && enableMultipleAssignees) {
+            var shouldEnableMultiAssignee = false;
+            if (deferredLoadingPlanned && !readOnly && multiAssignee_component.availableAssignees.length > 0) {
+                shouldEnableMultiAssignee = true;
+            } else if (restrictAccountToLocalOnly && currentState === "Init") {
+                shouldEnableMultiAssignee = false;
+            } else {
+                shouldEnableMultiAssignee = !readOnly && multiAssignee_component.availableAssignees.length > 0;
+            }
+            // MultiAssigneeSelector doesn't have setEnabled method, but we can ensure it's not readOnly and has data
+            console.log("[WorkItemSelector] MultiAssignee should be enabled:", shouldEnableMultiAssignee, "availableAssignees length:", multiAssignee_component.availableAssignees.length);
+        }
     }
 
     // Timer to handle delayed state updates on real devices
@@ -267,6 +281,11 @@ Rectangle {
         // Load Assignees with selected assigneeId
         if (accountId !== -1) {
             loadAssignees(accountId, assigneeId);
+
+            // Also load assignees for MultiAssigneeSelector if enabled
+            if (enableMultipleAssignees && multiAssignee_component) {
+                multiAssignee_component.loadAssignees(accountId);
+            }
         }
 
         // Fallback timer in case something goes wrong with counting
