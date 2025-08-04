@@ -209,7 +209,7 @@ function createUpdateProject(project_data, recordid) {
     
     db.transaction(function (tx) {
         try {
-            if (recordid == 0) {
+            if (recordid === 0) {
                 tx.executeSql('INSERT INTO project_project_app \
                             (account_id, name, parent_id, planned_start_date, planned_end_date, \
                             allocated_hours, favorites, description, last_modified, color_pallet,status)\
@@ -242,6 +242,73 @@ function createUpdateProject(project_data, recordid) {
     });
     return messageObj;
 }
+/**
+ * Creates a new project update in the local SQLite database.
+ *
+ * Always inserts a new record and marks `status` as "updated" for sync tracking.
+ *
+ * @param {Object} update_data - The project update data (project_id, name, project_status, progress, description, account_id, user_id).
+ * @returns {Object} - { is_success: boolean, message: string, record_id: number }
+ */
+function createUpdateSnapShot(update_data) {
+    var messageObj = { is_success: false };
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timestamp = Utils.getFormattedTimestampUTC(); // e.g., 2025-08-04 11:45:00
+    var createDate = timestamp.split(" ")[0];        // Extract yyyy-mm-dd format
+    var newRecordId = 0;
+
+    db.transaction(function (tx) {
+        try {
+            console.log("Creating Project Update:");
+            console.log("Account ID:", update_data.account_id);
+            console.log("Project ID:", update_data.project_id);
+            console.log("Name:", update_data.name);
+            console.log("Project Status:", update_data.project_status);
+            console.log("Progress:", update_data.progress);
+            console.log("Description:", update_data.description);
+            console.log("User ID:", update_data.user_id);
+            console.log("Create Date:", createDate);
+
+            // INSERT new project update with user_id and create_date
+            tx.executeSql(
+                `INSERT INTO project_update_app
+                 (account_id, project_id, name, project_status, progress, description, user_id, date, last_modified, status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    update_data.account_id,
+                    update_data.project_id,
+                    update_data.name,
+                    update_data.project_status,
+                    update_data.progress,
+                    update_data.description,
+                    update_data.user_id,
+                    createDate,   // yyyy-mm-dd
+                    timestamp,    // full timestamp
+                    "updated"     // sync tracking flag
+                ]
+            );
+
+            // Retrieve the newly inserted record ID
+            var result = tx.executeSql("SELECT last_insert_rowid() AS id");
+            if (result.rows.length > 0) {
+                newRecordId = result.rows.item(0).id;
+            }
+
+            messageObj.is_success = true;
+            messageObj.message = "Project Update created successfully!";
+            messageObj.record_id = newRecordId;
+
+        } catch (error) {
+            console.error("createUpdateSnapShot failed:", error);
+            messageObj.is_success = false;
+            messageObj.message = "Project Update could not be created!\n" + error;
+        }
+    });
+
+    return messageObj;
+}
+
+
 
 /**
  * Calculates and returns a list of projects with their total spent hours.

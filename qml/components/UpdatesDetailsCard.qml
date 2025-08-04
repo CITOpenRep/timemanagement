@@ -68,34 +68,24 @@ ListItem {
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                     width: parent.width * 0.7
                 }
-                Column
-                {
-                    Rectangle {
-                        width: showDescription.width
-                        height: units.gu(2.5)
-                        color: Utils.getColorFromOdooIndex(colorPallet)
-                        Text {
-                            anchors.centerIn: parent
-                            text: status
-                            font.pixelSize: units.gu(1.5)
-                            color: "white"
-                        }
-                    }
-                    Rectangle {
-                        width: units.gu(1)
-                        height: units.gu(1)
-                    }
-                    Button {
-                        id: showDescription
-                        text: "Details"
-                        //width: parent.width
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#999"
-                        onClicked:{
-                            updateItem.showDescription(description)
-                        }
-                    }
+                Text {
+                    text: status
+                    font.pixelSize: units.gu(1.5)
+                    width: parent.width * 0.2
+                }
+
+            }
+
+            Button {
+                id: showDescription
+                text: "Details"
+                //width: parent.width
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#999"
+                onClicked:{
+                    updateItem.showDescription(description)
                 }
             }
+
             Row
             {
                 spacing: units.gu(4)

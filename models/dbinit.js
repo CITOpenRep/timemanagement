@@ -286,45 +286,32 @@ function initializeDatabase() {
             "id INTEGER PRIMARY KEY AUTOINCREMENT," +
             "account_id INTEGER," +
             "name TEXT," +
-            "status TEXT," +
-            "color INTEGER," +
+            "project_status TEXT," +
             "progress INTEGER," +
-            "progress_percentage REAL," +
             "user_id INTEGER," +
             "description TEXT," +
             "date TEXT," +
             "project_id INTEGER," +
-            "name_cropped TEXT," +
-            "create_uid INTEGER," +
-            "create_date TEXT," +
-            "write_uid INTEGER," +
-            "write_date TEXT," +
             "odoo_record_id INTEGER," +
             "last_modified datetime," +
-            "status_local TEXT DEFAULT ''," +   // local sync status (like other tables)
+            "status TEXT DEFAULT ''," +   // local sync status
             "UNIQUE (odoo_record_id, account_id)" +
         ")",
         [
             "id INTEGER",
             "account_id INTEGER",
             "name TEXT",
-            "status TEXT",
-            "color INTEGER",
+            "project_status TEXT",
             "progress INTEGER",
-            "progress_percentage REAL",
             "user_id INTEGER",
             "description TEXT",
             "date TEXT",
             "project_id INTEGER",
-            "name_cropped TEXT",
-            "create_uid INTEGER",
-            "create_date TEXT",
-            "write_uid INTEGER",
-            "write_date TEXT",
             "odoo_record_id INTEGER",
             "last_modified datetime",
-            "status_local TEXT DEFAULT ''"
+            "status TEXT DEFAULT ''"
         ]
     );
+
 
 }

@@ -76,15 +76,14 @@ Page {
         updatesModel.clear();
         for (var index = 0; index < updates_list.length; index++) {
             updatesModel.append({
-                'name': updates_list[index].name_cropped,
+                'name': updates_list[index].name,
                 'id': updates_list[index].id,
                 'account_id': updates_list[index].account_id,
-                'status': updates_list[index].status,
-                'color': updates_list[index].color,
-                'progress': updates_list[index].progress_percentage*100,
+                'status': updates_list[index].project_status,
+                'progress': updates_list[index].progress,
                 'description': updates_list[index].description,
                 'project_id': updates_list[index].project_id,
-                'user': updates_list[index].create_uid,
+                'user': updates_list[index].user_id,
             });
         }
     }
@@ -107,7 +106,6 @@ Page {
             status:model.status
             description:model.description
             progress:model.progress
-            colorPallet: model.color
 
             onShowDescription: {
                 Global.description_temporary_holder=description
