@@ -107,8 +107,8 @@ Rectangle {
             } else {
                 shouldEnableMultiAssignee = !readOnly && multiAssignee_component.availableAssignees.length > 0;
             }
-            // MultiAssigneeSelector doesn't have setEnabled method, but we can ensure it's not readOnly and has data
-            console.log("[WorkItemSelector] MultiAssignee should be enabled:", shouldEnableMultiAssignee, "availableAssignees length:", multiAssignee_component.availableAssignees.length);
+            multiAssignee_component.setEnabled(shouldEnableMultiAssignee);
+            console.log("[WorkItemSelector] MultiAssignee enabled:", shouldEnableMultiAssignee, "availableAssignees length:", multiAssignee_component.availableAssignees.length);
         }
     }
 
@@ -832,6 +832,7 @@ Rectangle {
             visible: showAssigneeSelector && enableMultipleAssignees
             labelText: assigneeLabelText
             readOnly: readOnly
+            enabledState: !readOnly
             width: parent.width
 
             onAssigneesChanged: {

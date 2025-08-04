@@ -23,6 +23,7 @@
  */
 
 import QtQuick 2.7
+import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import "../../models/accounts.js" as Accounts
 
@@ -34,6 +35,7 @@ Item {
     property bool readOnly: false
     property string labelText: "Assignees"
     property int accountId: -1
+    property bool enabledState: true
     property var selectedAssignees: [] // Array of {id, name} objects
 
     signal assigneesChanged(var assignees)
@@ -53,6 +55,16 @@ Item {
         return selectedAssignees.map(function (assignee) {
             return assignee.id;
         });
+    }
+
+    function setEnabled(isEnabled) {
+        // Only enable if not in read-only mode
+        if (readOnly) {
+            enabledState = false;
+            console.log("[MultiAssigneeSelector] Ignoring setEnabled(" + isEnabled + ") because readOnly is true");
+        } else {
+            enabledState = isEnabled;
+        }
     }
 
     function loadAssignees(accountId) {
@@ -106,13 +118,13 @@ Item {
             TSButton {
                 id: displayButton
                 text: "Select Assignees"
-                enabled: !readOnly && availableAssignees.length > 0
+                enabled: enabledState && !readOnly && availableAssignees.length > 0
                 width: parent.width * 0.6
                 height: units.gu(5)
                 anchors.verticalCenter: parent.verticalCenter
 
                 onClicked: {
-                    if (!readOnly) {
+                    if (!readOnly && enabledState) {
                         dialogContainer.visible = true;
                     }
                 }
@@ -149,6 +161,7 @@ Item {
                             Label {
                                 id: assigneeLabel
                                 text: selectedAssignees[index].name
+                                 
                                 color: "white"
                                 font.pixelSize: units.gu(1.2)
                                 anchors.verticalCenter: parent.verticalCenter
@@ -157,14 +170,17 @@ Item {
                             TSButton {
                                 id: removeButton
                                 text: "×"
-                                visible: !readOnly
+                                
+                                enabled: !readOnly && enabledState
                                 width: units.gu(2)
                                 height: units.gu(2)
                                 anchors.verticalCenter: parent.verticalCenter
                                 // color: LomiriColors.red
 
                                 onClicked: {
-                                    removeAssignee(index);
+                                    if (!readOnly && enabledState) {
+                                        removeAssignee(index);
+                                    }
                                 }
                             }
                         }
@@ -175,6 +191,10 @@ Item {
     }
 
     function removeAssignee(index) {
+        if (readOnly) {
+            console.log("[MultiAssigneeSelector] removeAssignee called but readOnly is true, ignoring");
+            return;
+        }
         if (index >= 0 && index < selectedAssignees.length) {
             selectedAssignees.splice(index, 1);
             selectedAssignees = selectedAssignees; // Trigger change
@@ -184,6 +204,10 @@ Item {
     }
 
     function addAssignee(assignee) {
+        if (readOnly) {
+            console.log("[MultiAssigneeSelector] addAssignee called but readOnly is true, ignoring");
+            return;
+        }
         // Check if already selected
         for (let i = 0; i < selectedAssignees.length; i++) {
             if (selectedAssignees[i].id === assignee.id) {
@@ -352,8 +376,6 @@ Item {
                                                             anchors.centerIn: parent
                                                             visible: isSelected
                                                         }
-
-                                                       
                                                     }
 
                                                     TSLabel {
@@ -362,22 +384,25 @@ Item {
                                                     }
                                                 }
 
-                                                 MouseArea {
-                                                            anchors.fill: parent
-                                                            onClicked: {
-                                                                if (isSelected) {
-                                                                    // Find and remove
-                                                                    for (let i = 0; i < selectedAssignees.length; i++) {
-                                                                        if (selectedAssignees[i].id === assignee.id) {
-                                                                            removeAssignee(i);
-                                                                            break;
-                                                                        }
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    enabled: !readOnly
+                                                    onClicked: {
+                                                        if (!readOnly) {
+                                                            if (isSelected) {
+                                                                // Find and remove
+                                                                for (let i = 0; i < selectedAssignees.length; i++) {
+                                                                    if (selectedAssignees[i].id === assignee.id) {
+                                                                        removeAssignee(i);
+                                                                        break;
                                                                     }
-                                                                } else {
-                                                                    addAssignee(assignee);
                                                                 }
+                                                            } else {
+                                                                addAssignee(assignee);
                                                             }
                                                         }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -393,10 +418,13 @@ Item {
                         TSButton {
                             id: clearButton
                             text: "Clear All"
+                            enabled: !readOnly
                             onClicked: {
-                                selectedAssignees = [];
-                                updateDisplayText();
-                                assigneesChanged(selectedAssignees);
+                                if (!readOnly) {
+                                    selectedAssignees = [];
+                                    updateDisplayText();
+                                    assigneesChanged(selectedAssignees);
+                                }
                             }
                         }
 
