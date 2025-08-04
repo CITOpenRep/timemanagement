@@ -79,6 +79,34 @@ function getAllProjects() {
     return projectList;
 }
 
+/**
+ * Retrieves all project update records from the local SQLite DB as plain objects.
+ *
+ * @returns {Array<Object>} A list of project update objects with fields like id, name, status, etc.
+ */
+function getAllProjectUpdates() {
+    var updateList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_update_app ORDER BY date DESC";
+            var result = tx.executeSql(query);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                updateList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("❌ getAllProjectUpdates failed:", e);
+    }
+
+    return updateList;
+}
+
+
 function getAttachmentsForProject(odooRecordId) {
     var attachmentList = [];
 

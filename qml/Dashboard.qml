@@ -167,6 +167,15 @@ Page {
                 }
             },
             Action {
+                iconName: "view-refresh-symbolic"
+                text: "Project Updates"
+                onTriggered: {
+                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
+                    page = 5;
+                    apLayout.setCurrentPage(page);
+                }
+            },
+            Action {
                 iconName: "settings"
                 text: "Settings"
                 onTriggered: {
