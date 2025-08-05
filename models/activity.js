@@ -3,6 +3,7 @@
 .import "utils.js" as Utils
 .import "task.js" as Task
 .import "project.js" as Project
+.import "accounts.js" as Accounts
 
 /**
  * Retrieves all activity records from the `mail_activity_app` table.
@@ -504,52 +505,154 @@ function getActivityTypesForAccount(account_id) {
 }
 
 /**
- * Saves a new activity record into the `mail_activity_app` table in the local SQLite database.
+ * Saves or updates an activity record in the `mail_activity_app` table.
  *
  * @function saveActivityData
- * @param {Object} data - The activity data object containing all necessary fields to insert.
- * @returns {Object} - Returns an object with `{ success: true }` on success,
- *                     or `{ success: false, error: <message> }` on failure.
- *
- * @description
- * Opens a local SQLite database transaction and inserts a new record into the `mail_activity_app` table.
- * The fields inserted include account ID, activity type, summary, user ID, due date, notes,
- * related model and ID, task and project references, link ID, activity state, status,
- * and the current UTC timestamp (`last_modified`) for sync tracking.
- * Uses utility functions `Utils.extractDate()` for parsing the due date and
- * `Utils.getFormattedTimestampUTC()` for generating a UTC timestamp.
- * Logs any database exceptions to the console and returns an error object on failure.
+ * @param {Object} data - The activity data object containing all necessary fields.
+ * @param {number} recordId - The local ID of the activity record. If > 0, the record is updated; otherwise, a new record is inserted.
+ * @returns {Object} - Returns { success: true } on success or { success: false, error: <message> } on failure.
  */
-function saveActivityData(data) {
+function saveActivityData(data, recordId) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        db.transaction(function(tx) {
-            tx.executeSql('INSERT INTO mail_activity_app ( \
-            account_id, activity_type_id, summary, user_id, due_date, \
-            notes, resModel, resId, task_id, project_id, link_id, state, last_modified,status) \
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)',
-                          [
-                              data.updatedAccount,
-                              data.updatedActivity,
-                              data.updatedSummary,
-                              data.updatedUserId,
-                              Utils.extractDate(data.updatedDate),
-                              data.updatedNote,
-                              data.resModel,
-                              data.resId,
-                              data.task_id,
-                              data.project_id,
-                              data.link_id,
-                              data.state,
-                              Utils.getFormattedTimestampUTC(),
-                              data.status
-                          ]
-                          );
+        var timestamp = Utils.getFormattedTimestampUTC();
+
+        db.transaction(function (tx) {
+            if (recordId > 0) {
+                // UPDATE existing record
+                tx.executeSql(
+                    `UPDATE mail_activity_app SET
+                        account_id = ?,
+                        activity_type_id = ?,
+                        summary = ?,
+                        user_id = ?,
+                        due_date = ?,
+                        notes = ?,
+                        resModel = ?,
+                        resId = ?,
+                        task_id = ?,
+                        project_id = ?,
+                        link_id = ?,
+                        state = ?,
+                        last_modified = ?,
+                        status = ?
+                     WHERE id = ?`,
+                    [
+                        data.updatedAccount,
+                        data.updatedActivity,
+                        data.updatedSummary,
+                        data.updatedUserId,
+                        Utils.extractDate(data.updatedDate),
+                        data.updatedNote,
+                        data.resModel,
+                        data.resId,
+                        data.task_id,
+                        data.project_id,
+                        data.link_id,
+                        data.state,
+                        timestamp,
+                        data.status,
+                        recordId
+                    ]
+                );
+                console.log("✅ Activity record updated: ID " + recordId);
+            } else {
+                // INSERT new record
+                tx.executeSql(
+                    `INSERT INTO mail_activity_app (
+                        account_id, activity_type_id, summary, user_id, due_date,
+                        notes, resModel, resId, task_id, project_id, link_id,
+                        state, last_modified, status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        data.updatedAccount,
+                        data.updatedActivity,
+                        data.updatedSummary,
+                        data.updatedUserId,
+                        Utils.extractDate(data.updatedDate),
+                        data.updatedNote,
+                        data.resModel,
+                        data.resId,
+                        data.task_id,
+                        data.project_id,
+                        data.link_id,
+                        data.state,
+                        timestamp,
+                        data.status
+                    ]
+                );
+                console.log("✅ New activity record inserted");
+            }
         });
-        
+
         return { success: true };
-    }catch (e) {
-        console.error("Database operation failed:", e.message);
+    } catch (e) {
+        console.error("❌ saveActivityData failed:", e.message);
+        return { success: false, error: e.message };
+    }
+}
+
+
+/**
+ * Creates a new blank activity linked to a project or task and inserts it into the `mail_activity_app` table.
+ *
+ * @function createActivityFromProjectOrTask
+ * @param {boolean} isProject - If true, links activity to a project; if false, links it to a task.
+ * @param {number} account_id - The account ID for which the activity is created.
+ * @param {number} link_id - The ID of the project or task to link.
+ * @returns {Object} - Returns an object:
+ *                     { success: true, record_id: <new ID> } on success,
+ *                     or { success: false, error: <message> } on failure.
+ *
+ * @description
+ * Creates an empty activity record with default fields. Sets `resModel` to `project.project` if `isProject`
+ * is true, otherwise `project.task`. Marks the record's `status` as "new" for sync tracking.
+ */
+function createActivityFromProjectOrTask(isProject, account_id, link_id) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var recordId = 0;
+
+    try {
+        var resModel = isProject ? "project.project" : "project.task";
+        var timestamp = Utils.getFormattedTimestampUTC();
+
+        db.transaction(function(tx) {
+            tx.executeSql(
+                `INSERT INTO mail_activity_app (
+                    account_id, activity_type_id, summary, user_id, due_date,
+                    notes, resModel, resId, task_id, project_id, link_id,
+                    state, last_modified, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    account_id,
+                    null,             // activity_type_id (empty initially)
+                    "Untitled",               // summary (blank)
+                    Accounts.getCurrentUserOdooId(account_id), // auto-fill user_id
+                    null,             // due_date (null initially)
+                    "No Notes",               // notes (blank)
+                    resModel,
+                    link_id,
+                    isProject ? null : link_id,  // task_id if linking to task
+                    isProject ? link_id : null,  // project_id if linking to project
+                    link_id,
+                    "planned",        // default activity state
+                    timestamp,
+                    "updated"             // mark as unsynced/new
+                ]
+            );
+
+            // Retrieve new record ID
+            var result = tx.executeSql("SELECT last_insert_rowid() AS id");
+            if (result.rows.length > 0) {
+                recordId = result.rows.item(0).id;
+            }
+        });
+
+        console.log("Created new blank activity with ID:", recordId);
+        return { success: true, record_id: recordId };
+
+    } catch (e) {
+        console.error("createActivityFromProjectOrTask failed:", e.message);
         return { success: false, error: e.message };
     }
 }

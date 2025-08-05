@@ -33,6 +33,7 @@ import QtCharts 2.0
 import "../models/task.js" as Task
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Accounts
+import "../models/activity.js" as Activity
 import "../models/project.js" as Project
 import "../models/global.js" as Global
 import "components"
@@ -55,7 +56,7 @@ Page {
                 visible: !isReadOnly
                 onTriggered: {
                     const ids = workItem.getIds();
-                  
+
                     if (!ids.assignee_id) {
                         notifPopup.open("Error", "Please select the assignee", "error");
                         return;
@@ -160,6 +161,25 @@ Page {
         height: units.gu(80)
     }
 
+    CreateUpdateDialog {
+        id: updates_dialog
+        width: units.gu(80)
+        height: units.gu(80)
+        onUpdateCreated:
+        {
+            let result=Project.createUpdateSnapShot(updateData)
+            if(result['is_success']===false)
+            {
+                   notifPopup.open("Failed", result['message'], "error");
+            }
+            else
+            {
+                 notifPopup.open("Saved", "Project updated has been saved", "success");
+            }
+
+        }
+    }
+
     Flickable {
         id: projectDetailsPageFlickable
         anchors.topMargin: units.gu(6)
@@ -261,9 +281,49 @@ Page {
                             //set the data to a global Slore and pass the key to the page
                             Global.description_temporary_holder = text;
                             apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
-                            });
+                                                             isReadOnly: isReadOnly
+                                                         });
                         }
+                    }
+                }
+            }
+        }
+        Row {
+            id: myRow82
+            anchors.top: myRow9.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            TSButton {
+                visible: isReadOnly
+                width:parent.width/2
+                text:"Create Project Update"
+                onClicked:
+                {
+                    let project = Project.getProjectDetails(recordid);
+                    updates_dialog.open(project.account_id,project.odoo_record_id)
+                }
+            }
+            TSButton {
+                visible: isReadOnly
+                width:parent.width/2
+                text:"Create Activity"
+                onClicked:
+                {
+                    let project = Project.getProjectDetails(recordid);
+                    let result=Activity.createActivityFromProjectOrTask(true,project.account_id,project.odoo_record_id)
+                    if(result.success)
+                    {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activities.qml"), {
+                            "recordid": result.record_id,
+                            "accountid": project.account_id,
+                            "isReadOnly": false
+                        });
+                    }
+                    else
+                    {
+                        notifPopup.open("Failed", "Unable to create activity", "error");
                     }
                 }
             }
@@ -271,7 +331,7 @@ Page {
 
         Row {
             id: myRow4
-            anchors.top: myRow9.bottom
+            anchors.top: myRow82.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)

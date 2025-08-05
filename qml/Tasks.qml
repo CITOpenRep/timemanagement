@@ -34,6 +34,7 @@ import "../models/task.js" as Task
 import "../models/timesheet.js" as Timesheet
 import "../models/utils.js" as Utils
 import "../models/global.js" as Global
+import "../models/activity.js" as Activity
 import "../models/accounts.js" as Accounts
 import "../models/timer_service.js" as TimerService
 
@@ -291,8 +292,38 @@ Page {
         }
 
         Row {
-            id: plannedh_row
+            id: myRow82
             anchors.top: myRow9.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            TSButton {
+                visible: isReadOnly
+                width:parent.width/2
+                text:"Create Activity"
+                onClicked:
+                {
+                    let result=Activity.createActivityFromProjectOrTask(false,currentTask.account_id,currentTask.odoo_record_id)
+                    if(result.success)
+                    {
+                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Activities.qml"), {
+                            "recordid": result.record_id,
+                            "accountid": currentTask.account_id,
+                            "isReadOnly": false
+                        });
+                    }
+                    else
+                    {
+                        notifPopup.open("Failed", "Unable to create activity", "error");
+                    }
+                }
+            }
+        }
+
+        Row {
+            id: plannedh_row
+            anchors.top: myRow82.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)

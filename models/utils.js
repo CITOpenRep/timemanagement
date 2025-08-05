@@ -269,7 +269,6 @@ function truncateText(text, maxLength) {
 }
 
 function getFormattedTimestampUTC() {
-    console.log("Local Time:", new Date().toLocaleString());
     const now = new Date();
     const year = now.getUTCFullYear();
     const month = String(now.getUTCMonth() + 1).padStart(2, '0');

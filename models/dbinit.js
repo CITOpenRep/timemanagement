@@ -302,4 +302,37 @@ function initializeDatabase() {
                                  );
 
 
+    DBCommon.createOrUpdateTable("project_update_app",
+        "CREATE TABLE IF NOT EXISTS project_update_app (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "account_id INTEGER," +
+            "name TEXT," +
+            "project_status TEXT," +
+            "progress INTEGER," +
+            "user_id INTEGER," +
+            "description TEXT," +
+            "date TEXT," +
+            "project_id INTEGER," +
+            "odoo_record_id INTEGER," +
+            "last_modified datetime," +
+            "status TEXT DEFAULT ''," +   // local sync status
+            "UNIQUE (odoo_record_id, account_id)" +
+        ")",
+        [
+            "id INTEGER",
+            "account_id INTEGER",
+            "name TEXT",
+            "project_status TEXT",
+            "progress INTEGER",
+            "user_id INTEGER",
+            "description TEXT",
+            "date TEXT",
+            "project_id INTEGER",
+            "odoo_record_id INTEGER",
+            "last_modified datetime",
+            "status TEXT DEFAULT ''"
+        ]
+    );
+
+
 }
