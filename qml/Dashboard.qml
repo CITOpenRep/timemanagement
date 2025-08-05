@@ -270,9 +270,9 @@ Page {
                 }
             }
             if (index === 2) {
-              //   console.log("add activity");
+                //   console.log("add activity");
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
-                   // "recordid": 0,
+                    // "recordid": 0,
                     "isReadOnly": false
                 });
             }
@@ -404,6 +404,61 @@ Page {
                 // console.log("In Dashboard timer columns: " + apLayout.columns);
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml"));
             }
+        }
+    }
+
+    Rectangle {
+
+        visible: !isMultiColumn
+        id: swipeIndicator
+        width: units.gu(6)
+        height: units.gu(0.7)
+        radius: height / 2
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ?  LomiriColors.orange : "skyblue"
+      //  opacity: 0.7
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: swipeUpArea.top
+        anchors.bottomMargin: units.gu(0.5)
+        z: 1000
+    }
+
+    MultiPointTouchArea {
+        id: swipeUpArea
+        enabled: !isMultiColumn
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: units.gu(1)
+        minimumTouchPoints: 1
+        maximumTouchPoints: 1
+
+        property real startY: 0
+
+        onPressed: {
+            startY = touchPoints[0].y;
+        }
+        onReleased: {
+            var endY = touchPoints[0].y;
+            // Detect upward swipe (swipe up: startY > endY)
+            if (startY - endY > units.gu(2)) {
+                // threshold for swipe - open new timesheet
+                const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                if (result.success) {
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                        "recordid": result.id,
+                        "isReadOnly": false
+                    });
+                } else {
+                    console.error("Error creating timesheet: " + result.message);
+                }
+            }
+        }
+        z: 999 // Ensure it's above other content
+
+        Rectangle {
+            anchors.fill: parent
+            color: "lightgray"
+            opacity: 0.0 // Make it invisible but still interactive
         }
     }
 

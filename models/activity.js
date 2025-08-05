@@ -432,6 +432,40 @@ function markAsDone(accountId, id) {
 }
 
 /**
+ * Updates the due date of an activity.
+ *
+ * @function updateActivityDate
+ * @param {number} accountId - The local account ID associated with the activity.
+ * @param {number} id - The internal ID of the activity record in the local database.
+ * @param {string} newDate - The new due date in YYYY-MM-DD format.
+ * @returns {void}
+ *
+ * @description
+ * Opens a local SQLite database transaction and updates the `mail_activity_app` table
+ * for the record matching the given `accountId` and `id`.
+ * Sets the `due_date` to the new date and `status` to "updated" to reflect local changes
+ * pending sync with Odoo.
+ */
+function updateActivityDate(accountId, id, newDate) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `
+            UPDATE mail_activity_app
+            SET due_date = ?, status = "updated"
+            WHERE account_id = ? AND id = ?
+            `;
+            tx.executeSql(query, [newDate, accountId, id]);
+            console.log("✅ Updated activity date: Account ID =", accountId, ", Record ID =", id, ", New Date =", newDate);
+        });
+
+    } catch (e) {
+        DBCommon.logException("updateActivityDate", e);
+    }
+}
+
+/**
  * Returns the appropriate icon filename for a given activity type name.
  *
  * @function getActivityIconForType

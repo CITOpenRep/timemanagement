@@ -899,8 +899,8 @@ function passesDateFilter(task, filterType, currentDate) {
         return true;
     }
     
-    // Tasks without any dates should only appear in "all" filter
-    if (!task.deadline && !task.end_date && !task.start_date) {
+    // Tasks without start_date or end_date should only appear in "all" filter
+    if (!task.end_date && !task.start_date) {
         return false;
     }
     
@@ -964,7 +964,7 @@ function passesSearchFilter(task, searchQuery) {
  * Check if task should appear in today filter (tasks active today but NOT overdue)
  */
 function isTaskDueToday(task, today) {
-    if (!task.deadline && !task.end_date && !task.start_date) {
+    if (!task.end_date && !task.start_date) {
         return false;
     }
     
@@ -978,7 +978,7 @@ function isTaskDueToday(task, today) {
  * Check if task should appear in this week filter (date range overlaps with this week)
  */
 function isTaskDueThisWeek(task, today) {
-    if (!task.deadline && !task.end_date && !task.start_date) {
+    if (!task.end_date && !task.start_date) {
         return false;
     }
     
@@ -1009,7 +1009,7 @@ function isTaskDueThisWeek(task, today) {
  * Check if task should appear in this month filter (date range overlaps with this month)
  */
 function isTaskDueThisMonth(task, today) {
-    if (!task.deadline && !task.end_date && !task.start_date) {
+    if (!task.end_date && !task.start_date) {
         return false;
     }
     
@@ -1031,8 +1031,8 @@ function isTaskDueThisMonth(task, today) {
  * Check if task should appear in later filter (starts after this month and not overdue)
  */
 function isTaskDueLater(task, today) {
-    if (!task.deadline && !task.end_date && !task.start_date) {
-        return false; // Tasks without dates should only appear in "all" filter
+    if (!task.end_date && !task.start_date) {
+        return false; // Tasks without start/end dates should only appear in "all" filter
     }
     
     var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
@@ -1043,8 +1043,6 @@ function isTaskDueLater(task, today) {
         taskStartDate = new Date(task.start_date);
     } else if (task.end_date) {
         taskStartDate = new Date(task.end_date);
-    } else if (task.deadline) {
-        taskStartDate = new Date(task.deadline);
     }
     
     if (!taskStartDate) return false;
@@ -1076,7 +1074,7 @@ function isTaskCompleted(task) {
  * @returns {boolean} True if task is overdue
  */
 function isTaskOverdue(task, today) {
-    if (!task.deadline && !task.end_date && !task.start_date) {
+    if (!task.end_date && !task.start_date) {
         return false;
     }
     
@@ -1131,13 +1129,9 @@ function getTaskDateStatus(task, checkDate) {
         isInRange = checkDay <= endDay;
     }
     
-    // Check if deadline is missed (overdue)
-    if (deadlineDay) {
-        isOverdue = checkDay > deadlineDay;
-    }
-    
-    // Also check if end_date is passed (task should be overdue if past end_date)
-    if (!isOverdue && endDay) {
+    // Check if end_date is passed (task should be overdue if past end_date)
+    // Only use end_date for overdue calculation, not deadline
+    if (endDay) {
         isOverdue = checkDay > endDay;
     }
     
