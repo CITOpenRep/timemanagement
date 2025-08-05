@@ -100,26 +100,40 @@ Item {
 
                     TSButton {
                         text: "Tomorrow"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
                         Layout.fillWidth: true
                         onClicked: selectSingleDate(Utils.getTomorrow())
                     }
 
                     TSButton {
                         text: "Next Week"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
                         Layout.fillWidth: true
                         onClicked: selectSingleDate(Utils.getNextWeekRange().start)
                     }
 
                     TSButton {
                         text: "Next Month"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
                         Layout.fillWidth: true
                         onClicked: selectSingleDate(Utils.getNextMonthRange().start)
                     }
 
                     TSButton {
                         text: "Custom"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
                         Layout.fillWidth: true
                         onClicked: showCustomPicker = !showCustomPicker
+                    }
+
+                    TSButton {
+                        text: "Cancel"
+                        Layout.fillWidth: true
+                       bgColor: "#8A0000"
+                        visible: !showCustomPicker
+                        onClicked: PopupUtils.close(quickDialog)
+
+                      
                     }
                 }
 
@@ -131,6 +145,7 @@ Item {
 
                     TSButton {
                         id: customDateButton
+                         bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
                         property date date: new Date()
                         text: date ? Qt.formatDateTime(date, "dd-MM-yy") : "Custom"
                         Layout.fillWidth: true
@@ -144,12 +159,14 @@ Item {
                         TSButton {
                             text: "Cancel"
                             Layout.fillWidth: true
+                            bgColor: "#8A0000"
                             onClicked: PopupUtils.close(quickDialog)
                         }
 
                         TSButton {
                             text: "OK"
                             Layout.fillWidth: true
+                            bgColor: "#1F7D53"
                             onClicked: {
                                 selected_date = customDateButton.date;
                                 // Convert to YYYY-MM-DD format for database storage

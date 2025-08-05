@@ -302,7 +302,7 @@ ListItem {
     // Date Selector for changing activity date
     CustomDatePicker {
         id: dateSelector
-        titleText: "Change Activity Date"
+        titleText: "Reschedule Activity Date"
         mode: "next"
         onDateSelected: function (selectedDate) {
             console.log("📅 ActivityDetailsCard: Date changed for record ID:", root.odoo_record_id, "to:", selectedDate);
