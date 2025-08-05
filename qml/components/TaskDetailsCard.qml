@@ -67,7 +67,7 @@ ListItem {
 
     CustomDatePicker {
         id: dateSelector
-        titleText: "Reschedule End Date"
+        titleText: "Reschedule Task"
         mode: "next"
         currentDate: endDate || Utils.getToday()
 
@@ -140,7 +140,7 @@ ListItem {
                 taskUpdated(localId);
 
                 // Show success notification
-                notifPopup.open("Success", "End date updated to " + Utils.formatDate(new Date(newDate)), "success");
+                notifPopup.open("Success", "Task Rescheduled to " + Utils.formatDate(new Date(newDate)), "success");
             } else {
                 throw result.error || "Update failed";
             }
