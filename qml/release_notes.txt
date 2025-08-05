@@ -47,6 +47,10 @@
            <li> Fixed the Task Search issue where Task from Multiple Instance were returned. </li>
                 
            <li> Sorted the Activities and Tasks based on Last Modified Date. </li>
+
+                 <li>The enhancement to allow only unique name to Instance has been added. </li>
+
+                 <li>The deletion of Parent Task and Child task not syncing back Issue has been resolved. </li>
         
 
 
@@ -54,6 +58,10 @@
 
  <li> Added Enhancement to set the TimeSheet Page , Account Page to View only Mode after Saving. The User will still have option to Edit it after clicking the Edit Icon from the top. </li>
   <li> Added feature to create Activity from Home Screen via FAB menu. </li>
+    <li> Added Multi-Selector Assignee , to Tasks. Now Multiple Users can be assigned to a Task from Device.  </li>
+      <li> Intoducing Project Updates . Now User is able to create Project Updates from the Device. </li>
+        <li> New Feature to create activity from Tasks and Activity has been added. </li>
+          <li> New Feature to reschedule activity by Swiping from Left has been added. Activity can rescheduled to "Tomorrow" , "Next Week" , "Next Month" and "Custom". </li>
            <br>
 
 

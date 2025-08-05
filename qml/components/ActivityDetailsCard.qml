@@ -22,12 +22,65 @@ ListItem {
 
     signal cardClicked(int accountid, int recordid)
     signal markAsDone(int accountid, int recordId)
+    signal dateChanged(int accountid, int recordId, string newDate)
 
     function truncateText(text, maxLength) {
         if (text.length > maxLength) {
             return text.slice(0, maxLength) + '...';
         }
         return text;
+    }
+
+    function isActivityOverdue() {
+        if (!root.due_date || root.state === "done") {
+            return false;
+        }
+
+        // Use UTC dates to avoid timezone issues
+        var today = new Date();
+        var todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+
+        var dueDate = new Date(root.due_date + 'T00:00:00Z'); // Ensure UTC parsing
+        var dueDateUTC = new Date(Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate()));
+
+        return dueDateUTC < todayUTC;
+    }
+
+    function isActivityDueToday() {
+        if (!root.due_date || root.state === "done") {
+            return false;
+        }
+
+        // Use UTC dates to avoid timezone issues
+        var today = new Date();
+        var todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+
+        var dueDate = new Date(root.due_date + 'T00:00:00Z'); // Ensure UTC parsing
+        var dueDateUTC = new Date(Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate()));
+
+        return dueDateUTC.getTime() === todayUTC.getTime();
+    }
+
+    function getActivityStateInfo() {
+      if (isActivityOverdue()) {
+            return {
+                color: "#F44336"  // Red
+                ,
+                text: "OVERDUE"
+            };
+        } else if (isActivityDueToday()) {
+            return {
+                color: "#FF9800"  // Orange
+                ,
+                text: "TODAY"
+            };
+        } else {
+            return {
+                color: "#2196F3"  // Blue
+                ,
+                text:  "PLANNED"
+            };
+        }
     }
 
     function stripHtmlTags(text) {
@@ -140,6 +193,18 @@ ListItem {
                 onClicked: action.trigger()
             }
         }
+    }
+
+    leadingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "reload"
+                onTriggered: {
+                    // Open date selector popup
+                    dateSelector.open();
+                }
+            }
+        ]
     }
 
     Rectangle {
@@ -267,11 +332,11 @@ ListItem {
                     Rectangle {
                         width: units.gu(6)
                         height: units.gu(2.2)
-                        color: root.state === "done" ? "#4CAF50" : root.state === "open" ? "#FF9800" : "#9E9E9E"
+                        color: getActivityStateInfo().color
 
                         Text {
                             anchors.centerIn: parent
-                            text: root.state ? root.state.toUpperCase() : "N/A"
+                            text: getActivityStateInfo().text
                             font.pixelSize: units.gu(1.2)
                             color: "white"
                         }
@@ -284,5 +349,19 @@ ListItem {
     MouseArea {
         anchors.fill: parent
         onClicked: root.cardClicked(root.account_id, root.odoo_record_id)
+    }
+
+    // Date Selector for changing activity date
+    CustomDatePicker {
+        id: dateSelector
+        titleText: "Reschedule Activity Date"
+        mode: "next"
+        currentDate: root.due_date // Pass the current activity's due date
+        onDateSelected: function (selectedDate) {
+            console.log("📅 ActivityDetailsCard: Date changed for record ID:", root.odoo_record_id, "to:", selectedDate);
+            console.log("📅 ActivityDetailsCard: Date format being passed:", typeof selectedDate, selectedDate);
+            console.log("📅 ActivityDetailsCard: Original due date was:", root.due_date);
+            root.dateChanged(root.account_id, root.odoo_record_id, selectedDate);
+        }
     }
 }

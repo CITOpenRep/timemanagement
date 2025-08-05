@@ -331,6 +331,14 @@ Page {
                     Activity.markAsDone(accountid, recordid);
                     get_activity_list();
                 }
+                onDateChanged: function (accountid, recordid, newDate) {
+                    console.log("📅 Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
+                    console.log("📅 Activity_Page: Date format received:", typeof newDate, newDate);
+                    // Update the activity date in the database
+                    Activity.updateActivityDate(accountid, recordid, newDate);
+                    // Refresh the activity list to show updated data
+                    get_activity_list();
+                }
             }
             currentIndex: 0
             onCurrentIndexChanged:
