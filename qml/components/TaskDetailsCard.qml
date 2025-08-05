@@ -152,6 +152,13 @@ ListItem {
             Action {
                 iconName: "delete"
                 onTriggered: deleteRequested(localId)
+            },
+            Action {
+                iconName: "reload"
+                onTriggered: {
+                    // Open date selector popup
+                    dateSelector.open();
+                }
             }
         ]
     }
@@ -185,7 +192,7 @@ ListItem {
             anchors.bottom: parent.bottom
             width: parent.width
             height: units.gu(2)
-          //  visible: !hasChildren //if there are tasks with child tasks then we will hide this view
+            //  visible: !hasChildren //if there are tasks with child tasks then we will hide this view
             color: "transparent"
 
             // Show progress bar only if planned hours > 0 and spentHours > 0
@@ -212,8 +219,8 @@ ListItem {
             // Case: spentHours = 0 → no progress
             Label {
                 anchors.centerIn: parent
-               // visible: spentHours === 0
-               visible: false
+                // visible: spentHours === 0
+                visible: false
                 text: "No progress yet"
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                 font.pixelSize: units.gu(1.5)
@@ -383,7 +390,7 @@ ListItem {
                     }
 
                     Text {
-                        text: Utils.getTimeStatusInText(endDate)
+                        text: Utils.getTimeStatusInText(deadline)
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
