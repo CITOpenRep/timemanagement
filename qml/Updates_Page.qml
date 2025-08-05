@@ -45,24 +45,6 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-
-        trailingActionBar.actions: [
-            Action {
-                iconName: "reminder-new"
-                text: "New"
-                onTriggered: {
-                    const result = Model.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
-                    if (result.success) {
-                        apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
-                            "recordid": result.id,
-                            "isReadOnly": false
-                        });
-                    } else {
-                        notifPopup.open("Error", result.message, "error");
-                    }
-                }
-            }
-        ]
     }
 
 
@@ -78,6 +60,7 @@ Page {
             updatesModel.append({
                 'name': updates_list[index].name,
                 'id': updates_list[index].id,
+                 'date': updates_list[index].date,
                 'account_id': updates_list[index].account_id,
                 'status': updates_list[index].project_status,
                 'progress': updates_list[index].progress,
@@ -105,6 +88,7 @@ Page {
             user: model.user
             status:model.status
             description:model.description
+            date:model.date
             progress:model.progress
 
             onShowDescription: {
