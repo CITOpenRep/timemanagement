@@ -89,7 +89,7 @@ Page {
             notifPopup.open("Error", "Account name cannot be empty", "error");
             return;
         }
- 
+
        
         var dbname = "";
         if (isManualDbMode) {
@@ -97,7 +97,7 @@ Page {
         } else {
             dbname = database_combo.currentText;
         }
- 
+
         if (!linkInput.text.trim()) {
             notifPopup.open("Error", "Server URL cannot be empty", "error");
             return;
@@ -117,12 +117,12 @@ Page {
             notifPopup.open("Error", "Database name cannot be empty", "error");
             return;
         }
- 
+
        
         python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, dbname], function (result) {
             if (result && result['status'] === 'pass' && result['database']) {
                 let apikey = passwordInput.text;
- 
+
                 
                 var accountResult = Accounts.createAccount(
                     accountNameInput.text,           
@@ -132,7 +132,7 @@ Page {
                     selectedconnectwithId,          
                     apikey                       
                 );
- 
+
                
                 if (accountResult.duplicateFound) {
                     if (accountResult.duplicateType === "name") {
@@ -143,13 +143,16 @@ Page {
                         notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
                     }
                 } else {
-                    notifPopup.open("Success", "Your account has been saved successfully! Enjoy using the app!", "success");
+                    notifPopup.open("Saved", "Your account has been saved, Enjoy using the app !", "success");
+                   
+                    isReadOnly = true;
                 }
             } else {
                 notifPopup.open("Error", "Unable to save the account. Please check the URL, database name, or your credentials.", "error");
             }
         });
     }
+
 
     function clearForm() {
         accountNameInput.text = "";

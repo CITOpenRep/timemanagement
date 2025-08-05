@@ -284,26 +284,279 @@ function migrateTaskAssignees() {
 }
 
 
-function markTaskAsDeleted(taskId) {
+/**
+ * Safely marks a task as deleted, but prevents deletion if task has children
+ * @param {number} taskId - The local ID of the task to delete
+ * @param {boolean} forceDelete - Optional flag to override child protection (use with caution)
+ * @returns {Object} Result object with success status and message
+ */
+function markTaskAsDeleted(taskId, forceDelete = false) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var timestamp = Utils.getFormattedTimestampUTC();
+        
+        var result = { success: false, message: "", deletedTaskIds: [] };
+        
         db.transaction(function (tx) {
-            tx.executeSql("UPDATE project_task_app SET status = 'deleted', last_modified = datetime('now') WHERE id = ?", [taskId]);
+            // First, get the task details
+            var taskResult = tx.executeSql(
+                "SELECT id, name, project_id, odoo_record_id FROM project_task_app WHERE id = ? AND (status IS NULL OR status != 'deleted')", 
+                [taskId]
+            );
+            
+            if (taskResult.rows.length === 0) {
+                throw new Error("Task not found with ID: " + taskId + " or task is already deleted");
+            }
+            
+            var taskRow = taskResult.rows.item(0);
+            var taskName = taskRow.name;
+            var taskOdooRecordId = taskRow.odoo_record_id;
+            
+            console.log("Attempting to delete task: '" + taskName + "' (Local ID: " + taskId + ", Odoo ID: " + taskOdooRecordId + ")");
+            
+            // Check for child tasks using both possible parent reference methods
+            var childTasks = getChildTasks(tx, taskId, taskOdooRecordId);
+            
+            if (childTasks.length > 0 && !forceDelete) {
+                // Prevent deletion - task has children
+                var childNames = childTasks.map(function(child) { return "'" + child.name + "'"; }).join(", ");
+                
+                result.success = false;
+                result.message = "Cannot delete task '" + taskName + "' because it has " + childTasks.length + " child task(s): " + childNames + ". Please delete or move the child tasks first.";
+                result.hasChildren = true;
+                result.childTasks = childTasks;
+                
+                console.log("❌ Deletion blocked: Task has " + childTasks.length + " child tasks");
+                return;
+            }
+            
+            // Safe to delete - no children or force delete is enabled
+            tx.executeSql(
+                "UPDATE project_task_app SET status = 'deleted', last_modified = ? WHERE id = ?", 
+                [timestamp, taskId]
+            );
+            
+            // Mark related timesheets as deleted
+            markRelatedTimesheetsAsDeleted(tx, [taskId], timestamp);
+            
+            if (forceDelete && childTasks.length > 0) {
+                console.log("⚠️  Force delete enabled - deleted parent task with " + childTasks.length + " children");
+                result.message = "Task '" + taskName + "' deleted (forced deletion with " + childTasks.length + " child tasks remaining)";
+            } else {
+                result.message = "Task '" + taskName + "' successfully deleted";
+            }
+            
+            result.success = true;
+            result.deletedTaskIds = [taskId];
+            
+            console.log("✅ Task deleted successfully: " + taskName);
         });
-     //   console.log(" Task marked as deleted: ID " + taskId);
-        return {
-            success: true,
-            message: "Task marked as deleted."
-        };
+        
+        return result;
+        
     } catch (e) {
-        console.error("❌ Error marking timesheet as deleted (ID " + taskId + "): " + e);
+        console.error("❌ Error marking task as deleted (ID " + taskId + "): " + e);
         return {
             success: false,
-            message: "Failed to mark as deleted: " + e
+            message: "Failed to delete task: " + e.message,
+            deletedTaskIds: []
         };
     }
 }
 
+/**
+ * Deletes multiple tasks safely, checking each for children
+ * @param {Array<number>} taskIds - Array of local task IDs to delete
+ * @param {boolean} forceDelete - Optional flag to override child protection
+ * @returns {Object} Result object with detailed deletion results
+ */
+function markMultipleTasksAsDeleted(taskIds, forceDelete = false) {
+    var results = {
+        success: true,
+        totalRequested: taskIds.length,
+        successfulDeletions: [],
+        blockedDeletions: [],
+        failedDeletions: [],
+        message: ""
+    };
+    
+    for (var i = 0; i < taskIds.length; i++) {
+        var result = markTaskAsDeleted(taskIds[i], forceDelete);
+        
+        if (result.success) {
+            results.successfulDeletions.push({
+                taskId: taskIds[i],
+                message: result.message
+            });
+        } else if (result.hasChildren) {
+            results.blockedDeletions.push({
+                taskId: taskIds[i],
+                message: result.message,
+                childTasks: result.childTasks
+            });
+        } else {
+            results.failedDeletions.push({
+                taskId: taskIds[i],
+                message: result.message
+            });
+        }
+    }
+    
+    // Generate summary message
+    var messages = [];
+    if (results.successfulDeletions.length > 0) {
+        messages.push(results.successfulDeletions.length + " task(s) deleted successfully");
+    }
+    if (results.blockedDeletions.length > 0) {
+        messages.push(results.blockedDeletions.length + " task(s) blocked (have children)");
+    }
+    if (results.failedDeletions.length > 0) {
+        messages.push(results.failedDeletions.length + " task(s) failed to delete");
+        results.success = false;
+    }
+    
+    results.message = messages.join(", ");
+    
+    return results;
+}
+
+/**
+ * Gets all direct child tasks for a given parent task
+ * @param {Object} tx - Database transaction object
+ * @param {number} parentLocalId - The local 'id' of the parent task
+ * @param {number} parentOdooRecordId - The 'odoo_record_id' of the parent task
+ * @returns {Array<Object>} Array of child task objects
+ */
+function getChildTasks(tx, parentLocalId, parentOdooRecordId) {
+    var childTasks = [];
+    var seenIds = new Set(); // To prevent duplicates
+    
+    try {
+        // Method 1: Check if parent_id references local 'id' field
+        var childResult1 = tx.executeSql(
+            "SELECT id, name, odoo_record_id FROM project_task_app WHERE parent_id = ? AND (status IS NULL OR status != 'deleted')", 
+            [parentLocalId]
+        );
+        
+        for (var i = 0; i < childResult1.rows.length; i++) {
+            var row = childResult1.rows.item(i);
+            if (!seenIds.has(row.id)) {
+                childTasks.push({
+                    id: row.id,
+                    name: row.name,
+                    odoo_record_id: row.odoo_record_id
+                });
+                seenIds.add(row.id);
+            }
+        }
+        
+        // Method 2: Check if parent_id references 'odoo_record_id' field
+        if (parentOdooRecordId && parentOdooRecordId > 0) {
+            var childResult2 = tx.executeSql(
+                "SELECT id, name, odoo_record_id FROM project_task_app WHERE parent_id = ? AND (status IS NULL OR status != 'deleted')", 
+                [parentOdooRecordId]
+            );
+            
+            for (var j = 0; j < childResult2.rows.length; j++) {
+                var row2 = childResult2.rows.item(j);
+                if (!seenIds.has(row2.id)) {
+                    childTasks.push({
+                        id: row2.id,
+                        name: row2.name,
+                        odoo_record_id: row2.odoo_record_id
+                    });
+                    seenIds.add(row2.id);
+                }
+            }
+        }
+        
+    } catch (e) {
+        console.error("Error getting child tasks:", e);
+    }
+    
+    return childTasks;
+}
+
+/**
+ * Checks if a task has any child tasks (non-recursive check)
+ * @param {number} taskId - The local ID of the task to check
+ * @returns {Object} Result object with hasChildren boolean and child task details
+ */
+function checkTaskHasChildren(taskId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var result = { hasChildren: false, childCount: 0, childTasks: [] };
+        
+        db.transaction(function (tx) {
+            var taskResult = tx.executeSql(
+                "SELECT id, name, odoo_record_id FROM project_task_app WHERE id = ?", 
+                [taskId]
+            );
+            
+            if (taskResult.rows.length > 0) {
+                var taskRow = taskResult.rows.item(0);
+                var childTasks = getChildTasks(tx, taskRow.id, taskRow.odoo_record_id);
+                
+                result.hasChildren = childTasks.length > 0;
+                result.childCount = childTasks.length;
+                result.childTasks = childTasks;
+            }
+        });
+        
+        return result;
+        
+    } catch (e) {
+        console.error("Error checking task children:", e);
+        return { hasChildren: false, childCount: 0, childTasks: [], error: e.message };
+    }
+}
+
+/**
+ * Marks related timesheets as deleted when tasks are deleted
+ * @param {Object} tx - Database transaction object
+ * @param {Array<number>} taskIds - Array of local task IDs from project_task_app
+ * @param {string} timestamp - Timestamp for last_modified
+ */
+function markRelatedTimesheetsAsDeleted(tx, taskIds, timestamp) {
+    if (taskIds.length === 0) return;
+    
+    try {
+        // Get the odoo_record_id values for the local task IDs
+        var placeholders = taskIds.map(() => '?').join(',');
+        var taskRecordIds = [];
+        
+        var taskQuery = tx.executeSql(
+            "SELECT odoo_record_id FROM project_task_app WHERE id IN (" + placeholders + ") AND odoo_record_id IS NOT NULL",
+            taskIds
+        );
+        
+        // Collect all odoo_record_id values
+        for (var i = 0; i < taskQuery.rows.length; i++) {
+            var odooRecordId = taskQuery.rows.item(i).odoo_record_id;
+            if (odooRecordId && odooRecordId > 0) {
+                taskRecordIds.push(odooRecordId);
+            }
+        }
+        
+        // If we have odoo_record_ids, mark related timesheets as deleted
+        if (taskRecordIds.length > 0) {
+            var timesheetPlaceholders = taskRecordIds.map(() => '?').join(',');
+            var updateParams = [timestamp].concat(taskRecordIds);
+            
+            var result = tx.executeSql(
+                "UPDATE account_analytic_line_app SET status = 'deleted', last_modified = ? WHERE task_id IN (" + timesheetPlaceholders + ") AND (status IS NULL OR status != 'deleted')",
+                updateParams
+            );
+            
+            if (result.rowsAffected > 0) {
+                console.log("Marked " + result.rowsAffected + " related timesheet entries as deleted");
+            }
+        }
+        
+    } catch (e) {
+        console.error("Error marking related timesheets as deleted:", e);
+    }
+}
 
 function edittaskData(data) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
