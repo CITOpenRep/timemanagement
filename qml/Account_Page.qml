@@ -84,35 +84,83 @@ Page {
     }
 
     function handleAccountSave() {
+        
         if (!accountNameInput.text) {
             notifPopup.open("Error", "Account name cannot be empty", "error");
             return;
         }
-
+ 
+       
         var dbname = "";
         if (isManualDbMode) {
             dbname = manualDbInput.text;
         } else {
             dbname = database_combo.currentText;
         }
-
+ 
+        if (!linkInput.text.trim()) {
+            notifPopup.open("Error", "Server URL cannot be empty", "error");
+            return;
+        }
+        
+        if (!usernameInput.text.trim()) {
+            notifPopup.open("Error", "Username cannot be empty", "error");
+            return;
+        }
+        
+        if (!passwordInput.text.trim()) {
+            notifPopup.open("Error", "Password/API Key cannot be empty", "error");
+            return;
+        }
+        
+        if (!dbname.trim()) {
+            notifPopup.open("Error", "Database name cannot be empty", "error");
+            return;
+        }
+ 
+       
         python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, dbname], function (result) {
             if (result && result['status'] === 'pass' && result['database']) {
                 let apikey = passwordInput.text;
-
-                var isDuplicate = Accounts.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
-
-                if (isDuplicate) {
-                    notifPopup.open("Error", "You already have this account", "error");
+ 
+                
+                var accountResult = Accounts.createAccount(
+                    accountNameInput.text,           
+                    linkInput.text,                 
+                    result['database'],              
+                    usernameInput.text,             
+                    selectedconnectwithId,          
+                    apikey                       
+                );
+ 
+               
+                if (accountResult.duplicateFound) {
+                    if (accountResult.duplicateType === "name") {
+                        notifPopup.open("Error", "Account name '" + accountNameInput.text + "' already exists. Please choose a different name.", "error");
+                    } else if (accountResult.duplicateType === "connection") {
+                        notifPopup.open("Error", "An account with this server connection already exists.", "error");
+                    } else {
+                        notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
+                    }
                 } else {
-                    notifPopup.open("Saved", "Your account has been saved, Enjoy using the app !", "success");
-                   
-                    isReadOnly = true;
+                    notifPopup.open("Success", "Your account has been saved successfully! Enjoy using the app!", "success");
                 }
             } else {
-                notifPopup.open("Error", "Unable to save the Account, Please check the URL , Database name or your credentials", "error");
+                notifPopup.open("Error", "Unable to save the account. Please check the URL, database name, or your credentials.", "error");
             }
         });
+    }
+
+    function clearForm() {
+        accountNameInput.text = "";
+        linkInput.text = "";
+        usernameInput.text = "";
+        passwordInput.text = "";
+        manualDbInput.text = "";
+        databaseListModel.clear();
+        activeBackendAccount = false;
+        isManualDbMode = false;
+        database_combo.currentIndex = -1;
     }
 
     Python {

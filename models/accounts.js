@@ -202,35 +202,62 @@ function fetchParsedSyncLog(accountId) {
  * @returns {boolean} - Returns `true` if a duplicate account was found and no insertion was made, otherwise `false`.
  */
 function createAccount(name, link, database, username, selectedConnectWithId, apikey) {
-    let duplicateFound = false;
+    let result = {
+        duplicateFound: false,
+        message: "",
+        duplicateType: null
+    };
 
     try {
         const db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            const result = tx.executeSql(
-                             'SELECT COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ?',
-                             [link, database, username]
-                             );
+            
+            const nameCheckResult = tx.executeSql(
+                'SELECT COUNT(*) AS count FROM users WHERE name = ?',
+                [name]
+            );
 
-            if (result.rows.item(0).count === 0) {
-                const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
-                tx.executeSql(
-                            'INSERT INTO users (name, link, database, username, connectwith_id, api_key) VALUES (?, ?, ?, ?, ?, ?)',
-                            [name, link, database, username, selectedConnectWithId, apiKeyToStore]
-                            );
-                DBCommon.log("New user account created successfully.");
-            } else {
-                DBCommon.log("Duplicate account found. No new account created.");
-                duplicateFound = true;
+            if (nameCheckResult.rows.item(0).count > 0) {
+                DBCommon.log("Duplicate account name found: " + name);
+                result.duplicateFound = true;
+                result.duplicateType = "name";
+                result.message = "An account with this name already exists.";
+                return;
             }
+
+            
+            const connectionCheckResult = tx.executeSql(
+                'SELECT COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ?',
+                [link, database, username]
+            );
+
+            if (connectionCheckResult.rows.item(0).count > 0) {
+                DBCommon.log("Duplicate connection found for: " + link + "/" + database + "/" + username);
+                result.duplicateFound = true;
+                result.duplicateType = "connection";
+                result.message = "An account with this server connection already exists.";
+                return;
+            }
+
+           
+            const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
+            tx.executeSql(
+                'INSERT INTO users (name, link, database, username, connectwith_id, api_key) VALUES (?, ?, ?, ?, ?, ?)',
+                [name, link, database, username, selectedConnectWithId, apiKeyToStore]
+            );
+            
+            DBCommon.log("New user account created successfully: " + name);
+            result.message = "Account created successfully.";
         });
 
     } catch (e) {
-        DBCommon.logException(e);
+        DBCommon.logException("createAccount", e);
+        result.duplicateFound = true;
+        result.message = "Error creating account: " + e.message;
     }
 
-    return duplicateFound;
+    return result;
 }
 
 /**
