@@ -405,8 +405,8 @@ Page {
         width: units.gu(6)
         height: units.gu(0.7)
         radius: height / 2
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#fac34d" : "#1c355e"
-        opacity: 0.7
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ?  LomiriColors.orange : "skyblue"
+      //  opacity: 0.7
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: swipeUpArea.top
         anchors.bottomMargin: units.gu(0.5)
@@ -419,7 +419,7 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: units.gu(6)
+        height: units.gu(1)
         minimumTouchPoints: 1
         maximumTouchPoints: 1
 
@@ -431,7 +431,7 @@ Page {
         onReleased: {
             var endY = touchPoints[0].y;
             // Detect upward swipe (swipe up: startY > endY)
-            if (startY - endY > units.gu(3)) {
+            if (startY - endY > units.gu(2)) {
                 // threshold for swipe - open new timesheet
                 const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
                 if (result.success) {
