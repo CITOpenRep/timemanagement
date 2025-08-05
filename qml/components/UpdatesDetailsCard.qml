@@ -28,8 +28,18 @@ ListItem {
     property int account_id: 0
     property int colorPallet: 0
     signal showDescription(string description)
+    signal deleteRequested(int recordId)
 
     height: contentLayout.implicitHeight + units.gu(1)
+
+    leadingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "delete"
+                onTriggered: deleteRequested(recordId)
+            }
+        ]
+    }
 
     ListItemLayout {
         anchors.fill: parent

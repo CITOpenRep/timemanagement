@@ -98,7 +98,8 @@
         "description": "description",
         "date": "date",
         "project_id": "project_id",
-        "id": "odoo_record_id"
+        "id": "odoo_record_id",
+        "write_date":"last_modified"
     }
 
 

@@ -649,6 +649,7 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
     try {
         var resModel = isProject ? "project.project" : "project.task";
         var timestamp = Utils.getFormattedTimestampUTC();
+         var createDate = timestamp.split(" ")[0];
 
         db.transaction(function(tx) {
             tx.executeSql(
@@ -662,7 +663,7 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
                     null,             // activity_type_id (empty initially)
                     "Untitled",               // summary (blank)
                     Accounts.getCurrentUserOdooId(account_id), // auto-fill user_id
-                    null,             // due_date (null initially)
+                    createDate,             //
                     "No Notes",               // notes (blank)
                     resModel,
                     link_id,
@@ -671,7 +672,7 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
                     link_id,
                     "planned",        // default activity state
                     timestamp,
-                    "updated"             // mark as unsynced/new
+                    ""             // mark as unsynced/new
                 ]
             );
 

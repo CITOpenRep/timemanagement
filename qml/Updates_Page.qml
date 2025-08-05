@@ -47,6 +47,11 @@ Page {
         }
     }
 
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+    }
 
    ListModel {
         id: updatesModel
@@ -97,6 +102,16 @@ Page {
                     "isReadOnly": true
                 });
 
+            }
+
+            onDeleteRequested:  {
+                 var result = Project.markProjectUpdateAsDeleted(model.id);
+                if (!result.success) {
+                    notifPopup.open("Error", result.message, "error");
+                } else {
+                    notifPopup.open("Deleted", result.message, "success");
+                    fetchupdates();
+                }
             }
         }
 

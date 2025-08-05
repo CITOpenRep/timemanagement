@@ -91,7 +91,7 @@ function getAllProjectUpdates() {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT * FROM project_update_app ORDER BY date DESC";
+            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' ORDER BY date DESC";
             var result = tx.executeSql(query);
 
             for (var i = 0; i < result.rows.length; i++) {
@@ -308,6 +308,31 @@ function createUpdateSnapShot(update_data) {
     return messageObj;
 }
 
+/**
+ * Marks a project update as deleted in the local database.
+ *
+ * @param {number} updateId - The ID of the project update to be marked as deleted.
+ * @returns {Object} - { success: boolean, message: string }
+ */
+function markProjectUpdateAsDeleted(updateId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            tx.executeSql(
+                "UPDATE project_update_app SET status = 'deleted' WHERE id = ?",
+                [updateId]
+            );
+        });
+
+        DBCommon.log("Project update marked as deleted (id: " + updateId + ")");
+        return { success: true, message: "Project update marked as deleted." };
+
+    } catch (e) {
+        DBCommon.logException("markProjectUpdateAsDeleted", e);
+        return { success: false, message: "Failed to mark project update as deleted: " + e.message };
+    }
+}
 
 
 /**
