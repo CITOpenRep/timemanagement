@@ -122,7 +122,7 @@ Page {
                 parentId: ids.task_id,
                 startDate: date_range_widget.formattedStartDate(),
                 endDate: date_range_widget.formattedEndDate(),
-                deadline: date_range_widget.formattedEndDate(),
+                deadline: deadline_text.text !== "Not set" ? deadline_text.text : "",
                 favorites: 0,
                 plannedHours: Utils.convertDurationToFloat(hours_text.text),
                 description: description_text.text,
@@ -347,10 +347,50 @@ Page {
                 }
             }
         }
+
+        Row {
+            id: deadlineRow
+            anchors.top: myRow6.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(2)
+            topPadding: units.gu(1)
+
+            TSLabel {
+                id: deadline_label
+                text: "Deadline"
+                width: parent.width * 0.3
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            TSLabel {
+                id: deadline_text
+                text: "Not set"
+                enabled: !isReadOnly
+                width: parent.width * 0.4
+                fontBold: true
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            TSButton {
+                text: "Select"
+                objectName: "button_deadline"
+                enabled: !isReadOnly
+                width: parent.width * 0.2
+                height: units.gu(5)
+                anchors.verticalCenter: parent.verticalCenter
+
+                onClicked: {
+                    deadlinePicker.open();
+                }
+            }
+        }
         Item {
             id: attachmentRow
             anchors.bottom: parent.bottom
-            anchors.top: myRow6.bottom
+            anchors.top: deadlineRow.bottom
             width: parent.width
             //height: units.gu(30)
             anchors.margins: units.gu(1)
@@ -365,6 +405,15 @@ Page {
         onTimeSelected: {
             let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
             hours_text.text = timeStr;
+        }
+    }
+
+    CustomDatePicker {
+        id: deadlinePicker
+        titleText: "Select Deadline"
+
+        onDateSelected: {
+            deadline_text.text = Qt.formatDate(new Date(date), "yyyy-MM-dd");
         }
     }
     Component.onCompleted: {
@@ -423,6 +472,13 @@ Page {
             }
             // If no dates are set, don't call setDateRange to avoid defaulting to today
 
+            // Set deadline
+            if (currentTask.deadline) {
+                deadline_text.text = currentTask.deadline;
+            } else {
+                deadline_text.text = "Not set";
+            }
+
             // Load multiple assignees if enabled
             if (workItem.enableMultipleAssignees) {
                 var existingAssignees = Task.getTaskAssignees(recordid, instanceId);
@@ -432,6 +488,7 @@ Page {
             attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
         } else {
             workItem.loadAccounts();
+            deadline_text.text = "Not set";
         }
         //  console.log("currentTask loaded:", JSON.stringify(currentTask));
     }
