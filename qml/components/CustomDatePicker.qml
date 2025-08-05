@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2025 CIT-Services
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * Permission is hereby granted, free of charge, obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
@@ -40,6 +40,7 @@ Item {
     property string mode: "next" // or "previous"
     property bool showCustomPicker: false
     property string tempCustomDate: ""
+    property string currentDate: "" // Base date for relative scheduling
 
     signal dateSelected(string date)
 
@@ -100,28 +101,28 @@ Item {
 
                     TSButton {
                         text: "Tomorrow"
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
                         Layout.fillWidth: true
                         onClicked: selectSingleDate(Utils.getTomorrow())
                     }
 
                     TSButton {
                         text: "Next Week"
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
                         Layout.fillWidth: true
-                        onClicked: selectSingleDate(Utils.getNextWeekRange().start)
+                        onClicked: selectSingleDate(Utils.getNextWeekSameDay(currentDate))
                     }
 
                     TSButton {
                         text: "Next Month"
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
                         Layout.fillWidth: true
-                        onClicked: selectSingleDate(Utils.getNextMonthRange().start)
+                        onClicked: selectSingleDate(Utils.getNextMonthSameDay(currentDate))
                     }
 
                     TSButton {
                         text: "Custom"
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
                         Layout.fillWidth: true
                         onClicked: showCustomPicker = !showCustomPicker
                     }
@@ -129,11 +130,9 @@ Item {
                     TSButton {
                         text: "Cancel"
                         Layout.fillWidth: true
-                       bgColor: "#8A0000"
+                        bgColor: "#8A0000"
                         visible: !showCustomPicker
                         onClicked: PopupUtils.close(quickDialog)
-
-                      
                     }
                 }
 
@@ -145,7 +144,7 @@ Item {
 
                     TSButton {
                         id: customDateButton
-                         bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" :  "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
                         property date date: new Date()
                         text: date ? Qt.formatDateTime(date, "dd-MM-yy") : "Custom"
                         Layout.fillWidth: true
