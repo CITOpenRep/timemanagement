@@ -22,6 +22,7 @@ ListItem {
 
     signal cardClicked(int accountid, int recordid)
     signal markAsDone(int accountid, int recordId)
+    signal dateChanged(int accountid, int recordId, string newDate)
 
     function truncateText(text, maxLength) {
         if (text.length > maxLength) {
@@ -140,6 +141,18 @@ ListItem {
                 onClicked: action.trigger()
             }
         }
+    }
+
+    leadingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "reload"
+                onTriggered: {
+                    // Open date selector popup
+                    dateSelector.open();
+                }
+            }
+        ]
     }
 
     Rectangle {
@@ -284,5 +297,17 @@ ListItem {
     MouseArea {
         anchors.fill: parent
         onClicked: root.cardClicked(root.account_id, root.odoo_record_id)
+    }
+
+    // Date Selector for changing activity date
+    CustomDatePicker {
+        id: dateSelector
+        titleText: "Change Activity Date"
+        mode: "next"
+        onDateSelected: function (selectedDate) {
+            console.log("📅 ActivityDetailsCard: Date changed for record ID:", root.odoo_record_id, "to:", selectedDate);
+            console.log("📅 ActivityDetailsCard: Date format being passed:", typeof selectedDate, selectedDate);
+            root.dateChanged(root.account_id, root.odoo_record_id, selectedDate);
+        }
     }
 }

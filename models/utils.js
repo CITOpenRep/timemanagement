@@ -233,6 +233,12 @@ function getToday() {
     return new Date().toISOString().slice(0, 10);
 }
 
+function getTomorrow() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().slice(0, 10);
+}
+
 function getNextWeekRange() {
     const now = new Date();
     const day = now.getDay();

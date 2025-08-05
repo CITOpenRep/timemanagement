@@ -228,7 +228,7 @@ Page {
                             //set the data to a global Slore and pass the key to the page
                             Global.description_temporary_holder = text;
                             apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly,
+                                isReadOnly: isReadOnly
                                 //useRichText: false
                             });
                         }
@@ -418,7 +418,7 @@ Page {
             updatedActivity: activityTypeSelector.selectedId,
             updatedSummary: Utils.cleanText(summary.text),
             updatedUserId: user,
-            updatedDate: date_widget.selectedDate,
+            updatedDate: date_widget.formattedDate(),
             updatedNote: Utils.cleanText(notes.text),
             resModel: resModel,
             resId: resId,
@@ -443,6 +443,18 @@ Page {
     }
     onVisibleChanged: {
         if (visible) {
+            // Reload activity data when page becomes visible
+            if (recordid != 0) {
+                currentActivity = Activity.getActivityById(recordid, accountid);
+                console.log("📅 Activities.qml: Reloaded activity with due_date:", currentActivity.due_date);
+
+                // Update all fields with the latest data
+                summary.text = currentActivity.summary || "";
+                notes.text = currentActivity.notes || "";
+                date_widget.setSelectedDate(currentActivity.due_date);
+                console.log("📅 Activities.qml: Set date widget to:", currentActivity.due_date);
+            }
+
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
                 notes.text = Global.description_temporary_holder;

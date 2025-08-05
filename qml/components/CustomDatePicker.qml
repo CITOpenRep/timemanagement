@@ -52,7 +52,7 @@ Item {
             modal: true
 
             function selectSingleDate(dateStr) {
-                popupWrapper.selected_date = formatDateToDMY(dateStr);
+                popupWrapper.selected_date = dateStr; // Keep original YYYY-MM-DD format
                 dateSelected(popupWrapper.selected_date);
                 PopupUtils.close(quickDialog);
             }
@@ -97,6 +97,12 @@ Item {
                 ColumnLayout {
                     visible: mode === "next"
                     spacing: units.gu(1)
+
+                    TSButton {
+                        text: "Tomorrow"
+                        Layout.fillWidth: true
+                        onClicked: selectSingleDate(Utils.getTomorrow())
+                    }
 
                     TSButton {
                         text: "Next Week"
@@ -146,7 +152,9 @@ Item {
                             Layout.fillWidth: true
                             onClicked: {
                                 selected_date = customDateButton.date;
-                                dateSelected(formatDateToDMY(selected_date));
+                                // Convert to YYYY-MM-DD format for database storage
+                                var dateStr = customDateButton.date.toISOString().slice(0, 10);
+                                dateSelected(dateStr);
                                 PopupUtils.close(quickDialog);
                             }
                         }
