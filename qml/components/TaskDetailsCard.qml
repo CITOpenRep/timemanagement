@@ -27,6 +27,7 @@ import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
 import "../../models/timesheet.js" as Timesheet
 import "../../models/timer_service.js" as TimerService
+import "../../models/task.js" as Task
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
 
@@ -56,11 +57,23 @@ ListItem {
     signal deleteRequested(int localId)
     signal viewRequested(int localId)
     signal timesheetRequested(int localId)
+    signal taskUpdated(int localId)
 
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
+    }
+
+    CustomDatePicker {
+        id: dateSelector
+        titleText: "Reschedule End Date"
+        mode: "next"
+        currentDate: endDate || Utils.getToday()
+
+        onDateSelected: {
+            updateTaskEndDate(date);
+        }
     }
 
     Connections {
@@ -85,6 +98,55 @@ ListItem {
             if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
                 timer_paused = false;
             }
+        }
+    }
+
+    function updateTaskEndDate(newDate) {
+        try {
+            // Get current task details to preserve existing data
+            var taskDetails = Task.getTaskDetails(localId);
+            if (!taskDetails || !taskDetails.id) {
+                throw "Task not found";
+            }
+
+            // Prepare data for saveOrUpdateTask function
+            var updateData = {
+                record_id: localId  // This tells saveOrUpdateTask to UPDATE
+                ,
+                accountId: taskDetails.account_id,
+                name: taskDetails.name,
+                projectId: taskDetails.project_id,
+                parentId: taskDetails.parent_id,
+                plannedHours: taskDetails.initial_planned_hours,
+                favorites: taskDetails.favorites,
+                description: taskDetails.description,
+                assigneeUserId: taskDetails.user_id,
+                subProjectId: taskDetails.sub_project_id,
+                startDate: taskDetails.start_date,
+                endDate: newDate  // This is what we're updating
+                ,
+                deadline: taskDetails.deadline,
+                status: "updated"
+            };
+
+            // Update the task in the database
+            var result = Task.saveOrUpdateTask(updateData);
+
+            if (result.success) {
+                // Update the endDate property for UI feedback
+                endDate = newDate;
+
+                // Emit signal to notify parent components that task was updated
+                taskUpdated(localId);
+
+                // Show success notification
+                notifPopup.open("Success", "End date updated to " + Utils.formatDate(new Date(newDate)), "success");
+            } else {
+                throw result.error || "Update failed";
+            }
+        } catch (error) {
+            console.error("Failed to update task end date:", error);
+            notifPopup.open("Error", "Failed to update end date: " + error, "error");
         }
     }
 
