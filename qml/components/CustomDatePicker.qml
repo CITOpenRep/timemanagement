@@ -101,28 +101,28 @@ Item {
 
                     TSButton {
                         text: "Tomorrow"
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         Layout.fillWidth: true
                         onClicked: selectSingleDate(Utils.getTomorrow())
                     }
 
                     TSButton {
                         text: "Next Week"
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         Layout.fillWidth: true
                         onClicked: selectSingleDate(Utils.getNextWeekSameDay(currentDate))
                     }
 
                     TSButton {
                         text: "Next Month"
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         Layout.fillWidth: true
                         onClicked: selectSingleDate(Utils.getNextMonthSameDay(currentDate))
                     }
 
                     TSButton {
                         text: "Custom"
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         Layout.fillWidth: true
                         onClicked: showCustomPicker = !showCustomPicker
                     }
@@ -130,7 +130,7 @@ Item {
                     TSButton {
                         text: "Cancel"
                         Layout.fillWidth: true
-                        bgColor: "#8A0000"
+                        bgColor: "#F25041"
                         visible: !showCustomPicker
                         onClicked: PopupUtils.close(quickDialog)
                     }
@@ -144,7 +144,7 @@ Item {
 
                     TSButton {
                         id: customDateButton
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#121212"
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         property date date: new Date()
                         text: date ? Qt.formatDateTime(date, "dd-MM-yy") : "Custom"
                         Layout.fillWidth: true
@@ -158,7 +158,7 @@ Item {
                         TSButton {
                             text: "Cancel"
                             Layout.fillWidth: true
-                            bgColor: "#8A0000"
+                            bgColor: "#F25041"
                             onClicked: PopupUtils.close(quickDialog)
                         }
 
