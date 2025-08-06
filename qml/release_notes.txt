@@ -38,7 +38,22 @@
 
       <h4> 08-08-2025 : Version 1.1.3 </h4>
 
- <h5> Fixes and Improvements </h5>
+
+
+ <h5> New Features </h5>
+
+
+  <li> Added feature to create Activity from Home Screen via FAB menu. </li>
+    <li> Added Multi-Selector Assignee , to Tasks. Now Multiple Users can be assigned to a Task from Device.  </li>
+      <li> Intoducing Project Updates . Now User is able to create Project Updates from the Device, from the Project View Mode. </li>
+        <li> New Feature to create activity from Tasks and Activity has been added. </li>
+          <li> New Feature to reschedule activity and Tasks by Swiping from Left has been added. Activity and Tasks can rescheduled to "Tomorrow" , "Next Week" , "Next Month" and "Custom". Rescheduling to "Next Week" will add 1 extra week to existing End Date and rescheduling to "Next Month" will add an extra Month. Rescheduling to "Tomorrow" will reschedule the Task or Activity to "Tomorrow" . </li>
+          <li>The feature to swipe up from Home Screen and Create a New Timesheet has been added. </li>
+
+
+
+
+           <h5> Fixes and Improvements </h5>
        
         <li> Fixed the Project Missing Issue in Timesheet View Mode.</li>
           <li> Fixed the Naviagtion Issue in Projects, Where the User was not able to view the details about a parent Project. </li>
@@ -47,21 +62,17 @@
            <li> Fixed the Task Search issue where Task from Multiple Instance were returned. </li>
                 
            <li> Sorted the Activities and Tasks based on Last Modified Date. </li>
+            <li> Added Enhancement to set the TimeSheet Page , Account Page to View only Mode after Saving. The User will still have option to Edit it after clicking the Edit Icon from the top. </li>
 
                  <li>The enhancement to allow only unique name to Instance has been added. </li>
 
                  <li>The deletion of Parent Task and Child task not syncing back Issue has been resolved. </li>
+
+                 <li>The Due Date of of the Tasks will be displayed based on the deadline strictly and not on End Date. The filters in the Task List View will follow the start and End Date range. </li>
+
+                 <li>Timesheet Draft Stage Issue with Timesheets created from Tasks and Projects has been resolved. Now Every Timesheet will move to Draft Stage, and will not sync untill you finalise it by swiping from right. </li>
         
 
-
- <h5> New Features </h5>
-
- <li> Added Enhancement to set the TimeSheet Page , Account Page to View only Mode after Saving. The User will still have option to Edit it after clicking the Edit Icon from the top. </li>
-  <li> Added feature to create Activity from Home Screen via FAB menu. </li>
-    <li> Added Multi-Selector Assignee , to Tasks. Now Multiple Users can be assigned to a Task from Device.  </li>
-      <li> Intoducing Project Updates . Now User is able to create Project Updates from the Device. </li>
-        <li> New Feature to create activity from Tasks and Activity has been added. </li>
-          <li> New Feature to reschedule activity by Swiping from Left has been added. Activity can rescheduled to "Tomorrow" , "Next Week" , "Next Month" and "Custom". </li>
            <br>
 
 

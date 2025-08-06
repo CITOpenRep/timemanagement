@@ -407,20 +407,30 @@ Page {
         }
     }
 
-    Rectangle {
+    // Rectangle {
 
-        visible: !isMultiColumn
-        id: swipeIndicator
-        width: units.gu(6)
-        height: units.gu(0.7)
-        radius: height / 2
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ?  LomiriColors.orange : "skyblue"
-      //  opacity: 0.7
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: swipeUpArea.top
-        anchors.bottomMargin: units.gu(0.5)
-        z: 1000
-    }
+    //     visible: !isMultiColumn
+    //     id: swipeIndicator
+    //     width: units.gu(6)
+    //     height: units.gu(0.7)
+    //     radius: height / 2
+    //     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ?  LomiriColors.orange : "#0cc0df"
+    //   //  opacity: 0.7
+    //     anchors.horizontalCenter: parent.horizontalCenter
+    //     anchors.bottom: swipeUpArea.top
+    //     anchors.bottomMargin: units.gu(0.5)
+    //     z: 1000
+    // }
+
+    Icon {
+    width: units.gu(5)
+    height: units.gu(4)
+    z: 1000
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.bottom: swipeUpArea.top 
+    name: 'toolkit_chevron-up_3gu'
+    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ?  LomiriColors.orange : LomiriColors.slate
+}
 
     MultiPointTouchArea {
         id: swipeUpArea

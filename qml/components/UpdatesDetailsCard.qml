@@ -106,7 +106,7 @@ ListItem {
 
             // Project Name
             Text {
-                text: Project.getProjectName(project_id, account_id) || "Unknown Project"
+                text: Utils.truncateText(Project.getProjectName(project_id, account_id), 40)  || "Unknown Project"
                 font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#666"
                 elide: Text.ElideRight
