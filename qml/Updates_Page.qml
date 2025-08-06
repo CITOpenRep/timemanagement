@@ -53,7 +53,7 @@ Page {
         height: units.gu(80)
     }
 
-   ListModel {
+    ListModel {
         id: updatesModel
     }
 
@@ -65,13 +65,13 @@ Page {
             updatesModel.append({
                 'name': updates_list[index].name,
                 'id': updates_list[index].id,
-                 'date': updates_list[index].date,
+                'date': updates_list[index].date,
                 'account_id': updates_list[index].account_id,
                 'status': updates_list[index].project_status,
                 'progress': updates_list[index].progress,
                 'description': updates_list[index].description,
                 'project_id': updates_list[index].project_id,
-                'user': updates_list[index].user_id,
+                'user': updates_list[index].user_id
             });
         }
     }
@@ -91,21 +91,20 @@ Page {
             account_id: model.account_id
             project_id: model.project_id
             user: model.user
-            status:model.status
-            description:model.description
-            date:model.date
-            progress:model.progress
+            status: model.status
+            description: model.description
+            date: model.date
+            progress: model.progress
 
             onShowDescription: {
-                Global.description_temporary_holder=description
+                Global.description_temporary_holder = description;
                 apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("ReadMorePage.qml"), {
                     "isReadOnly": true
                 });
-
             }
 
-            onDeleteRequested:  {
-                 var result = Project.markProjectUpdateAsDeleted(model.id);
+            onDeleteRequested: {
+                var result = Project.markProjectUpdateAsDeleted(model.id);
                 if (!result.success) {
                     notifPopup.open("Error", result.message, "error");
                 } else {

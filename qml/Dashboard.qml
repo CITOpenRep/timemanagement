@@ -423,15 +423,15 @@ Page {
     // }
 
     Icon {
-      visible: !isMultiColumn   
-    width: units.gu(5)
-    height: units.gu(4)
-    z: 1000
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.bottom: swipeUpArea.top 
-    name: 'toolkit_chevron-up_3gu'
-    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ?  LomiriColors.orange : LomiriColors.slate
-}
+        visible: !isMultiColumn
+        width: units.gu(5)
+        height: units.gu(4)
+        z: 1000
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: swipeUpArea.top
+        name: 'toolkit_chevron-up_3gu'
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? LomiriColors.orange : LomiriColors.slate
+    }
 
     MultiPointTouchArea {
         id: swipeUpArea

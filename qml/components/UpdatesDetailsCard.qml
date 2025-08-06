@@ -64,11 +64,8 @@ ListItem {
 
                 Rectangle {
                     height: units.gu(3)
-                    width:details_button.width
-                    color: status === "on_track" ? "green"
-                         : status === "at_risk" ? "orange"
-                         : status === "off_track" ? "red"
-                         : "grey"
+                    width: details_button.width
+                    color: status === "on_track" ? "green" : status === "at_risk" ? "orange" : status === "off_track" ? "red" : "grey"
                     //Layout.preferredWidth: statusText.paintedWidth + units.gu(4)
                     Layout.alignment: Qt.AlignRight
 
@@ -96,17 +93,17 @@ ListItem {
                 }
 
                 TSButton {
-                    id:details_button
+                    id: details_button
                     text: "Details"
                     Layout.preferredWidth: units.gu(14)
                     height: units.gu(5)
-                    onClicked: updateItem.showDescription(description)
+                    onClicked: updateItem.showDescription("<h1>" + name + "</h1>" + description)
                 }
             }
 
             // Project Name
             Text {
-                text: Utils.truncateText(Project.getProjectName(project_id, account_id), 40)  || "Unknown Project"
+                text: Utils.truncateText(Project.getProjectName(project_id, account_id), 40) || "Unknown Project"
                 font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#666"
                 elide: Text.ElideRight

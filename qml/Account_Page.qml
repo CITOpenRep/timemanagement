@@ -45,7 +45,7 @@ Page {
     property string single_db: ""
     property bool activeBackendAccount: false
     property bool isManualDbMode: false
-    
+
     property bool isReadOnly: false
 
     header: PageHeader {
@@ -78,19 +78,15 @@ Page {
     }
 
     function switchToEditMode() {
-        
-            isReadOnly = false;
-        
+        isReadOnly = false;
     }
 
     function handleAccountSave() {
-        
         if (!accountNameInput.text) {
             notifPopup.open("Error", "Account name cannot be empty", "error");
             return;
         }
 
-       
         var dbname = "";
         if (isManualDbMode) {
             dbname = manualDbInput.text;
@@ -102,38 +98,28 @@ Page {
             notifPopup.open("Error", "Server URL cannot be empty", "error");
             return;
         }
-        
+
         if (!usernameInput.text.trim()) {
             notifPopup.open("Error", "Username cannot be empty", "error");
             return;
         }
-        
+
         if (!passwordInput.text.trim()) {
             notifPopup.open("Error", "Password/API Key cannot be empty", "error");
             return;
         }
-        
+
         if (!dbname.trim()) {
             notifPopup.open("Error", "Database name cannot be empty", "error");
             return;
         }
 
-       
         python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, dbname], function (result) {
             if (result && result['status'] === 'pass' && result['database']) {
                 let apikey = passwordInput.text;
 
-                
-                var accountResult = Accounts.createAccount(
-                    accountNameInput.text,           
-                    linkInput.text,                 
-                    result['database'],              
-                    usernameInput.text,             
-                    selectedconnectwithId,          
-                    apikey                       
-                );
+                var accountResult = Accounts.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
 
-               
                 if (accountResult.duplicateFound) {
                     if (accountResult.duplicateType === "name") {
                         notifPopup.open("Error", "Account name '" + accountNameInput.text + "' already exists. Please choose a different name.", "error");
@@ -144,7 +130,7 @@ Page {
                     }
                 } else {
                     notifPopup.open("Saved", "Your account has been saved, Enjoy using the app !", "success");
-                   
+
                     isReadOnly = true;
                 }
             } else {
@@ -152,7 +138,6 @@ Page {
             }
         });
     }
-
 
     function clearForm() {
         accountNameInput.text = "";
@@ -278,7 +263,7 @@ Page {
                     TSButton {
                         id: fetch_db_button
                         text: "Fetch Databases"
-                         enabled: !isReadOnly
+                        enabled: !isReadOnly
                         width: units.gu(28)
                         height: units.gu(4)
                         onClicked: {
@@ -526,7 +511,7 @@ Page {
                 }
                 Column {
                     TSButton {
-                         enabled: !isReadOnly
+                        enabled: !isReadOnly
                         width: units.gu(5)
                         height: passwordInput.height
                         visible: activeBackendAccount

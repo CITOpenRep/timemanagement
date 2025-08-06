@@ -62,7 +62,7 @@ ListItem {
     }
 
     function getActivityStateInfo() {
-      if (isActivityOverdue()) {
+        if (isActivityOverdue()) {
             return {
                 color: "#F44336"  // Red
                 ,
@@ -78,7 +78,7 @@ ListItem {
             return {
                 color: "#2196F3"  // Blue
                 ,
-                text:  "PLANNED"
+                text: "PLANNED"
             };
         }
     }

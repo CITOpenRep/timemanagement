@@ -303,97 +303,95 @@ Item {
                         }
                     }
 
-         
-                        Rectangle {
-                            width: parent.width * 0.8
-                            height: units.gu(30)
-                            border.color: "#CCCCCC"
-                            border.width: 1
-                            color: "transparent"
-  anchors.horizontalCenter: parent.horizontalCenter
-                            Flickable {
-                                id: assigneeFlickable
-                                anchors.fill: parent
-                                anchors.margins: units.gu(1)
-                                contentHeight: assigneeColumn.height
-                                clip: true
+                    Rectangle {
+                        width: parent.width * 0.8
+                        height: units.gu(30)
+                        border.color: "#CCCCCC"
+                        border.width: 1
+                        color: "transparent"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        Flickable {
+                            id: assigneeFlickable
+                            anchors.fill: parent
+                            anchors.margins: units.gu(1)
+                            contentHeight: assigneeColumn.height
+                            clip: true
 
-                                Column {
-                                    id: assigneeColumn
-                                    width: parent.width
-                                    spacing: units.gu(0.5)
+                            Column {
+                                id: assigneeColumn
+                                width: parent.width
+                                spacing: units.gu(0.5)
 
-                                    Repeater {
-                                        model: availableAssignees.length
+                                Repeater {
+                                    model: availableAssignees.length
 
-                                        delegate: Item {
-                                            width: assigneeColumn.width
-                                            height: units.gu(5)
+                                    delegate: Item {
+                                        width: assigneeColumn.width
+                                        height: units.gu(5)
 
-                                            property var assignee: availableAssignees[index]
-                                            property bool isSelected: {
-                                                for (let i = 0; i < selectedAssignees.length; i++) {
-                                                    if (selectedAssignees[i].id === assignee.id) {
-                                                        return true;
+                                        property var assignee: availableAssignees[index]
+                                        property bool isSelected: {
+                                            for (let i = 0; i < selectedAssignees.length; i++) {
+                                                if (selectedAssignees[i].id === assignee.id) {
+                                                    return true;
+                                                }
+                                            }
+                                            return false;
+                                        }
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: isSelected ? "#bbb8b8" : "transparent"  // Light grey
+                                            border.color: "#999999"  // Grey
+                                            border.width: 1
+                                            radius: units.gu(0.5)
+
+                                            Row {
+                                                anchors.left: parent.left
+                                                anchors.leftMargin: units.gu(1)
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                spacing: units.gu(1)
+
+                                                Rectangle {
+                                                    id: checkbox
+                                                    width: units.gu(3)
+                                                    height: units.gu(3)
+                                                    color: isSelected ? "#3498db" : "transparent"
+                                                    border.color: "#666666"
+                                                    border.width: 1
+                                                    radius: units.gu(0.3)
+                                                    anchors.verticalCenter: parent.verticalCenter
+
+                                                    Text {
+                                                        text: "✓"
+                                                        color: "white"
+                                                        font.bold: true
+                                                        anchors.centerIn: parent
+                                                        visible: isSelected
                                                     }
                                                 }
-                                                return false;
+
+                                                TSLabel {
+                                                    text: assignee.name
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                }
                                             }
 
-                                            Rectangle {
+                                            MouseArea {
                                                 anchors.fill: parent
-                                                color: isSelected ? "#bbb8b8" : "transparent"  // Light grey
-                                                border.color: "#999999"  // Grey
-                                                border.width: 1
-                                                radius: units.gu(0.5)
-
-                                                Row {
-                                                    anchors.left: parent.left
-                                                    anchors.leftMargin: units.gu(1)
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    spacing: units.gu(1)
-
-                                                    Rectangle {
-                                                        id: checkbox
-                                                        width: units.gu(3)
-                                                        height: units.gu(3)
-                                                        color: isSelected ? "#3498db" : "transparent"
-                                                        border.color: "#666666"
-                                                        border.width: 1
-                                                        radius: units.gu(0.3)
-                                                        anchors.verticalCenter: parent.verticalCenter
-
-                                                        Text {
-                                                            text: "✓"
-                                                            color: "white"
-                                                            font.bold: true
-                                                            anchors.centerIn: parent
-                                                            visible: isSelected
-                                                        }
-                                                    }
-
-                                                    TSLabel {
-                                                        text: assignee.name
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                    }
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    enabled: !readOnly
-                                                    onClicked: {
-                                                        if (!readOnly) {
-                                                            if (isSelected) {
-                                                                // Find and remove
-                                                                for (let i = 0; i < selectedAssignees.length; i++) {
-                                                                    if (selectedAssignees[i].id === assignee.id) {
-                                                                        removeAssignee(i);
-                                                                        break;
-                                                                    }
+                                                enabled: !readOnly
+                                                onClicked: {
+                                                    if (!readOnly) {
+                                                        if (isSelected) {
+                                                            // Find and remove
+                                                            for (let i = 0; i < selectedAssignees.length; i++) {
+                                                                if (selectedAssignees[i].id === assignee.id) {
+                                                                    removeAssignee(i);
+                                                                    break;
                                                                 }
-                                                            } else {
-                                                                addAssignee(assignee);
                                                             }
+                                                        } else {
+                                                            addAssignee(assignee);
                                                         }
                                                     }
                                                 }
@@ -403,7 +401,7 @@ Item {
                                 }
                             }
                         }
-                    
+                    }
 
                     Row {
                         width: parent.width * .5

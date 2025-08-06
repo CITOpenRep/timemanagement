@@ -48,7 +48,7 @@ ListItem {
     property int colorPallet: 0
     property int recordId: -1
     property int localId: -1
-    property int accountId: -1 
+    property int accountId: -1
     property bool hasChildren: false
     property int childCount: 0
     property bool timer_on: false
@@ -145,34 +145,35 @@ ListItem {
         anchors.rightMargin: units.gu(0.2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
 
-          MouseArea {
-        anchors.fill: parent
-        z: 1  // Above the card content but below trailing actions
-        
-        onClicked: {
-            console.log("ProjectDetailsCard clicked - hasChildren:", hasChildren, "recordId:", recordId);
-            
-            if (hasChildren && recordId > 0) {
-                // For projects with children, emit navigation signal
-                // We need to pass both the project ID and account ID for proper navigation
-                // Note: You may need to add accountId as a property if it's not already available
-                navigationRequested(recordId, projectCard.accountId || 0);
-            } else {
-                // For leaf projects, show details (same as View-On action)
-                viewRequested(localId);
+        MouseArea {
+            anchors.fill: parent
+            z: 1  // Above the card content but below trailing actions
+
+            onClicked: {
+                console.log("ProjectDetailsCard clicked - hasChildren:", hasChildren, "recordId:", recordId);
+
+                if (hasChildren && recordId > 0) {
+                    // For projects with children, emit navigation signal
+                    // We need to pass both the project ID and account ID for proper navigation
+                    // Note: You may need to add accountId as a property if it's not already available
+                    navigationRequested(recordId, projectCard.accountId || 0);
+                } else {
+                    // For leaf projects, show details (same as View-On action)
+                    viewRequested(localId);
+                }
+            }
+
+            // Visual feedback
+            onPressed: {
+                parent.opacity = 0.8;
+            }
+            onReleased: {
+                parent.opacity = 1.0;
+            }
+            onCanceled: {
+                parent.opacity = 1.0;
             }
         }
-        
-        // Visual feedback
-        onPressed: {
-            parent.opacity = 0.8;
-        }
-        onReleased: {
-            parent.opacity = 1.0;
-        }
-        onCanceled: {
-            parent.opacity = 1.0;
-        }}
         // subtle color fade on the left
         Rectangle {
             width: parent.width * 0.025
@@ -190,7 +191,6 @@ ListItem {
                 }
             }
         }
-
 
         Row {
             anchors.fill: parent

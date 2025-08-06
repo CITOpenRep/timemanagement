@@ -18,7 +18,7 @@ Item {
 
     // Properties
     property int projectId: -1  // Passed in when calling open()
-    property int accountId:-1
+    property int accountId: -1
 
     // Signals
     signal updateCreated(var updateData)
@@ -57,7 +57,9 @@ Item {
                 RowLayout {
                     width: parent.width
                     spacing: units.gu(1)
-                    Label { text: "Progress:" }
+                    Label {
+                        text: "Progress:"
+                    }
                     Slider {
                         id: progressSlider
                         Layout.fillWidth: true
@@ -65,7 +67,9 @@ Item {
                         maximumValue: 100
                         value: 0
                     }
-                    Label { text: Math.round(progressSlider.value) + "%" }
+                    Label {
+                        text: Math.round(progressSlider.value) + "%"
+                    }
                 }
 
                 // Description
@@ -101,7 +105,7 @@ Item {
                                 progress: Math.round(progressSlider.value),
                                 description: descriptionField.text.trim(),
                                 account_id: popupWrapper.accountId,
-                                user_id:Accounts.getCurrentUserOdooId(popupWrapper.accountId)
+                                user_id: Accounts.getCurrentUserOdooId(popupWrapper.accountId)
                             };
                             updateCreated(updateData);
                             PopupUtils.close(createUpdateDialog);
@@ -113,9 +117,9 @@ Item {
     }
 
     // Function to open dialog and set project ID
-    function open(accountIdArg,projectIdArg) {
+    function open(accountIdArg, projectIdArg) {
         projectId = projectIdArg;
-        accountId=accountIdArg
+        accountId = accountIdArg;
         PopupUtils.open(dialogComponent);
     }
 }

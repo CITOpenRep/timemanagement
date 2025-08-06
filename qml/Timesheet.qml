@@ -131,8 +131,8 @@ Page {
             time = TimerService.stop();
         }
 
-        // If the timesheet was saved successfully, reset TO VIEW mode
-      //  isReadOnly = true;
+    // If the timesheet was saved successfully, reset TO VIEW mode
+    //  isReadOnly = true;
     //
     }
 

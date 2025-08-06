@@ -165,18 +165,13 @@ Page {
         id: updates_dialog
         width: units.gu(80)
         height: units.gu(80)
-        onUpdateCreated:
-        {
-            let result=Project.createUpdateSnapShot(updateData)
-            if(result['is_success']===false)
-            {
-                   notifPopup.open("Failed", result['message'], "error");
+        onUpdateCreated: {
+            let result = Project.createUpdateSnapShot(updateData);
+            if (result['is_success'] === false) {
+                notifPopup.open("Failed", result['message'], "error");
+            } else {
+                notifPopup.open("Saved", "Project updated has been saved", "success");
             }
-            else
-            {
-                 notifPopup.open("Saved", "Project updated has been saved", "success");
-            }
-
         }
     }
 
@@ -281,8 +276,8 @@ Page {
                             //set the data to a global Slore and pass the key to the page
                             Global.description_temporary_holder = text;
                             apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                                             isReadOnly: isReadOnly
-                                                         });
+                                isReadOnly: isReadOnly
+                            });
                         }
                     }
                 }
@@ -297,32 +292,27 @@ Page {
             anchors.rightMargin: units.gu(1)
             TSButton {
                 visible: isReadOnly
-                width:parent.width/2
-                text:"Create Project Update"
-                onClicked:
-                {
+                width: parent.width / 2
+                text: "Create Project Update"
+                onClicked: {
                     let project = Project.getProjectDetails(recordid);
-                    updates_dialog.open(project.account_id,project.odoo_record_id)
+                    updates_dialog.open(project.account_id, project.odoo_record_id);
                 }
             }
             TSButton {
                 visible: isReadOnly
-                width:parent.width/2
-                text:"Create Activity"
-                onClicked:
-                {
+                width: parent.width / 2
+                text: "Create Activity"
+                onClicked: {
                     let project = Project.getProjectDetails(recordid);
-                    let result=Activity.createActivityFromProjectOrTask(true,project.account_id,project.odoo_record_id)
-                    if(result.success)
-                    {
+                    let result = Activity.createActivityFromProjectOrTask(true, project.account_id, project.odoo_record_id);
+                    if (result.success) {
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activities.qml"), {
                             "recordid": result.record_id,
                             "accountid": project.account_id,
                             "isReadOnly": false
                         });
-                    }
-                    else
-                    {
+                    } else {
                         notifPopup.open("Failed", "Unable to create activity", "error");
                     }
                 }

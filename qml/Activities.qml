@@ -432,7 +432,7 @@ Page {
         console.log("DEBUG Activities.qml - Final activity data before save:", JSON.stringify(data));
         Utils.show_dict_data(data);
 
-        const result = Activity.saveActivityData(data,recordid);
+        const result = Activity.saveActivityData(data, recordid);
         if (!result.success) {
             notifPopup.open("Error", "Unable to save the Activity", "error");
         } else {

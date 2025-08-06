@@ -145,7 +145,7 @@ Rectangle {
 
     // Name Label
     Label {
-        text: Utils.truncateText( globalTimer.elapsedDisplay, 20) 
+        text: Utils.truncateText(globalTimer.elapsedDisplay, 20)
         color: "white"
         font.pixelSize: units.gu(2)
         anchors.top: parent.top

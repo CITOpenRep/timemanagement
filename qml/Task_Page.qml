@@ -182,7 +182,6 @@ Page {
                         "isReadOnly": false
                     });
                 } else {
-                   
                     notifPopup.open("Error", "Unable to create timesheet", "error");
                 }
             }
@@ -201,9 +200,6 @@ Page {
                     }
                 }
             }
-
-
-
         }
 
         Text {
