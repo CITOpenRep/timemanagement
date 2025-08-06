@@ -132,7 +132,7 @@ Page {
         }
 
         // If the timesheet was saved successfully, reset TO VIEW mode
-        isReadOnly = true;
+      //  isReadOnly = true;
     //
     }
 
