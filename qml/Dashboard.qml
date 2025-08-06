@@ -423,6 +423,7 @@ Page {
     // }
 
     Icon {
+      visible: !isMultiColumn   
     width: units.gu(5)
     height: units.gu(4)
     z: 1000

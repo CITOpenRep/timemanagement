@@ -46,7 +46,7 @@
   <li> Added feature to create Activity from Home Screen via FAB menu. </li>
     <li> Added Multi-Selector Assignee , to Tasks. Now Multiple Users can be assigned to a Task from Device.  </li>
       <li> Intoducing Project Updates . Now User is able to create Project Updates from the Device, from the Project View Mode. </li>
-        <li> New Feature to create activity from Tasks and Activity has been added. </li>
+        <li> New Feature to create activity from Tasks and Project view mode has been added. </li>
           <li> New Feature to reschedule activity and Tasks by Swiping from Left has been added. Activity and Tasks can rescheduled to "Tomorrow" , "Next Week" , "Next Month" and "Custom". Rescheduling to "Next Week" will add 1 extra week to existing End Date and rescheduling to "Next Month" will add an extra Month. Rescheduling to "Tomorrow" will reschedule the Task or Activity to "Tomorrow" . </li>
           <li>The feature to swipe up from Home Screen and Create a New Timesheet has been added. </li>
 

@@ -97,10 +97,6 @@ ListItem {
         }
     }
 
-  
- 
-
-  
     Connections {
         target: globalTimerWidget
 
@@ -182,27 +178,29 @@ ListItem {
     }
 
     clip: true
+
     Rectangle {
-        id: coloripalletwidget
-        width: parent.width * 0.025
-        height: parent.height
-        anchors.left: parent.left
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop {
-                position: 0.0
-                color: Utils.getColorFromOdooIndex(colorPallet)
-            }
-            GradientStop {
-                position: 1.0
-                color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
+        anchors.fill: parent
+        color: "transparent"
+
+        // subtle color fade on the left
+        Rectangle {
+            id: coloripalletwidget
+            width: parent.width * 0.025
+            height: parent.height
+            anchors.left: parent.left
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop {
+                    position: 0.0
+                    color: Utils.getColorFromOdooIndex(colorPallet)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
+                }
             }
         }
-    }
-
-    ListItemLayout {
-        anchors.fill: parent
-        // subtle color fade on the left
 
         // Animated dot
         Rectangle {
@@ -211,8 +209,10 @@ ListItem {
             height: units.gu(2)
             radius: units.gu(1)
             color: timer_on ? "#ffa500" : "transparent"
-            anchors.left: parent.left
-            //visible: timer_on
+            anchors.left: coloripalletwidget.right
+            anchors.leftMargin: units.gu(0.5)
+            anchors.verticalCenter: parent.verticalCenter
+            visible: timer_on
             SequentialAnimation on opacity {
                 loops: Animation.Infinite
                 running: indicator.visible
@@ -234,14 +234,16 @@ ListItem {
         Row {
             anchors.left: indicator.right
             anchors.right: parent.right
+            anchors.leftMargin: units.gu(0.5)
+            anchors.verticalCenter: parent.verticalCenter
             spacing: units.gu(1)
             // Left Column
             Column {
-                width: parent.width * 0.65
+                width: parent.width * 0.6  // Reduced from 0.65 to account for color bar and indicator
                 spacing: units.gu(0.5)
 
                 Text {
-                    text:(typeof name === "string" && name.trim() !== "") ? Utils.truncateText(name, 30) : "No Description" ;
+                    text: (typeof name === "string" && name.trim() !== "") ? Utils.truncateText(name, 30) : "No Description"
                     textFormat: Text.PlainText
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
@@ -250,13 +252,13 @@ ListItem {
                 }
 
                 Text {
-                    text: (project ? Utils.truncateText(project, 30): "No Project")
+                    text: (project ? Utils.truncateText(project, 30) : "No Project")
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
                 Text {
-                    text: (typeof task === "string" && task.trim() !== "") ? Utils.truncateText(task, 30) : "No Task" ;
+                    text: (typeof task === "string" && task.trim() !== "") ? Utils.truncateText(task, 30) : "No Task"
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
@@ -271,7 +273,7 @@ ListItem {
 
             // Right Column
             Column {
-                width: parent.width * 0.25
+                width: parent.width * 0.3  // Increased from 0.25 to account for layout changes
                 spacing: units.gu(0.5)
                 anchors.verticalCenter: parent.verticalCenter
 
