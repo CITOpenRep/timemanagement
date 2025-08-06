@@ -303,23 +303,14 @@ Item {
                         }
                     }
 
-                    Row {
-                        width: parent.width
-
-                        spacing: units.gu(2)
-
-                        TSLabel {
-                            text: "Available Assignees:"
-                            // font.bold: true
-                        }
-
+         
                         Rectangle {
-                            width: parent.width * 0.7
+                            width: parent.width * 0.8
                             height: units.gu(30)
                             border.color: "#CCCCCC"
                             border.width: 1
                             color: "transparent"
-
+  anchors.horizontalCenter: parent.horizontalCenter
                             Flickable {
                                 id: assigneeFlickable
                                 anchors.fill: parent
@@ -412,7 +403,7 @@ Item {
                                 }
                             }
                         }
-                    }
+                    
 
                     Row {
                         width: parent.width * .5
