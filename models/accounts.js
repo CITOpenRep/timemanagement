@@ -190,16 +190,13 @@ function fetchParsedSyncLog(accountId) {
 /**
  * Creates a new user account in the local SQLite database if no duplicate exists.
  *
- * This function checks for an existing account with the same link, database, and username.
- * If no duplicate is found, it inserts the new user data into the `users` table.
- *
  * @param {string} name - The name of the user.
  * @param {string} link - The Odoo server link (or local server reference).
  * @param {string} database - The Odoo database name.
  * @param {string} username - The username for the account.
  * @param {number} selectedConnectWithId - The connection type identifier (e.g., 1 for API key).
  * @param {string} apikey - The API key if the connection type requires it.
- * @returns {boolean} - Returns `true` if a duplicate account was found and no insertion was made, otherwise `false`.
+ * @returns {object} - Returns result object with duplicateFound, message, and duplicateType.
  */
 function createAccount(name, link, database, username, selectedConnectWithId, apikey) {
     let result = {
@@ -213,8 +210,9 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
 
         db.transaction(function (tx) {
             
+            
             const nameCheckResult = tx.executeSql(
-                'SELECT COUNT(*) AS count FROM users WHERE name = ?',
+                'SELECT COUNT(*) AS count FROM users WHERE name = ? COLLATE BINARY',
                 [name]
             );
 
@@ -228,7 +226,7 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
 
             
             const connectionCheckResult = tx.executeSql(
-                'SELECT COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ?',
+                'SELECT COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ? COLLATE BINARY',
                 [link, database, username]
             );
 
@@ -240,7 +238,7 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
                 return;
             }
 
-           
+            
             const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
             tx.executeSql(
                 'INSERT INTO users (name, link, database, username, connectwith_id, api_key) VALUES (?, ?, ?, ?, ?, ?)',
@@ -259,7 +257,6 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
 
     return result;
 }
-
 /**
  * Deletes a user account and all related records from associated tables in the local SQLite database.
  *
@@ -453,3 +450,4 @@ function getOdooModelId(accountId, technicalName) {
         return null;
     }
 }
+    
