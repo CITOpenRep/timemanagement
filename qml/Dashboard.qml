@@ -167,7 +167,7 @@ Page {
                 }
             },
             Action {
-                iconName: "view-refresh-symbolic"
+                iconName: "history"
                 text: "Project Updates"
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
