@@ -449,14 +449,13 @@ def sync_all_from_odoo(
         "mail.activity": "mail_activity_app",
         "res.users": "res_users_app",
         "ir.model":"ir_model_app",
-        "ir.attachment":"ir_attachment_app",
         "project.update":"project_update_app",
     }
 
-    # Dont do this , for testing indiviudal model
+    # Dont do this , too heavy
     """
     models_to_sync = {
-        "project.task": "project_task_app",
+        "ir.attachment":"ir_attachment_app",
     }
     """
     for model, table in models_to_sync.items():
