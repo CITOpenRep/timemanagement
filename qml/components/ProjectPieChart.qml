@@ -25,6 +25,7 @@
 import QtQuick 2.7
 import QtCharts 2.0
 import QtQuick.Controls 2.2
+import "../../models/utils.js" as Utils
 
 Item {
     width: parent.width
@@ -112,7 +113,7 @@ Item {
 
                 Text {
                     id: label
-                    text: model.label
+                    text: Utils.truncateText(model.label, 35)
                     font.pixelSize: units.gu(2)
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
                     wrapMode: Text.WordWrap

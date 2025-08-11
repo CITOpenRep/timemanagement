@@ -546,6 +546,7 @@ def sync_all_to_odoo(
         "project.task": "project_task_app",
         "account.analytic.line": "account_analytic_line_app",
         "mail.activity": "mail_activity_app",
+        "project.update":"project_update_app",
     }
 
 

@@ -247,13 +247,10 @@ MainView {
             } else {
                 // No saved theme found, set and save a default theme
 
-
                 // Set Light Mode as default (you can change this to SuruDark if you prefer dark)
                 var defaultTheme = "Ubuntu.Components.Themes.Ambiance";
                 Theme.name = defaultTheme;
                 saveThemePreference(defaultTheme);
-
-               
             }
         } catch (e) {
 
@@ -301,7 +298,7 @@ MainView {
 
                 // Save theme preference (INSERT OR REPLACE)
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['theme_preference', themeName]);
-                //    console.log("💾 Theme preference saved successfully:", themeName);
+            //    console.log("💾 Theme preference saved successfully:", themeName);
             });
 
             //    console.log("💾 Database transaction completed for theme:", themeName);

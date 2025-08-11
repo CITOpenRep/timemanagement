@@ -233,6 +233,12 @@ function getToday() {
     return new Date().toISOString().slice(0, 10);
 }
 
+function getTomorrow() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().slice(0, 10);
+}
+
 function getNextWeekRange() {
     const now = new Date();
     const day = now.getDay();
@@ -250,6 +256,13 @@ function getNextWeekRange() {
     };
 }
 
+function getNextWeekSameDay(baseDate) {
+    const now = baseDate ? new Date(baseDate + 'T12:00:00Z') : new Date(); // Use UTC to avoid timezone issues
+    const nextWeek = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7)); // Add exactly 7 days
+    console.log("📅 getNextWeekSameDay: From", now.toISOString().slice(0, 10), "to", nextWeek.toISOString().slice(0, 10));
+    return nextWeek.toISOString().slice(0, 10);
+}
+
 function getNextMonthRange() {
     const now = new Date();
     const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -261,6 +274,28 @@ function getNextMonthRange() {
     };
 }
 
+function getNextMonthSameDay(baseDate) {
+    const now = baseDate ? new Date(baseDate + 'T12:00:00Z') : new Date(); // Use UTC to avoid timezone issues
+    const currentDay = now.getUTCDate();
+    const targetMonth = now.getUTCMonth() + 1;
+    const targetYear = now.getUTCFullYear();
+    
+    // Adjust year if we're in December
+    const finalYear = targetMonth > 11 ? targetYear + 1 : targetYear;
+    const finalMonth = targetMonth > 11 ? 0 : targetMonth;
+    
+    // Get the last day of the target month to check if our desired day exists
+    const lastDayOfTargetMonth = new Date(Date.UTC(finalYear, finalMonth + 1, 0)).getUTCDate();
+    
+    // Use the same day if it exists in the target month, otherwise use the last day
+    const dayToUse = currentDay <= lastDayOfTargetMonth ? currentDay : lastDayOfTargetMonth;
+    
+    const nextMonth = new Date(Date.UTC(finalYear, finalMonth, dayToUse));
+    
+    console.log("📅 getNextMonthSameDay: From", now.toISOString().slice(0, 10), "to", nextMonth.toISOString().slice(0, 10));
+    return nextMonth.toISOString().slice(0, 10);
+}
+
 function truncateText(text, maxLength) {
     if (text.length > maxLength) {
         return text.slice(0, maxLength) + "...";
@@ -269,7 +304,6 @@ function truncateText(text, maxLength) {
 }
 
 function getFormattedTimestampUTC() {
-    console.log("Local Time:", new Date().toLocaleString());
     const now = new Date();
     const year = now.getUTCFullYear();
     const month = String(now.getUTCMonth() + 1).padStart(2, '0');

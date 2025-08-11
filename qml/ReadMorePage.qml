@@ -11,14 +11,14 @@ Page {
     property bool useRichText: true
 
     property string textkey: ""
-    property string text:""
+    property string text: ""
     property bool isReadOnly: true
 
     header: PageHeader {
-        id:header
+        id: header
         title: "Description"
 
-          StyleHints {
+        StyleHints {
 
             foregroundColor: "white"
 
@@ -28,10 +28,10 @@ Page {
     }
 
     Column {
-        anchors.top:header.bottom
+        anchors.top: header.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
-        anchors.right:parent.right
+        anchors.right: parent.right
         spacing: units.gu(1)
         padding: units.gu(2)
 
@@ -43,7 +43,7 @@ Page {
             //wrapMode: TextArea.Wrap
             selectByMouse: true
             width: parent.width - units.gu(4)
-            height: (parent.height -header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
+            height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
             clip: true
 
             onTextChanged: {
@@ -57,14 +57,13 @@ Page {
             text: "Save"
             anchors.horizontalCenter: parent.horizontalCenter
             onClicked: {
-                Global.description_temporary_holder=editor.text
-                pageStack.removePages(readmepage)
+                Global.description_temporary_holder = editor.text;
+                pageStack.removePages(readmepage);
             }
         }
     }
     Component.onCompleted:
-    {
-        //console.log("Got full data")
-        //console.log(Global.description_temporary_holder)
-    }
+    //console.log("Got full data")
+    //console.log(Global.description_temporary_holder)
+    {}
 }

@@ -112,7 +112,7 @@ Page {
                 text: "About"
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Aboutus.qml"));
-                  //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
+                    //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
                     page = 7;
                     apLayout.setCurrentPage(page);
                 }
@@ -134,7 +134,7 @@ Page {
                 text: "Timesheet"
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
-                  //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
+                    //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
                     page = 7;
                     apLayout.setCurrentPage(page);
                 }
@@ -167,6 +167,15 @@ Page {
                 }
             },
             Action {
+                iconName: "history"
+                text: "Project Updates"
+                onTriggered: {
+                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
+                    page = 5;
+                    apLayout.setCurrentPage(page);
+                }
+            },
+            Action {
                 iconName: "settings"
                 text: "Settings"
                 onTriggered: {
@@ -195,7 +204,7 @@ Page {
     property variant task_data: []
 
     function get_project_chart_data() {
-     //   console.log("get_project_chart_data called");
+        //   console.log("get_project_chart_data called");
         project_data = Model.get_projects_spent_hours();
         var count = 0;
         var timeval;
@@ -211,7 +220,7 @@ Page {
     }
 
     function get_task_chart_data() {
-      //  console.log("get_task_chart_data called");
+        //  console.log("get_task_chart_data called");
         task_data = Model.get_tasks_spent_hours();
         var count = 0;
         var timeval;
@@ -236,17 +245,20 @@ Page {
             {
                 label: "Timesheet"
             },
+            {
+                label: "Activity"
+            },
         ]
         onMenuItemSelected: {
             if (index === 0) {
-               // console.log("add task");
+                // console.log("add task");
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
                 });
             }
             if (index === 1) {
-               // console.log("add time sheet");
+                // console.log("add time sheet");
                 const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
                 if (result.success) {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
@@ -256,6 +268,13 @@ Page {
                 } else {
                     console.error("Error creating timesheet: " + result.message);
                 }
+            }
+            if (index === 2) {
+                //   console.log("add activity");
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
+                    // "recordid": 0,
+                    "isReadOnly": false
+                });
             }
         }
     }
@@ -309,9 +328,9 @@ Page {
                         quadrant2Hours: "65.5"
                         quadrant3Hours: "55.0"
                         quadrant4Hours: "178.1"
-                        onQuadrantClicked: {
-                          //  console.log("Quadrant clicked:", quadrant);
-                        }
+                        onQuadrantClicked:
+                        //  console.log("Quadrant clicked:", quadrant);
+                        {}
                     }
                 }
             }
@@ -360,7 +379,7 @@ Page {
             // load3.active = false;
             // load4.active = false;
             {}
-          //  console.log("Flickable flick ended");
+            //  console.log("Flickable flick ended");
             //load.active = true;
             // load2.active = true;
             if (apLayout.columns === 1)
@@ -382,9 +401,75 @@ Page {
         repeat: false
         onTriggered: {
             if (apLayout.columns === 3) {
-               // console.log("In Dashboard timer columns: " + apLayout.columns);
+                // console.log("In Dashboard timer columns: " + apLayout.columns);
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml"));
             }
+        }
+    }
+
+    // Rectangle {
+
+    //     visible: !isMultiColumn
+    //     id: swipeIndicator
+    //     width: units.gu(6)
+    //     height: units.gu(0.7)
+    //     radius: height / 2
+    //     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ?  LomiriColors.orange : "#0cc0df"
+    //   //  opacity: 0.7
+    //     anchors.horizontalCenter: parent.horizontalCenter
+    //     anchors.bottom: swipeUpArea.top
+    //     anchors.bottomMargin: units.gu(0.5)
+    //     z: 1000
+    // }
+
+    Icon {
+        visible: !isMultiColumn
+        width: units.gu(5)
+        height: units.gu(4)
+        z: 1000
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: swipeUpArea.top
+        name: 'toolkit_chevron-up_3gu'
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? LomiriColors.orange : LomiriColors.slate
+    }
+
+    MultiPointTouchArea {
+        id: swipeUpArea
+        enabled: !isMultiColumn
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: units.gu(1)
+        minimumTouchPoints: 1
+        maximumTouchPoints: 1
+
+        property real startY: 0
+
+        onPressed: {
+            startY = touchPoints[0].y;
+        }
+        onReleased: {
+            var endY = touchPoints[0].y;
+            // Detect upward swipe (swipe up: startY > endY)
+            if (startY - endY > units.gu(2)) {
+                // threshold for swipe - open new timesheet
+                const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                if (result.success) {
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                        "recordid": result.id,
+                        "isReadOnly": false
+                    });
+                } else {
+                    console.error("Error creating timesheet: " + result.message);
+                }
+            }
+        }
+        z: 999 // Ensure it's above other content
+
+        Rectangle {
+            anchors.fill: parent
+            color: "lightgray"
+            opacity: 0.0 // Make it invisible but still interactive
         }
     }
 

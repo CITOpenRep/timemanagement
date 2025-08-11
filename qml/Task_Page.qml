@@ -182,19 +182,23 @@ Page {
                         "isReadOnly": false
                     });
                 } else {
-                   
                     notifPopup.open("Error", "Unable to create timesheet", "error");
                 }
             }
             onTaskDeleteRequested: {
-                var result = Task.markTaskAsDeleted(recordId);
-                if (!result.success) {
-                    notifPopup.open("Error", result.message, "error");
+                var check = Task.checkTaskHasChildren(recordId);
+                if (check.hasChildren) {
+                    notifPopup.open("Blocked", "This task has child tasks. Please delete them first.", "warning");
                 } else {
-                    notifPopup.open("Deleted", result.message, "success");
+                    var result = Task.markTaskAsDeleted(recordId);
+                    if (!result.success) {
+                        notifPopup.open("Error", result.message, "error");
+                    } else {
+                        notifPopup.open("Deleted", result.message, "success");
+                        pageStack.removePages(task);
+                        apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Page.qml"));
+                    }
                 }
-                pageStack.removePages(task);
-                apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Page.qml"));
             }
         }
 

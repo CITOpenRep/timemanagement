@@ -137,9 +137,14 @@ Page {
                 }
             }
 
-            // Sort activities alphabetically by summary (same as projects)
+            // Sort activities by last_modified time (most recent first)
             filteredActivities.sort(function (a, b) {
-                return (a.summary || "").localeCompare(b.summary || "");
+                // If either last_modified is missing, fall back to summary
+                if (!a.last_modified || !b.last_modified) {
+                    return (a.summary || "").localeCompare(b.summary || "");
+                }
+                // Sort in descending order (newest first)
+                return new Date(b.last_modified) - new Date(a.last_modified);
             });
 
             // Add sorted activities to the model
@@ -324,6 +329,14 @@ Page {
                     // console.log("Requesting to Make done activity with id " + recordid);
                     //Here we need to delete the record and see? if it get synced
                     Activity.markAsDone(accountid, recordid);
+                    get_activity_list();
+                }
+                onDateChanged: function (accountid, recordid, newDate) {
+                    console.log("📅 Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
+                    console.log("📅 Activity_Page: Date format received:", typeof newDate, newDate);
+                    // Update the activity date in the database
+                    Activity.updateActivityDate(accountid, recordid, newDate);
+                    // Refresh the activity list to show updated data
                     get_activity_list();
                 }
             }

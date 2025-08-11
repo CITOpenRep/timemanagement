@@ -19,9 +19,17 @@ Rectangle {
     property bool showTaskSelector: true
     property bool showSubTaskSelector: true
     property bool showAssigneeSelector: true
+    property bool enableMultipleAssignees: false  // When true, shows MultiAssigneeSelector instead of single assignee
 
     property bool readOnly: false
     property bool restrictAccountToLocalOnly: false  // When true, only show local account for new project creation
+
+    // Add flag to prevent auto-loading when deferred loading is planned
+    property bool deferredLoadingPlanned: false
+
+    // Add counter to track when all deferred loading is complete
+    property int deferredLoadingCounter: 0
+    property int expectedDeferredLoads: 0
 
     // Watch for readOnly property changes and update all selectors
     onReadOnlyChanged: {
@@ -29,6 +37,8 @@ Rectangle {
     }
 
     function updateAllSelectorStates() {
+        console.log("[WorkItemSelector] Updating all selector states - readOnly:", readOnly, "deferredLoading:", deferredLoadingPlanned);
+
         if (account_component) {
             // Special handling for account selector when restricted to local only
             if (restrictAccountToLocalOnly && !readOnly) {
@@ -38,31 +48,81 @@ Rectangle {
             }
         }
         if (project_component) {
-            // For new project creation, project selector should start disabled until account is selected
-            if (restrictAccountToLocalOnly && currentState === "Init") {
-                project_component.setEnabled(false);
+            // For deferred loading (editing existing records), enable if has data
+            var shouldEnableProject = false;
+            if (deferredLoadingPlanned && !readOnly && project_component.modelData.length > 1) {
+                shouldEnableProject = true;
+            } else if (restrictAccountToLocalOnly && currentState === "Init") {
+                shouldEnableProject = false;
             } else {
-                project_component.setEnabled(!readOnly && project_component.modelData.length > 1);
+                shouldEnableProject = !readOnly && project_component.modelData.length > 1;
             }
+            project_component.setEnabled(shouldEnableProject);
+            console.log("[WorkItemSelector] Project enabled:", shouldEnableProject, "modelData length:", project_component.modelData.length);
         }
         if (subproject_compoent) {
-            subproject_compoent.setEnabled(!readOnly && subproject_compoent.modelData.length > 1);
+            var shouldEnableSubproject = !readOnly && subproject_compoent.modelData.length > 1;
+            if (deferredLoadingPlanned && !readOnly && subproject_compoent.modelData.length > 1) {
+                shouldEnableSubproject = true;
+            }
+            subproject_compoent.setEnabled(shouldEnableSubproject);
+            console.log("[WorkItemSelector] Subproject enabled:", shouldEnableSubproject, "modelData length:", subproject_compoent.modelData.length);
         }
         if (task_component) {
-            task_component.setEnabled(!readOnly && task_component.modelData.length > 1);
+            var shouldEnableTask = !readOnly && task_component.modelData.length > 1;
+            if (deferredLoadingPlanned && !readOnly && task_component.modelData.length > 1) {
+                shouldEnableTask = true;
+            }
+            task_component.setEnabled(shouldEnableTask);
+            console.log("[WorkItemSelector] Task enabled:", shouldEnableTask, "modelData length:", task_component.modelData.length);
         }
         if (subtask_component) {
-            subtask_component.setEnabled(!readOnly && subtask_component.modelData.length > 1);
+            var shouldEnableSubtask = !readOnly && subtask_component.modelData.length > 1;
+            if (deferredLoadingPlanned && !readOnly && subtask_component.modelData.length > 1) {
+                shouldEnableSubtask = true;
+            }
+            subtask_component.setEnabled(shouldEnableSubtask);
+            console.log("[WorkItemSelector] Subtask enabled:", shouldEnableSubtask, "modelData length:", subtask_component.modelData.length);
         }
         if (assignee_component) {
-            // For new project creation, assignee selector should start disabled until account is selected
-            if (restrictAccountToLocalOnly && currentState === "Init") {
-                assignee_component.setEnabled(false);
+            var shouldEnableAssignee = false;
+            if (deferredLoadingPlanned && !readOnly && assignee_component.modelData.length > 1) {
+                shouldEnableAssignee = true;
+            } else if (restrictAccountToLocalOnly && currentState === "Init") {
+                shouldEnableAssignee = false;
             } else {
-                assignee_component.setEnabled(!readOnly && assignee_component.modelData.length > 1);
+                shouldEnableAssignee = !readOnly && assignee_component.modelData.length > 1;
             }
+            assignee_component.setEnabled(shouldEnableAssignee);
+            console.log("[WorkItemSelector] Assignee enabled:", shouldEnableAssignee, "modelData length:", assignee_component.modelData.length);
+        }
+
+        // Handle MultiAssigneeSelector enabling
+        if (multiAssignee_component && enableMultipleAssignees) {
+            var shouldEnableMultiAssignee = false;
+            if (deferredLoadingPlanned && !readOnly && multiAssignee_component.availableAssignees.length > 0) {
+                shouldEnableMultiAssignee = true;
+            } else if (restrictAccountToLocalOnly && currentState === "Init") {
+                shouldEnableMultiAssignee = false;
+            } else {
+                shouldEnableMultiAssignee = !readOnly && multiAssignee_component.availableAssignees.length > 0;
+            }
+            multiAssignee_component.setEnabled(shouldEnableMultiAssignee);
+            console.log("[WorkItemSelector] MultiAssignee enabled:", shouldEnableMultiAssignee, "availableAssignees length:", multiAssignee_component.availableAssignees.length);
         }
     }
+
+    // Timer to handle delayed state updates on real devices
+    Timer {
+        id: stateUpdateTimer
+        interval: 20 // 200ms delay should be sufficient for real devices
+        repeat: false
+        onTriggered: {
+            console.log("[WorkItemSelector] Timer triggered - updating states");
+            updateAllSelectorStates();
+        }
+    }
+
     property string accountLabelText: "Account"
     property string projectLabelText: "Project"
     property string subProjectLabelText: "Subproject"
@@ -71,6 +131,7 @@ Rectangle {
     property string assigneeLabelText: "Assignee"
 
     signal stateChanged(string newState, var data)
+    signal multiAssigneesChanged(var assignees)
 
     // Selected IDs
     property int selectedAccountId: -1
@@ -137,31 +198,60 @@ Rectangle {
         }
     }
 
-    //Functiosn to populate the models starts here
+    //Functions to populate the models starts here
     function finalizeLoading(selectorType, component, list, default_id, default_name, selectedId, transitionState) {
+        console.log("[WorkItemSelector] Finalizing loading for", selectorType, "with", list.length, "items");
+
         selectorModelMap[selectorType] = list;
         component.modelData = list;
 
-        // Only enable if not in read-only mode AND has data
-        if (!readOnly && list.length > 1) {
-            component.setEnabled(true);
-        } else {
-            component.setEnabled(false);
-        }
-
+        // Always set the selection first
         if (selectedId !== -1 && list.length > 1) {
             component.applyDeferredSelection(default_id);
         }
 
-    /*if (selectedId !== -1 && list.length > 1 && transitionState) {
-            transitionTo(transitionState, {
-                id: default_id,
-                name: default_name
-            });
-        }*/
+        // Track completion of deferred loading
+        if (deferredLoadingPlanned) {
+            deferredLoadingCounter++;
+            console.log("[WorkItemSelector] Deferred loading progress:", deferredLoadingCounter, "/", expectedDeferredLoads);
+
+            // If all expected loads are complete, trigger state update
+            if (deferredLoadingCounter >= expectedDeferredLoads) {
+                console.log("[WorkItemSelector] All deferred loading complete - triggering state update");
+                stateUpdateTimer.start();
+            }
+        } else {
+            // For non-deferred loading, use standard enable logic
+            var shouldEnable = !readOnly && list.length > 1;
+            component.setEnabled(shouldEnable);
+        }
     }
 
     function deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, assigneeId) {
+        console.log("[WorkItemSelector] Starting deferred loading for existing record");
+        console.log("Parameters - accountId:", accountId, "projectId:", projectId, "subProjectId:", subProjectId, "taskId:", taskId, "subTaskId:", subTaskId, "assigneeId:", assigneeId);
+
+        // Set flag to prevent auto-loading and reset counters
+        deferredLoadingPlanned = true;
+        deferredLoadingCounter = 0;
+        expectedDeferredLoads = 0;
+
+        // Count expected loads
+        if (accountId !== -1)
+            expectedDeferredLoads++;
+        if (accountId !== -1)
+            expectedDeferredLoads++; // Projects
+        if (accountId !== -1 && projectId !== -1)
+            expectedDeferredLoads++; // Subprojects
+        if (accountId !== -1 && (projectId !== -1 || subProjectId !== -1))
+            expectedDeferredLoads++; // Tasks
+        if (accountId !== -1 && taskId !== -1)
+            expectedDeferredLoads++; // Subtasks
+        if (accountId !== -1)
+            expectedDeferredLoads++; // Assignees
+
+        console.log("[WorkItemSelector] Expected deferred loads:", expectedDeferredLoads);
+
         if (accountId !== -1) {
             loadAccounts(accountId);
         }
@@ -169,11 +259,13 @@ Rectangle {
         // Load Projects under account with selected projectId
         if (accountId !== -1) {
             loadProjects(accountId, projectId);
+            console.log("Loaded projects for account:", accountId, "with selected projectId:", projectId);
         }
 
         // Load Subprojects under project with selected subProjectId
         if (accountId !== -1 && projectId !== -1) {
             loadSubProjects(accountId, projectId, subProjectId);
+            console.log("Loaded subprojects for account:", accountId, "projectId:", projectId, "with selected subProjectId:", subProjectId);
         }
 
         // Load Tasks under project/subproject with selected taskId
@@ -189,10 +281,29 @@ Rectangle {
         // Load Assignees with selected assigneeId
         if (accountId !== -1) {
             loadAssignees(accountId, assigneeId);
+
+            // Also load assignees for MultiAssigneeSelector if enabled
+            if (enableMultipleAssignees && multiAssignee_component) {
+                multiAssignee_component.loadAssignees(accountId);
+            }
         }
 
-        // Force update selector states after loading data to respect read-only mode
-        Qt.callLater(updateAllSelectorStates);
+        // Fallback timer in case something goes wrong with counting
+        fallbackTimer.start();
+    }
+
+    // Fallback timer for real device compatibility
+    Timer {
+        id: fallbackTimer
+        interval: 1000 // 1 second fallback
+        repeat: false
+        onTriggered: {
+            console.log("[WorkItemSelector] Fallback timer triggered - forcing state update");
+            if (deferredLoadingPlanned) {
+                updateAllSelectorStates();
+                deferredLoadingPlanned = false;
+            }
+        }
     }
 
     function getIds() {
@@ -200,7 +311,7 @@ Rectangle {
             return id === -1 ? null : id;
         }
 
-        return {
+        var result = {
             account_id: normalize(account_component.selectedId),
             project_id: normalize(project_component.selectedId),
             subproject_id: normalize(subproject_compoent.selectedId),
@@ -208,6 +319,29 @@ Rectangle {
             subtask_id: normalize(subtask_component.selectedId),
             assignee_id: normalize(assignee_component.selectedId)
         };
+
+        // Add multiple assignees if multi-assignee mode is enabled
+        if (enableMultipleAssignees && multiAssignee_component) {
+            result.multiple_assignees = multiAssignee_component.getSelectedAssignees();
+            result.assignee_ids = multiAssignee_component.getSelectedAssigneeIds();
+        }
+
+        return result;
+    }
+
+    // Public function to set multiple assignees
+    function setMultipleAssignees(assignees) {
+        if (enableMultipleAssignees && multiAssignee_component) {
+            multiAssignee_component.setSelectedAssignees(assignees);
+        }
+    }
+
+    // Public function to get multiple assignees
+    function getMultipleAssignees() {
+        if (enableMultipleAssignees && multiAssignee_component) {
+            return multiAssignee_component.getSelectedAssignees();
+        }
+        return [];
     }
 
     //load accounts
@@ -254,17 +388,15 @@ Rectangle {
         // Special handling for account selector when restricted to local only
         if (restrictAccountToLocalOnly && !readOnly) {
             // Always enable account selector when restricted to show local account is selected
-            
             account_component.setEnabled(true);
         } else {
             // Use standard logic: enable only if more than 1 option and not read-only
             account_component.setEnabled(!readOnly && accountList.length > 1);
         }
 
-        // Immediately simulate state transition to trigger filters
-        // This happens for new timesheets (selectedId === -1) or when loading default account
-        if (selectedId === -1 || default_id !== -1) {
-            //    console.log("[WorkItemSelector] Auto-selecting account (id=" + default_id + ", name='" + default_name + "') to trigger filters");
+        // Only auto-select and trigger state transitions for new records (not during deferred loading)
+        if (!deferredLoadingPlanned && (selectedId === -1 || default_id !== -1)) {
+            console.log("[WorkItemSelector] Auto-selecting account (id=" + default_id + ", name='" + default_name + "') to trigger filters");
             transitionTo("AccountSelected", {
                 id: default_id,
                 name: default_name
@@ -509,7 +641,7 @@ Rectangle {
         }
 
         finalizeLoading("Assignee", assignee_component, assigneeList, default_id, default_name, selectedId, "AssigneeSelected");
-        //disbale the subprojects, tasks,subtasks buttons
+        //disable the subprojects, tasks,subtasks buttons
         if (selectedId === -1) {
             subproject_compoent.setEnabled(false);
             subtask_component.setEnabled(false);
@@ -532,10 +664,15 @@ Rectangle {
             enabledState: !readOnly
             readOnly: readOnly
             onSelectionMade: handleSelection(id, name, selectorType)
-            Component.onCompleted: {
-                // Load accounts and auto-select default account to trigger state transitions
-                loadAccounts(-1);
-            }
+            Component.onCompleted:
+            // Only auto-load accounts for new records (when deferred loading is not planned)
+            // if (!deferredLoadingPlanned) {
+            //     console.log("[WorkItemSelector] Account component initializing - auto-loading accounts");
+            //     loadAccounts(-1);
+            // } else {
+            //     console.log("[WorkItemSelector] Account component initializing - skipping auto-load (deferred loading planned)");
+            // }
+            {}
         }
 
         // Project Selector
@@ -555,6 +692,7 @@ Rectangle {
                         project_component.update_label("Select");
 
                         loadProjects(data.id, -1); //load projects of the selected account
+                        console.log("Loaded projects for account:", data.id, "with selected projectId:-->>", -1);
 
                         // Enable project selector after account is selected
                         if (!readOnly) {
@@ -576,6 +714,7 @@ Rectangle {
             Component.onCompleted: {
                 // Start disabled - will be enabled when account is selected
                 project_component.setEnabled(false);
+                console.log("[WorkItemSelector] Project component initialized");
             }
         }
 
@@ -595,12 +734,14 @@ Rectangle {
                         subproject_compoent.update_label("Select");
 
                         loadSubProjects(account_component.selectedId, data.id, -1);
+                        console.log("Loaded subprojects for account:", account_component.selectedId, "projectId:", data.id);
                     }
                 }
             }
             Component.onCompleted: {
                 // Start disabled - will be enabled when project is selected
                 subproject_compoent.setEnabled(false);
+                console.log("[WorkItemSelector] Subproject component initialized");
             }
         }
 
@@ -656,10 +797,10 @@ Rectangle {
             }
         }
 
-        // Assignee Selector
+        // Assignee Selector - Single or Multiple based on enableMultipleAssignees
         SelectionButton {
             id: assignee_component
-            visible: showAssigneeSelector
+            visible: showAssigneeSelector && !enableMultipleAssignees
             selectorType: "Assignee"
             labelText: assigneeLabelText
             enabledState: !readOnly
@@ -684,9 +825,32 @@ Rectangle {
                 assignee_component.setEnabled(false);
             }
         }
+
+        // Multi-Assignee Selector
+        MultiAssigneeSelector {
+            id: multiAssignee_component
+            visible: showAssigneeSelector && enableMultipleAssignees
+            labelText: assigneeLabelText
+            readOnly: readOnly
+            enabledState: !readOnly
+            width: parent.width
+
+            onAssigneesChanged: {
+                // Emit signal when assignees change
+                workItemSelector.multiAssigneesChanged(assignees);
+            }
+
+            Connections {
+                target: workItemSelector
+                onStateChanged: {
+                    if (newState === "AccountSelected") {
+                        multiAssignee_component.loadAssignees(data.id);
+                    }
+                }
+            }
+        }
     }
 }
-
 /*
 ---------------------------------------------------------------
 WorkItemSelector.qml – Detailed Workflow and Architecture Notes

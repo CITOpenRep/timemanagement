@@ -89,7 +89,19 @@
         "image_height": "image_height",
         "write_date": "last_modified",
         "id": "odoo_record_id"
+    },
+    "project.update": {
+        "name": "name",
+        "status": "project_status",
+        "progress": "progress",
+        "user_id": "user_id",
+        "description": "description",
+        "date": "date",
+        "project_id": "project_id",
+        "id": "odoo_record_id",
+        "write_date":"last_modified"
     }
+
 
 
 }

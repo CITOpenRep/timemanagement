@@ -46,6 +46,8 @@ Page {
     property bool activeBackendAccount: false
     property bool isManualDbMode: false
 
+    property bool isReadOnly: false
+
     header: PageHeader {
         id: pageHeader
         title: createAccountPage.title
@@ -58,11 +60,25 @@ Page {
         trailingActionBar.actions: [
             Action {
                 iconSource: "images/save.svg"
+                visible: !isReadOnly
+                text: "Save"
                 onTriggered: {
                     handleAccountSave();
                 }
+            },
+            Action {
+                iconName: "edit"
+                visible: isReadOnly
+                text: "Edit"
+                onTriggered: {
+                    switchToEditMode();
+                }
             }
         ]
+    }
+
+    function switchToEditMode() {
+        isReadOnly = false;
     }
 
     function handleAccountSave() {
@@ -78,21 +94,61 @@ Page {
             dbname = database_combo.currentText;
         }
 
+        if (!linkInput.text.trim()) {
+            notifPopup.open("Error", "Server URL cannot be empty", "error");
+            return;
+        }
+
+        if (!usernameInput.text.trim()) {
+            notifPopup.open("Error", "Username cannot be empty", "error");
+            return;
+        }
+
+        if (!passwordInput.text.trim()) {
+            notifPopup.open("Error", "Password/API Key cannot be empty", "error");
+            return;
+        }
+
+        if (!dbname.trim()) {
+            notifPopup.open("Error", "Database name cannot be empty", "error");
+            return;
+        }
+
         python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, dbname], function (result) {
             if (result && result['status'] === 'pass' && result['database']) {
                 let apikey = passwordInput.text;
 
-                var isDuplicate = Accounts.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
+                var accountResult = Accounts.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
 
-                if (isDuplicate) {
-                    notifPopup.open("Error", "You already have this account", "error");
+                if (accountResult.duplicateFound) {
+                    if (accountResult.duplicateType === "name") {
+                        notifPopup.open("Error", "Account name '" + accountNameInput.text + "' already exists. Please choose a different name.", "error");
+                    } else if (accountResult.duplicateType === "connection") {
+                        notifPopup.open("Error", "An account with this server connection already exists.", "error");
+                    } else {
+                        notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
+                    }
                 } else {
                     notifPopup.open("Saved", "Your account has been saved, Enjoy using the app !", "success");
+
+                    isReadOnly = true;
                 }
             } else {
-                notifPopup.open("Error", "Unable to save the Account, Please check the URL , Database name or your credentials", "error");
+                notifPopup.open("Error", "Unable to save the account. Please check the URL, database name, or your credentials.", "error");
             }
         });
+    }
+
+    function clearForm() {
+        accountNameInput.text = "";
+        linkInput.text = "";
+        usernameInput.text = "";
+        passwordInput.text = "";
+        manualDbInput.text = "";
+        databaseListModel.clear();
+        activeBackendAccount = false;
+        isManualDbMode = false;
+        database_combo.currentIndex = -1;
     }
 
     Python {
@@ -160,6 +216,7 @@ Page {
                         height: units.gu(5)
                         TextField {
                             id: accountNameInput
+                            enabled: !isReadOnly
                             anchors.horizontalCenter: parent.horizontalCenter
                             placeholderText: "Account Name"
                             width: parent.width
@@ -193,6 +250,7 @@ Page {
                         height: units.gu(4)
                         TextField {
                             id: linkInput
+                            enabled: !isReadOnly
                             placeholderText: "Enter Odoo URL here"
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
@@ -205,6 +263,7 @@ Page {
                     TSButton {
                         id: fetch_db_button
                         text: "Fetch Databases"
+                        enabled: !isReadOnly
                         width: units.gu(28)
                         height: units.gu(4)
                         onClicked: {
@@ -273,6 +332,7 @@ Page {
                         ComboBox {
                             id: database_combo
                             width: parent.width
+                            enabled: !isReadOnly
                             height: parent.height
                             background: Rectangle {
                                 color: "transparent"
@@ -346,6 +406,7 @@ Page {
                         TextField {
                             id: usernameInput
                             visible: activeBackendAccount
+                            enabled: !isReadOnly
                             placeholderText: "Username"
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
@@ -375,6 +436,7 @@ Page {
                     leftPadding: units.gu(1)
                     ComboBox {
                         id: connectWith_combo
+                        enabled: !isReadOnly
                         width: units.gu(28)
                         height: units.gu(5)
                         visible: activeBackendAccount
@@ -438,6 +500,7 @@ Page {
                         height: units.gu(5)
                         TextField {
                             id: passwordInput
+                            enabled: !isReadOnly
                             visible: activeBackendAccount
                             echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
                             placeholderText: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
@@ -448,6 +511,7 @@ Page {
                 }
                 Column {
                     TSButton {
+                        enabled: !isReadOnly
                         width: units.gu(5)
                         height: passwordInput.height
                         visible: activeBackendAccount

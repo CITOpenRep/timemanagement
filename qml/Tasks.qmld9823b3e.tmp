@@ -300,21 +300,17 @@ Page {
             anchors.rightMargin: units.gu(1)
             TSButton {
                 visible: isReadOnly
-                width:parent.width/2
-                text:"Create Activity"
-                onClicked:
-                {
-                    let result=Activity.createActivityFromProjectOrTask(false,currentTask.account_id,currentTask.odoo_record_id)
-                    if(result.success)
-                    {
+                width: parent.width / 2
+                text: "Create Activity"
+                onClicked: {
+                    let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
+                    if (result.success) {
                         apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Activities.qml"), {
                             "recordid": result.record_id,
                             "accountid": currentTask.account_id,
                             "isReadOnly": false
                         });
-                    }
-                    else
-                    {
+                    } else {
                         notifPopup.open("Failed", "Unable to create activity", "error");
                     }
                 }
@@ -458,81 +454,3 @@ Page {
             let parent_task_id = (currentTask.parent_id !== undefined && currentTask.parent_id !== null) ? currentTask.parent_id : -1;
 
             // Handle assignee_id - extract first ID if comma-separated (for single assignee mode)
-            let assignee_id = -1;
-            if (currentTask.user_id !== undefined && currentTask.user_id !== null && currentTask.user_id !== "") {
-                let userIdStr = currentTask.user_id.toString();
-                if (userIdStr.indexOf(',') >= 0) {
-                    // Multiple assignees stored as comma-separated - take the first one for single assignee mode
-                    let firstId = parseInt(userIdStr.split(',')[0].trim());
-                    assignee_id = isNaN(firstId) ? -1 : firstId;
-                } else {
-                    // Single assignee
-                    let singleId = parseInt(userIdStr);
-                    assignee_id = isNaN(singleId) ? -1 : singleId;
-                }
-            }
-
-            /*  console.log("Loading task data:", JSON.stringify({
-                                                                 instanceId: instanceId,
-                                                                 project_id: project_id,
-                                                                 sub_project_id: sub_project_id,
-                                                                 parent_task_id: parent_task_id,
-                                                                 assignee_id: assignee_id
-                                                             }));*/
-
-            workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
-
-            name_text.text = currentTask.name || "";
-            description_text.text = currentTask.description || "";
-
-            // Handle planned hours more carefully
-            if (currentTask.initial_planned_hours !== undefined && currentTask.initial_planned_hours !== null && currentTask.initial_planned_hours > 0) {
-                hours_text.text = Utils.convertDecimalHoursToHHMM(parseFloat(currentTask.initial_planned_hours));
-            } else {
-                hours_text.text = "01:00";  // Default value
-            }
-
-            // Set date range more carefully to preserve original dates
-
-            if (currentTask.start_date && currentTask.end_date) {
-                date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
-            } else if (currentTask.start_date) {
-                date_range_widget.setDateRange(currentTask.start_date, null);
-            } else if (currentTask.end_date) {
-                date_range_widget.setDateRange(null, currentTask.end_date);
-            }
-            // If no dates are set, don't call setDateRange to avoid defaulting to today
-
-            // Set deadline
-            if (currentTask.deadline) {
-                deadline_text.text = currentTask.deadline;
-            } else {
-                deadline_text.text = "Not set";
-            }
-
-            // Load multiple assignees if enabled
-            if (workItem.enableMultipleAssignees) {
-                var existingAssignees = Task.getTaskAssignees(recordid, instanceId);
-                workItem.setMultipleAssignees(existingAssignees);
-            }
-
-            attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
-        } else {
-            workItem.loadAccounts();
-            deadline_text.text = "Not set";
-        }
-        //  console.log("currentTask loaded:", JSON.stringify(currentTask));
-    }
-
-    onVisibleChanged: {
-        if (visible) {
-            if (Global.description_temporary_holder !== "") {
-                //Check if you are coming back from the ReadMore page
-                description_text.text = Global.description_temporary_holder;
-                Global.description_temporary_holder = "";
-            }
-        } else {
-            Global.description_temporary_holder = "";
-        }
-    }
-}
