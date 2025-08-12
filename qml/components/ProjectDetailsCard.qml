@@ -217,11 +217,20 @@ ListItem {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.leftMargin: units.gu(0.5)
-                            source: isFavorite ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../images/star.png" : "../images/star.png") : ""
+                           source: isFavorite ? "../images/star.png" : "../images/star-inactive.png"
                             fillMode: Image.PreserveAspectFit
                             width: units.gu(2)
                             height: units.gu(2)
                             visible: !timer_on
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    isFavorite = !isFavorite;
+                                    Task.toggleProjectFavorite(localId, isFavorite);
+                                    starIcon.source = isFavorite ? "../images/star.png" : "../images/star-inactive.png";
+                                }
+                            }
                         }
                         Rectangle {
                             id: indicator

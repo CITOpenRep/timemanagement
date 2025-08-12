@@ -325,12 +325,23 @@ ListItem {
 
                             Image {
                                 id: starIcon
+                                anchors.leftMargin: units.gu(0.5)
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                source: isFavorite ? "../images/star.png" : ""
+                                source: isFavorite ? "../images/star.png" : "../images/star-inactive.png"
                                 fillMode: Image.PreserveAspectFit
                                 width: units.gu(2)
                                 height: units.gu(2)
+                                visible: !timer_on
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        isFavorite = !isFavorite;
+                                        Task.toggleTaskFavorite(localId, isFavorite);
+                                        starIcon.source = isFavorite ? "../images/star.png" : "../images/star-inactive.png";
+                                    }
+                                }
                             }
                         }
                         // Animated dot if there is a active time sheet on it
