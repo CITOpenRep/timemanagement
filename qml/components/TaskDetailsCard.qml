@@ -337,9 +337,21 @@ ListItem {
                                 MouseArea {
                                     anchors.fill: parent
                                     onClicked: {
-                                        isFavorite = !isFavorite;
-                                        Task.toggleTaskFavorite(localId, isFavorite);
-                                        starIcon.source = isFavorite ? "../images/star.png" : "../images/star-inactive.png";
+                                        mouse.accepted = true; // Prevent event propagation to parent MouseArea
+                                        var newFavoriteState = !isFavorite;
+                                        var result = Task.toggleTaskFavorite(localId, newFavoriteState);
+
+                                        if (result.success) {
+                                            isFavorite = newFavoriteState;
+                                            starIcon.source = isFavorite ? "../images/star.png" : "../images/star-inactive.png";
+                                            console.log("✅ Task favorite toggled:", result.message);
+                                        } else {
+                                            console.warn("⚠️ Failed to toggle task favorite:", result.message);
+                                            // Optionally show notification popup if available
+                                            if (typeof notifPopup !== 'undefined') {
+                                                notifPopup.open("Error", result.message, "error");
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -412,6 +424,7 @@ ListItem {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
+                                    mouse.accepted = true; // Prevent event propagation to parent MouseArea
                                     viewRequested(localId);
                                 }
                             }

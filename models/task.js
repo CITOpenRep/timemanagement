@@ -1144,3 +1144,39 @@ function getTaskDateStatus(task, checkDate) {
     };
 }
 
+/**
+ * Toggles the favorite status of a task in the local database.
+ *
+ * @param {number} taskId - The local ID of the task to toggle favorite status.
+ * @param {boolean} isFavorite - The new favorite status (true for favorite, false for not favorite).
+ * @returns {Object} - Result object with success status and message.
+ */
+function toggleTaskFavorite(taskId, isFavorite) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var result = { success: false, message: "" };
+
+        db.transaction(function (tx) {
+            var favoriteValue = isFavorite ? 1 : 0;
+            var updateResult = tx.executeSql(
+                'UPDATE project_task_app SET favorites = ?, last_modified = ? WHERE id = ?',
+                [favoriteValue, new Date().toISOString(), taskId]
+            );
+
+            if (updateResult.rowsAffected > 0) {
+                result.success = true;
+                result.message = isFavorite ? "Task marked as favorite" : "Task removed from favorites";
+                console.log("✅ Task favorite status updated:", taskId, "favorite:", isFavorite);
+            } else {
+                result.message = "Task not found or no changes made";
+                console.warn("⚠️ No task updated with ID:", taskId);
+            }
+        });
+
+        return result;
+    } catch (e) {
+        console.error("❌ toggleTaskFavorite failed:", e);
+        return { success: false, message: "Failed to update task favorite status: " + e.message };
+    }
+}
+

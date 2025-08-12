@@ -28,6 +28,7 @@ import "../../models/constants.js" as AppConst
 import "../../models/utils.js" as Utils
 import "../../models/timesheet.js" as Timesheet
 import "../../models/timer_service.js" as TimerService
+import "../../models/project.js" as Project
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
 
@@ -145,35 +146,6 @@ ListItem {
         anchors.rightMargin: units.gu(0.2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
 
-        MouseArea {
-            anchors.fill: parent
-            z: 1  // Above the card content but below trailing actions
-
-            onClicked: {
-                console.log("ProjectDetailsCard clicked - hasChildren:", hasChildren, "recordId:", recordId);
-
-                if (hasChildren && recordId > 0) {
-                    // For projects with children, emit navigation signal
-                    // We need to pass both the project ID and account ID for proper navigation
-                    // Note: You may need to add accountId as a property if it's not already available
-                    navigationRequested(recordId, projectCard.accountId || 0);
-                } else {
-                    // For leaf projects, show details (same as View-On action)
-                    viewRequested(localId);
-                }
-            }
-
-            // Visual feedback
-            onPressed: {
-                parent.opacity = 0.8;
-            }
-            onReleased: {
-                parent.opacity = 1.0;
-            }
-            onCanceled: {
-                parent.opacity = 1.0;
-            }
-        }
         // subtle color fade on the left
         Rectangle {
             width: parent.width * 0.025
@@ -210,26 +182,44 @@ ListItem {
                     Item {
                         width: units.gu(4)
                         height: parent.height
-                        z: 2
+                        z: 999
 
                         Image {
                             id: starIcon
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.leftMargin: units.gu(0.5)
-                           source: isFavorite ? "../images/star.png" : "../images/star-inactive.png"
+                            source: isFavorite ? "../images/star.png" : "../images/star-inactive.png"
                             fillMode: Image.PreserveAspectFit
                             width: units.gu(2)
                             height: units.gu(2)
                             visible: !timer_on
+                        }
 
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    isFavorite = !isFavorite;
-                                    Task.toggleProjectFavorite(localId, isFavorite);
+                        // Large clickable area for the star
+                        MouseArea {
+                            anchors.fill: parent
+                            z: 9999  // Maximum z-index to capture clicks first
+                            enabled: !timer_on  // Only enabled when star is visible
+                            onClicked: {
+                                console.log("⭐ Project star clicked! localId:", localId, "timer_on:", timer_on);
+                                mouse.accepted = true; // Prevent event propagation to parent MouseArea
+                                var newFavoriteState = !isFavorite;
+                                var result = Project.toggleProjectFavorite(localId, newFavoriteState);
+
+                                if (result.success) {
+                                    isFavorite = newFavoriteState;
                                     starIcon.source = isFavorite ? "../images/star.png" : "../images/star-inactive.png";
+                                    console.log("✅ Project favorite toggled:", result.message);
+                                } else {
+                                    console.warn("⚠️ Failed to toggle project favorite:", result.message);
                                 }
+                            }
+                            onPressed: {
+                                console.log("⭐ Project star pressed!");
+                            }
+                            onReleased: {
+                                console.log("⭐ Project star released!");
                             }
                         }
                         Rectangle {
@@ -266,6 +256,23 @@ ListItem {
                         height: parent.height - units.gu(2)
                         spacing: 0
 
+                        // Main content area MouseArea for navigation
+                        MouseArea {
+                            anchors.fill: parent
+                            z: 1  // Much lower than star MouseArea
+                            onClicked: {
+                                console.log("🔷 Project content clicked - hasChildren:", hasChildren, "recordId:", recordId);
+
+                                if (hasChildren && recordId > 0) {
+                                    // For projects with children, emit navigation signal
+                                    navigationRequested(recordId, projectCard.accountId || 0);
+                                } else {
+                                    // For leaf projects, show details (same as View-On action)
+                                    viewRequested(localId);
+                                }
+                            }
+                        }
+
                         Text {
                             text: projectName !== "" ? projectName : "Unnamed Project"
                             color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
@@ -298,6 +305,7 @@ ListItem {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
+                                    mouse.accepted = true; // Prevent event propagation to parent MouseArea
                                     viewRequested(localId);
                                 }
                             }
