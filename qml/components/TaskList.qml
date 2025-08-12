@@ -28,6 +28,7 @@ import Lomiri.Components 1.3
 import QtQuick.LocalStorage 2.7 as Sql
 import "../../models/task.js" as Task
 import "../../models/project.js" as Project
+import "." // Import the current directory to make TaskDetailsCard available
 
 Item {
     id: taskNavigator
@@ -286,7 +287,7 @@ Item {
                     startDate: model.startDate
                     endDate: model.endDate
                     description: model.description
-                    isFavorite: model.isFavorite
+                    priority: model.priority // Use priority instead of isFavorite
                     hasChildren: model.hasChildren
                     childCount: model.childCount
                     projectName: model.project

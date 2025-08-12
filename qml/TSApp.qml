@@ -29,6 +29,7 @@ import QtQuick.Layouts 1.11
 import QtQuick.LocalStorage 2.7 as Sql
 import "../models/dbinit.js" as DbInit
 import "components"
+import "."
 
 /*
 Todo: Need to Visit this Page Again and Refactor it.
@@ -298,7 +299,7 @@ MainView {
 
                 // Save theme preference (INSERT OR REPLACE)
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['theme_preference', themeName]);
-            //    console.log("💾 Theme preference saved successfully:", themeName);
+                //    console.log("💾 Theme preference saved successfully:", themeName);
             });
 
             //    console.log("💾 Database transaction completed for theme:", themeName);

@@ -124,7 +124,8 @@ Page {
                 startDate: date_range_widget.formattedStartDate(),
                 endDate: date_range_widget.formattedEndDate(),
                 deadline: deadline_text.text !== "Not set" ? deadline_text.text : "",
-                favorites: 0,
+                favorites: parseInt(favorites || 0) // This is now priority (0-3)
+                ,
                 plannedHours: Utils.convertDurationToFloat(hours_text.text),
                 description: description_text.text,
                 assigneeUserId: ids.assignee_id,
@@ -257,12 +258,81 @@ Page {
             height: units.gu(1)
             visible: false
         }
+        // Priority Selector Row
         Row {
-            id: myRow9
+            id: priorityRow
             anchors.top: (recordid > 0) ? add_timesheet.bottom : myRow1b.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            topPadding: units.gu(5)
+            height: units.gu(6)
+            spacing: units.gu(2)
+
+            Column {
+                width: units.gu(15)
+                height: parent.height
+
+                LomiriShape {
+                    width: units.gu(15)
+                    height: units.gu(5)
+                    aspect: LomiriShape.Flat
+                    Label {
+                        text: "Priority"
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+
+            Column {
+                leftPadding: units.gu(3)
+                height: parent.height
+
+                Row {
+                    spacing: units.gu(2)
+                    height: units.gu(5)
+
+                    Repeater {
+                        model: 3 // For 3 stars (priorities 1-3)
+
+                        Image {
+                            id: priorityStar
+                            property int starIndex: index
+                            source: (favorites > index) ? "../qml/images/star.png" : "../qml/images/star-inactive.png"
+                            width: units.gu(3.5)
+                            height: units.gu(3.5)
+                            opacity: isReadOnly ? 0.7 : 1.0
+
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: !isReadOnly
+                                onClicked: {
+                                    // Set priority based on which star was clicked
+                                    // Adding 1 since index is 0-based but we want priority 1-3
+                                    // If clicking the current priority, reduce by 1 (toggle behavior)
+                                    var newPriority = (index + 1 === favorites) ? favorites - 1 : index + 1;
+                                    favorites = newPriority;
+                                }
+                            }
+                        }
+                    }
+
+                    // Show the numeric value
+                    Label {
+                        text: "(Level: " + favorites + ")"
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pixelSize: units.gu(1.5)
+                        visible: favorites > 0
+                    }
+                }
+            }
+        }
+
+        Row {
+            id: myRow9
+            anchors.top: priorityRow.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            topPadding: units.gu(3)
 
             Column {
                 id: myCol9
@@ -300,21 +370,17 @@ Page {
             anchors.rightMargin: units.gu(1)
             TSButton {
                 visible: isReadOnly
-                width:parent.width/2
-                text:"Create Activity"
-                onClicked:
-                {
-                    let result=Activity.createActivityFromProjectOrTask(false,currentTask.account_id,currentTask.odoo_record_id)
-                    if(result.success)
-                    {
+                width: parent.width / 2
+                text: "Create Activity"
+                onClicked: {
+                    let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
+                    if (result.success) {
                         apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Activities.qml"), {
                             "recordid": result.record_id,
                             "accountid": currentTask.account_id,
                             "isReadOnly": false
                         });
-                    }
-                    else
-                    {
+                    } else {
                         notifPopup.open("Failed", "Unable to create activity", "error");
                     }
                 }
@@ -509,6 +575,9 @@ Page {
             } else {
                 deadline_text.text = "Not set";
             }
+
+            // Set task priority (0-3)
+            favorites = Math.max(0, Math.min(3, parseInt(currentTask.favorites) || 0));
 
             // Load multiple assignees if enabled
             if (workItem.enableMultipleAssignees) {
