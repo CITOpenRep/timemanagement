@@ -339,7 +339,7 @@ ListItem {
                                     onClicked: {
                                         mouse.accepted = true; // Prevent event propagation to parent MouseArea
                                         var newFavoriteState = !isFavorite;
-                                        var result = Task.toggleTaskFavorite(localId, newFavoriteState);
+                                        var result = Task.toggleTaskFavorite(localId, newFavoriteState , "updated");
 
                                         if (result.success) {
                                             isFavorite = newFavoriteState;

@@ -1151,7 +1151,7 @@ function getTaskDateStatus(task, checkDate) {
  * @param {boolean} isFavorite - The new favorite status (true for favorite, false for not favorite).
  * @returns {Object} - Result object with success status and message.
  */
-function toggleTaskFavorite(taskId, isFavorite) {
+function toggleTaskFavorite(taskId, isFavorite, status) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var result = { success: false, message: "" };
@@ -1159,8 +1159,8 @@ function toggleTaskFavorite(taskId, isFavorite) {
         db.transaction(function (tx) {
             var favoriteValue = isFavorite ? 1 : 0;
             var updateResult = tx.executeSql(
-                'UPDATE project_task_app SET favorites = ?, last_modified = ? WHERE id = ?',
-                [favoriteValue, new Date().toISOString(), taskId]
+                'UPDATE project_task_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
+                [favoriteValue, new Date().toISOString(), status , taskId]
             );
 
             if (updateResult.rowsAffected > 0) {

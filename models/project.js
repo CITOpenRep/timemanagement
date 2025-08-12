@@ -420,7 +420,7 @@ function getProjectName(projectId, accountId) {
  * @param {boolean} isFavorite - The new favorite status (true for favorite, false for not favorite).
  * @returns {Object} - Result object with success status and message.
  */
-function toggleProjectFavorite(projectId, isFavorite) {
+function toggleProjectFavorite(projectId, isFavorite, status) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var result = { success: false, message: "" };
@@ -428,8 +428,8 @@ function toggleProjectFavorite(projectId, isFavorite) {
         db.transaction(function (tx) {
             var favoriteValue = isFavorite ? 1 : 0;
             var updateResult = tx.executeSql(
-                'UPDATE project_project_app SET favorites = ?, last_modified = ? WHERE id = ?',
-                [favoriteValue, new Date().toISOString(), projectId]
+                'UPDATE project_project_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
+                [favoriteValue, new Date().toISOString(), status, projectId]
             );
 
             if (updateResult.rowsAffected > 0) {

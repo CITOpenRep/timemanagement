@@ -182,7 +182,7 @@ ListItem {
                     Item {
                         width: units.gu(4)
                         height: parent.height
-                        z: 999
+                        z: 2
 
                         Image {
                             id: starIcon
@@ -199,27 +199,19 @@ ListItem {
                         // Large clickable area for the star
                         MouseArea {
                             anchors.fill: parent
-                            z: 9999  // Maximum z-index to capture clicks first
+
                             enabled: !timer_on  // Only enabled when star is visible
                             onClicked: {
-                                console.log("⭐ Project star clicked! localId:", localId, "timer_on:", timer_on);
                                 mouse.accepted = true; // Prevent event propagation to parent MouseArea
                                 var newFavoriteState = !isFavorite;
-                                var result = Project.toggleProjectFavorite(localId, newFavoriteState);
+                                var result = Project.toggleProjectFavorite(localId, newFavoriteState, "updated");
 
                                 if (result.success) {
                                     isFavorite = newFavoriteState;
                                     starIcon.source = isFavorite ? "../images/star.png" : "../images/star-inactive.png";
-                                    console.log("✅ Project favorite toggled:", result.message);
                                 } else {
                                     console.warn("⚠️ Failed to toggle project favorite:", result.message);
                                 }
-                            }
-                            onPressed: {
-                                console.log("⭐ Project star pressed!");
-                            }
-                            onReleased: {
-                                console.log("⭐ Project star released!");
                             }
                         }
                         Rectangle {
@@ -251,73 +243,85 @@ ListItem {
                         }
                     }
 
-                    Column {
-                        width: parent.width - units.gu(4)
-                        height: parent.height - units.gu(2)
-                        spacing: 0
+                    Rectangle {
+                        width: units.gu(25)
+                        height: parent.height
+                        color: 'transparent'
 
-                        // Main content area MouseArea for navigation
-                        MouseArea {
-                            anchors.fill: parent
-                            z: 1  // Much lower than star MouseArea
-                            onClicked: {
-                                console.log("🔷 Project content clicked - hasChildren:", hasChildren, "recordId:", recordId);
+                        Column {
 
-                                if (hasChildren && recordId > 0) {
-                                    // For projects with children, emit navigation signal
-                                    navigationRequested(recordId, projectCard.accountId || 0);
-                                } else {
-                                    // For leaf projects, show details (same as View-On action)
-                                    viewRequested(localId);
-                                }
-                            }
-                        }
+                            width: parent.width
+                            height: parent.height 
+                            spacing: units.gu(0.2)
 
-                        Text {
-                            text: projectName !== "" ? projectName : "Unnamed Project"
-                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                            font.pixelSize: units.gu(2)
-                            wrapMode: Text.WordWrap
-                            maximumLineCount: 2
-                            clip: true
-                            width: parent.width - units.gu(2)
-                            // height: units.gu(5)
-                        }
-
-                        Text {
-                            text: accountName !== "" ? accountName : "Local"
-                            font.pixelSize: units.gu(1.6)
-                            wrapMode: Text.Wrap
-                            maximumLineCount: 2
-                            width: parent.width - units.gu(2)
-                            height: units.gu(2)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
-                        }
-
-                        Label {
-                            id: details
-                            text: "Details"
-                            width: parent.width - units.gu(2)
-                            font.pixelSize: units.gu(1.6)
-                            height: units.gu(3)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "blue"
-                            font.underline: true
+                            // Main content area MouseArea for navigation
                             MouseArea {
                                 anchors.fill: parent
+                                z: 1  // Much lower than star MouseArea
                                 onClicked: {
-                                    mouse.accepted = true; // Prevent event propagation to parent MouseArea
-                                    viewRequested(localId);
+                                    
+
+                                    if (hasChildren && recordId > 0) {
+                                        // For projects with children, emit navigation signal
+                                        navigationRequested(recordId, projectCard.accountId || 0);
+                                    } else {
+                                        // For leaf projects, show details (same as View-On action)
+                                        viewRequested(localId);
+                                    }
                                 }
                             }
-                        }
 
-                        Text {
-                            text: (childCount > 0 ? " [+" + childCount + "] Projects " : "")
-                            visible: childCount > 0
-                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                            font.pixelSize: units.gu(1.5)
-                            //  horizontalAlignment: Text.AlignRight
-                            width: parent.width
+                            Text {
+                                text: projectName !== "" ?  projectName : "Unnamed Project"
+                                color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
+                                font.pixelSize: units.gu(2)
+                                wrapMode: Text.WordWrap
+                                maximumLineCount: 2
+                                clip: true
+                                width: parent.width - units.gu(2)
+
+
+                                  
+                         
+                          
+                        
+                            }
+
+                            Text {
+                                text: accountName !== "" ? accountName : "Local"
+                                font.pixelSize: units.gu(1.6)
+                                wrapMode: Text.Wrap
+                                maximumLineCount: 2
+                                width: parent.width - units.gu(2)
+                                height: units.gu(2)
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
+                            }
+
+                            Label {
+                                id: details
+                                text: "Details"
+                                width: parent.width - units.gu(2)
+                                font.pixelSize: units.gu(1.6)
+                                height: units.gu(3)
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "blue"
+                                font.underline: true
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        mouse.accepted = true; // Prevent event propagation to parent MouseArea
+                                        viewRequested(localId);
+                                    }
+                                }
+                            }
+
+                            Text {
+                                text: (childCount > 0 ? " [+" + childCount + "] Projects " : "")
+                                visible: childCount > 0
+                                color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
+                                font.pixelSize: units.gu(1.5)
+                                //  horizontalAlignment: Text.AlignRight
+                                width: parent.width
+                            }
                         }
                     }
                 }
@@ -335,7 +339,7 @@ ListItem {
                     width: parent.width
 
                     Text {
-                        text: "Planned (H): " + allocatedHours
+                        text: "Planned (H): " + Utils.truncateText(allocatedHours,6) 
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
