@@ -31,17 +31,17 @@ Rectangle {
     property int syncAccountId: -1
     property bool syncSuccessful: false
     property real syncProgress: 0.0 // Progress from 0.0 to 1.0
-    property int syncStartTime: 0
+    property real syncStartTime: 0
 
     // Built-in sync timeout timer with success phase
     Timer {
         id: syncTimeoutTimer
-        interval: 15000 // 15 seconds timeout
+        interval: 26000 // 20 seconds timeout-> Change according to Sync Timeout
         running: false
         repeat: false
         onTriggered: {
             if (isSyncing) {
-                console.warn("⚠️ GlobalTimer: Sync timeout for account", syncAccountId, "- stopping sync indication");
+              //  console.warn("⚠️ GlobalTimer: Sync timeout for account", syncAccountId, "- stopping sync indication");
                 var timedOutAccountId = syncAccountId; // Store before clearing
                 stopSync();
                 // Emit signal so other components can react to timeout
@@ -53,12 +53,12 @@ Rectangle {
     // Success phase timer (shows success for 2 seconds before timeout)
     Timer {
         id: successTimer
-        interval: 13000 // Show success at 13 seconds (2 seconds before timeout)
+        interval: 24000 // Show success at 18 seconds (1 seconds before timeout)
         running: false
         repeat: false
         onTriggered: {
             if (isSyncing) {
-                console.log("✅ GlobalTimer: Showing sync success for account", syncAccountId);
+               // console.log("✅ GlobalTimer: Showing sync success for account", syncAccountId);
                 syncSuccessful = true;
                 syncProgress = 1.0;
             }
@@ -66,40 +66,40 @@ Rectangle {
     }
 
     // Progress update timer
-    Timer {
-        id: progressTimer
-        interval: 100 // Update every 100ms for smooth progress
-        running: false
-        repeat: true
-        onTriggered: {
-            if (isSyncing && !syncSuccessful) {
-                var elapsed = Date.now() - syncStartTime;
-                var totalTime = 13000; // Progress completes at 13 seconds (when success shows)
-                syncProgress = Math.min(elapsed / totalTime, 1.0);
-            }
+  Timer {
+    id: progressTimer
+    interval: 100 // Update every 100ms for smooth progress
+    running: false
+    repeat: true
+    onTriggered: {
+        if (isSyncing && !syncSuccessful) {
+            var elapsed = Date.now() - syncStartTime;
+            var totalTime = 24000; // Progress completes at 15 seconds (when success shows)
+            syncProgress = Math.min(elapsed / totalTime, 1.0);
+         //   console.log("Progress update:", syncProgress, "Elapsed:", elapsed, "StartTime:", syncStartTime, "Now:", Date.now());
         }
     }
+}
 
     // Function to start sync indication
-    function startSync(accountId, accountName) {
-        console.log("🔥 GlobalTimer: Starting sync indication for account", accountId, "(" + accountName + ")");
-        syncAccountId = accountId;
-        syncAccountName = accountName || "Account " + accountId;
-        isSyncing = true;
-        syncSuccessful = false;
-        syncProgress = 0.0;
-        syncStartTime = Date.now();
-        globalTimer.visible = true;
+  function startSync(accountId, accountName) {
+   // console.log("🔥 GlobalTimer: Starting sync indication for account", accountId, "(" + accountName + ")");
+    syncAccountId = accountId;
+    syncAccountName = accountName || "Account " + accountId;
+    isSyncing = true;
+    syncSuccessful = false;
+    syncProgress = 0.0;
+    syncStartTime = Date.now(); // This is correct
+    globalTimer.visible = true;
 
-        // Start all timers
-        syncTimeoutTimer.start();
-        successTimer.start();
-        progressTimer.start();
-    }
-
+    // Start all timers
+    syncTimeoutTimer.start();
+    successTimer.start();
+    progressTimer.start();
+}
     // Function to stop sync indication
     function stopSync() {
-        console.log("✅ GlobalTimer: Stopping sync indication for account", syncAccountId);
+      //  console.log("✅ GlobalTimer: Stopping sync indication for account", syncAccountId);
 
         // Stop all timers
         syncTimeoutTimer.stop();
@@ -295,13 +295,15 @@ Rectangle {
 
     // Name Label
     Label {
-        text: Utils.truncateText(globalTimer.elapsedDisplay, 20)
+        text: !syncTimeoutTimer.running ? Utils.truncateText(globalTimer.elapsedDisplay, 20) : globalTimer.elapsedDisplay
         color: "white"
         font.pixelSize: units.gu(2)
         anchors.top: parent.top
         anchors.topMargin: units.gu(3)
         anchors.left: indicator.right
-      //  anchors.margins: units.gu(1)
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
+      // anchors.margins: units.gu(-12)
         anchors.right: (TimerService.isRunning() || TimerService.isPaused()) ? pausebutton.left : parent.right
         anchors.rightMargin: units.gu(1)
         horizontalAlignment: Text.AlignHCenter
@@ -341,19 +343,14 @@ Rectangle {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: {
-                if (TimerService.isRunning()) {
-                    // For timer: show a continuous animation
-                    return parent.width * 0.3;
-                } else if (isSyncing) {
+               if (isSyncing) {
                     // For sync: show actual progress
                     return parent.width * syncProgress;
                 }
                 return 0;
             }
             color: {
-                if (TimerService.isRunning()) {
-                    return TimerService.isPaused() ? "#ff6b35" : "#ffa500"; // Orange/red for timer
-                } else if (isSyncing) {
+              if (isSyncing) {
                     return syncSuccessful ? "#28a745" : "#ffffff"; // Green for success, white for syncing
                 }
                 return "#ffffff";

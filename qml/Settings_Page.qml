@@ -72,58 +72,12 @@ Page {
         }
     }
 
-    // Connections {
-    //     target: python
-    //     onSyncDone: function (accountId) {
-    //         console.log("✅Hurray  Sync completed for account:", accountId);
-    //         syncingAccountId = -1;
-    //         syncTimeoutTimer.stop(); // Stop timeout timer since sync completed
-    //     }
-    // }
-
-    Connections {
-        target: python
-        onSyncDone: function (accountId) {
-            console.log("✅ Sync completed for account:", accountId);
-            if (syncingAccountId === accountId) {
-                console.log("🔄 Resetting local sync state for account:", accountId);
-                syncingAccountId = -1;
-                syncTimeoutTimer.stop(); // Stop local timeout timer
-                // GlobalTimerWidget will handle its own stopSync() via this signal
-                if (typeof globalTimerWidget !== 'undefined') {
-                    console.log("🛑 Stopping global sync indication");
-                    globalTimerWidget.stopSync();
-                } else {
-                    console.warn("⚠️ globalTimerWidget not available");
-                }
-            } else {
-                console.log("ℹ️ Received sync done for different account:", accountId, "current syncing:", syncingAccountId);
-            }
-        }
-
-        // Handle sync errors
-        onSyncError: function (accountId, errorMessage) {
-            console.error("❌ Sync error for account:", accountId, "Error:", errorMessage);
-            if (syncingAccountId === accountId) {
-                console.log("🔄 Resetting local sync state due to error for account:", accountId);
-                syncingAccountId = -1;
-                syncTimeoutTimer.stop(); // Stop local timeout timer
-                // GlobalTimerWidget will handle its own stopSync() via this signal
-                if (typeof globalTimerWidget !== 'undefined') {
-                    console.log("🛑 Stopping global sync indication due to error");
-                    globalTimerWidget.stopSync();
-                } else {
-                    console.warn("⚠️ globalTimerWidget not available");
-                }
-            }
-        }
-    }
 
     // Listen for sync timeout from GlobalTimerWidget
     Connections {
         target: typeof globalTimerWidget !== 'undefined' ? globalTimerWidget : null
         onSyncTimedOut: function (accountId) {
-            console.log("⏰ GlobalTimer timeout received for account:", accountId);
+          //  console.log("⏰ GlobalTimer timeout received for account:", accountId);
             if (syncingAccountId === accountId) {
                 console.log("🔄 Resetting local sync state due to global timeout for account:", accountId);
                 syncingAccountId = -1;
@@ -139,7 +93,7 @@ Page {
     // Simplified timeout timer - only resets local state, GlobalTimerWidget handles its own timeout
     Timer {
         id: syncTimeoutTimer
-        interval: 15000 // 15 seconds timeout
+        interval: 26000 // 26 seconds timeout
         running: false
         repeat: false
         onTriggered: {
@@ -580,7 +534,7 @@ Page {
 
                                                         // Notify global timer widget about sync start
                                                         if (typeof globalTimerWidget !== 'undefined') {
-                                                            console.log("🎯 Starting global sync indication");
+                                                          
                                                             globalTimerWidget.startSync(model.id, model.name);
                                                         } else {
                                                             console.warn("⚠️ globalTimerWidget not available for sync start");
