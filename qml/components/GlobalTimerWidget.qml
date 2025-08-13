@@ -171,9 +171,9 @@ Rectangle {
     // Animated dot - changes behavior based on sync status
     Rectangle {
         id: indicator
-        width: units.gu(1)
-        height: units.gu(1)
-        radius: units.gu(0.5)
+        width: units.gu(1.5)
+        height: units.gu(1.5)
+        radius: units.gu(.75)
         color: {
             if (isSyncing && !TimerService.isRunning()) {
                 return syncSuccessful ? "#28a745" : "#0078d4"; // Green for success, blue for syncing
@@ -181,7 +181,7 @@ Rectangle {
             return "#ffa500"; // Orange for timer
         }
         anchors.left: parent.left
-        anchors.margins: units.gu(1)
+        anchors.margins: units.gu(2)
         anchors.verticalCenter: parent.verticalCenter
 
         // Pulsing animation
@@ -301,7 +301,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.topMargin: units.gu(3)
         anchors.left: indicator.right
-        anchors.margins: units.gu(1)
+      //  anchors.margins: units.gu(1)
         anchors.right: (TimerService.isRunning() || TimerService.isPaused()) ? pausebutton.left : parent.right
         anchors.rightMargin: units.gu(1)
         horizontalAlignment: Text.AlignHCenter
@@ -311,7 +311,7 @@ Rectangle {
     // Enhanced progress indicator - changes based on timer state
     Rectangle {
         id: progressContainer
-        visible: (isSyncing && !TimerService.isRunning()) || TimerService.isRunning()
+        visible: syncTimeoutTimer.running
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right

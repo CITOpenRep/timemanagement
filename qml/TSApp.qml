@@ -54,8 +54,7 @@ MainView {
         id: globalTimerWidget
         z: 9999
         anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
+       
         visible: false
     }
 
