@@ -81,24 +81,76 @@ Page {
     //     }
     // }
 
-    property bool loading: false
-    property string loadingMessage: ""
-    property int syncingAccountId: -1
-
-    // Fallback timer to reset sync state in case signal doesn't arrive
-    Timer {
-        id: syncTimeoutTimer
-        interval: 25000 // 20 seconds timeout
-        running: false
-        repeat: false
-        onTriggered: {
-            if (syncingAccountId !== -1) {
-                // console.warn("⚠️  Sync timeout - resetting sync state for account:", syncingAccountId);
+    Connections {
+        target: python
+        onSyncDone: function (accountId) {
+            console.log("✅ Sync completed for account:", accountId);
+            if (syncingAccountId === accountId) {
+                console.log("🔄 Resetting local sync state for account:", accountId);
                 syncingAccountId = -1;
+                syncTimeoutTimer.stop(); // Stop local timeout timer
+                // GlobalTimerWidget will handle its own stopSync() via this signal
+                if (typeof globalTimerWidget !== 'undefined') {
+                    console.log("🛑 Stopping global sync indication");
+                    globalTimerWidget.stopSync();
+                } else {
+                    console.warn("⚠️ globalTimerWidget not available");
+                }
+            } else {
+                console.log("ℹ️ Received sync done for different account:", accountId, "current syncing:", syncingAccountId);
+            }
+        }
+
+        // Handle sync errors
+        onSyncError: function (accountId, errorMessage) {
+            console.error("❌ Sync error for account:", accountId, "Error:", errorMessage);
+            if (syncingAccountId === accountId) {
+                console.log("🔄 Resetting local sync state due to error for account:", accountId);
+                syncingAccountId = -1;
+                syncTimeoutTimer.stop(); // Stop local timeout timer
+                // GlobalTimerWidget will handle its own stopSync() via this signal
+                if (typeof globalTimerWidget !== 'undefined') {
+                    console.log("🛑 Stopping global sync indication due to error");
+                    globalTimerWidget.stopSync();
+                } else {
+                    console.warn("⚠️ globalTimerWidget not available");
+                }
             }
         }
     }
 
+    // Listen for sync timeout from GlobalTimerWidget
+    Connections {
+        target: typeof globalTimerWidget !== 'undefined' ? globalTimerWidget : null
+        onSyncTimedOut: function (accountId) {
+            console.log("⏰ GlobalTimer timeout received for account:", accountId);
+            if (syncingAccountId === accountId) {
+                console.log("🔄 Resetting local sync state due to global timeout for account:", accountId);
+                syncingAccountId = -1;
+                syncTimeoutTimer.stop(); // Stop local timeout timer
+            }
+        }
+    }
+
+    property bool loading: false
+    property string loadingMessage: ""
+    property int syncingAccountId: -1
+
+    // Simplified timeout timer - only resets local state, GlobalTimerWidget handles its own timeout
+    Timer {
+        id: syncTimeoutTimer
+        interval: 15000 // 15 seconds timeout
+        running: false
+        repeat: false
+        onTriggered: {
+            if (syncingAccountId !== -1) {
+                console.warn("⚠️ Settings page: Sync timeout - resetting local sync state for account:", syncingAccountId);
+                var timeoutAccountId = syncingAccountId; // Store before resetting
+                syncingAccountId = -1;
+                console.log("🕐 Settings page: Local sync state timed out for account:", timeoutAccountId);
+            }
+        }
+    }
     // Theme management functions
     function getCurrentTheme() {
         return theme.name;
@@ -522,25 +574,40 @@ Page {
                                                     fontSize: units.gu(1.5)
                                                     text: "Sync"
                                                     onClicked: {
-                                                        console.log("🔄 Starting sync for account:", model.id);
+                                                        console.log("🔄 Starting sync for account:", model.id, "(" + model.name + ")");
                                                         syncingAccountId = model.id;
                                                         syncTimeoutTimer.start(); // Start timeout timer
+
+                                                        // Notify global timer widget about sync start
+                                                        if (typeof globalTimerWidget !== 'undefined') {
+                                                            console.log("🎯 Starting global sync indication");
+                                                            globalTimerWidget.startSync(model.id, model.name);
+                                                        } else {
+                                                            console.warn("⚠️ globalTimerWidget not available for sync start");
+                                                        }
 
                                                         python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                                                             if (path === "") {
                                                                 console.warn("DB not found.");
                                                                 syncingAccountId = -1;
                                                                 syncTimeoutTimer.stop();
+                                                                // GlobalTimerWidget will handle its own timeout, but we manually stop it here for immediate feedback
+                                                                if (typeof globalTimerWidget !== 'undefined') {
+                                                                    globalTimerWidget.stopSync();
+                                                                }
                                                             } else {
-                                                                //   console.log("Actual DB path resolved by Python:", path);
                                                                 python.call("backend.start_sync_in_background", [path, model.id], function (result) {
                                                                     if (result) {
                                                                         console.log("Background sync started for account:", model.id);
-                                                                        // Keep syncing = true, will be set to false in onSyncDone
+                                                                        // Keep syncing = true, will be set to false in onSyncDone or timeout
                                                                     } else {
                                                                         console.warn("Failed to start sync for account:", model.id);
                                                                         syncingAccountId = -1;
                                                                         syncTimeoutTimer.stop();
+                                                                        // GlobalTimerWidget will handle its own timeout, but we manually stop it here for immediate feedback
+                                                                        if (typeof globalTimerWidget !== 'undefined') {
+                                                                            globalTimerWidget.stopSync();
+                                                                        }
                                                                     }
                                                                 });
                                                             }
