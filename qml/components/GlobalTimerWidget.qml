@@ -6,7 +6,7 @@ import "../../models/utils.js" as Utils
 
 Rectangle {
     id: globalTimer
-    width: units.gu(40)
+    width: units.gu(47)
     height: units.gu(8)
     color: "#2d2d2d" // semi-transparent dark
     radius: units.gu(1)
@@ -111,7 +111,7 @@ Rectangle {
         syncProgress = 0.0;
         syncAccountId = -1;
         syncAccountName = "";
-        
+
         // Hide if no timer is running either
         if (!TimerService.isRunning()) {
             globalTimer.visible = false;
@@ -245,14 +245,14 @@ Rectangle {
     Image {
         id: pausebutton
         anchors.verticalCenter: parent.verticalCenter
-        anchors.top: parent.top
         anchors.right: stopbutton.left
         anchors.margins: units.gu(1)
         width: units.gu(5)
         height: units.gu(5)
         source: "../images/pause.png"
         fillMode: Image.PreserveAspectFit
-        visible: TimerService.isRunning() // Only show when timer is running
+        
+        visible: !syncTimeoutTimer.running 
 
         MouseArea {
             anchors.fill: parent
@@ -274,14 +274,13 @@ Rectangle {
     Image {
         id: stopbutton
         anchors.verticalCenter: parent.verticalCenter
-        anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: units.gu(1)
         width: units.gu(5)
         height: units.gu(5)
         source: "../images/stop.png"
         fillMode: Image.PreserveAspectFit
-        visible: TimerService.isRunning() // Only show when timer is running
+        visible: !syncTimeoutTimer.running
 
         MouseArea {
             anchors.fill: parent
@@ -303,7 +302,7 @@ Rectangle {
         anchors.topMargin: units.gu(3)
         anchors.left: indicator.right
         anchors.margins: units.gu(1)
-        anchors.right: TimerService.isRunning() ? pausebutton.left : parent.right
+        anchors.right: (TimerService.isRunning() || TimerService.isPaused()) ? pausebutton.left : parent.right
         anchors.rightMargin: units.gu(1)
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
