@@ -53,6 +53,7 @@ ListItem {
     property int childCount: 0
     property bool timer_on: false
     property bool timer_paused: false
+    property bool starInteractionActive: false
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -233,7 +234,7 @@ ListItem {
         radius: units.gu(0.2)
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
+        color: theme.name === "Ubuntu.Components.Thethemes.SuruDark" ? "#111" : "#fff"
         // subtle color fade on the left
         Rectangle {
             width: parent.width * 0.025
@@ -397,24 +398,44 @@ ListItem {
                                         fillMode: Image.PreserveAspectFit
                                         width: units.gu(1.5)
                                         height: units.gu(1.5)
+                                        z: 100  // Ensure it's on top
 
                                         MouseArea {
                                             anchors.fill: parent
+                                            z: 1000  // Much higher z-index
+                                            propagateComposedEvents: false
+                                            preventStealing: true
+                                            onPressed: {
+                                               
+                                                starInteractionActive = true;
+                                                mouse.accepted = true;
+                                            }
                                             onClicked: {
-                                                mouse.accepted = true; // Prevent event propagation
+                                               
+                                                mouse.accepted = true;
 
-                                                // Set priority based on which star was clicked
-                                                // Adding 1 since index is 0-based but we want priority 1-3
-                                                // If clicking the current star, reduce priority by 1
                                                 var newPriority = (index + 1 === priority) ? priority - 1 : index + 1;
+                                               
                                                 var result = Task.setTaskPriority(localId, newPriority, "updated");
+                                               
 
                                                 if (result.success) {
                                                     priority = newPriority;
-                                                    console.log("✅ Task priority set to", priority, ":", result.message);
+                                                
                                                 } else {
                                                     console.warn("⚠️ Failed to set task priority:", result.message);
                                                 }
+
+                                                starInteractionActive = false;
+                                            }
+
+                                            onReleased: {
+                                               
+                                                starInteractionActive = false;
+                                                mouse.accepted = true;
+                                            }
+                                            onDoubleClicked: {
+                                                mouse.accepted = true;
                                             }
                                         }
                                     }

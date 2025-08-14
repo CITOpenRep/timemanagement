@@ -307,15 +307,25 @@ Item {
                         taskTimesheetRequested(localId);
                     }
 
+                    // MouseArea for task interaction - navigation for parent tasks, view for regular tasks
                     MouseArea {
-                        anchors.fill: parent
-                        enabled: model.hasChildren
+                        // Only cover the text area, not the whole card
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        anchors.leftMargin: units.gu(15)  // Skip the star area
+                        enabled: !taskCard.starInteractionActive
                         onClicked: {
                             if (model.hasChildren) {
+                              
                                 navigationStackModel.append({
                                     parentId: currentParentId
                                 });
                                 currentParentId = model.id_val;
+                            } else {
+                               
+                                taskCard.viewRequested(model.local_id);
                             }
                         }
                     }
