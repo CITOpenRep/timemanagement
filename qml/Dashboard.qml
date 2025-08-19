@@ -90,12 +90,12 @@ Page {
         visible: true
 
         //Later we can merge all these with Global Timer as a taskbar
-        /*NotificationBell {
+        NotificationBell {
             z: 9999
             anchors.centerIn: parent
             parentWindow: mainPage
-            visible: false // Set to true if you want to show the notification bell
-        }*/
+            visible: true // Set to true if you want to show the notification bell
+        }
 
         // ActionBar {
 

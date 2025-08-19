@@ -81,7 +81,7 @@ Page {
             if (syncingAccountId === accountId) {
                 console.log("🔄 Resetting local sync state due to global timeout for account:", accountId);
                 syncingAccountId = -1;
-                syncTimeoutTimer.stop(); // Stop local timeout timer
+              //  syncTimeoutTimer.stop(); // Stop local timeout timer
             }
         }
     }
@@ -91,20 +91,20 @@ Page {
     property int syncingAccountId: -1
 
     // Simplified timeout timer - only resets local state, GlobalTimerWidget handles its own timeout
-    Timer {
-        id: syncTimeoutTimer
-        interval: 26000 // 26 seconds timeout
-        running: false
-        repeat: false
-        onTriggered: {
-            if (syncingAccountId !== -1) {
-                console.warn("⚠️ Settings page: Sync timeout - resetting local sync state for account:", syncingAccountId);
-                var timeoutAccountId = syncingAccountId; // Store before resetting
-                syncingAccountId = -1;
-                console.log("🕐 Settings page: Local sync state timed out for account:", timeoutAccountId);
-            }
-        }
-    }
+    // Timer {
+    //     id: syncTimeoutTimer
+    //     interval: 26000 // 26 seconds timeout
+    //     running: false
+    //     repeat: false
+    //     onTriggered: {
+    //         if (syncingAccountId !== -1) {
+    //             console.warn("⚠️ Settings page: Sync timeout - resetting local sync state for account:", syncingAccountId);
+    //             var timeoutAccountId = syncingAccountId; // Store before resetting
+    //             syncingAccountId = -1;
+    //             console.log("🕐 Settings page: Local sync state timed out for account:", timeoutAccountId);
+    //         }
+    //     }
+    // }
     // Theme management functions
     function getCurrentTheme() {
         return theme.name;
@@ -524,13 +524,13 @@ Page {
                                                 TSButton {
                                                     id: syncBtn
                                                     anchors.fill: parent
-                                                    visible: !syncContainer.syncing
+                                                   // visible: !syncContainer.syncing
                                                     fontSize: units.gu(1.5)
                                                     text: "Sync"
                                                     onClicked: {
                                                         console.log("🔄 Starting sync for account:", model.id, "(" + model.name + ")");
                                                         syncingAccountId = model.id;
-                                                        syncTimeoutTimer.start(); // Start timeout timer
+                                                     //   syncTimeoutTimer.start(); // Start timeout timer
 
                                                         // Notify global timer widget about sync start
                                                         if (typeof globalTimerWidget !== 'undefined') {
@@ -544,7 +544,7 @@ Page {
                                                             if (path === "") {
                                                                 console.warn("DB not found.");
                                                                 syncingAccountId = -1;
-                                                                syncTimeoutTimer.stop();
+                                                               // syncTimeoutTimer.stop();
                                                                 // GlobalTimerWidget will handle its own timeout, but we manually stop it here for immediate feedback
                                                                 if (typeof globalTimerWidget !== 'undefined') {
                                                                     globalTimerWidget.stopSync();
@@ -557,7 +557,7 @@ Page {
                                                                     } else {
                                                                         console.warn("Failed to start sync for account:", model.id);
                                                                         syncingAccountId = -1;
-                                                                        syncTimeoutTimer.stop();
+                                                                     //   syncTimeoutTimer.stop();
                                                                         // GlobalTimerWidget will handle its own timeout, but we manually stop it here for immediate feedback
                                                                         if (typeof globalTimerWidget !== 'undefined') {
                                                                             globalTimerWidget.stopSync();
@@ -569,44 +569,44 @@ Page {
                                                     }
                                                 }
 
-                                                Rectangle {
-                                                    id: loadingIndicator
-                                                    anchors.fill: parent
-                                                    visible: syncContainer.syncing
-                                                    color: "#0078d4"
-                                                    radius: units.gu(0.5)
-                                                    border.color: "#0056a0"
-                                                    border.width: 1
+                                                // Rectangle {
+                                                //     id: loadingIndicator
+                                                //     anchors.fill: parent
+                                                //     visible: syncContainer.syncing
+                                                //     color: "#0078d4"
+                                                //     radius: units.gu(0.5)
+                                                //     border.color: "#0056a0"
+                                                //     border.width: 1
 
-                                                    // Pulsing animation for loading indicator
-                                                    SequentialAnimation {
-                                                        running: syncContainer.syncing
-                                                        loops: Animation.Infinite
+                                                //     // Pulsing animation for loading indicator
+                                                //     SequentialAnimation {
+                                                //         running: syncContainer.syncing
+                                                //         loops: Animation.Infinite
 
-                                                        PropertyAnimation {
-                                                            target: loadingIndicator
-                                                            property: "opacity"
-                                                            from: 1.0
-                                                            to: 0.6
-                                                            duration: 800
-                                                        }
+                                                //         PropertyAnimation {
+                                                //             target: loadingIndicator
+                                                //             property: "opacity"
+                                                //             from: 1.0
+                                                //             to: 0.6
+                                                //             duration: 800
+                                                //         }
 
-                                                        PropertyAnimation {
-                                                            target: loadingIndicator
-                                                            property: "opacity"
-                                                            from: 0.6
-                                                            to: 1.0
-                                                            duration: 800
-                                                        }
-                                                    }
+                                                //         PropertyAnimation {
+                                                //             target: loadingIndicator
+                                                //             property: "opacity"
+                                                //             from: 0.6
+                                                //             to: 1.0
+                                                //             duration: 800
+                                                //         }
+                                                //     }
 
-                                                    Text {
-                                                        anchors.centerIn: parent
-                                                        text: "Syncing..."
-                                                        color: "white"
-                                                        font.pixelSize: units.gu(1.2)
-                                                    }
-                                                }
+                                                //     Text {
+                                                //         anchors.centerIn: parent
+                                                //         text: "Syncing..."
+                                                //         color: "white"
+                                                //         font.pixelSize: units.gu(1.2)
+                                                //     }
+                                                // }
                                             }
                                         }
                                     }
