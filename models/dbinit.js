@@ -173,12 +173,13 @@ function initializeDatabase() {
             record_date datetime,\
             user_id INTEGER,\
             status TEXT DEFAULT "",\
+            timer_type TEXT DEFAULT "manual",\
             odoo_record_id INTEGER,\
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'project_id INTEGER', 'sub_project_id INTEGER', 'task_id INTEGER',
                                   'sub_task_id INTEGER', 'name TEXT', 'unit_amount FLOAT', 'last_modified datetime', 'quadrant_id INTEGER',
-                                  'record_date datetime','user_id INTEGER' ,'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
+                                  'record_date datetime','user_id INTEGER' ,'status TEXT DEFAULT ""', 'timer_type TEXT DEFAULT "manual"', 'odoo_record_id INTEGER']
                                  );
 
     DBCommon.createOrUpdateTable("mail_activity_type_app",
