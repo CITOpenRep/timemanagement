@@ -125,27 +125,60 @@ Item {
                 Image {
                     id: recordIcon
                     anchors.fill: parent
-                    anchors.margins: units.gu(0.3)     // add subtle padding
-                    source: isRecording ? "../images/pause.png" : "../images/play (1).png"
+                    anchors.margins: units.gu(0.3)
+                    
+                    source: {
+                        if (!autoMode) return "../images/play (1).png";
+                        
+                        var serviceRunning = TimerService.isRunning();
+                        var servicePaused = TimerService.isPaused();
+                        var activeId = TimerService.getActiveTimesheetId();
+                        
+                        if (serviceRunning && activeId === timesheetId && !servicePaused) {
+                            return "../images/pause.png";
+                        } else {
+                            return "../images/play (1).png";
+                        }
+                    }
+                    
                     fillMode: Image.PreserveAspectFit
                 }
 
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
+                    
                     onClicked: {
                         if (timesheetId <= 0) {
                             autoRecorder.invalidtimesheet();
                             return;
                         }
-                        if (!isRecording) {
+                        
+                        var serviceRunning = TimerService.isRunning();
+                        var servicePaused = TimerService.isPaused();
+                        var activeId = TimerService.getActiveTimesheetId();
+                        
+                        if (!serviceRunning || activeId !== timesheetId) {
+                            
                             if (TimeSheet.isTimesheetReadyToRecord(timesheetId)) {
-                                TimerService.start(timesheetId);
+                                var result = TimerService.start(timesheetId);
+                                if (result.success) {
+                                    isRecording = true;
+                                    updateTimer.start();
+                                } else {
+                                    notifPopup.open("Timer Error", result.error, "error");
+                                }
                             } else {
-                                notifPopup.open("Incomplete Timesheet", "To start the Timer, Please Save the Timesheet first.", "error");
+                                notifPopup.open("Incomplete Timesheet", "Please save the timesheet first.", "error");
                             }
+                        } else if (servicePaused) {
+                            
+                            TimerService.resume();
+                            isRecording = true;
                         } else {
-                            TimerService.stop();
+                           
+                            TimerService.pause();
+                            isRecording = false;
                         }
                     }
                 }
@@ -195,14 +228,24 @@ Item {
         id: updateTimer
         interval: 1000
         repeat: true
-        running: isRecording && autoMode
+        running: autoMode && (TimerService.isRunning() && TimerService.getActiveTimesheetId() === timesheetId)
+        
         onTriggered: {
-            if (TimerService.isRunning()) {
+            var serviceRunning = TimerService.isRunning();
+            var servicePaused = TimerService.isPaused();
+            var activeId = TimerService.getActiveTimesheetId();
+            
+           
+            if (serviceRunning && activeId === timesheetId) {
+                isRecording = true;
                 timeDisplay.text = TimerService.getElapsedTime();
             } else {
                 isRecording = false;
-                timeDisplay.text = Utils.convertDecimalHoursToHHMM(TimeSheet.getTimesheetUnitAmount(timesheetId));
+                
+                var savedTime = TimeSheet.getTimesheetUnitAmount(timesheetId);
+                timeDisplay.text = Utils.convertDecimalHoursToHHMM(savedTime);
             }
+            
             elapsedTime = timeDisplay.text;
         }
     }

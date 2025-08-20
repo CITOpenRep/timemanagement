@@ -213,7 +213,9 @@ function getElapsedDuration() {
     var totalSeconds = 0;
 
     if (startTime) {
-        var elapsedMs = Date.now() - startTime;
+        
+        var now = paused ? pauseStartTime : Date.now();
+        var elapsedMs = now - startTime;
         totalSeconds = Math.floor(elapsedMs / 1000);
     }
 
