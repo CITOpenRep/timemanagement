@@ -31,6 +31,7 @@ import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
 import "../models/project.js" as Project
 import "../models/notifications.js" as Notifications
+import "../models/activity.js" as Activity
 import "../models/utils.js" as Utils
 import "../models/timesheet.js" as TimesheetModel
 import "../models/accounts.js" as Account
@@ -50,6 +51,9 @@ Page {
             projectchart.load(data);
             // For testing notifications
             // simulateTestNotifications();
+
+            // Test activity assignment notification
+            Activity.testActivityAssignmentNotification();
         }
     }
 

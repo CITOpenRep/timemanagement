@@ -4,6 +4,7 @@
 .import "task.js" as Task
 .import "project.js" as Project
 .import "accounts.js" as Accounts
+.import "notifications.js" as Notifications
 
 /**
  * Retrieves all activity records from the `mail_activity_app` table.
@@ -552,6 +553,24 @@ function saveActivityData(data, recordId) {
         var timestamp = Utils.getFormattedTimestampUTC();
 
         db.transaction(function (tx) {
+            var isNewAssignment = false;
+            var previousUserId = null;
+            var currentUserId = data.updatedUserId;
+            var accountId = data.updatedAccount;
+            
+            // Check if this is a new assignment or changed assignment
+            if (recordId > 0) {
+                // For updates, check if the assignee has changed
+                var existingRecord = tx.executeSql("SELECT user_id FROM mail_activity_app WHERE id = ?", [recordId]);
+                if (existingRecord.rows.length > 0) {
+                    previousUserId = existingRecord.rows.item(0).user_id;
+                    isNewAssignment = (previousUserId !== currentUserId && currentUserId !== null && currentUserId !== "");
+                }
+            } else {
+                // For new records, this is always a new assignment if user_id is set
+                isNewAssignment = (currentUserId !== null && currentUserId !== "" && currentUserId !== undefined);
+            }
+
             if (recordId > 0) {
                 // UPDATE existing record
                 tx.executeSql(
@@ -616,6 +635,51 @@ function saveActivityData(data, recordId) {
                     ]
                 );
                 console.log("✅ New activity record inserted");
+            }
+            
+            // Check if this assignment is for the current user and create notification
+            if (isNewAssignment && currentUserId) {
+                var currentUserOdooId = Accounts.getCurrentUserOdooId(accountId);
+                
+                // Convert currentUserId to array if it's a string representation
+                var assignedUserIds = [];
+                if (typeof currentUserId === 'string') {
+                    try {
+                        // Handle cases like "12" or "[12,13]" or "12,13"
+                        if (currentUserId.startsWith('[') && currentUserId.endsWith(']')) {
+                            assignedUserIds = JSON.parse(currentUserId);
+                        } else if (currentUserId.includes(',')) {
+                            assignedUserIds = currentUserId.split(',').map(function(id) { return parseInt(id.trim()); });
+                        } else {
+                            assignedUserIds = [parseInt(currentUserId)];
+                        }
+                    } catch (e) {
+                        assignedUserIds = [parseInt(currentUserId)];
+                    }
+                } else if (Array.isArray(currentUserId)) {
+                    assignedUserIds = currentUserId;
+                } else {
+                    assignedUserIds = [currentUserId];
+                }
+                
+                // Check if current user is among the assigned users
+                if (assignedUserIds.includes(currentUserOdooId)) {
+                    var notificationMessage = "New activity assigned to you: " + (data.updatedSummary || "Activity");
+                    var payload = {
+                        activity_id: recordId > 0 ? recordId : "new",
+                        summary: data.updatedSummary,
+                        due_date: data.updatedDate,
+                        project_id: data.project_id,
+                        task_id: data.task_id
+                    };
+                    
+                    try {
+                        Notifications.addNotification(accountId, "Activity", notificationMessage, payload);
+                        console.log("📋 Activity assignment notification created for user", currentUserOdooId);
+                    } catch (notifError) {
+                        console.error("Failed to create activity notification:", notifError.message);
+                    }
+                }
             }
         });
 
@@ -688,6 +752,38 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
 
     } catch (e) {
         console.error("createActivityFromProjectOrTask failed:", e.message);
+        return { success: false, error: e.message };
+    }
+}
+
+
+/**
+ * Test function to create a sample activity assignment notification
+ * This function can be used to test the notification system
+ */
+function testActivityAssignmentNotification() {
+    try {
+        var accountId = Accounts.getDefaultAccountId();
+        var currentUserOdooId = Accounts.getCurrentUserOdooId(accountId);
+        
+        console.log("Testing activity assignment notification for user:", currentUserOdooId);
+        
+        // Create a test notification for activity assignment
+        var notificationMessage = "Test: New activity assigned to you - Review Project Documentation";
+        var payload = {
+            activity_id: 999,
+            summary: "Review Project Documentation",
+            due_date: new Date().toISOString().split('T')[0],
+            project_id: null,
+            task_id: null
+        };
+        
+        Notifications.addNotification(accountId, "Activity", notificationMessage, payload);
+        console.log("📋 Test activity assignment notification created successfully");
+        
+        return { success: true, message: "Test notification created" };
+    } catch (e) {
+        console.error("❌ Failed to create test activity notification:", e.message);
         return { success: false, error: e.message };
     }
 }

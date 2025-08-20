@@ -180,7 +180,7 @@ Page {
 
         switch (filter) {
         case "today":
-            // Show activities due today only
+            // Show activities due today or overdue (more user-friendly)
             return itemDate.getTime() <= today.getTime();
         case "week":
             var weekStart = new Date(today);

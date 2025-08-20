@@ -30,6 +30,75 @@ import logging
 from datetime import timezone
 from datetime import datetime
 from common import sanitize_datetime, safe_sql_execute,add_notification
+
+
+def check_and_create_activity_notification(db_path, account_id, record, columns, values):
+    """
+    Check if an activity assignment should trigger a notification for the current user.
+    
+    Args:
+        db_path (str): Path to the SQLite database
+        account_id (int): The account ID
+        record (dict): The Odoo record data
+        columns (list): List of column names
+        values (list): List of column values
+    """
+    try:
+        # Find user_id in the record
+        user_id = None
+        summary = "New Activity"
+        due_date = None
+        
+        # Extract data from the record
+        if 'user_id' in record and record['user_id']:
+            user_id = record['user_id'][0] if isinstance(record['user_id'], list) else record['user_id']
+        
+        if 'summary' in record and record['summary']:
+            summary = record['summary']
+            
+        if 'date_deadline' in record and record['date_deadline']:
+            due_date = record['date_deadline']
+        elif 'due_date' in record and record['due_date']:
+            due_date = record['due_date']
+            
+        # Get current user's Odoo ID for this account
+        if user_id:
+            current_user_query = """
+                SELECT r.odoo_record_id 
+                FROM users u 
+                LEFT JOIN res_users_app r ON u.id = r.account_id 
+                WHERE u.id = ? AND r.active = 1
+                LIMIT 1
+            """
+            
+            result = safe_sql_execute(db_path, current_user_query, (account_id,), fetch=True)
+            
+            if result and len(result) > 0:
+                current_user_odoo_id = result[0][0]
+                
+                # Check if the activity is assigned to the current user
+                if current_user_odoo_id == user_id:
+                    notification_message = f"New activity assigned to you: {summary}"
+                    
+                    payload = {
+                        "activity_id": record.get('id'),
+                        "summary": summary,
+                        "due_date": due_date,
+                        "odoo_record_id": record.get('id')
+                    }
+                    
+                    add_notification(
+                        db_path=db_path,
+                        account_id=account_id,
+                        notif_type="Activity",
+                        message=notification_message,
+                        payload=payload
+                    )
+                    
+                    log.debug(f"📋 Activity assignment notification created for user {current_user_odoo_id}")
+                    
+    except Exception as e:
+        log.error(f"Failed to check activity notification: {e}")
 from pathlib import Path
 import os
 
@@ -166,6 +235,11 @@ def insert_record(
         sql = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
 
         safe_sql_execute(db_path, sql, values)
+        
+        # Check for activity assignment notifications
+        if table_name == "mail_activity_app" and model_name == "mail.activity":
+            check_and_create_activity_notification(db_path, account_id, record, columns, values)
+            
     except Exception as e:
         log.debug(f"[ERROR] Failed to insert record into '{table_name}': {e}")
         add_notification(
