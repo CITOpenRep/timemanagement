@@ -28,7 +28,7 @@
       </p>
       <h3>Change History : (Version 1.1.4) </h3>
        <ul>
-         <h4> 09-08-2025 : Version 1.1.4 </h4>
+         <h4> 22-08-2025 : Version 1.1.4 </h4>
          <h5> New Features </h5>
          <li> Added feature to Mark the Project Favourite. Sync from Device to Server is not working yet.</li>
          <li> Added Feature to Set the Priority for Tasks. Sync from Device to Server is not working yet. </li>
