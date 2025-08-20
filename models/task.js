@@ -764,7 +764,7 @@ function getAllTasks() {
 
 /**
  * Filters tasks based on date criteria and search query while preserving parent-child hierarchy
- * @param {string} filterType - The filter type: "today", "this_week", "next_week", "later", "completed"
+ * @param {string} filterType - The filter type: "today", "this_week", "next_week", "this_month", "later", "completed"
  * @param {string} searchQuery - The search query string
  * @returns {Array<Object>} Filtered list of tasks with hierarchy preserved
  */
@@ -913,6 +913,8 @@ function passesDateFilter(task, filterType, currentDate) {
             return isTaskDueToday(task, today);
         case "this_week":
             return isTaskDueThisWeek(task, today);
+        case "next_week":
+            return isTaskDueNextWeek(task, today);
         case "this_month":
             return isTaskDueThisMonth(task, today);
         case "overdue":
@@ -982,10 +984,15 @@ function isTaskDueThisWeek(task, today) {
         return false;
     }
     
+    // Calculate this week's start (Monday) and end (Sunday)
+    var currentDow = today.getDay();
+    var daysFromMonday = currentDow === 0 ? 6 : currentDow - 1; // If Sunday, 6 days from Monday; otherwise, day - 1
+    
     var weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay());
+    weekStart.setDate(today.getDate() - daysFromMonday);
+    
     var weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setDate(weekStart.getDate() + 6); // Sunday of current week
     
     // Normalize to remove time component
     var weekStartDay = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
@@ -1005,6 +1012,36 @@ function isTaskDueThisWeek(task, today) {
 /**
  * Check if task is due next week
  */
+function isTaskDueNextWeek(task, today) {
+    if (!task.end_date && !task.start_date) {
+        return false;
+    }
+    
+    // Calculate next week's start (Monday) and end (Sunday)
+    var currentDow = today.getDay();
+    var daysUntilNextMonday = currentDow === 0 ? 1 : (8 - currentDow);
+    
+    var nextWeekStart = new Date(today);
+    nextWeekStart.setDate(today.getDate() + daysUntilNextMonday);
+    
+    var nextWeekEnd = new Date(nextWeekStart);
+    nextWeekEnd.setDate(nextWeekStart.getDate() + 6); // Sunday of next week
+    
+    // Normalize to remove time component
+    var nextWeekStartDay = new Date(nextWeekStart.getFullYear(), nextWeekStart.getMonth(), nextWeekStart.getDate());
+    var nextWeekEndDay = new Date(nextWeekEnd.getFullYear(), nextWeekEnd.getMonth(), nextWeekEnd.getDate());
+    
+    // Check if any day in next week falls within the task's date range
+    for (var day = new Date(nextWeekStartDay); day <= nextWeekEndDay; day.setDate(day.getDate() + 1)) {
+        var dateStatus = getTaskDateStatus(task, day);
+        if (dateStatus.isInRange) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 /**
  * Check if task should appear in this month filter (date range overlaps with this month)
  */
