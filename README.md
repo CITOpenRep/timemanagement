@@ -1,6 +1,6 @@
-# Time Management (Alpha Draft)
+# Time Management 
 
-Time Management (Alpha Draft)
+Time Management 
 
 This guide explains how to install `clickable`, build the `TimeManagement` project, and run it on both desktop and Ubuntu Touch devices.
 

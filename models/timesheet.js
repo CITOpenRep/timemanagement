@@ -116,6 +116,7 @@ function fetchTimesheetsByStatus(status) {
                     status: row.status,
                     task: taskName,
                     user: userName,
+                    timer_type: row.timer_type || 'manual',
                     color_pallet: parseInt(inheritedColor) || 0
                 });
             }
@@ -272,7 +273,8 @@ function getTimeSheetDetails(record_id) {
                 'name': timesheet.rows.item(0).name,
                 'spentHours': Utils.convertDecimalHoursToHHMM(timesheet.rows.item(0).unit_amount),
                 'quadrant_id': timesheet.rows.item(0).quadrant_id,
-                'record_date': Utils.formatDate(new Date(timesheet.rows.item(0).record_date))
+                'record_date': Utils.formatDate(new Date(timesheet.rows.item(0).record_date)),
+                'timer_type': timesheet.rows.item(0).timer_type || 'manual'
             };
         }
     });
@@ -316,6 +318,7 @@ function saveTimesheet(data) {
                           unit_amount = ?,
                           last_modified = ?,
                           status = ?,
+                          timer_type = ?,
                           user_id = ?
                           WHERE id = ?`,
                           [
@@ -330,6 +333,7 @@ function saveTimesheet(data) {
                               data.unit_amount || 0,
                               timestamp,
                               data.status || "draft",
+                              data.timer_type || "manual",
                               data.user_id || null,
                               data.id
                           ]);
@@ -353,8 +357,8 @@ function createTimesheet(instance_id,userid) {
         db.transaction(function (tx) {
             tx.executeSql(`INSERT INTO account_analytic_line_app
                           (account_id, record_date, project_id, task_id, name, sub_project_id,
-                          sub_task_id, quadrant_id, unit_amount, last_modified, status, user_id)
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                          sub_task_id, quadrant_id, unit_amount, last_modified, status, timer_type, user_id)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                           [
                               instance_id,               // account_id
                               Utils.getToday(),      // record_date, fallback to today
@@ -367,6 +371,7 @@ function createTimesheet(instance_id,userid) {
                               0,                         // unit_amount
                               timestamp,                 // last_modified
                               "draft",                   // status
+                              "manual",                  // timer_type - default to manual
                               userid                       // user_id
                           ]);
 
@@ -446,6 +451,7 @@ function createTimesheet(instance_id,userid) {
              subTask: null,
              description: "Timesheet (" + today + ") " + (task.name || ""),
              unit_amount: 0,
+             timer_type: "manual", // Default to manual when created from task
              status: "draft",
              user_id: task.user_id
          };
@@ -526,6 +532,7 @@ function createTimesheetFromProject(projectRecordId) {
             subTask: null,
             description: "Project Timesheet (" + today + ") " + (project.name || ""),
             unit_amount: 0,
+            timer_type: "manual", // Default to manual when created from project
             status: "draft",
             user_id: userId // Use the resolved user ID
         };

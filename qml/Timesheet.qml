@@ -118,6 +118,7 @@ Page {
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
+            'timer_type': time_sheet_widget.autoMode ? 'automatic' : 'manual',
             'status': "draft"
         };
 
@@ -443,6 +444,9 @@ Page {
                 }
                 if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
                     priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1;
+                }
+                if (currentTimesheet.timer_type && currentTimesheet.timer_type !== "") {
+                    time_sheet_widget.autoMode = (currentTimesheet.timer_type === "automatic");
                 }
             } else {
                 //  console.log("NO recordid - calling loadAccounts()");

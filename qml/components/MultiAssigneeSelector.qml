@@ -24,6 +24,7 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
 import "../../models/accounts.js" as Accounts
 
@@ -43,7 +44,7 @@ Item {
     // Public API
     function setSelectedAssignees(assignees) {
         selectedAssignees = assignees || [];
-        updateDisplayText();
+        // updateDisplayText();
         assigneesChanged(selectedAssignees);
     }
 
@@ -89,15 +90,15 @@ Item {
 
     property var availableAssignees: []
 
-    function updateDisplayText() {
-        if (selectedAssignees.length === 0) {
-            displayButton.text = "Select Assignees";
-        } else if (selectedAssignees.length === 1) {
-            displayButton.text = selectedAssignees[0].name;
-        } else {
-            displayButton.text = selectedAssignees.length + " assignees selected";
-        }
-    }
+    // function updateDisplayText() {
+    //     if (selectedAssignees.length === 0) {
+    //         displayButton.text = "Select Assignees";
+    //     } else if (selectedAssignees.length === 1) {
+    //         displayButton.text = selectedAssignees[0].name + "   ⬇️";
+    //     } else {
+    //         displayButton.text = selectedAssignees.length + " assignees selected         ⬇️";
+    //     }
+    // }
 
     Column {
         id: mainColumn
@@ -109,17 +110,17 @@ Item {
             width: parent.width
             spacing: units.gu(2)
 
-            TSLabel {
-                text: labelText
-                width: parent.width * 0.3
-                anchors.verticalCenter: parent.verticalCenter
-            }
+            // TSLabel {
+            //     text: labelText
+            //     width: parent.width * 0.3
+            //     anchors.verticalCenter: parent.verticalCenter
+            // }
 
             TSButton {
                 id: displayButton
                 text: "Select Assignees"
                 enabled: enabledState && !readOnly && availableAssignees.length > 0
-                width: parent.width * 0.6
+                width: parent.width * 0.3
                 height: units.gu(5)
                 anchors.verticalCenter: parent.verticalCenter
 
@@ -129,57 +130,62 @@ Item {
                     }
                 }
             }
-        }
 
-        // Display selected assignees as chips/tags
-        Flow {
-            id: assigneeFlow
-            width: parent.width
-            spacing: units.gu(0.5)
-            visible: selectedAssignees.length > 0
+            // Grid layout for selected assignees
+            Grid {
+                id: assigneeGrid
+                width: parent.width
+                columns: Math.floor(parent.width / units.gu(20)) // Adjust column width as needed
+                spacing: units.gu(0.5)
+                visible: selectedAssignees.length > 0
 
-            Repeater {
-                model: selectedAssignees.length
+                Repeater {
+                    model: selectedAssignees.length
 
-                Item {
-                    width: assigneeChip.width
-                    height: assigneeChip.height
+                    Item {
+                        width: units.gu(12) // Fixed width for grid items
+                        height: assigneeChip.height
 
-                    Rectangle {
-                        id: assigneeChip
-                        width: assigneeLabel.width + removeButton.width + units.gu(2)
-                        height: units.gu(3)
-                        radius: units.gu(1.5)
-                        color: "#3498db"  // Blue color
-                        border.color: "#666666"  // Dark grey
-                        border.width: 1
+                        Rectangle {
+                            id: assigneeChip
+                            width: parent.width
+                            height: units.gu(2.7) // Slightly taller for better appearance
+                            radius: units.gu(1.5)
+                            color: "#3498db"  // Blue color
+                            border.color: "#666666"  // Dark grey
+                            border.width: 1
 
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: units.gu(0.5)
+                            Row {
+                                anchors.fill: parent
+                                anchors.margins: units.gu(0.5)
+                                spacing: units.gu(0.5)
 
-                            Label {
-                                id: assigneeLabel
-                                text: selectedAssignees[index].name
+                                TSLabel {
+                                    id: assigneeLabel
+                                    text: selectedAssignees[index].name
+                                    
+                                    color: "white"
+                                    fontSize: units.gu(1.5)
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - removeButton.width - units.gu(1)
+                                    elide: Text.ElideRight // Truncate text if too long
+                                    wrapMode: Text.NoWrap
+                                }
 
-                                color: "white"
-                                font.pixelSize: units.gu(1.2)
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
+                                TSButton {
+                                    id: removeButton
+                                    text: "×"
+                                    enabled: !readOnly && enabledState
+                                    width: units.gu(2)
+                                    height: units.gu(2)
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: units.gu(0.5)
 
-                            TSButton {
-                                id: removeButton
-                                text: "×"
-
-                                enabled: !readOnly && enabledState
-                                width: units.gu(2)
-                                height: units.gu(2)
-                                anchors.verticalCenter: parent.verticalCenter
-                                // color: LomiriColors.red
-
-                                onClicked: {
-                                    if (!readOnly && enabledState) {
-                                        removeAssignee(index);
+                                    onClicked: {
+                                        if (!readOnly && enabledState) {
+                                            removeAssignee(index);
+                                        }
                                     }
                                 }
                             }
@@ -188,6 +194,9 @@ Item {
                 }
             }
         }
+
+        // Display selected assignees as chips/tags
+
     }
 
     function removeAssignee(index) {
@@ -198,7 +207,7 @@ Item {
         if (index >= 0 && index < selectedAssignees.length) {
             selectedAssignees.splice(index, 1);
             selectedAssignees = selectedAssignees; // Trigger change
-            updateDisplayText();
+            // updateDisplayText();
             assigneesChanged(selectedAssignees);
         }
     }
@@ -216,7 +225,7 @@ Item {
         }
         selectedAssignees.push(assignee);
         selectedAssignees = selectedAssignees; // Trigger change
-        updateDisplayText();
+        //   updateDisplayText();
         assigneesChanged(selectedAssignees);
     }
 
@@ -414,7 +423,7 @@ Item {
                             onClicked: {
                                 if (!readOnly) {
                                     selectedAssignees = [];
-                                    updateDisplayText();
+                                    //updateDisplayText();
                                     assigneesChanged(selectedAssignees);
                                 }
                             }
@@ -433,7 +442,7 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        updateDisplayText();
-    }
+    Component.onCompleted:
+    //updateDisplayText();
+    {}
 }

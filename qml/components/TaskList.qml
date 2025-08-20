@@ -28,6 +28,7 @@ import Lomiri.Components 1.3
 import QtQuick.LocalStorage 2.7 as Sql
 import "../../models/task.js" as Task
 import "../../models/project.js" as Project
+import "." // Import the current directory to make TaskDetailsCard available
 
 Item {
     id: taskNavigator
@@ -286,7 +287,7 @@ Item {
                     startDate: model.startDate
                     endDate: model.endDate
                     description: model.description
-                    isFavorite: model.isFavorite
+                    priority: model.priority // Use priority instead of isFavorite
                     hasChildren: model.hasChildren
                     childCount: model.childCount
                     projectName: model.project
@@ -306,15 +307,25 @@ Item {
                         taskTimesheetRequested(localId);
                     }
 
+                    // MouseArea for task interaction - navigation for parent tasks, view for regular tasks
                     MouseArea {
-                        anchors.fill: parent
-                        enabled: model.hasChildren
+                        // Only cover the text area, not the whole card
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        anchors.leftMargin: units.gu(15)  // Skip the star area
+                        enabled: !taskCard.starInteractionActive
                         onClicked: {
                             if (model.hasChildren) {
+                              
                                 navigationStackModel.append({
                                     parentId: currentParentId
                                 });
                                 currentParentId = model.id_val;
+                            } else {
+                               
+                                taskCard.viewRequested(model.local_id);
                             }
                         }
                     }
