@@ -641,34 +641,36 @@ function markTimesheetAsActiveById(timesheetId) {
 
 function markTimesheetAsReadyById(timesheetId) {
     var result = { success: false, error: "", id: null };
-    //first see if is ready to update?
-    if(!isTimesheetReadyToRecord(timesheetId))
-    {
-        result.success =false
-        return result
+    
+    if(!isTimesheetReadyToRecord(timesheetId)) {
+        result.success = false;
+        result.error = "Timesheet not ready - missing project/task information";
+        return result;
     }
-
+ 
     console.log("Marking timesheet " + timesheetId + " as draft");
-
+ 
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
-
+ 
     try {
         db.transaction(function(tx) {
+            
             tx.executeSql(
-                        "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
-                        [timestamp, "updated", timesheetId]
-                        );
+                "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
+                [timestamp, "draft", timesheetId]  
+            );
         });
         console.log("Timesheet " + timesheetId + " marked as draft successfully.");
         result.success = true;
     } catch (e) {
-        console.log("markTimesheetAsDraftById failed:", e);
+        console.log("markTimesheetAsReadyById failed:", e);
         result.success = false;
+        result.error = e.message;
     }
     return result;
 }
-
+ 
 function getTimesheetUnitAmount(timesheetId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var unitAmount = 0;

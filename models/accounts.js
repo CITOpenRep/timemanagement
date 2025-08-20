@@ -204,32 +204,32 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
         message: "",
         duplicateType: null
     };
-
+ 
     try {
         const db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-
+ 
         db.transaction(function (tx) {
             
             
             const nameCheckResult = tx.executeSql(
-                'SELECT COUNT(*) AS count FROM users WHERE name = ? COLLATE BINARY',
+                'SELECT COUNT(*) AS count FROM users WHERE LOWER(name) = LOWER(?)',
                 [name]
             );
-
+ 
             if (nameCheckResult.rows.item(0).count > 0) {
-                DBCommon.log("Duplicate account name found: " + name);
+                DBCommon.log("Duplicate account name found (case-insensitive): " + name);
                 result.duplicateFound = true;
                 result.duplicateType = "name";
                 result.message = "An account with this name already exists.";
                 return;
             }
-
+ 
             
             const connectionCheckResult = tx.executeSql(
                 'SELECT COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ? COLLATE BINARY',
                 [link, database, username]
             );
-
+ 
             if (connectionCheckResult.rows.item(0).count > 0) {
                 DBCommon.log("Duplicate connection found for: " + link + "/" + database + "/" + username);
                 result.duplicateFound = true;
@@ -237,7 +237,7 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
                 result.message = "An account with this server connection already exists.";
                 return;
             }
-
+ 
             
             const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
             tx.executeSql(
@@ -248,15 +248,16 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
             DBCommon.log("New user account created successfully: " + name);
             result.message = "Account created successfully.";
         });
-
+ 
     } catch (e) {
         DBCommon.logException("createAccount", e);
         result.duplicateFound = true;
         result.message = "Error creating account: " + e.message;
     }
-
+ 
     return result;
 }
+ 
 /**
  * Deletes a user account and all related records from associated tables in the local SQLite database.
  *
