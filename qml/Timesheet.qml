@@ -72,18 +72,6 @@ Page {
         ]
     }
 
-    function getCurrentTimesheetStatus() {
-        if (recordid <= 0) return "new";
-        
-        try {
-            const details = Model.getTimeSheetDetails(recordid);
-            return details.status || "draft";
-        } catch (e) {
-            console.error("Failed to get timesheet status:", e);
-            return "draft";
-        }
-    }
-
     function save_timesheet() {
         let time = time_sheet_widget.elapsedTime;
         
@@ -162,7 +150,17 @@ Page {
     }
 
 
-
+    function getCurrentTimesheetStatus() {
+        if (recordid <= 0) return "new";
+        
+        try {
+            const details = Model.getTimeSheetDetails(recordid);
+            return details.status || "draft";
+        } catch (e) {
+            console.error("Failed to get timesheet status:", e);
+            return "draft";
+        }
+    }
 
     function switchToEditMode() {
         if (recordid !== 0) {
