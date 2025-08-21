@@ -225,9 +225,17 @@ Item {
         case 1 // This Week
         :
             const dow = today.getDay();
-            // For weekends (Saturday=6, Sunday=0), keep the same date for both start and end
-            if (dow === 0 || dow === 6) {
-                // Weekend: start and end are the same (today)
+            // For weekend handling:
+            // - Sunday (0): keep start and end as today
+            // - Saturday (6): start = Saturday (today), end = Sunday (tomorrow)
+            if (dow === 0) {
+                // Sunday: start and end are the same (today)
+                break;
+            } else if (dow === 6) {
+                // Saturday: set end to Sunday
+                newStart = new Date(today);
+                newEnd = new Date(today);
+                newEnd.setDate(today.getDate() + 1);
                 break;
             } else {
                 // Weekday: calculate Monday of current week as start date

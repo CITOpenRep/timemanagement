@@ -26,8 +26,22 @@
          It allows users to manage projects, tasks, timesheets, and activities—both offline and online—
          through seamless integration with Odoo.
       </p>
-      <h3>Change History : (Version 1.1.3) </h3>
-      <ul>
+      <h3>Change History : (Version 1.1.4) </h3>
+       <ul>
+         <h4> 22-08-2025 : Version 1.1.4 </h4>
+         <h5> New Features </h5>
+         <li> Added feature to Mark the Project Favourite. Sync from Device to Server is not working yet.</li>
+         <li> Added Feature to Set the Priority for Tasks. Sync from Device to Server is not working yet. </li>
+         <li> Added new Timer_Type in DB for Timesheets for remembering the Timer Type in Devices. </li>
+         <li> Introducing Sync Message using Global Timer Widget. Added a Progress bar based on Timer below the Sync Message Widet. Removed the Sync animation from the Sync Button. </li>
+         <h5> Fixes and Improvements </h5>
+         <li> Fixed the account uniqueness for all databases with case insensitive checking. </li>
+         <li> Fixed that finalizing the timer and the timesheet  automatic move to draft status without requiring manual save. </li>
+         <li> Fixed the automatic timesheet entry that saving after timer finalization, now it will be autosaved when we finalize the timer. </li>
+         <li> Fixed that earlier the time gets reset to 0.00H, Now ,Timer state syncs correctly when reopening timesheet detail page. </li>
+         <li> Fixed the Date Range Selector to work properly even for Weekends. </li>
+         <li> Fixed for Timesheets, while finalising a timesheet from Draft Stage, it should move from Draft Stage. </li>
+         <br>
          <h4> 09-08-2025 : Version 1.1.3 </h4>
          <h5> New Features </h5>
          <li> Added feature to create Activity from Home Screen via FAB menu. </li>
