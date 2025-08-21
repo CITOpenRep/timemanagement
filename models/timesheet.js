@@ -639,6 +639,13 @@ function markTimesheetAsActiveById(timesheetId) {
     }
 }
 
+/**
+ * Marks a timesheet as ready to be synced to Odoo by setting its status to "updated".
+ * The timesheet must have required project/task information to be marked as ready.
+ *
+ * @param {number} timesheetId - The ID of the timesheet to be marked as ready for sync
+ * @returns {Object} - An object with `success` (boolean) and `error` (string) indicating the result
+ */
 function markTimesheetAsReadyById(timesheetId) {
     var result = { success: false, error: "", id: null };
     
@@ -648,7 +655,7 @@ function markTimesheetAsReadyById(timesheetId) {
         return result;
     }
  
-    console.log("Marking timesheet " + timesheetId + " as draft");
+    console.log("Marking timesheet " + timesheetId + " as updated for sync");
  
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
@@ -658,10 +665,10 @@ function markTimesheetAsReadyById(timesheetId) {
             
             tx.executeSql(
                 "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
-                [timestamp, "draft", timesheetId]  
+                [timestamp, "updated", timesheetId]  
             );
         });
-        console.log("Timesheet " + timesheetId + " marked as draft successfully.");
+        console.log("Timesheet " + timesheetId + " marked as updated successfully.");
         result.success = true;
     } catch (e) {
         console.log("markTimesheetAsReadyById failed:", e);
