@@ -41,7 +41,7 @@ Rectangle {
         repeat: false
         onTriggered: {
             if (isSyncing) {
-              //  console.warn("⚠️ GlobalTimer: Sync timeout for account", syncAccountId, "- stopping sync indication");
+                //  console.warn("⚠️ GlobalTimer: Sync timeout for account", syncAccountId, "- stopping sync indication");
                 var timedOutAccountId = syncAccountId; // Store before clearing
                 stopSync();
                 // Emit signal so other components can react to timeout
@@ -58,7 +58,7 @@ Rectangle {
         repeat: false
         onTriggered: {
             if (isSyncing) {
-               // console.log("✅ GlobalTimer: Showing sync success for account", syncAccountId);
+                // console.log("✅ GlobalTimer: Showing sync success for account", syncAccountId);
                 syncSuccessful = true;
                 syncProgress = 1.0;
             }
@@ -66,40 +66,40 @@ Rectangle {
     }
 
     // Progress update timer
-  Timer {
-    id: progressTimer
-    interval: 100 // Update every 100ms for smooth progress
-    running: false
-    repeat: true
-    onTriggered: {
-        if (isSyncing && !syncSuccessful) {
-            var elapsed = Date.now() - syncStartTime;
-            var totalTime = 24000; // Progress completes at 15 seconds (when success shows)
-            syncProgress = Math.min(elapsed / totalTime, 1.0);
-         //   console.log("Progress update:", syncProgress, "Elapsed:", elapsed, "StartTime:", syncStartTime, "Now:", Date.now());
+    Timer {
+        id: progressTimer
+        interval: 100 // Update every 100ms for smooth progress
+        running: false
+        repeat: true
+        onTriggered: {
+            if (isSyncing && !syncSuccessful) {
+                var elapsed = Date.now() - syncStartTime;
+                var totalTime = 24000; // Progress completes at 15 seconds (when success shows)
+                syncProgress = Math.min(elapsed / totalTime, 1.0);
+                //   console.log("Progress update:", syncProgress, "Elapsed:", elapsed, "StartTime:", syncStartTime, "Now:", Date.now());
+            }
         }
     }
-}
 
     // Function to start sync indication
-  function startSync(accountId, accountName) {
-   // console.log("🔥 GlobalTimer: Starting sync indication for account", accountId, "(" + accountName + ")");
-    syncAccountId = accountId;
-    syncAccountName = accountName || "Account " + accountId;
-    isSyncing = true;
-    syncSuccessful = false;
-    syncProgress = 0.0;
-    syncStartTime = Date.now(); // This is correct
-    globalTimer.visible = true;
+    function startSync(accountId, accountName) {
+        // console.log("🔥 GlobalTimer: Starting sync indication for account", accountId, "(" + accountName + ")");
+        syncAccountId = accountId;
+        syncAccountName = accountName || "Account " + accountId;
+        isSyncing = true;
+        syncSuccessful = false;
+        syncProgress = 0.0;
+        syncStartTime = Date.now(); // This is correct
+        globalTimer.visible = true;
 
-    // Start all timers
-    syncTimeoutTimer.start();
-    successTimer.start();
-    progressTimer.start();
-}
+        // Start all timers
+        syncTimeoutTimer.start();
+        successTimer.start();
+        progressTimer.start();
+    }
     // Function to stop sync indication
     function stopSync() {
-      //  console.log("✅ GlobalTimer: Stopping sync indication for account", syncAccountId);
+        //  console.log("✅ GlobalTimer: Stopping sync indication for account", syncAccountId);
 
         // Stop all timers
         syncTimeoutTimer.stop();
@@ -251,8 +251,8 @@ Rectangle {
         height: units.gu(5)
         source: "../images/pause.png"
         fillMode: Image.PreserveAspectFit
-        
-        visible: !syncTimeoutTimer.running 
+
+        visible: !syncTimeoutTimer.running
 
         MouseArea {
             anchors.fill: parent
@@ -288,6 +288,7 @@ Rectangle {
             onReleased: stopbutton.opacity = 1.0
             onCanceled: stopbutton.opacity = 1.0
             onClicked: {
+                // Stop the timer and set timesheet status to draft
                 TimerService.stop();
             }
         }
@@ -303,7 +304,7 @@ Rectangle {
         anchors.left: indicator.right
         anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: parent.horizontalCenter
-      // anchors.margins: units.gu(-12)
+        // anchors.margins: units.gu(-12)
         anchors.right: (TimerService.isRunning() || TimerService.isPaused()) ? pausebutton.left : parent.right
         anchors.rightMargin: units.gu(1)
         horizontalAlignment: Text.AlignHCenter
@@ -343,14 +344,14 @@ Rectangle {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: {
-               if (isSyncing) {
+                if (isSyncing) {
                     // For sync: show actual progress
                     return parent.width * syncProgress;
                 }
                 return 0;
             }
             color: {
-              if (isSyncing) {
+                if (isSyncing) {
                     return syncSuccessful ? "#28a745" : "#ffffff"; // Green for success, white for syncing
                 }
                 return "#ffffff";
