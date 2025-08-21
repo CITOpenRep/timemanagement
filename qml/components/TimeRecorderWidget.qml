@@ -212,11 +212,28 @@ Item {
                             return;
                         }
 
+                        
+                        var finalTime = "0:00";
+                        if (TimerService.isRunning() && TimerService.getActiveTimesheetId() === timesheetId) {
+                            finalTime = TimerService.stop();
+                        }
+
+                        
                         const result = TimeSheet.markTimesheetAsReadyById(timesheetId);
                         if (!result.success) {
-                            notifPopup.open("Error", "Unable to finalise the timesheet", "error");
+                            notifPopup.open("Error", "Unable to finalize the timesheet: " + result.error, "error");
                         } else {
-                            notifPopup.open("Saved", "Timesheet has been finalised successfully", "success");
+                            
+                            if (typeof parent.parent.save_timesheet === "function") {
+                                parent.parent.save_timesheet();
+                            } else {
+                                notifPopup.open("Finalized", "Timesheet has been finalized successfully", "success");
+                            }
+                            
+                        
+                            isRecording = false;
+                            updateTimer.stop();
+                            timeDisplay.text = finalTime;
                         }
                     }
                 }
@@ -251,14 +268,24 @@ Item {
     }
 
     Component.onCompleted: {
-        if (timesheetId > 0 && timesheetId === TimerService.getActiveTimesheetId()) {
-            isRecording = true;
-            automode = true;
-            if (autoMode)
+        if (timesheetId > 0) {
+           
+            var activeId = TimerService.getActiveTimesheetId();
+            var serviceRunning = TimerService.isRunning();
+            
+            if (activeId === timesheetId && serviceRunning) {
+                isRecording = true;
+                autoMode = true;
                 updateTimer.start();
-        } else {
-            isRecording = false;
-            updateTimer.stop();
+                console.log("Restored active timer for timesheet", timesheetId);
+            } else {
+                isRecording = false;
+                
+                var savedTime = TimeSheet.getTimesheetUnitAmount(timesheetId);
+                elapsedTime = Utils.convertDecimalHoursToHHMM(savedTime);
+                timeDisplay.text = elapsedTime;
+                console.log("Loaded saved time for timesheet", timesheetId, ":", elapsedTime);
+            }
         }
     }
 }
