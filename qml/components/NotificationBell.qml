@@ -261,6 +261,7 @@ Item {
 
             // Header
             Rectangle {
+                id : header
                 Layout.fillWidth: true
                 Layout.preferredHeight: units.gu(4)
                 color: "#f8f9fa"
@@ -290,6 +291,8 @@ Item {
             ScrollView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                anchors.top : header.bottom - units.gu(0.5)
+                clip: true
                 
                 ListView {
                     id: notificationListView
