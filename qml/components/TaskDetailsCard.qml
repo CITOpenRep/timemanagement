@@ -234,7 +234,7 @@ ListItem {
         radius: units.gu(0.2)
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
-        color: theme.name === "Ubuntu.Components.Thethemes.SuruDark" ? "#111" : "#fff"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
         // subtle color fade on the left
         Rectangle {
             width: parent.width * 0.025
