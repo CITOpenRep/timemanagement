@@ -93,12 +93,12 @@ Item {
             return;
         }
 
-        // Sort tasks by last_modified (most recent first)
+        // Sort tasks by end Date (most recent first)
         tasks.sort(function (a, b) {
-            if (!a.last_modified || !b.last_modified) {
+            if (!a.end_date || !b.end_date) {
                 return (a.name || "").localeCompare(b.name || "");
             }
-            return new Date(b.last_modified) - new Date(a.last_modified);
+            return new Date(a.end_date) - new Date(b.end_date);
         });
 
         var tempMap = {};

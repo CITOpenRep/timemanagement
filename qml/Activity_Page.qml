@@ -137,9 +137,9 @@ Page {
                 }
             }
 
-            // Sort activities by last_modified time (most recent first)
+            // Sort activities by end date time (most recent first)
             filteredActivities.sort(function (a, b) {
-                // If either last_modified is missing, fall back to summary
+                // If either end date is missing, fall back to summary
                 if (!a.due_date || !b.due_date) {
                     return (a.summary || "").localeCompare(b.summary || "");
                 }
