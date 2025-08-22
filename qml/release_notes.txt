@@ -33,7 +33,7 @@
          <li> Added feature to Mark the Project Favourite. Sync from Device to Server is not working yet.</li>
          <li> Added Feature to Set the Priority for Tasks. Sync from Device to Server is not working yet. </li>
          <li> Added new Timer_Type in DB for Timesheets for remembering the Timer Type in Devices. </li>
-         <li> Introducing Sync Message using Global Timer Widget. Added a Progress bar based on Timer below the Sync Message Widet. Removed the Sync animation from the Sync Button. </li>
+         <li> Introducing Sync Message using Global Timer Widget. Added a Progress bar based on Timer below the Sync Message Widet . </li>
          <h5> Fixes and Improvements </h5>
          <li> Fixed the account uniqueness for all databases with case insensitive checking. </li>
          <li> Fixed that finalizing the timer and the timesheet  automatic move to draft status without requiring manual save. </li>
