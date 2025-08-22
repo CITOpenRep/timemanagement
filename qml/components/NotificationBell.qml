@@ -206,9 +206,8 @@ Item {
             return bellGlobalPos.y + bellWidget.height + units.gu(1)
         }
         
-        x: targetX
-        y: targetY
-        
+        x: targetX - height / 2.35  // Slight offset for better alignment
+        y: targetY  - height / 2.5 // Center vertically relative to bell
         // Smooth opening animation
         enter: Transition {
             NumberAnimation {
