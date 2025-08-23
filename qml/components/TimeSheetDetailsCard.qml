@@ -91,6 +91,7 @@ ListItem {
     function save_workflow() {
         const result = Timesheet.markTimesheetAsReadyById(recordId);
         if (result.success) {
+            notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
             timesheetItem.refresh();
         } else {
             notifPopup.open("Update needed", "Timesheet is missing mandatory Project/Task information, Not ready to sync", "error");
@@ -169,7 +170,7 @@ ListItem {
                 id: readyAction
                 visible: (recordId !== TimerService.getActiveTimesheetId()) //Dont show this for the active running entry
                 iconSource: "../images/save.svg"
-                text: "update Timesheet"
+                text: "Mark Ready for Sync"
                 onTriggered: {
                     save_workflow();
                 }

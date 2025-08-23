@@ -120,7 +120,7 @@ function stop() {
 
             if (activeTimesheetId !== null) {
                 Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-                Model.markTimesheetAsReadyById(activeTimesheetId);
+                Model.markTimesheetAsDraftById(activeTimesheetId);
                 console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
             }
 
@@ -134,7 +134,7 @@ function stop() {
 
             if (activeTimesheetId !== null) {
                 Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-                Model.markTimesheetAsReadyById(activeTimesheetId);
+                Model.markTimesheetAsDraftById(activeTimesheetId);
                 console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
             }
 
@@ -213,7 +213,9 @@ function getElapsedDuration() {
     var totalSeconds = 0;
 
     if (startTime) {
-        var elapsedMs = Date.now() - startTime;
+        
+        var now = paused ? pauseStartTime : Date.now();
+        var elapsedMs = now - startTime;
         totalSeconds = Math.floor(elapsedMs / 1000);
     }
 

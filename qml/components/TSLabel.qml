@@ -16,6 +16,7 @@ LomiriShape {
     property alias wrapMode: label.wrapMode
     property alias elide: label.elide
     property alias maximumLineCount: label.maximumLineCount
+    property alias color: label.color
 
     Label {
         id: label

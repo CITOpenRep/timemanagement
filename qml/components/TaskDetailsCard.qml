@@ -36,7 +36,8 @@ ListItem {
     width: parent.width
     height: units.gu(28)
     property int screenWidth: parent.width
-    property bool isFavorite: true
+    property int priority: 0 // 0-3 priority levels (0 = lowest, 3 = highest)
+    property bool isFavorite: priority > 0 // Backward compatibility, true if priority > 0
     property string taskName: ""
     property string projectName: ""
     property double allocatedHours: 0
@@ -52,6 +53,7 @@ ListItem {
     property int childCount: 0
     property bool timer_on: false
     property bool timer_paused: false
+    property bool starInteractionActive: false
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -118,7 +120,8 @@ ListItem {
                 projectId: taskDetails.project_id,
                 parentId: taskDetails.parent_id,
                 plannedHours: taskDetails.initial_planned_hours,
-                favorites: taskDetails.favorites,
+                favorites: parseInt(taskDetails.favorites) || 0 // This is now priority (0-3)
+                ,
                 description: taskDetails.description,
                 assigneeUserId: taskDetails.user_id,
                 subProjectId: taskDetails.sub_project_id,
@@ -318,21 +321,6 @@ ListItem {
                             Layout.fillHeight: true
                         }
 
-                        Item {
-                            width: units.gu(4)
-                            height: parent.height
-                            z: 2
-
-                            Image {
-                                id: starIcon
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                source: isFavorite ? "../images/star.png" : ""
-                                fillMode: Image.PreserveAspectFit
-                                width: units.gu(2)
-                                height: units.gu(2)
-                            }
-                        }
                         // Animated dot if there is a active time sheet on it
                         Rectangle {
                             id: indicator
@@ -390,20 +378,142 @@ ListItem {
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                         }
 
-                        Label {
-                            id: details
-                            text: "Details"
+                        // Priority Stars replacing the Details label
+                        Item {
                             width: parent.width - units.gu(2)
-                            font.pixelSize: units.gu(1.6)
                             height: units.gu(3)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "blue"
-                            font.underline: true
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    viewRequested(localId);
+
+                            Row {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: units.gu(0.2)
+
+                                // First row - 1 star (top of pyramid)
+                                Repeater {
+                                    model: 3 // Maximum of 3 stars
+
+                                    Image {
+                                        source: index < priority ? "../images/star.png" : "../images/star-inactive.png"
+                                        fillMode: Image.PreserveAspectFit
+                                        width: units.gu(1.5)
+                                        height: units.gu(1.5)
+                                        z: 100  // Ensure it's on top
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            z: 1000  // Much higher z-index
+                                            propagateComposedEvents: false
+                                            preventStealing: true
+                                            onPressed: {
+                                               
+                                                starInteractionActive = true;
+                                                mouse.accepted = true;
+                                            }
+                                            onClicked: {
+                                               
+                                                mouse.accepted = true;
+
+                                                var newPriority = (index + 1 === priority) ? priority - 1 : index + 1;
+                                               
+                                                var result = Task.setTaskPriority(localId, newPriority, "updated");
+                                               
+
+                                                if (result.success) {
+                                                    priority = newPriority;
+                                                
+                                                } else {
+                                                    console.warn("⚠️ Failed to set task priority:", result.message);
+                                                }
+
+                                                starInteractionActive = false;
+                                            }
+
+                                            onReleased: {
+                                               
+                                                starInteractionActive = false;
+                                                mouse.accepted = true;
+                                            }
+                                            onDoubleClicked: {
+                                                mouse.accepted = true;
+                                            }
+                                        }
+                                    }
                                 }
+
+                                // // Second row - 2 stars (bottom of pyramid)
+                                // Row {
+                                //     spacing: units.gu(0.3)
+
+                                //     // Left star (priority level 2)
+                                //     Image {
+                                //         source: 1 < priority ? "../images/star.png" : "../images/star-inactive.png"
+                                //         fillMode: Image.PreserveAspectFit
+                                //         width: units.gu(1.2)
+                                //         height: units.gu(1.2)
+
+                                //         MouseArea {
+                                //             anchors.fill: parent
+                                //             onClicked: {
+                                //                 mouse.accepted = true;
+
+                                //                 var newPriority = (2 === priority) ? 1 : 2;
+                                //                 var result = Task.setTaskPriority(localId, newPriority, "updated");
+
+                                //                 if (result.success) {
+                                //                     priority = newPriority;
+                                //                     console.log("✅ Task priority set to", priority, ":", result.message);
+                                //                 } else {
+                                //                     console.warn("⚠️ Failed to set task priority:", result.message);
+                                //                 }
+                                //             }
+                                //         }
+                                //     }
+
+                                //     // Right star (priority level 3)
+                                //     Image {
+                                //         source: 2 < priority ? "../images/star.png" : "../images/star-inactive.png"
+                                //         fillMode: Image.PreserveAspectFit
+                                //         width: units.gu(1.2)
+                                //         height: units.gu(1.2)
+
+                                //         MouseArea {
+                                //             anchors.fill: parent
+                                //             onClicked: {
+                                //                 mouse.accepted = true;
+
+                                //                 var newPriority = (3 === priority) ? 2 : 3;
+                                //                 var result = Task.setTaskPriority(localId, newPriority, "updated");
+
+                                //                 if (result.success) {
+                                //                     priority = newPriority;
+                                //                     console.log("✅ Task priority set to", priority, ":", result.message);
+                                //                 } else {
+                                //                     console.warn("⚠️ Failed to set task priority:", result.message);
+                                //                 }
+                                //             }
+                                //         }
+                                //     }
+                                // }
                             }
+
+                            // View Details text on the right side
+                            // Text {
+                            //     text: "View Details"
+                            //     anchors.right: parent.right
+                            //     anchors.verticalCenter: parent.verticalCenter
+                            //     font.pixelSize: units.gu(1.4)
+                            //     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "blue"
+                            //     font.underline: true
+
+                            //     MouseArea {
+                            //         anchors.fill: parent
+                            //         onClicked: {
+                            //             mouse.accepted = true; // Prevent event propagation to parent MouseArea
+                            //             viewRequested(localId);
+                            //         }
+                            //     }
+                            // }
                         }
 
                         Text {
@@ -479,5 +589,19 @@ ListItem {
 
     Component.onCompleted: {
         taskCard.timer_on = Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.activeTimesheetId);
+
+        // If we have a localId, get the task details to set the priority
+        if (localId > 0) {
+            var taskDetails = Task.getTaskDetails(localId);
+            if (taskDetails && taskDetails.id) {
+                // Convert favorites to priority (0-3)
+                taskCard.priority = Math.max(0, Math.min(3, parseInt(taskDetails.favorites) || 0));
+                // Update isFavorite for backward compatibility
+                taskCard.isFavorite = taskCard.priority > 0;
+            }
+        } else if (isFavorite) {
+            // If isFavorite was set but priority wasn't (for backward compatibility)
+            taskCard.priority = isFavorite ? 1 : 0;
+        }
     }
 }

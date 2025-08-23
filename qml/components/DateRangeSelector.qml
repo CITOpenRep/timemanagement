@@ -225,8 +225,26 @@ Item {
         case 1 // This Week
         :
             const dow = today.getDay();
-            const offset = (dow === 0) ? 1 : (dow >= 6 ? 5 : 5 - dow);
-            newEnd.setDate(newEnd.getDate() + offset);
+            // For weekend handling:
+            // - Sunday (0): keep start and end as today
+            // - Saturday (6): start = Saturday (today), end = Sunday (tomorrow)
+            if (dow === 0) {
+                // Sunday: start and end are the same (today)
+                break;
+            } else if (dow === 6) {
+                // Saturday: set end to Sunday
+                newStart = new Date(today);
+                newEnd = new Date(today);
+                newEnd.setDate(today.getDate() + 1);
+                break;
+            } else {
+                // Weekday: calculate Monday of current week as start date
+                const daysFromMonday = dow - 1; // Monday = 1, so dow - 1 gives days from Monday
+                newStart.setDate(today.getDate() - daysFromMonday);
+                // End date should be Friday of current week
+                const daysUntilFriday = 5 - dow;
+                newEnd.setDate(today.getDate() + daysUntilFriday);
+            }
             break;
         case 2 // Next Week
         :

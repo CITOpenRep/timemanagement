@@ -412,3 +412,39 @@ function getProjectName(projectId, accountId) {
         return "Unknown Project";
     }
 }
+
+/**
+ * Toggles the favorite status of a project in the local database.
+ *
+ * @param {number} projectId - The local ID of the project to toggle favorite status.
+ * @param {boolean} isFavorite - The new favorite status (true for favorite, false for not favorite).
+ * @returns {Object} - Result object with success status and message.
+ */
+function toggleProjectFavorite(projectId, isFavorite, status) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var result = { success: false, message: "" };
+
+        db.transaction(function (tx) {
+            var favoriteValue = isFavorite ? 1 : 0;
+            var updateResult = tx.executeSql(
+                'UPDATE project_project_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
+                [favoriteValue, new Date().toISOString(), status, projectId]
+            );
+
+            if (updateResult.rowsAffected > 0) {
+                result.success = true;
+                result.message = isFavorite ? "Project marked as favorite" : "Project removed from favorites";
+                console.log("✅ Project favorite status updated:", projectId, "favorite:", isFavorite);
+            } else {
+                result.message = "Project not found or no changes made";
+                console.warn("⚠️ No project updated with ID:", projectId);
+            }
+        });
+
+        return result;
+    } catch (e) {
+        console.error("❌ toggleProjectFavorite failed:", e);
+        return { success: false, message: "Failed to update project favorite status: " + e.message };
+    }
+}
