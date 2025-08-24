@@ -9,6 +9,7 @@
         "description": "description",
         "color": "color_pallet",
         "last_update_status": "last_update_status",
+        "stage_id":"stage",
         "write_date": "last_modified",
         "is_favorite": "favorites",
         "id": "odoo_record_id"
@@ -22,6 +23,7 @@
         "planned_date_end": "end_date",
         "date_deadline": "deadline",
         "planned_hours": "initial_planned_hours",
+        "stage_id":"state",
         "priority": "favorites",
         "description": "description",
         "write_date": "last_modified",
@@ -100,8 +102,36 @@
         "project_id": "project_id",
         "id": "odoo_record_id",
         "write_date":"last_modified"
-    }
+    },
 
+    "project.task.type": {
+        "id": "odoo_record_id",
+        "name": "name",
+        "description": "description",
+        "sequence": "sequence",
+        "fold": "fold",
+        "legend_blocked": "legend_blocked",
+        "legend_done": "legend_done",
+        "legend_normal": "legend_normal",
+        "auto_validation_kanban_state": "auto_validation_kanban_state",
+        "create_date": "create_date",
+        "write_date": "write_date",
+        "__last_update": "__last_update",
+        "project_ids": "is_global"
+      },
+
+      "project.project.stage": {
+         "id": "odoo_record_id",
+         "name": "name",
+         "sequence": "sequence",
+         "fold": "fold",
+         "mail_template_id": "mail_template_id",
+         "sms_template_id": "sms_template_id",
+         "active": "active",
+         "create_date": "create_date",
+         "write_date": "write_date",
+         "__last_update": "__last_update"
+       }
 
 
 }

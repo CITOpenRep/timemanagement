@@ -120,6 +120,44 @@ function saveOrUpdateTask(data) {
     }
 }
 
+
+function getTaskStageName(odooRecordId) {
+    var stageName = "No Stage";
+
+    try {
+        if (odooRecordId === -1) {
+            return "No Stage";   // special case
+        }
+
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT name
+                FROM project_task_type_app
+                WHERE odoo_record_id = ?
+                LIMIT 1
+            `;
+
+            var result = tx.executeSql(query, [odooRecordId]);
+
+            if (result.rows.length > 0) {
+                stageName = result.rows.item(0).name;
+            }
+        });
+    } catch (e) {
+        console.error("getTaskStageName failed:", e);
+    }
+
+    return stageName;
+}
+
+
 function getAttachmentsForTask(odooRecordId) {
     var attachmentList = [];
 

@@ -40,7 +40,7 @@ function getProjectDetails(project_id) {
                     description: row.description || "",
                     last_modified: row.last_modified,
                     color_pallet: row.color_pallet || "#FFFFFF",
-                    status: row.status || "",
+                    stage: row.stage || 0,
                     odoo_record_id: row.odoo_record_id
                 };
             }
@@ -105,6 +105,39 @@ function getAllProjectUpdates() {
 
     return updateList;
 }
+
+function getProjectStageName(odooRecordId) {
+    var stageName = null;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT name
+                FROM project_project_stage_app
+                WHERE odoo_record_id = ?
+                LIMIT 1
+            `;
+
+            var result = tx.executeSql(query, [odooRecordId]);
+
+            if (result.rows.length > 0) {
+                stageName = result.rows.item(0).name;
+            }
+        });
+    } catch (e) {
+        console.error("getProjectStageName failed:", e);
+    }
+
+    return stageName;
+}
+
 
 
 function getAttachmentsForProject(odooRecordId) {

@@ -52,6 +52,7 @@ ListItem {
     property int accountId: -1
     property bool hasChildren: false
     property int childCount: 0
+    property int stage:0
     property bool timer_on: false
     property bool timer_paused: false
     signal editRequested(int recordId)
@@ -279,12 +280,6 @@ ListItem {
                                 maximumLineCount: 2
                                 clip: true
                                 width: parent.width - units.gu(2)
-
-
-                                  
-                         
-                          
-                        
                             }
 
                             Text {
@@ -321,6 +316,20 @@ ListItem {
                                 font.pixelSize: units.gu(1.5)
                                 //  horizontalAlignment: Text.AlignRight
                                 width: parent.width
+                            }
+
+                            Rectangle
+                            {
+                                color:AppConst.Colors.Orange
+                                width: parent.width/2
+                                height: units.gu(3)
+                                Text {
+                                     anchors.centerIn: parent
+                                     text : Project.getProjectStageName(stage)
+                                     color: "white"
+                                     font.pixelSize: units.gu(1.5)
+                                     font.bold: true
+                                }
                             }
                         }
                     }

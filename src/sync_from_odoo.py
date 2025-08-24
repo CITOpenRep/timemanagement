@@ -450,6 +450,8 @@ def sync_all_from_odoo(
         "res.users": "res_users_app",
         "ir.model":"ir_model_app",
         "project.update":"project_update_app",
+        "project.task.type":"project_task_type_app",
+        "project.project.stage":"project_project_stage_app",
     }
 
     # Dont do this , too heavy

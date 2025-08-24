@@ -34,7 +34,7 @@ import QtQuick.Layouts 1.1
 ListItem {
     id: taskCard
     width: parent.width
-    height: units.gu(28)
+    height: units.gu(15)
     property int screenWidth: parent.width
     property int priority: 0 // 0-3 priority levels (0 = lowest, 3 = highest)
     property bool isFavorite: priority > 0 // Backward compatibility, true if priority > 0
@@ -49,6 +49,7 @@ ListItem {
     property int colorPallet: 0
     property int localId: -1
     property int recordId: -1
+    property int stage:-1
     property bool hasChildren: false
     property int childCount: 0
     property bool timer_on: false
@@ -354,7 +355,7 @@ ListItem {
                     Column {
                         width: parent.width - units.gu(4)
                         height: parent.height - units.gu(2)
-                        spacing: 0
+                        spacing: units.gu(0.2)
 
                         Text {
                             id: projectTitleText
@@ -523,6 +524,20 @@ ListItem {
                             font.pixelSize: units.gu(1.5)
                             //  horizontalAlignment: Text.AlignRight
                             width: parent.width
+                        }
+
+                        Rectangle
+                        {
+                            color:AppConst.Colors.Orange
+                            width: parent.width/2
+                            height: units.gu(3)
+                            Text {
+                                 anchors.centerIn: parent
+                                 text : Task.getTaskStageName(stage)
+                                 color: "white"
+                                 font.pixelSize: units.gu(1.5)
+                                 font.bold: true
+                            }
                         }
                     }
                 }

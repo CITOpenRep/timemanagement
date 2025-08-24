@@ -73,7 +73,7 @@ function initializeDatabase() {
             description TEXT,\
             last_modified datetime,\
             color_pallet TEXT,\
-            status TEXT DEFAULT "",\
+            stage INTEGER,\
             odoo_record_id INTEGER,\
             UNIQUE (odoo_record_id, account_id)\
         )',
@@ -91,7 +91,7 @@ function initializeDatabase() {
             'description TEXT',
             'last_modified datetime',
             'color_pallet TEXT',
-            'status TEXT DEFAULT ""',
+            'stage INTEGER',
             'odoo_record_id INTEGER'
         ]
     );
@@ -145,7 +145,7 @@ function initializeDatabase() {
             deadline date,\
             initial_planned_hours FLOAT,\
             favorites INTEGER,\
-            state TEXT,\
+            state INTEGER,\
             description TEXT,\
             last_modified datetime,\
             user_id INTEGER,\
@@ -154,7 +154,7 @@ function initializeDatabase() {
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'name TEXT', 'account_id INTEGER', 'project_id INTEGER', 'sub_project_id INTEGER', 'parent_id INTEGER',
-                                  'start_date date', 'end_date date', 'deadline date', 'initial_planned_hours FLOAT', 'favorites INTEGER', 'state TEXT',
+                                  'start_date date', 'end_date date', 'deadline date', 'initial_planned_hours FLOAT', 'favorites INTEGER', 'state INTEGER',
                                   'description TEXT', 'last_modified datetime', 'user_id INTEGER', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
                                  );
 
@@ -333,6 +333,87 @@ function initializeDatabase() {
             "last_modified datetime",
             "status TEXT DEFAULT ''"
         ]
+    );
+
+    DBCommon.createOrUpdateTable("project_task_type_app",
+      'CREATE TABLE IF NOT EXISTS project_task_type_app (\
+          id INTEGER PRIMARY KEY AUTOINCREMENT,\
+          account_id INTEGER NOT NULL,\
+          odoo_record_id INTEGER NOT NULL,\
+          name TEXT NOT NULL,\
+          description TEXT,\
+          sequence INTEGER DEFAULT 0,\
+          fold INTEGER DEFAULT 0,\
+          legend_blocked TEXT,\
+          legend_done TEXT,\
+          legend_normal TEXT,\
+          auto_validation_kanban_state INTEGER DEFAULT 0,\
+          mail_template_id INTEGER,\
+          sms_template_id INTEGER,\
+          rating_template_id INTEGER,\
+          user_id INTEGER,\
+          active INTEGER DEFAULT 1,\
+          create_date DATETIME,\
+          write_date DATETIME,\
+          __last_update DATETIME,\
+          -- helper flag: if the stage has no project_ids on Odoo
+          is_global INTEGER DEFAULT 1,\
+          UNIQUE (odoo_record_id, account_id)\
+      )',
+      [
+        'id INTEGER',
+        'account_id INTEGER',
+        'odoo_record_id INTEGER',
+        'name TEXT',
+        'description TEXT',
+        'sequence INTEGER',
+        'fold INTEGER',
+        'legend_blocked TEXT',
+        'legend_done TEXT',
+        'legend_normal TEXT',
+        'auto_validation_kanban_state INTEGER',
+        'mail_template_id INTEGER',
+        'sms_template_id INTEGER',
+        'rating_template_id INTEGER',
+        'user_id INTEGER',
+        'active INTEGER',
+        'create_date DATETIME',
+        'write_date DATETIME',
+        '__last_update DATETIME',
+        'is_global INTEGER'
+      ]
+    );
+
+    DBCommon.createOrUpdateTable("project_project_stage_app",
+      'CREATE TABLE IF NOT EXISTS project_project_stage_app (\
+          id INTEGER PRIMARY KEY AUTOINCREMENT,\
+          account_id INTEGER NOT NULL,\
+          odoo_record_id INTEGER NOT NULL,\
+          name TEXT NOT NULL,\
+          sequence INTEGER DEFAULT 0,\
+          fold INTEGER DEFAULT 0,\
+          mail_template_id INTEGER,\
+          sms_template_id INTEGER,\
+          active INTEGER DEFAULT 1,\
+          create_date DATETIME,\
+          write_date DATETIME,\
+          __last_update DATETIME,\
+          UNIQUE (odoo_record_id, account_id)\
+      )',
+      [
+        'id INTEGER',
+        'account_id INTEGER',
+        'odoo_record_id INTEGER',
+        'name TEXT',
+        'sequence INTEGER',
+        'fold INTEGER',
+        'mail_template_id INTEGER',
+        'sms_template_id INTEGER',
+        'active INTEGER',
+        'create_date DATETIME',
+        'write_date DATETIME',
+        '__last_update DATETIME'
+      ]
     );
 
 

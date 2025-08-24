@@ -183,6 +183,7 @@ Item {
                 deadline: row.planned_end_date || "",
                 description: row.description || "",
                 colorPallet: inheritedColor,
+                stage: row.stage,
                 isFavorite: row.favorites === 1,
                 hasChildren: false
             };
@@ -318,6 +319,7 @@ Item {
                     colorPallet: model.colorPallet
                     isFavorite: model.isFavorite
                     hasChildren: model.hasChildren
+                    stage:model.stage
                     childCount: (model.hasChildren) ? model.childCount : 0
                     localId: model.local_id
 
