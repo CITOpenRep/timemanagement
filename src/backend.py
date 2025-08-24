@@ -226,6 +226,26 @@ def get_db_list(url):
     return []
 
 
+def attachment_ondemand_download(settings_db,account_id, remote_record_id):
+    accounts = get_all_accounts(settings_db)
+    selected = None
+    for acc in accounts:
+        if acc.get("id") == account_id:
+            selected = acc
+            break
+
+    if not selected:
+        return None
+
+    selected = accounts[1]
+    client = OdooClient(
+        selected["link"],
+        selected["database"],
+        selected["username"],
+        selected["api_key"],
+    )
+    return client.ondemanddownload(remote_record_id,selected["username"],selected["api_key"],False)
+
 def sync(settings_db, account_id):
     """
     Perform synchronous bidirectional sync between local database and Odoo.

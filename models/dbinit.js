@@ -243,7 +243,6 @@ function initializeDatabase() {
             "res_id INTEGER," +
             "store_fname TEXT," +
             "file_path TEXT," +
-            "datas TEXT," + // optional if storing on disk only
             "file_size INTEGER," +
             "checksum TEXT," +
             "mimetype TEXT," +
@@ -266,7 +265,6 @@ function initializeDatabase() {
             "res_id INTEGER",
             "store_fname TEXT",
             "file_path TEXT",
-            "datas TEXT",
             "file_size INTEGER",
             "checksum TEXT",
             "mimetype TEXT",
@@ -416,5 +414,35 @@ function initializeDatabase() {
       ]
     );
 
-
+    DBCommon.createOrUpdateTable("dl_cache_app",
+      'CREATE TABLE IF NOT EXISTS dl_cache_app (\
+          id INTEGER PRIMARY KEY AUTOINCREMENT,\
+          record_id INTEGER NOT NULL,\
+          data_base64 TEXT NOT NULL\
+      )',
+      [
+        'id INTEGER',
+        'record_id INTEGER',
+        'data_base64 TEXT'
+      ]
+    );
+    purgeCache();
 }
+
+function purgeCache() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            tx.executeSql("DELETE FROM dl_cache_app");
+        });
+        console.log("Cache purged at startup");
+    } catch (e) {
+        console.error("purgeCache failed:", e);
+    }
+}
+

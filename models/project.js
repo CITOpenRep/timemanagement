@@ -148,7 +148,7 @@ function getAttachmentsForProject(odooRecordId) {
 
         db.transaction(function (tx) {
             var query = `
-                SELECT name, mimetype, datas
+                SELECT name, mimetype, account_id,odoo_record_id
                 FROM ir_attachment_app
                 WHERE res_model = 'project.project' AND res_id = ?
                 ORDER BY name COLLATE NOCASE ASC
@@ -160,7 +160,8 @@ function getAttachmentsForProject(odooRecordId) {
                 attachmentList.push({
                     name: result.rows.item(i).name,
                     mimetype: result.rows.item(i).mimetype,
-                    datas: result.rows.item(i).datas
+                    account_id:result.rows.item(i).account_id,
+                    odoo_record_id:result.rows.item(i).odoo_record_id,
                 });
             }
         });
@@ -170,6 +171,74 @@ function getAttachmentsForProject(odooRecordId) {
 
     return attachmentList;
 }
+
+function getFromCache(recordId) {
+    var data = null;
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                "SELECT data_base64 FROM dl_cache_app WHERE record_id = ? LIMIT 1",
+                [recordId]
+            );
+            if (result.rows.length > 0) {
+                data = result.rows.item(0).data_base64;
+            }
+        });
+    } catch (e) {
+        console.error("getFromCache failed:", e);
+    }
+    return data; // null if not found
+}
+
+function putInCache(recordId, base64Data) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            tx.executeSql(
+                "INSERT OR REPLACE INTO dl_cache_app (record_id, data_base64) VALUES (?, ?)",
+                [recordId, base64Data]
+            );
+        });
+    } catch (e) {
+        console.error("putInCache failed:", e);
+    }
+}
+
+function isPresentInCache(recordId) {
+    var exists = false;
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                "SELECT 1 FROM dl_cache_app WHERE record_id = ? LIMIT 1",
+                [recordId]
+            );
+            if (result.rows.length > 0) {
+                exists = true;
+            }
+        });
+    } catch (e) {
+        console.error("isPresentInCache failed:", e);
+    }
+    return exists;
+}
+
 
 
 /**
