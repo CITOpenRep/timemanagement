@@ -320,7 +320,7 @@ ListItem {
 
                             Rectangle
                             {
-                                color:AppConst.Colors.Orange
+                                color: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? "green" : AppConst.Colors.Orange
                                 width: parent.width/2
                                 height: units.gu(3)
                                 Text {
