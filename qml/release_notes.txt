@@ -26,8 +26,12 @@
          It allows users to manage projects, tasks, timesheets, and activities—both offline and online—
          through seamless integration with Odoo.
       </p>
-      <h3>Change History : (Version 1.1.4) </h3>
+      <h3>Change History : (Version 1.1.4.0) </h3>
        <ul>
+       <h4> 25-08-2025 : Version 1.1.4.0 </h4>
+         <h5> Fixes </h5>
+         <li> Fixed the New Task creation Sync Issue which were created with priority or Wrong Date Selection. Added Date Sanitization function to remove the end date in case it is smaller to start date. Corrected Task Priority Mapping to Odoo.</li>
+         <br>
          <h4> 22-08-2025 : Version 1.1.4 </h4>
          <h5> New Features </h5>
          <li> Added feature to Mark the Project Favourite. Sync from Device to Server is not working yet.</li>
