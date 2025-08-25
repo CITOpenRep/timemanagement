@@ -126,6 +126,7 @@ Page {
         label4: "Later"
         label5: "OverDue"
         label6: "All"
+        label7: "Done"
 
         filter1: "today"
         filter2: "this_week"
@@ -133,6 +134,7 @@ Page {
         filter4: "later"
         filter5: "overdue"
         filter6: "all"
+        filter7: "done"
 
         showSearchBox: false
         currentFilter: task.currentFilter

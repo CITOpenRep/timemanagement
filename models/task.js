@@ -956,11 +956,16 @@ function passesDateFilter(task, filterType, currentDate) {
         case "this_month":
             return isTaskDueThisMonth(task, today);
         case "overdue":
+            // Exclude tasks which are in the Done stage from showing as overdue
+            if (isTaskInDoneStage(task)) return false;
             return isTaskOverdue(task, today);
         case "later":
             return isTaskDueLater(task, today);
         case "completed":
             return isTaskCompleted(task);
+        case "done":
+            // Show tasks which have their stage name set to "Done"
+            return isTaskInDoneStage(task);
         default:
             return true;
     }
@@ -1154,7 +1159,32 @@ function isTaskOverdue(task, today) {
     }
     
     var dateStatus = getTaskDateStatus(task, today);
+    // If task is in Done stage, treat as not overdue
+    if (isTaskInDoneStage(task)) return false;
     return dateStatus.isOverdue;
+}
+
+/**
+ * Checks whether the task's stage (project_task_type_app) name is "Done" (case-insensitive)
+ * @param {Object} task
+ * @returns {boolean}
+ */
+function isTaskInDoneStage(task) {
+    try {
+        if (!task) return false;
+
+        // task.state is expected to be the odoo_record_id for the task type/stage
+        var stageId = task.state;
+        if (!stageId) return false;
+
+        var stageName = getTaskStageName(stageId);
+        if (!stageName) return false;
+
+        return stageName.toString().toLowerCase() === "done";
+    } catch (e) {
+        console.error("isTaskInDoneStage failed:", e);
+        return false;
+    }
 }
 
 /**
