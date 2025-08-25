@@ -528,7 +528,7 @@ ListItem {
 
                         Rectangle
                         {
-                            color: Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : AppConst.Colors.Orange
+                            color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : AppConst.Colors.Orange
                             width: parent.width/2
                             height: units.gu(3)
 

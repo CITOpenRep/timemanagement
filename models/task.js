@@ -1177,7 +1177,7 @@ function isTaskInDoneStage(task) {
         var stageName = getTaskStageName(stageId);
         if (!stageName) return false;
 
-        return stageName.toString().toLowerCase() === "done";
+        return stageName.toString().toLowerCase() === "done" || stageName.toString().toLowerCase() === "completed" || stageName.toString().toLowerCase() === "finished" || stageName.toString().toLowerCase() === "closed" || stageName.toString().toLowerCase() === "verified";
     } catch (e) {
         console.error("isTaskInDoneStage failed:", e);
         return false;
