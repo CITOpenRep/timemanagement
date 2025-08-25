@@ -109,10 +109,12 @@ Page {
         label4: ""
         label5: ""
         label6: ""
+        label7: ""
 
         filter4: ""
         filter5: ""
         filter6: ""
+        filter7: ""
 
         showSearchBox: false
         currentFilter: timesheets.currentFilter

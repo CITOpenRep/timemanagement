@@ -271,6 +271,7 @@ Page {
         label4: "Later"
         label5: "OverDue"
         label6: "All"
+        label7: ""
 
         showSearchBox: false
         currentFilter: activity.currentFilter  // Bind to page's current filter
@@ -281,6 +282,7 @@ Page {
         filter4: "later"
         filter5: "overdue"
         filter6: "all"
+        filter7: ""
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
