@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.1
 import Lomiri.Components 1.3
+import "./" as Components
 import QtQuick.LocalStorage 2.7 as Sql
 import "../../models/accounts.js" as Accounts
 import "../../models/project.js" as Project
@@ -93,6 +94,12 @@ Item {
     property ListModel navigationStackModel: ListModel {}
     property var childrenMap: ({})
     property bool childrenMapReady: false
+    property var stageFilter: ({
+            enabled: false,
+            odoo_record_id: -1,
+            name: ""
+        })
+    property var stageList: []
 
     signal projectSelected(int recordId)
     signal projectEditRequested(int recordId)
@@ -253,9 +260,16 @@ Item {
                 return a.projectName.localeCompare(b.projectName);
             });
 
-            // Add sorted projects to the combined model
+            // Optionally apply stage filter when building combined model
             allRootProjects.forEach(function (project) {
-                combinedModel.append(project);
+                if (stageFilter.enabled) {
+                    // project.stage holds odoo_record_id of the stage
+                    if (project.stage == stageFilter.odoo_record_id) {
+                        combinedModel.append(project);
+                    }
+                } else {
+                    combinedModel.append(project);
+                }
             });
 
             // console.log("Root level combined model count:", combinedModel.count);
@@ -267,13 +281,133 @@ Item {
             //  console.log("Looking for target key:", targetKey);
             var model = childrenMap[targetKey];
 
-            return model || Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+            // For specific parent, optionally filter by stage as well
+            var finalModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+            if (model) {
+                for (var i = 0; i < model.count; i++) {
+                    var item = model.get(i);
+                    if (stageFilter.enabled) {
+                        if (item.stage == stageFilter.odoo_record_id)
+                            finalModel.append(item);
+                    } else {
+                        finalModel.append(item);
+                    }
+                }
+            }
+            return finalModel;
+        }
+    }
+
+    function loadStages() {
+        try {
+            stageList = Project.getAllProjectStages();
+            // Build menu model for DialerMenu: label + value
+            var menuModel = [];
+            menuModel.push({
+                label: "All Stages",
+                value: -1
+            });
+
+            // Count occurrences of stage names to detect duplicates
+            var nameCounts = {};
+            for (var i = 0; i < stageList.length; i++) {
+                var n = stageList[i].name || "";
+                nameCounts[n] = (nameCounts[n] || 0) + 1;
+            }
+
+            for (var j = 0; j < stageList.length; j++) {
+                var s = stageList[j];
+                var label = s.name || "";
+                if (nameCounts[label] > 1) {
+                    // Append account name to make the label unique
+                    var acct = Accounts.getAccountName(s.account_id) || "Local";
+                    label = label + " (" + acct + ")";
+                }
+                // As a last resort, ensure label uniqueness by appending the odoo id if still duplicated
+                if (menuModel.some(function (x) {
+                    return x.label === label;
+                })) {
+                    label = label + " [" + s.odoo_record_id + "]";
+                }
+                menuModel.push({
+                    label: label,
+                    value: s.odoo_record_id
+                });
+            }
+            dialer.menuModel = menuModel;
+        } catch (e) {
+            console.error("Failed to load stages:", e);
         }
     }
 
     Column {
         anchors.fill: parent
         spacing: units.gu(1)
+
+        ListHeader {
+            id: projectListHeader
+            // Map four visible buttons to the requested filters
+            label1: "ToDo"
+            filter1: "todo"
+            label2: "In Progress"
+            filter2: "in_progress"
+            label3: "Done"
+            filter3: "done"
+            label4: "Cancelled"
+            filter4: "cancelled"
+            label6: "All"
+            filter6: "all"
+
+            onFilterSelected: function (filterKey) {
+                // filterKey is a semantic key; map to stage names
+                var targetNames = [];
+                if (filterKey === projectListHeader.filter1)
+                    targetNames = ["todo", "to do", "new"];
+                else if (filterKey === projectListHeader.filter2)
+                    targetNames = ["in progress", "in_progress", "doing"];
+                else if (filterKey === projectListHeader.filter3)
+                    targetNames = ["done", "completed", "finished"];
+                else if (filterKey === projectListHeader.filter4)
+                    targetNames = ["cancelled", "cancel", "closed"];
+                else if (filterKey === projectListHeader.filter6)
+                    targetNames = []; // All
+
+                // Clear filter for 'All'
+                if (filterKey === projectListHeader.filter6) {
+                    stageFilter.enabled = false;
+                    stageFilter.odoo_record_id = -1;
+                    stageFilter.name = "";
+                    projectListView.model = getCurrentModel();
+                    return;
+                }
+
+                // Search stageList for a matching name (case-insensitive)
+                var found = false;
+                for (var i = 0; i < stageList.length; i++) {
+                    var sname = (stageList[i].name || "").toLowerCase();
+                    for (var j = 0; j < targetNames.length; j++) {
+                        if (sname === targetNames[j].toLowerCase()) {
+                            stageFilter.enabled = true;
+                            stageFilter.odoo_record_id = stageList[i].odoo_record_id;
+                            stageFilter.name = stageList[i].name;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found)
+                        break;
+                }
+
+                if (!found) {
+                    // If not found, disable filter (no results)
+                    stageFilter.enabled = false;
+                    stageFilter.odoo_record_id = -1;
+                    stageFilter.name = "";
+                }
+
+                projectListView.model = getCurrentModel();
+            }
+        }
 
         TSButton {
             id: backbutton
@@ -319,7 +453,7 @@ Item {
                     colorPallet: model.colorPallet
                     isFavorite: model.isFavorite
                     hasChildren: model.hasChildren
-                    stage:model.stage
+                    stage: model.stage
                     childCount: (model.hasChildren) ? model.childCount : 0
                     localId: model.local_id
 
@@ -349,6 +483,8 @@ Item {
         }
     }
 
+    // Floating filter menu using DialerMenu component
+
     Connections {
         target: projectNavigator
         onChildrenMapReadyChanged: {
@@ -372,5 +508,7 @@ Item {
 
     Component.onCompleted: {
         populateProjectChildrenMap(true);
+        // Load available project stages to populate FAB menu
+        loadStages();
     }
 }
