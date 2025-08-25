@@ -181,7 +181,7 @@ def parse_local_value(field_type, value):
         # Convert numeric local values to string keys to avoid ValueError on create/write.
         try:
             if value is None:
-                return False
+                return None
             # Preserve existing string values
             if isinstance(value, str):
                 return value
@@ -304,9 +304,20 @@ def construct_changes(field_map, field_info, record, existing_data):
 
             parsed_val = parse_local_value(field_type, local_val)
 
-            if should_push_field(parsed_val, remote_val, local_last_modified, remote_write_date):
-                changes[odoo_field] = parsed_val
-
+                       # Normalize selection comparisons: ensure both sides are strings for fair comparison
+            try:
+                if field_type == "selection":
+                    remote_norm = None if remote_val is None or remote_val is False else str(remote_val)
+                    parsed_norm = None if parsed_val is None or parsed_val is False else str(parsed_val)
+                    log.debug(f"[COMPARE_SELECTION] Field {odoo_field} local='{parsed_norm}' remote='{remote_norm}'")
+                    if should_push_field(parsed_norm, remote_norm, local_last_modified, remote_write_date):
+                        changes[odoo_field] = parsed_val
+                else:
+                    if should_push_field(parsed_val, remote_val, local_last_modified, remote_write_date):
+                        changes[odoo_field] = parsed_val
+            except Exception as e:
+                log.error(f"[ERROR] Selection normalization failed for {odoo_field}: {e}")
+                
         except Exception as e:
             log.error(f"[ERROR] Failed to compare field '{odoo_field}': {e}")
 
