@@ -948,21 +948,24 @@ function passesDateFilter(task, filterType, currentDate) {
         case "all":
             return true;
         case "today":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueToday(task, today);
         case "this_week":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueThisWeek(task, today);
         case "next_week":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueNextWeek(task, today);
         case "this_month":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueThisMonth(task, today);
         case "overdue":
             // Exclude tasks which are in the Done stage from showing as overdue
             if (isTaskInDoneStage(task)) return false;
             return isTaskOverdue(task, today);
         case "later":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueLater(task, today);
-        case "completed":
-            return isTaskCompleted(task);
         case "done":
             // Show tasks which have their stage name set to "Done"
             return isTaskInDoneStage(task);
@@ -1015,8 +1018,8 @@ function isTaskDueToday(task, today) {
     
     var dateStatus = getTaskDateStatus(task, today);
     
-    // Show if task is in range today but NOT overdue
-    return dateStatus.isInRange && !dateStatus.isOverdue;
+    // Show if task is in range today or NOT overdue
+    return dateStatus.isInRange || dateStatus.isOverdue;
 }
 
 /**
@@ -1140,12 +1143,6 @@ function isTaskDueLater(task, today) {
     return taskStartDay > monthEndDay;
 }
 
-/**
- * Check if task is completed
- */
-function isTaskCompleted(task) {
-    return task.status === "completed" || task.status === "done" || task.state === "done";
-}
 
 /**
  * Check if task is overdue
@@ -1237,7 +1234,7 @@ function getTaskDateStatus(task, checkDate) {
     // Check if end_date is passed (task should be overdue if past end_date)
     // Only use end_date for overdue calculation, not deadline
     if (endDay) {
-        isOverdue = checkDay > endDay;
+        isOverdue = checkDay > deadlineDay;
     }
     
     return {
