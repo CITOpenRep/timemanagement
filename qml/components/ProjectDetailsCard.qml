@@ -292,22 +292,22 @@ ListItem {
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                             }
 
-                            Label {
-                                id: details
-                                text: "Details"
-                                width: parent.width - units.gu(2)
-                                font.pixelSize: units.gu(1.6)
-                                height: units.gu(3)
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "blue"
-                                font.underline: true
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: {
-                                        mouse.accepted = true; // Prevent event propagation to parent MouseArea
-                                        viewRequested(localId);
-                                    }
-                                }
-                            }
+                            // Label {
+                            //     id: details
+                            //     text: "Details"
+                            //     width: parent.width - units.gu(2)
+                            //     font.pixelSize: units.gu(1.6)
+                            //     height: units.gu(3)
+                            //     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "blue"
+                            //     font.underline: true
+                            //     MouseArea {
+                            //         anchors.fill: parent
+                            //         onClicked: {
+                            //             mouse.accepted = true; // Prevent event propagation to parent MouseArea
+                            //             viewRequested(localId);
+                            //         }
+                            //     }
+                            // }
 
                             Text {
                                 text: (childCount > 0 ? " [+" + childCount + "] Projects " : "")
