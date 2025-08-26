@@ -236,6 +236,13 @@ Item {
     }
 
     function getCurrentModel() {
+        // Helper function to check if a project matches the stage filter
+        function matchesStageFilter(project) {
+            if (!stageFilter.enabled) {
+                return true;
+            }
+            return project.stage == stageFilter.odoo_record_id;
+        }
 
         // Find the model that matches current parent and account
         // For root level (currentParentId = -1), we need to find models for all accounts
@@ -244,11 +251,69 @@ Item {
             var combinedModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
             var allRootProjects = [];
 
+            // If a filter is enabled, we need to find all children that match the filter
+            // to determine which parents to include
+            var includeParentIds = {};
+
+            if (stageFilter.enabled) {
+                // First pass: find all projects (at any level) that match the filter
+                // and gather their parent IDs
+                for (var mapKey in childrenMap) {
+                    var childModel = childrenMap[mapKey];
+                    for (var j = 0; j < childModel.count; j++) {
+                        var childProject = childModel.get(j);
+                        if (matchesStageFilter(childProject)) {
+                            // Mark its parent to be included
+                            var parentId = childProject.parent_id;
+                            if (parentId !== -1) {
+                                var parentKey = parentId + "_" + childProject.account_id;
+                                includeParentIds[parentKey] = true;
+                            }
+                        }
+                    }
+                }
+
+                // Recursive function to find all ancestor IDs
+                function findAllAncestorIds(projectId, accountId) {
+                    // If we hit root level, stop recursion
+                    if (projectId === -1)
+                        return;
+
+                    var key = projectId + "_" + accountId;
+                    // Find the parent of this project
+                    for (var mapKey in childrenMap) {
+                        var model = childrenMap[mapKey];
+                        for (var i = 0; i < model.count; i++) {
+                            var project = model.get(i);
+                            if (project.id_val === projectId && project.account_id === accountId) {
+                                // Mark the parent ID to be included
+                                var parentId = project.parent_id;
+                                if (parentId !== -1) {
+                                    var parentKey = parentId + "_" + accountId;
+                                    includeParentIds[parentKey] = true;
+                                    // Recursively find grandparents
+                                    findAllAncestorIds(parentId, accountId);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Process each direct parent to find all ancestors
+                for (var parentKey in includeParentIds) {
+                    var parts = parentKey.split("_");
+                    if (parts.length === 2) {
+                        findAllAncestorIds(parseInt(parts[0]), parseInt(parts[1]));
+                    }
+                }
+            }
+
+            // Gather all root level projects
             for (var key in childrenMap) {
                 if (key.startsWith("-1_")) {
                     // Root level projects
                     var model = childrenMap[key];
-                    //  console.log("Adding root level projects from key:", key, "count:", model.count);
                     for (var i = 0; i < model.count; i++) {
                         allRootProjects.push(model.get(i));
                     }
@@ -260,14 +325,9 @@ Item {
                 return a.projectName.localeCompare(b.projectName);
             });
 
-            // Optionally apply stage filter when building combined model
+            // Apply filter or include if it's a parent of a matching project
             allRootProjects.forEach(function (project) {
-                if (stageFilter.enabled) {
-                    // project.stage holds odoo_record_id of the stage
-                    if (project.stage == stageFilter.odoo_record_id) {
-                        combinedModel.append(project);
-                    }
-                } else {
+                if (!stageFilter.enabled || matchesStageFilter(project) || includeParentIds[project.id_val + "_" + project.account_id]) {
                     combinedModel.append(project);
                 }
             });
@@ -278,18 +338,74 @@ Item {
             // For specific parent, we need to find the account context
             // This will be set when navigating into a project
             var targetKey = currentParentId + "_" + currentAccountId;
-            //  console.log("Looking for target key:", targetKey);
             var model = childrenMap[targetKey];
 
-            // For specific parent, optionally filter by stage as well
+            // For specific parent, gather projects that either match the filter
+            // or are parents of matching projects
             var finalModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+
+            // Find children that match the filter criteria
+            var includeParentIds = {};
+
+            if (stageFilter.enabled) {
+                // Find all children of this parent that match the filter
+                for (var mapKey in childrenMap) {
+                    var childModel = childrenMap[mapKey];
+                    for (var j = 0; j < childModel.count; j++) {
+                        var childProject = childModel.get(j);
+                        // Check if this is a descendant of our current parent
+                        if (matchesStageFilter(childProject)) {
+                            // Check if this is a direct child of our current parent
+                            if (childProject.parent_id === currentParentId && childProject.account_id === currentAccountId)
+                            // Already a direct child, will be included
+                            {} else {
+                                // Check if it's a deeper descendant
+                                var ancestorId = childProject.parent_id;
+                                var ancestorAccountId = childProject.account_id;
+
+                                // Trace up the hierarchy to see if current parent is an ancestor
+                                while (ancestorId !== -1) {
+                                    if (ancestorId === currentParentId && ancestorAccountId === currentAccountId) {
+                                        // Current parent is an ancestor, mark all intermediate parents to be included
+                                        var parentId = childProject.parent_id;
+                                        var parentAccountId = childProject.account_id;
+                                        var parentKey = parentId + "_" + parentAccountId;
+                                        includeParentIds[parentKey] = true;
+                                        break;
+                                    }
+
+                                    // Move up to next level
+                                    var found = false;
+                                    for (var k in childrenMap) {
+                                        var ancestorModel = childrenMap[k];
+                                        for (var m = 0; m < ancestorModel.count; m++) {
+                                            var ancestorProject = ancestorModel.get(m);
+                                            if (ancestorProject.id_val === ancestorId && ancestorProject.account_id === ancestorAccountId) {
+                                                // Found the ancestor, move up one more level
+                                                ancestorId = ancestorProject.parent_id;
+                                                ancestorAccountId = ancestorProject.account_id;
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                        if (found)
+                                            break;
+                                    }
+                                    if (!found) {
+                                        // Cannot find the ancestor, break out
+                                        ancestorId = -1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (model) {
                 for (var i = 0; i < model.count; i++) {
                     var item = model.get(i);
-                    if (stageFilter.enabled) {
-                        if (item.stage == stageFilter.odoo_record_id)
-                            finalModel.append(item);
-                    } else {
+                    if (!stageFilter.enabled || matchesStageFilter(item) || includeParentIds[item.id_val + "_" + item.account_id]) {
                         finalModel.append(item);
                     }
                 }
@@ -305,19 +421,21 @@ Item {
             var menuModel = [];
             menuModel.push({
                 label: "All Stages",
-                value: -1
+                value: -1,
+                account_id: -1 // Special value for "All"
             });
 
-            // Track both unique odoo_record_id+name combinations
+            // Track unique combinations of odoo_record_id + name + account_id
             var uniqueCombinations = {};
 
             for (var i = 0; i < stageList.length; i++) {
                 var s = stageList[i];
                 var odooId = s.odoo_record_id || 0;
                 var stageName = s.name || "";
+                var accountId = s.account_id || 0;
 
-                // Create a unique key using both odoo_record_id and name
-                var combinationKey = odooId + "_" + stageName;
+                // Create a unique key using odoo_record_id, name, and account_id
+                var combinationKey = odooId + "_" + stageName + "_" + accountId;
 
                 // Skip if we've already included this exact combination
                 if (uniqueCombinations[combinationKey])
@@ -335,10 +453,11 @@ Item {
                 // Mark this combination as seen
                 uniqueCombinations[combinationKey] = true;
 
-                // Add stage to menu model with its odoo_record_id as value
+                // Add stage to menu model with its odoo_record_id and account_id as values
                 menuModel.push({
                     label: label,
-                    value: s.odoo_record_id
+                    value: s.odoo_record_id,
+                    account_id: s.account_id
                 });
             }
             dialer.menuModel = menuModel;
@@ -346,7 +465,6 @@ Item {
             console.error("Failed to load stages:", e);
         }
     }
-
     Column {
         anchors.fill: parent
         spacing: units.gu(1)
@@ -474,7 +592,7 @@ Item {
         }
 
         onMenuItemSelected: function (index) {
-            // menuModel entries carry value for odoo_record_id
+            // menuModel entries carry value for odoo_record_id and account_id
             var selectedItem = stageFilterMenu.menuModel[index];
             if (!selectedItem)
                 return;
@@ -482,10 +600,12 @@ Item {
             if (selectedItem.value === -1) {
                 stageFilter.enabled = false;
                 stageFilter.odoo_record_id = -1;
+                stageFilter.account_id = -1;
                 stageFilter.name = "";
             } else {
                 stageFilter.enabled = true;
                 stageFilter.odoo_record_id = selectedItem.value;
+                stageFilter.account_id = selectedItem.account_id || 0;
                 stageFilter.name = selectedItem.label;
             }
 
