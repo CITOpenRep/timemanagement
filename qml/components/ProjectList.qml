@@ -454,12 +454,12 @@ Item {
 
                 var label = stageName;
 
-                // Add account name for context
-                if (s.account_id) {
-                    // Append account name to make the label unique
-                    var acct = Accounts.getAccountName(s.account_id) || "Local";
-                    label = label + " (" + acct + ")";
-                }
+                // // Add account name for context
+                // if (s.account_id) {
+                //     // Append account name to make the label unique
+                //     var acct = Accounts.getAccountName(s.account_id) || "Local";
+                //     label = label + " (" + acct + ")";
+                // }
 
                 // Mark this combination as seen
                 uniqueCombinations[combinationKey] = true;
