@@ -139,6 +139,36 @@ function getProjectStageName(odooRecordId) {
 }
 
 
+/**
+ * Retrieve all project stages from the local DB for use as filters in UI.
+ * Returns an array of objects: { id: local_id, odoo_record_id: odoo_record_id, name: name, account_id: account_id }
+ */
+function getAllProjectStages() {
+    var stages = [];
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active FROM project_project_stage_app ORDER BY sequence ASC, name COLLATE NOCASE ASC";
+            var result = tx.executeSql(query);
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                stages.push({
+                    id: row.id,
+                    account_id: row.account_id,
+                    odoo_record_id: row.odoo_record_id,
+                    name: row.name,
+                    sequence: row.sequence,
+                    active: row.active
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getAllProjectStages failed:", e);
+    }
+    return stages;
+}
+
+
 
 function getAttachmentsForProject(odooRecordId) {
     var attachmentList = [];
