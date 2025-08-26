@@ -351,77 +351,6 @@ Item {
         anchors.fill: parent
         spacing: units.gu(1)
 
-        ListHeader {
-            id: projectListHeader
-            // Map four visible buttons to the requested filters
-            label1: ""
-            filter1: ""
-            label2: ""
-            filter2: ""
-            label3: ""
-            filter3: ""
-            label4: ""
-            filter4: ""
-            label5: ""
-            filter5: ""
-
-            label6: ""
-            filter6: ""
-
-            label7: ""
-            filter7: ""
-
-            onFilterSelected: function (filterKey) {
-                // filterKey is a semantic key; map to stage names
-                var targetNames = [];
-                if (filterKey === projectListHeader.filter1)
-                    targetNames = ["todo", "to do", "new"];
-                else if (filterKey === projectListHeader.filter2)
-                    targetNames = ["in progress", "in_progress", "doing"];
-                else if (filterKey === projectListHeader.filter3)
-                    targetNames = ["done", "completed", "finished"];
-                else if (filterKey === projectListHeader.filter4)
-                    targetNames = ["cancelled", "cancel", "closed"];
-                else if (filterKey === projectListHeader.filter6)
-                    targetNames = []; // All
-
-                // Clear filter for 'All'
-                if (filterKey === projectListHeader.filter6) {
-                    stageFilter.enabled = false;
-                    stageFilter.odoo_record_id = -1;
-                    stageFilter.name = "";
-                    projectListView.model = getCurrentModel();
-                    return;
-                }
-
-                // Search stageList for a matching name (case-insensitive)
-                var found = false;
-                for (var i = 0; i < stageList.length; i++) {
-                    var sname = (stageList[i].name || "").toLowerCase();
-                    for (var j = 0; j < targetNames.length; j++) {
-                        if (sname === targetNames[j].toLowerCase()) {
-                            stageFilter.enabled = true;
-                            stageFilter.odoo_record_id = stageList[i].odoo_record_id;
-                            stageFilter.name = stageList[i].name;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found)
-                        break;
-                }
-
-                if (!found) {
-                    // If not found, disable filter (no results)
-                    stageFilter.enabled = false;
-                    stageFilter.odoo_record_id = -1;
-                    stageFilter.name = "";
-                }
-
-                projectListView.model = getCurrentModel();
-            }
-        }
-
         TSButton {
             id: backbutton
             text: "← Back"
@@ -510,15 +439,15 @@ Item {
 
             // Track both unique odoo_record_id+name combinations
             var uniqueCombinations = {};
-            
+
             for (var i = 0; i < stageList.length; i++) {
                 var s = stageList[i];
                 var odooId = s.odoo_record_id || 0;
                 var stageName = s.name || "";
-                
+
                 // Create a unique key using both odoo_record_id and name
                 var combinationKey = odooId + "_" + stageName;
-                
+
                 // Skip if we've already included this exact combination
                 if (uniqueCombinations[combinationKey])
                     continue;
@@ -543,13 +472,13 @@ Item {
             }
             return menuModel;
         }
-        
+
         onMenuItemSelected: function (index) {
             // menuModel entries carry value for odoo_record_id
             var selectedItem = stageFilterMenu.menuModel[index];
             if (!selectedItem)
                 return;
-                
+
             if (selectedItem.value === -1) {
                 stageFilter.enabled = false;
                 stageFilter.odoo_record_id = -1;
@@ -559,11 +488,11 @@ Item {
                 stageFilter.odoo_record_id = selectedItem.value;
                 stageFilter.name = selectedItem.label;
             }
-            
+
             // Refresh listView model
             projectListView.model = getCurrentModel();
         }
-        
+
         onFilterCleared: {
             stageFilter.enabled = false;
             stageFilter.odoo_record_id = -1;

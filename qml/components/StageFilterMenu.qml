@@ -65,11 +65,17 @@ Item {
         id: fab
         width: fabSize
         height: fabSize
+        bgColor: LomiriColors.orange
+        fgColor: "white"
+        hoverColor: Qt.darker(bgColor, 1.2)
         radius: width / 2
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.margins: units.gu(3)
-        iconName: expanded ? "close" : "filter-symbolic"
+        iconName: expanded ? "close" : "filters"
+        iconBold : true
+        iconSize: units.gu(3)
+       
         
         z: 15
         
