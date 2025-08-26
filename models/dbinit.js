@@ -144,7 +144,7 @@ function initializeDatabase() {
             end_date date,\
             deadline date,\
             initial_planned_hours FLOAT,\
-            favorites INTEGER,\
+            priority TEXT,\
             state INTEGER,\
             description TEXT,\
             last_modified datetime,\
@@ -154,7 +154,7 @@ function initializeDatabase() {
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'name TEXT', 'account_id INTEGER', 'project_id INTEGER', 'sub_project_id INTEGER', 'parent_id INTEGER',
-                                  'start_date date', 'end_date date', 'deadline date', 'initial_planned_hours FLOAT', 'favorites INTEGER', 'state INTEGER',
+                                  'start_date date', 'end_date date', 'deadline date', 'initial_planned_hours FLOAT', 'priority TEXT', 'state INTEGER',
                                   'description TEXT', 'last_modified datetime', 'user_id INTEGER', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
                                  );
 

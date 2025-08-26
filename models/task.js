@@ -81,11 +81,11 @@ function saveOrUpdateTask(data) {
             if (data.record_id) {
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
-                    account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, favorites = ?, description = ?, user_id = ?, sub_project_id = ?, \
+                    account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority = ?, description = ?, user_id = ?, sub_project_id = ?, \
                     start_date = ?, end_date = ?, deadline = ?, last_modified = ?, status = ? WHERE id = ?',
                               [
                                   data.accountId, data.name, finalProjectId,
-                                  resolvedParentId, data.plannedHours, data.favorites,
+                                  resolvedParentId, data.plannedHours, data.priority,
                                   data.description, userIdValue, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
                                   timestamp, data.status, data.record_id
@@ -94,12 +94,12 @@ function saveOrUpdateTask(data) {
                               
             } else {
                 // INSERT
-                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, favorites, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
+                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
-                                  data.deadline, data.favorites, data.plannedHours,
+                                  data.deadline, data.priority, data.plannedHours,
                                   data.description, userIdValue,
                                   data.subProjectId, timestamp, data.status
                               ]
@@ -601,9 +601,9 @@ function edittaskData(data) {
 
     db.transaction(function (tx) {
         tx.executeSql('UPDATE project_task_app SET \
-            account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, favorites = ?, description = ?, user_id = ?, sub_project_id = ?, \
+            account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority =? , description = ?, user_id = ?, sub_project_id = ?, \
             start_date = ?, end_date = ?, deadline = ?, last_modified = ? WHERE id = ?',
-                      [data.selectedAccountUserId, data.nameInput, data.selectedProjectId, data.selectedparentId, data.initialInput, data.img_star, data.editdescription, data.selectedassigneesUserId, data.editselectedSubProjectId,
+                      [data.selectedAccountUserId, data.nameInput, data.selectedProjectId, data.selectedparentId, data.initialInput, data.priority, data.editdescription, data.selectedassigneesUserId, data.editselectedSubProjectId,
                        data.startdateInput, data.enddateInput, data.deadlineInput, new Date().toISOString(), data.rowId]
                       );
         fetch_tasks_lists()
@@ -646,7 +646,7 @@ function getTasksForAccount(accountId) {
                                   end_date: row.end_date,
                                   deadline: row.deadline,
                                   initial_planned_hours: row.initial_planned_hours,
-                                  favorites: row.favorites,
+                                  priority:row.priority,
                                   state: row.state,
                                   description: row.description,
                                   last_modified: row.last_modified,
@@ -698,11 +698,11 @@ function getTaskDetails(task_id) {
                             // This project is a subproject
                             sub_project_id = project_id;
                             project_id = parent_id;
-                            console.log("Subproject detected: sub_project_id =", sub_project_id, ", parent project_id =", project_id);
+                            //console.log("Subproject detected: sub_project_id =", sub_project_id, ", parent project_id =", project_id);
                         } else {
                             // Top-level project
                             sub_project_id = row.sub_project_id;
-                            console.log("Top-level project detected, project_id =", project_id);
+                            //console.log("Top-level project detected, project_id =", project_id);
                         }
                     } else {
                         console.error("Project lookup failed for project_id:", project_id);
@@ -720,7 +720,7 @@ function getTaskDetails(task_id) {
                     end_date: row.end_date || "",      // Keep original date format from database
                     deadline: row.deadline || "",      // Keep original date format from database
                     initial_planned_hours: row.initial_planned_hours || 0,  // Ensure it's not null/undefined
-                    favorites: row.favorites || 0,
+                    priority :row.priority,
                     state: row.state || "",
                     description: row.description || "",
                     last_modified: row.last_modified,
@@ -729,7 +729,7 @@ function getTaskDetails(task_id) {
                     odoo_record_id: row.odoo_record_id
                 };
 
-                console.log("getTaskDetails enriched task:", JSON.stringify(task_detail));
+                //console.log("getTaskDetails enriched task:", JSON.stringify(task_detail));
             } else {
                 console.error("No task found for local task_id:", task_id);
             }
@@ -1247,13 +1247,6 @@ function getTaskDateStatus(task, checkDate) {
 }
 
 /**
- * Toggles the favorite status of a task in the local database.
- *
- * @param {number} taskId - The local ID of the task to toggle favorite status.
- * @param {boolean} isFavorite - The new favorite status (true for favorite, false for not favorite).
- * @returns {Object} - Result object with success status and message.
- */
-/**
  * Sets the priority level of a task in the local database.
  *
  * @param {number} taskId - The local ID of the task.
@@ -1267,18 +1260,18 @@ function setTaskPriority(taskId, priority, status) {
         var result = { success: false, message: "" };
         
         // Ensure priority is within valid range (0-3)
-        priority = Math.max(0, Math.min(3, parseInt(priority) || 0));
+        //priority = Math.max(0, Math.min(3, parseInt(priority) || 0));
         
         db.transaction(function (tx) {
             var updateResult = tx.executeSql(
-                'UPDATE project_task_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
+                'UPDATE project_task_app SET priority = ?, last_modified = ?, status = ? WHERE id = ?',
                 [priority, new Date().toISOString(), status, taskId]
             );
             
             if (updateResult.rowsAffected > 0) {
                 result.success = true;
                 result.message = "Task priority set to " + priority;
-                console.log("✅ Task priority updated:", taskId, "priority:", priority);
+                console.log("Task priority updated:", taskId, "priority:", priority);
             } else {
                 result.message = "Task not found or no changes made";
                 console.warn("⚠️ No task updated with ID:", taskId);
