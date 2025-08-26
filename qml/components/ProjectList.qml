@@ -301,34 +301,36 @@ Item {
     function loadStages() {
         try {
             stageList = Project.getAllProjectStages();
-            // Build menu model for DialerMenu: label + value
+            // Build menu model for DialerMenu ensuring odoo_record_id uniqueness
             var menuModel = [];
             menuModel.push({
                 label: "All Stages",
                 value: -1
             });
 
-            // Count occurrences of stage names to detect duplicates
-            var nameCounts = {};
+            // First, ensure odoo_record_id uniqueness
+            var uniqueStages = {};
             for (var i = 0; i < stageList.length; i++) {
-                var n = stageList[i].name || "";
-                nameCounts[n] = (nameCounts[n] || 0) + 1;
-            }
+                var s = stageList[i];
+                var odooId = s.odoo_record_id || 0;
 
-            for (var j = 0; j < stageList.length; j++) {
-                var s = stageList[j];
+                // Skip if we've already included this odoo_record_id
+                if (uniqueStages[odooId])
+                    continue;
+
                 var label = s.name || "";
-                if (nameCounts[label] > 1) {
+
+                // Add account name for context
+                if (s.account_id) {
                     // Append account name to make the label unique
                     var acct = Accounts.getAccountName(s.account_id) || "Local";
                     label = label + " (" + acct + ")";
                 }
-                // As a last resort, ensure label uniqueness by appending the odoo id if still duplicated
-                if (menuModel.some(function (x) {
-                    return x.label === label;
-                })) {
-                    label = label + " [" + s.odoo_record_id + "]";
-                }
+
+                // Add this stage to our unique stage map
+                uniqueStages[odooId] = true;
+
+                // Add stage to menu model with its odoo_record_id as value
                 menuModel.push({
                     label: label,
                     value: s.odoo_record_id
@@ -355,8 +357,14 @@ Item {
             filter3: "done"
             label4: "Cancelled"
             filter4: "cancelled"
-            label6: "All"
-            filter6: "all"
+            label5: "All"
+            filter5: "all"
+
+            label6: "On Hold"
+            filter6: "on_hold"
+
+            label7: ""
+            filter7: ""
 
             onFilterSelected: function (filterKey) {
                 // filterKey is a semantic key; map to stage names
@@ -484,6 +492,27 @@ Item {
     }
 
     // Floating filter menu using DialerMenu component
+    Components.DialerMenu {
+        id: dialer
+        anchors.fill: parent
+        onMenuItemSelected: function (index) {
+            // menuModel entries carry value and uniqueId for odoo_record_id
+            var m = dialer.menuModel[index];
+            if (!m)
+                return;
+            if (m.value === -1) {
+                stageFilter.enabled = false;
+                stageFilter.odoo_record_id = -1;
+                stageFilter.name = "";
+            } else {
+                stageFilter.enabled = true;
+                stageFilter.odoo_record_id = m.value;
+                stageFilter.name = m.label;
+            }
+            // Refresh listView model
+            projectListView.model = getCurrentModel();
+        }
+    }
 
     Connections {
         target: projectNavigator
