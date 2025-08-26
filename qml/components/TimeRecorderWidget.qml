@@ -126,41 +126,41 @@ Item {
                     id: recordIcon
                     anchors.fill: parent
                     anchors.margins: units.gu(0.3)
-                    
+
                     source: {
-                        if (!autoMode) return "../images/play (1).png";
-                        
+                        if (!autoMode)
+                            return "../images/play (1).png";
+
                         var serviceRunning = TimerService.isRunning();
                         var servicePaused = TimerService.isPaused();
                         var activeId = TimerService.getActiveTimesheetId();
-                        
+
                         if (serviceRunning && activeId === timesheetId && !servicePaused) {
                             return "../images/pause.png";
                         } else {
                             return "../images/play (1).png";
                         }
                     }
-                    
+
                     fillMode: Image.PreserveAspectFit
                 }
 
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
-                    
+
                     onClicked: {
                         if (timesheetId <= 0) {
                             autoRecorder.invalidtimesheet();
                             return;
                         }
-                        
+
                         var serviceRunning = TimerService.isRunning();
                         var servicePaused = TimerService.isPaused();
                         var activeId = TimerService.getActiveTimesheetId();
-                        
+
                         if (!serviceRunning || activeId !== timesheetId) {
-                            
-                            if (TimeSheet.isTimesheetReadyToRecord(timesheetId)) {
+                            if (TimeSheet.isTimesheetReadyToStartTimer(timesheetId)) {
                                 var result = TimerService.start(timesheetId);
                                 if (result.success) {
                                     isRecording = true;
@@ -169,14 +169,12 @@ Item {
                                     notifPopup.open("Timer Error", result.error, "error");
                                 }
                             } else {
-                                notifPopup.open("Incomplete Timesheet", "Please save the timesheet first.", "error");
+                                notifPopup.open("Incomplete Timesheet", "Please select a project first.", "error");
                             }
                         } else if (servicePaused) {
-                            
                             TimerService.resume();
                             isRecording = true;
                         } else {
-                           
                             TimerService.pause();
                             isRecording = false;
                         }
@@ -214,7 +212,7 @@ Item {
 
                         const result = TimeSheet.markTimesheetAsReadyById(timesheetId);
                         if (!result.success) {
-                            notifPopup.open("Error", "Unable to finalise the timesheet", "error");
+                            notifPopup.open("Error", "Both Project and Task must be selected before finalizing", "error");
                         } else {
                             notifPopup.open("Saved", "Timesheet has been finalised successfully", "success");
                         }
@@ -229,23 +227,22 @@ Item {
         interval: 1000
         repeat: true
         running: autoMode && (TimerService.isRunning() && TimerService.getActiveTimesheetId() === timesheetId)
-        
+
         onTriggered: {
             var serviceRunning = TimerService.isRunning();
             var servicePaused = TimerService.isPaused();
             var activeId = TimerService.getActiveTimesheetId();
-            
-           
+
             if (serviceRunning && activeId === timesheetId) {
                 isRecording = true;
                 timeDisplay.text = TimerService.getElapsedTime();
             } else {
                 isRecording = false;
-                
+
                 var savedTime = TimeSheet.getTimesheetUnitAmount(timesheetId);
                 timeDisplay.text = Utils.convertDecimalHoursToHHMM(savedTime);
             }
-            
+
             elapsedTime = timeDisplay.text;
         }
     }

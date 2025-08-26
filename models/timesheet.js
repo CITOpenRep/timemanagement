@@ -177,6 +177,13 @@ function getTimesheetNameById(timesheetId) {
     return name;
 }
 
+/**
+ * Checks if a timesheet is ready to be synced to Odoo.
+ * Both project (or sub-project) and task (or sub-task) must be assigned to prevent sync errors.
+ *
+ * @param {number} timesheetId - The ID of the timesheet to check
+ * @returns {boolean} - True if the timesheet has both project and task assigned, false otherwise
+ */
 function isTimesheetReadyToRecord(timesheetId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var ready = false;
@@ -201,19 +208,51 @@ function isTimesheetReadyToRecord(timesheetId) {
                 var hasTaskOrSubtask = (row.task_id && row.task_id > 0) ||
                                        (row.sub_task_id && row.sub_task_id > 0);
 
-                if (hasProjectOrSubproject) {
-                    // For project-level timesheets, only project is required : TODO check with Richard is its correct
-                    ready = true;
-                } else if (hasTaskOrSubtask) {
-                    // For task-level timesheets, both project and task should be present
-                    ready = hasProjectOrSubproject && hasTaskOrSubtask;
-                }
+                // Both project and task are mandatory for sync to prevent sync errors
+                ready = hasProjectOrSubproject && hasTaskOrSubtask;
             } else {
                 console.log("Timesheet ID " + timesheetId + " not found in DB.");
             }
         });
     } catch (e) {
         console.log("isTimesheetReadyToRecord failed:", e);
+    }
+
+    return ready;
+}
+
+/**
+ * Checks if a timesheet is ready to start timer tracking.
+ * Only requires a project (or sub-project) to be assigned, allowing draft timesheets to be tracked.
+ *
+ * @param {number} timesheetId - The ID of the timesheet to check
+ * @returns {boolean} - True if the timesheet has a project assigned, false otherwise
+ */
+function isTimesheetReadyToStartTimer(timesheetId) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var ready = false;
+
+    try {
+        db.transaction(function(tx) {
+            var rs = tx.executeSql(
+                "SELECT project_id, sub_project_id FROM account_analytic_line_app WHERE id = ? LIMIT 1",
+                [timesheetId]
+            );
+
+            if (rs.rows.length > 0) {
+                var row = rs.rows.item(0);
+                
+                var hasProjectOrSubproject = (row.project_id && row.project_id > 0) ||
+                                             (row.sub_project_id && row.sub_project_id > 0);
+
+                // Only project is required for timer start - task can be selected later
+                ready = hasProjectOrSubproject;
+            } else {
+                console.log("Timesheet ID " + timesheetId + " not found in DB.");
+            }
+        });
+    } catch (e) {
+        console.log("isTimesheetReadyToStartTimer failed:", e);
     }
 
     return ready;
@@ -651,7 +690,7 @@ function markTimesheetAsReadyById(timesheetId) {
     
     if(!isTimesheetReadyToRecord(timesheetId)) {
         result.success = false;
-        result.error = "Timesheet not ready - missing project/task information";
+        result.error = "Timesheet not ready - both project and task must be selected";
         return result;
     }
  

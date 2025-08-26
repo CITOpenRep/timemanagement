@@ -94,7 +94,7 @@ ListItem {
             notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
             timesheetItem.refresh();
         } else {
-            notifPopup.open("Update needed", "Timesheet is missing mandatory Project/Task information, Not ready to sync", "error");
+            notifPopup.open("Update needed", "Both Project and Task must be selected before syncing", "error");
         }
     }
 
