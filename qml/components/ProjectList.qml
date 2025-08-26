@@ -310,15 +310,15 @@ Item {
 
             // Track both unique odoo_record_id+name combinations
             var uniqueCombinations = {};
-            
+
             for (var i = 0; i < stageList.length; i++) {
                 var s = stageList[i];
                 var odooId = s.odoo_record_id || 0;
                 var stageName = s.name || "";
-                
+
                 // Create a unique key using both odoo_record_id and name
                 var combinationKey = odooId + "_" + stageName;
-                
+
                 // Skip if we've already included this exact combination
                 if (uniqueCombinations[combinationKey])
                     continue;
@@ -354,19 +354,19 @@ Item {
         ListHeader {
             id: projectListHeader
             // Map four visible buttons to the requested filters
-            label1: "ToDo"
-            filter1: "todo"
-            label2: "In Progress"
-            filter2: "in_progress"
-            label3: "Done"
-            filter3: "done"
-            label4: "Cancelled"
-            filter4: "cancelled"
-            label5: "All"
-            filter5: "all"
+            label1: ""
+            filter1: ""
+            label2: ""
+            filter2: ""
+            label3: ""
+            filter3: ""
+            label4: ""
+            filter4: ""
+            label5: ""
+            filter5: ""
 
-            label6: "On Hold"
-            filter6: "on_hold"
+            label6: ""
+            filter6: ""
 
             label7: ""
             filter7: ""
@@ -497,28 +497,80 @@ Item {
     }
 
     // Floating filter menu using DialerMenu component
-    Components.DialerMenu {
-        id: dialer
+    // Floating stage filter menu using StageFilterMenu component
+    Components.StageFilterMenu {
+        id: stageFilterMenu
         anchors.fill: parent
+        menuModel: {
+            var menuModel = [];
+            menuModel.push({
+                label: "All Stages",
+                value: -1
+            });
+
+            // Track both unique odoo_record_id+name combinations
+            var uniqueCombinations = {};
+            
+            for (var i = 0; i < stageList.length; i++) {
+                var s = stageList[i];
+                var odooId = s.odoo_record_id || 0;
+                var stageName = s.name || "";
+                
+                // Create a unique key using both odoo_record_id and name
+                var combinationKey = odooId + "_" + stageName;
+                
+                // Skip if we've already included this exact combination
+                if (uniqueCombinations[combinationKey])
+                    continue;
+
+                var label = stageName;
+
+                // Add account name for context
+                if (s.account_id) {
+                    // Append account name to make the label unique
+                    var acct = Accounts.getAccountName(s.account_id) || "Local";
+                    label = label + " (" + acct + ")";
+                }
+
+                // Mark this combination as seen
+                uniqueCombinations[combinationKey] = true;
+
+                // Add stage to menu model with its odoo_record_id as value
+                menuModel.push({
+                    label: label,
+                    value: s.odoo_record_id
+                });
+            }
+            return menuModel;
+        }
+        
         onMenuItemSelected: function (index) {
-            // menuModel entries carry value and uniqueId for odoo_record_id
-            var m = dialer.menuModel[index];
-            if (!m)
+            // menuModel entries carry value for odoo_record_id
+            var selectedItem = stageFilterMenu.menuModel[index];
+            if (!selectedItem)
                 return;
-            if (m.value === -1) {
+                
+            if (selectedItem.value === -1) {
                 stageFilter.enabled = false;
                 stageFilter.odoo_record_id = -1;
                 stageFilter.name = "";
             } else {
                 stageFilter.enabled = true;
-                stageFilter.odoo_record_id = m.value;
-                stageFilter.name = m.label;
+                stageFilter.odoo_record_id = selectedItem.value;
+                stageFilter.name = selectedItem.label;
             }
+            
             // Refresh listView model
             projectListView.model = getCurrentModel();
         }
+        
+        onFilterCleared: {
+            stageFilter.enabled = false;
+            stageFilter.odoo_record_id = -1;
+            stageFilter.name = "";
+            projectListView.model = getCurrentModel();
+        }
     }
-
     Connections {
         target: projectNavigator
         onChildrenMapReadyChanged: {
