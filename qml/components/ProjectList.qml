@@ -301,24 +301,29 @@ Item {
     function loadStages() {
         try {
             stageList = Project.getAllProjectStages();
-            // Build menu model for DialerMenu ensuring odoo_record_id uniqueness
+            // Build menu model for DialerMenu
             var menuModel = [];
             menuModel.push({
                 label: "All Stages",
                 value: -1
             });
 
-            // First, ensure odoo_record_id uniqueness
-            var uniqueStages = {};
+            // Track both unique odoo_record_id+name combinations
+            var uniqueCombinations = {};
+            
             for (var i = 0; i < stageList.length; i++) {
                 var s = stageList[i];
                 var odooId = s.odoo_record_id || 0;
-
-                // Skip if we've already included this odoo_record_id
-                if (uniqueStages[odooId])
+                var stageName = s.name || "";
+                
+                // Create a unique key using both odoo_record_id and name
+                var combinationKey = odooId + "_" + stageName;
+                
+                // Skip if we've already included this exact combination
+                if (uniqueCombinations[combinationKey])
                     continue;
 
-                var label = s.name || "";
+                var label = stageName;
 
                 // Add account name for context
                 if (s.account_id) {
@@ -327,8 +332,8 @@ Item {
                     label = label + " (" + acct + ")";
                 }
 
-                // Add this stage to our unique stage map
-                uniqueStages[odooId] = true;
+                // Mark this combination as seen
+                uniqueCombinations[combinationKey] = true;
 
                 // Add stage to menu model with its odoo_record_id as value
                 menuModel.push({
