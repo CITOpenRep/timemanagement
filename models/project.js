@@ -580,3 +580,4 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         return { success: false, message: "Failed to update project favorite status: " + e.message };
     }
 }
+

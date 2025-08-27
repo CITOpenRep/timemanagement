@@ -1286,12 +1286,3 @@ function setTaskPriority(taskId, priority, status) {
     }
 }
 
-/**
- * Legacy function for backward compatibility.
- * @deprecated Use setTaskPriority instead.
- */
-function toggleTaskFavorite(taskId, isFavorite, status) {
-    // Convert boolean favorite to priority (0 or 1)
-    return setTaskPriority(taskId, isFavorite ? 1 : 0, status);
-}
-

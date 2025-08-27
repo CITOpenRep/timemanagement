@@ -291,12 +291,12 @@ Page {
                     height: units.gu(5)
 
                     Repeater {
-                        model: 4 // For 4 priority levels (0-3)
+                        model: 3 // For 3 stars (priority 1-3, with 0 = no stars)
 
                         Image {
                             id: priorityStar
                             property int starIndex: index
-                            source: (taskCreate.priority > index) ? "../qml/images/star.png" : "../qml/images/star-inactive.png"
+                            source: ((index + 1) <= taskCreate.priority) ? "../qml/images/star.png" : "../qml/images/star-inactive.png"
                             width: units.gu(3.5)
                             height: units.gu(3.5)
                             opacity: isReadOnly ? 0.7 : 1.0
@@ -305,10 +305,9 @@ Page {
                                 anchors.fill: parent
                                 enabled: !isReadOnly
                                 onClicked: {
-                                    // Set priority based on which star was clicked
-                                    // If clicking the same priority level, reduce by 1 (toggle behavior)
-                                    // If clicking a different level, set to that level
-                                    var newPriority = (index + 1 === taskCreate.priority) ? Math.max(0, taskCreate.priority - 1) : index + 1;
+                                    // 3-star system: clicking star sets that priority level, clicking same level sets to 0
+                                    var clickedPriority = index + 1;
+                                    var newPriority = (clickedPriority === taskCreate.priority) ? 0 : clickedPriority;
                                     taskCreate.priority = newPriority;
                                 }
                             }
