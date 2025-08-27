@@ -772,12 +772,13 @@ function getAllTasks() {
                 var row = result.rows.item(i);
                 var task = DBCommon.rowToObject(row);
 
-                // Inherit color from sub_project or project
+                 // Inherit color from sub_project, project, or walk up hierarchy
                 var inheritedColor = 0;
-                if (projectColorMap[task.sub_project_id]) {
-                    inheritedColor = projectColorMap[task.sub_project_id];
-                } else if (projectColorMap[task.project_id]) {
-                    inheritedColor = projectColorMap[task.project_id];
+                if (task.sub_project_id) {
+                    inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                }
+                if (!inheritedColor && task.project_id) {
+                    inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
                 }
                 task.color_pallet = inheritedColor;
 
@@ -798,7 +799,30 @@ function getAllTasks() {
 
     return taskList;
 }
-
+ // Recursive function to resolve project color by walking up the hierarchy
+    function resolveProjectColor(projectId, projectMap, tx) {
+        var color = projectMap[projectId];
+        // If color is found AND not zero → return it
+        if (color && color !== "0" && color !== 0) {
+            console.log("✅ Found non-zero color for projectId:", projectId, "color:", color);
+            return color;
+        }
+        // Otherwise, check the parent
+        var parentQuery = "SELECT parent_id FROM project_project_app WHERE odoo_record_id = ?";
+        var parentResult = tx.executeSql(parentQuery, [projectId]);
+ 
+        if (parentResult.rows.length > 0) {
+            var parentId = parentResult.rows.item(0).parent_id;
+            console.log("🔄 projectId", projectId, "has parent:", parentId);
+ 
+            if (parentId && parentId !== 0) {
+                return resolveProjectColor(parentId, projectMap, tx); // recurse to parent
+            }
+        }
+        console.log("⚠️ No non-zero color found for projectId:", projectId);
+        return 0;
+    }
+ 
 
 /**
  * Filters tasks based on date criteria and search query while preserving parent-child hierarchy
