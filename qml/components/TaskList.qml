@@ -131,9 +131,8 @@ Item {
                 endDate: row.end_date || "",
                 deadline: row.deadline || "",
                 description: row.description || "",
-                isFavorite: row.favorites === 1,
                 hasChildren: false,
-                stage:row.state|| -1,
+                stage: row.state || -1,
                 color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
                 last_modified: row.last_modified || ""
             };
@@ -208,9 +207,8 @@ Item {
                 endDate: row.end_date || "",
                 deadline: row.deadline || "",
                 description: row.description || "",
-                isFavorite: row.favorites === 1,
                 hasChildren: false,
-                stage:row.state|| -1,
+                stage: row.state || -1,
                 color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
                 last_modified: row.last_modified || ""
             };
@@ -294,7 +292,7 @@ Item {
                     childCount: model.childCount
                     projectName: model.project
                     colorPallet: model.color_pallet
-                    stage:model.stage
+                    stage: model.stage
                     //accountId:model.account_id
 
                     onEditRequested: id => {
@@ -321,13 +319,11 @@ Item {
                         enabled: !taskCard.starInteractionActive
                         onClicked: {
                             if (model.hasChildren) {
-                              
                                 navigationStackModel.append({
                                     parentId: currentParentId
                                 });
                                 currentParentId = model.id_val;
                             } else {
-                               
                                 taskCard.viewRequested(model.local_id);
                             }
                         }

@@ -1259,13 +1259,14 @@ function setTaskPriority(taskId, priority, status) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var result = { success: false, message: "" };
         
-        // Ensure priority is within valid range (0-3)
-        //priority = Math.max(0, Math.min(3, parseInt(priority) || 0));
+        // Ensure priority is within valid range (0-3) and convert to string
+      //  var numericPriority = Math.max(0, Math.min(3, parseInt(priority) || 0));
+        priority.toString(); // Store as string to match Odoo format
         
         db.transaction(function (tx) {
             var updateResult = tx.executeSql(
                 'UPDATE project_task_app SET priority = ?, last_modified = ?, status = ? WHERE id = ?',
-                [priority, new Date().toISOString(), status, taskId]
+                [priority, Utils.getFormattedTimestampUTC(), status, taskId]
             );
             
             if (updateResult.rowsAffected > 0) {
@@ -1283,14 +1284,5 @@ function setTaskPriority(taskId, priority, status) {
         console.error("❌ setTaskPriority failed:", e);
         return { success: false, message: "Failed to set task priority: " + e.message };
     }
-}
-
-/**
- * Legacy function for backward compatibility.
- * @deprecated Use setTaskPriority instead.
- */
-function toggleTaskFavorite(taskId, isFavorite, status) {
-    // Convert boolean favorite to priority (0 or 1)
-    return setTaskPriority(taskId, isFavorite ? 1 : 0, status);
 }
 
