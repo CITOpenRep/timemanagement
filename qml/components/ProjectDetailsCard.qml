@@ -52,7 +52,7 @@ ListItem {
     property int accountId: -1
     property bool hasChildren: false
     property int childCount: 0
-    property int stage:0
+    property int stage: 0
     property bool timer_on: false
     property bool timer_paused: false
     signal editRequested(int recordId)
@@ -249,31 +249,28 @@ ListItem {
                         height: parent.height
                         color: 'transparent'
 
-                        Column {
-
-                            width: parent.width
-                            height: parent.height 
-                            spacing: units.gu(0.2)
-
-                            // Main content area MouseArea for navigation
-                            MouseArea {
-                                anchors.fill: parent
-                                z: 1  // Much lower than star MouseArea
-                                onClicked: {
-                                    
-
-                                    if (hasChildren && recordId > 0) {
-                                        // For projects with children, emit navigation signal
-                                        navigationRequested(recordId, projectCard.accountId || 0);
-                                    } else {
-                                        // For leaf projects, show details (same as View-On action)
-                                        viewRequested(localId);
-                                    }
+                        // Main content area MouseArea for navigation
+                        MouseArea {
+                            anchors.fill: parent
+                            z: 1  // Much lower than star MouseArea
+                            onClicked: {
+                                if (hasChildren && recordId > 0) {
+                                    // For projects with children, emit navigation signal
+                                    navigationRequested(recordId, projectCard.accountId || 0);
+                                } else {
+                                    // For leaf projects, show details (same as View-On action)
+                                    viewRequested(localId);
                                 }
                             }
+                        }
+
+                        Column {
+                            width: parent.width
+                            height: parent.height
+                            spacing: units.gu(0.2)
 
                             Text {
-                                text: projectName !== "" ?  projectName : "Unnamed Project"
+                                text: projectName !== "" ? projectName : "Unnamed Project"
                                 color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                                 font.pixelSize: units.gu(2)
                                 wrapMode: Text.WordWrap
@@ -318,17 +315,16 @@ ListItem {
                                 width: parent.width
                             }
 
-                            Rectangle
-                            {
+                            Rectangle {
                                 color: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? "green" : AppConst.Colors.Orange
-                                width: parent.width/2
+                                width: parent.width / 2
                                 height: units.gu(3)
                                 Text {
-                                     anchors.centerIn: parent
-                                     text : Project.getProjectStageName(stage)
-                                     color: "white"
-                                     font.pixelSize: units.gu(1.5)
-                                     font.bold: true
+                                    anchors.centerIn: parent
+                                    text: Project.getProjectStageName(stage)
+                                    color: "white"
+                                    font.pixelSize: units.gu(1.5)
+                                    font.bold: true
                                 }
                             }
                         }
@@ -341,42 +337,47 @@ ListItem {
                 height: parent.height
                 color: 'transparent'
 
-                Column {
+                Item {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: units.gu(0.4)
                     width: parent.width
+                    height: childrenRect.height
 
-                    Text {
-                        text: "Planned (H): " + Utils.truncateText(allocatedHours,6) 
-                        font.pixelSize: units.gu(1.5)
-                        horizontalAlignment: Text.AlignRight
+                    Column {
+                        spacing: units.gu(0.4)
                         width: parent.width
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555"
-                    }
 
-                    Text {
-                        text: "Start Date: " + (startDate !== "" ? startDate : "Not set")
-                        font.pixelSize: units.gu(1.5)
-                        horizontalAlignment: Text.AlignRight
-                        width: parent.width
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
-                    }
+                        Text {
+                            text: "Planned (H): " + Utils.truncateText(allocatedHours, 6)
+                            font.pixelSize: units.gu(1.5)
+                            horizontalAlignment: Text.AlignRight
+                            width: parent.width
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555"
+                        }
 
-                    Text {
-                        text: "End Date: " + (endDate !== "" ? endDate : "Not set")
-                        font.pixelSize: units.gu(1.5)
-                        horizontalAlignment: Text.AlignRight
-                        width: parent.width
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
-                    }
+                        Text {
+                            text: "Start Date: " + (startDate !== "" ? startDate : "Not set")
+                            font.pixelSize: units.gu(1.5)
+                            horizontalAlignment: Text.AlignRight
+                            width: parent.width
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
+                        }
 
-                    Text {
-                        text: Utils.getTimeStatusInText(endDate)
-                        font.pixelSize: units.gu(1.5)
-                        horizontalAlignment: Text.AlignRight
-                        width: parent.width
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
+                        Text {
+                            text: "End Date: " + (endDate !== "" ? endDate : "Not set")
+                            font.pixelSize: units.gu(1.5)
+                            horizontalAlignment: Text.AlignRight
+                            width: parent.width
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
+                        }
+
+                        Text {
+                            text: Utils.getTimeStatusInText(endDate)
+                            font.pixelSize: units.gu(1.5)
+                            horizontalAlignment: Text.AlignRight
+                            width: parent.width
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
+                        }
                     }
                 }
             }

@@ -560,8 +560,8 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         db.transaction(function (tx) {
             var favoriteValue = isFavorite ? 1 : 0;
             var updateResult = tx.executeSql(
-                'UPDATE project_project_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
-                [favoriteValue, new Date().toISOString(), status, projectId]
+                'UPDATE project_project_app SET favorites = ?, last_modified = ? WHERE id = ?',
+                [favoriteValue, new Date().toISOString(), projectId]
             );
 
             if (updateResult.rowsAffected > 0) {
