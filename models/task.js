@@ -1260,13 +1260,13 @@ function setTaskPriority(taskId, priority, status) {
         var result = { success: false, message: "" };
         
         // Ensure priority is within valid range (0-3) and convert to string
-        var numericPriority = Math.max(0, Math.min(3, parseInt(priority) || 0));
-        priority = numericPriority.toString(); // Store as string to match Odoo format
+      //  var numericPriority = Math.max(0, Math.min(3, parseInt(priority) || 0));
+        priority.toString(); // Store as string to match Odoo format
         
         db.transaction(function (tx) {
             var updateResult = tx.executeSql(
                 'UPDATE project_task_app SET priority = ?, last_modified = ?, status = ? WHERE id = ?',
-                [priority, new Date().toISOString(), status, taskId]
+                [priority, Utils.getFormattedTimestampUTC(), status, taskId]
             );
             
             if (updateResult.rowsAffected > 0) {
