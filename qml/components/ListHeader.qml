@@ -19,6 +19,7 @@ Rectangle {
     property string label4: "Later"
     property string label5: "OverDue"
     property string label6: "All"
+    property string label7: "Done"
 
     property string filter1: "today"
     property string filter2: "next_week"
@@ -26,6 +27,7 @@ Rectangle {
     property string filter4: "later"
     property string filter5: "overdue"
     property string filter6: "all"
+    property string filter7: "done"
 
     property bool showSearchBox: true
     property string currentFilter: filter1  // Track currently selected filter
@@ -271,6 +273,31 @@ Rectangle {
                     onClicked: {
                         topFilterBar.currentFilter = topFilterBar.filter6;
                         topFilterBar.filterSelected(topFilterBar.filter6);
+                    }
+                }
+
+                Button {
+                    text: topFilterBar.label7
+                    visible: (topFilterBar.label7) ? true : false
+                    enabled: (topFilterBar.label7) ? true : false
+                    height: units.gu(6)
+                    width: units.gu(12)
+                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter7
+                    background: Rectangle {
+                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
+                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
+                        border.width: 1
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
+                        font.bold: parent.isHighlighted
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    onClicked: {
+                        topFilterBar.currentFilter = topFilterBar.filter7;
+                        topFilterBar.filterSelected(topFilterBar.filter7);
                     }
                 }
             }

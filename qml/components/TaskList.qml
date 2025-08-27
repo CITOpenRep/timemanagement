@@ -93,12 +93,12 @@ Item {
             return;
         }
 
-        // Sort tasks by last_modified (most recent first)
+        // Sort tasks by end Date (most recent first)
         tasks.sort(function (a, b) {
-            if (!a.last_modified || !b.last_modified) {
+            if (!a.end_date || !b.end_date) {
                 return (a.name || "").localeCompare(b.name || "");
             }
-            return new Date(b.last_modified) - new Date(a.last_modified);
+            return new Date(a.end_date) - new Date(b.end_date);
         });
 
         var tempMap = {};
@@ -131,8 +131,8 @@ Item {
                 endDate: row.end_date || "",
                 deadline: row.deadline || "",
                 description: row.description || "",
-                isFavorite: row.favorites === 1,
                 hasChildren: false,
+                stage: row.state || -1,
                 color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
                 last_modified: row.last_modified || ""
             };
@@ -207,8 +207,8 @@ Item {
                 endDate: row.end_date || "",
                 deadline: row.deadline || "",
                 description: row.description || "",
-                isFavorite: row.favorites === 1,
                 hasChildren: false,
+                stage: row.state || -1,
                 color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
                 last_modified: row.last_modified || ""
             };
@@ -272,7 +272,7 @@ Item {
 
             delegate: Item {
                 width: parent.width
-                height: units.gu(12)
+                height: units.gu(15)
 
                 TaskDetailsCard {
                     id: taskCard
@@ -292,6 +292,7 @@ Item {
                     childCount: model.childCount
                     projectName: model.project
                     colorPallet: model.color_pallet
+                    stage: model.stage
                     //accountId:model.account_id
 
                     onEditRequested: id => {
@@ -318,13 +319,11 @@ Item {
                         enabled: !taskCard.starInteractionActive
                         onClicked: {
                             if (model.hasChildren) {
-                              
                                 navigationStackModel.append({
                                     parentId: currentParentId
                                 });
                                 currentParentId = model.id_val;
                             } else {
-                               
                                 taskCard.viewRequested(model.local_id);
                             }
                         }

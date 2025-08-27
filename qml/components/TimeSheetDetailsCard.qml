@@ -43,7 +43,6 @@ ListItem {
     property string spentHours: "0"
     property string quadrant: "Do"
     property int recordId: -1
-    property bool isFavorite: false
     property string status: ""
     property bool timer_on: false
     property bool timer_paused: false
@@ -52,15 +51,7 @@ ListItem {
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
     signal deleteRequested(int recordId)
-    signal toggleFavorite(int recordId, bool currentState)
     signal refresh
-
-    /* leadingActions: ListItemActions {
-        actions: Action {
-            iconSource: isFavorite ? "images/star-active.svg" : "images/starinactive.svg"
-            onTriggered: toggleFavorite(recordId, isFavorite)
-        }
-    }*/
 
     function play_pause_workflow() {
         if (recordId === TimerService.getActiveTimesheetId()) {
@@ -94,7 +85,7 @@ ListItem {
             notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
             timesheetItem.refresh();
         } else {
-            notifPopup.open("Update needed", "Timesheet is missing mandatory Project/Task information, Not ready to sync", "error");
+            notifPopup.open("Update needed", "Both Project and Task must be selected before syncing", "error");
         }
     }
 

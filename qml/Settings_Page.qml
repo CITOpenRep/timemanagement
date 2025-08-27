@@ -528,7 +528,7 @@ Page {
                                                     fontSize: units.gu(1.5)
                                                     text: "Sync"
                                                     onClicked: {
-                                                        console.log("🔄 Starting sync for account:", model.id, "(" + model.name + ")");
+                                                        console.log("Starting sync for account:", model.id, "(" + model.name + ")");
                                                         syncingAccountId = model.id;
                                                         syncTimeoutTimer.start(); // Start timeout timer
 

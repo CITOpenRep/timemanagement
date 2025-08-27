@@ -64,7 +64,7 @@ def main():
 
     # Fetch fields
     fields_data = {}
-    for model in ["project.project", "project.task","account.analytic.line","res.users","mail.activity","ir.model","ir.attachment","project.update"]:
+    for model in ["project.project", "project.task","account.analytic.line","res.users","mail.activity","ir.model","ir.attachment","project.update","project.task.type","project.project.stage"]:
         print(f"Fetching fields for {model}...")
         fields_data[model] = fetch_fields(
             model, models, selected["database"], uid, selected["api_key"]

@@ -34,10 +34,9 @@ import QtQuick.Layouts 1.1
 ListItem {
     id: taskCard
     width: parent.width
-    height: units.gu(28)
+    height: units.gu(15)
     property int screenWidth: parent.width
     property int priority: 0 // 0-3 priority levels (0 = lowest, 3 = highest)
-    property bool isFavorite: priority > 0 // Backward compatibility, true if priority > 0
     property string taskName: ""
     property string projectName: ""
     property double allocatedHours: 0
@@ -49,6 +48,7 @@ ListItem {
     property int colorPallet: 0
     property int localId: -1
     property int recordId: -1
+    property int stage: -1
     property bool hasChildren: false
     property int childCount: 0
     property bool timer_on: false
@@ -120,7 +120,7 @@ ListItem {
                 projectId: taskDetails.project_id,
                 parentId: taskDetails.parent_id,
                 plannedHours: taskDetails.initial_planned_hours,
-                favorites: parseInt(taskDetails.favorites) || 0 // This is now priority (0-3)
+                priority: taskDetails.priority || "0" // Priority field as string (0-3) to match Odoo
                 ,
                 description: taskDetails.description,
                 assigneeUserId: taskDetails.user_id,
@@ -234,7 +234,7 @@ ListItem {
         radius: units.gu(0.2)
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
-        color: theme.name === "Ubuntu.Components.Thethemes.SuruDark" ? "#111" : "#fff"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
         // subtle color fade on the left
         Rectangle {
             width: parent.width * 0.025
@@ -354,7 +354,7 @@ ListItem {
                     Column {
                         width: parent.width - units.gu(4)
                         height: parent.height - units.gu(2)
-                        spacing: 0
+                        spacing: units.gu(0.2)
 
                         Text {
                             id: projectTitleText
@@ -389,12 +389,12 @@ ListItem {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 spacing: units.gu(0.2)
 
-                                // First row - 1 star (top of pyramid)
+                                // Priority stars (3 stars for priority 1-3, 0 = no stars)
                                 Repeater {
-                                    model: 3 // Maximum of 3 stars
+                                    model: 3 // 3 stars for priority levels 1-3
 
                                     Image {
-                                        source: index < priority ? "../images/star.png" : "../images/star-inactive.png"
+                                        source: (index + 1) <= taskCard.priority ? "../images/star.png" : "../images/star-inactive.png"
                                         fillMode: Image.PreserveAspectFit
                                         width: units.gu(1.5)
                                         height: units.gu(1.5)
@@ -406,22 +406,40 @@ ListItem {
                                             propagateComposedEvents: false
                                             preventStealing: true
                                             onPressed: {
-                                               
                                                 starInteractionActive = true;
                                                 mouse.accepted = true;
                                             }
                                             onClicked: {
-                                               
                                                 mouse.accepted = true;
 
-                                                var newPriority = (index + 1 === priority) ? priority - 1 : index + 1;
-                                               
-                                                var result = Task.setTaskPriority(localId, newPriority, "updated");
-                                               
+                                                // Calculate new priority for 3-star system:
+                                                // Star 0 (index 0) = Priority 1
+                                                // Star 1 (index 1) = Priority 2
+                                                // Star 2 (index 2) = Priority 3
+                                                // If clicking same level, set to 0; otherwise set to clicked level
+                                                var clickedPriority = index + 1;
+                                                var newPriority = (clickedPriority === taskCard.priority) ? 0 : clickedPriority;
+
+                                                console.log("🌟 Priority click: index=" + index + ", current=" + taskCard.priority + ", new=" + newPriority);
+                                                console.log("🌟 Priority click - localId:", localId, "typeof newPriority:", typeof newPriority);
+
+                                                // Convert to string like Task Edit Mode does
+                                                var result = Task.setTaskPriority(localId, newPriority.toString(), "updated");
+                                                console.log("🌟 setTaskPriority result:", JSON.stringify(result));
 
                                                 if (result.success) {
-                                                    priority = newPriority;
-                                                
+                                                    taskCard.priority = newPriority;
+
+                                                    // Emit signal to notify parent components that task was updated
+                                                    taskUpdated(localId);
+
+                                                    console.log("✅ Task priority updated to", taskCard.priority);
+
+                                                    // Verify the change was persisted by re-reading from database
+                                                    var verifyTask = Task.getTaskDetails(localId);
+                                                    if (verifyTask && verifyTask.id) {
+                                                        console.log("🔍 Verification - DB priority after update:", verifyTask.priority, "typeof:", typeof verifyTask.priority);
+                                                    }
                                                 } else {
                                                     console.warn("⚠️ Failed to set task priority:", result.message);
                                                 }
@@ -430,7 +448,6 @@ ListItem {
                                             }
 
                                             onReleased: {
-                                               
                                                 starInteractionActive = false;
                                                 mouse.accepted = true;
                                             }
@@ -524,6 +541,20 @@ ListItem {
                             //  horizontalAlignment: Text.AlignRight
                             width: parent.width
                         }
+
+                        Rectangle {
+                            color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : AppConst.Colors.Orange
+                            width: parent.width / 2
+                            height: units.gu(3)
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: Task.getTaskStageName(stage)
+                                color: "white"
+                                font.pixelSize: units.gu(1.5)
+                                font.bold: true
+                            }
+                        }
                     }
                 }
             }
@@ -594,14 +625,9 @@ ListItem {
         if (localId > 0) {
             var taskDetails = Task.getTaskDetails(localId);
             if (taskDetails && taskDetails.id) {
-                // Convert favorites to priority (0-3)
-                taskCard.priority = Math.max(0, Math.min(3, parseInt(taskDetails.favorites) || 0));
-                // Update isFavorite for backward compatibility
-                taskCard.isFavorite = taskCard.priority > 0;
+                // Convert string priority to numeric for UI (0-3)
+                taskCard.priority = Math.max(0, Math.min(3, parseInt(taskDetails.priority || "0")));
             }
-        } else if (isFavorite) {
-            // If isFavorite was set but priority wasn't (for backward compatibility)
-            taskCard.priority = isFavorite ? 1 : 0;
         }
     }
 }

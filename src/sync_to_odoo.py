@@ -176,6 +176,22 @@ def parse_local_value(field_type, value):
             return [(6, 0, [])]
     elif field_type in ["datetime", "date"]:
         return sanitize_datetime(value)
+    elif field_type == "selection":
+        # Odoo selection fields expect the selection key (usually a string).
+        # Convert numeric local values to string keys to avoid ValueError on create/write.
+        try:
+            if value is None:
+                return None
+            # Preserve existing string values
+            if isinstance(value, str):
+                return value
+            # Convert ints/floats to string representation
+            if isinstance(value, (int, float)):
+                return str(int(value))
+            # Fallback to string conversion
+            return str(value)
+        except Exception:
+            return str(value)
     else:
         return value
 
@@ -288,8 +304,19 @@ def construct_changes(field_map, field_info, record, existing_data):
 
             parsed_val = parse_local_value(field_type, local_val)
 
-            if should_push_field(parsed_val, remote_val, local_last_modified, remote_write_date):
-                changes[odoo_field] = parsed_val
+            # Normalize selection comparisons: ensure both sides are strings for fair comparison
+            try:
+                if field_type == "selection":
+                    remote_norm = None if remote_val is None or remote_val is False else str(remote_val)
+                    parsed_norm = None if parsed_val is None or parsed_val is False else str(parsed_val)
+                    log.debug(f"[COMPARE_SELECTION] Field {odoo_field} local='{parsed_norm}' remote='{remote_norm}'")
+                    if should_push_field(parsed_norm, remote_norm, local_last_modified, remote_write_date):
+                        changes[odoo_field] = parsed_val
+                else:
+                    if should_push_field(parsed_val, remote_val, local_last_modified, remote_write_date):
+                        changes[odoo_field] = parsed_val
+            except Exception as e:
+                log.error(f"[ERROR] Selection normalization failed for {odoo_field}: {e}")
 
         except Exception as e:
             log.error(f"[ERROR] Failed to compare field '{odoo_field}': {e}")
@@ -370,6 +397,40 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             existing_data = existing[0]
             changes = construct_changes(field_map, field_info, record, existing_data)
 
+            # Sanitize date fields for project.task to avoid Odoo validation errors
+            try:
+                if model_name == "project.task":
+                    # Odoo field names used in mapping
+                    start_key = None
+                    end_key = None
+                    # common mapping names used in field_config.json
+                    if "planned_date_start" in field_map:
+                        start_key = "planned_date_start"
+                    if "planned_date_end" in field_map:
+                        end_key = "planned_date_end"
+
+                    if start_key and end_key:
+                        # Prefer changed values, fallback to existing remote values
+                        start_val = changes.get(start_key, existing_data.get(start_key))
+                        end_val = changes.get(end_key, existing_data.get(end_key))
+
+                        if start_val and end_val:
+                            try:
+                                # Normalize date strings
+                                s_dt = datetime.fromisoformat(start_val)
+                                e_dt = datetime.fromisoformat(end_val.replace("Z", "+00:00") if end_val.endswith("Z") else end_val)
+                                if e_dt < s_dt:
+                                    # Fix by setting end to start to satisfy validation
+                                    changes[end_key] = start_val
+                                    log.debug(f"[SANITIZE] Adjusted {end_key} to match {start_key} for record id={record['id']}")
+                            except Exception:
+                                # If parsing fails, remove end date from changes to avoid invalid input
+                                if end_key in changes:
+                                    del changes[end_key]
+                                    log.debug(f"[SANITIZE] Removed invalid {end_key} from changes for record id={record['id']}")
+            except Exception as e:
+                log.debug(f"[SANITIZE] Date sanitization skipped due to error: {e}")
+
             if changes:
                 client.call(model_name, "write", [[record["odoo_record_id"]], changes])
                 log.debug(
@@ -405,6 +466,26 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             odoo_data[odoo_field] = parsed_val
 
         try:
+            # Sanitize dates for create as well (project.task)
+            if model_name == "project.task":
+                start_key = "planned_date_start" if "planned_date_start" in field_map else None
+                end_key = "planned_date_end" if "planned_date_end" in field_map else None
+                if start_key and end_key:
+                    start_val = odoo_data.get(start_key)
+                    end_val = odoo_data.get(end_key)
+                    if start_val and end_val:
+                        try:
+                            s_dt = datetime.fromisoformat(start_val)
+                            e_dt = datetime.fromisoformat(end_val.replace("Z","+00:00") if isinstance(end_val, str) and end_val.endswith("Z") else end_val)
+                            if e_dt < s_dt:
+                                odoo_data[end_key] = start_val
+                                log.debug(f"[SANITIZE] Adjusted create {end_key} to match {start_key}")
+                        except Exception:
+                            # If parsing fails, drop end date from payload
+                            if end_key in odoo_data:
+                                del odoo_data[end_key]
+                                log.debug(f"[SANITIZE] Removed invalid create {end_key} from payload")
+
             new_id = client.call(model_name, "create", [odoo_data])
             log.debug(f"[CREATE] {model_name} new record created with id={new_id}.")
 

@@ -40,7 +40,7 @@ function getProjectDetails(project_id) {
                     description: row.description || "",
                     last_modified: row.last_modified,
                     color_pallet: row.color_pallet || "#FFFFFF",
-                    status: row.status || "",
+                    stage: row.stage || 0,
                     odoo_record_id: row.odoo_record_id
                 };
             }
@@ -106,6 +106,69 @@ function getAllProjectUpdates() {
     return updateList;
 }
 
+function getProjectStageName(odooRecordId) {
+    var stageName = null;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT name
+                FROM project_project_stage_app
+                WHERE odoo_record_id = ?
+                LIMIT 1
+            `;
+
+            var result = tx.executeSql(query, [odooRecordId]);
+
+            if (result.rows.length > 0) {
+                stageName = result.rows.item(0).name;
+            }
+        });
+    } catch (e) {
+        console.error("getProjectStageName failed:", e);
+    }
+
+    return stageName;
+}
+
+
+/**
+ * Retrieve all project stages from the local DB for use as filters in UI.
+ * Returns an array of objects: { id: local_id, odoo_record_id: odoo_record_id, name: name, account_id: account_id }
+ */
+function getAllProjectStages() {
+    var stages = [];
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active FROM project_project_stage_app ORDER BY sequence ASC, name COLLATE NOCASE ASC";
+            var result = tx.executeSql(query);
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                stages.push({
+                    id: row.id,
+                    account_id: row.account_id,
+                    odoo_record_id: row.odoo_record_id,
+                    name: row.name,
+                    sequence: row.sequence,
+                    active: row.active
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getAllProjectStages failed:", e);
+    }
+    return stages;
+}
+
+
 
 function getAttachmentsForProject(odooRecordId) {
     var attachmentList = [];
@@ -115,7 +178,7 @@ function getAttachmentsForProject(odooRecordId) {
 
         db.transaction(function (tx) {
             var query = `
-                SELECT name, mimetype, datas
+                SELECT name, mimetype, account_id,odoo_record_id
                 FROM ir_attachment_app
                 WHERE res_model = 'project.project' AND res_id = ?
                 ORDER BY name COLLATE NOCASE ASC
@@ -127,7 +190,8 @@ function getAttachmentsForProject(odooRecordId) {
                 attachmentList.push({
                     name: result.rows.item(i).name,
                     mimetype: result.rows.item(i).mimetype,
-                    datas: result.rows.item(i).datas
+                    account_id:result.rows.item(i).account_id,
+                    odoo_record_id:result.rows.item(i).odoo_record_id,
                 });
             }
         });
@@ -137,6 +201,74 @@ function getAttachmentsForProject(odooRecordId) {
 
     return attachmentList;
 }
+
+function getFromCache(recordId) {
+    var data = null;
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                "SELECT data_base64 FROM dl_cache_app WHERE record_id = ? LIMIT 1",
+                [recordId]
+            );
+            if (result.rows.length > 0) {
+                data = result.rows.item(0).data_base64;
+            }
+        });
+    } catch (e) {
+        console.error("getFromCache failed:", e);
+    }
+    return data; // null if not found
+}
+
+function putInCache(recordId, base64Data) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            tx.executeSql(
+                "INSERT OR REPLACE INTO dl_cache_app (record_id, data_base64) VALUES (?, ?)",
+                [recordId, base64Data]
+            );
+        });
+    } catch (e) {
+        console.error("putInCache failed:", e);
+    }
+}
+
+function isPresentInCache(recordId) {
+    var exists = false;
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                "SELECT 1 FROM dl_cache_app WHERE record_id = ? LIMIT 1",
+                [recordId]
+            );
+            if (result.rows.length > 0) {
+                exists = true;
+            }
+        });
+    } catch (e) {
+        console.error("isPresentInCache failed:", e);
+    }
+    return exists;
+}
+
 
 
 /**
@@ -428,8 +560,8 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         db.transaction(function (tx) {
             var favoriteValue = isFavorite ? 1 : 0;
             var updateResult = tx.executeSql(
-                'UPDATE project_project_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
-                [favoriteValue, new Date().toISOString(), status, projectId]
+                'UPDATE project_project_app SET favorites = ?, last_modified = ? WHERE id = ?',
+                [favoriteValue, new Date().toISOString(), projectId]
             );
 
             if (updateResult.rowsAffected > 0) {
@@ -448,3 +580,4 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         return { success: false, message: "Failed to update project favorite status: " + e.message };
     }
 }
+

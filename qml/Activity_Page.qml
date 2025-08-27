@@ -137,14 +137,14 @@ Page {
                 }
             }
 
-            // Sort activities by last_modified time (most recent first)
+            // Sort activities by end date time (most recent first)
             filteredActivities.sort(function (a, b) {
-                // If either last_modified is missing, fall back to summary
-                if (!a.last_modified || !b.last_modified) {
+                // If either end date is missing, fall back to summary
+                if (!a.due_date || !b.due_date) {
                     return (a.summary || "").localeCompare(b.summary || "");
                 }
                 // Sort in descending order (newest first)
-                return new Date(b.last_modified) - new Date(a.last_modified);
+                return new Date(a.due_date) - new Date(b.due_date);
             });
 
             // Add sorted activities to the model
@@ -271,6 +271,7 @@ Page {
         label4: "Later"
         label5: "OverDue"
         label6: "All"
+        label7: ""
 
         showSearchBox: false
         currentFilter: activity.currentFilter  // Bind to page's current filter
@@ -281,6 +282,7 @@ Page {
         filter4: "later"
         filter5: "overdue"
         filter6: "all"
+        filter7: ""
 
         onFilterSelected: {
             activity.currentFilter = filterKey;

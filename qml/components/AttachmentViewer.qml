@@ -49,7 +49,8 @@ Column {
                 height: gridView.cellHeight
                 name: model.name
                 mimetype: model.mimetype
-                datas: model.datas
+                odoo_record_id: model.odoo_record_id
+                account_id:model.account_id
 
                 onImageClicked: {
                     dialogImageSource = "data:" + mimetype + ";base64," + datas;

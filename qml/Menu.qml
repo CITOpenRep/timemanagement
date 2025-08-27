@@ -239,6 +239,37 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             }
+               ListItem {
+                height: units.gu(6)
+                Rectangle {
+                    color: "transparent"
+                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.leftMargin: units.gu(3)
+
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: units.gu(2)
+
+                        Icon {
+                            width: units.gu(2.5)
+                            height: units.gu(2.5)
+                            name: "history"
+                        }
+
+                        Label {
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignLeft
+                            text: "Project Updates"
+                        }
+                    }
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Updates_Page.qml"));
+                    page = 4;
+                    apLayout.setCurrentPage(page);
+                }
+            }
             ListItem {
                 height: units.gu(6)
                 Rectangle {
