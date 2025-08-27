@@ -120,6 +120,44 @@ function saveOrUpdateTask(data) {
     }
 }
 
+
+function getTaskStageName(odooRecordId) {
+    var stageName = "No Stage";
+
+    try {
+        if (odooRecordId === -1) {
+            return "No Stage";   // special case
+        }
+
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT name
+                FROM project_task_type_app
+                WHERE odoo_record_id = ?
+                LIMIT 1
+            `;
+
+            var result = tx.executeSql(query, [odooRecordId]);
+
+            if (result.rows.length > 0) {
+                stageName = result.rows.item(0).name;
+            }
+        });
+    } catch (e) {
+        console.error("getTaskStageName failed:", e);
+    }
+
+    return stageName;
+}
+
+
 function getAttachmentsForTask(odooRecordId) {
     var attachmentList = [];
 
@@ -734,12 +772,13 @@ function getAllTasks() {
                 var row = result.rows.item(i);
                 var task = DBCommon.rowToObject(row);
 
-                // Inherit color from sub_project or project
+                // Inherit color from sub_project, project, or walk up hierarchy
                 var inheritedColor = 0;
-                if (projectColorMap[task.sub_project_id]) {
-                    inheritedColor = projectColorMap[task.sub_project_id];
-                } else if (projectColorMap[task.project_id]) {
-                    inheritedColor = projectColorMap[task.project_id];
+                if (task.sub_project_id) {
+                    inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                }
+                if (!inheritedColor && task.project_id) {
+                    inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
                 }
                 task.color_pallet = inheritedColor;
 
@@ -760,7 +799,29 @@ function getAllTasks() {
 
     return taskList;
 }
-
+ // Recursive function to resolve project color by walking up the hierarchy
+    function resolveProjectColor(projectId, projectMap, tx) {
+        var color = projectMap[projectId];
+        // If color is found AND not zero → return it
+        if (color && color !== "0" && color !== 0) {
+            console.log("✅ Found non-zero color for projectId:", projectId, "color:", color);
+            return color;
+        }
+        // Otherwise, check the parent
+        var parentQuery = "SELECT parent_id FROM project_project_app WHERE odoo_record_id = ?";
+        var parentResult = tx.executeSql(parentQuery, [projectId]);
+ 
+        if (parentResult.rows.length > 0) {
+            var parentId = parentResult.rows.item(0).parent_id;
+            console.log("🔄 projectId", projectId, "has parent:", parentId);
+ 
+            if (parentId && parentId !== 0) {
+                return resolveProjectColor(parentId, projectMap, tx); // recurse to parent
+            }
+        }
+        console.log("⚠️ No non-zero color found for projectId:", projectId);
+        return 0;
+    }
 
 /**
  * Filters tasks based on date criteria and search query while preserving parent-child hierarchy
@@ -910,19 +971,27 @@ function passesDateFilter(task, filterType, currentDate) {
         case "all":
             return true;
         case "today":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueToday(task, today);
         case "this_week":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueThisWeek(task, today);
         case "next_week":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueNextWeek(task, today);
         case "this_month":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueThisMonth(task, today);
         case "overdue":
+            // Exclude tasks which are in the Done stage from showing as overdue
+            if (isTaskInDoneStage(task)) return false;
             return isTaskOverdue(task, today);
         case "later":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueLater(task, today);
-        case "completed":
-            return isTaskCompleted(task);
+        case "done":
+            // Show tasks which have their stage name set to "Done"
+            return isTaskInDoneStage(task);
         default:
             return true;
     }
@@ -972,8 +1041,8 @@ function isTaskDueToday(task, today) {
     
     var dateStatus = getTaskDateStatus(task, today);
     
-    // Show if task is in range today but NOT overdue
-    return dateStatus.isInRange && !dateStatus.isOverdue;
+    // Show if task is in range today or NOT overdue
+    return dateStatus.isInRange || dateStatus.isOverdue;
 }
 
 /**
@@ -1097,12 +1166,6 @@ function isTaskDueLater(task, today) {
     return taskStartDay > monthEndDay;
 }
 
-/**
- * Check if task is completed
- */
-function isTaskCompleted(task) {
-    return task.status === "completed" || task.status === "done" || task.state === "done";
-}
 
 /**
  * Check if task is overdue
@@ -1116,7 +1179,32 @@ function isTaskOverdue(task, today) {
     }
     
     var dateStatus = getTaskDateStatus(task, today);
+    // If task is in Done stage, treat as not overdue
+    if (isTaskInDoneStage(task)) return false;
     return dateStatus.isOverdue;
+}
+
+/**
+ * Checks whether the task's stage (project_task_type_app) name is "Done" (case-insensitive)
+ * @param {Object} task
+ * @returns {boolean}
+ */
+function isTaskInDoneStage(task) {
+    try {
+        if (!task) return false;
+
+        // task.state is expected to be the odoo_record_id for the task type/stage
+        var stageId = task.state;
+        if (!stageId) return false;
+
+        var stageName = getTaskStageName(stageId);
+        if (!stageName) return false;
+
+        return stageName.toString().toLowerCase() === "done" || stageName.toString().toLowerCase() === "completed" || stageName.toString().toLowerCase() === "finished" || stageName.toString().toLowerCase() === "closed" || stageName.toString().toLowerCase() === "verified";
+    } catch (e) {
+        console.error("isTaskInDoneStage failed:", e);
+        return false;
+    }
 }
 
 /**
@@ -1169,7 +1257,7 @@ function getTaskDateStatus(task, checkDate) {
     // Check if end_date is passed (task should be overdue if past end_date)
     // Only use end_date for overdue calculation, not deadline
     if (endDay) {
-        isOverdue = checkDay > endDay;
+        isOverdue = checkDay > deadlineDay;
     }
     
     return {
