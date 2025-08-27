@@ -49,7 +49,7 @@ ListItem {
     property int colorPallet: 0
     property int localId: -1
     property int recordId: -1
-    property int stage:-1
+    property int stage: -1
     property bool hasChildren: false
     property int childCount: 0
     property bool timer_on: false
@@ -121,7 +121,7 @@ ListItem {
                 projectId: taskDetails.project_id,
                 parentId: taskDetails.parent_id,
                 plannedHours: taskDetails.initial_planned_hours,
-                favorites: parseInt(taskDetails.favorites) || 0 // This is now priority (0-3)
+                priority: taskDetails.priority || "0" // Priority field as string (0-3) to match Odoo
                 ,
                 description: taskDetails.description,
                 assigneeUserId: taskDetails.user_id,
@@ -407,22 +407,18 @@ ListItem {
                                             propagateComposedEvents: false
                                             preventStealing: true
                                             onPressed: {
-                                               
                                                 starInteractionActive = true;
                                                 mouse.accepted = true;
                                             }
                                             onClicked: {
-                                               
                                                 mouse.accepted = true;
 
                                                 var newPriority = (index + 1 === priority) ? priority - 1 : index + 1;
-                                               
+
                                                 var result = Task.setTaskPriority(localId, newPriority, "updated");
-                                               
 
                                                 if (result.success) {
                                                     priority = newPriority;
-                                                
                                                 } else {
                                                     console.warn("⚠️ Failed to set task priority:", result.message);
                                                 }
@@ -431,7 +427,6 @@ ListItem {
                                             }
 
                                             onReleased: {
-                                               
                                                 starInteractionActive = false;
                                                 mouse.accepted = true;
                                             }
@@ -526,19 +521,17 @@ ListItem {
                             width: parent.width
                         }
 
-                        Rectangle
-                        {
+                        Rectangle {
                             color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : AppConst.Colors.Orange
-                            width: parent.width/2
+                            width: parent.width / 2
                             height: units.gu(3)
 
-                           
                             Text {
-                                 anchors.centerIn: parent
-                                 text : Task.getTaskStageName(stage)
-                                 color: "white"
-                                 font.pixelSize: units.gu(1.5)
-                                 font.bold: true
+                                anchors.centerIn: parent
+                                text: Task.getTaskStageName(stage)
+                                color: "white"
+                                font.pixelSize: units.gu(1.5)
+                                font.bold: true
                             }
                         }
                     }
@@ -611,8 +604,8 @@ ListItem {
         if (localId > 0) {
             var taskDetails = Task.getTaskDetails(localId);
             if (taskDetails && taskDetails.id) {
-                // Convert favorites to priority (0-3)
-                taskCard.priority = Math.max(0, Math.min(3, parseInt(taskDetails.favorites) || 0));
+                // Convert string priority to numeric for UI (0-3)
+                taskCard.priority = Math.max(0, Math.min(3, parseInt(taskDetails.priority || "0")));
                 // Update isFavorite for backward compatibility
                 taskCard.isFavorite = taskCard.priority > 0;
             }

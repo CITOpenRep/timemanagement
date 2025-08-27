@@ -1259,8 +1259,9 @@ function setTaskPriority(taskId, priority, status) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var result = { success: false, message: "" };
         
-        // Ensure priority is within valid range (0-3)
-        //priority = Math.max(0, Math.min(3, parseInt(priority) || 0));
+        // Ensure priority is within valid range (0-3) and convert to string
+        var numericPriority = Math.max(0, Math.min(3, parseInt(priority) || 0));
+        priority = numericPriority.toString(); // Store as string to match Odoo format
         
         db.transaction(function (tx) {
             var updateResult = tx.executeSql(
