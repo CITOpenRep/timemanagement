@@ -74,9 +74,9 @@ Page {
 
     function save_timesheet() {
         let time = time_sheet_widget.elapsedTime;
-        
+
         const currentStatus = getCurrentTimesheetStatus();
-        
+
         if (currentStatus === "updated") {
             const savedTime = Model.getTimesheetUnitAmount(recordid);
             time = Utils.convertDecimalHoursToHHMM(savedTime);
@@ -85,48 +85,53 @@ Page {
             time = TimerService.stop();
             console.log("Timer stopped during save, final time:", time);
         }
-        
+
         const ids = workItem.getIds();
         const user = Accounts.getCurrentUserOdooId(ids.account_id);
- 
+
         if (!user) {
             notifPopup.open("Error", "Unable to find the user, cannot save", "error");
             return;
         }
- 
+
         if (ids.project_id === null) {
             notifPopup.open("Error", "You need to select a project to save timesheet", "error");
             return;
         }
- 
+
         if (ids.task_id === null) {
             notifPopup.open("Error", "You need to select a task to save timesheet", "error");
             return;
         }
- 
- 
- 
+
+        let correctTaskId;
+        let correctSubTaskId = null;
+
+        if (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) {
+            correctTaskId = ids.subtask_id;
+            correctSubTaskId = null;
+        } else {
+            correctTaskId = ids.task_id;
+            correctSubTaskId = ids.subtask_id;
+        }
+
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
             'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
             'project': ids.project_id,
-            'task': ids.task_id,            
-            'subTask': ids.subtask_id,        
+            'task': correctTaskId,
+            'subTask': correctSubTaskId,
             'subprojectId': ids.subproject_id,
             'description': description_text.text,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
-            'timer_type': time_sheet_widget.autoMode ? 'automatic' : 'manual',
             'status': "draft"
         };
- 
         if (recordid && recordid !== 0) {
             timesheet_data.id = recordid;
         }
- 
- 
- 
+
         const result = Model.saveTimesheet(timesheet_data);
         if (!result.success) {
             notifPopup.open("Error", "Unable to Save the Timesheet: " + result.error, "error");
@@ -135,12 +140,11 @@ Page {
             time_sheet_widget.elapsedTime = time;
         }
     }
- 
-
 
     function getCurrentTimesheetStatus() {
-        if (recordid <= 0) return "new";
-        
+        if (recordid <= 0)
+            return "new";
+
         try {
             const details = Model.getTimeSheetDetails(recordid);
             return details.status || "draft";

@@ -37,6 +37,7 @@
          <li> Introducing On Demand Download in Projects and Tasks. Images will be downoladed automatically and stored in Cache and will be removed after closing the app. For Other File Types, only its Meta data like its title is downloaded.</li>
 
          <h5> Fixes and Improvements </h5>
+         <li> Added Fix for Colors, where Tasks created from Child Project without a color not inheriting colors from Parent Project. </li>
          <li> Removed OverDue Filter from Tasks. Now OverDue Tasks will be displayed in Today Tab. OverDue Calculation based strictly on Deadline. </li>
          <br>
          <h4> 22-08-2025 : Version 1.1.4 </h4>
