@@ -104,33 +104,20 @@ Page {
             return;
         }
  
-        let correctTaskId;
-        let correctSubTaskId = null;
  
-        
-        if (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) {
-   
-            correctTaskId = ids.subtask_id;
-            correctSubTaskId = null;
-      
-        } else {
- 
-            correctTaskId = ids.task_id;
-            correctSubTaskId = ids.subtask_id;
-        
-        }
  
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
             'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
             'project': ids.project_id,
-            'task': correctTaskId,            
-            'subTask': correctSubTaskId,        
+            'task': ids.task_id,            
+            'subTask': ids.subtask_id,        
             'subprojectId': ids.subproject_id,
             'description': description_text.text,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
+            'timer_type': time_sheet_widget.autoMode ? 'automatic' : 'manual',
             'status': "draft"
         };
  
@@ -148,6 +135,7 @@ Page {
             time_sheet_widget.elapsedTime = time;
         }
     }
+ 
 
 
     function getCurrentTimesheetStatus() {
