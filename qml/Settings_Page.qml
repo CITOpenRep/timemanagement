@@ -430,7 +430,7 @@ Page {
                                             anchors.leftMargin: units.gu(1)
 
                                             Text {
-                                                text: model.name.charAt(0).toUpperCase()
+                                                text: Utils.truncateText(model.name.charAt(0),20).toUpperCase()
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 color: "#fff"
                                                 anchors.centerIn: parent
@@ -445,7 +445,7 @@ Page {
                                             anchors.leftMargin: units.gu(2)
 
                                             Text {
-                                                text: model.name.toUpperCase()
+                                                text: Utils.truncateText(model.name,20).toUpperCase()
                                                 font.pixelSize: units.gu(2)
                                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#000"
                                                 elide: Text.ElideRight
