@@ -263,7 +263,7 @@ Page {
                     TSButton {
                         id: fetch_db_button
                         text: "Fetch Databases"
-                        enabled: !isReadOnly
+                        visible: !isReadOnly
                         width: units.gu(28)
                         height: units.gu(4)
                         onClicked: {
