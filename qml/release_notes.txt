@@ -29,6 +29,7 @@
       <h3>Change History : (Version 1.1.4.1) </h3>
        <ul>
        <h4> 29-08-2025 : Version 1.1.4.1 </h4>
+         <h4> Note: Please remove the DB Instance and clean the cache using the tweak tool before using this update. Otherwise Task and Project Stages might not work properly. </h4>
          <h5> New Features </h5>
          <li> Added Task Stages. Now Task Stages from Odoo can viewed on Device as labels in the Task List View.</li>
          <li> New Done Stage Filter for Tasks in Tabbed View. </li>

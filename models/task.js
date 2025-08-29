@@ -122,11 +122,11 @@ function saveOrUpdateTask(data) {
 
 
 function getTaskStageName(odooRecordId) {
-    var stageName = "No Stage";
+    var stageName = "Undefined";
 
     try {
         if (odooRecordId === -1) {
-            return "No Stage";   // special case
+            return "Undefined";   // special case
         }
 
         var db = Sql.LocalStorage.openDatabaseSync(
