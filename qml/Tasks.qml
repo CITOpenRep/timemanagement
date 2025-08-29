@@ -78,7 +78,7 @@ Page {
     property int selectedProjectId: 0
     property int selectedparentId: 0
     property int selectedTaskId: 0
-    property int favorites: 0
+    property int priority: 0
     property int subProjectId: 0
     property var prevtask: ""
     property var textkey: ""
@@ -124,8 +124,7 @@ Page {
                 startDate: date_range_widget.formattedStartDate(),
                 endDate: date_range_widget.formattedEndDate(),
                 deadline: deadline_text.text !== "Not set" ? deadline_text.text : "",
-                favorites: parseInt(favorites || 0) // This is now priority (0-3)
-                ,
+                priority: (priority != null ? priority.toString() : "0"),
                 plannedHours: Utils.convertDurationToFloat(hours_text.text),
                 description: description_text.text,
                 assigneeUserId: ids.assignee_id,
@@ -292,12 +291,12 @@ Page {
                     height: units.gu(5)
 
                     Repeater {
-                        model: 3 // For 3 stars (priorities 1-3)
+                        model: 3 // For 3 stars (priority 1-3, with 0 = no stars)
 
                         Image {
                             id: priorityStar
                             property int starIndex: index
-                            source: (favorites > index) ? "../qml/images/star.png" : "../qml/images/star-inactive.png"
+                            source: ((index + 1) <= taskCreate.priority) ? "../qml/images/star.png" : "../qml/images/star-inactive.png"
                             width: units.gu(3.5)
                             height: units.gu(3.5)
                             opacity: isReadOnly ? 0.7 : 1.0
@@ -306,11 +305,10 @@ Page {
                                 anchors.fill: parent
                                 enabled: !isReadOnly
                                 onClicked: {
-                                    // Set priority based on which star was clicked
-                                    // Adding 1 since index is 0-based but we want priority 1-3
-                                    // If clicking the current priority, reduce by 1 (toggle behavior)
-                                    var newPriority = (index + 1 === favorites) ? favorites - 1 : index + 1;
-                                    favorites = newPriority;
+                                    // 3-star system: clicking star sets that priority level, clicking same level sets to 0
+                                    var clickedPriority = index + 1;
+                                    var newPriority = (clickedPriority === taskCreate.priority) ? 0 : clickedPriority;
+                                    taskCreate.priority = newPriority;
                                 }
                             }
                         }
@@ -318,10 +316,10 @@ Page {
 
                     // Show the numeric value
                     Label {
-                        text: "(Level: " + favorites + ")"
+                        text: "(Level: " + taskCreate.priority + ")"
                         anchors.verticalCenter: parent.verticalCenter
                         font.pixelSize: units.gu(1.5)
-                        visible: favorites > 0
+                        visible: taskCreate.priority > 0
                     }
                 }
             }
@@ -576,8 +574,8 @@ Page {
                 deadline_text.text = "Not set";
             }
 
-            // Set task priority (0-3)
-            favorites = Math.max(0, Math.min(3, parseInt(currentTask.favorites) || 0));
+            // Set task priority (0-3) - convert from string to numeric for UI
+            priority = Math.max(0, Math.min(3, parseInt(currentTask.priority || "0")));
 
             // Load multiple assignees if enabled
             if (workItem.enableMultipleAssignees) {

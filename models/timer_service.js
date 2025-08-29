@@ -25,9 +25,9 @@ var pauseStartTime = 0;
 function start(timesheetId) {
      var result = { success: true, error: "", id: null };
     //Lets check if the timesheet is good to start ?
-    if(!Model.isTimesheetReadyToRecord(timesheetId))
+    if(!Model.isTimesheetReadyToStartTimer(timesheetId))
     {
-        result.error="Unable to start, Missing mandatory Project/task information, please update before start tracking tme";
+        result.error="Unable to start timer, please select a project first";
         result.success=false
         return result
     }

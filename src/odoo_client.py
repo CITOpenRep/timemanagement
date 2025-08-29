@@ -23,7 +23,7 @@
 
 import xmlrpc.client
 import logging
-
+import base64
 
 class OdooClient:
     """
@@ -90,6 +90,81 @@ class OdooClient:
             )
         except Exception as e:
             raise ConnectionError(f"Failed to create model proxy: {e}")
+
+    def ondemanddownload(self, record_id, username, password, decode=True):
+           """
+           Download a single ir.attachment on demand using the provided credentials.
+
+           Args:
+               record_id (int): ir.attachment ID to download.
+               username (str): Odoo login (email).
+               password (str): Odoo password (or API key).
+               decode (bool): If True, return raw bytes; otherwise return base64 string.
+
+           Returns:
+               dict: {
+                   'id': int,
+                   'name': str|None,
+                   'mimetype': str|None,
+                   'type': 'binary'|'url'|None,
+                   'url': str|None,          # for type == 'url'
+                   'data': bytes|str|None    # bytes if decode=True & binary; base64 if decode=False
+               }
+
+           Raises:
+               ValueError: if the record is missing or has no data.
+               RuntimeError: on XML-RPC errors.
+           """
+           # Authenticate with the provided username/password (fresh uid for this call)
+           try:
+               common = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
+               uid = common.authenticate(self.db, username, password, {})
+               if not uid:
+                   raise ValueError(
+                       f"Authentication failed for user '{username}' on database '{self.db}'"
+                   )
+           except Exception as e:
+               raise RuntimeError(f"On-demand login failed: {e}")
+
+           # Read the attachment with full base64 (bin_size=False)
+           fields = ['name', 'mimetype', 'type', 'datas', 'url']
+           try:
+               recs = self.models.execute_kw(
+                   self.db, uid, password,
+                   'ir.attachment', 'read',
+                   [[record_id]],
+                   {'fields': fields, 'context': {'bin_size': False}}
+               )
+           except Exception as e:
+               raise RuntimeError(f"Failed to read ir.attachment({record_id}): {e}")
+
+           if not recs:
+               raise ValueError(f"Attachment {record_id} not found")
+
+           att = recs[0]
+           att_type = att.get('type')
+           result = {
+               'id': record_id,
+               'name': att.get('name'),
+               'mimetype': att.get('mimetype'),
+               'type': att_type,
+               'url': att.get('url') if att_type == 'url' else None,
+               'data': None
+           }
+
+           if att_type == 'binary':
+               datas_b64 = att.get('datas')
+               if not datas_b64:
+                   raise ValueError(f"Attachment {record_id} has no binary data")
+               result['data'] = base64.b64decode(datas_b64) if decode else datas_b64
+               return result
+
+           if att_type == 'url':
+               if not result['url']:
+                   raise ValueError(f"Attachment {record_id} is a URL type but has no URL")
+               return result
+
+           raise ValueError(f"Attachment {record_id} has unsupported type: {att_type}")
 
     def call(self, model, method, args=None, kwargs=None):
         """

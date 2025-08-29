@@ -81,11 +81,11 @@ function saveOrUpdateTask(data) {
             if (data.record_id) {
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
-                    account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, favorites = ?, description = ?, user_id = ?, sub_project_id = ?, \
+                    account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority = ?, description = ?, user_id = ?, sub_project_id = ?, \
                     start_date = ?, end_date = ?, deadline = ?, last_modified = ?, status = ? WHERE id = ?',
                               [
                                   data.accountId, data.name, finalProjectId,
-                                  resolvedParentId, data.plannedHours, data.favorites,
+                                  resolvedParentId, data.plannedHours, data.priority,
                                   data.description, userIdValue, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
                                   timestamp, data.status, data.record_id
@@ -94,12 +94,12 @@ function saveOrUpdateTask(data) {
                               
             } else {
                 // INSERT
-                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, favorites, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
+                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
-                                  data.deadline, data.favorites, data.plannedHours,
+                                  data.deadline, data.priority, data.plannedHours,
                                   data.description, userIdValue,
                                   data.subProjectId, timestamp, data.status
                               ]
@@ -119,6 +119,44 @@ function saveOrUpdateTask(data) {
         return { success: false, error: e.message };
     }
 }
+
+
+function getTaskStageName(odooRecordId) {
+    var stageName = "Undefined";
+
+    try {
+        if (odooRecordId === -1) {
+            return "Undefined";   // special case
+        }
+
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT name
+                FROM project_task_type_app
+                WHERE odoo_record_id = ?
+                LIMIT 1
+            `;
+
+            var result = tx.executeSql(query, [odooRecordId]);
+
+            if (result.rows.length > 0) {
+                stageName = result.rows.item(0).name;
+            }
+        });
+    } catch (e) {
+        console.error("getTaskStageName failed:", e);
+    }
+
+    return stageName;
+}
+
 
 function getAttachmentsForTask(odooRecordId) {
     var attachmentList = [];
@@ -563,9 +601,9 @@ function edittaskData(data) {
 
     db.transaction(function (tx) {
         tx.executeSql('UPDATE project_task_app SET \
-            account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, favorites = ?, description = ?, user_id = ?, sub_project_id = ?, \
+            account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority =? , description = ?, user_id = ?, sub_project_id = ?, \
             start_date = ?, end_date = ?, deadline = ?, last_modified = ? WHERE id = ?',
-                      [data.selectedAccountUserId, data.nameInput, data.selectedProjectId, data.selectedparentId, data.initialInput, data.img_star, data.editdescription, data.selectedassigneesUserId, data.editselectedSubProjectId,
+                      [data.selectedAccountUserId, data.nameInput, data.selectedProjectId, data.selectedparentId, data.initialInput, data.priority, data.editdescription, data.selectedassigneesUserId, data.editselectedSubProjectId,
                        data.startdateInput, data.enddateInput, data.deadlineInput, new Date().toISOString(), data.rowId]
                       );
         fetch_tasks_lists()
@@ -608,7 +646,7 @@ function getTasksForAccount(accountId) {
                                   end_date: row.end_date,
                                   deadline: row.deadline,
                                   initial_planned_hours: row.initial_planned_hours,
-                                  favorites: row.favorites,
+                                  priority:row.priority,
                                   state: row.state,
                                   description: row.description,
                                   last_modified: row.last_modified,
@@ -660,11 +698,11 @@ function getTaskDetails(task_id) {
                             // This project is a subproject
                             sub_project_id = project_id;
                             project_id = parent_id;
-                            console.log("Subproject detected: sub_project_id =", sub_project_id, ", parent project_id =", project_id);
+                            //console.log("Subproject detected: sub_project_id =", sub_project_id, ", parent project_id =", project_id);
                         } else {
                             // Top-level project
                             sub_project_id = row.sub_project_id;
-                            console.log("Top-level project detected, project_id =", project_id);
+                            //console.log("Top-level project detected, project_id =", project_id);
                         }
                     } else {
                         console.error("Project lookup failed for project_id:", project_id);
@@ -682,7 +720,7 @@ function getTaskDetails(task_id) {
                     end_date: row.end_date || "",      // Keep original date format from database
                     deadline: row.deadline || "",      // Keep original date format from database
                     initial_planned_hours: row.initial_planned_hours || 0,  // Ensure it's not null/undefined
-                    favorites: row.favorites || 0,
+                    priority :row.priority,
                     state: row.state || "",
                     description: row.description || "",
                     last_modified: row.last_modified,
@@ -691,7 +729,7 @@ function getTaskDetails(task_id) {
                     odoo_record_id: row.odoo_record_id
                 };
 
-                console.log("getTaskDetails enriched task:", JSON.stringify(task_detail));
+                //console.log("getTaskDetails enriched task:", JSON.stringify(task_detail));
             } else {
                 console.error("No task found for local task_id:", task_id);
             }
@@ -734,12 +772,13 @@ function getAllTasks() {
                 var row = result.rows.item(i);
                 var task = DBCommon.rowToObject(row);
 
-                // Inherit color from sub_project or project
+                 // Inherit color from sub_project, project, or walk up hierarchy
                 var inheritedColor = 0;
-                if (projectColorMap[task.sub_project_id]) {
-                    inheritedColor = projectColorMap[task.sub_project_id];
-                } else if (projectColorMap[task.project_id]) {
-                    inheritedColor = projectColorMap[task.project_id];
+                if (task.sub_project_id) {
+                    inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                }
+                if (!inheritedColor && task.project_id) {
+                    inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
                 }
                 task.color_pallet = inheritedColor;
 
@@ -760,7 +799,30 @@ function getAllTasks() {
 
     return taskList;
 }
-
+ // Recursive function to resolve project color by walking up the hierarchy
+    function resolveProjectColor(projectId, projectMap, tx) {
+        var color = projectMap[projectId];
+        // If color is found AND not zero → return it
+        if (color && color !== "0" && color !== 0) {
+            console.log("✅ Found non-zero color for projectId:", projectId, "color:", color);
+            return color;
+        }
+        // Otherwise, check the parent
+        var parentQuery = "SELECT parent_id FROM project_project_app WHERE odoo_record_id = ?";
+        var parentResult = tx.executeSql(parentQuery, [projectId]);
+ 
+        if (parentResult.rows.length > 0) {
+            var parentId = parentResult.rows.item(0).parent_id;
+            console.log("🔄 projectId", projectId, "has parent:", parentId);
+ 
+            if (parentId && parentId !== 0) {
+                return resolveProjectColor(parentId, projectMap, tx); // recurse to parent
+            }
+        }
+        console.log("⚠️ No non-zero color found for projectId:", projectId);
+        return 0;
+    }
+ 
 
 /**
  * Filters tasks based on date criteria and search query while preserving parent-child hierarchy
@@ -910,19 +972,27 @@ function passesDateFilter(task, filterType, currentDate) {
         case "all":
             return true;
         case "today":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueToday(task, today);
         case "this_week":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueThisWeek(task, today);
         case "next_week":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueNextWeek(task, today);
         case "this_month":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueThisMonth(task, today);
         case "overdue":
+            // Exclude tasks which are in the Done stage from showing as overdue
+            if (isTaskInDoneStage(task)) return false;
             return isTaskOverdue(task, today);
         case "later":
+            if (isTaskInDoneStage(task)) return false;
             return isTaskDueLater(task, today);
-        case "completed":
-            return isTaskCompleted(task);
+        case "done":
+            // Show tasks which have their stage name set to "Done"
+            return isTaskInDoneStage(task);
         default:
             return true;
     }
@@ -972,8 +1042,8 @@ function isTaskDueToday(task, today) {
     
     var dateStatus = getTaskDateStatus(task, today);
     
-    // Show if task is in range today but NOT overdue
-    return dateStatus.isInRange && !dateStatus.isOverdue;
+    // Show if task is in range today or NOT overdue
+    return dateStatus.isInRange || dateStatus.isOverdue;
 }
 
 /**
@@ -1097,12 +1167,6 @@ function isTaskDueLater(task, today) {
     return taskStartDay > monthEndDay;
 }
 
-/**
- * Check if task is completed
- */
-function isTaskCompleted(task) {
-    return task.status === "completed" || task.status === "done" || task.state === "done";
-}
 
 /**
  * Check if task is overdue
@@ -1116,7 +1180,32 @@ function isTaskOverdue(task, today) {
     }
     
     var dateStatus = getTaskDateStatus(task, today);
+    // If task is in Done stage, treat as not overdue
+    if (isTaskInDoneStage(task)) return false;
     return dateStatus.isOverdue;
+}
+
+/**
+ * Checks whether the task's stage (project_task_type_app) name is "Done" (case-insensitive)
+ * @param {Object} task
+ * @returns {boolean}
+ */
+function isTaskInDoneStage(task) {
+    try {
+        if (!task) return false;
+
+        // task.state is expected to be the odoo_record_id for the task type/stage
+        var stageId = task.state;
+        if (!stageId) return false;
+
+        var stageName = getTaskStageName(stageId);
+        if (!stageName) return false;
+
+        return stageName.toString().toLowerCase() === "done" || stageName.toString().toLowerCase() === "completed" || stageName.toString().toLowerCase() === "finished" || stageName.toString().toLowerCase() === "closed" || stageName.toString().toLowerCase() === "verified";
+    } catch (e) {
+        console.error("isTaskInDoneStage failed:", e);
+        return false;
+    }
 }
 
 /**
@@ -1169,7 +1258,7 @@ function getTaskDateStatus(task, checkDate) {
     // Check if end_date is passed (task should be overdue if past end_date)
     // Only use end_date for overdue calculation, not deadline
     if (endDay) {
-        isOverdue = checkDay > endDay;
+        isOverdue = checkDay > deadlineDay;
     }
     
     return {
@@ -1181,13 +1270,6 @@ function getTaskDateStatus(task, checkDate) {
     };
 }
 
-/**
- * Toggles the favorite status of a task in the local database.
- *
- * @param {number} taskId - The local ID of the task to toggle favorite status.
- * @param {boolean} isFavorite - The new favorite status (true for favorite, false for not favorite).
- * @returns {Object} - Result object with success status and message.
- */
 /**
  * Sets the priority level of a task in the local database.
  *
@@ -1201,19 +1283,20 @@ function setTaskPriority(taskId, priority, status) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var result = { success: false, message: "" };
         
-        // Ensure priority is within valid range (0-3)
-        priority = Math.max(0, Math.min(3, parseInt(priority) || 0));
+        // Ensure priority is within valid range (0-3) and convert to string
+      //  var numericPriority = Math.max(0, Math.min(3, parseInt(priority) || 0));
+        priority.toString(); // Store as string to match Odoo format
         
         db.transaction(function (tx) {
             var updateResult = tx.executeSql(
-                'UPDATE project_task_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
-                [priority, new Date().toISOString(), status, taskId]
+                'UPDATE project_task_app SET priority = ?, last_modified = ?, status = ? WHERE id = ?',
+                [priority, Utils.getFormattedTimestampUTC(), status, taskId]
             );
             
             if (updateResult.rowsAffected > 0) {
                 result.success = true;
                 result.message = "Task priority set to " + priority;
-                console.log("✅ Task priority updated:", taskId, "priority:", priority);
+                console.log("Task priority updated:", taskId, "priority:", priority);
             } else {
                 result.message = "Task not found or no changes made";
                 console.warn("⚠️ No task updated with ID:", taskId);
@@ -1225,14 +1308,5 @@ function setTaskPriority(taskId, priority, status) {
         console.error("❌ setTaskPriority failed:", e);
         return { success: false, message: "Failed to set task priority: " + e.message };
     }
-}
-
-/**
- * Legacy function for backward compatibility.
- * @deprecated Use setTaskPriority instead.
- */
-function toggleTaskFavorite(taskId, isFavorite, status) {
-    // Convert boolean favorite to priority (0 or 1)
-    return setTaskPriority(taskId, isFavorite ? 1 : 0, status);
 }
 

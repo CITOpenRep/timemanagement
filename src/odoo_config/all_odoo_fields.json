@@ -3153,5 +3153,149 @@
             "string": "Last Updated on",
             "type": "datetime"
         }
+    },
+    "project.task.type": {
+        "active": {
+            "string": "Active",
+            "type": "boolean"
+        },
+        "name": {
+            "string": "Name",
+            "type": "char"
+        },
+        "description": {
+            "string": "Description",
+            "type": "text"
+        },
+        "sequence": {
+            "string": "Sequence",
+            "type": "integer"
+        },
+        "project_ids": {
+            "string": "Projects",
+            "type": "many2many"
+        },
+        "legend_blocked": {
+            "string": "Red Kanban Label",
+            "type": "char"
+        },
+        "legend_done": {
+            "string": "Green Kanban Label",
+            "type": "char"
+        },
+        "legend_normal": {
+            "string": "Grey Kanban Label",
+            "type": "char"
+        },
+        "mail_template_id": {
+            "string": "Email Template",
+            "type": "many2one"
+        },
+        "fold": {
+            "string": "Folded in Kanban",
+            "type": "boolean"
+        },
+        "rating_template_id": {
+            "string": "Rating Email Template",
+            "type": "many2one"
+        },
+        "auto_validation_kanban_state": {
+            "string": "Automatic Kanban Status",
+            "type": "boolean"
+        },
+        "disabled_rating_warning": {
+            "string": "Disabled Rating Warning",
+            "type": "text"
+        },
+        "user_id": {
+            "string": "Stage Owner",
+            "type": "many2one"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "create_date": {
+            "string": "Created on",
+            "type": "datetime"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "write_date": {
+            "string": "Last Updated on",
+            "type": "datetime"
+        },
+        "sms_template_id": {
+            "string": "SMS Template",
+            "type": "many2one"
+        }
+    },
+    "project.project.stage": {
+        "active": {
+            "string": "Active",
+            "type": "boolean"
+        },
+        "sequence": {
+            "string": "Sequence",
+            "type": "integer"
+        },
+        "name": {
+            "string": "Name",
+            "type": "char"
+        },
+        "mail_template_id": {
+            "string": "Email Template",
+            "type": "many2one"
+        },
+        "fold": {
+            "string": "Folded in Kanban",
+            "type": "boolean"
+        },
+        "id": {
+            "string": "ID",
+            "type": "integer"
+        },
+        "__last_update": {
+            "string": "Last Modified on",
+            "type": "datetime"
+        },
+        "display_name": {
+            "string": "Display Name",
+            "type": "char"
+        },
+        "create_uid": {
+            "string": "Created by",
+            "type": "many2one"
+        },
+        "create_date": {
+            "string": "Created on",
+            "type": "datetime"
+        },
+        "write_uid": {
+            "string": "Last Updated by",
+            "type": "many2one"
+        },
+        "write_date": {
+            "string": "Last Updated on",
+            "type": "datetime"
+        },
+        "sms_template_id": {
+            "string": "SMS Template",
+            "type": "many2one"
+        }
     }
 }
