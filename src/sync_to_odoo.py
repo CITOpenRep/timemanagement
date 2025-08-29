@@ -304,7 +304,9 @@ def construct_changes(field_map, field_info, record, existing_data):
 
             parsed_val = parse_local_value(field_type, local_val)
 
+
             # Normalize selection comparisons: ensure both sides are strings for fair comparison
+
             try:
                 if field_type == "selection":
                     remote_norm = None if remote_val is None or remote_val is False else str(remote_val)
@@ -397,7 +399,9 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             existing_data = existing[0]
             changes = construct_changes(field_map, field_info, record, existing_data)
 
+
             # Sanitize date fields for project.task to avoid Odoo validation errors
+
             try:
                 if model_name == "project.task":
                     # Odoo field names used in mapping
@@ -430,6 +434,7 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                                     log.debug(f"[SANITIZE] Removed invalid {end_key} from changes for record id={record['id']}")
             except Exception as e:
                 log.debug(f"[SANITIZE] Date sanitization skipped due to error: {e}")
+
 
             if changes:
                 client.call(model_name, "write", [[record["odoo_record_id"]], changes])
@@ -467,6 +472,7 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
 
         try:
             # Sanitize dates for create as well (project.task)
+
             if model_name == "project.task":
                 start_key = "planned_date_start" if "planned_date_start" in field_map else None
                 end_key = "planned_date_end" if "planned_date_end" in field_map else None
