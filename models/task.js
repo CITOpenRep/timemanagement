@@ -1007,7 +1007,11 @@ function passesDateFilter(task, filterType, currentDate) {
     
     // Check if task's stage has fold == 1
     // If fold == 1, task should only be displayed in "all" or "done" filters
+    // However, exclude cancelled tasks from done filter even if they have fold == 1
     if (task.state && isTaskStageFolded(task.state)) {
+        if (filterType === "done" && isTaskInCancelledStage(task)) {
+            return false; // Don't show cancelled tasks in done filter
+        }
         return filterType === "all" || filterType === "done";
     }
     
@@ -1041,8 +1045,8 @@ function passesDateFilter(task, filterType, currentDate) {
             if (isTaskInDoneStage(task)) return false;
             return isTaskDueLater(task, today);
         case "done":
-            // Show tasks which have their stage name set to "Done"
-            return isTaskInDoneStage(task);
+            // Show tasks which have their stage name set to "Done" but exclude cancelled tasks
+            return isTaskInDoneStage(task) && !isTaskInCancelledStage(task);
         default:
             return true;
     }
@@ -1254,6 +1258,29 @@ function isTaskInDoneStage(task) {
         return stageName.toString().toLowerCase() === "done" || stageName.toString().toLowerCase() === "completed" || stageName.toString().toLowerCase() === "finished" || stageName.toString().toLowerCase() === "closed" || stageName.toString().toLowerCase() === "verified";
     } catch (e) {
         console.error("isTaskInDoneStage failed:", e);
+        return false;
+    }
+}
+
+/**
+ * Checks whether the task's stage (project_task_type_app) name is "Cancelled" (case-insensitive)
+ * @param {Object} task
+ * @returns {boolean}
+ */
+function isTaskInCancelledStage(task) {
+    try {
+        if (!task) return false;
+
+        // task.state is expected to be the odoo_record_id for the task type/stage
+        var stageId = task.state;
+        if (!stageId) return false;
+
+        var stageName = getTaskStageName(stageId);
+        if (!stageName) return false;
+
+        return stageName.toString().toLowerCase() === "cancelled" || stageName.toString().toLowerCase() === "canceled";
+    } catch (e) {
+        console.error("isTaskInCancelledStage failed:", e);
         return false;
     }
 }
