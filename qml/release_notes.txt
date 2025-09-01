@@ -31,7 +31,17 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.4.1) </h3>
+      <h3>Change History : (Version 1.1.5) </h3>
+
+      <h4> 05-09-2025 : Version 1.1.5 </h4>
+
+       <h5> Fixes and Improvements </h5>
+      <ul>
+         <li> Added new Open Project filter for Projects, that will display only the Open Projects. This will be default filter. </li>
+         <li> Added strict filtering for Tasks so only Tasks matching the filter querry are displayed in Task List View. Tasks who are folded like Done stage or Cancelled stage task will only be displayed in Done and All Tasks filter respectively. </li>
+         <li> Added fallback for Overdue calculation for Tasks. If deadline is not present then overdue will be calculated based on End Date. </li>
+         <li> Fixed Sync Error log due to missing status field in Projects. </li>
+      </ul>
       
       <h4> 29-08-2025 : Version 1.1.4.1 </h4>
       <p><em>Note: Please remove the DB Instance and clean the cache using the tweak tool before using this update. Otherwise Task and Project Stages might not work properly.</em></p>
