@@ -41,6 +41,7 @@ function getProjectDetails(project_id) {
                     last_modified: row.last_modified,
                     color_pallet: row.color_pallet || "#FFFFFF",
                     stage: row.stage || 0,
+                    status: row.status || "",
                     odoo_record_id: row.odoo_record_id
                 };
             }

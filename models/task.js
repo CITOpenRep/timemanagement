@@ -1007,7 +1007,11 @@ function passesDateFilter(task, filterType, currentDate) {
     
     // Check if task's stage has fold == 1
     // If fold == 1, task should only be displayed in "all" or "done" filters
+    // However, exclude cancelled tasks from done filter even if they have fold == 1
     if (task.state && isTaskStageFolded(task.state)) {
+        if (filterType === "done" && isTaskInCancelledStage(task)) {
+            return false; // Don't show cancelled tasks in done filter
+        }
         return filterType === "all" || filterType === "done";
     }
     
@@ -1041,8 +1045,8 @@ function passesDateFilter(task, filterType, currentDate) {
             if (isTaskInDoneStage(task)) return false;
             return isTaskDueLater(task, today);
         case "done":
-            // Show tasks which have their stage name set to "Done"
-            return isTaskInDoneStage(task);
+            // Show tasks which have their stage name set to "Done" but exclude cancelled tasks
+            return isTaskInDoneStage(task) && !isTaskInCancelledStage(task);
         default:
             return true;
     }
@@ -1259,6 +1263,29 @@ function isTaskInDoneStage(task) {
 }
 
 /**
+ * Checks whether the task's stage (project_task_type_app) name is "Cancelled" (case-insensitive)
+ * @param {Object} task
+ * @returns {boolean}
+ */
+function isTaskInCancelledStage(task) {
+    try {
+        if (!task) return false;
+
+        // task.state is expected to be the odoo_record_id for the task type/stage
+        var stageId = task.state;
+        if (!stageId) return false;
+
+        var stageName = getTaskStageName(stageId);
+        if (!stageName) return false;
+
+        return stageName.toString().toLowerCase() === "cancelled" || stageName.toString().toLowerCase() === "canceled";
+    } catch (e) {
+        console.error("isTaskInCancelledStage failed:", e);
+        return false;
+    }
+}
+
+/**
  * Check if a date falls within the task's date range or if task is overdue
  * @param {Object} task - The task object
  * @param {Date} checkDate - The date to check against
@@ -1305,10 +1332,11 @@ function getTaskDateStatus(task, checkDate) {
         isInRange = checkDay <= endDay;
     }
     
-    // Check if end_date is passed (task should be overdue if past end_date)
-    // Only use end_date for overdue calculation, not deadline
-    if (endDay) {
+    // Check if task is overdue - prioritize deadline first, then end_date
+    if (deadlineDay) {
         isOverdue = checkDay > deadlineDay;
+    } else if (endDay) {
+        isOverdue = checkDay > endDay;
     }
     
     return {

@@ -420,12 +420,12 @@ ListItem {
                                                 var clickedPriority = index + 1;
                                                 var newPriority = (clickedPriority === taskCard.priority) ? 0 : clickedPriority;
 
-                                                console.log("🌟 Priority click: index=" + index + ", current=" + taskCard.priority + ", new=" + newPriority);
-                                                console.log("🌟 Priority click - localId:", localId, "typeof newPriority:", typeof newPriority);
+                                                // console.log("🌟 Priority click: index=" + index + ", current=" + taskCard.priority + ", new=" + newPriority);
+                                                // console.log("🌟 Priority click - localId:", localId, "typeof newPriority:", typeof newPriority);
 
                                                 // Convert to string like Task Edit Mode does
                                                 var result = Task.setTaskPriority(localId, newPriority.toString(), "updated");
-                                                console.log("🌟 setTaskPriority result:", JSON.stringify(result));
+                                                //  console.log("🌟 setTaskPriority result:", JSON.stringify(result));
 
                                                 if (result.success) {
                                                     taskCard.priority = newPriority;
@@ -457,61 +457,6 @@ ListItem {
                                         }
                                     }
                                 }
-
-                                // // Second row - 2 stars (bottom of pyramid)
-                                // Row {
-                                //     spacing: units.gu(0.3)
-
-                                //     // Left star (priority level 2)
-                                //     Image {
-                                //         source: 1 < priority ? "../images/star.png" : "../images/star-inactive.png"
-                                //         fillMode: Image.PreserveAspectFit
-                                //         width: units.gu(1.2)
-                                //         height: units.gu(1.2)
-
-                                //         MouseArea {
-                                //             anchors.fill: parent
-                                //             onClicked: {
-                                //                 mouse.accepted = true;
-
-                                //                 var newPriority = (2 === priority) ? 1 : 2;
-                                //                 var result = Task.setTaskPriority(localId, newPriority, "updated");
-
-                                //                 if (result.success) {
-                                //                     priority = newPriority;
-                                //                     console.log("✅ Task priority set to", priority, ":", result.message);
-                                //                 } else {
-                                //                     console.warn("⚠️ Failed to set task priority:", result.message);
-                                //                 }
-                                //             }
-                                //         }
-                                //     }
-
-                                //     // Right star (priority level 3)
-                                //     Image {
-                                //         source: 2 < priority ? "../images/star.png" : "../images/star-inactive.png"
-                                //         fillMode: Image.PreserveAspectFit
-                                //         width: units.gu(1.2)
-                                //         height: units.gu(1.2)
-
-                                //         MouseArea {
-                                //             anchors.fill: parent
-                                //             onClicked: {
-                                //                 mouse.accepted = true;
-
-                                //                 var newPriority = (3 === priority) ? 2 : 3;
-                                //                 var result = Task.setTaskPriority(localId, newPriority, "updated");
-
-                                //                 if (result.success) {
-                                //                     priority = newPriority;
-                                //                     console.log("✅ Task priority set to", priority, ":", result.message);
-                                //                 } else {
-                                //                     console.warn("⚠️ Failed to set task priority:", result.message);
-                                //                 }
-                                //             }
-                                //         }
-                                //     }
-                                // }
                             }
 
                             // View Details text on the right side
@@ -593,7 +538,7 @@ ListItem {
                     }
 
                     Text {
-                        text: Utils.getTimeStatusInText(deadline)
+                        text: Utils.getTimeStatusInText(taskCard.deadline || taskCard.endDate)
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
