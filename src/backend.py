@@ -61,7 +61,7 @@ def is_file_present(file_path):
     """
     file = Path(file_path)
     if file.exists() and file.is_file():
-        log.error(f"[INFO] File exists: {file_path}")
+        log.info(f"[INFO] File exists: {file_path}")
         return True
     else:
         log.error(f"[ERROR] File NOT found: {file_path}")
