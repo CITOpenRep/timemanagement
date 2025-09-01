@@ -74,6 +74,7 @@ function initializeDatabase() {
             last_modified datetime,\
             color_pallet TEXT,\
             stage INTEGER,\
+            status TEXT DEFAULT "",\
             odoo_record_id INTEGER,\
             UNIQUE (odoo_record_id, account_id)\
         )',
@@ -92,6 +93,7 @@ function initializeDatabase() {
             'last_modified datetime',
             'color_pallet TEXT',
             'stage INTEGER',
+            'status TEXT DEFAULT ""',
             'odoo_record_id INTEGER'
         ]
     );
