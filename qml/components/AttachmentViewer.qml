@@ -1,14 +1,115 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import Lomiri.Content 1.4
+import io.thp.pyotherside 1.4
 
 Column {
     id: attachmentViewer
     width: parent.width
     height: parent.height
     spacing: units.gu(1)
+    property list<ContentItem> importItems
+    property var activeTransfer
+    property int importId: 0
+    property int account_id
+    property var resource_id
+    property string resource_type:"project.project"
 
     property string dialogImageSource: ""
+
+    Python {
+        id: python
+
+        Component.onCompleted: {
+            addImportPath(Qt.resolvedUrl('../src/'));
+
+            importModule('example', function() {
+                console.log('module imported');
+            });
+        }
+
+        onError: {
+            console.log('python error: ' + traceback);
+        }
+    }
+
+    ContentPeer {
+        id: attachmentSource
+        contentType: ContentType.Pictures
+        handler: ContentHandler.Source
+        selectionType: ContentTransfer.Single
+    }
+
+    ContentTransferHint {
+        id: importHint
+        anchors.fill: parent
+        activeTransfer: attachmentViewer.activeTransfer
+    }
+
+    Connections {
+        target: attachmentViewer.activeTransfer
+
+        onStateChanged: {
+            if (!attachmentViewer.activeTransfer)
+            {
+                console.log("Attachment is empty")
+                return
+            }
+            if (attachmentViewer.activeTransfer.state === ContentTransfer.Charged) {
+                importItems = attachmentViewer.activeTransfer.items
+                console.log("ImportItems count:", importItems.length)
+
+                // Process each imported item
+                for (var i = 0; i < importItems.length; i++) {
+                    var item = importItems[i]
+                    console.log("Item #" + i + " URL: " + item.url)
+                    // Convert QUrl to string and get local file path
+                    var filePath = item.url.toString().replace(/^file:\/\//, "")
+
+                    python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                        if (!path) {
+                            console.warn("DB not found.");
+                            return;
+                        }
+                        console.log("Resource is is " + resource_id)
+                        // 2) call backend with 3 args: path, account_id, odoo_record_id
+                            python.call("backend.attachment_upload",
+                                        [path, account_id, filePath,resource_type,16],
+                            function (res) {
+                            if (!res) {
+                                console.warn("No response from attachment_upload");
+                                return;
+                            }
+                            else
+                            {
+                                console.log("Returned value is  " + res)
+                                //3. We must need to do a sync to ensure that local db is aligned
+                                python.call("backend.start_sync_in_background", [path,account_id], function (result) {
+                                    if (result) {
+                                        console.log("Background sync started for account:", account_id);
+                                    } else {
+                                        console.warn("Failed to start sync for account:", account_id);
+                                    }
+                                });
+                            }
+                        });
+
+                    });
+
+                }
+            }
+        }
+    }
+
+    Button{
+        text:"Add files"
+        anchors.horizontalCenter: parent.horizontalCenter
+        onClicked:
+        {
+            activeTransfer = attachmentSource.request()
+        }
+    }
 
     Label {
         text: "Attachments"

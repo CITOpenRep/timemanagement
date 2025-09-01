@@ -37,6 +37,8 @@ import json
 import xmlrpc.client
 from common import check_table_exists, write_sync_report_to_db
 import threading
+import base64
+import mimetypes
 
 sync_lock = threading.Lock()
 sync_in_progress = False  # Global flag
@@ -245,6 +247,61 @@ def attachment_ondemand_download(settings_db,account_id, remote_record_id):
         selected["api_key"],
     )
     return client.ondemanddownload(remote_record_id,selected["username"],selected["api_key"],False)
+
+def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
+    log.debug(f"[SYNC] Starting attachment_upload  to {account_id} : {filepath} , {res_type} ,{res_id}")
+    accounts = get_all_accounts(settings_db)
+    selected = None
+    for acc in accounts:
+        if acc.get("id") == account_id:
+            selected = acc
+            break
+
+    if not selected:
+        return None
+
+    filename = os.path.basename(filepath)
+    EXT_TO_MIME = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.pdf': 'application/pdf',
+        '.txt': 'text/plain',
+        '.csv': 'text/csv',
+        '.mp3': 'audio/mpeg',
+        '.mp4': 'video/mp4',
+        '.zip': 'application/zip'
+        # add more extensions as needed
+    }
+    ext = os.path.splitext(filename)[1].lower()  # get extension including dot
+    mimetype = EXT_TO_MIME.get(ext, 'application/octet-stream')
+
+    file_bytes=None
+    # Read file content as binary
+    with open(filepath, 'rb') as f:
+       file_bytes = f.read()
+
+    selected = accounts[1]
+    client = OdooClient(
+        selected["link"],
+        selected["database"],
+        selected["username"],
+        selected["api_key"],
+    )
+
+    # Attach a file to the newly created partner
+    vals = {
+        'name': filename,
+        'type': 'binary',
+        'res_model':res_type,
+        'res_id':res_id,
+        'datas': base64.b64encode(file_bytes).decode('utf-8'),
+        'mimetype': mimetype
+    }
+
+    attachment_id = client.call('ir.attachment', 'create', [vals])
+    return attachment_id
 
 def sync(settings_db, account_id):
     """

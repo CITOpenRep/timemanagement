@@ -434,6 +434,8 @@ Page {
             AttachmentViewer {
                 id: attachments_widget
                 anchors.fill: parent
+                account_id:project.account_id
+                resource_id:recordid
             }
         }
     }
