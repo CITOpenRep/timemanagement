@@ -157,6 +157,48 @@ function getTaskStageName(odooRecordId) {
     return stageName;
 }
 
+/**
+ * Check if a task's stage has fold == 1
+ * @param {number} stageId - The odoo_record_id of the task stage
+ * @returns {boolean} True if the stage has fold == 1
+ */
+function isTaskStageFolded(stageId) {
+    try {
+        if (!stageId || stageId === -1) {
+            return false;
+        }
+
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        var isFolded = false;
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT fold
+                FROM project_task_type_app
+                WHERE odoo_record_id = ?
+                LIMIT 1
+            `;
+
+            var result = tx.executeSql(query, [stageId]);
+
+            if (result.rows.length > 0) {
+                isFolded = result.rows.item(0).fold === 1;
+            }
+        });
+
+        return isFolded;
+    } catch (e) {
+        console.error("isTaskStageFolded failed:", e);
+        return false;
+    }
+}
+
 
 function getAttachmentsForTask(odooRecordId) {
     var attachmentList = [];
@@ -912,30 +954,32 @@ function getFilteredTasks(filterType, searchQuery) {
             }
         }
     }
+
+    //Commenting this out , as we do not want to include all children of included parents
     
     // Fourth pass: include all children of included parent tasks to maintain hierarchy
-    for (var i = 0; i < allTasks.length; i++) {
-        var task = allTasks[i];
+    // for (var i = 0; i < allTasks.length; i++) {
+    //     var task = allTasks[i];
         
-        // If this task has a parent that is included, include this task too
-        // But only if the parent is from the same account
-        if (task.parent_id && task.parent_id > 0) {
-            // Check if any parent with matching account_id is included
-            for (var j = 0; j < allTasks.length; j++) {
-                var parentCandidate = allTasks[j];
-                if (parentCandidate.odoo_record_id === task.parent_id && 
-                    parentCandidate.account_id === task.account_id) {
+    //     // If this task has a parent that is included, include this task too
+    //     // But only if the parent is from the same account
+    //     if (task.parent_id && task.parent_id > 0) {
+    //         // Check if any parent with matching account_id is included
+    //         for (var j = 0; j < allTasks.length; j++) {
+    //             var parentCandidate = allTasks[j];
+    //             if (parentCandidate.odoo_record_id === task.parent_id && 
+    //                 parentCandidate.account_id === task.account_id) {
                     
-                    var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
-                    if (includedTaskIds.has(parentKey)) {
-                        var taskKey = task.odoo_record_id + '_' + task.account_id;
-                        includedTaskIds.set(taskKey, task);
-                        break;
-                    }
-                }
-            }
-        }
-    }
+    //                 var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
+    //                 if (includedTaskIds.has(parentKey)) {
+    //                     var taskKey = task.odoo_record_id + '_' + task.account_id;
+    //                     includedTaskIds.set(taskKey, task);
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
     
     // Final pass: build the filtered tasks list
     for (var i = 0; i < allTasks.length; i++) {
@@ -959,6 +1003,12 @@ function getFilteredTasks(filterType, searchQuery) {
 function passesDateFilter(task, filterType, currentDate) {
     if (!filterType || filterType === "all") {
         return true;
+    }
+    
+    // Check if task's stage has fold == 1
+    // If fold == 1, task should only be displayed in "all" or "done" filters
+    if (task.state && isTaskStageFolded(task.state)) {
+        return filterType === "all" || filterType === "done";
     }
     
     // Tasks without start_date or end_date should only appear in "all" filter
