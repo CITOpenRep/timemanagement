@@ -148,7 +148,7 @@ function getAllProjectStages() {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         db.transaction(function (tx) {
-            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active FROM project_project_stage_app ORDER BY sequence ASC, name COLLATE NOCASE ASC";
+            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active, fold FROM project_project_stage_app ORDER BY sequence ASC, name COLLATE NOCASE ASC";
             var result = tx.executeSql(query);
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -158,7 +158,8 @@ function getAllProjectStages() {
                     odoo_record_id: row.odoo_record_id,
                     name: row.name,
                     sequence: row.sequence,
-                    active: row.active
+                    active: row.active,
+                    fold: row.fold
                 });
             }
         });
@@ -166,6 +167,36 @@ function getAllProjectStages() {
         console.error("getAllProjectStages failed:", e);
     }
     return stages;
+}
+
+/**
+ * Retrieve only open project stages (where fold = 0) from the local DB.
+ * Returns an array of stage objects for filtering open projects.
+ */
+function getOpenProjectStages() {
+    var openStages = [];
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active, fold FROM project_project_stage_app WHERE fold = 0 ORDER BY sequence ASC, name COLLATE NOCASE ASC";
+            var result = tx.executeSql(query);
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                openStages.push({
+                    id: row.id,
+                    account_id: row.account_id,
+                    odoo_record_id: row.odoo_record_id,
+                    name: row.name,
+                    sequence: row.sequence,
+                    active: row.active,
+                    fold: row.fold
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getOpenProjectStages failed:", e);
+    }
+    return openStages;
 }
 
 
