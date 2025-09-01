@@ -1305,10 +1305,11 @@ function getTaskDateStatus(task, checkDate) {
         isInRange = checkDay <= endDay;
     }
     
-    // Check if end_date is passed (task should be overdue if past end_date)
-    // Only use end_date for overdue calculation, not deadline
-    if (endDay) {
+    // Check if task is overdue - prioritize deadline first, then end_date
+    if (deadlineDay) {
         isOverdue = checkDay > deadlineDay;
+    } else if (endDay) {
+        isOverdue = checkDay > endDay;
     }
     
     return {
