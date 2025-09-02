@@ -463,7 +463,7 @@ Page {
                                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                             }
                                             Text {
-                                                text: Utils.getLastSyncStatus(0)
+                                                text: Utils.getLastSyncStatus(model.id)
                                                 font.pixelSize: units.gu(1)
                                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                             }
