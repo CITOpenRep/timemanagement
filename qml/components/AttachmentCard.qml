@@ -34,7 +34,13 @@ Item {
 
     function download_image() {
         if (downloading) return;
-        console.log("OnDemand Download Kicks in")
+        if(odoo_record_id===0)
+        {
+            console.error("Invalid record id=0, Unable to download attachment")
+            return
+        }
+
+        console.log("OnDemand Download Kicks in" + odoo_record_id)
 
         // 1) try cache first
         var cached = Project.getFromCache(odoo_record_id);

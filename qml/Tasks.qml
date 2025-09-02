@@ -226,7 +226,7 @@ Page {
         id: tasksDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: descriptionExpanded ? parent.height + units.gu(150) : parent.height + units.gu(80)
+        contentHeight: descriptionExpanded ? parent.height + units.gu(150) : parent.height + units.gu(120)
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -574,16 +574,37 @@ Page {
                 }
             }
         }
-        Item {
+        Rectangle {
+            //color:"yellow"
             id: attachmentRow
-            anchors.bottom: parent.bottom
             anchors.top: deadlineRow.bottom
+            //anchors.top: attachmentuploadRow.bottom
+            height: units.gu(50)
             width: parent.width
-            //height: units.gu(30)
-            anchors.margins: units.gu(1)
+            anchors.margins: units.gu(0.1)
             AttachmentViewer {
                 id: attachments_widget
                 anchors.fill: parent
+                onRefresh:{
+                    loadTask() //reload task , May be we can have a special functiont to reload attachment as well.
+                }
+            }
+        }
+
+        Rectangle {
+            //color:"red"
+            id: attachmentuploadRow
+            anchors.top: attachmentRow.bottom
+            anchors.bottom: parent.bottom
+            width: parent.width
+            //height: units.gu(30)
+            anchors.margins: units.gu(0.1)
+            AttachmentUploader {
+                id: attachmentsupload_widget
+                resource_type: "project.task"
+                anchors.fill: parent
+                resource_id: currentTask.odoo_record_id
+                account_id: currentTask.account_id
             }
         }
     }
@@ -596,7 +617,9 @@ Page {
             deadline_text.text = Qt.formatDate(new Date(date), "yyyy-MM-dd");
         }
     }
-    Component.onCompleted: {
+
+    function loadTask()
+    {
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
             currentTask = Task.getTaskDetails(recordid);
@@ -665,6 +688,10 @@ Page {
             deadline_text.text = "Not set";
         }
         //  console.log("currentTask loaded:", JSON.stringify(currentTask));
+    }
+
+    Component.onCompleted: {
+        loadTask()
     }
 
     onVisibleChanged: {

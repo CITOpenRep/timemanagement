@@ -103,6 +103,8 @@ Column {
     function setAttachments(list) {
         attachmentModel.clear();
         for (var i = 0; i < list.length; i++) {
+            console.log(list[i].name + " is the name")
+            console.log(list[i].account_id + " is the account_id")
             attachmentModel.append(list[i]);
         }
     }

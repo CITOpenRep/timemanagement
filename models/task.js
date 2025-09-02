@@ -208,7 +208,7 @@ function getAttachmentsForTask(odooRecordId) {
 
         db.transaction(function (tx) {
             var query = `
-                SELECT name, mimetype, datas
+                SELECT name, mimetype, account_id,odoo_record_id
                 FROM ir_attachment_app
                 WHERE res_model = 'project.task' AND res_id = ?
                 ORDER BY name COLLATE NOCASE ASC
@@ -220,7 +220,8 @@ function getAttachmentsForTask(odooRecordId) {
                 attachmentList.push({
                     name: result.rows.item(i).name,
                     mimetype: result.rows.item(i).mimetype,
-                    datas: result.rows.item(i).datas
+                    account_id:result.rows.item(i).account_id,
+                    odoo_record_id:result.rows.item(i).odoo_record_id,
                 });
             }
         });
