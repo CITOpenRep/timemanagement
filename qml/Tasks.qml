@@ -94,6 +94,41 @@ Page {
         }
     }
 
+    function validateHoursInput(text) {
+        // Allow formats like: 1, 1.5, 1:30, 01:30
+        var timeRegex = /^(\d{1,3}):([0-5]\d)$/; // HH:MM or H:MM format
+        var decimalRegex = /^\d+(\.\d+)?$/; // Decimal format like 1.5
+        
+        if (timeRegex.test(text)) {
+            var match = text.match(timeRegex);
+            var hours = parseInt(match[1]);
+            var minutes = parseInt(match[2]);
+            return hours >= 0 && hours <= 999 && minutes >= 0 && minutes <= 59;
+        } else if (decimalRegex.test(text)) {
+            var value = parseFloat(text);
+            return value >= 0 && value <= 999;
+        }
+        return false;
+    }
+
+    function formatHoursDisplay(text) {
+        // Convert various input formats to HH:MM display format
+        var timeRegex = /^(\d{1,3}):([0-5]\d)$/;
+        var decimalRegex = /^\d+(\.\d+)?$/;
+        
+        if (timeRegex.test(text)) {
+            // Already in HH:MM format, just pad if needed
+            var match = text.match(timeRegex);
+            var hours = parseInt(match[1]);
+            var minutes = parseInt(match[2]);
+            return (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
+        } else if (decimalRegex.test(text)) {
+            // Convert decimal to HH:MM
+            return Utils.convertDecimalHoursToHHMM(parseFloat(text));
+        }
+        return text;
+    }
+
     function save_task_data() {
         const ids = workItem.getIds();
 
@@ -113,6 +148,13 @@ Page {
             notifPopup.open("Error", "Please select the project", "error");
             return;
         }
+        
+        // Validate hours input before saving
+        if (hours_input.text !== "" && !validateHoursInput(hours_input.text)) {
+            notifPopup.open("Error", "Please enter valid hours (e.g., 1.5, 2:30, or 8:00)", "error");
+            return;
+        }
+        
         if (name_text.text != "") {
             const saveData = {
                 accountId: ids.account_id < 0 ? 0 : ids.account_id,
@@ -125,7 +167,7 @@ Page {
                 endDate: date_range_widget.formattedEndDate(),
                 deadline: deadline_text.text !== "Not set" ? deadline_text.text : "",
                 priority: (priority != null ? priority.toString() : "0"),
-                plannedHours: Utils.convertDurationToFloat(hours_text.text),
+                plannedHours: Utils.convertDurationToFloat(hours_input.text),
                 description: description_text.text,
                 assigneeUserId: ids.assignee_id,
                 status: "updated"
@@ -141,6 +183,10 @@ Page {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
+                // Format the hours display after successful save
+                if (hours_input.text !== "") {
+                    hours_input.text = formatHoursDisplay(hours_input.text);
+                }
                 // Reload the task data to reflect changes
                 if (recordid !== 0) {
                     currentTask = Task.getTaskDetails(recordid);
@@ -156,16 +202,18 @@ Page {
     }
 
     function incdecHrs(value) {
+        var currentText = hours_input.text || "0:00";
+        var currentFloat = Utils.convertDurationToFloat(currentText);
+        
         if (value === 1) {
-            var hrs = Number(hours_text.text);
-            hrs++;
-            hours_text.text = hrs;
+            currentFloat += 1.0;
         } else {
-            var hrs = Number(hours_text.text);
-            if (hrs > 0)
-                hrs--;
-            hours_text.text = hrs;
+            if (currentFloat >= 1.0) {
+                currentFloat -= 1.0;
+            }
         }
+        
+        hours_input.text = Utils.convertDecimalHoursToHHMM(currentFloat);
     }
 
     NotificationPopup {
@@ -398,29 +446,71 @@ Page {
             TSLabel {
                 id: hours_label
                 text: "Planned Hours"
-                width: parent.width * 0.3
+                width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            TSLabel {
-                id: hours_text
-                text: "01:00"
-                enabled: !isReadOnly
+            TextField {
+                id: hours_input
+                readOnly: isReadOnly
                 width: parent.width * 0.3
-                fontBold: true
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            TSButton {
-                text: "Select"
-                objectName: "button_manual"
-                enabled: !isReadOnly
-                width: parent.width * 0.2
                 height: units.gu(5)
                 anchors.verticalCenter: parent.verticalCenter
+                text: "01:00"
+                placeholderText: "e.g., 2:30 or 1.5"
+                
+                // Input validation
+                validator: RegExpValidator { 
+                    regExp: /^(\d{1,3}(:\d{2})?|\d+(\.\d+)?)$/
+                }
 
-                onClicked: {
-                    myTimePicker.open(1, 0);
+                Rectangle {
+                    anchors.fill: parent
+                    color: "transparent"
+                    radius: units.gu(0.5)
+                    border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                    border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                }
+
+                onFocusChanged: {
+                    if (!focus && text !== "" && validateHoursInput(text)) {
+                        text = formatHoursDisplay(text);
+                    }
+                }
+
+                Keys.onReturnPressed: {
+                    if (text !== "" && validateHoursInput(text)) {
+                        text = formatHoursDisplay(text);
+                    }
+                    focus = false;
+                }
+            }
+
+            Row {
+                spacing: units.gu(1)
+                width: parent.width * 0.3
+                anchors.verticalCenter: parent.verticalCenter
+
+                TSButton {
+                    text: "-"
+                    enabled: !isReadOnly
+                    fontSize : units.gu(2.5)
+                    width: units.gu(4.5)
+                    height: units.gu(4.5)
+                    onClicked: {
+                        incdecHrs(-1);
+                    }
+                }
+
+                TSButton {
+                    text: "+"
+                    enabled: !isReadOnly
+                    fontSize : units.gu(2.5)
+                    width: units.gu(4.5)
+                    height: units.gu(4.5)
+                    onClicked: {
+                        incdecHrs(1);
+                    }
                 }
             }
         }
@@ -495,13 +585,6 @@ Page {
             }
         }
     }
-    TimePickerPopup {
-        id: myTimePicker
-        onTimeSelected: {
-            let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
-            hours_text.text = timeStr;
-        }
-    }
 
     CustomDatePicker {
         id: deadlinePicker
@@ -536,14 +619,6 @@ Page {
                 }
             }
 
-            /*  console.log("Loading task data:", JSON.stringify({
-                                                                 instanceId: instanceId,
-                                                                 project_id: project_id,
-                                                                 sub_project_id: sub_project_id,
-                                                                 parent_task_id: parent_task_id,
-                                                                 assignee_id: assignee_id
-                                                             }));*/
-
             workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
             name_text.text = currentTask.name || "";
@@ -551,13 +626,12 @@ Page {
 
             // Handle planned hours more carefully
             if (currentTask.initial_planned_hours !== undefined && currentTask.initial_planned_hours !== null && currentTask.initial_planned_hours > 0) {
-                hours_text.text = Utils.convertDecimalHoursToHHMM(parseFloat(currentTask.initial_planned_hours));
+                hours_input.text = Utils.convertDecimalHoursToHHMM(parseFloat(currentTask.initial_planned_hours));
             } else {
-                hours_text.text = "01:00";  // Default value
+                hours_input.text = "01:00";  // Default value
             }
 
             // Set date range more carefully to preserve original dates
-
             if (currentTask.start_date && currentTask.end_date) {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
             } else if (currentTask.start_date) {
