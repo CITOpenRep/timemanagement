@@ -118,9 +118,11 @@ Page {
 
     // Helper function to load project data
     function loadProjectData(projectId) {
-        let project = Project.getProjectDetails(projectId);
+        project = Project.getProjectDetails(projectId);
         if (project && Object.keys(project).length > 0) {
             // Set all fields with project details
+            console.log("ACCOUNT id is ")
+            console.log( project.account_id)
             let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
             let parentId = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
 
@@ -179,7 +181,7 @@ Page {
         id: projectDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: descriptionExpanded ? parent.height + 1500 : parent.height + 500
+        contentHeight: descriptionExpanded ? parent.height +  units.gu(120) : parent.height +  units.gu(120)
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -452,20 +454,47 @@ Page {
             }
         }
 
-        Item {
+        Rectangle {
+            //color:"yellow"
             id: attachmentRow
-            anchors.bottom: parent.bottom
             anchors.top: myRow6.bottom
+            //anchors.top: attachmentuploadRow.bottom
+            height: units.gu(50)
             width: parent.width
-            //height: units.gu(30)
-            anchors.margins: units.gu(1)
+            anchors.margins: units.gu(0.1)
             AttachmentViewer {
                 id: attachments_widget
+                visible:(Accounts.getAccountName(project.account_id)==="LOCAL ACCOUNT")?false:true // We should not show the attachment feature for local account : TODO
                 anchors.fill: parent
-                account_id: project.account_id
-                resource_id: recordid
+                onRefresh:{
+                    if (recordid !== 0) {
+                        if (!loadProjectData(recordid)) {
+                            notifPopup.open("Failed", "Error during attachment refresh", "error");
+                        }
+                    }
+                }
             }
         }
+
+        Rectangle {
+            //color:"red"
+            id: attachmentuploadRow
+            anchors.top: attachmentRow.bottom
+            anchors.bottom: parent.bottom
+            width: parent.width
+            //height: units.gu(30)
+            anchors.margins: units.gu(0.1)
+            AttachmentUploader {
+                visible:(Accounts.getAccountName(project.account_id)==="LOCAL ACCOUNT")?false:true // We should not show the attachment feature for local account : TODO
+                id: attachmentsupload_widget
+                anchors.fill: parent
+                resource_id: project.odoo_record_id
+                account_id: project.account_id
+
+            }
+        }
+
+
     }
 
     ColorPicker {
@@ -473,8 +502,6 @@ Page {
         width: units.gu(80)
         height: units.gu(80)
         onColorPicked: function (index, value) {
-            // console.log("Selected index:", index);
-            // console.log("Selected color:", value);
             project_color_label.color = value;
             project_color = index;
         }
