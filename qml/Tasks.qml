@@ -491,6 +491,8 @@ Page {
                 width: parent.width * 0.3
                 anchors.verticalCenter: parent.verticalCenter
 
+                visible: !isReadOnly 
+
                 TSButton {
                     text: "-"
                     enabled: !isReadOnly
