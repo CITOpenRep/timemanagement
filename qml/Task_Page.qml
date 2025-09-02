@@ -61,7 +61,6 @@ Page {
             Action {
                 iconName: "search"
                 text: "Search"
-                visible: !filterByProject  // Hide search when filtering by project
                 onTriggered: {
                     taskListHeader.toggleSearchVisibility();
                 }
@@ -126,7 +125,6 @@ Page {
         anchors.top: taskheader.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        visible: !filterByProject  // Hide filter header when filtering by project
 
         label1: "Today"
         label2: "This Week"
@@ -149,17 +147,27 @@ Page {
 
         onFilterSelected: {
             task.currentFilter = filterKey;
-            tasklist.applyFilter(filterKey);
+            if (filterByProject) {
+                // When filtering by project, apply both project filter and time filter
+                tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, filterKey);
+            } else {
+                tasklist.applyFilter(filterKey);
+            }
         }
 
         onCustomSearch: {
             task.currentSearchQuery = query;
-            tasklist.applySearch(query);
+            if (filterByProject) {
+                // When filtering by project, apply both project filter and search
+                tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, query);
+            } else {
+                tasklist.applySearch(query);
+            }
         }
     }
 
     LomiriShape {
-        anchors.top: filterByProject ? taskheader.bottom : taskListHeader.bottom
+        anchors.top: taskListHeader.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -255,16 +263,24 @@ Page {
         if (visible) {
             // Apply the current filter when page becomes visible
             if (filterByProject) {
-                tasklist.applyProjectFilter(projectOdooRecordId, projectAccountId);
+                if (currentSearchQuery) {
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
+                } else {
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
+                }
             } else {
-                tasklist.applyFilter(currentFilter);
+                if (currentSearchQuery) {
+                    tasklist.applySearch(currentSearchQuery);
+                } else {
+                    tasklist.applyFilter(currentFilter);
+                }
             }
         }
     }
     Component.onCompleted: {
         // Apply default filter or project filter on completion
         if (filterByProject) {
-            tasklist.applyProjectFilter(projectOdooRecordId, projectAccountId);
+            tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
         } else {
             tasklist.applyFilter(currentFilter);
         }
