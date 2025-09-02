@@ -1388,3 +1388,104 @@ function setTaskPriority(taskId, priority, status) {
     }
 }
 
+/**
+ * Retrieves all non-deleted tasks for a specific project from the `project_task_app` table,
+ * and adds inherited color and total hours spent from timesheet entries.
+ *
+ * @param {number} projectOdooRecordId - The odoo_record_id of the project
+ * @param {number} accountId - The account ID
+ * @returns {Array<Object>} A list of task objects with color and spentHours for the specified project.
+ */
+function getTasksForProject(projectOdooRecordId, accountId) {
+    var taskList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            // Get all tasks for the specific project and account
+            var query = `
+                SELECT 
+                    id,
+                    odoo_record_id,
+                    account_id,
+                    name,
+                    description,
+                    project_id,
+                    sub_project_id,
+                    parent_id,
+                    user_id,
+                    start_date,
+                    end_date,
+                    deadline,
+                    initial_planned_hours,
+                    state,
+                    priority,
+                    last_modified,
+                    status
+                FROM project_task_app 
+                WHERE project_id = ? 
+                AND account_id = ? 
+                AND (status != 'deleted' OR status IS NULL)
+                ORDER BY last_modified DESC
+            `;
+
+            var result = tx.executeSql(query, [projectOdooRecordId, accountId]);
+            
+            // Build a map of project colors for efficient lookup
+            var projectColorQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?";
+            var projectColorResult = tx.executeSql(projectColorQuery, [accountId]);
+            var projectMap = {};
+            for (var j = 0; j < projectColorResult.rows.length; j++) {
+                var projectRow = projectColorResult.rows.item(j);
+                projectMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+
+                // Calculate spent hours for this task
+                var spentHoursQuery = `
+                    SELECT COALESCE(SUM(unit_amount), 0) as spent_hours 
+                    FROM account_analytic_line_app 
+                    WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)
+                `;
+                var spentResult = tx.executeSql(spentHoursQuery, [row.odoo_record_id, accountId]);
+                var spentHours = spentResult.rows.length > 0 ? spentResult.rows.item(0).spent_hours : 0;
+
+                // Resolve project color
+                var projectIdToCheck = row.project_id || row.sub_project_id;
+                var inheritedColor = resolveProjectColor(projectIdToCheck, projectMap, tx);
+
+                var task = {
+                    id: row.id,
+                    odoo_record_id: row.odoo_record_id,
+                    account_id: row.account_id,
+                    name: row.name,
+                    description: row.description,
+                    project_id: row.project_id,
+                    sub_project_id: row.sub_project_id,
+                    parent_id: row.parent_id,
+                    user_id: row.user_id,
+                    start_date: row.start_date,
+                    end_date: row.end_date,
+                    deadline: row.deadline,
+                    initial_planned_hours: row.initial_planned_hours,
+                    state: row.state,
+                    priority: row.priority,
+                    last_modified: row.last_modified,
+                    status: row.status,
+                    color_pallet: inheritedColor,
+                    spent_hours: spentHours
+                };
+
+                taskList.push(task);
+            }
+        });
+    } catch (e) {
+        console.error("❌ getTasksForProject failed:", e);
+    }
+
+    return taskList;
+}
+

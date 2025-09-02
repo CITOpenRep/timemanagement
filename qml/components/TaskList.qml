@@ -43,6 +43,11 @@ Item {
     property string currentFilter: "today"  // Set default filter to "today"
     property string currentSearchQuery: ""
 
+    // Properties for project filtering
+    property bool filterByProject: false
+    property int projectOdooRecordId: -1
+    property int projectAccountId: -1
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
@@ -69,6 +74,20 @@ Item {
     function applySearch(searchQuery) {
         currentSearchQuery = searchQuery;
         refreshWithFilter();
+    }
+
+    // Add the applyProjectFilter method
+    function applyProjectFilter(projectOdooId, projectAccountId) {
+        filterByProject = true;
+        projectOdooRecordId = projectOdooId;
+        projectAccountId = projectAccountId;
+        var projectTasks = getTasksForProject(projectOdooId, projectAccountId);
+        updateDisplayedTasks(projectTasks);
+    }
+
+    // New function to get tasks for a specific project
+    function getTasksForProject(projectOdooId, accountId) {
+        return Task.getTasksForProject(projectOdooId, accountId);
     }
 
     // New function to refresh with filter applied
@@ -349,6 +368,10 @@ Item {
     }
 
     Component.onCompleted: {
-        refreshWithFilter();  // Use refreshWithFilter to apply default "today" filter
+        if (filterByProject && projectOdooRecordId !== -1) {
+            applyProjectFilter(projectOdooRecordId, projectAccountId);
+        } else {
+            refreshWithFilter();  // Use refreshWithFilter to apply default "today" filter
+        }
     }
 }

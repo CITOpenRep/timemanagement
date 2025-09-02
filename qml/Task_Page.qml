@@ -45,7 +45,7 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        title: task.title
+        title: filterByProject ? "Tasks - " + projectName : task.title
 
         trailingActionBar.actions: [
             Action {
@@ -61,6 +61,7 @@ Page {
             Action {
                 iconName: "search"
                 text: "Search"
+                visible: !filterByProject  // Hide search when filtering by project
                 onTriggered: {
                     taskListHeader.toggleSearchVisibility();
                 }
@@ -74,6 +75,12 @@ Page {
     // Add properties to track filter and search state
     property string currentFilter: "today"
     property string currentSearchQuery: ""
+
+    // Properties for project filtering
+    property bool filterByProject: false
+    property int projectOdooRecordId: -1
+    property int projectAccountId: -1
+    property string projectName: ""
 
     // Function to get tasks based on current filter and search
     function getTaskList(filter, searchQuery) {
@@ -119,6 +126,7 @@ Page {
         anchors.top: taskheader.bottom
         anchors.left: parent.left
         anchors.right: parent.right
+        visible: !filterByProject  // Hide filter header when filtering by project
 
         label1: "Today"
         label2: "This Week"
@@ -151,7 +159,7 @@ Page {
     }
 
     LomiriShape {
-        anchors.top: taskListHeader.bottom
+        anchors.top: filterByProject ? taskheader.bottom : taskListHeader.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -162,6 +170,11 @@ Page {
             id: tasklist
             anchors.fill: parent
             clip: true
+
+            // Pass project filtering parameters
+            filterByProject: task.filterByProject
+            projectOdooRecordId: task.projectOdooRecordId
+            projectAccountId: task.projectAccountId
 
             onTaskEditRequested: {
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
@@ -241,11 +254,19 @@ Page {
     onVisibleChanged: {
         if (visible) {
             // Apply the current filter when page becomes visible
-            tasklist.applyFilter(currentFilter);
+            if (filterByProject) {
+                tasklist.applyProjectFilter(projectOdooRecordId, projectAccountId);
+            } else {
+                tasklist.applyFilter(currentFilter);
+            }
         }
     }
     Component.onCompleted: {
-        // Apply default "today" filter on completion
-        tasklist.applyFilter(currentFilter);
+        // Apply default filter or project filter on completion
+        if (filterByProject) {
+            tasklist.applyProjectFilter(projectOdooRecordId, projectAccountId);
+        } else {
+            tasklist.applyFilter(currentFilter);
+        }
     }
 }
