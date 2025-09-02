@@ -31,10 +31,25 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.4.2) </h3>
+      <h3>Change History : (Version 1.1.5) </h3>
+
+       <h4> 05-09-2025 : Version 1.1.5 </h4>
+
+         <h5> New Features </h5>
+      <ul>
+         <li> Added "View Tasks" Button in Project Detail view. After clicking on this button it will navigate to Task List View where Tasks will be filtered based on the Project, and only Tasks from that Project will be shown. </li>
+      </ul>
+
+
+       <h5> Fixes and Improvements </h5>
+      <ul>
+         <li> Fixed the "Last Sync Message" in Settings Page. </li>
+         <li> Added "custom field" for adding Planned hours in Tasks. Hours can be added manually or using the two plus and minus buttons.</li>
+      </ul>
+
+<br>
 
       <h4> 01-09-2025 : Version 1.1.4.2 </h4>
-
        <h5> Fixes and Improvements </h5>
       <ul>
          <li> Added new Open Project filter for Projects, that will display only the Open Projects. This will be default filter. </li>
