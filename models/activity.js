@@ -691,3 +691,85 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
         return { success: false, error: e.message };
     }
 }
+
+/**
+ * Retrieves all non-deleted activities linked to a specific project from the `mail_activity_app` table.
+ *
+ * @function getActivitiesForProject
+ * @param {number} projectOdooRecordId - The odoo_record_id of the project
+ * @param {number} accountId - The account ID
+ * @returns {Array<Object>} A list of activity objects linked to the specified project.
+ */
+function getActivitiesForProject(projectOdooRecordId, accountId) {
+    var activityList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
+
+        db.transaction(function (tx) {
+            // Step 1: Build project color map
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?", [accountId]);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            // Step 2: Fetch activities linked to the specific project
+            // This includes activities linked directly to the project and activities linked to tasks within the project
+            var rs = tx.executeSql(`
+                SELECT DISTINCT a.* FROM mail_activity_app a
+                WHERE a.account_id = ? 
+                AND a.state != 'done'
+                AND (
+                    (a.resModel = 'project.project' AND a.link_id = ?)
+                    OR 
+                    (a.resModel = 'project.task' AND a.link_id IN (
+                        SELECT odoo_record_id FROM project_task_app 
+                        WHERE project_id = ? AND account_id = ?
+                    ))
+                )
+                ORDER BY a.due_date ASC
+            `, [accountId, projectOdooRecordId, projectOdooRecordId, accountId]);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(row);
+
+                // Enrich the activity with project/task details
+                if (activity.resModel === "project.task") {
+                    var enrichedTask = resolveActivityLinkage(tx, activity.link_id, activity.account_id);
+                    activity.task_id = enrichedTask.task_id;
+                    activity.sub_task_id = enrichedTask.sub_task_id;
+                    activity.project_id = enrichedTask.project_id;
+                    activity.sub_project_id = enrichedTask.sub_project_id;
+                    activity.linkedType = "task";
+                } else if (activity.resModel === "project.project") {
+                    var enrichedProject = resolveProjectLinkage(tx, activity.link_id, activity.account_id);
+                    activity.task_id = enrichedProject.task_id;
+                    activity.sub_task_id = enrichedProject.sub_task_id;
+                    activity.project_id = enrichedProject.project_id;
+                    activity.sub_project_id = enrichedProject.sub_project_id;
+                    activity.linkedType = "project";
+                } else {
+                    initializeEnrichmentDefaults(activity);
+                }
+
+                // Add color inheritance
+                var colorProjectId = activity.project_id !== -1 ? activity.project_id : activity.sub_project_id;
+                if (colorProjectId !== -1 && projectColorMap[colorProjectId]) {
+                    activity.color_pallet = projectColorMap[colorProjectId];
+                } else {
+                    activity.color_pallet = 0; // Default color
+                }
+
+                activityList.push(activity);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getActivitiesForProject", e);
+    }
+
+    return activityList;
+}

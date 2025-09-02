@@ -39,7 +39,7 @@ Page {
     title: "Activities"
     header: PageHeader {
         id: taskheader
-        title: activity.title
+        title: filterByProject ? "Activities - " + projectName : activity.title
         StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
@@ -104,7 +104,8 @@ Page {
         activityListModel.clear();
 
         try {
-            const allActivities = Activity.getAllActivities();
+            // Get activities based on whether we're filtering by project or not
+            const allActivities = filterByProject ? Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId) : Activity.getAllActivities();
             var filteredActivities = [];
 
             // First filter the activities
@@ -357,9 +358,20 @@ Page {
     property string currentFilter: "today"
     property string currentSearchQuery: ""
 
+    // Properties for project filtering
+    property bool filterByProject: false
+    property int projectOdooRecordId: -1
+    property int projectAccountId: -1
+    property string projectName: ""
+
     onVisibleChanged: {
         if (visible) {
             get_activity_list();
         }
+    }
+
+    Component.onCompleted: {
+        // Load activities based on filtering mode
+        get_activity_list();
     }
 }

@@ -292,7 +292,7 @@ Page {
             anchors.rightMargin: units.gu(1)
             TSButton {
                 visible: isReadOnly
-                width: parent.width / 3
+                width: parent.width / 4
                 text: "Create Project Update"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
@@ -301,7 +301,7 @@ Page {
             }
             TSButton {
                 visible: isReadOnly
-                width: parent.width / 3
+                width: parent.width / 4
                 text: "Create Activity"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
@@ -319,11 +319,25 @@ Page {
             }
             TSButton {
                 visible: isReadOnly && recordid > 0
-                width: parent.width / 3
+                width: parent.width / 4
                 text: "View Tasks"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Task_Page.qml"), {
+                        "filterByProject": true,
+                        "projectOdooRecordId": project.odoo_record_id,
+                        "projectAccountId": project.account_id,
+                        "projectName": project.name
+                    });
+                }
+            }
+            TSButton {
+                visible: isReadOnly && recordid > 0
+                width: parent.width / 4
+                text: "View Activities"
+                onClicked: {
+                    let project = Project.getProjectDetails(recordid);
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activity_Page.qml"), {
                         "filterByProject": true,
                         "projectOdooRecordId": project.odoo_record_id,
                         "projectAccountId": project.account_id,
