@@ -292,7 +292,7 @@ Page {
             anchors.rightMargin: units.gu(1)
             TSButton {
                 visible: isReadOnly
-                width: parent.width / 2
+                width: parent.width / 3
                 text: "Create Project Update"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
@@ -301,7 +301,7 @@ Page {
             }
             TSButton {
                 visible: isReadOnly
-                width: parent.width / 2
+                width: parent.width / 3
                 text: "Create Activity"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
@@ -315,6 +315,20 @@ Page {
                     } else {
                         notifPopup.open("Failed", "Unable to create activity", "error");
                     }
+                }
+            }
+            TSButton {
+                visible: isReadOnly && recordid > 0
+                width: parent.width / 3
+                text: "View Tasks"
+                onClicked: {
+                    let project = Project.getProjectDetails(recordid);
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Task_Page.qml"), {
+                        "filterByProject": true,
+                        "projectOdooRecordId": project.odoo_record_id,
+                        "projectAccountId": project.account_id,
+                        "projectName": project.name
+                    });
                 }
             }
         }
@@ -434,8 +448,8 @@ Page {
             AttachmentViewer {
                 id: attachments_widget
                 anchors.fill: parent
-                account_id:project.account_id
-                resource_id:recordid
+                account_id: project.account_id
+                resource_id: recordid
             }
         }
     }
