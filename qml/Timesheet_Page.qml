@@ -130,9 +130,18 @@ Page {
     }
 
     function fetch_timesheets_list() {
-        var timesheets_list;
-        timesheets_list = Model.fetchTimesheetsByStatus(currentFilter);
+        
+        var currentAccountId = Account.getDefaultAccountId();
+        
+        console.log("Fetching timesheets for account:", currentAccountId, "filter:", currentFilter);
+        
+       
+        var timesheets_list = Model.fetchTimesheetsByStatus(currentFilter, currentAccountId);
+        
         timesheetModel.clear();
+        
+        console.log("Retrieved", timesheets_list.length, "timesheets for account:", currentAccountId);
+        
         for (var timesheet = 0; timesheet < timesheets_list.length; timesheet++) {
             timesheetModel.append({
                 'name': timesheets_list[timesheet].name,
@@ -149,6 +158,13 @@ Page {
                 'color_pallet': timesheets_list[timesheet].color_pallet
             });
         }
+        
+        console.log("Populated timesheetModel with", timesheetModel.count, "items");
+    }
+
+    function refreshData() {
+        console.log("Refreshing Timesheet Page data...");
+        fetch_timesheets_list();
     }
 
     ListView {
