@@ -285,25 +285,29 @@ Page {
                 }
             }
         }
-        Row {
+        Grid {
             id: myRow82
             anchors.top: myRow9.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
+            columns: 2
+            spacing: units.gu(1)
+            
             TSButton {
                 visible: isReadOnly
-                width: parent.width / 4
+                width: (parent.width - units.gu(1)) / 2
                 text: "Create Project Update"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     updates_dialog.open(project.account_id, project.odoo_record_id);
                 }
             }
+            
             TSButton {
                 visible: isReadOnly
-                width: parent.width / 4
+                width: (parent.width - units.gu(1)) / 2
                 text: "Create Activity"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
@@ -319,9 +323,10 @@ Page {
                     }
                 }
             }
+            
             TSButton {
                 visible: isReadOnly && recordid > 0
-                width: parent.width / 4
+                width: (parent.width - units.gu(1)) / 2
                 text: "View Tasks"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
@@ -333,9 +338,10 @@ Page {
                     });
                 }
             }
+            
             TSButton {
                 visible: isReadOnly && recordid > 0
-                width: parent.width / 4
+                width: (parent.width - units.gu(1)) / 2
                 text: "View Activities"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
