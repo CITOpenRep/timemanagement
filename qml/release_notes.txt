@@ -33,21 +33,21 @@
 
       <h3>Change History : (Version 1.1.5) </h3>
 
-       <h4> 05-09-2025 : Version 1.1.5 </h4>
+<h4>05-09-2025 : Version 1.1.5</h4>
 
-         <h5> New Features </h5>
-      <ul>
-         <li> Added "View Tasks" Button in Project Detail view. After clicking on this button it will navigate to Task List View where Tasks will be filtered based on the Project, and only Tasks from that Project will be shown. </li>
-      </ul>
+<h5>New Features</h5>
+<ul>
+  <li>Introduced an <b>Attachment Viewer and Uploader</b> for both Tasks and Projects.</li>
+  <li>Added <b>"View Tasks"</b> and <b>"View Activities"</b> buttons in the Project Detail view. These provide direct navigation to the Task List View or Activity List View, with results automatically filtered by the selected Project.</li>
+</ul>
 
-
-       <h5> Fixes and Improvements </h5>
-      <ul>
-         <li> Fixed the "Last Sync Message" in Settings Page. </li>
-         <li> Added "custom field" for adding Planned hours in Tasks. Hours can be added manually or using the two plus and minus buttons.</li>
-      </ul>
-
+<h5>Fixes and Improvements</h5>
+<ul>
+  <li>Resolved the issue with the <b>"Last Sync Message"</b> not displaying in the Settings page.</li>
+  <li>Added a <b>custom field for Planned Hours</b> in Tasks. Users can now input hours manually or adjust them using dedicated plus/minus buttons.</li>
+</ul>
 <br>
+
 
       <h4> 01-09-2025 : Version 1.1.4.2 </h4>
        <h5> Fixes and Improvements </h5>
