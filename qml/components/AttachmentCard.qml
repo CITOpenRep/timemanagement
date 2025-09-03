@@ -123,12 +123,54 @@ Item {
             onClicked: imageClicked(mimetype, datas)
 
             Image {
+                id: pic
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectFit
+                asynchronous: true
+                cache: false
                 source: "data:" + mimetype + ";base64," + datas
+
+                // soft fade-in when ready
+                opacity: status === Image.Ready ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: 150 } }
+
+                onStatusChanged: if (status === Image.Error)
+                                     console.warn("Image load error:", errorString)
+            }
+
+            // subtle dim while loading/downloading/empty
+            Rectangle {
+                anchors.fill: parent
+                visible: card.downloading || pic.status === Image.Loading || !datas
+                color: "#00000020"
+            }
+
+            // spinner while loading
+            BusyIndicator {
+                anchors.centerIn: parent
+                running: card.downloading || pic.status === Image.Loading || !datas
+                visible: running
+            }
+            // (If you prefer Lomiri's)
+            // ActivityIndicator {
+            //     anchors.centerIn: parent
+            //     running: card.downloading || pic.status === Image.Loading || !datas
+            //     visible: running
+            // }
+
+            // optional: show network load progress (0..1)
+            ProgressBar {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: units.gu(0.8)
+                width: Math.min(parent.width * 0.6, units.gu(28))
+                visible: pic.status === Image.Loading
+                minimumValue: 0; maximumValue: 1
+                value: pic.progress
             }
         }
     }
+
 
     Component {
         id: fileIcon
