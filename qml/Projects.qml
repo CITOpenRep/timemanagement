@@ -121,8 +121,8 @@ Page {
         project = Project.getProjectDetails(projectId);
         if (project && Object.keys(project).length > 0) {
             // Set all fields with project details
-            console.log("ACCOUNT id is ")
-            console.log( project.account_id)
+           // console.log("ACCOUNT id is ")
+           // console.log( project.account_id)
             let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
             let parentId = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
 

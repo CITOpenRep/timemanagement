@@ -423,15 +423,15 @@ function createUpdateSnapShot(update_data) {
 
     db.transaction(function (tx) {
         try {
-            console.log("Creating Project Update:");
-            console.log("Account ID:", update_data.account_id);
-            console.log("Project ID:", update_data.project_id);
-            console.log("Name:", update_data.name);
-            console.log("Project Status:", update_data.project_status);
-            console.log("Progress:", update_data.progress);
-            console.log("Description:", update_data.description);
-            console.log("User ID:", update_data.user_id);
-            console.log("Create Date:", createDate);
+            // console.log("Creating Project Update:");
+            // console.log("Account ID:", update_data.account_id);
+            // console.log("Project ID:", update_data.project_id);
+            // console.log("Name:", update_data.name);
+            // console.log("Project Status:", update_data.project_status);
+            // console.log("Progress:", update_data.progress);
+            // console.log("Description:", update_data.description);
+            // console.log("User ID:", update_data.user_id);
+            // console.log("Create Date:", createDate);
 
             // INSERT new project update with user_id and create_date
             tx.executeSql(
@@ -599,7 +599,7 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
             if (updateResult.rowsAffected > 0) {
                 result.success = true;
                 result.message = isFavorite ? "Project marked as favorite" : "Project removed from favorites";
-                console.log("✅ Project favorite status updated:", projectId, "favorite:", isFavorite);
+              //  console.log("✅ Project favorite status updated:", projectId, "favorite:", isFavorite);
             } else {
                 result.message = "Project not found or no changes made";
                 console.warn("⚠️ No project updated with ID:", projectId);

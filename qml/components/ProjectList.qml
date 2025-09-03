@@ -559,7 +559,7 @@ Item {
                     }
 
                     onNavigationRequested: (projectId, accountId) => {
-                        console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
+                       // console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
                         navigateToProject(projectId, accountId);
                     }
                     onTimesheetRequested: localId => {

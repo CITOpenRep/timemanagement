@@ -407,7 +407,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
                 result.hasChildren = true;
                 result.childTasks = childTasks;
                 
-                console.log("❌ Deletion blocked: Task has " + childTasks.length + " child tasks");
+                console.warn("❌ Deletion blocked: Task has " + childTasks.length + " child tasks");
                 return;
             }
             
@@ -421,7 +421,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
             markRelatedTimesheetsAsDeleted(tx, [taskId], timestamp);
             
             if (forceDelete && childTasks.length > 0) {
-                console.log("⚠️  Force delete enabled - deleted parent task with " + childTasks.length + " children");
+                console.warn("⚠️  Force delete enabled - deleted parent task with " + childTasks.length + " children");
                 result.message = "Task '" + taskName + "' deleted (forced deletion with " + childTasks.length + " child tasks remaining)";
             } else {
                 result.message = "Task '" + taskName + "' successfully deleted";
@@ -430,7 +430,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
             result.success = true;
             result.deletedTaskIds = [taskId];
             
-            console.log("✅ Task deleted successfully: " + taskName);
+            console.info("✅ Task deleted successfully: " + taskName);
         });
         
         return result;
@@ -630,7 +630,7 @@ function markRelatedTimesheetsAsDeleted(tx, taskIds, timestamp) {
             );
             
             if (result.rowsAffected > 0) {
-                console.log("Marked " + result.rowsAffected + " related timesheet entries as deleted");
+               // console.log("Marked " + result.rowsAffected + " related timesheet entries as deleted");
             }
         }
         
@@ -847,7 +847,7 @@ function getAllTasks() {
         var color = projectMap[projectId];
         // If color is found AND not zero → return it
         if (color && color !== "0" && color !== 0) {
-            console.log("✅ Found non-zero color for projectId:", projectId, "color:", color);
+          //  console.log("✅ Found non-zero color for projectId:", projectId, "color:", color);
             return color;
         }
         // Otherwise, check the parent
@@ -856,13 +856,13 @@ function getAllTasks() {
  
         if (parentResult.rows.length > 0) {
             var parentId = parentResult.rows.item(0).parent_id;
-            console.log("🔄 projectId", projectId, "has parent:", parentId);
+         //   console.log("🔄 projectId", projectId, "has parent:", parentId);
  
             if (parentId && parentId !== 0) {
                 return resolveProjectColor(parentId, projectMap, tx); // recurse to parent
             }
         }
-        console.log("⚠️ No non-zero color found for projectId:", projectId);
+     //   console.log("⚠️ No non-zero color found for projectId:", projectId);
         return 0;
     }
  
@@ -1375,7 +1375,7 @@ function setTaskPriority(taskId, priority, status) {
             if (updateResult.rowsAffected > 0) {
                 result.success = true;
                 result.message = "Task priority set to " + priority;
-                console.log("Task priority updated:", taskId, "priority:", priority);
+              //  console.log("Task priority updated:", taskId, "priority:", priority);
             } else {
                 result.message = "Task not found or no changes made";
                 console.warn("⚠️ No task updated with ID:", taskId);
