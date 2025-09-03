@@ -239,7 +239,6 @@ def attachment_ondemand_download(settings_db,account_id, remote_record_id):
     if not selected:
         return None
 
-    selected = accounts[1]
     client = OdooClient(
         selected["link"],
         selected["database"],
@@ -282,7 +281,6 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
     with open(filepath, 'rb') as f:
        file_bytes = f.read()
 
-    selected = accounts[1]
     client = OdooClient(
         selected["link"],
         selected["database"],

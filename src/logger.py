@@ -49,7 +49,7 @@ class JsonMemoryHandler(Handler):
         return json.dumps(self.logs, indent=2)
 
 
-def setup_logger(name="odoo_sync", log_file="sync.log", level=logging.DEBUG):
+def setup_logger(name="odoo_sync", log_file="sync.log", level=logging.INFO):
     """
     Sets up a system-wide logger that logs to both console and file.
 

@@ -40,8 +40,6 @@ Item {
             return
         }
 
-        console.log("OnDemand Download Kicks in" + odoo_record_id)
-
         // 1) try cache first
         var cached = Project.getFromCache(odoo_record_id);
         if (cached) {

@@ -13,7 +13,7 @@ Row {
     property var activeTransfer
     property int importId: 0
     property int account_id
-    property var resource_id
+    property int resource_id
     property string resource_type:"project.project"
     spacing: units.gu(0.2)
 
