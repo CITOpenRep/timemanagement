@@ -7,7 +7,7 @@ import "../../models/project.js" as Project
 Item {
     id: card
     width: parent.width
-    height: units.gu(12)
+    height: units.gu(30)
 
     property string name
     property string mimetype
@@ -60,30 +60,30 @@ Item {
             python.call("backend.attachment_ondemand_download",
                         [path, account_id, odoo_record_id],
                         function (res) {
-                downloading = false;
+                            downloading = false;
 
-                if (!res) {
-                    console.warn("No response from ondemand_download");
-                    return;
-                }
+                            if (!res) {
+                                console.warn("No response from ondemand_download");
+                                return;
+                            }
 
-                if (res.type === "binary" && res.data) {
-                    // res.data is base64 (because we returned decode=False in Python)
-                    datas = res.data;
-                    if (res.mimetype) mimetype = res.mimetype;
-                    if (res.name) name = res.name;
+                            if (res.type === "binary" && res.data) {
+                                // res.data is base64 (because we returned decode=False in Python)
+                                datas = res.data;
+                                if (res.mimetype) mimetype = res.mimetype;
+                                if (res.name) name = res.name;
 
-                    // 3) put into minimal cache
-                    Project.putInCache(odoo_record_id, datas);
+                                // 3) put into minimal cache
+                                Project.putInCache(odoo_record_id, datas);
 
-                } else if (res.type === "url" && res.url) {
-                    // Non-binary attachment; you can open or download via HTTP if wanted
-                    console.log("Attachment is a URL:", res.url);
-                    // Example: openExternally(res.url) or set an icon state
-                } else {
-                    console.warn("Attachment has no usable data:", JSON.stringify(res));
-                }
-            });
+                            } else if (res.type === "url" && res.url) {
+                                // Non-binary attachment; you can open or download via HTTP if wanted
+                                console.log("Attachment is a URL:", res.url);
+                                // Example: openExternally(res.url) or set an icon state
+                            } else {
+                                console.warn("Attachment has no usable data:", JSON.stringify(res));
+                            }
+                        });
         });
     }
 
@@ -114,6 +114,12 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
         }
+        Button
+        {
+            text:"Download"
+            enabled:false
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
     }
 
     Component {
@@ -135,7 +141,7 @@ Item {
                 Behavior on opacity { NumberAnimation { duration: 150 } }
 
                 onStatusChanged: if (status === Image.Error)
-                                     console.warn("Image load error:", errorString)
+                                     console.warn("Image load error:")
             }
 
             // subtle dim while loading/downloading/empty
@@ -182,7 +188,7 @@ Item {
             border.color: "#aaa"
 
             Text {
-                text: mimetype ? mimetype.split("/")[1].toUpperCase() : "FILE"
+                text: "File"
                 anchors.centerIn: parent
                 font.pixelSize: units.gu(1.5)
             }

@@ -4,6 +4,7 @@ import Lomiri.Components 1.3
 import io.thp.pyotherside 1.4
 import Lomiri.Content 1.3
 import Lomiri.Components.Popups 1.3
+import QtQuick.Window 2.2
 
 Row {
     id: attachmentUploader
@@ -16,6 +17,8 @@ Row {
     property int resource_id
     property string resource_type:"project.project"
     spacing: units.gu(0.2)
+    signal processed()
+    signal failed()
 
     property string dialogImageSource: ""
 
@@ -52,6 +55,12 @@ Row {
 
     }
 
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+    }
+
     ContentTransferHint {
         id: importHint
         anchors.fill: parent
@@ -80,32 +89,33 @@ Row {
 
                     python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                         if (!path) {
-                            console.warn("DB not found.");
+                            notifPopup.open("Error", "Attachment Failed", "error");
+                            failed()
                             return;
                         }
-                        console.log("Resource is is " + attachmentUploader.resource_id)
-                        // 2) call backend with 3 args: path, account_id, odoo_record_id
                         python.call("backend.attachment_upload",
                                     [path, attachmentUploader.account_id, filePath,attachmentUploader.resource_type,attachmentUploader.resource_id],
                                     function (res) {
                                         if (!res) {
                                             console.warn("No response from attachment_upload");
+                                            notifPopup.open("Error", "Attachment Failed", "error");
+                                            failed()
                                             return;
                                         }
                                         else
                                         {
+                                            notifPopup.open("Wait & Refresh", "Uploading Started, it may take a minute, You can refresh later to see it", "success");
                                             //3. We must need to do a sync to ensure that local db is aligned
                                             console.log("Syncing :", path);
                                             python.call("backend.start_sync_in_background", [path,attachmentUploader.account_id], function (result) {
                                                 if (result) {
                                                     console.log("Background sync started for account:", account_id);
                                                 } else {
-                                                    console.warn("Failed to start sync for account:", account_id);
+                                                    notifPopup.open("Error", "Attachment Failed", "error");
                                                 }
                                             });
                                         }
                                     });
-
                     });
 
                 }

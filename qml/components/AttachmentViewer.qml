@@ -2,6 +2,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import Lomiri.Content 1.4
+import QtQuick.Window 2.2
 
 Column {
     id: attachmentViewer
@@ -34,7 +35,7 @@ Column {
     Rectangle {
         width: parent.width - units.gu(2) // leave some margin so centering makes sense
         anchors.horizontalCenter: parent.horizontalCenter
-        height: (attachmentModel.count === 0) ? units.gu(1) : parent.height - units.gu(8)
+        height: (attachmentModel.count === 0) ? units.gu(1) : parent.height - units.gu(15)
         color: "transparent"
         border.color: "#ccc"
         border.width: (attachmentModel.count === 0) ? 0 : 1
@@ -48,7 +49,7 @@ Column {
             clip: true
 
             cellWidth: Math.floor(parent.width / 3) - spacing
-            cellHeight: cellWidth
+            cellHeight: 1.5*cellWidth
 
             delegate: AttachmentCard {
                 width: gridView.cellWidth
