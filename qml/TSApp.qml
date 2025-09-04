@@ -58,10 +58,35 @@ MainView {
         visible: false
     }
 
+    // Account Filter
+    AccountFilter {
+        id: accountFilter
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        z: 1000
+        
+        onAccountChanged: {
+            console.log("Account changed to:", accountName, "ID:", accountId);
+            // Refresh data for the new account
+            refreshAppData();
+        }
+    }
+    
+
+    
+    // Global notification popup
+    NotificationPopup {
+        id: notifPopup
+    }
+
     
     AdaptivePageLayout {
         id: apLayout
-        anchors.fill: parent
+        anchors.top: accountFilter.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         property bool isMultiColumn: true
         property Page currentPage: splash_page
         property Page thirdPage: dashboard_page2
@@ -307,5 +332,35 @@ MainView {
         } catch (e) {
             console.warn("💾 Error saving theme preference:", e);
         }
+    }
+    
+    // Function to refresh app data after account change or sync
+    function refreshAppData() {
+        console.log("🔄 Refreshing app data...");
+        
+        // Refresh all pages that need to update their data
+        if (dashboard_page && dashboard_page.visible) {
+            dashboard_page.refreshData();
+        }
+        if (dashboard_page2 && dashboard_page2.visible) {
+            dashboard_page2.refreshData();
+        }
+        if (timesheet_page && timesheet_page.visible) {
+            timesheet_page.refreshData();
+        }
+        if (activity_page && activity_page.visible) {
+            activity_page.refreshData();
+        }
+        if (task_page && task_page.visible) {
+            task_page.refreshData();
+        }
+        if (project_page && project_page.visible) {
+            project_page.refreshData();
+        }
+    }
+    
+    // Function to refresh account filter
+    function openAccountDrawer() {
+        accountFilter.refreshAccounts();
     }
 }
