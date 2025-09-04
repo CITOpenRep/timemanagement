@@ -26,8 +26,6 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
-import QtQuick.Window 2.2
-import Ubuntu.Components 1.3 as Ubuntu
 import io.thp.pyotherside 1.4
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Accounts
@@ -36,7 +34,6 @@ import "components"
 Page {
     id: settings
     title: "Settings"
-    // property bool  theme.name === "Ubuntu.Components.Themes.SuruDark": false // Set externally or bind to a global setting
     header: PageHeader {
         id: pageHeader
         StyleHints {
@@ -72,23 +69,23 @@ Page {
         }
     }
 
-
     // Listen for sync timeout from GlobalTimerWidget
     Connections {
         target: typeof globalTimerWidget !== 'undefined' ? globalTimerWidget : null
         onSyncTimedOut: function (accountId) {
-          //  console.log("⏰ GlobalTimer timeout received for account:", accountId);
             if (syncingAccountId === accountId) {
-                console.log("🔄 Resetting local sync state due to global timeout for account:", accountId);
                 syncingAccountId = -1;
                 syncTimeoutTimer.stop(); // Stop local timeout timer
+                syncStatusChecker.stop(); // Stop status checker
+                accountDisplayRefreshTimer.stop(); // Stop display refresh
+                // Refresh accounts list when timeout occurs
+                fetch_accounts();
             }
         }
     }
 
-    property bool loading: false
-    property string loadingMessage: ""
     property int syncingAccountId: -1
+    property var lastSyncStatuses: ({})
 
     // Simplified timeout timer - only resets local state, GlobalTimerWidget handles its own timeout
     Timer {
@@ -98,10 +95,72 @@ Page {
         repeat: false
         onTriggered: {
             if (syncingAccountId !== -1) {
-                console.warn("⚠️ Settings page: Sync timeout - resetting local sync state for account:", syncingAccountId);
                 var timeoutAccountId = syncingAccountId; // Store before resetting
                 syncingAccountId = -1;
+                syncStatusChecker.stop(); // Stop status checker
+                accountDisplayRefreshTimer.stop(); // Stop display refresh
                 console.log("🕐 Settings page: Local sync state timed out for account:", timeoutAccountId);
+            }
+        }
+    }
+
+    // Sync completion checker - polls for sync status updates but doesn't interfere with GlobalTimerWidget
+    Timer {
+        id: syncStatusChecker
+        interval: 2000 // Check every 2 seconds (less frequent to avoid interfering)
+        running: false
+        repeat: true
+        onTriggered: {
+            if (syncingAccountId !== -1) {
+                // Get current sync status for the syncing account
+                var currentStatus = Utils.getLastSyncStatus(syncingAccountId);
+
+                // Get last known status for this account
+                var lastStatus = lastSyncStatuses[syncingAccountId] || "";
+
+                // Check if status changed and sync completed successfully or failed
+                if (currentStatus !== lastStatus) {
+                    lastSyncStatuses[syncingAccountId] = currentStatus;
+
+                    // If sync completed (successful or failed), only refresh accounts list
+                    // Let GlobalTimerWidget handle its own timeout and display lifecycle
+                    if (currentStatus.indexOf("Successful") !== -1 || currentStatus.indexOf("Failed") !== -1) {
+                        console.log("✅ Sync completed for account:", syncingAccountId, "Status:", currentStatus);
+
+                        // Only reset local sync state and refresh accounts - don't stop GlobalTimerWidget
+                        var completedAccountId = syncingAccountId;
+                        syncingAccountId = -1;
+                        syncTimeoutTimer.stop();
+                        syncStatusChecker.stop();
+                        accountDisplayRefreshTimer.stop();
+
+                        // Refresh accounts list to show updated status
+                        fetch_accounts();
+
+                        // NOTE: Let GlobalTimerWidget handle its own stopSync() through its internal timeout
+                        // This preserves the progress indication and success display
+                    }
+                }
+            } else {
+                // No sync in progress, stop checking
+                syncStatusChecker.stop();
+            }
+        }
+    }
+
+    // Separate timer for refreshing account display during sync (for real-time status updates)
+    Timer {
+        id: accountDisplayRefreshTimer
+        interval: 3000 // Refresh account display every 3 seconds during sync
+        running: false
+        repeat: true
+        onTriggered: {
+            if (syncingAccountId !== -1) {
+                // Only refresh the accounts list display, don't interfere with sync logic
+                fetch_accounts();
+            } else {
+                // Stop refreshing when no sync is active
+                accountDisplayRefreshTimer.stop();
             }
         }
     }
@@ -120,8 +179,6 @@ Page {
 
             // Update checkboxes
             updateThemeCheckboxes();
-
-            // console.log("Theme preference applied and saved:", themeName);
         } catch (e) {
             console.error("Error setting theme preference:", e);
         }
@@ -138,8 +195,6 @@ Page {
                 // Save theme preference (INSERT OR REPLACE)
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['theme_preference', themeName]);
             });
-
-            // console.log("Theme preference saved to database:", themeName);
         } catch (e) {
             console.warn("Error saving theme to database:", e);
         }
@@ -160,26 +215,26 @@ Page {
 
     function fetch_accounts() {
         accountListModel.clear();
+        lastSyncStatuses = {}; // Clear previous sync statuses
         var accountsList = Accounts.getAccountsList();
         for (var account = 0; account < accountsList.length; account++) {
             accountListModel.append(accountsList[account]);
+            // Initialize last sync status for each account
+            var accountData = accountsList[account];
+            lastSyncStatuses[accountData.id] = Utils.getLastSyncStatus(accountData.id);
         }
     }
 
     function setDefaultAccount(accountId) {
-        // console.log("Setting default account:", accountId);
-
         // Update the local model first
         for (let i = 0; i < accountListModel.count; i++) {
             const account = accountListModel.get(i);
             const isSelected = account.id === accountId ? 1 : 0;
             accountListModel.setProperty(i, "is_default", isSelected);
-            //  console.log("Account", account.id, "is_default:", isSelected);
         }
 
         // Persist to database
-        const result = Accounts.setDefaultAccount(accountId);
-        //  console.log("Database update result:", result);
+        Accounts.setDefaultAccount(accountId);
 
         // Refresh the accounts list to ensure consistency
         fetch_accounts();
@@ -194,10 +249,8 @@ Page {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.bottomMargin: units.gu(1)
-        // color:  theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#181a20" : "transparent"
         Rectangle {
             anchors.fill: parent
-            //   anchors.top: pageHeader.bottom
             anchors.topMargin: units.gu(5)
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
             Flickable {
@@ -430,7 +483,7 @@ Page {
                                             anchors.leftMargin: units.gu(1)
 
                                             Text {
-                                                text: Utils.truncateText(model.name.charAt(0),20).toUpperCase()
+                                                text: Utils.truncateText(model.name.charAt(0), 20).toUpperCase()
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 color: "#fff"
                                                 anchors.centerIn: parent
@@ -445,7 +498,7 @@ Page {
                                             anchors.leftMargin: units.gu(2)
 
                                             Text {
-                                                text: Utils.truncateText(model.name,20).toUpperCase()
+                                                text: Utils.truncateText(model.name, 20).toUpperCase()
                                                 font.pixelSize: units.gu(2)
                                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#000"
                                                 elide: Text.ElideRight
@@ -474,7 +527,6 @@ Page {
 
                                                 // Handle the click/toggle event
                                                 onClicked: {
-                                                    //  console.log("CheckBox clicked for account:", model.id, "current checked:", checked);
                                                     // Only set as default if this checkbox was unchecked and is now checked
                                                     if (checked) {
                                                         setDefaultAccount(model.id);
@@ -531,13 +583,12 @@ Page {
                                                         console.log("Starting sync for account:", model.id, "(" + model.name + ")");
                                                         syncingAccountId = model.id;
                                                         syncTimeoutTimer.start(); // Start timeout timer
+                                                        syncStatusChecker.start(); // Start status checking
+                                                        accountDisplayRefreshTimer.start(); // Start account display refresh
 
                                                         // Notify global timer widget about sync start
                                                         if (typeof globalTimerWidget !== 'undefined') {
-                                                          
                                                             globalTimerWidget.startSync(model.id, model.name);
-                                                        } else {
-                                                            console.warn("⚠️ globalTimerWidget not available for sync start");
                                                         }
 
                                                         python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
@@ -545,7 +596,8 @@ Page {
                                                                 console.warn("DB not found.");
                                                                 syncingAccountId = -1;
                                                                 syncTimeoutTimer.stop();
-                                                                // GlobalTimerWidget will handle its own timeout, but we manually stop it here for immediate feedback
+                                                                syncStatusChecker.stop();
+                                                                accountDisplayRefreshTimer.stop();
                                                                 if (typeof globalTimerWidget !== 'undefined') {
                                                                     globalTimerWidget.stopSync();
                                                                 }
@@ -553,12 +605,13 @@ Page {
                                                                 python.call("backend.start_sync_in_background", [path, model.id], function (result) {
                                                                     if (result) {
                                                                         console.log("Background sync started for account:", model.id);
-                                                                        // Keep syncing = true, will be set to false in onSyncDone or timeout
+                                                                        // Keep syncing = true, will be set to false when sync completes or times out
                                                                     } else {
                                                                         console.warn("Failed to start sync for account:", model.id);
                                                                         syncingAccountId = -1;
                                                                         syncTimeoutTimer.stop();
-                                                                        // GlobalTimerWidget will handle its own timeout, but we manually stop it here for immediate feedback
+                                                                        syncStatusChecker.stop();
+                                                                        accountDisplayRefreshTimer.stop();
                                                                         if (typeof globalTimerWidget !== 'undefined') {
                                                                             globalTimerWidget.stopSync();
                                                                         }
@@ -616,26 +669,6 @@ Page {
                     }
                 }
             }
-            Item {
-                id: loader
-                visible: loading
-
-                Rectangle {
-                    width: Screen.width
-                    height: Screen.height
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#23272f" : "lightgray"
-                    radius: 10
-                    opacity: 0.8
-                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ccc"
-                    border.width: 1
-                    Text {
-                        anchors.centerIn: parent
-                        text: loadingMessage
-                        font.pixelSize: 50
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#000"
-                    }
-                }
-            }
         }
     }
 
@@ -643,6 +676,10 @@ Page {
         fetch_accounts();
         if (visible) {
             updateThemeCheckboxes();
+        } else {
+            // When page is hidden, stop all timers to prevent unnecessary polling
+            syncStatusChecker.stop();
+            accountDisplayRefreshTimer.stop();
         }
     }
 }
