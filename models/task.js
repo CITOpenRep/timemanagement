@@ -956,31 +956,41 @@ function getFilteredTasks(filterType, searchQuery) {
         }
     }
 
-    //Commenting this out , as we do not want to include all children of included parents
-    
     // Fourth pass: include all children of included parent tasks to maintain hierarchy
-    // for (var i = 0; i < allTasks.length; i++) {
-    //     var task = allTasks[i];
-        
-    //     // If this task has a parent that is included, include this task too
-    //     // But only if the parent is from the same account
-    //     if (task.parent_id && task.parent_id > 0) {
-    //         // Check if any parent with matching account_id is included
-    //         for (var j = 0; j < allTasks.length; j++) {
-    //             var parentCandidate = allTasks[j];
-    //             if (parentCandidate.odoo_record_id === task.parent_id && 
-    //                 parentCandidate.account_id === task.account_id) {
-                    
-    //                 var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
-    //                 if (includedTaskIds.has(parentKey)) {
-    //                     var taskKey = task.odoo_record_id + '_' + task.account_id;
-    //                     includedTaskIds.set(taskKey, task);
-    //                     break;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+    // Execute this pass when:
+    // 1. Filter is "all" and there's a search query, OR
+    // 2. The child task itself matches the filter criteria (date range)
+    if ((filterType === "all" && searchQuery && searchQuery.trim() !== "") || filterType !== "all") {
+        for (var i = 0; i < allTasks.length; i++) {
+            var task = allTasks[i];
+            
+            // If this task has a parent that is included, include this task too
+            // But only if the parent is from the same account
+            if (task.parent_id && task.parent_id > 0) {
+                // Check if any parent with matching account_id is included
+                for (var j = 0; j < allTasks.length; j++) {
+                    var parentCandidate = allTasks[j];
+                    if (parentCandidate.odoo_record_id === task.parent_id && 
+                        parentCandidate.account_id === task.account_id) {
+                        
+                        var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
+                        if (includedTaskIds.has(parentKey)) {
+                            // For "all" filter with search, include all children
+                            // For other filters, only include if child matches the filter criteria
+                            var shouldInclude = (filterType === "all" && searchQuery && searchQuery.trim() !== "") || 
+                                              passesDateFilter(task, filterType, currentDate);
+                            
+                            if (shouldInclude) {
+                                var taskKey = task.odoo_record_id + '_' + task.account_id;
+                                includedTaskIds.set(taskKey, task);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
     
     // Final pass: build the filtered tasks list
     for (var i = 0; i < allTasks.length; i++) {
