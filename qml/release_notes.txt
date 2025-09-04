@@ -44,7 +44,7 @@
 <h5>Fixes and Improvements</h5>
 <ul>
   <li>Resolved the issue with the <b>"Last Sync Message"</b> not displaying in the Settings page.</li>
-  <li> Enhanced Search in Tasks </>
+  <li> Enhanced Search in Tasks. Child Task matching querry will be also fetched now. In All Filter , Even if child does not match filter it will be fetched. </li>
   <li>Added a <b>custom field for Planned Hours</b> in Tasks. Users can now input hours manually or adjust them using dedicated plus/minus buttons.</li>
 </ul>
 <br>
