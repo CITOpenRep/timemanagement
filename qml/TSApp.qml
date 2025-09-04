@@ -43,22 +43,21 @@ MainView {
     objectName: "TS"
     applicationName: "ubtms"
     property bool init: true
-      property alias globalTimerWidget: globalTimerWidget
+    property alias globalTimerWidget: globalTimerWidget
 
     width: units.gu(50)
     //  width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
     // width: units.gu(50) //GM: for testing with only one column
     // height: units.gu(95)
 
- GlobalTimerWidget {
+    GlobalTimerWidget {
         id: globalTimerWidget
         z: 9999
         anchors.bottom: parent.bottom
-       
+
         visible: false
     }
 
-    
     AdaptivePageLayout {
         id: apLayout
         anchors.fill: parent
@@ -300,7 +299,7 @@ MainView {
 
                 // Save theme preference (INSERT OR REPLACE)
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['theme_preference', themeName]);
-                //    console.log("💾 Theme preference saved successfully:", themeName);
+            //    console.log("💾 Theme preference saved successfully:", themeName);
             });
 
             //    console.log("💾 Database transaction completed for theme:", themeName);

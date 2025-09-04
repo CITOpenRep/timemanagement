@@ -170,12 +170,10 @@ Rectangle {
             selectedProjectId = id;
             transitionTo("ProjectSelected", payload);
         } else if (selectorType === "Subproject") {
-            if (id !== -1)
-            {
+            if (id !== -1) {
                 selectedSubProjectId = id;
                 transitionTo("SubprojectSelected", payload);
-            } else
-            {
+            } else {
                 selectedSubProjectId = project_component.selectedId;
                 transitionTo("ProjectSelected", payload);
             }
@@ -183,16 +181,12 @@ Rectangle {
             selectedTaskId = id;
             transitionTo("TaskSelected", payload);
         } else if (selectorType === "Subtask") {
-            if (id !== -1)
-            {
-                selectedSubTaskId = id;  
+            if (id !== -1) {
+                selectedSubTaskId = id;
                 transitionTo("SubtaskSelected", payload);
-      
-            } else
-            {
+            } else {
                 selectedSubTaskId = -1;
                 transitionTo("TaskSelected", payload);
-          
             }
         } else if (selectorType === "Assignee") {
             selectedAssigneeId = id;

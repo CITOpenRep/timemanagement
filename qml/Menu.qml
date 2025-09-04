@@ -239,7 +239,7 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             }
-               ListItem {
+            ListItem {
                 height: units.gu(6)
                 Rectangle {
                     color: "transparent"

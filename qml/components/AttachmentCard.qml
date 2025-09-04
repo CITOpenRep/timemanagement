@@ -16,7 +16,6 @@ Item {
     property int account_id
     property bool downloading: false
 
-
     Python {
         id: python
 
@@ -33,11 +32,11 @@ Item {
     }
 
     function download_image() {
-        if (downloading) return;
-        if(odoo_record_id===0)
-        {
-            console.error("Invalid record id=0, Unable to download attachment")
-            return
+        if (downloading)
+            return;
+        if (odoo_record_id === 0) {
+            console.error("Invalid record id=0, Unable to download attachment");
+            return;
         }
 
         // 1) try cache first
@@ -57,37 +56,34 @@ Item {
             }
 
             // 2) call backend with 3 args: path, account_id, odoo_record_id
-            python.call("backend.attachment_ondemand_download",
-                        [path, account_id, odoo_record_id],
-                        function (res) {
-                            downloading = false;
+            python.call("backend.attachment_ondemand_download", [path, account_id, odoo_record_id], function (res) {
+                downloading = false;
 
-                            if (!res) {
-                                console.warn("No response from ondemand_download");
-                                return;
-                            }
+                if (!res) {
+                    console.warn("No response from ondemand_download");
+                    return;
+                }
 
-                            if (res.type === "binary" && res.data) {
-                                // res.data is base64 (because we returned decode=False in Python)
-                                datas = res.data;
-                                if (res.mimetype) mimetype = res.mimetype;
-                                if (res.name) name = res.name;
+                if (res.type === "binary" && res.data) {
+                    // res.data is base64 (because we returned decode=False in Python)
+                    datas = res.data;
+                    if (res.mimetype)
+                        mimetype = res.mimetype;
+                    if (res.name)
+                        name = res.name;
 
-                                // 3) put into minimal cache
-                                Project.putInCache(odoo_record_id, datas);
-
-                            } else if (res.type === "url" && res.url) {
-                                // Non-binary attachment; you can open or download via HTTP if wanted
-                                console.log("Attachment is a URL:", res.url);
-                                // Example: openExternally(res.url) or set an icon state
-                            } else {
-                                console.warn("Attachment has no usable data:", JSON.stringify(res));
-                            }
-                        });
+                    // 3) put into minimal cache
+                    Project.putInCache(odoo_record_id, datas);
+                } else if (res.type === "url" && res.url) {
+                    // Non-binary attachment; you can open or download via HTTP if wanted
+                    console.log("Attachment is a URL:", res.url);
+                    // Example: openExternally(res.url) or set an icon state
+                } else {
+                    console.warn("Attachment has no usable data:", JSON.stringify(res));
+                }
+            });
         });
     }
-
-
 
     signal imageClicked(string mimetype, string datas)
 
@@ -105,7 +101,7 @@ Item {
         }
         Text {
             text: name
-         //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+            //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
             elide: Text.ElideRight
             wrapMode: Text.Wrap
             maximumLineCount: 2
@@ -114,11 +110,10 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
         }
-        Button
-        {
-            text:"Download"
-            enabled:false
-            visible:false
+        Button {
+            text: "Download"
+            enabled: false
+            visible: false
             anchors.horizontalCenter: parent.horizontalCenter
         }
     }
@@ -139,10 +134,14 @@ Item {
 
                 // soft fade-in when ready
                 opacity: status === Image.Ready ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: 150 } }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 150
+                    }
+                }
 
                 onStatusChanged: if (status === Image.Error)
-                                     console.warn("Image load error:")
+                    console.warn("Image load error:")
             }
 
             // subtle dim while loading/downloading/empty
@@ -172,12 +171,12 @@ Item {
                 anchors.bottomMargin: units.gu(0.8)
                 width: Math.min(parent.width * 0.6, units.gu(28))
                 visible: pic.status === Image.Loading
-                minimumValue: 0; maximumValue: 1
+                minimumValue: 0
+                maximumValue: 1
                 value: pic.progress
             }
         }
     }
-
 
     Component {
         id: fileIcon
@@ -195,7 +194,7 @@ Item {
             }
         }
     }
-    Component.onCompleted:{
-        download_image()
+    Component.onCompleted: {
+        download_image();
     }
 }

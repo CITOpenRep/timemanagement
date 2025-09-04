@@ -12,7 +12,7 @@ Column {
 
     property string dialogImageSource: ""
 
-    signal refresh()
+    signal refresh
 
     Label {
         visible: attachmentModel.count === 0
@@ -23,12 +23,11 @@ Column {
     }
 
     Button {
-        text:"Refresh Attachments"
+        text: "Refresh Attachments"
         anchors.horizontalCenter: parent.horizontalCenter
 
-        onClicked:
-        {
-            refresh()
+        onClicked: {
+            refresh();
         }
     }
 
@@ -49,7 +48,7 @@ Column {
             clip: true
 
             cellWidth: Math.floor(parent.width / 3) - spacing
-            cellHeight: 1.5*cellWidth
+            cellHeight: 1.5 * cellWidth
 
             delegate: AttachmentCard {
                 width: gridView.cellWidth
@@ -57,7 +56,7 @@ Column {
                 name: model.name
                 mimetype: model.mimetype
                 odoo_record_id: model.odoo_record_id
-                account_id:model.account_id
+                account_id: model.account_id
 
                 onImageClicked: {
                     dialogImageSource = "data:" + mimetype + ";base64," + datas;
@@ -104,8 +103,8 @@ Column {
     function setAttachments(list) {
         attachmentModel.clear();
         for (var i = 0; i < list.length; i++) {
-            console.log(list[i].name + " is the name")
-            console.log(list[i].account_id + " is the account_id")
+            console.log(list[i].name + " is the name");
+            console.log(list[i].account_id + " is the account_id");
             attachmentModel.append(list[i]);
         }
     }

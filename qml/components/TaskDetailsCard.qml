@@ -433,13 +433,13 @@ ListItem {
                                                     // Emit signal to notify parent components that task was updated
                                                     taskUpdated(localId);
 
-                                                 //   console.log("✅ Task priority updated to", taskCard.priority);
+                                                    //   console.log("✅ Task priority updated to", taskCard.priority);
 
                                                     // Verify the change was persisted by re-reading from database
                                                     var verifyTask = Task.getTaskDetails(localId);
-                                                    if (verifyTask && verifyTask.id) {
-                                                      //  console.log("🔍 Verification - DB priority after update:", verifyTask.priority, "typeof:", typeof verifyTask.priority);
-                                                    }
+                                                    if (verifyTask && verifyTask.id)
+                                                    //  console.log("🔍 Verification - DB priority after update:", verifyTask.priority, "typeof:", typeof verifyTask.priority);
+                                                    {}
                                                 } else {
                                                     console.warn("⚠️ Failed to set task priority:", result.message);
                                                 }

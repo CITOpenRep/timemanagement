@@ -98,7 +98,7 @@ Page {
         // Allow formats like: 1, 1.5, 1:30, 01:30
         var timeRegex = /^(\d{1,3}):([0-5]\d)$/; // HH:MM or H:MM format
         var decimalRegex = /^\d+(\.\d+)?$/; // Decimal format like 1.5
-        
+
         if (timeRegex.test(text)) {
             var match = text.match(timeRegex);
             var hours = parseInt(match[1]);
@@ -115,7 +115,7 @@ Page {
         // Convert various input formats to HH:MM display format
         var timeRegex = /^(\d{1,3}):([0-5]\d)$/;
         var decimalRegex = /^\d+(\.\d+)?$/;
-        
+
         if (timeRegex.test(text)) {
             // Already in HH:MM format, just pad if needed
             var match = text.match(timeRegex);
@@ -148,13 +148,13 @@ Page {
             notifPopup.open("Error", "Please select the project", "error");
             return;
         }
-        
+
         // Validate hours input before saving
         if (hours_input.text !== "" && !validateHoursInput(hours_input.text)) {
             notifPopup.open("Error", "Please enter valid hours (e.g., 1.5, 2:30, or 8:00)", "error");
             return;
         }
-        
+
         if (name_text.text != "") {
             const saveData = {
                 accountId: ids.account_id < 0 ? 0 : ids.account_id,
@@ -204,7 +204,7 @@ Page {
     function incdecHrs(value) {
         var currentText = hours_input.text || "0:00";
         var currentFloat = Utils.convertDurationToFloat(currentText);
-        
+
         if (value === 1) {
             currentFloat += 1.0;
         } else {
@@ -212,7 +212,7 @@ Page {
                 currentFloat -= 1.0;
             }
         }
-        
+
         hours_input.text = Utils.convertDecimalHoursToHHMM(currentFloat);
     }
 
@@ -458,9 +458,9 @@ Page {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "01:00"
                 placeholderText: "e.g., 2:30 or 1.5"
-                
+
                 // Input validation
-                validator: RegExpValidator { 
+                validator: RegExpValidator {
                     regExp: /^(\d{1,3}(:\d{2})?|\d+(\.\d+)?)$/
                 }
 
@@ -491,12 +491,12 @@ Page {
                 width: parent.width * 0.3
                 anchors.verticalCenter: parent.verticalCenter
 
-                visible: !isReadOnly 
+                visible: !isReadOnly
 
                 TSButton {
                     text: "-"
                     enabled: !isReadOnly
-                    fontSize : units.gu(2.5)
+                    fontSize: units.gu(2.5)
                     width: units.gu(4.5)
                     height: units.gu(4.5)
                     onClicked: {
@@ -507,7 +507,7 @@ Page {
                 TSButton {
                     text: "+"
                     enabled: !isReadOnly
-                    fontSize : units.gu(2.5)
+                    fontSize: units.gu(2.5)
                     width: units.gu(4.5)
                     height: units.gu(4.5)
                     onClicked: {
@@ -585,8 +585,8 @@ Page {
             AttachmentViewer {
                 id: attachments_widget
                 anchors.fill: parent
-                onRefresh:{
-                    loadTask() //reload task , May be we can have a special functiont to reload attachment as well.
+                onRefresh: {
+                    loadTask(); //reload task , May be we can have a special functiont to reload attachment as well.
                 }
             }
         }
@@ -618,8 +618,7 @@ Page {
         }
     }
 
-    function loadTask()
-    {
+    function loadTask() {
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
             currentTask = Task.getTaskDetails(recordid);
@@ -687,11 +686,11 @@ Page {
             workItem.loadAccounts();
             deadline_text.text = "Not set";
         }
-        //  console.log("currentTask loaded:", JSON.stringify(currentTask));
+    //  console.log("currentTask loaded:", JSON.stringify(currentTask));
     }
 
     Component.onCompleted: {
-        loadTask()
+        loadTask();
     }
 
     onVisibleChanged: {

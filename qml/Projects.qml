@@ -121,8 +121,8 @@ Page {
         project = Project.getProjectDetails(projectId);
         if (project && Object.keys(project).length > 0) {
             // Set all fields with project details
-           // console.log("ACCOUNT id is ")
-           // console.log( project.account_id)
+            // console.log("ACCOUNT id is ")
+            // console.log( project.account_id)
             let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
             let parentId = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
 
@@ -181,7 +181,7 @@ Page {
         id: projectDetailsPageFlickable
         anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: descriptionExpanded ? parent.height +  units.gu(120) : parent.height +  units.gu(120)
+        contentHeight: descriptionExpanded ? parent.height + units.gu(120) : parent.height + units.gu(120)
         flickableDirection: Flickable.VerticalFlick
 
         width: parent.width
@@ -294,7 +294,7 @@ Page {
             anchors.rightMargin: units.gu(1)
             columns: 2
             spacing: units.gu(1)
-            
+
             TSButton {
                 visible: isReadOnly
                 width: (parent.width - units.gu(1)) / 2
@@ -304,7 +304,7 @@ Page {
                     updates_dialog.open(project.account_id, project.odoo_record_id);
                 }
             }
-            
+
             TSButton {
                 visible: isReadOnly
                 width: (parent.width - units.gu(1)) / 2
@@ -323,7 +323,7 @@ Page {
                     }
                 }
             }
-            
+
             TSButton {
                 visible: isReadOnly && recordid > 0
                 width: (parent.width - units.gu(1)) / 2
@@ -338,7 +338,7 @@ Page {
                     });
                 }
             }
-            
+
             TSButton {
                 visible: isReadOnly && recordid > 0
                 width: (parent.width - units.gu(1)) / 2
@@ -470,9 +470,9 @@ Page {
             anchors.margins: units.gu(0.1)
             AttachmentViewer {
                 id: attachments_widget
-                visible:(Accounts.getAccountName(project.account_id)==="LOCAL ACCOUNT")?false:true // We should not show the attachment feature for local account : TODO
+                visible: (Accounts.getAccountName(project.account_id) === "LOCAL ACCOUNT") ? false : true // We should not show the attachment feature for local account : TODO
                 anchors.fill: parent
-                onRefresh:{
+                onRefresh: {
                     if (recordid !== 0) {
                         if (!loadProjectData(recordid)) {
                             notifPopup.open("Failed", "Error during attachment refresh", "error");
@@ -491,16 +491,13 @@ Page {
             //height: units.gu(30)
             anchors.margins: units.gu(0.1)
             AttachmentUploader {
-                visible:(Accounts.getAccountName(project.account_id)==="LOCAL ACCOUNT")?false:true // We should not show the attachment feature for local account : TODO
                 id: attachmentsupload_widget
+                visible: (Accounts.getAccountName(project.account_id) === "LOCAL ACCOUNT") ? false : true // We should not show the attachment feature for local account : TODO
                 anchors.fill: parent
                 resource_id: project.odoo_record_id
                 account_id: project.account_id
-
             }
         }
-
-
     }
 
     ColorPicker {
