@@ -105,7 +105,7 @@ Item {
         }
         Text {
             text: name
-            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+         //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
             elide: Text.ElideRight
             wrapMode: Text.Wrap
             maximumLineCount: 2
@@ -118,6 +118,7 @@ Item {
         {
             text:"Download"
             enabled:false
+            visible:false
             anchors.horizontalCenter: parent.horizontalCenter
         }
     }
