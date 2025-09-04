@@ -27,6 +27,7 @@ from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
 from sync_to_odoo import sync_all_to_odoo
 from logger import setup_logger
+from bus import send
 
 log = setup_logger()
 import os
@@ -318,6 +319,7 @@ def sync(settings_db, account_id):
         2. Sync from local database to Odoo
         Updates sync report in database with progress and results.
     """
+    send("progress",0)
     write_sync_report_to_db(
         settings_db, account_id, "In Progress", "Sync job triggered"
     )
@@ -330,15 +332,18 @@ def sync(settings_db, account_id):
         selected["username"],
         selected["api_key"],
     )
+    send("progress",20)
     log.debug("Syncing from oddo from server" + selected["link"])
     sync_all_from_odoo(client, selected["id"], settings_db)
 
     log.debug("Syncing to odoo")
+    send("progress",50)
     sync_all_to_odoo(client, selected["id"], settings_db)
 
     write_sync_report_to_db(
         settings_db, account_id, "Successful", "Sync completed successfully"
     )
+    send("progress",100)
     return True
 
 
@@ -369,6 +374,7 @@ def sync_background(settings_db, account_id):
     def do_sync():
         global sync_in_progress
         try:
+            send("sync_progress",0)
             log.debug(f"[SYNC] Starting background sync to {settings_db}...")
             write_sync_report_to_db(
                 settings_db, account_id, "In Progress", "Sync job triggered"
@@ -376,6 +382,7 @@ def sync_background(settings_db, account_id):
             # initialize_app_settings_db(settings_db) , done by js
             accounts = get_all_accounts(settings_db)
             selected = next((acc for acc in accounts if acc["id"] == account_id), None)
+            send("sync_progress",20)
 
             if not selected:
                 write_sync_report_to_db(settings_db, account_id, "Failed", "Account not found")
@@ -384,18 +391,20 @@ def sync_background(settings_db, account_id):
             # Proceed with syncing using `account`
             log.debug(f"[SYNC] Found account: {selected['name']} (ID: {selected['id']})")
 
-
+            send("sync_progress",25)
             client = OdooClient(
                 selected["link"],
                 selected["database"],
                 selected["username"],
                 selected["api_key"],
             )
+            send("sync_progress",30)
             log.debug("Syncing from oddo : ID Is " + selected["link"])
             sync_all_from_odoo(client, account_id, settings_db)
-
+            send("sync_progress",50)
             log.debug("Syncing to odoo")
             sync_all_to_odoo(client, account_id, settings_db)
+            send("sync_progress",90)
 
             log.debug("[SYNC] Background sync completed.")
             write_sync_report_to_db(
@@ -404,9 +413,12 @@ def sync_background(settings_db, account_id):
                 "Successful",
                 "Sync completed successfully",
             )
+            send("sync_progress",100)
+            send("sync_completed",True)
         except Exception as e:
             log.exception(f"[SYNC] Error during background sync: {e}")
             write_sync_report_to_db(settings_db, account_id, "Failed", str(e))
+            send("sync_error",True)
         finally:
             with sync_lock:
                 sync_in_progress = False
