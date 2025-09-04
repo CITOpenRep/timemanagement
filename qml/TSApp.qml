@@ -43,7 +43,8 @@ MainView {
     objectName: "TS"
     applicationName: "ubtms"
     property bool init: true
-    property alias globalTimerWidget: globalTimerWidget
+    property alias globalTimerWidget: globalTimerWidget //TODO: need to clean up the variable case names. //Gokul
+    property alias backend_bridge: backend_bridge
 
     width: units.gu(50)
     //  width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
@@ -56,6 +57,22 @@ MainView {
         anchors.bottom: parent.bottom
 
         visible: false
+    }
+
+    BackendBridge {
+        id: backend_bridge
+
+        onMessageReceived: function (data) {
+        //does nothing , whoever is interested can connect this signal
+        }
+
+        onPythonError: function (tb) {
+            console.error("[FAILURE] Critical Error from backend");
+        }
+
+        onReadyChanged: if (ready) {
+            console.log("Backend ready");
+        }
     }
 
     AdaptivePageLayout {

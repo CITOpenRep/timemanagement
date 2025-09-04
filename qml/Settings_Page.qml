@@ -54,21 +54,6 @@ Page {
         ]
     }
 
-    Python {
-        id: python
-
-        Component.onCompleted: {
-            addImportPath(Qt.resolvedUrl('../src/'));
-            importModule_sync("backend");
-        }
-
-        onError: function (errorName, errorMessage, traceback) {
-            console.error("Python Error:", errorName);
-            console.error("Message:", errorMessage);
-            console.error("Traceback:\n" + traceback);
-        }
-    }
-
     // Listen for sync timeout from GlobalTimerWidget
     Connections {
         target: typeof globalTimerWidget !== 'undefined' ? globalTimerWidget : null
@@ -81,6 +66,27 @@ Page {
                 // Refresh accounts list when timeout occurs
                 fetch_accounts();
             }
+        }
+    }
+
+    //LISTEN To backend
+    Connections {
+        target: backend_bridge
+
+        onMessageReceived: function (data) {
+            if (data.event === "sync_progress") {
+                console.log("Progress is " + data.payload);
+                //Show Progress Bar
+            } else if (data.event === "sync_message") {
+                console.log("Sync message is " + data.payload);
+                //Show the message in UI
+            } else if (data.event === "sync_completed")
+            //Close the Sync uI
+            {} else if (data.event === "sync_error")
+            //show error in UI
+            {} else
+            //not interested
+            {}
         }
     }
 
@@ -591,7 +597,7 @@ Page {
                                                             globalTimerWidget.startSync(model.id, model.name);
                                                         }
 
-                                                        python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                                                        backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                                                             if (path === "") {
                                                                 console.warn("DB not found.");
                                                                 syncingAccountId = -1;
@@ -602,7 +608,7 @@ Page {
                                                                     globalTimerWidget.stopSync();
                                                                 }
                                                             } else {
-                                                                python.call("backend.start_sync_in_background", [path, model.id], function (result) {
+                                                                backend_bridge.call("backend.start_sync_in_background", [path, model.id], function (result) {
                                                                     if (result) {
                                                                         console.log("Background sync started for account:", model.id);
                                                                         // Keep syncing = true, will be set to false when sync completes or times out
