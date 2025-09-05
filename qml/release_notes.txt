@@ -37,7 +37,7 @@
 
 <h5>New Features</h5>
 <ul>
-  <li>Introduced an <b>Attachment Viewer and Uploader</b> for both Tasks and Projects. In next release a Download button will be introduced to save the attachments locally. There are few known issues with attachments feature, they will be also fixed in the next release.</li>
+  <li>Introduced an <b>Attachment Viewer and Uploader</b> for both Tasks and Projects. In next release a Download button will be introduced to save the attachments locally. There are few known issues with attachments sync part, they will be also fixed in the next release.</li>
   <li>Added <b>"View Tasks"</b> and <b>"View Activities"</b> buttons in the Project Detail view. These provide direct navigation to the Task List View or Activity List View, with results automatically filtered by the selected Project.</li>
 </ul>
 
