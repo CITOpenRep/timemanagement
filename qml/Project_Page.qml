@@ -32,6 +32,7 @@ import Lomiri.Components.ListItems 1.3 as ListItem
 
 import "../models/project.js" as Project
 import "../models/utils.js" as Utils
+import "../models/accounts.js" as Account
 
 import "components"
 
@@ -42,7 +43,6 @@ Page {
         id: projectheader
         StyleHints {
             foregroundColor: "white"
-
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
@@ -70,6 +70,11 @@ Page {
         ProjectList {
             id: projectlist
             anchors.fill: parent
+            
+            // Automatically filter by default account (like Task_Page.qml does)
+            filterByAccount: true
+            selectedAccountId: Account.getDefaultAccountId()
+            
             onProjectSelected: {
                 //  console.log("Viewing Project");
                 apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {

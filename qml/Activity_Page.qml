@@ -59,7 +59,6 @@ Page {
                 text: "New"
                 onTriggered: {
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
-                        // "recordid": recordid,
                         "isReadOnly": false
                     });
                 }
@@ -67,18 +66,14 @@ Page {
         ]
     }
 
-    function shouldIncludeItem(item) {
-        const filter = activity.currentFilter || "all";
-        const searchQuery = activity.currentSearchQuery || "";
-        const currentDate = new Date();
 
-        const dueDateOk = (filter === "all") || passesDateFilter(item.due_date, filter, currentDate);
-        const searchOk = (!searchQuery) || passesSearchFilter(item, searchQuery);
+    property string currentFilter: "today"
+    property string currentSearchQuery: ""
 
-        return dueDateOk && searchOk;
-    }
+    property bool filterByAccount: true
+    property int selectedAccountId: Accounts.getDefaultAccountId()
 
-    // Helper function to get project details
+ 
     function getProjectDetails(projectId) {
         try {
             return Project.getProjectDetails(projectId);
@@ -100,159 +95,91 @@ Page {
         }
     }
 
+
     function get_activity_list() {
         activityListModel.clear();
 
         try {
-            const allActivities = Activity.getAllActivities();
-            var filteredActivities = [];
-
-            // First filter the activities
-            for (let i = 0; i < allActivities.length; i++) {
-                var item = allActivities[i];
-                if (shouldIncludeItem(item)) {
-                    var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
-                    var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
-                    var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";  // Assuming you have getTaskDetails()
-                    var user = Accounts.getUserNameByOdooId(item.user_id);
-
-                    filteredActivities.push({
-                        id: item.id,
-                        summary: item.summary,
-                        due_date: item.due_date,
-                        notes: item.notes,
-                        activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
-                        state: item.state,
-                        task_id: item.task_id,
-                        task_name: taskName,
-                        project_name: projectName,
-                        odoo_record_id: item.odoo_record_id || 0,
-                        user: user,
-                        account_id: item.account_id,
-                        resId: item.resId,
-                        resModel: item.resModel,
-                        last_modified: item.last_modified,
-                        color_pallet: item.color_pallet
-                    });
-                }
+            var allActivities = [];
+            var currentAccountId = selectedAccountId;
+            
+            console.log("Fetching activities for account:", currentAccountId, "filter:", currentFilter);
+            
+            if (currentFilter && currentFilter !== "" || currentSearchQuery) {
+                
+                allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, currentAccountId);
+            } else {
+              
+                allActivities = Activity.getActivitiesForAccount(currentAccountId);
             }
 
-            // Sort activities by end date time (most recent first)
+            console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId);
+
+            var filteredActivities = [];
+
+            
+            for (let i = 0; i < allActivities.length; i++) {
+                var item = allActivities[i];
+                var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
+                var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
+                var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";
+                var user = Accounts.getUserNameByOdooId(item.user_id);
+
+                filteredActivities.push({
+                    id: item.id,
+                    summary: item.summary,
+                    due_date: item.due_date,
+                    notes: item.notes,
+                    activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
+                    state: item.state,
+                    task_id: item.task_id,
+                    task_name: taskName,
+                    project_name: projectName,
+                    odoo_record_id: item.odoo_record_id || 0,
+                    user: user,
+                    account_id: item.account_id,
+                    resId: item.resId,
+                    resModel: item.resModel,
+                    last_modified: item.last_modified,
+                    color_pallet: item.color_pallet
+                });
+            }
+
+    
             filteredActivities.sort(function (a, b) {
-                // If either end date is missing, fall back to summary
                 if (!a.due_date || !b.due_date) {
                     return (a.summary || "").localeCompare(b.summary || "");
                 }
-                // Sort in descending order (newest first)
                 return new Date(a.due_date) - new Date(b.due_date);
             });
 
-            // Add sorted activities to the model
+          
             for (let j = 0; j < filteredActivities.length; j++) {
                 activityListModel.append(filteredActivities[j]);
             }
+            
+            console.log("Populated activityListModel with", activityListModel.count, "items");
         } catch (e) {
-            console.error("❌ Error in get_activity_list():", e);
+            console.error("Error in get_activity_list():", e);
         }
     }
 
-    /*
-    Todo :   - Refactor the date filter logic to be more modular and reusable. And Move to Activity.js
-    */
-
-    function passesDateFilter(dueDateStr, filter, currentDate) {
-        // Handle "all" filter - show everything
-        if (filter === "all") {
-            return true;
-        }
-
-        // Activities without dates should only appear in "all" filter
-        if (!dueDateStr) {
-            return false;
-        }
-
-        var dueDate = new Date(dueDateStr);
-        var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-        var itemDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-
-        // Check if item is overdue
-        var isOverdue = itemDate < today;
-
-        switch (filter) {
-        case "today":
-            // Show activities due today only
-            return itemDate.getTime() <= today.getTime();
-        case "week":
-            var weekStart = new Date(today);
-            // JavaScript getDay(): 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
-            weekStart.setDate(today.getDate() - today.getDay());
-            var weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
-
-            // Show if due this week (excluding overdue activities)
-            return (itemDate >= weekStart && itemDate <= weekEnd) && !isOverdue;
-        case "month":
-            var isThisMonth = itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
-
-            // Show if due this month (excluding overdue activities)
-            return isThisMonth && !isOverdue;
-        case "later":
-            // Show activities due after this month (and not overdue)
-            var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
-            var monthEndDay = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate());
-
-            // Show if due after this month and not overdue
-            return itemDate > monthEndDay && !isOverdue;
-        case "overdue":
-            // Show only overdue activities
-            return isOverdue;
-        default:
-            return true;
-        }
+    function applyAccountFilter(accountId) {
+        console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
+        
+        filterByAccount = (accountId >= 0);
+        selectedAccountId = accountId;
+        
+        get_activity_list();
     }
 
-    function passesSearchFilter(item, searchQuery) {
-        if (!searchQuery || searchQuery.trim() === "")
-            return true;
-
-        var query = searchQuery.toLowerCase().trim();
-
-        // Search in summary
-        if (item.summary && item.summary.toLowerCase().indexOf(query) >= 0) {
-            return true;
-        }
-
-        // Search in notes
-        if (item.notes && item.notes.toLowerCase().indexOf(query) >= 0) {
-            return true;
-        }
-
-        // Search in activity type name
-        var activityTypeName = Activity.getActivityTypeName(item.activity_type_id);
-        if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
-            return true;
-        }
-
-        // Search in user name
-        var user = Accounts.getUserNameByOdooId(item.user_id);
-        if (user && user.toLowerCase().indexOf(query) >= 0) {
-            return true;
-        }
-
-        // Search in project name
-        var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
-        var projectName = projectDetails && projectDetails.name ? projectDetails.name : "";
-        if (projectName && projectName.toLowerCase().indexOf(query) >= 0) {
-            return true;
-        }
-
-        // Search in task name
-        var taskName = item.task_id ? getTaskDetails(item.task_id).name : "";
-        if (taskName && taskName.toLowerCase().indexOf(query) >= 0) {
-            return true;
-        }
-
-        return false;
+    function clearAccountFilter() {
+        console.log("Activity_Page.clearAccountFilter called");
+        
+        filterByAccount = false;
+        selectedAccountId = -1;
+        
+        get_activity_list();
     }
 
     ListModel {
@@ -274,7 +201,7 @@ Page {
         label7: ""
 
         showSearchBox: false
-        currentFilter: activity.currentFilter  // Bind to page's current filter
+        currentFilter: activity.currentFilter
 
         filter1: "today"
         filter2: "week"
@@ -299,7 +226,6 @@ Page {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        // anchors.topMargin: units.gu(1)
         clip: true
 
         LomiriListView {
@@ -320,7 +246,6 @@ Page {
                 colorPallet: model.color_pallet
 
                 onCardClicked: function (accountid, recordid) {
-                    //  console.log("Page : Loading record " + recordid + " account id " + accountid);
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         "recordid": recordid,
                         "accountid": accountid,
@@ -328,38 +253,39 @@ Page {
                     });
                 }
                 onMarkAsDone: function (accountid, recordid) {
-                    // console.log("Requesting to Make done activity with id " + recordid);
-                    //Here we need to delete the record and see? if it get synced
                     Activity.markAsDone(accountid, recordid);
                     get_activity_list();
                 }
                 onDateChanged: function (accountid, recordid, newDate) {
-                    console.log("📅 Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
-                    console.log("📅 Activity_Page: Date format received:", typeof newDate, newDate);
-                    // Update the activity date in the database
+                    console.log("Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
                     Activity.updateActivityDate(accountid, recordid, newDate);
-                    // Refresh the activity list to show updated data
                     get_activity_list();
                 }
             }
             currentIndex: 0
-            onCurrentIndexChanged:
-            // console.log("currentIndex changed");
-            {}
+            onCurrentIndexChanged: {}
 
             Component.onCompleted: {
                 get_activity_list();
             }
         }
-    }
 
-    // Store current filter and search state
-    property string currentFilter: "today"
-    property string currentSearchQuery: ""
+        Text {
+            id: labelNoActivity
+            anchors.centerIn: parent
+            font.pixelSize: units.gu(2)
+            visible: activityListModel.count === 0
+            text: 'No Activities Available'
+        }
+    }
 
     onVisibleChanged: {
         if (visible) {
             get_activity_list();
         }
+    }
+
+    Component.onCompleted: {
+        get_activity_list();
     }
 }

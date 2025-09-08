@@ -162,11 +162,6 @@ Page {
         console.log("Populated timesheetModel with", timesheetModel.count, "items");
     }
 
-    function refreshData() {
-        console.log("Refreshing Timesheet Page data...");
-        fetch_timesheets_list();
-    }
-
     ListView {
         id: timesheetlist
         anchors.top: timesheetListHeader.bottom

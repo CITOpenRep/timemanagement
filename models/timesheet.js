@@ -360,7 +360,6 @@ function getTimeSheetDetails(record_id, accountId) {
     return timesheet_detail;
 }
 
-
 /**
  * Creates a new timesheet entry or updates an existing one in the local SQLite database.
  *
