@@ -56,7 +56,7 @@ Rectangle {
         if (!data || !data.event || !isSyncing)
             return;
 
-        console.log("🔥 GlobalTimer: Received sync event:", data.event, "Payload:", data.payload);
+     //   console.log("🔥 GlobalTimer: Received sync event:", data.event, "Payload:", data.payload);
 
         switch (data.event) {
         case "sync_progress":
@@ -97,7 +97,7 @@ Rectangle {
 
     // Complete sync successfully
     function completeSyncSuccessfully() {
-        console.log("✅ GlobalTimer: Sync completed successfully for account", syncAccountId);
+      //  console.log("✅ GlobalTimer: Sync completed successfully for account", syncAccountId);
 
         syncSuccessful = true;
         syncFailed = false;
@@ -111,7 +111,7 @@ Rectangle {
 
     // Fail sync with error message
     function failSync(errorMessage) {
-        console.log("❌ GlobalTimer: Sync failed for account", syncAccountId, ":", errorMessage);
+        //console.log("❌ GlobalTimer: Sync failed for account", syncAccountId, ":", errorMessage);
 
         syncSuccessful = false;
         syncFailed = true;
@@ -136,7 +136,7 @@ Rectangle {
 
     // Function to start sync indication with BackendBridge integration
     function startSync(accountId, accountName) {
-        console.log("🔥 GlobalTimer: Starting enhanced sync indication for account", accountId, "(" + accountName + ")");
+     //   console.log("🔥 GlobalTimer: Starting enhanced sync indication for account", accountId, "(" + accountName + ")");
 
         syncAccountId = accountId;
         syncAccountName = accountName || "Account " + accountId;
@@ -150,7 +150,7 @@ Rectangle {
 
     // Enhanced function to stop sync indication
     function stopSync() {
-        console.log("🛑 GlobalTimer: Stopping sync indication for account", syncAccountId);
+        //console.log("🛑 GlobalTimer: Stopping sync indication for account", syncAccountId);
 
         // Stop auto-hide timer
         autoHideTimer.stop();
@@ -356,7 +356,7 @@ Rectangle {
 
     // Name Label
     Label {
-        text: Utils.truncateText(globalTimer.elapsedDisplay, 20)
+        text: isSyncing ? Utils.truncateText(globalTimer.elapsedDisplay, 40) : Utils.truncateText(globalTimer.elapsedDisplay, 20)
         color: "white"
         font.pixelSize: units.gu(2)
         anchors.top: parent.top
