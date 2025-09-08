@@ -31,7 +31,33 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.4.1) </h3>
+      <h3>Change History : (Version 1.1.5) </h3>
+
+<h4>05-09-2025 : Version 1.1.5</h4>
+
+<h5>New Features</h5>
+<ul>
+  <li>Introduced an <b>Attachment Viewer and Uploader</b> for both Tasks and Projects. In next release a Download button will be introduced to save the attachments locally. There are few known issues with attachments sync part, they will be also fixed in the next release.</li>
+  <li>Added <b>"View Tasks"</b> and <b>"View Activities"</b> buttons in the Project Detail view. These provide direct navigation to the Task List View or Activity List View, with results automatically filtered by the selected Project.</li>
+</ul>
+
+<h5>Fixes and Improvements</h5>
+<ul>
+  <li>Resolved the issue with the <b>"Last Sync Message"</b> not displaying in the Settings page.</li>
+  <li> Enhanced Search in Tasks. Child Task matching querry will be also fetched now. In All Filter , Even if child does not match filter it will be fetched. </li>
+  <li>Added a <b>custom field for Planned Hours</b> in Tasks. Users can now input hours manually or adjust them using dedicated plus/minus buttons.</li>
+</ul>
+<br>
+
+
+      <h4> 01-09-2025 : Version 1.1.4.2 </h4>
+       <h5> Fixes and Improvements </h5>
+      <ul>
+         <li> Added new Open Project filter for Projects, that will display only the Open Projects. This will be default filter. </li>
+         <li> Added strict filtering for Tasks so only Tasks matching the filter querry are displayed in Task List View. Tasks who are folded like Done stage or Cancelled stage task will only be displayed in Done and All Tasks filter respectively. </li>
+         <li> Added fallback for Overdue calculation for Tasks. If deadline is not present then overdue will be calculated based on End Date. </li>
+         <li> Fixed Sync Error log due to missing status field in Projects. Note : Only Warnings and Error are displayed in the sync logs. </li>
+      </ul>
       
       <h4> 29-08-2025 : Version 1.1.4.1 </h4>
       <p><em>Note: Please remove the DB Instance and clean the cache using the tweak tool before using this update. Otherwise Task and Project Stages might not work properly.</em></p>

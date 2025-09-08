@@ -43,6 +43,11 @@ Item {
     property string currentFilter: "today"  // Set default filter to "today"
     property string currentSearchQuery: ""
 
+    // Properties for project filtering
+    property bool filterByProject: false
+    property int projectOdooRecordId: -1
+    property int projectAccountId: -1
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
@@ -69,6 +74,84 @@ Item {
     function applySearch(searchQuery) {
         currentSearchQuery = searchQuery;
         refreshWithFilter();
+    }
+
+    // Add the applyProjectFilter method
+    function applyProjectFilter(projectOdooId, projectAccountId) {
+        filterByProject = true;
+        projectOdooRecordId = projectOdooId;
+        projectAccountId = projectAccountId;
+        var projectTasks = getTasksForProject(projectOdooId, projectAccountId);
+        updateDisplayedTasks(projectTasks);
+    }
+
+    // Add combined project and time filter method
+    function applyProjectAndTimeFilter(projectOdooId, accountId, timeFilter) {
+        filterByProject = true;
+        projectOdooRecordId = projectOdooId;
+        projectAccountId = accountId;
+        currentFilter = timeFilter;
+
+        // Get project tasks first, then apply filtering
+        var projectTasks = getTasksForProject(projectOdooId, accountId);
+
+        // Create a map for quick lookup
+        var projectTasksMap = {};
+        for (var i = 0; i < projectTasks.length; i++) {
+            var key = projectTasks[i].odoo_record_id + "_" + projectTasks[i].account_id;
+            projectTasksMap[key] = projectTasks[i];
+        }
+
+        // Get filtered tasks and intersect with project tasks
+        var allFilteredTasks = Task.getFilteredTasks(timeFilter, "");
+        var filteredProjectTasks = [];
+
+        for (var j = 0; j < allFilteredTasks.length; j++) {
+            var filteredTask = allFilteredTasks[j];
+            var taskKey = filteredTask.odoo_record_id + "_" + filteredTask.account_id;
+            if (projectTasksMap[taskKey]) {
+                filteredProjectTasks.push(filteredTask);
+            }
+        }
+
+        updateDisplayedTasks(filteredProjectTasks);
+    }
+
+    // Add combined project and search filter method
+    function applyProjectAndSearchFilter(projectOdooId, accountId, searchQuery) {
+        filterByProject = true;
+        projectOdooRecordId = projectOdooId;
+        projectAccountId = accountId;
+        currentSearchQuery = searchQuery;
+
+        // Get project tasks first, then apply search filtering
+        var projectTasks = getTasksForProject(projectOdooId, accountId);
+
+        // Create a map for quick lookup
+        var projectTasksMap = {};
+        for (var i = 0; i < projectTasks.length; i++) {
+            var key = projectTasks[i].odoo_record_id + "_" + projectTasks[i].account_id;
+            projectTasksMap[key] = projectTasks[i];
+        }
+
+        // Get search filtered tasks and intersect with project tasks
+        var allSearchedTasks = Task.getFilteredTasks("all", searchQuery);
+        var searchedProjectTasks = [];
+
+        for (var j = 0; j < allSearchedTasks.length; j++) {
+            var searchedTask = allSearchedTasks[j];
+            var taskKey = searchedTask.odoo_record_id + "_" + searchedTask.account_id;
+            if (projectTasksMap[taskKey]) {
+                searchedProjectTasks.push(searchedTask);
+            }
+        }
+
+        updateDisplayedTasks(searchedProjectTasks);
+    }
+
+    // New function to get tasks for a specific project
+    function getTasksForProject(projectOdooId, accountId) {
+        return Task.getTasksForProject(projectOdooId, accountId);
     }
 
     // New function to refresh with filter applied
@@ -349,6 +432,10 @@ Item {
     }
 
     Component.onCompleted: {
-        refreshWithFilter();  // Use refreshWithFilter to apply default "today" filter
+        if (filterByProject && projectOdooRecordId !== -1) {
+            applyProjectFilter(projectOdooRecordId, projectAccountId);
+        } else {
+            refreshWithFilter();  // Use refreshWithFilter to apply default "today" filter
+        }
     }
 }

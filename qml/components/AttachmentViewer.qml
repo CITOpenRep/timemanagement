@@ -1,6 +1,8 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import Lomiri.Content 1.4
+import QtQuick.Window 2.2
 
 Column {
     id: attachmentViewer
@@ -10,12 +12,7 @@ Column {
 
     property string dialogImageSource: ""
 
-    Label {
-        text: "Attachments"
-        font.pixelSize: units.gu(2)
-        font.bold: true
-        anchors.horizontalCenter: parent.horizontalCenter
-    }
+    signal refresh
 
     Label {
         visible: attachmentModel.count === 0
@@ -25,10 +22,19 @@ Column {
         anchors.horizontalCenter: parent.horizontalCenter
     }
 
+    Button {
+        text: "Refresh Attachments"
+        anchors.horizontalCenter: parent.horizontalCenter
+
+        onClicked: {
+            refresh();
+        }
+    }
+
     Rectangle {
         width: parent.width - units.gu(2) // leave some margin so centering makes sense
         anchors.horizontalCenter: parent.horizontalCenter
-        height: (attachmentModel.count === 0) ? units.gu(1) : parent.height - units.gu(8)
+        height: (attachmentModel.count === 0) ? units.gu(1) : parent.height - units.gu(15)
         color: "transparent"
         border.color: "#ccc"
         border.width: (attachmentModel.count === 0) ? 0 : 1
@@ -42,7 +48,7 @@ Column {
             clip: true
 
             cellWidth: Math.floor(parent.width / 3) - spacing
-            cellHeight: cellWidth
+            cellHeight: 1.5 * cellWidth
 
             delegate: AttachmentCard {
                 width: gridView.cellWidth
@@ -50,7 +56,7 @@ Column {
                 name: model.name
                 mimetype: model.mimetype
                 odoo_record_id: model.odoo_record_id
-                account_id:model.account_id
+                account_id: model.account_id
 
                 onImageClicked: {
                     dialogImageSource = "data:" + mimetype + ";base64," + datas;
@@ -97,6 +103,8 @@ Column {
     function setAttachments(list) {
         attachmentModel.clear();
         for (var i = 0; i < list.length; i++) {
+            console.log(list[i].name + " is the name");
+            console.log(list[i].account_id + " is the account_id");
             attachmentModel.append(list[i]);
         }
     }

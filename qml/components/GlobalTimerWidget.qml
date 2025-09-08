@@ -20,7 +20,6 @@ Rectangle {
     signal timerStarted
     signal timerPaused
     signal timerResumed
-    signal syncTimedOut(int accountId) // New signal for sync timeout
     property bool previousRunningState: false
     property bool previousPausedState: false
     property int previousTimesheetId: -1
@@ -31,86 +30,138 @@ Rectangle {
     property int syncAccountId: -1
     property bool syncSuccessful: false
     property real syncProgress: 0.0 // Progress from 0.0 to 1.0
-    property real syncStartTime: 0
+    property bool syncFailed: false
+    property string syncStatusMessage: ""
 
-    // Built-in sync timeout timer with success phase
+    // BackendBridge for real-time sync communication (connect to global bridge)
+    property var backendBridge: null
+
+    // Connect to the global backend bridge when available
+    Component.onCompleted: {
+        // Try to find the global backend bridge
+        var root = globalTimer;
+        while (root.parent) {
+            root = root.parent;
+            if (root.backend_bridge) {
+                backendBridge = root.backend_bridge;
+                console.log("GlobalTimer: Connected to backend bridge");
+                backendBridge.messageReceived.connect(handleSyncEvent);
+                break;
+            }
+        }
+    }
+
+    // Handle sync events from Python backend
+    function handleSyncEvent(data) {
+        if (!data || !data.event || !isSyncing)
+            return;
+
+     //   console.log("🔥 GlobalTimer: Received sync event:", data.event, "Payload:", data.payload);
+
+        switch (data.event) {
+        case "sync_progress":
+            syncProgress = data.payload / 100.0; // Convert to 0.0-1.0 range
+            updateSyncMessage();
+            break;
+        case "sync_message":
+            syncStatusMessage = data.payload;
+            break;
+        case "sync_completed":
+            completeSyncSuccessfully();
+            break;
+        case "sync_error":
+            failSync("Sync failed - check connection");
+            break;
+        }
+    }
+
+    // Update sync message based on progress
+    function updateSyncMessage() {
+        if (!isSyncing)
+            return;
+
+        var progressPercent = Math.round(syncProgress * 100);
+
+        if (progressPercent < 25) {
+            syncStatusMessage = "Initializing sync...";
+        } else if (progressPercent < 50) {
+            syncStatusMessage = "Downloading from server...";
+        } else if (progressPercent < 90) {
+            syncStatusMessage = "Uploading to server...";
+        } else if (progressPercent < 100) {
+            syncStatusMessage = "Finalizing sync...";
+        } else {
+            syncStatusMessage = "Sync complete!";
+        }
+    }
+
+    // Complete sync successfully
+    function completeSyncSuccessfully() {
+      //  console.log("✅ GlobalTimer: Sync completed successfully for account", syncAccountId);
+
+        syncSuccessful = true;
+        syncFailed = false;
+        syncProgress = 1.0;
+        syncStatusMessage = "✅ Sync Complete!";
+
+        // Auto-hide after 3 seconds
+        autoHideTimer.interval = 3000;
+        autoHideTimer.start();
+    }
+
+    // Fail sync with error message
+    function failSync(errorMessage) {
+        //console.log("❌ GlobalTimer: Sync failed for account", syncAccountId, ":", errorMessage);
+
+        syncSuccessful = false;
+        syncFailed = true;
+        syncStatusMessage = "❌ " + (errorMessage || "Sync Failed");
+
+        // Auto-hide after 5 seconds
+        autoHideTimer.interval = 5000;
+        autoHideTimer.start();
+    }
+
+    // Auto-hide timer for success/error states
     Timer {
-        id: syncTimeoutTimer
-        interval: 26000 // 20 seconds timeout-> Change according to Sync Timeout
+        id: autoHideTimer
         running: false
         repeat: false
         onTriggered: {
-            if (isSyncing) {
-                //  console.warn("⚠️ GlobalTimer: Sync timeout for account", syncAccountId, "- stopping sync indication");
-                var timedOutAccountId = syncAccountId; // Store before clearing
+            if (syncSuccessful || syncFailed) {
                 stopSync();
-                // Emit signal so other components can react to timeout
-                globalTimer.syncTimedOut(timedOutAccountId);
             }
         }
     }
 
-    // Success phase timer (shows success for 2 seconds before timeout)
-    Timer {
-        id: successTimer
-        interval: 24000 // Show success at 18 seconds (1 seconds before timeout)
-        running: false
-        repeat: false
-        onTriggered: {
-            if (isSyncing) {
-                // console.log("✅ GlobalTimer: Showing sync success for account", syncAccountId);
-                syncSuccessful = true;
-                syncProgress = 1.0;
-            }
-        }
-    }
-
-    // Progress update timer
-    Timer {
-        id: progressTimer
-        interval: 100 // Update every 100ms for smooth progress
-        running: false
-        repeat: true
-        onTriggered: {
-            if (isSyncing && !syncSuccessful) {
-                var elapsed = Date.now() - syncStartTime;
-                var totalTime = 24000; // Progress completes at 15 seconds (when success shows)
-                syncProgress = Math.min(elapsed / totalTime, 1.0);
-                //   console.log("Progress update:", syncProgress, "Elapsed:", elapsed, "StartTime:", syncStartTime, "Now:", Date.now());
-            }
-        }
-    }
-
-    // Function to start sync indication
+    // Function to start sync indication with BackendBridge integration
     function startSync(accountId, accountName) {
-        // console.log("🔥 GlobalTimer: Starting sync indication for account", accountId, "(" + accountName + ")");
+     //   console.log("🔥 GlobalTimer: Starting enhanced sync indication for account", accountId, "(" + accountName + ")");
+
         syncAccountId = accountId;
         syncAccountName = accountName || "Account " + accountId;
         isSyncing = true;
         syncSuccessful = false;
+        syncFailed = false;
         syncProgress = 0.0;
-        syncStartTime = Date.now(); // This is correct
+        syncStatusMessage = "Starting sync...";
         globalTimer.visible = true;
-
-        // Start all timers
-        syncTimeoutTimer.start();
-        successTimer.start();
-        progressTimer.start();
     }
-    // Function to stop sync indication
-    function stopSync() {
-        //  console.log("✅ GlobalTimer: Stopping sync indication for account", syncAccountId);
 
-        // Stop all timers
-        syncTimeoutTimer.stop();
-        successTimer.stop();
-        progressTimer.stop();
+    // Enhanced function to stop sync indication
+    function stopSync() {
+        //console.log("🛑 GlobalTimer: Stopping sync indication for account", syncAccountId);
+
+        // Stop auto-hide timer
+        autoHideTimer.stop();
 
         isSyncing = false;
         syncSuccessful = false;
+        syncFailed = false;
         syncProgress = 0.0;
         syncAccountId = -1;
         syncAccountName = "";
+        syncStatusMessage = "";
 
         // Hide if no timer is running either
         if (!TimerService.isRunning()) {
@@ -131,11 +182,16 @@ Rectangle {
             if (currentlyRunning || isSyncing) {
                 globalTimer.visible = true;
                 if (isSyncing && !currentlyRunning) {
-                    // Show sync status when no timer is running
-                    if (syncSuccessful) {
+                    // Show enhanced sync status when no timer is running
+                    if (syncFailed) {
+                        globalTimer.elapsedDisplay = syncStatusMessage + " - " + syncAccountName;
+                    } else if (syncSuccessful) {
                         globalTimer.elapsedDisplay = "✅ Sync Complete - " + syncAccountName;
                     } else {
-                        globalTimer.elapsedDisplay = "Syncing " + syncAccountName + "...";
+                        // Show detailed progress message
+                        var progressPercent = Math.round(syncProgress * 100);
+                        var statusMsg = syncStatusMessage || "Syncing...";
+                        globalTimer.elapsedDisplay = statusMsg + " (" + progressPercent + "%) - " + syncAccountName;
                     }
                 } else if (currentlyRunning) {
                     // Show timer status (prioritize timer over sync)
@@ -176,7 +232,11 @@ Rectangle {
         radius: units.gu(.75)
         color: {
             if (isSyncing && !TimerService.isRunning()) {
-                return syncSuccessful ? "#28a745" : "#0078d4"; // Green for success, blue for syncing
+                if (syncFailed)
+                    return "#dc3545"; // Red for error
+                if (syncSuccessful)
+                    return "#28a745"; // Green for success
+                return "#0078d4"; // Blue for syncing
             }
             return "#ffa500"; // Orange for timer
         }
@@ -241,7 +301,7 @@ Rectangle {
         }
     }
 
-    // play/pause Button - hide during sync-only mode
+    // Play/Pause Button - hide during sync-only mode
     Image {
         id: pausebutton
         anchors.verticalCenter: parent.verticalCenter
@@ -252,7 +312,7 @@ Rectangle {
         source: "../images/pause.png"
         fillMode: Image.PreserveAspectFit
 
-        visible: !syncTimeoutTimer.running
+        visible: !isSyncing || TimerService.isRunning()
 
         MouseArea {
             anchors.fill: parent
@@ -280,7 +340,7 @@ Rectangle {
         height: units.gu(5)
         source: "../images/stop.png"
         fillMode: Image.PreserveAspectFit
-        visible: !syncTimeoutTimer.running
+        visible: !isSyncing || TimerService.isRunning()
 
         MouseArea {
             anchors.fill: parent
@@ -296,7 +356,7 @@ Rectangle {
 
     // Name Label
     Label {
-        text: !syncTimeoutTimer.running ? Utils.truncateText(globalTimer.elapsedDisplay, 20) : globalTimer.elapsedDisplay
+        text: isSyncing ? Utils.truncateText(globalTimer.elapsedDisplay, 40) : Utils.truncateText(globalTimer.elapsedDisplay, 20)
         color: "white"
         font.pixelSize: units.gu(2)
         anchors.top: parent.top
@@ -314,7 +374,7 @@ Rectangle {
     // Enhanced progress indicator - changes based on timer state
     Rectangle {
         id: progressContainer
-        visible: syncTimeoutTimer.running
+        visible: isSyncing
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right

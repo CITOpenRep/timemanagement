@@ -157,6 +157,48 @@ function getTaskStageName(odooRecordId) {
     return stageName;
 }
 
+/**
+ * Check if a task's stage has fold == 1
+ * @param {number} stageId - The odoo_record_id of the task stage
+ * @returns {boolean} True if the stage has fold == 1
+ */
+function isTaskStageFolded(stageId) {
+    try {
+        if (!stageId || stageId === -1) {
+            return false;
+        }
+
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        var isFolded = false;
+
+        db.transaction(function (tx) {
+            var query = `
+                SELECT fold
+                FROM project_task_type_app
+                WHERE odoo_record_id = ?
+                LIMIT 1
+            `;
+
+            var result = tx.executeSql(query, [stageId]);
+
+            if (result.rows.length > 0) {
+                isFolded = result.rows.item(0).fold === 1;
+            }
+        });
+
+        return isFolded;
+    } catch (e) {
+        console.error("isTaskStageFolded failed:", e);
+        return false;
+    }
+}
+
 
 function getAttachmentsForTask(odooRecordId) {
     var attachmentList = [];
@@ -166,7 +208,7 @@ function getAttachmentsForTask(odooRecordId) {
 
         db.transaction(function (tx) {
             var query = `
-                SELECT name, mimetype, datas
+                SELECT name, mimetype, account_id,odoo_record_id
                 FROM ir_attachment_app
                 WHERE res_model = 'project.task' AND res_id = ?
                 ORDER BY name COLLATE NOCASE ASC
@@ -178,7 +220,8 @@ function getAttachmentsForTask(odooRecordId) {
                 attachmentList.push({
                     name: result.rows.item(i).name,
                     mimetype: result.rows.item(i).mimetype,
-                    datas: result.rows.item(i).datas
+                    account_id:result.rows.item(i).account_id,
+                    odoo_record_id:result.rows.item(i).odoo_record_id,
                 });
             }
         });
@@ -364,7 +407,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
                 result.hasChildren = true;
                 result.childTasks = childTasks;
                 
-                console.log("❌ Deletion blocked: Task has " + childTasks.length + " child tasks");
+                console.warn("❌ Deletion blocked: Task has " + childTasks.length + " child tasks");
                 return;
             }
             
@@ -378,7 +421,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
             markRelatedTimesheetsAsDeleted(tx, [taskId], timestamp);
             
             if (forceDelete && childTasks.length > 0) {
-                console.log("⚠️  Force delete enabled - deleted parent task with " + childTasks.length + " children");
+                console.warn("⚠️  Force delete enabled - deleted parent task with " + childTasks.length + " children");
                 result.message = "Task '" + taskName + "' deleted (forced deletion with " + childTasks.length + " child tasks remaining)";
             } else {
                 result.message = "Task '" + taskName + "' successfully deleted";
@@ -387,7 +430,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
             result.success = true;
             result.deletedTaskIds = [taskId];
             
-            console.log("✅ Task deleted successfully: " + taskName);
+            console.info("✅ Task deleted successfully: " + taskName);
         });
         
         return result;
@@ -587,7 +630,7 @@ function markRelatedTimesheetsAsDeleted(tx, taskIds, timestamp) {
             );
             
             if (result.rowsAffected > 0) {
-                console.log("Marked " + result.rowsAffected + " related timesheet entries as deleted");
+               // console.log("Marked " + result.rowsAffected + " related timesheet entries as deleted");
             }
         }
         
@@ -804,7 +847,7 @@ function getAllTasks() {
         var color = projectMap[projectId];
         // If color is found AND not zero → return it
         if (color && color !== "0" && color !== 0) {
-            console.log("✅ Found non-zero color for projectId:", projectId, "color:", color);
+          //  console.log("✅ Found non-zero color for projectId:", projectId, "color:", color);
             return color;
         }
         // Otherwise, check the parent
@@ -813,13 +856,13 @@ function getAllTasks() {
  
         if (parentResult.rows.length > 0) {
             var parentId = parentResult.rows.item(0).parent_id;
-            console.log("🔄 projectId", projectId, "has parent:", parentId);
+         //   console.log("🔄 projectId", projectId, "has parent:", parentId);
  
             if (parentId && parentId !== 0) {
                 return resolveProjectColor(parentId, projectMap, tx); // recurse to parent
             }
         }
-        console.log("⚠️ No non-zero color found for projectId:", projectId);
+     //   console.log("⚠️ No non-zero color found for projectId:", projectId);
         return 0;
     }
  
@@ -912,25 +955,37 @@ function getFilteredTasks(filterType, searchQuery) {
             }
         }
     }
-    
+
     // Fourth pass: include all children of included parent tasks to maintain hierarchy
-    for (var i = 0; i < allTasks.length; i++) {
-        var task = allTasks[i];
-        
-        // If this task has a parent that is included, include this task too
-        // But only if the parent is from the same account
-        if (task.parent_id && task.parent_id > 0) {
-            // Check if any parent with matching account_id is included
-            for (var j = 0; j < allTasks.length; j++) {
-                var parentCandidate = allTasks[j];
-                if (parentCandidate.odoo_record_id === task.parent_id && 
-                    parentCandidate.account_id === task.account_id) {
-                    
-                    var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
-                    if (includedTaskIds.has(parentKey)) {
-                        var taskKey = task.odoo_record_id + '_' + task.account_id;
-                        includedTaskIds.set(taskKey, task);
-                        break;
+    // Execute this pass when:
+    // 1. Filter is "all" and there's a search query, OR
+    // 2. The child task itself matches the filter criteria (date range)
+    if ((filterType === "all" && searchQuery && searchQuery.trim() !== "") || filterType !== "all") {
+        for (var i = 0; i < allTasks.length; i++) {
+            var task = allTasks[i];
+            
+            // If this task has a parent that is included, include this task too
+            // But only if the parent is from the same account
+            if (task.parent_id && task.parent_id > 0) {
+                // Check if any parent with matching account_id is included
+                for (var j = 0; j < allTasks.length; j++) {
+                    var parentCandidate = allTasks[j];
+                    if (parentCandidate.odoo_record_id === task.parent_id && 
+                        parentCandidate.account_id === task.account_id) {
+                        
+                        var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
+                        if (includedTaskIds.has(parentKey)) {
+                            // For "all" filter with search, include all children
+                            // For other filters, only include if child matches the filter criteria
+                            var shouldInclude = (filterType === "all" && searchQuery && searchQuery.trim() !== "") || 
+                                              passesDateFilter(task, filterType, currentDate);
+                            
+                            if (shouldInclude) {
+                                var taskKey = task.odoo_record_id + '_' + task.account_id;
+                                includedTaskIds.set(taskKey, task);
+                            }
+                            break;
+                        }
                     }
                 }
             }
@@ -959,6 +1014,16 @@ function getFilteredTasks(filterType, searchQuery) {
 function passesDateFilter(task, filterType, currentDate) {
     if (!filterType || filterType === "all") {
         return true;
+    }
+    
+    // Check if task's stage has fold == 1
+    // If fold == 1, task should only be displayed in "all" or "done" filters
+    // However, exclude cancelled tasks from done filter even if they have fold == 1
+    if (task.state && isTaskStageFolded(task.state)) {
+        if (filterType === "done" && isTaskInCancelledStage(task)) {
+            return false; // Don't show cancelled tasks in done filter
+        }
+        return filterType === "all" || filterType === "done";
     }
     
     // Tasks without start_date or end_date should only appear in "all" filter
@@ -991,8 +1056,8 @@ function passesDateFilter(task, filterType, currentDate) {
             if (isTaskInDoneStage(task)) return false;
             return isTaskDueLater(task, today);
         case "done":
-            // Show tasks which have their stage name set to "Done"
-            return isTaskInDoneStage(task);
+            // Show tasks which have their stage name set to "Done" but exclude cancelled tasks
+            return isTaskInDoneStage(task) && !isTaskInCancelledStage(task);
         default:
             return true;
     }
@@ -1209,6 +1274,29 @@ function isTaskInDoneStage(task) {
 }
 
 /**
+ * Checks whether the task's stage (project_task_type_app) name is "Cancelled" (case-insensitive)
+ * @param {Object} task
+ * @returns {boolean}
+ */
+function isTaskInCancelledStage(task) {
+    try {
+        if (!task) return false;
+
+        // task.state is expected to be the odoo_record_id for the task type/stage
+        var stageId = task.state;
+        if (!stageId) return false;
+
+        var stageName = getTaskStageName(stageId);
+        if (!stageName) return false;
+
+        return stageName.toString().toLowerCase() === "cancelled" || stageName.toString().toLowerCase() === "canceled";
+    } catch (e) {
+        console.error("isTaskInCancelledStage failed:", e);
+        return false;
+    }
+}
+
+/**
  * Check if a date falls within the task's date range or if task is overdue
  * @param {Object} task - The task object
  * @param {Date} checkDate - The date to check against
@@ -1255,10 +1343,11 @@ function getTaskDateStatus(task, checkDate) {
         isInRange = checkDay <= endDay;
     }
     
-    // Check if end_date is passed (task should be overdue if past end_date)
-    // Only use end_date for overdue calculation, not deadline
-    if (endDay) {
+    // Check if task is overdue - prioritize deadline first, then end_date
+    if (deadlineDay) {
         isOverdue = checkDay > deadlineDay;
+    } else if (endDay) {
+        isOverdue = checkDay > endDay;
     }
     
     return {
@@ -1296,7 +1385,7 @@ function setTaskPriority(taskId, priority, status) {
             if (updateResult.rowsAffected > 0) {
                 result.success = true;
                 result.message = "Task priority set to " + priority;
-                console.log("Task priority updated:", taskId, "priority:", priority);
+              //  console.log("Task priority updated:", taskId, "priority:", priority);
             } else {
                 result.message = "Task not found or no changes made";
                 console.warn("⚠️ No task updated with ID:", taskId);
@@ -1308,5 +1397,106 @@ function setTaskPriority(taskId, priority, status) {
         console.error("❌ setTaskPriority failed:", e);
         return { success: false, message: "Failed to set task priority: " + e.message };
     }
+}
+
+/**
+ * Retrieves all non-deleted tasks for a specific project from the `project_task_app` table,
+ * and adds inherited color and total hours spent from timesheet entries.
+ *
+ * @param {number} projectOdooRecordId - The odoo_record_id of the project
+ * @param {number} accountId - The account ID
+ * @returns {Array<Object>} A list of task objects with color and spentHours for the specified project.
+ */
+function getTasksForProject(projectOdooRecordId, accountId) {
+    var taskList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            // Get all tasks for the specific project and account
+            var query = `
+                SELECT 
+                    id,
+                    odoo_record_id,
+                    account_id,
+                    name,
+                    description,
+                    project_id,
+                    sub_project_id,
+                    parent_id,
+                    user_id,
+                    start_date,
+                    end_date,
+                    deadline,
+                    initial_planned_hours,
+                    state,
+                    priority,
+                    last_modified,
+                    status
+                FROM project_task_app 
+                WHERE project_id = ? 
+                AND account_id = ? 
+                AND (status != 'deleted' OR status IS NULL)
+                ORDER BY last_modified DESC
+            `;
+
+            var result = tx.executeSql(query, [projectOdooRecordId, accountId]);
+            
+            // Build a map of project colors for efficient lookup
+            var projectColorQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?";
+            var projectColorResult = tx.executeSql(projectColorQuery, [accountId]);
+            var projectMap = {};
+            for (var j = 0; j < projectColorResult.rows.length; j++) {
+                var projectRow = projectColorResult.rows.item(j);
+                projectMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+
+                // Calculate spent hours for this task
+                var spentHoursQuery = `
+                    SELECT COALESCE(SUM(unit_amount), 0) as spent_hours 
+                    FROM account_analytic_line_app 
+                    WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)
+                `;
+                var spentResult = tx.executeSql(spentHoursQuery, [row.odoo_record_id, accountId]);
+                var spentHours = spentResult.rows.length > 0 ? spentResult.rows.item(0).spent_hours : 0;
+
+                // Resolve project color
+                var projectIdToCheck = row.project_id || row.sub_project_id;
+                var inheritedColor = resolveProjectColor(projectIdToCheck, projectMap, tx);
+
+                var task = {
+                    id: row.id,
+                    odoo_record_id: row.odoo_record_id,
+                    account_id: row.account_id,
+                    name: row.name,
+                    description: row.description,
+                    project_id: row.project_id,
+                    sub_project_id: row.sub_project_id,
+                    parent_id: row.parent_id,
+                    user_id: row.user_id,
+                    start_date: row.start_date,
+                    end_date: row.end_date,
+                    deadline: row.deadline,
+                    initial_planned_hours: row.initial_planned_hours,
+                    state: row.state,
+                    priority: row.priority,
+                    last_modified: row.last_modified,
+                    status: row.status,
+                    color_pallet: inheritedColor,
+                    spent_hours: spentHours
+                };
+
+                taskList.push(task);
+            }
+        });
+    } catch (e) {
+        console.error("❌ getTasksForProject failed:", e);
+    }
+
+    return taskList;
 }
 

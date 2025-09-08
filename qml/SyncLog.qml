@@ -80,7 +80,7 @@ Page {
         case "DEBUG":
             return "#eef6ff";
         case "INFO":
-            return "#90f790";
+            return "#00fa00";
         default:
             return "#f5f5f5";
         }

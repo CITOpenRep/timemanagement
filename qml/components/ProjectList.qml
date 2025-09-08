@@ -95,11 +95,14 @@ Item {
     property var childrenMap: ({})
     property bool childrenMapReady: false
     property var stageFilter: ({
-            enabled: false,
-            odoo_record_id: -1,
-            name: ""
+            enabled: true  // Enable by default for "Open" filter
+            ,
+            odoo_record_id: -2  // Special value for "Open" filter
+            ,
+            name: "Open"
         })
     property var stageList: []
+    property var openStagesList: []  // Store list of open stages (fold = 0)
 
     signal projectSelected(int recordId)
     signal projectEditRequested(int recordId)
@@ -138,6 +141,10 @@ Item {
         navigationStackModel.clear();
         currentParentId = -1;
         currentAccountId = -1;
+        // Reset to default "Open" filter
+        stageFilter.enabled = true;
+        stageFilter.odoo_record_id = -2;
+        stageFilter.name = "Open";
         populateProjectChildrenMap(true);
     }
 
@@ -241,6 +248,18 @@ Item {
             if (!stageFilter.enabled) {
                 return true;
             }
+
+            // Special case for "Open" filter (odoo_record_id = -2)
+            if (stageFilter.odoo_record_id === -2) {
+                // Check if the project's stage is in the list of open stages (fold = 0)
+                for (var i = 0; i < openStagesList.length; i++) {
+                    if (openStagesList[i].odoo_record_id === project.stage) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             return project.stage == stageFilter.odoo_record_id;
         }
 
@@ -417,8 +436,17 @@ Item {
     function loadStages() {
         try {
             stageList = Project.getAllProjectStages();
+            openStagesList = Project.getOpenProjectStages(); // Load open stages (fold = 0)
+
             // Build menu model for DialerMenu
             var menuModel = [];
+
+            // Add "Open" as the first and default option
+            menuModel.push({
+                label: "Open Projects",
+                value: -2 // Special value for "Open" filter
+            });
+
             menuModel.push({
                 label: "All Stages",
                 value: -1,
@@ -531,7 +559,7 @@ Item {
                     }
 
                     onNavigationRequested: (projectId, accountId) => {
-                        console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
+                        // console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
                         navigateToProject(projectId, accountId);
                     }
                     onTimesheetRequested: localId => {
@@ -550,6 +578,13 @@ Item {
         anchors.fill: parent
         menuModel: {
             var menuModel = [];
+
+            // Add "Open" as the first option
+            menuModel.push({
+                label: "Open Projects",
+                value: -2
+            });
+
             menuModel.push({
                 label: "All Stages",
                 value: -1
@@ -572,13 +607,6 @@ Item {
 
                 var label = stageName;
 
-                // // Add account name for context
-                // if (s.account_id) {
-                //     // Append account name to make the label unique
-                //     var acct = Accounts.getAccountName(s.account_id) || "Local";
-                //     label = label + " (" + acct + ")";
-                // }
-
                 // Mark this combination as seen
                 uniqueCombinations[combinationKey] = true;
 
@@ -597,7 +625,12 @@ Item {
             if (!selectedItem)
                 return;
 
-            if (selectedItem.value === -1) {
+            if (selectedItem.value === -2) {
+                // Open Projects filter
+                stageFilter.enabled = true;
+                stageFilter.odoo_record_id = -2;
+                stageFilter.name = "Open";
+            } else if (selectedItem.value === -1) {
                 stageFilter.enabled = false;
                 stageFilter.odoo_record_id = -1;
                 stageFilter.account_id = -1;
@@ -614,9 +647,10 @@ Item {
         }
 
         onFilterCleared: {
-            stageFilter.enabled = false;
-            stageFilter.odoo_record_id = -1;
-            stageFilter.name = "";
+            // Reset to default "Open" filter
+            stageFilter.enabled = true;
+            stageFilter.odoo_record_id = -2;
+            stageFilter.name = "Open";
             projectListView.model = getCurrentModel();
         }
     }

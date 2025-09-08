@@ -163,7 +163,7 @@ Item {
                                 TSLabel {
                                     id: assigneeLabel
                                     text: selectedAssignees[index].name
-                                    
+
                                     color: "white"
                                     fontSize: units.gu(1.5)
                                     anchors.verticalCenter: parent.verticalCenter

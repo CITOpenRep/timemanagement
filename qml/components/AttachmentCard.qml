@@ -7,7 +7,7 @@ import "../../models/project.js" as Project
 Item {
     id: card
     width: parent.width
-    height: units.gu(12)
+    height: units.gu(30)
 
     property string name
     property string mimetype
@@ -15,7 +15,6 @@ Item {
     property int odoo_record_id
     property int account_id
     property bool downloading: false
-
 
     Python {
         id: python
@@ -33,8 +32,12 @@ Item {
     }
 
     function download_image() {
-        if (downloading) return;
-        console.log("OnDemand Download Kicks in")
+        if (downloading)
+            return;
+        if (odoo_record_id === 0) {
+            console.error("Invalid record id=0, Unable to download attachment");
+            return;
+        }
 
         // 1) try cache first
         var cached = Project.getFromCache(odoo_record_id);
@@ -53,9 +56,7 @@ Item {
             }
 
             // 2) call backend with 3 args: path, account_id, odoo_record_id
-            python.call("backend.attachment_ondemand_download",
-                        [path, account_id, odoo_record_id],
-                        function (res) {
+            python.call("backend.attachment_ondemand_download", [path, account_id, odoo_record_id], function (res) {
                 downloading = false;
 
                 if (!res) {
@@ -66,12 +67,13 @@ Item {
                 if (res.type === "binary" && res.data) {
                     // res.data is base64 (because we returned decode=False in Python)
                     datas = res.data;
-                    if (res.mimetype) mimetype = res.mimetype;
-                    if (res.name) name = res.name;
+                    if (res.mimetype)
+                        mimetype = res.mimetype;
+                    if (res.name)
+                        name = res.name;
 
                     // 3) put into minimal cache
                     Project.putInCache(odoo_record_id, datas);
-
                 } else if (res.type === "url" && res.url) {
                     // Non-binary attachment; you can open or download via HTTP if wanted
                     console.log("Attachment is a URL:", res.url);
@@ -82,8 +84,6 @@ Item {
             });
         });
     }
-
-
 
     signal imageClicked(string mimetype, string datas)
 
@@ -101,7 +101,7 @@ Item {
         }
         Text {
             text: name
-            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+            //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
             elide: Text.ElideRight
             wrapMode: Text.Wrap
             maximumLineCount: 2
@@ -109,6 +109,12 @@ Item {
             font.pixelSize: units.gu(1.6)
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
+        }
+        Button {
+            text: "Download"
+            enabled: false
+            visible: false
+            anchors.horizontalCenter: parent.horizontalCenter
         }
     }
 
@@ -119,9 +125,55 @@ Item {
             onClicked: imageClicked(mimetype, datas)
 
             Image {
+                id: pic
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectFit
+                asynchronous: true
+                cache: false
                 source: "data:" + mimetype + ";base64," + datas
+
+                // soft fade-in when ready
+                opacity: status === Image.Ready ? 1 : 0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 150
+                    }
+                }
+
+                onStatusChanged: if (status === Image.Error)
+                    console.warn("Image load error:")
+            }
+
+            // subtle dim while loading/downloading/empty
+            Rectangle {
+                anchors.fill: parent
+                visible: card.downloading || pic.status === Image.Loading || !datas
+                color: "#00000020"
+            }
+
+            // spinner while loading
+            BusyIndicator {
+                anchors.centerIn: parent
+                running: card.downloading || pic.status === Image.Loading || !datas
+                visible: running
+            }
+            // (If you prefer Lomiri's)
+            // ActivityIndicator {
+            //     anchors.centerIn: parent
+            //     running: card.downloading || pic.status === Image.Loading || !datas
+            //     visible: running
+            // }
+
+            // optional: show network load progress (0..1)
+            ProgressBar {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: units.gu(0.8)
+                width: Math.min(parent.width * 0.6, units.gu(28))
+                visible: pic.status === Image.Loading
+                minimumValue: 0
+                maximumValue: 1
+                value: pic.progress
             }
         }
     }
@@ -136,13 +188,13 @@ Item {
             border.color: "#aaa"
 
             Text {
-                text: mimetype ? mimetype.split("/")[1].toUpperCase() : "FILE"
+                text: "File"
                 anchors.centerIn: parent
                 font.pixelSize: units.gu(1.5)
             }
         }
     }
-    Component.onCompleted:{
-        download_image()
+    Component.onCompleted: {
+        download_image();
     }
 }

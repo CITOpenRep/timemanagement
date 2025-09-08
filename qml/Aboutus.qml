@@ -72,7 +72,7 @@ Page {
             width: flick.width
             spacing: units.gu(1)
             Label {
-                text: "Time Management App"
+                text: "Time Management App - Beta"
                 font.bold: true
                 font.pixelSize: units.gu(2.5)
             }

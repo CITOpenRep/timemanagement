@@ -41,6 +41,7 @@ function getProjectDetails(project_id) {
                     last_modified: row.last_modified,
                     color_pallet: row.color_pallet || "#FFFFFF",
                     stage: row.stage || 0,
+                    status: row.status || "",
                     odoo_record_id: row.odoo_record_id
                 };
             }
@@ -148,7 +149,7 @@ function getAllProjectStages() {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         db.transaction(function (tx) {
-            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active FROM project_project_stage_app ORDER BY sequence ASC, name COLLATE NOCASE ASC";
+            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active, fold FROM project_project_stage_app ORDER BY sequence ASC, name COLLATE NOCASE ASC";
             var result = tx.executeSql(query);
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -158,7 +159,8 @@ function getAllProjectStages() {
                     odoo_record_id: row.odoo_record_id,
                     name: row.name,
                     sequence: row.sequence,
-                    active: row.active
+                    active: row.active,
+                    fold: row.fold
                 });
             }
         });
@@ -166,6 +168,36 @@ function getAllProjectStages() {
         console.error("getAllProjectStages failed:", e);
     }
     return stages;
+}
+
+/**
+ * Retrieve only open project stages (where fold = 0) from the local DB.
+ * Returns an array of stage objects for filtering open projects.
+ */
+function getOpenProjectStages() {
+    var openStages = [];
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active, fold FROM project_project_stage_app WHERE fold = 0 ORDER BY sequence ASC, name COLLATE NOCASE ASC";
+            var result = tx.executeSql(query);
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                openStages.push({
+                    id: row.id,
+                    account_id: row.account_id,
+                    odoo_record_id: row.odoo_record_id,
+                    name: row.name,
+                    sequence: row.sequence,
+                    active: row.active,
+                    fold: row.fold
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getOpenProjectStages failed:", e);
+    }
+    return openStages;
 }
 
 
@@ -391,15 +423,15 @@ function createUpdateSnapShot(update_data) {
 
     db.transaction(function (tx) {
         try {
-            console.log("Creating Project Update:");
-            console.log("Account ID:", update_data.account_id);
-            console.log("Project ID:", update_data.project_id);
-            console.log("Name:", update_data.name);
-            console.log("Project Status:", update_data.project_status);
-            console.log("Progress:", update_data.progress);
-            console.log("Description:", update_data.description);
-            console.log("User ID:", update_data.user_id);
-            console.log("Create Date:", createDate);
+            // console.log("Creating Project Update:");
+            // console.log("Account ID:", update_data.account_id);
+            // console.log("Project ID:", update_data.project_id);
+            // console.log("Name:", update_data.name);
+            // console.log("Project Status:", update_data.project_status);
+            // console.log("Progress:", update_data.progress);
+            // console.log("Description:", update_data.description);
+            // console.log("User ID:", update_data.user_id);
+            // console.log("Create Date:", createDate);
 
             // INSERT new project update with user_id and create_date
             tx.executeSql(
@@ -567,7 +599,7 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
             if (updateResult.rowsAffected > 0) {
                 result.success = true;
                 result.message = isFavorite ? "Project marked as favorite" : "Project removed from favorites";
-                console.log("✅ Project favorite status updated:", projectId, "favorite:", isFavorite);
+              //  console.log("✅ Project favorite status updated:", projectId, "favorite:", isFavorite);
             } else {
                 result.message = "Project not found or no changes made";
                 console.warn("⚠️ No project updated with ID:", projectId);

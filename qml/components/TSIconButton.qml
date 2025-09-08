@@ -35,7 +35,7 @@ Item {
     property string iconName: ""          // symbolic icon name
     property string iconText: "+"         // fallback if iconName is not set
     property int buttonSize: units.gu(5)
-    
+
     property int iconSize: units.gu(3)
     property bool iconBold: true
 
@@ -58,7 +58,7 @@ Item {
         //     source: "image://theme/" + root.iconName
         //     anchors.centerIn: parent
         //     width: units.gu(3)
-           
+
         //     height: units.gu(3)
         //     fillMode: Image.PreserveAspectFit
         // }
@@ -70,7 +70,7 @@ Item {
             width: root.iconSize
             height: root.iconSize
             color: root.fgColor
-           // font.bold: root.iconBold
+            // font.bold: root.iconBold
         }
 
         // Fallback to text if no iconName

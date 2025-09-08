@@ -77,7 +77,6 @@ Item {
         iconName: expanded ? "close" : "filters"
         iconBold: true
         iconSize: units.gu(3)
-        
 
         z: 15
 
@@ -122,8 +121,6 @@ Item {
         color: theme.palette.normal.background
         border.color: theme.palette.normal.base
         border.width: 1
-
-        
 
         z: 12
 
@@ -267,7 +264,7 @@ Item {
                 }
 
                 delegate: Rectangle {
-                  
+
                     width: parent.width
                     height: units.gu(5.5)
                     color: mouseArea.pressed ? theme.palette.selected.background : (selectedIndex === model.originalIndex ? theme.palette.selected.background : "transparent")
