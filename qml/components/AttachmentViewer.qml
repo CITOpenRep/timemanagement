@@ -14,6 +14,7 @@ Column {
 
     signal refresh
 
+
     Label {
         visible: attachmentModel.count === 0
         text: "No files attached"

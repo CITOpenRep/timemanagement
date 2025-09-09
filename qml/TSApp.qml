@@ -75,6 +75,15 @@ MainView {
         }
     }
 
+    InfoBar
+    {
+        id:infobar
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        width:parent.width
+        height: units.gu(20)
+    }
+
     AdaptivePageLayout {
         id: apLayout
         anchors.fill: parent
