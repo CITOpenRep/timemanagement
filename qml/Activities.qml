@@ -32,6 +32,9 @@ Page {
     }
     property bool isReadOnly: true
     property var accountid: 0
+
+    // Track if the activity has been saved at least once
+    property bool hasBeenSaved: false
     header: PageHeader {
         id: header
         title: activityDetailsPage.title
@@ -318,7 +321,11 @@ Page {
 
             // Update due date
             date_widget.setSelectedDate(currentActivity.due_date);
+
+            // Mark as saved if this is an existing activity (not newly created)
+            hasBeenSaved = true;
         } else {
+            // For new activities
             let account = Accounts.getAccountsList();
             reloadActivityTypeSelector(account, -1);
 
@@ -326,6 +333,9 @@ Page {
             taskRadio.checked = true;
             projectRadio.checked = false;
             workItem.loadAccounts();
+
+            // New activities start as unsaved
+            hasBeenSaved = false;
         }
     }
 
@@ -436,6 +446,7 @@ Page {
         if (!result.success) {
             notifPopup.open("Error", "Unable to save the Activity", "error");
         } else {
+            hasBeenSaved = true;  // Mark that this activity has been properly saved
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
             // No navigation - stay on the same page like Timesheet.qml
             // User can use back button to return to list page
@@ -461,6 +472,14 @@ Page {
                 Global.description_temporary_holder = "";
             }
         } else {
+            // Page is becoming invisible - check if we need to clean up unsaved activity
+            if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
+                // Check if the activity is still in its default unsaved state
+                if (Activity.isActivityUnsaved(accountid, recordid)) {
+                    console.log("🗑️ Cleaning up unsaved activity with ID:", recordid);
+                    Activity.deleteActivity(accountid, recordid);
+                }
+            }
             Global.description_temporary_holder = "";
         }
     }

@@ -840,3 +840,4 @@ function isActivityUnsaved(accountId, recordId) {
         return false;
     }
 }
+
