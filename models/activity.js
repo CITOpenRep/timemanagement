@@ -773,3 +773,70 @@ function getActivitiesForProject(projectOdooRecordId, accountId) {
 
     return activityList;
 }
+
+/**
+ * Deletes an activity record from the local database.
+ * This is useful for cleaning up activities that were created but never properly saved.
+ *
+ * @function deleteActivity
+ * @param {number} accountId - The account ID associated with the activity.
+ * @param {number} recordId - The local ID of the activity record to delete.
+ * @returns {Object} - Returns { success: true } on success or { success: false, error: <message> } on failure.
+ */
+function deleteActivity(accountId, recordId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `DELETE FROM mail_activity_app WHERE account_id = ? AND id = ?`;
+            tx.executeSql(query, [accountId, recordId]);
+            console.log("✅ Deleted activity: Account ID =", accountId, ", Record ID =", recordId);
+        });
+
+        return { success: true };
+    } catch (e) {
+        DBCommon.logException("deleteActivity", e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Checks if an activity is still in its default "unsaved" state.
+ * An activity is considered unsaved if it has default values for summary and notes.
+ *
+ * @function isActivityUnsaved
+ * @param {number} accountId - The account ID associated with the activity.
+ * @param {number} recordId - The local ID of the activity record to check.
+ * @returns {boolean} - Returns true if the activity appears to be unsaved, false otherwise.
+ */
+function isActivityUnsaved(accountId, recordId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var isUnsaved = false;
+
+        db.transaction(function (tx) {
+            var query = `SELECT summary, notes, activity_type_id FROM mail_activity_app WHERE account_id = ? AND id = ? LIMIT 1`;
+            var rs = tx.executeSql(query, [accountId, recordId]);
+
+            if (rs.rows.length > 0) {
+                var row = rs.rows.item(0);
+                var summary = (row.summary || "").trim();
+                var notes = (row.notes || "").trim();
+                var activityTypeId = row.activity_type_id;
+
+                // Consider unsaved if:
+                // 1. Summary is "Untitled" or empty
+                // 2. Notes is "No Notes" or empty  
+                // 3. No activity type selected (null or empty)
+                isUnsaved = (summary === "Untitled" || summary === "") &&
+                           (notes === "No Notes" || notes === "") &&
+                           (activityTypeId === null || activityTypeId === "");
+            }
+        });
+
+        return isUnsaved;
+    } catch (e) {
+        DBCommon.logException("isActivityUnsaved", e);
+        return false;
+    }
+}
