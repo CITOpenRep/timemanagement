@@ -52,7 +52,7 @@ Row {
         case "ondemand_upload_completed":
             if (data.payload ===true)
             {
-                infobar.open("Successfully upload, Please wait for few more seconds to refresh",2000)
+                infobar.open("Attachment has been processed",2000)
                 processed()
             }
             else
