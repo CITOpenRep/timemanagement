@@ -12,41 +12,39 @@ Item {
     property int autoCloseMs: 10000
     property bool autoCloseEnabled: true
 
-    signal opened()
-    signal closed()
+    signal opened
+    signal closed
 
     // --- Public API ---
     function open(msg, durationMs) {
         if (msg !== undefined && msg !== null) {
-            message.text = String(msg)
+            message.text = String(msg);
         }
-        visible = true
-        opened()
+        visible = true;
+        opened();
         // restart timer if enabled
         if (autoCloseEnabled) {
-            autoCloseTimer.interval = (durationMs === 0 || durationMs === undefined || durationMs === null)
-                                      ? autoCloseMs
-                                      : durationMs
+            autoCloseTimer.interval = (durationMs === 0 || durationMs === undefined || durationMs === null) ? autoCloseMs : durationMs;
             if (autoCloseTimer.interval > 0) {
-                autoCloseTimer.restart()
+                autoCloseTimer.restart();
             } else {
-                autoCloseTimer.stop()
+                autoCloseTimer.stop();
             }
         } else {
-            autoCloseTimer.stop()
+            autoCloseTimer.stop();
         }
     }
 
     function close() {
-        autoCloseTimer.stop()
+        autoCloseTimer.stop();
         if (visible) {
-            visible = false
-            closed()
+            visible = false;
+            closed();
         }
     }
 
     function setText(t) {
-        message.text = String(t)
+        message.text = String(t);
     }
 
     // --- UI (minimal) ---

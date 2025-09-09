@@ -22,11 +22,9 @@ Row {
 
     property string dialogImageSource: ""
 
-    Component.onCompleted:
-    {
+    Component.onCompleted: {
         backend_bridge.messageReceived.connect(handleSyncEvent);
     }
-
 
     // Handle sync events from Python backend
     function handleSyncEvent(data) {
@@ -39,24 +37,22 @@ Row {
         case "sync_progress":
             break;
         case "ondemand_upload_message":
-            infobar.open(data.payload)
+            infobar.open(data.payload);
             break;
         case "sync_completed":
-            if(data.payload===true)
-                console.log("")
-                //completeSyncSuccessfully();
+            if (data.payload === true)
+                console.log("");
             else
-                console.log("")
-                //failSync("Sync Failed ");
+                //completeSyncSuccessfully();
+                console.log("");
+            //failSync("Sync Failed ");
             break;
         case "ondemand_upload_completed":
-            if (data.payload ===true)
-            {
-                infobar.open("Attachment has been processed",2000)
-                processed()
-            }
-            else
-                infobar.open("Failed to upload",2000)
+            if (data.payload === true) {
+                infobar.open("Attachment has been processed", 2000);
+                processed();
+            } else
+                infobar.open("Failed to upload", 2000);
             break;
         }
     }
@@ -133,7 +129,7 @@ Row {
                         python.call("backend.attachment_upload", [path, attachmentUploader.account_id, filePath, attachmentUploader.resource_type, attachmentUploader.resource_id], function (res) {
                             if (!res) {
                                 console.warn("No response from attachment_upload");
-                                infobar.open("Failed to upload",2000);
+                                infobar.open("Failed to upload", 2000);
                                 return;
                             }
                         });

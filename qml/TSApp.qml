@@ -63,7 +63,7 @@ MainView {
         id: backend_bridge
 
         onMessageReceived: function (data) {
-             //does nothing , whoever is interested can connect this signal
+        //does nothing , whoever is interested can connect this signal
         }
 
         onPythonError: function (tb) {
@@ -75,12 +75,11 @@ MainView {
         }
     }
 
-    InfoBar
-    {
-        id:infobar
+    InfoBar {
+        id: infobar
         anchors.bottom: parent.bottom
         anchors.left: parent.left
-        width:parent.width
+        width: parent.width
         height: units.gu(20)
     }
 
@@ -325,7 +324,7 @@ MainView {
 
                 // Save theme preference (INSERT OR REPLACE)
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['theme_preference', themeName]);
-                //    console.log("💾 Theme preference saved successfully:", themeName);
+            //    console.log("💾 Theme preference saved successfully:", themeName);
             });
 
             //    console.log("💾 Database transaction completed for theme:", themeName);
