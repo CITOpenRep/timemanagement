@@ -605,6 +605,10 @@ Page {
                 anchors.fill: parent
                 resource_id: currentTask.odoo_record_id
                 account_id: currentTask.account_id
+                onProcessed: {
+                    console.log("Uploaded the attchment lets do a refresh");
+                    loadTask()
+                }
             }
         }
     }
