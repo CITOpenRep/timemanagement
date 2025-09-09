@@ -51,7 +51,10 @@ Row {
             break;
         case "ondemand_upload_completed":
             if (data.payload ===true)
+            {
                 infobar.open("Successfully upload, Please wait for few more seconds to refresh",2000)
+                processed()
+            }
             else
                 infobar.open("Failed to upload",2000)
             break;

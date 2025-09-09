@@ -306,7 +306,7 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
         send("ondemand_upload_completed",False)
     send("ondemand_upload_message","Syncing back .. ")
     sync_ondemand_tables_from_odoo(client, selected["id"], settings_db)
-
+    send("ondemand_upload_completed",True)
     return attachment_id
 
 def sync(settings_db, account_id):

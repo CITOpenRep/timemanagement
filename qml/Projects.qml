@@ -496,6 +496,14 @@ Page {
                 anchors.fill: parent
                 resource_id: project.odoo_record_id
                 account_id: project.account_id
+                onProcessed:{
+                    console.log("Uploaded the attchment lets do a refresh")
+                    if (recordid !== 0) {
+                        if (!loadProjectData(recordid)) {
+                            notifPopup.open("Failed", "Error during attachment refresh", "error");
+                        }
+                    }
+                }
             }
         }
     }
