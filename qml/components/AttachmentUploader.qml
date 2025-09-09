@@ -34,18 +34,8 @@ Row {
         //console.log("handleSyncEvent: Received sync event:", data.event, "Payload:", data.payload);
 
         switch (data.event) {
-        case "sync_progress":
-            break;
         case "ondemand_upload_message":
             infobar.open(data.payload);
-            break;
-        case "sync_completed":
-            if (data.payload === true)
-                console.log("");
-            else
-                //completeSyncSuccessfully();
-                console.log("");
-            //failSync("Sync Failed ");
             break;
         case "ondemand_upload_completed":
             if (data.payload === true) {
@@ -122,8 +112,7 @@ Row {
 
                     python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                         if (!path) {
-                            //notifPopup.open("Error", "Attachment Failed", "error");
-                            failed();
+                            infobar.open("Failed to upload", 2000);
                             return;
                         }
                         python.call("backend.attachment_upload", [path, attachmentUploader.account_id, filePath, attachmentUploader.resource_type, attachmentUploader.resource_id], function (res) {

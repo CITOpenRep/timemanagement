@@ -607,7 +607,7 @@ Page {
                 account_id: currentTask.account_id
                 onProcessed: {
                     console.log("Uploaded the attchment lets do a refresh");
-                    loadTask()
+                    loadTask();
                 }
             }
         }
