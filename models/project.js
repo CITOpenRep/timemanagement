@@ -303,56 +303,90 @@ function isPresentInCache(recordId) {
 
 
 
-/**
- * Retrieves all projects associated with a specific user account from the local SQLite database.
- *
- * Projects are fetched from the `project_project_app` table where the `account_id` matches,
- * and are sorted alphabetically by name (case-insensitive).
- *
- * @param {number} accountId - The ID of the account whose projects are to be retrieved.
- * @returns {Array<Object>} - An array of project objects with properties like name, dates, hours, and metadata.
- */
 function getProjectsForAccount(accountId) {
-    var projects = [];
+    var projectList = [];
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var result = tx.executeSql(
-                        "SELECT * FROM project_project_app WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC",
-                        [accountId]
-                        );
+            var query = "SELECT * FROM project_project_app WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC";
+            var result = tx.executeSql(query, [accountId]);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-
-                projects.push({
-                                  id: row.id,
-                                  name: row.name,
-                                  account_id: row.account_id,
-                                  parent_id: row.parent_id,
-                                  planned_start_date: row.planned_start_date,
-                                  planned_end_date: row.planned_end_date,
-                                  allocated_hours: row.allocated_hours,
-                                  favorites: row.favorites,
-                                  last_update_status: row.last_update_status,
-                                  description: row.description,
-                                  last_modified: row.last_modified,
-                                  color_pallet: row.color_pallet,
-                                  status: row.status,
-                                  odoo_record_id: row.odoo_record_id
-                              });
+                projectList.push(DBCommon.rowToObject(row));
             }
         });
-
     } catch (e) {
-        DBCommon.logException("getProjectsForAccount", e);
+        console.error("❌ getProjectsForAccount failed:", e);
     }
 
-    return projects;
+    return projectList;
 }
 
+/**
+ * Gets accounts that have projects, with project counts
+ * Similar to getAccountsWithTaskCounts() in task.js but for projects
+ * 
+ * @returns {Array<Object>} Array of account objects with project counts
+ */
+function getAccountsWithProjectCounts() {
+    var accounts = [];
+    console.log("🔍 getAccountsWithProjectCounts called");
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function (tx) {
+            var query = `
+                SELECT 
+                    p.account_id,
+                    COUNT(p.id) as project_count,
+                    COUNT(CASE WHEN (p.status IS NULL OR p.status != 'deleted') THEN 1 END) as active_project_count
+                FROM project_project_app p
+                GROUP BY p.account_id
+                ORDER BY p.account_id ASC
+            `;
+            
+            var result = tx.executeSql(query);
+            console.log("📊 Found", result.rows.length, "accounts with projects in database");
+            
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                console.log("📝 DB Account:", row.account_id, "Total projects:", row.project_count, "Active projects:", row.active_project_count);
+                accounts.push({
+
+                    // id: row.id,
+                    // name: row.name,
+                    // account_id: row.account_id,
+                    // parent_id: row.parent_id,
+                    // planned_start_date: row.planned_start_date,
+                    // planned_end_date: row.planned_end_date,
+                    // allocated_hours: row.allocated_hours,
+                    // favorites: row.favorites,
+                    // last_update_status: row.last_update_status,
+                    // description: row.description,
+                    // last_modified: row.last_modified,
+                    // color_pallet: row.color_pallet,
+                    // status: row.status,
+                    // odoo_record_id: row.odoo_record_id
+
+
+                    account_id: row.account_id,
+                    account_name: row.account_id === 0 ? "Local Account" : "Account " + row.account_id,
+                    project_count: row.project_count,
+                    active_project_count: row.active_project_count
+                });
+            }
+        });
+    } catch (e) {
+        console.error("❌ getAccountsWithProjectCounts failed:", e);
+    }
+    
+    console.log("📊 Returning", accounts.length, "accounts with projects");
+    return accounts;
+}
 
 /**
  * Creates a new project or updates an existing one in the local SQLite database.

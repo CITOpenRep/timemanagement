@@ -32,6 +32,7 @@ import "../models/timesheet.js" as Timesheet
 import "../models/project.js" as Project
 import "../models/task.js" as Task
 import "../models/utils.js" as Utils
+import "../models/accounts.js" as Account
 import "components"
 
 Page {
@@ -45,7 +46,13 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        title: filterByProject ? "Tasks - " + projectName : task.title
+        title: {
+            var titleParts = ["Tasks"];
+            if (filterByProject && projectName) {
+                titleParts.push(projectName);
+            }
+            return titleParts.join(" - ");
+        }
 
         trailingActionBar.actions: [
             Action {
@@ -67,6 +74,7 @@ Page {
             }
         ]
     }
+
     ListModel {
         id: taskModel
     }
@@ -81,45 +89,62 @@ Page {
     property int projectAccountId: -1
     property string projectName: ""
 
-    // Function to get tasks based on current filter and search
+
     function getTaskList(filter, searchQuery) {
         taskModel.clear();
 
         try {
-            var allTasks;
-            if (filter || searchQuery) {
-                allTasks = Task.getFilteredTasks(filter, searchQuery);
+            var allTasks = [];
+            var currentAccountId = Account.getDefaultAccountId();
+            
+            console.log("Fetching tasks for account:", currentAccountId, "filter:", filter);
+            
+            if (filterByProject) {
+   
+                allTasks = Task.getTasksForProject(projectOdooRecordId, projectAccountId);
             } else {
-                allTasks = Task.getAllTasks();
+
+                if (filter || searchQuery) {
+                    allTasks = Task.getFilteredTasks(filter, searchQuery, currentAccountId);
+                } else {
+                    allTasks = Task.getTasksForAccount(currentAccountId);
+                }
             }
 
+            console.log("Retrieved", allTasks.length, "tasks for account:", currentAccountId);
+
             for (var i = 0; i < allTasks.length; i++) {
-                var task = allTasks[i];
+                var taskItem = allTasks[i];
                 var projectName = ""; // You can add project lookup here if needed
 
                 taskModel.append({
-                    id: task.id,
-                    name: task.name,
-                    description: task.description,
-                    deadline: task.deadline,
-                    start_date: task.start_date,
-                    end_date: task.end_date,
-                    status: task.status,
-                    initial_planned_hours: task.initial_planned_hours,
-                    favorites: task.favorites,
+                    id: taskItem.id,
+                    name: taskItem.name,
+                    description: taskItem.description,
+                    deadline: taskItem.deadline,
+                    start_date: taskItem.start_date,
+                    end_date: taskItem.end_date,
+                    status: taskItem.status,
+                    initial_planned_hours: taskItem.initial_planned_hours,
+                    spent_hours: taskItem.spent_hours || 0,
+                    favorites: taskItem.favorites,
                     project_name: projectName,
-                    account_id: task.account_id,
-                    project_id: task.project_id,
-                    user_id: task.user_id,
-                    odoo_record_id: task.odoo_record_id
+                    account_id: taskItem.account_id,
+                    project_id: taskItem.project_id,
+                    user_id: taskItem.user_id,
+                    odoo_record_id: taskItem.odoo_record_id,
+                    color_pallet: taskItem.color_pallet || 0,
+                    priority: taskItem.priority || "0"
                 });
             }
+            
+            console.log("Populated taskModel with", taskModel.count, "items");
         } catch (e) {
-            console.error("❌ Error in getTaskList():", e);
+            console.error("Error in getTaskList():", e);
         }
     }
 
-    // Add the ListHeader component outside LomiriShape
+    // Add the ListHeader component
     ListHeader {
         id: taskListHeader
         anchors.top: taskheader.bottom
@@ -127,7 +152,7 @@ Page {
         anchors.right: parent.right
 
         label1: "Today"
-        label2: "This Week"
+        label2: "This Week"  
         label3: "This Month"
         label4: "Later"
         label5: "Done"
@@ -136,7 +161,7 @@ Page {
 
         filter1: "today"
         filter2: "this_week"
-        filter3: "this_month"
+        filter3: "this_month" 
         filter4: "later"
         filter5: "done"
         filter6: "all"
@@ -148,7 +173,6 @@ Page {
         onFilterSelected: {
             task.currentFilter = filterKey;
             if (filterByProject) {
-                // When filtering by project, apply both project filter and time filter
                 tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, filterKey);
             } else {
                 tasklist.applyFilter(filterKey);
@@ -158,7 +182,6 @@ Page {
         onCustomSearch: {
             task.currentSearchQuery = query;
             if (filterByProject) {
-                // When filtering by project, apply both project filter and search
                 tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, query);
             } else {
                 tasklist.applySearch(query);
@@ -184,6 +207,10 @@ Page {
             projectOdooRecordId: task.projectOdooRecordId
             projectAccountId: task.projectAccountId
 
+           
+            filterByAccount: true
+            selectedAccountId: Account.getDefaultAccountId()
+
             onTaskEditRequested: {
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": recordId,
@@ -199,7 +226,6 @@ Page {
             onTaskTimesheetRequested: {
                 let result = Timesheet.createTimesheetFromTask(localId);
                 if (result.success) {
-                    //We got the result success, lets open the record with the id
                     apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
@@ -244,7 +270,6 @@ Page {
         id: fabMenu
         anchors.fill: parent
         z: 9999
-        //text:""
         menuModel: [
             {
                 label: "Create"
@@ -259,9 +284,9 @@ Page {
             }
         }
     }
+
     onVisibleChanged: {
         if (visible) {
-            // Apply the current filter when page becomes visible
             if (filterByProject) {
                 if (currentSearchQuery) {
                     tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
@@ -277,8 +302,8 @@ Page {
             }
         }
     }
+
     Component.onCompleted: {
-        // Apply default filter or project filter on completion
         if (filterByProject) {
             tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
         } else {
