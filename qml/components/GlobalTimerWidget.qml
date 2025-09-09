@@ -67,10 +67,13 @@ Rectangle {
             syncStatusMessage = data.payload;
             break;
         case "sync_completed":
-            completeSyncSuccessfully();
+            if(data.payload===true)
+                completeSyncSuccessfully();
+            else
+                failSync("Sync Failed ");
             break;
         case "sync_error":
-            failSync("Sync failed - check connection");
+            failSync("Failed " + data.payload);
             break;
         }
     }

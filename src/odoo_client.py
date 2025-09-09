@@ -24,6 +24,7 @@
 import xmlrpc.client
 import logging
 import base64
+from bus import send
 
 class OdooClient:
     """
@@ -70,11 +71,13 @@ class OdooClient:
             common = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
             uid = common.authenticate(self.db, self.username, self.password, {})
             if not uid:
+                send("sync_message",f"Authentication failed for server")
                 raise ValueError(
                     f"Authentication failed for user '{self.username}' on database '{self.db}'"
                 )
             return uid
         except Exception as e:
+            send("sync_error",f"Login to server failed")
             raise ConnectionError(f"Login failed: {e}")
 
     def _get_model_proxy(self):

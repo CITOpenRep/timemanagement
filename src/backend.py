@@ -418,7 +418,7 @@ def sync_background(settings_db, account_id):
         except Exception as e:
             log.exception(f"[SYNC] Error during background sync: {e}")
             write_sync_report_to_db(settings_db, account_id, "Failed", str(e))
-            send("sync_error",True)
+            send("sync_completed",False)
         finally:
             with sync_lock:
                 sync_in_progress = False
