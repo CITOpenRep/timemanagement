@@ -32,6 +32,7 @@ from datetime import datetime
 from common import sanitize_datetime, safe_sql_execute,add_notification
 from pathlib import Path
 import os
+from bus import send
 
 log = logging.getLogger("odoo_sync")
 
@@ -462,4 +463,5 @@ def sync_all_from_odoo(
     }
     """
     for model, table in models_to_sync.items():
+        send("sync_message",f"Syncing from Server {model}")
         sync_model(client, model, table, account_id, db_path, config_path)

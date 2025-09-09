@@ -30,6 +30,7 @@ from common import sanitize_datetime, safe_sql_execute,add_notification
 from pathlib import Path
 from datetime import datetime
 import os
+from bus import send
 
 log = logging.getLogger("odoo_sync")
 
@@ -638,5 +639,5 @@ def sync_all_to_odoo(
 
 
     for model, table in models.items():
-        log.info(f"[SYNC] Syncing from SQLite to Odoo: {model} -> {table}")
+        send("sync_message",f"Syncing to Server {model}")
         sync_to_odoo(client, model, table, account_id, db_path, config_path)
