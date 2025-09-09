@@ -3,7 +3,7 @@ import QtQuick 2.7
 Item {
     id: root
     width: parent.width
-    height: units.gu(20)
+    height: units.gu(10)
     visible: false
     z: 99999
 
@@ -53,7 +53,7 @@ Item {
         id: container
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 16
+        anchors.bottomMargin: units.gu(10)
         implicitWidth: parent.width
         implicitHeight: parent.height
 

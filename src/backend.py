@@ -275,7 +275,7 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
         '.zip': 'application/zip'
         # add more extensions as needed
     }
-    send("ondemand_upload_message","Reading data")
+    send("ondemand_upload_message","Reading file ...")
     ext = os.path.splitext(filename)[1].lower()  # get extension including dot
     mimetype = EXT_TO_MIME.get(ext, 'application/octet-stream')
 
@@ -300,11 +300,11 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
         'datas': base64.b64encode(file_bytes).decode('utf-8'),
         'mimetype': mimetype
     }
-    send("ondemand_upload_message","Uploading data .. ")
+    send("ondemand_upload_message","Uploading file .. ")
     attachment_id = client.call('ir.attachment', 'create', [vals])
     if attachment_id <=0:
         send("ondemand_upload_completed",False)
-    send("ondemand_upload_message","Syncing back .. ")
+    send("ondemand_upload_message","Syncing to local device .. ")
     sync_ondemand_tables_from_odoo(client, selected["id"], settings_db)
     send("ondemand_upload_completed",True)
     return attachment_id

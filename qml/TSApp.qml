@@ -80,7 +80,7 @@ MainView {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         width: parent.width
-        height: units.gu(20)
+        height: units.gu(10)
     }
 
     AdaptivePageLayout {
