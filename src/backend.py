@@ -24,7 +24,7 @@
 
 from config import get_all_accounts, initialize_app_settings_db
 from odoo_client import OdooClient
-from sync_from_odoo import sync_all_from_odoo
+from sync_from_odoo import sync_all_from_odoo,sync_ondemand_tables_from_odoo
 from sync_to_odoo import sync_all_to_odoo
 from logger import setup_logger
 from bus import send
@@ -302,10 +302,11 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
     }
     send("ondemand_upload_message","Uploading data .. ")
     attachment_id = client.call('ir.attachment', 'create', [vals])
-    if attachment_id >=0:
-        send("ondemand_upload_completed",True)
-    else:
+    if attachment_id <=0:
         send("ondemand_upload_completed",False)
+    send("ondemand_upload_message","Syncing back .. ")
+    sync_ondemand_tables_from_odoo(client, selected["id"], settings_db)
+
     return attachment_id
 
 def sync(settings_db, account_id):

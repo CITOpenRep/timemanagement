@@ -130,20 +130,8 @@ Row {
                         python.call("backend.attachment_upload", [path, attachmentUploader.account_id, filePath, attachmentUploader.resource_type, attachmentUploader.resource_id], function (res) {
                             if (!res) {
                                 console.warn("No response from attachment_upload");
-                                //notifPopup.open("Error", "Attachment Failed", "error");
-                                failed();
+                                infobar.open("Failed to upload",2000);
                                 return;
-                            } else {
-                                //notifPopup.open("Wait & Refresh", "Uploading Started, it may take a minute, You can refresh later to see it", "success");
-                                //3. We must need to do a sync to ensure that local db is aligned
-                                console.log("Syncing :", path);
-                                python.call("backend.start_sync_in_background", [path, attachmentUploader.account_id], function (result) {
-                                    if (result) {
-                                        console.log("Background sync started for account:", account_id);
-                                    } else {
-                                        //notifPopup.open("Error", "Attachment Failed", "error");
-                                    }
-                                });
                             }
                         });
                     });
