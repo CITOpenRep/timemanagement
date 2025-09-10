@@ -353,6 +353,21 @@ Page {
                     });
                 }
             }
+
+            TSButton {
+                visible: isReadOnly && recordid > 0
+                width: (parent.width - units.gu(1)) / 2
+                text: "View Project Updates"
+                onClicked: {
+                    let project = Project.getProjectDetails(recordid);
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Updates_Page.qml"), {
+                        "filterByProject": true,
+                        "projectOdooRecordId": project.odoo_record_id,
+                        "projectAccountId": project.account_id,
+                        "projectName": project.name
+                    });
+                }
+            }
         }
 
         Row {
