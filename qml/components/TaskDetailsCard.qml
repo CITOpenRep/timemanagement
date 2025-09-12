@@ -361,6 +361,7 @@ ListItem {
                             text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
                             color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                             font.pixelSize: units.gu(2)
+                           
                             wrapMode: Text.WordWrap
                             maximumLineCount: 2
                             clip: true
@@ -487,19 +488,16 @@ ListItem {
                             width: parent.width
                         }
 
-                        Rectangle {
-                            color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : AppConst.Colors.Orange
-                            width: parent.width / 2
-                            height: units.gu(3)
+                      
 
                             Text {
-                                anchors.centerIn: parent
+                                
                                 text: Task.getTaskStageName(stage)
-                                color: "white"
-                                font.pixelSize: units.gu(1.5)
-                                font.bold: true
+                                color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
+                                font.pixelSize: units.gu(1.75)
+                                font.bold: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? true : false
                             }
-                        }
+                        
                     }
                 }
             }
