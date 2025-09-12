@@ -297,6 +297,11 @@ Page {
 
             TSButton {
                 visible: isReadOnly
+               bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
+               
                 width: (parent.width - units.gu(1)) / 2
                 text: "Create Project Update"
                 onClicked: {
@@ -307,6 +312,10 @@ Page {
 
             TSButton {
                 visible: isReadOnly
+               bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
                 width: (parent.width - units.gu(1)) / 2
                 text: "Create Activity"
                 onClicked: {
@@ -326,6 +335,10 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
+             bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Tasks"
                 onClicked: {
@@ -341,6 +354,10 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Activities"
                 onClicked: {
@@ -356,6 +373,10 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Project Updates"
                 onClicked: {

@@ -415,7 +415,7 @@ Page {
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
             TSButton {
-                visible: isReadOnly
+                visible: recordid !== 0
                 width: parent.width / 2
                 text: "Create Activity"
                 onClicked: {

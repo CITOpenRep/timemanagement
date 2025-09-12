@@ -315,17 +315,12 @@ ListItem {
                                 width: parent.width
                             }
 
-                            Rectangle {
-                                color: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? "green" : AppConst.Colors.Orange
-                                width: parent.width / 2
-                                height: units.gu(3)
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: Project.getProjectStageName(stage)
-                                    color: "white"
-                                    font.pixelSize: units.gu(1.5)
-                                    font.bold: true
-                                }
+                            Text {
+
+                                text: Project.getProjectStageName(stage)
+                                color: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? "green" : ( theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
+                                font.pixelSize: units.gu(1.75)
+                                font.bold: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? true : false
                             }
                         }
                     }
