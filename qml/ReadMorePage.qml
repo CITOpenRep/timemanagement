@@ -40,7 +40,8 @@ Page {
             text: Global.description_temporary_holder
             readOnly: isReadOnly
             textFormat: useRichText ? Text.RichText : Text.PlainText
-            //wrapMode: TextArea.Wrap
+            font.pixelSize: units.gu(2)
+            wrapMode: TextArea.Wrap
             selectByMouse: true
             width: parent.width - units.gu(4)
             height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
