@@ -13,6 +13,16 @@ Rectangle {
 
     signal clicked
 
+    // Function to get the raw text content with formatting preserved
+    function getFormattedText() {
+        if (useRichText && previewText.textFormat === Text.RichText) {
+            // For rich text, return the text as-is since it should preserve basic formatting
+            return previewText.text;
+        } else {
+            return previewText.text;
+        }
+    }
+
     Column {
         id: column
         width: parent.width
@@ -37,7 +47,7 @@ Rectangle {
             TextArea {
                 id: previewText
                 textFormat: useRichText ? Text.RichText : Text.PlainText
-           
+
                 readOnly: is_read_only
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                 wrapMode: Text.WordWrap

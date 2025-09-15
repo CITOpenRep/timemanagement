@@ -275,8 +275,8 @@ Page {
                         text: ""
                         is_read_only: isReadOnly
                         onClicked: {
-                            //set the data to a global Slore and pass the key to the page
-                            Global.description_temporary_holder = text;
+                            //set the data to a global Store and pass the key to the page
+                            Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly
                             });
@@ -297,11 +297,9 @@ Page {
 
             TSButton {
                 visible: isReadOnly
-               bgColor: LomiriColors.slate
+                bgColor: LomiriColors.slate
                 fgColor: "white"
-              
-             
-               
+
                 width: (parent.width - units.gu(1)) / 2
                 text: "Create Project Update"
                 onClicked: {
@@ -312,10 +310,9 @@ Page {
 
             TSButton {
                 visible: isReadOnly
-               bgColor: LomiriColors.slate
+                bgColor: LomiriColors.slate
                 fgColor: "white"
-              
-             
+
                 width: (parent.width - units.gu(1)) / 2
                 text: "Create Activity"
                 onClicked: {
@@ -335,10 +332,9 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
-             bgColor: LomiriColors.slate
+                bgColor: LomiriColors.slate
                 fgColor: "white"
-              
-             
+
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Tasks"
                 onClicked: {
@@ -356,8 +352,7 @@ Page {
                 visible: isReadOnly && recordid > 0
                 bgColor: LomiriColors.slate
                 fgColor: "white"
-              
-             
+
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Activities"
                 onClicked: {
@@ -375,8 +370,7 @@ Page {
                 visible: isReadOnly && recordid > 0
                 bgColor: LomiriColors.slate
                 fgColor: "white"
-              
-             
+
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Project Updates"
                 onClicked: {

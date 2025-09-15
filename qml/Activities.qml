@@ -229,7 +229,7 @@ Page {
                         is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
-                            Global.description_temporary_holder = text;
+                            Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly
                                 //useRichText: false

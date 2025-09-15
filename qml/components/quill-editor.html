@@ -71,9 +71,40 @@
 
         // Function to set content from QML
         function setContent(html) {
-            if (html && html !== lastContent) {
-                quill.root.innerHTML = html;
-                lastContent = html;
+            try {
+                var content = html || '';
+                
+                if (content !== lastContent) {
+                    // Clear the editor first
+                    quill.setText('');
+                    
+                    if (content.trim() === '') {
+                        // Empty content
+                        lastContent = content;
+                        return;
+                    }
+                    
+                    // Check if content contains HTML tags
+                    var hasHtmlTags = /<[^>]+>/.test(content);
+                    
+                    if (hasHtmlTags) {
+                        // Content has HTML - use clipboard API to insert properly
+                        var delta = quill.clipboard.convert(content);
+                        quill.setContents(delta);
+                    } else {
+                        // Plain text - insert while preserving line breaks
+                        var lines = content.split('\n');
+                        var delta = quill.clipboard.convert('<p>' + lines.join('</p><p>') + '</p>');
+                        quill.setContents(delta);
+                    }
+                    
+                    lastContent = content;
+                }
+            } catch (e) {
+                console.error('Error setting content:', e);
+                // Fallback to plain text
+                quill.setText(html || '');
+                lastContent = html || '';
             }
         }
 

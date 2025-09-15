@@ -404,7 +404,7 @@ Page {
                         useRichText: false
                         onClicked: {
                             //set the data to a global store and pass the key to the page
-                            Global.description_temporary_holder = text;
+                            Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 useRichText: false

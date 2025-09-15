@@ -56,7 +56,9 @@ Item {
     // Function to set text content
     function setText(htmlText) {
         if (_isLoaded) {
-            webView.runJavaScript("window.quillEditor.setContent('" + htmlText.replace(/'/g, "\\'").replace(/\n/g, "\\n") + "');");
+            // Use JSON.stringify to properly escape the content for JavaScript
+            var escapedText = JSON.stringify(htmlText || "");
+            webView.runJavaScript("window.quillEditor.setContent(" + escapedText + ");");
         } else {
             _pendingText = htmlText;
         }
