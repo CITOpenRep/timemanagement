@@ -10,6 +10,7 @@ Item {
     property bool readOnly: false
     property int fontSize: 16
     property string placeholder: "Start typing..."
+    property bool darkMode: theme.name === "Ubuntu.Components.Themes.SuruDark"
 
     // Signals
     signal contentChanged(string newText)
@@ -24,7 +25,7 @@ Item {
         anchors.fill: parent
 
         // Load the Quill.js HTML file
-        url: Qt.resolvedUrl("quill-editor.html") + (readOnly ? "?readonly=true" : "")
+        url: Qt.resolvedUrl("quill-editor.html") + "?" + (readOnly ? "readonly=true" : "readonly=false") + "&darkMode=" + darkMode
 
         // Handle page load completion
         onLoadingChanged: {
@@ -106,6 +107,13 @@ Item {
 
     onReadOnlyChanged: {
         setReadOnly(readOnly);
+    }
+
+    onDarkModeChanged: {
+        // Reload the editor with new theme when dark mode changes
+        if (_isLoaded) {
+            webView.reload();
+        }
     }
 
     // Periodic content sync (alternative approach for text changes)
