@@ -1,14 +1,13 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
 import "../models/global.js" as Global
+import "components"
 
 Page {
     id: readmepage
     anchors.fill: parent
     property var layout
     property var previousPage
-
-    property bool useRichText: true
 
     property string textkey: ""
     property string text: ""
@@ -35,20 +34,22 @@ Page {
         spacing: units.gu(1)
         padding: units.gu(2)
 
-        TextArea {
+        RichTextEditor {
             id: editor
             text: Global.description_temporary_holder
             readOnly: isReadOnly
-            textFormat: useRichText ? Text.RichText : Text.PlainText
-            font.pixelSize: units.gu(2)
-            wrapMode: TextArea.Wrap
-            selectByMouse: true
             width: parent.width - units.gu(4)
             height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
-            clip: true
 
-            onTextChanged: {
-                Global.description_temporary_holder = editor.text;
+            onContentChanged: {
+                Global.description_temporary_holder = newText;
+            }
+
+            onContentLoaded: {
+                // Set initial content once the editor is loaded
+                if (Global.description_temporary_holder) {
+                    editor.text = Global.description_temporary_holder;
+                }
             }
         }
 
@@ -58,8 +59,11 @@ Page {
             text: "Save"
             anchors.horizontalCenter: parent.horizontalCenter
             onClicked: {
-                Global.description_temporary_holder = editor.text;
-                pageStack.removePages(readmepage);
+                // Get the current content from the rich text editor
+                editor.getText(function (content) {
+                    Global.description_temporary_holder = content;
+                    pageStack.removePages(readmepage);
+                });
             }
         }
     }
