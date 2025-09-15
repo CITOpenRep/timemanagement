@@ -24,6 +24,18 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        trailingActionBar.actions: [
+            Action {
+                iconName: "tick"
+                onTriggered: {
+                    editor.getText(function (content) {
+                    Global.description_temporary_holder = content;
+                    pageStack.removePages(readmepage);
+                });
+                }
+            }
+        ]
     }
 
     Column {
