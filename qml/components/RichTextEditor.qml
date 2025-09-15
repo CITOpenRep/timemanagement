@@ -105,21 +105,21 @@ Item {
     }
 
     // Periodic content sync (alternative approach for text changes)
-    Timer {
-        id: contentSyncTimer
-        interval: 500 // Check every 500ms
-        running: _isLoaded && !readOnly
-        repeat: true
+    // Timer {
+    //     id: contentSyncTimer
+    //     interval: 500 // Check every 500ms
+    //     running: _isLoaded && !readOnly
+    //     repeat: true
 
-        onTriggered: {
-            getText(function (content) {
-                if (content !== richTextEditor.text) {
-                    richTextEditor.text = content;
-                    richTextEditor.contentChanged(content);
-                }
-            });
-        }
-    }
+    //     onTriggered: {
+    //         getText(function (content) {
+    //             if (content !== richTextEditor.text) {
+    //                 richTextEditor.text = content;
+    //                 richTextEditor.contentChanged(content);
+    //             }
+    //         });
+    //     }
+    // }
 
     // Loading indicator
     ActivityIndicator {
