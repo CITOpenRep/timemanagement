@@ -7,6 +7,10 @@ Rectangle {
     property string title: "Description"
     property bool is_read_only: true
     property bool useRichText: true
+
+    // Store the original HTML content to preserve formatting
+    property string originalHtmlContent: ""
+
     width: parent.width
     height: parent.height//column.implicitHeight
     color: "transparent"
@@ -15,11 +19,20 @@ Rectangle {
 
     // Function to get the raw text content with formatting preserved
     function getFormattedText() {
-        if (useRichText && previewText.textFormat === Text.RichText) {
-            // For rich text, return the text as-is since it should preserve basic formatting
-            return previewText.text;
-        } else {
-            return previewText.text;
+        // Return the original HTML content if available, otherwise return plain text
+        return originalHtmlContent !== "" ? originalHtmlContent : previewText.text;
+    }
+
+    // Function to set content with HTML preservation
+    function setContent(htmlContent) {
+        originalHtmlContent = htmlContent || "";
+        previewText.text = htmlContent || "";
+    }
+
+    // Override the text property setter to also store HTML
+    onTextChanged: {
+        if (originalHtmlContent === "") {
+            originalHtmlContent = previewText.text;
         }
     }
 

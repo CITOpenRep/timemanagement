@@ -134,7 +134,7 @@ Page {
             }
 
             project_name.text = project.name || "";
-            description_text.text = project.description || "";
+            description_text.setContent(project.description || "");
 
             // Handle color inheritance for subprojects
             let projectColor = project.color_pallet || 0;
@@ -568,7 +568,7 @@ Page {
         if (visible) {
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
-                description_text.text = Global.description_temporary_holder;
+                description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
             }
         } else {

@@ -650,7 +650,7 @@ Page {
             workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
             name_text.text = currentTask.name || "";
-            description_text.text = currentTask.description || "";
+            description_text.setContent(currentTask.description || "");
 
             // Handle planned hours more carefully
             if (currentTask.initial_planned_hours !== undefined && currentTask.initial_planned_hours !== null && currentTask.initial_planned_hours > 0) {
@@ -701,7 +701,7 @@ Page {
         if (visible) {
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
-                description_text.text = Global.description_temporary_holder;
+                description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
             }
         } else {

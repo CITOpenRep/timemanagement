@@ -55,9 +55,11 @@ Item {
 
     // Function to set text content
     function setText(htmlText) {
+        console.log("RichTextEditor.setText called with:", htmlText);
         if (_isLoaded) {
             // Use JSON.stringify to properly escape the content for JavaScript
             var escapedText = JSON.stringify(htmlText || "");
+            console.log("Calling setContent with escaped text:", escapedText);
             webView.runJavaScript("window.quillEditor.setContent(" + escapedText + ");");
         } else {
             _pendingText = htmlText;

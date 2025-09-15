@@ -73,44 +73,78 @@
         function setContent(html) {
             try {
                 var content = html || '';
+                console.log('setContent called with:', content);
                 
                 if (content !== lastContent) {
-                    // Clear the editor first
-                    quill.setText('');
-                    
                     if (content.trim() === '') {
                         // Empty content
+                        quill.setText('');
                         lastContent = content;
                         return;
                     }
                     
                     // Check if content contains HTML tags
                     var hasHtmlTags = /<[^>]+>/.test(content);
+                    console.log('Content has HTML tags:', hasHtmlTags);
                     
                     if (hasHtmlTags) {
-                        // Content has HTML - use clipboard API to insert properly
-                        var delta = quill.clipboard.convert(content);
-                        quill.setContents(delta);
+                        // Content has HTML - use dangerouslyPasteHTML to preserve all formatting
+                        console.log('Setting HTML content:', content);
+                        quill.clipboard.dangerouslyPasteHTML(content);
                     } else {
-                        // Plain text - insert while preserving line breaks
-                        var lines = content.split('\n');
-                        var delta = quill.clipboard.convert('<p>' + lines.join('</p><p>') + '</p>');
-                        quill.setContents(delta);
+                        // Plain text - convert line breaks and set as HTML
+                        var htmlContent = content
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/\n/g, '<br>');
+                        
+                        if (htmlContent.trim() !== '') {
+                            console.log('Setting plain text as HTML:', htmlContent);
+                            quill.clipboard.dangerouslyPasteHTML('<p>' + htmlContent + '</p>');
+                        } else {
+                            quill.setText('');
+                        }
                     }
                     
                     lastContent = content;
+                    console.log('Content set, new innerHTML:', quill.root.innerHTML);
                 }
             } catch (e) {
                 console.error('Error setting content:', e);
-                // Fallback to plain text
-                quill.setText(html || '');
-                lastContent = html || '';
+                // Fallback - try direct innerHTML setting
+                try {
+                    if (html && html.trim() !== '') {
+                        console.log('Using fallback innerHTML method');
+                        quill.root.innerHTML = html;
+                    } else {
+                        quill.setText('');
+                    }
+                    lastContent = html || '';
+                } catch (e2) {
+                    console.error('Fallback also failed:', e2);
+                    quill.setText(html || '');
+                    lastContent = html || '';
+                }
             }
         }
 
         // Function to get content for QML
         function getContent() {
-            return quill.root.innerHTML;
+            try {
+                // Get HTML content from Quill editor
+                var htmlContent = quill.root.innerHTML;
+                
+                // Clean up empty paragraphs that might be added by Quill
+                htmlContent = htmlContent.replace(/<p><br><\/p>/g, '<p></p>');
+                htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
+                
+                return htmlContent;
+            } catch (e) {
+                console.error('Error getting content:', e);
+                // Fallback to text content
+                return quill.getText();
+            }
         }
 
         // Function to set read-only mode

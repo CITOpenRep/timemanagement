@@ -317,7 +317,7 @@ Page {
 
             // Update fields with loaded data
             summary.text = currentActivity.summary || "";
-            notes.text = currentActivity.notes || "";
+            notes.setContent(currentActivity.notes || "");
 
             // Update due date
             date_widget.setSelectedDate(currentActivity.due_date);
@@ -461,14 +461,14 @@ Page {
 
                 // Update all fields with the latest data
                 summary.text = currentActivity.summary || "";
-                notes.text = currentActivity.notes || "";
+                notes.setContent(currentActivity.notes || "");
                 date_widget.setSelectedDate(currentActivity.due_date);
                 console.log("📅 Activities.qml: Set date widget to:", currentActivity.due_date);
             }
 
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
-                notes.text = Global.description_temporary_holder;
+                notes.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
             }
         } else {

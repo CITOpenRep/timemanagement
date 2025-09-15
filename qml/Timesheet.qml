@@ -443,7 +443,7 @@ Page {
                 }
 
                 date_widget.setSelectedDate(currentTimesheet.record_date);
-                description_text.text = currentTimesheet.name;
+                description_text.setContent(currentTimesheet.name);
                 if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
                     time_sheet_widget.elapsedTime = currentTimesheet.spentHours;
                 }
@@ -465,7 +465,7 @@ Page {
         if (visible) {
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
-                description_text.text = Global.description_temporary_holder;
+                description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
             }
         } else {
