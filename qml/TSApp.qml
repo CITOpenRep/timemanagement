@@ -51,6 +51,8 @@ MainView {
     // width: units.gu(50) //GM: for testing with only one column
     // height: units.gu(95)
 
+    signal globalAccountChanged(int accountId, string accountName)
+
     GlobalTimerWidget {
         id: globalTimerWidget
         z: 9999
@@ -63,7 +65,7 @@ MainView {
         id: backend_bridge
 
         onMessageReceived: function (data) {
-             //does nothing , whoever is interested can connect this signal
+        //does nothing , whoever is interested can connect this signal
         }
 
         onPythonError: function (tb) {
@@ -84,9 +86,9 @@ MainView {
         z: 1000
         
         onAccountChanged: {
-            console.log("Account changed to:", accountName, "ID:", accountId);
-            // Refresh data for the new account
-            refreshAppData();
+            globalAccountChanged(accountId, accountName);
+            
+            reloadApplication();
         }
     }
     
@@ -96,6 +98,16 @@ MainView {
     NotificationPopup {
         id: notifPopup
     }
+
+    
+    InfoBar {
+        id: infobar
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        width: parent.width
+        height: units.gu(10)
+    }
+
 
     AdaptivePageLayout {
         id: apLayout
@@ -267,39 +279,115 @@ MainView {
         }
     }
 
-        // Function to refresh app data after account change or sync
-    function refreshAppData() {
-        console.log("🔄 Refreshing app data...");
+
+    function reloadApplication() {
         
-        // Refresh all pages that need to update their data
-        if (dashboard_page && dashboard_page.visible) {
+        try {
+
+            if (typeof apLayout.removePages === 'function') {
+                apLayout.removePages(apLayout.primaryPage);
+            }
+            
+            apLayout.primaryPage = splash_page;
+            apLayout.currentPage = splash_page;
+            apLayout.thirdPage = dashboard_page2;
+
+            init = true;
+
+            Qt.callLater(function() {
+
+                
+                try {
+                    apLayout.setFirstScreen();
+                    
+                    Qt.callLater(function() {
+                        refreshAppData();
+                    });
+                    
+                } catch (layoutError) {
+                    console.error("ERROR during setFirstScreen():", layoutError);
+                    refreshAppData();
+                }
+            });
+            
+        } catch (e) {
+            console.error("ERROR during application reload:", e);
+
+            refreshAppData();
+        }
+        
+        console.log("Application reload initiated - waiting for completion...");
+    }
+
+    function refreshAppData() {
+        if (dashboard_page && typeof dashboard_page.refreshData === 'function') {
             dashboard_page.refreshData();
         }
-        if (dashboard_page2 && dashboard_page2.visible) {
+        
+        if (dashboard_page2 && typeof dashboard_page2.refreshData === 'function') {
             dashboard_page2.refreshData();
         }
-        if (timesheet_page && timesheet_page.visible) {
+        
+
+        
+
+        if (timesheet_list && typeof timesheet_list.fetch_timesheets_list === 'function') {
+            timesheet_list.fetch_timesheets_list();
+        }
+
+        if (activity_page && typeof activity_page.get_activity_list === 'function') {
+            activity_page.get_activity_list();
+        }
+        
+        if (task_page && typeof task_page.getTaskList === 'function') {
+            task_page.getTaskList(task_page.currentFilter || "today", "");
+        }
+        
+
+        if (project_page && project_page.projectlist && typeof project_page.projectlist.refresh === 'function') {
+            project_page.projectlist.refresh();
+        }
+
+        if (timesheet_page && typeof timesheet_page.refreshData === 'function') {
             timesheet_page.refreshData();
         }
-        if (activity_page && activity_page.visible) {
-            activity_page.refreshData();
-        }
-        if (task_page && task_page.visible) {
-            task_page.refreshData();
-        }
-        if (project_page && project_page.visible) {
-            project_page.refreshData();
-        }
+        
+
+        Qt.callLater(function() {
+            forceAllPagesUIRefresh();
+        });
     }
     
-    // Function to refresh account filter
-    function openAccountDrawer() {
-        accountFilter.refreshAccounts();
-    }
-    Component.onCompleted: {
-        // console.log("From OnComplete " + columns);
 
-        // Initialize database first
+    function forceAllPagesUIRefresh() {
+        if (timesheet_list && timesheet_list.timesheetlist) {
+            timesheet_list.timesheetlist.forceLayout();
+        }
+        
+        if (task_page && task_page.tasklist) {
+            task_page.tasklist.forceLayout();
+        }
+        
+        if (project_page && project_page.projectlist) {
+            project_page.projectlist.forceLayout();
+        }
+        
+        if (activity_page && activity_page.activitylist) {
+            activity_page.activitylist.forceLayout();
+        }
+        
+    }
+
+    function openAccountDrawer() {
+        if (accountFilter && typeof accountFilter.refreshAccounts === 'function') {
+            accountFilter.refreshAccounts();
+        } else {
+            console.warn("accountFilter.refreshAccounts function not available");
+        }
+    }
+
+    Component.onCompleted: {
+
         DbInit.initializeDatabase();
 
         // Load and apply saved theme preference
@@ -326,7 +414,6 @@ MainView {
                 saveThemePreference(defaultTheme);
             }
         } catch (e) {
-
             // Fallback to light theme if there's an error
             Theme.name = "Ubuntu.Components.Themes.Ambiance";
         }
@@ -335,7 +422,7 @@ MainView {
     // Function to get saved theme preference from database
     function getSavedThemePreference() {
         try {
-            //   console.log("🗄️ Opening database for theme preference...");
+             //   console.log("🗄️ Opening database for theme preference...");
             var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
             var themeName = "";
 
@@ -348,7 +435,7 @@ MainView {
                 //   console.log("🗄️ Database query result rows:", result.rows.length);
                 if (result.rows.length > 0) {
                     themeName = result.rows.item(0).value;
-                    // console.log("🗄️ Found saved theme in database:", themeName);
+                     // console.log("🗄️ Found saved theme in database:", themeName);
                 }
             });
 
@@ -371,7 +458,7 @@ MainView {
 
                 // Save theme preference (INSERT OR REPLACE)
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['theme_preference', themeName]);
-                //    console.log("💾 Theme preference saved successfully:", themeName);
+            //    console.log("💾 Theme preference saved successfully:", themeName);
             });
 
             //    console.log("💾 Database transaction completed for theme:", themeName);

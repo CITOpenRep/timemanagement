@@ -29,6 +29,7 @@ import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
 import "../../models/constants.js" as AppConst
 import QtQuick.LocalStorage 2.7 as Sql
+import "../../models/accounts.js" as Accounts
 
 Item {
     id: ehoverMatrix
@@ -54,12 +55,16 @@ Item {
         try {
             db.transaction(function (tx) {
                 var users = tx.executeSql("SELECT id, name FROM users");
-
+                var userid= Accounts.getDefaultAccountId();
+                console.log("Default user ID:", userid);
                 for (var u = 0; u < users.rows.length; u++) {
                     var instance_id = users.rows.item(u).id;
                     var instance_name = users.rows.item(u).name;
 
-                    var rs = tx.executeSql("SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app WHERE account_id = ? GROUP BY quadrant_id", [instance_id]);
+                   var rs = tx.executeSql(
+                "SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app WHERE account_id = ? GROUP BY quadrant_id",
+                [userid]
+            );
 
                     for (var i = 0; i < rs.rows.length; i++) {
                         var qid = rs.rows.item(i).quadrant_id;
@@ -77,6 +82,7 @@ Item {
         } catch (err) {
             console.error("ERROR during quadrant aggregation:", err);
         }
+ 
 
         return {
             1: Math.round(quadrantHours[1]).toString(),

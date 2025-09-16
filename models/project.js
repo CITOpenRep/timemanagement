@@ -1,6 +1,7 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
+.import "accounts.js" as Account
 
 
 
@@ -102,6 +103,28 @@ function getAllProjectUpdates() {
         });
     } catch (e) {
         console.error("❌ getAllProjectUpdates failed:", e);
+    }
+
+    return updateList;
+}
+
+function getProjectUpdatesByProject(projectOdooRecordId, accountId) {
+    var updateList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND project_id = ? AND account_id = ? ORDER BY date DESC";
+            var result = tx.executeSql(query, [projectOdooRecordId, accountId]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                updateList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("❌ getProjectUpdatesByProject failed:", e);
     }
 
     return updateList;
@@ -544,41 +567,44 @@ function markProjectUpdateAsDeleted(updateId) {
  * @returns {Array<Object>} - A list of objects with `project_id`, `name`, and `spentHours`.
  */
 function getProjectSpentHoursList(is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    console.log("🔍 getProjectSpentHoursList called with is_work_state =", is_work_state);
+   
+     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var resultList = [];
     var projectSpentMap = {};
-
+ 
+    // Get current user's account ID
+    var defaultAccountId = Account.getDefaultAccountId();
+ 
     db.transaction(function (tx) {
-        var filter = is_work_state ? "account_id != 0" : "account_id = 0";
+        // Filter to only include rows for the logged-in user
+        var filter = "account_id = " + defaultAccountId;
         var result = tx.executeSql("SELECT project_id, unit_amount FROM account_analytic_line_app WHERE " + filter);
-
+ 
         for (var i = 0; i < result.rows.length; i++) {
             var row = result.rows.item(i);
             var projectId = row.project_id;
             var spent = parseFloat(row.unit_amount || 0);
-
+ 
             if (!projectSpentMap[projectId]) {
                 projectSpentMap[projectId] = 0;
             }
             projectSpentMap[projectId] += spent;
-            // console.log("project is " + projectId)
-            // console.log(" Spent is " + spent)
         }
-
+ 
         for (var projectId in projectSpentMap) {
-            var intProjectId = parseInt(projectId);  // ✅ ensure it's an integer
+            var intProjectId = parseInt(projectId);
             var pname = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ?", [intProjectId]);
             var projectName = pname.rows.length ? pname.rows.item(0).name : "Unknown";
-
+ 
             resultList.push({
-                                project_id: intProjectId,
-                                name: projectName,
-                                spentHours: parseFloat(projectSpentMap[projectId].toFixed(1))
-                            });
+                project_id: intProjectId,
+                name: projectName,
+                spentHours: parseFloat(projectSpentMap[projectId].toFixed(1))
+            });
         }
-
     });
-
+ 
     return resultList;
 }
 
