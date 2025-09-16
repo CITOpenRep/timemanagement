@@ -19,9 +19,10 @@ Rectangle {
 
     // Function to get the raw text content with formatting preserved
     function getFormattedText() {
-        // Always return the original HTML content if available
-        // Don't fallback to previewText.text as it may have lost formatting
-        return originalHtmlContent !== "" ? originalHtmlContent : previewText.text;
+        // Always get the most current content from the TextArea
+        // Update originalHtmlContent first to ensure we have the latest content
+        originalHtmlContent = previewText.text;
+        return originalHtmlContent;
     }
 
     // Function to set content with HTML preservation
@@ -71,6 +72,13 @@ Rectangle {
 
                 width: parent.width - units.gu(2)
                 anchors.horizontalCenter: parent.horizontalCenter
+
+                // Update originalHtmlContent when user types
+                onTextChanged: {
+                    if (!is_read_only) {
+                        originalHtmlContent = text;
+                    }
+                }
 
                 Rectangle {
                     // visible: !isReadOnly

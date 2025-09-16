@@ -468,8 +468,8 @@ Page {
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
             }
-        } else {
-            Global.description_temporary_holder = "";
         }
+        // Don't clear Global.description_temporary_holder when page becomes invisible
+        // as it might be needed by the ReadMore page
     }
 }
