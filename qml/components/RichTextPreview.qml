@@ -37,9 +37,11 @@ Rectangle {
             TextArea {
                 id: previewText
                 textFormat: useRichText ? Text.RichText : Text.PlainText
+           
                 readOnly: is_read_only
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                // wrapMode: Text.WordWrap
+                wrapMode: Text.WordWrap
+                font.pixelSize: units.gu(2)
 
                 width: parent.width - units.gu(2)
                 anchors.horizontalCenter: parent.horizontalCenter

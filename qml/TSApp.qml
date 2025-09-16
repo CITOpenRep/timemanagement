@@ -108,7 +108,6 @@ MainView {
         height: units.gu(10)
     }
 
-
     AdaptivePageLayout {
         id: apLayout
         anchors.top: accountFilter.bottom

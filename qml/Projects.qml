@@ -297,6 +297,11 @@ Page {
 
             TSButton {
                 visible: isReadOnly
+               bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
+               
                 width: (parent.width - units.gu(1)) / 2
                 text: "Create Project Update"
                 onClicked: {
@@ -307,6 +312,10 @@ Page {
 
             TSButton {
                 visible: isReadOnly
+               bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
                 width: (parent.width - units.gu(1)) / 2
                 text: "Create Activity"
                 onClicked: {
@@ -326,6 +335,10 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
+             bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Tasks"
                 onClicked: {
@@ -341,11 +354,34 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Activities"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activity_Page.qml"), {
+                        "filterByProject": true,
+                        "projectOdooRecordId": project.odoo_record_id,
+                        "projectAccountId": project.account_id,
+                        "projectName": project.name
+                    });
+                }
+            }
+
+            TSButton {
+                visible: isReadOnly && recordid > 0
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+              
+             
+                width: (parent.width - units.gu(1)) / 2
+                text: "View Project Updates"
+                onClicked: {
+                    let project = Project.getProjectDetails(recordid);
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Updates_Page.qml"), {
                         "filterByProject": true,
                         "projectOdooRecordId": project.odoo_record_id,
                         "projectAccountId": project.account_id,
@@ -496,6 +532,14 @@ Page {
                 anchors.fill: parent
                 resource_id: project.odoo_record_id
                 account_id: project.account_id
+                onProcessed: {
+                    console.log("Uploaded the attchment lets do a refresh");
+                    if (recordid !== 0) {
+                        if (!loadProjectData(recordid)) {
+                            notifPopup.open("Failed", "Error during attachment refresh", "error");
+                        }
+                    }
+                }
             }
         }
     }

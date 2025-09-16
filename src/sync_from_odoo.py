@@ -465,3 +465,34 @@ def sync_all_from_odoo(
     for model, table in models_to_sync.items():
         send("sync_message",f"Syncing from Server {model}")
         sync_model(client, model, table, account_id, db_path, config_path)
+
+
+
+def sync_ondemand_tables_from_odoo(
+    client, account_id, db_path="app_settings.db", config_path="field_config.json"
+):
+    """
+    Synchronize all configured Odoo models with their corresponding SQLite tables.
+
+    Args:
+        client (OdooClient): Authenticated Odoo client instance
+        account_id (int): Account ID for record association
+        db_path (str): Path to the SQLite database file
+        config_path (str): Path to the field configuration JSON file
+
+    Note:
+        Syncs the following models:
+        - project.project -> project_project_app
+        - project.task -> project_task_app
+        - account.analytic.line -> account_analytic_line_app
+        - mail.activity.type -> mail_activity_type_app
+        - mail.activity -> mail_activity_app
+        - res.users -> res_users_app
+    """
+    log.debug(f"Account id is {account_id}")
+    models_to_sync = {
+        "ir.attachment":"ir_attachment_app",
+    }
+
+    for model, table in models_to_sync.items():
+        sync_model(client, model, table, account_id, db_path, config_path)

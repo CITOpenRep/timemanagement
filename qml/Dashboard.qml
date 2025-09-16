@@ -239,14 +239,12 @@ Page {
         console.log("🔄 Refreshing Dashboard data...");
         get_project_chart_data();
         get_task_chart_data();
-        
         // Refresh project chart if it exists
         if (typeof projectchart !== 'undefined') {
             var data = Project.getProjectSpentHoursList(true);
             projectchart.load(data);
         }
     }
-    
     DialerMenu {
         id: fabMenu
         anchors.fill: parent

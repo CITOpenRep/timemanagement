@@ -415,7 +415,7 @@ Page {
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
             TSButton {
-                visible: isReadOnly
+                visible: recordid !== 0
                 width: parent.width / 2
                 text: "Create Activity"
                 onClicked: {
@@ -605,6 +605,10 @@ Page {
                 anchors.fill: parent
                 resource_id: currentTask.odoo_record_id
                 account_id: currentTask.account_id
+                onProcessed: {
+                    console.log("Uploaded the attchment lets do a refresh");
+                    loadTask();
+                }
             }
         }
     }

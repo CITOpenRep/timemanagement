@@ -156,6 +156,7 @@ Page {
                 if (!a.due_date || !b.due_date) {
                     return (a.summary || "").localeCompare(b.summary || "");
                 }
+                // Sort in acending order (oldest first)
                 return new Date(a.due_date) - new Date(b.due_date);
             });
 

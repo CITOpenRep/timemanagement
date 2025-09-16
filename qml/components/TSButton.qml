@@ -42,6 +42,7 @@ Item {
     property color bgColor: (enabled) ? AppConst.Colors.Button : AppConst.Colors.ButtonDisabled
     property color fgColor: AppConst.Colors.ButtonText
     property color hoverColor: AppConst.Colors.ButtonHover  // fallback hover
+    property color borderColor: "transparent" // Default border color
     property int radius: units.gu(0.8)
 
     Rectangle {
@@ -50,6 +51,7 @@ Item {
         anchors.margins: units.gu(0.25)
         radius: root.radius
         color: mouseArea.containsMouse ? root.hoverColor : root.bgColor
+        border.color: root.borderColor
 
         Text {
             id: label
