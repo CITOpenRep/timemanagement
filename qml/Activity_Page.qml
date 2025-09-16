@@ -67,6 +67,13 @@ Page {
         ]
     }
 
+
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+    }
+
     function shouldIncludeItem(item) {
         const filter = activity.currentFilter || "all";
         const searchQuery = activity.currentSearchQuery || "";
@@ -342,6 +349,27 @@ Page {
                     // Refresh the activity list to show updated data
                     get_activity_list();
                 }
+
+               onCreateFollowup:  function (accountid, recordid) {
+                   //first mark this activity as Done and create a followup activity
+                   Activity.markAsDone(accountid, recordid);
+                   var result=Activity.createFollowupActivity(accountid,recordid)
+                   if(result.success===true)
+                   {
+                       console.log("Followup activity has been created")
+                       apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                           "recordid": result.record_id,
+                           "accountid": accountid,
+                           "isReadOnly": false
+                       });
+                   }
+                   else
+                   {
+                         notifPopup.open("Error", "Failed to create a followup activity.", "error");
+                   }
+
+                   get_activity_list();
+               }
             }
             currentIndex: 0
             onCurrentIndexChanged:
