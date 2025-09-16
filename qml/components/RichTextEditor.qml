@@ -54,12 +54,87 @@ Item {
         settings.javascriptEnabled: true
     }
 
+    // Function to clean Qt HTML and convert it to standard HTML
+    function cleanQtHtml(qtHtml) {
+        if (!qtHtml || qtHtml.trim() === "") {
+            return "";
+        }
+
+        var cleaned = qtHtml;
+
+        // Remove DOCTYPE declaration and HTML wrapper if present
+        if (cleaned.indexOf("<!DOCTYPE") !== -1) {
+            // Extract content from body tag
+            var bodyStart = cleaned.indexOf("<body");
+            var bodyEnd = cleaned.indexOf("</body>");
+
+            if (bodyStart !== -1 && bodyEnd !== -1) {
+                // Find the end of the opening body tag
+                var bodyTagEnd = cleaned.indexOf(">", bodyStart);
+                if (bodyTagEnd !== -1) {
+                    cleaned = cleaned.substring(bodyTagEnd + 1, bodyEnd);
+                }
+            }
+        }
+
+        // Convert Qt's CSS-based formatting to Quill-friendly HTML tags
+        // Convert font-weight:600 to <strong> tags
+        cleaned = cleaned.replace(/<span style="([^"]*?)font-weight:\s*600;([^"]*?)">(.*?)<\/span>/g, function (match, beforeStyle, afterStyle, content) {
+            var newStyle = (beforeStyle + afterStyle).replace(/;\s*;/g, ';').replace(/^;|;$/g, '');
+            if (newStyle.trim() === '') {
+                return '<strong>' + content + '</strong>';
+            } else {
+                return '<strong><span style="' + newStyle + '">' + content + '</span></strong>';
+            }
+        });
+
+        // Convert text-decoration: underline to <u> tags
+        cleaned = cleaned.replace(/<span style="([^"]*?)text-decoration:\s*underline;([^"]*?)">(.*?)<\/span>/g, function (match, beforeStyle, afterStyle, content) {
+            var newStyle = (beforeStyle + afterStyle).replace(/;\s*;/g, ';').replace(/^;|;$/g, '');
+            if (newStyle.trim() === '') {
+                return '<u>' + content + '</u>';
+            } else {
+                return '<u><span style="' + newStyle + '">' + content + '</span></u>';
+            }
+        });
+
+        // Convert text-decoration: line-through to <s> tags
+        cleaned = cleaned.replace(/<span style="([^"]*?)text-decoration:\s*line-through;([^"]*?)">(.*?)<\/span>/g, function (match, beforeStyle, afterStyle, content) {
+            var newStyle = (beforeStyle + afterStyle).replace(/;\s*;/g, ';').replace(/^;|;$/g, '');
+            if (newStyle.trim() === '') {
+                return '<s>' + content + '</s>';
+            } else {
+                return '<s><span style="' + newStyle + '">' + content + '</span></s>';
+            }
+        });
+
+        // Clean up Qt-specific attributes and styles
+        cleaned = cleaned
+        // Remove Qt-specific CSS properties
+        .replace(/-qt-block-indent:\s*\d+;\s*/g, "").replace(/-qt-list-indent:\s*\d+;\s*/g, "").replace(/text-indent:\s*0px;\s*/g, "")
+        // Remove layout-specific margin styles
+        .replace(/margin-top:\s*\d+px;\s*/g, "").replace(/margin-bottom:\s*\d+px;\s*/g, "").replace(/margin-left:\s*0px;\s*/g, "").replace(/margin-right:\s*0px;\s*/g, "")
+        // Remove meta tags and head content if any remain
+        .replace(/<meta[^>]*>/g, "").replace(/<style[^>]*>[\s\S]*?<\/style>/g, "")
+        // Clean up empty style attributes
+        .replace(/style="\s*"/g, "").replace(/style=''/g, "");
+
+        console.log("Original Qt HTML:", qtHtml.substring(0, 300) + "...");
+        console.log("Cleaned HTML:", cleaned.substring(0, 300) + "...");
+
+        return cleaned.trim();
+    }
+
     // Function to set text content
     function setText(htmlText) {
         console.log("RichTextEditor.setText called with:", htmlText);
         if (_isLoaded) {
+            // Clean Qt HTML before setting
+            var cleanedText = cleanQtHtml(htmlText || "");
+            console.log("Cleaned HTML:", cleanedText);
+
             // Use JSON.stringify to properly escape the content for JavaScript
-            var escapedText = JSON.stringify(htmlText || "");
+            var escapedText = JSON.stringify(cleanedText);
             console.log("Calling setContent with escaped text:", escapedText);
             webView.runJavaScript("window.quillEditor.setContent(" + escapedText + ");");
         } else {

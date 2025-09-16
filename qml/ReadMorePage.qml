@@ -27,12 +27,13 @@ Page {
 
         trailingActionBar.actions: [
             Action {
+                visible: !isReadOnly
                 iconName: "tick"
                 onTriggered: {
                     editor.getText(function (content) {
-                    Global.description_temporary_holder = content;
-                    pageStack.removePages(readmepage);
-                });
+                        Global.description_temporary_holder = content;
+                        pageStack.removePages(readmepage);
+                    });
                 }
             }
         ]

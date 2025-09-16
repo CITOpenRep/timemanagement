@@ -19,7 +19,8 @@ Rectangle {
 
     // Function to get the raw text content with formatting preserved
     function getFormattedText() {
-        // Return the original HTML content if available, otherwise return plain text
+        // Always return the original HTML content if available
+        // Don't fallback to previewText.text as it may have lost formatting
         return originalHtmlContent !== "" ? originalHtmlContent : previewText.text;
     }
 
@@ -31,8 +32,10 @@ Rectangle {
 
     // Override the text property setter to also store HTML
     onTextChanged: {
-        if (originalHtmlContent === "") {
-            originalHtmlContent = previewText.text;
+        // Only store as originalHtmlContent if it's not already set
+        // This prevents overwriting HTML content with processed text
+        if (originalHtmlContent === "" && text !== "") {
+            originalHtmlContent = text;
         }
     }
 
