@@ -24,6 +24,9 @@ Item {
         id: webView
         anchors.fill: parent
 
+        // Set a default zoom factor to make content larger on high-DPI screens (Please uncomment while building on a real device.)
+       // zoomFactor: 2.52
+
         // Load the Quill.js HTML file
         url: Qt.resolvedUrl("quill-editor.html") + "?" + (readOnly ? "readonly=true" : "readonly=false") + "&darkMode=" + darkMode
 
@@ -48,6 +51,10 @@ Item {
         onNewViewRequested: {
             // Handle any navigation requests if needed
             request.action = WebEngineView.IgnoreRequest;
+        }
+
+        onJavaScriptConsoleMessage: {
+            console.log("WebView Console:", message)
         }
 
         // Enable JavaScript
@@ -250,3 +257,4 @@ Item {
         }
     }
 }
+   

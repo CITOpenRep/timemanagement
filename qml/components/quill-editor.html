@@ -43,7 +43,7 @@
             --bg-primary: #2c2c2c;
             --bg-secondary: #3c3c3c;
             --text-primary: #e6e6e6;
-            --text-secondary: #b3b3b3;
+            --text-secondary: #d3d0d0;
             --text-placeholder: #666;
             --border-color: #555;
             --border-color-focus: #4db8ff;
@@ -345,6 +345,18 @@
         var readOnlyParam = urlParams.get('readonly');
         if (readOnlyParam === 'true') {
             setReadOnly(true);
+        }
+
+        // Add console logging for viewport/zoom changes
+        if (window.visualViewport) {
+            // Log initial scale after a short delay to ensure layout is complete
+            setTimeout(() => console.log('Initial visual viewport scale:', window.visualViewport.scale), 100);
+
+            window.visualViewport.addEventListener('resize', function() {
+                console.log('Viewport resized. New scale:', window.visualViewport.scale);
+            });
+        } else {
+            console.log('visualViewport API not supported. Cannot track zoom changes effectively.');
         }
     </script>
 </body>
