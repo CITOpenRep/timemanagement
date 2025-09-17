@@ -83,18 +83,31 @@ function getAllProjects() {
 
 /**
  * Retrieves all project update records from the local SQLite DB as plain objects.
+ * Now supports account filtering.
  *
+ * @param {number} [accountId] - Optional account ID to filter by. If not provided, returns all updates.
  * @returns {Array<Object>} A list of project update objects with fields like id, name, status, etc.
  */
-function getAllProjectUpdates() {
+function getAllProjectUpdates(accountId) {
     var updateList = [];
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' ORDER BY date DESC";
-            var result = tx.executeSql(query);
+            var query, result;
+            
+            if (accountId !== undefined && accountId !== null) {
+               
+                query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND account_id = ? ORDER BY date DESC";
+                result = tx.executeSql(query, [accountId]);
+                console.log("Fetching project updates for account:", accountId);
+            } else {
+              
+                query = "SELECT * FROM project_update_app WHERE status != 'deleted' ORDER BY date DESC";
+                result = tx.executeSql(query);
+                console.log("Fetching all project updates (no account filter)");
+            }
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -105,6 +118,7 @@ function getAllProjectUpdates() {
         console.error("❌ getAllProjectUpdates failed:", e);
     }
 
+    console.log("Found", updateList.length, "project updates");
     return updateList;
 }
 

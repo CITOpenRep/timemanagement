@@ -71,6 +71,12 @@ Page {
                 onTriggered: {
                     taskListHeader.toggleSearchVisibility();
                 }
+            },
+            Action {
+                iconName: "account"  
+                onTriggered: {
+                    accountFilterVisible = !accountFilterVisible
+                }
             }
         ]
     }
@@ -302,6 +308,47 @@ Page {
             }
         }
     }
+
+    Connections {
+        target: mainView
+        onGlobalAccountChanged: function(accountId, accountName) {
+            console.log("Task_Page: GlobalAccountChanged →", accountId, accountName)
+            tasklist.selectedAccountId = accountId
+        
+            if (filterByProject) {
+                if (currentSearchQuery) {
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery)
+                } else {
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter)
+                }
+            } else {
+                if (currentSearchQuery) {
+                    tasklist.applySearch(currentSearchQuery)
+                } else {
+                    tasklist.applyFilter(currentFilter)
+                }
+            }
+        }
+        onAccountDataRefreshRequested: function(accountId) {
+
+            tasklist.selectedAccountId = accountId
+       
+            if (filterByProject) {
+                if (currentSearchQuery) {
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery)
+                } else {
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter)
+                }
+            } else {
+                if (currentSearchQuery) {
+                    tasklist.applySearch(currentSearchQuery)
+                } else {
+                    tasklist.applyFilter(currentFilter)
+                }
+            }
+        }
+    }
+
 
     Component.onCompleted: {
         if (filterByProject) {

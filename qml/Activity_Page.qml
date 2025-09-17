@@ -62,6 +62,12 @@ Page {
                         "isReadOnly": false
                     });
                 }
+            },
+            Action {
+                iconName: "account"   
+                onTriggered: {
+                    accountFilterVisible = !accountFilterVisible
+                }
             }
         ]
     }
@@ -77,6 +83,23 @@ Page {
 
     property bool filterByAccount: true
     property int selectedAccountId: Accounts.getDefaultAccountId()
+
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
+    }
+
+    function shouldIncludeItem(item) {
+        const filter = activity.currentFilter || "all";
+        const searchQuery = activity.currentSearchQuery || "";
+        const currentDate = new Date();
+
+        const dueDateOk = (filter === "all") || passesDateFilter(item.due_date, filter, currentDate);
+        const searchOk = (!searchQuery) || passesSearchFilter(item, searchQuery);
+
+        return dueDateOk && searchOk;
+    }
 
  
     function getProjectDetails(projectId) {
@@ -368,6 +391,27 @@ Page {
                     Activity.updateActivityDate(accountid, recordid, newDate);
                     get_activity_list();
                 }
+
+               onCreateFollowup:  function (accountid, recordid) {
+                   //first mark this activity as Done and create a followup activity
+                   Activity.markAsDone(accountid, recordid);
+                   var result=Activity.createFollowupActivity(accountid,recordid)
+                   if(result.success===true)
+                   {
+                       console.log("Followup activity has been created")
+                       apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                           "recordid": result.record_id,
+                           "accountid": accountid,
+                           "isReadOnly": false
+                       });
+                   }
+                   else
+                   {
+                         notifPopup.open("Error", "Failed to create a followup activity.", "error");
+                   }
+
+                   get_activity_list();
+               }
             }
             currentIndex: 0
             onCurrentIndexChanged: {}
@@ -389,6 +433,18 @@ Page {
     onVisibleChanged: {
         if (visible) {
             get_activity_list();
+        }
+    }
+
+    Connections {
+        target: mainView
+        onAccountDataRefreshRequested: function(accountId) {
+
+            applyAccountFilter(accountId)
+        }
+        onGlobalAccountChanged: function(accountId, accountName) {
+
+            applyAccountFilter(accountId)
         }
     }
 

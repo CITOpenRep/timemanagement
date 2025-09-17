@@ -108,6 +108,12 @@ Page {
 
         trailingActionBar.actions: [
             Action {
+                iconName: "account"   
+                onTriggered: {
+                    accountFilterVisible = !accountFilterVisible
+                }
+            },
+            Action {
                 iconName: "help"
                 text: "About"
                 onTriggered: {
@@ -481,6 +487,20 @@ Page {
             anchors.fill: parent
             color: "lightgray"
             opacity: 0.0 // Make it invisible but still interactive
+        }
+    }
+
+    Connections {
+        target: mainView
+
+        onAccountDataRefreshRequested: function(accountId) {
+
+            refreshData()
+        }
+
+        onGlobalAccountChanged: function(accountId, accountName) {
+
+            refreshData()
         }
     }
 

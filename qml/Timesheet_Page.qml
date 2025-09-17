@@ -39,6 +39,7 @@ Page {
 
     property string currentFilter: "all"
     property bool workpersonaSwitchState: true
+    property string selectedAccountId: Account.getDefaultAccountId()
 
     header: PageHeader {
         id: timesheetsheader
@@ -54,7 +55,10 @@ Page {
                 iconName: "reminder-new"
                 text: "New"
                 onTriggered: {
-                    const result = Model.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                    const result = Model.createTimesheet(
+                        selectedAccountId,
+                        Account.getCurrentUserOdooId(selectedAccountId)
+                    )
                     if (result.success) {
                         apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                             "recordid": result.id,
@@ -64,12 +68,18 @@ Page {
                         notifPopup.open("Error", result.message, "error");
                     }
                 }
+            },
+            Action {
+                iconName: "account"
+                onTriggered: {
+                    accountFilterVisible = !accountFilterVisible
+                }
             }
         ]
     }
+
     Connections {
         target: globalTimerWidget
-
         onTimerStopped: {
             fetch_timesheets_list();
         }
@@ -84,13 +94,29 @@ Page {
         }
     }
 
+    Connections {
+        target: mainView
+
+        onGlobalAccountChanged: {
+            selectedAccountId = accountId
+
+            fetch_timesheets_list()
+        }
+
+        onAccountDataRefreshRequested: {
+            if (selectedAccountId === accountId) {
+
+                fetch_timesheets_list()
+            }
+        }
+    }
+
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
     }
-
-    // Add ListHeader filter here
+   // Add ListHeader filter here
     ListHeader {
         id: timesheetListHeader
         anchors.top: timesheetsheader.bottom
@@ -105,7 +131,6 @@ Page {
         filter2: "active"
         filter3: "draft"
         // Hide unused labels/filters
-
         label4: ""
         label5: ""
         label6: ""
@@ -130,18 +155,13 @@ Page {
     }
 
     function fetch_timesheets_list() {
-        
-        var currentAccountId = Account.getDefaultAccountId();
-        
-        console.log("Fetching timesheets for account:", currentAccountId, "filter:", currentFilter);
-        
-       
-        var timesheets_list = Model.fetchTimesheetsByStatus(currentFilter, currentAccountId);
-        
-        timesheetModel.clear();
-        
-        console.log("Retrieved", timesheets_list.length, "timesheets for account:", currentAccountId);
-        
+        var currentAccountId = selectedAccountId
+        console.log("Fetching timesheets for account:", currentAccountId, "filter:", currentFilter)
+
+        var timesheets_list = Model.fetchTimesheetsByStatus(currentFilter, currentAccountId)
+        timesheetModel.clear()
+        console.log("Retrieved", timesheets_list.length, "timesheets for account:", currentAccountId)
+
         for (var timesheet = 0; timesheet < timesheets_list.length; timesheet++) {
             timesheetModel.append({
                 'name': timesheets_list[timesheet].name,
@@ -158,7 +178,7 @@ Page {
                 'color_pallet': timesheets_list[timesheet].color_pallet
             });
         }
-        
+
         console.log("Populated timesheetModel with", timesheetModel.count, "items");
     }
 
@@ -226,14 +246,17 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                const result = Model.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                const result = Model.createTimesheet(
+                    selectedAccountId,
+                    Account.getCurrentUserOdooId(selectedAccountId)
+                )
                 if (result.success) {
                     apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
-                    });
+                    })
                 } else {
-                    notifPopup.open("Error", result.message, "error");
+                    notifPopup.open("Error", result.message, "error")
                 }
             }
         }

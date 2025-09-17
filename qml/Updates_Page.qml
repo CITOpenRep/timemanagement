@@ -43,6 +43,8 @@ Page {
     property int projectAccountId: -1
     property string projectName: ""
 
+    property int selectedAccountId: Account.getDefaultAccountId()
+
     header: PageHeader {
         id: updatesheader
         title: filterByProject ? "Updates - " + projectName : updates.title
@@ -50,6 +52,31 @@ Page {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
+        }
+
+        trailingActionBar.actions: [
+            Action {
+                iconName: "account"
+                text: "Account"
+                onTriggered: {
+                    accountFilterVisible = !accountFilterVisible
+                }
+            }
+        ]
+    }
+
+
+    Connections {
+        target: mainView
+        onAccountDataRefreshRequested: function(accountId) {
+            console.log("Updates_Page: AccountDataRefreshRequested for accountId:", accountId)
+            selectedAccountId = accountId
+            fetchupdates()
+        }
+        onGlobalAccountChanged: function(accountId, accountName) {
+            console.log("Updates_Page: GlobalAccountChanged to accountId:", accountId, "accountName:", accountName)
+            selectedAccountId = accountId
+            fetchupdates()
         }
     }
 
@@ -68,8 +95,10 @@ Page {
         if (filterByProject && projectOdooRecordId && projectAccountId >= 0) {
             updates_list = Project.getProjectUpdatesByProject(projectOdooRecordId, projectAccountId);
         } else {
-            updates_list = Project.getAllProjectUpdates();
+          
+            updates_list = Project.getAllProjectUpdates(selectedAccountId);
         }
+        
         updatesModel.clear();
         for (var index = 0; index < updates_list.length; index++) {
             updatesModel.append({
@@ -84,6 +113,8 @@ Page {
                 'user': updates_list[index].user_id
             });
         }
+        
+
     }
 
     ListView {
@@ -126,9 +157,14 @@ Page {
 
         Component.onCompleted: fetchupdates()
     }
+    
     onVisibleChanged: {
         if (visible) {
             fetchupdates();
         }
+    }
+
+    Component.onCompleted: {
+        fetchupdates();
     }
 }

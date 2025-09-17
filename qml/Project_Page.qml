@@ -58,6 +58,12 @@ Page {
                         "isReadOnly": false
                     });
                 }
+            },
+            Action {
+                iconName: "account" 
+                onTriggered: {
+                    accountFilterVisible = !accountFilterVisible
+                }
             }
         ]
     }
@@ -102,6 +108,24 @@ Page {
             projectlist.refresh();
         }
     }
+
+    Connections {
+        target: mainView
+
+        onAccountDataRefreshRequested: function(accountId) {
+
+            projectlist.selectedAccountId = accountId  
+            projectlist.refresh()
+        }
+
+        onGlobalAccountChanged: function(accountId, accountName) {
+
+            projectlist.selectedAccountId = accountId   
+            projectlist.refresh()
+        }
+    }
+
+
     Component.onCompleted: {
         projectlist.refresh();
     }
