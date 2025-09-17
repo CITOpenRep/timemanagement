@@ -176,7 +176,7 @@ ListItem {
                 onTriggered: markAsDone(root.account_id, root.odoo_record_id)
             },
             Action {
-                iconSource: "../images/followup.png"
+                iconName: "retweet"
                 onTriggered: createFollowup(root.account_id, root.odoo_record_id)
             }
         ]
