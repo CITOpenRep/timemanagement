@@ -7,11 +7,38 @@ Rectangle {
     property string title: "Description"
     property bool is_read_only: true
     property bool useRichText: true
+
+    // Store the original HTML content to preserve formatting
+    property string originalHtmlContent: ""
+
     width: parent.width
     height: parent.height//column.implicitHeight
     color: "transparent"
 
     signal clicked
+
+    // Function to get the raw text content with formatting preserved
+    function getFormattedText() {
+        // Always get the most current content from the TextArea
+        // Update originalHtmlContent first to ensure we have the latest content
+        originalHtmlContent = previewText.text;
+        return originalHtmlContent;
+    }
+
+    // Function to set content with HTML preservation
+    function setContent(htmlContent) {
+        originalHtmlContent = htmlContent || "";
+        previewText.text = htmlContent || "";
+    }
+
+    // Override the text property setter to also store HTML
+    onTextChanged: {
+        // Only store as originalHtmlContent if it's not already set
+        // This prevents overwriting HTML content with processed text
+        if (originalHtmlContent === "" && text !== "") {
+            originalHtmlContent = text;
+        }
+    }
 
     Column {
         id: column
@@ -37,7 +64,7 @@ Rectangle {
             TextArea {
                 id: previewText
                 textFormat: useRichText ? Text.RichText : Text.PlainText
-           
+
                 readOnly: is_read_only
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                 wrapMode: Text.WordWrap
@@ -45,6 +72,13 @@ Rectangle {
 
                 width: parent.width - units.gu(2)
                 anchors.horizontalCenter: parent.horizontalCenter
+
+                // Update originalHtmlContent when user types
+                onTextChanged: {
+                    if (!is_read_only) {
+                        originalHtmlContent = text;
+                    }
+                }
 
                 Rectangle {
                     // visible: !isReadOnly

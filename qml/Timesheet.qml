@@ -404,7 +404,7 @@ Page {
                         useRichText: false
                         onClicked: {
                             //set the data to a global store and pass the key to the page
-                            Global.description_temporary_holder = text;
+                            Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 useRichText: false
@@ -443,7 +443,7 @@ Page {
                 }
 
                 date_widget.setSelectedDate(currentTimesheet.record_date);
-                description_text.text = currentTimesheet.name;
+                description_text.setContent(currentTimesheet.name);
                 if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
                     time_sheet_widget.elapsedTime = currentTimesheet.spentHours;
                 }
@@ -465,11 +465,11 @@ Page {
         if (visible) {
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
-                description_text.text = Global.description_temporary_holder;
+                description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
             }
-        } else {
-            Global.description_temporary_holder = "";
         }
+        // Don't clear Global.description_temporary_holder when page becomes invisible
+        // as it might be needed by the ReadMore page
     }
 }
