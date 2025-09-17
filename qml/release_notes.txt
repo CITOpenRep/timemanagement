@@ -31,7 +31,31 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.5) </h3>
+      <h3>Change History : (Version 1.1.6) </h3>
+
+      <h4>19-09-2025 : Version 1.1.6</h4>
+
+<h5>New Features</h5>
+<ul>
+  <li>Introducing Enhanced Sync Message based on Backend Bridge. The Sync Message is now more accurate and directly communicates with the backend for sync info and progress.</li>
+  <li>Introducing partial sync. The attachment will be directly uploaded to server automatically, no need to sync through the settings page.</li>
+   <li>Introducing "View Project Update" Button in Project Detailed View. This will drill down to Project Updates based on the Project. </li>
+   <li> Introducing "Rich Text Editor" to the description pages where it is supported like Activity, Tasks and Projects. It is a web engine powered rich text editor and still under developement. Please Save your description, before navigating to another page. </li>
+   <li> Introducing Follow-Up Activity Create Feature. Now You can create follow up activities by swiping from right </li>
+   <li> Introducing attachment Download feature to Tasks and Projects. </li>
+
+</ul>
+
+<h5>Fixes and Improvements</h5>
+<ul>
+  <li> Fixed Issue in Tasks, where Task was displaying wrong Parent, in case of multiple instances.</li>
+  <li> Fixed Issue in Activity Creation from Tasks and Projects, where duplicate activity was created even without saving the activity and navigating back from the screen.</li>
+  <li> Fixed Tasks Sorting. It will be strictly sorted on End Date. </li>
+  <li> Fixed the Issue of Activity Create button in Tasks. Now it will be visible in both edit and view mode.</li>
+  <li> Fixed the Stage labels , now they will be displayed as simple Text instead of labels with colored background. Also changed the color for Buttons in Project Detailed view. </li>
+
+</ul>
+<br>
 
 <h4>05-09-2025 : Version 1.1.5</h4>
 
