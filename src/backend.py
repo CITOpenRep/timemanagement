@@ -228,6 +228,40 @@ def get_db_list(url):
         return []
     return []
 
+import os, base64, mimetypes
+from pathlib import Path
+
+def _app_data_dir():
+    # adjust to your app-id if you want a subdir
+    return Path.home() / ".local/share"
+
+def _safe_ext_for(mime):
+    ext = mimetypes.guess_extension(mime or "")
+    return ext or ""
+
+def ensure_export_file_from_base64(suggested_name, b64_data, mime):
+    """
+    Creates a temp file from base64 data inside app sandbox and returns its absolute path.
+    """
+    try:
+        base = _app_data_dir() / "ubtms" / "tmp"
+        base.mkdir(parents=True, exist_ok=True)
+
+        # normalize filename + extension
+        name = (suggested_name or "attachment").strip().replace("/", "_")
+        root, ext = os.path.splitext(name)
+        if not ext:
+            ext = _safe_ext_for(mime)
+        out = base / f"{root}{ext}"
+
+        # write bytes
+        with open(out, "wb") as f:
+            f.write(base64.b64decode(b64_data))
+
+        return str(out)
+    except Exception as e:
+        print("ensure_export_file_from_base64 error:", e)
+        return None
 
 def attachment_ondemand_download(settings_db,account_id, remote_record_id):
     accounts = get_all_accounts(settings_db)

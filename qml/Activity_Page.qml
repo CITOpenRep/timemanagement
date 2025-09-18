@@ -73,6 +73,7 @@ Page {
     }
 
 
+
     property string currentFilter: "today"
     property string currentSearchQuery: ""
 
@@ -83,6 +84,7 @@ Page {
 
     property bool filterByAccount: true
     property int selectedAccountId: Accounts.getDefaultAccountId()
+
 
     NotificationPopup {
         id: notifPopup

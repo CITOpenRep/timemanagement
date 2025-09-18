@@ -66,6 +66,8 @@ Column {
         }
     }
 
+
+
     Dialog {
         id: attachmentDialog
         width: parent.width

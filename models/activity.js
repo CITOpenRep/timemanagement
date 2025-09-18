@@ -692,6 +692,69 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
     }
 }
 
+function createFollowupActivity(account_id,activityId) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var newRecordId = 0;
+
+    try {
+        var timestamp = Utils.getFormattedTimestampUTC();
+        var createDate = timestamp.split(" ")[0];
+
+        db.transaction(function(tx) {
+            // 1. Fetch the existing activity
+            var result = tx.executeSql(
+                "SELECT * FROM mail_activity_app WHERE id = ? AND account_id = ?",
+                [activityId, account_id]
+            );
+
+            if (result.rows.length === 0) {
+                throw new Error("Activity not found for ID " + activityId);
+            }
+
+            var original = result.rows.item(0);
+
+            // 2. Insert a new record with cloned values
+            tx.executeSql(
+                `INSERT INTO mail_activity_app (
+                    account_id, activity_type_id, summary, user_id, due_date,
+                    notes, resModel, resId, task_id, project_id, link_id,
+                    state, last_modified, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    account_id,
+                    original.activity_type_id,
+                    "Followup: " + (original.summary || "Untitled"),
+                    original.user_id,
+                    createDate,              // new due date = today
+                    original.notes || "",
+                    original.resModel,
+                    original.resId,
+                    original.task_id,
+                    original.project_id,
+                    original.link_id,
+                    "planned",               // reset state
+                    timestamp,
+                    "updated"                       // unsynced
+                ]
+            );
+
+            // 3. Get new record ID
+            var inserted = tx.executeSql("SELECT last_insert_rowid() AS id");
+            if (inserted.rows.length > 0) {
+                newRecordId = inserted.rows.item(0).id;
+            }
+        });
+
+        console.log("Cloned activity", activityId, "into new ID:", newRecordId);
+        return { success: true, record_id: newRecordId };
+
+    } catch (e) {
+        console.error("cloneActivity failed:", e.message);
+        return { success: false, error: e.message };
+    }
+}
+
+
 /**
  * Retrieves all non-deleted activities linked to a specific project from the `mail_activity_app` table.
  *
