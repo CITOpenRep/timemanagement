@@ -8,7 +8,6 @@ Rectangle {
     id: accountFilter
     width: parent ? parent.width : 600
 
-
     height: accountFilterVisible ? panelHeight + panelMargin * 2 : 0
     color: "transparent"
     border.width: 0
@@ -19,7 +18,6 @@ Rectangle {
 
     signal accountChanged(int accountId, string accountName)
 
- 
     property real panelHeight: units.gu(8)
     property real panelMargin: units.gu(0)
 
@@ -32,7 +30,6 @@ Rectangle {
         z: accountFilter.z + 1
         clip: true
 
-   
         y: accountFilterVisible ? 0 : - (panelHeight + panelMargin)
         Behavior on y {
             NumberAnimation { duration: 260; easing.type: Easing.InOutQuad }
@@ -111,7 +108,14 @@ Rectangle {
                             selectedAccountId = selected.id;
                             selectedAccountName = selected.name;
 
-                            Accounts.setDefaultAccount(selected.id);
+                            // Only set default account if it's not "All"
+                            if (selected.id !== -1) {
+                                Accounts.setDefaultAccount(selected.id);
+                            }
+                            else {
+                                Accounts.clearDefaultAccount(); // You'll create this function
+                            }
+
 
                             accountChanged(selected.id, selected.name);
                             console.log("Account changed to:", selected.name, "ID:", selected.id);
@@ -136,6 +140,17 @@ Rectangle {
 
     function loadAccounts() {
         accountModel.clear();
+        
+        // Add "All" option first
+        accountModel.append({
+            id: -1,
+            name: "All Accounts",
+            database: "",
+            link: "",
+            username: "",
+            is_default: 0
+        });
+
         const accounts = Accounts.getAccountsList();
 
         for (let i = 0; i < accounts.length; i++) {
@@ -155,7 +170,8 @@ Rectangle {
     function selectDefaultAccount() {
         const defaultId = Accounts.getDefaultAccountId();
         if (defaultId >= 0) {
-            for (let i = 0; i < accountModel.count; i++) {
+            // Look for the default account (skip index 0 which is "All")
+            for (let i = 1; i < accountModel.count; i++) {
                 const item = accountModel.get(i);
                 if (item.id === defaultId) {
                     accountCombo.currentIndex = i;
@@ -165,13 +181,20 @@ Rectangle {
                     break;
                 }
             }
-        } else if (accountModel.count > 0) {
-            const first = accountModel.get(0);
-            accountCombo.currentIndex = 0;
+        } else if (accountModel.count > 1) {
+            // If no default account, select the first real account (index 1)
+            const first = accountModel.get(1);
+            accountCombo.currentIndex = 1;
             selectedAccountId = first.id;
             selectedAccountName = first.name;
             Accounts.setDefaultAccount(first.id);
             accountChanged(first.id, first.name);
+        } else {
+            // If only "All" option exists, select it
+            accountCombo.currentIndex = 0;
+            selectedAccountId = -1;
+            selectedAccountName = "All Accounts";
+            accountChanged(-1, "All Accounts");
         }
     }
 

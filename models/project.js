@@ -97,7 +97,7 @@ function getAllProjectUpdates(accountId) {
         db.transaction(function (tx) {
             var query, result;
             
-            if (accountId !== undefined && accountId !== null) {
+            if (accountId !== undefined && accountId !== null && accountId !== -1) {
                
                 query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND account_id = ? ORDER BY date DESC";
                 result = tx.executeSql(query, [accountId]);
@@ -582,45 +582,106 @@ function markProjectUpdateAsDeleted(updateId) {
  */
 function getProjectSpentHoursList(is_work_state) {
     console.log("🔍 getProjectSpentHoursList called with is_work_state =", is_work_state);
-   
-     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var resultList = [];
     var projectSpentMap = {};
- 
+
     // Get current user's account ID
     var defaultAccountId = Account.getDefaultAccountId();
- 
+
     db.transaction(function (tx) {
-        // Filter to only include rows for the logged-in user
-        var filter = "account_id = " + defaultAccountId;
-        var result = tx.executeSql("SELECT project_id, unit_amount FROM account_analytic_line_app WHERE " + filter);
- 
-        for (var i = 0; i < result.rows.length; i++) {
-            var row = result.rows.item(i);
-            var projectId = row.project_id;
-            var spent = parseFloat(row.unit_amount || 0);
- 
-            if (!projectSpentMap[projectId]) {
-                projectSpentMap[projectId] = 0;
+        var result;
+        if (defaultAccountId == -1) {
+            console.log("   All accounts selected, aggregating from all accounts");
+            
+            // For all accounts, we need to group by both project_id and account_id
+            // to handle cases where different accounts might have projects with same odoo_record_id
+            result = tx.executeSql(`
+                SELECT aal.project_id, aal.account_id, COALESCE(u.name, 'Unknown') as account_name, 
+                       SUM(aal.unit_amount) as total_spent
+                FROM account_analytic_line_app aal
+                LEFT JOIN users u ON aal.account_id = u.id
+                GROUP BY aal.project_id, aal.account_id
+            `);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                var projectId = row.project_id;
+                var accountId = row.account_id;
+                var accountName = row.account_name;
+                var spent = parseFloat(row.total_spent || 0);
+
+                // Get project name for this specific account
+                var pname = tx.executeSql(
+                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?", 
+                    [projectId, accountId]
+                );
+                var projectName = pname.rows.length ? pname.rows.item(0).name : "Unknown";
+
+                // Create unique key combining project name and account for all accounts view
+                var uniqueKey = projectName + " (" + accountName + ")";
+
+                if (!projectSpentMap[uniqueKey]) {
+                    projectSpentMap[uniqueKey] = {
+                        project_id: projectId,
+                        name: uniqueKey,
+                        spentHours: 0,
+                        account_id: accountId,
+                        account_name: accountName,
+                        original_project_name: projectName
+                    };
+                }
+                projectSpentMap[uniqueKey].spentHours += spent;
             }
-            projectSpentMap[projectId] += spent;
+
+        } else {
+            console.log("   Single account selected:", defaultAccountId);
+            
+            // For single account, use the original logic
+            result = tx.executeSql(
+                "SELECT project_id, SUM(unit_amount) as total_spent FROM account_analytic_line_app WHERE account_id = ? GROUP BY project_id", 
+                [defaultAccountId]
+            );
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                var projectId = row.project_id;
+                var spent = parseFloat(row.total_spent || 0);
+
+                // Get project name for this specific account
+                var pname = tx.executeSql(
+                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?", 
+                    [projectId, defaultAccountId]
+                );
+                var projectName = pname.rows.length ? pname.rows.item(0).name : "Unknown";
+
+                projectSpentMap[projectId] = {
+                    project_id: projectId,
+                    name: projectName,
+                    spentHours: spent,
+                    account_id: defaultAccountId
+                };
+            }
         }
- 
-        for (var projectId in projectSpentMap) {
-            var intProjectId = parseInt(projectId);
-            var pname = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ?", [intProjectId]);
-            var projectName = pname.rows.length ? pname.rows.item(0).name : "Unknown";
- 
+
+        // Convert map to array
+        for (var key in projectSpentMap) {
+            var project = projectSpentMap[key];
             resultList.push({
-                project_id: intProjectId,
-                name: projectName,
-                spentHours: parseFloat(projectSpentMap[projectId].toFixed(1))
+                project_id: project.project_id,
+                name: project.name,
+                spentHours: parseFloat(project.spentHours.toFixed(1)),
+                account_id: project.account_id,
+                account_name: project.account_name || undefined,
+                original_project_name: project.original_project_name || project.name
             });
         }
     });
- 
+
     return resultList;
 }
+
 
 /**
  * Gets the name of a project by its Odoo ID and account.

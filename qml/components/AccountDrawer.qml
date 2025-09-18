@@ -206,7 +206,7 @@ Item {
                 width: units.gu(20)
                 height: units.gu(5)
                 text: isSyncing ? "Syncing..." : "Sync Data"
-                enabled: !isSyncing && currentAccountId >= 0
+                enabled: !isSyncing && currentAccountId >= 0 && currentAccountId !== -1
                 
                 background: Rectangle {
                     color: syncButton.enabled ? (syncButton.pressed ? "#1976D2" : "#2196F3") : "#CCCCCC"
@@ -250,9 +250,39 @@ Item {
                 }
                 
                 onClicked: {
-                    if (currentAccountId >= 0) {
+                    if (currentAccountId >= 0 && currentAccountId !== -1) {
                         startSync();
                     }
+                }
+            }
+        }
+        
+        // Sync Button Info for "All Accounts"
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: currentAccountId === -1 ? units.gu(6) : 0
+            color: "transparent"
+            visible: currentAccountId === -1
+            
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: units.gu(0.5)
+                
+                Label {
+                    text: "Note: Sync is not available for 'All Accounts' view"
+                    font.pixelSize: units.gu(1.4)
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#FFA726" : "#F57C00"
+                    font.italic: true
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
+                }
+                
+                Label {
+                    text: "Please select a specific account to sync data"
+                    font.pixelSize: units.gu(1.2)
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#CCCCCC" : "#666666"
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
                 }
             }
         }
@@ -322,6 +352,17 @@ Item {
     
     function loadAccounts() {
         accountModel.clear();
+        
+        // Add "All Accounts" option first
+        accountModel.append({
+            id: -1,
+            name: "All Accounts",
+            database: "",
+            link: "",
+            username: "",
+            is_default: 0
+        });
+        
         const accounts = Accounts.getAccountsList();
         
         for (let i = 0; i < accounts.length; i++) {
@@ -342,7 +383,8 @@ Item {
     function selectDefaultAccount() {
         const defaultId = Accounts.getDefaultAccountId();
         if (defaultId >= 0) {
-            for (let i = 0; i < accountModel.count; i++) {
+            // Look for the default account (skip index 0 which is "All Accounts")
+            for (let i = 1; i < accountModel.count; i++) {
                 const item = accountModel.get(i);
                 if (item.id === defaultId) {
                     accountComboBox.currentIndex = i;
@@ -352,22 +394,38 @@ Item {
                     break;
                 }
             }
+        } else if (accountModel.count > 1) {
+            // If no default account, select the first real account (index 1)
+            const first = accountModel.get(1);
+            accountComboBox.currentIndex = 1;
+            currentAccountId = first.id;
+            currentAccountName = first.name;
+            Accounts.setDefaultAccount(first.id);
+            accountChanged(first.id, first.name);
+        } else {
+            // If only "All Accounts" option exists, select it
+            accountComboBox.currentIndex = 0;
+            currentAccountId = -1;
+            currentAccountName = "All Accounts";
+            accountChanged(-1, "All Accounts");
         }
     }
     
     function updateLastSyncStatus() {
-        if (currentAccountId >= 0) {
+        if (currentAccountId >= 0 && currentAccountId !== -1) {
             const syncStatus = Utils.getLastSyncStatus(currentAccountId);
             if (syncStatus && syncStatus !== "") {
                 lastSyncLabel.text = syncStatus;
             } else {
                 lastSyncLabel.text = "Never";
             }
+        } else {
+            lastSyncLabel.text = "N/A for All Accounts";
         }
     }
     
     function startSync() {
-        if (currentAccountId < 0) return;
+        if (currentAccountId < 0 || currentAccountId === -1) return;
         
         isSyncing = true;
         

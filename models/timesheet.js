@@ -132,6 +132,122 @@ function fetchTimesheetsByStatus(status, accountId) {
 
     return timesheetList;
 }
+function fetchTimesheetsForAllAccounts(status) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timesheetList = [];
+
+    try {
+        db.transaction(function (tx) {
+            var projectColorMap = {};
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+            var query = "";
+            var params = [];
+
+            if (!status || status.toLowerCase() === "all") {
+                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY last_modified DESC";
+                params = [];
+            } else {
+                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC";
+                params = [status];
+            }
+
+           // console.log("Executing fetchTimesheetsForAllAccounts query:", query, "with params:", params);
+            var result = tx.executeSql(query, params);
+           // console.log("Found", result.rows.length, "timesheets for all accounts");
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+
+                var quadrantMap = {
+                    0: "Unknown",
+                    1: "Do",
+                    2: "Plan", 
+                    3: "Delegate",
+                    4: "Delete"
+                };
+
+                // Resolve project name and parent name
+                var projectName = "Unknown Project";
+                var inheritedColor = 0;
+
+                if (row.project_id) {
+                    var rs_project = tx.executeSql(
+                        "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                        [row.project_id]
+                    );
+
+                    if (rs_project.rows.length > 0) {
+                        var project_row = rs_project.rows.item(0);
+                        if (project_row.parent_id && project_row.parent_id > 0) {
+                            var rs_parent = tx.executeSql(
+                                "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                                [project_row.parent_id]
+                            );
+                            if (rs_parent.rows.length > 0) {
+                                projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
+                            } else {
+                                projectName = project_row.name;
+                            }
+                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
+                        } else {
+                            projectName = project_row.name;
+                            inheritedColor = projectColorMap[row.project_id] || 0;
+                        }
+                    }
+                }
+
+                // Resolve task name
+                var taskName = "Unknown Task";
+                if (row.task_id) {
+                    var rs_task = tx.executeSql(
+                        "SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [row.task_id]
+                    );
+                    if (rs_task.rows.length > 0) {
+                        taskName = rs_task.rows.item(0).name;
+                    }
+                }
+
+                // Resolve instance and user names
+                var instanceName = "", userName = "";
+                if (row.account_id) {
+                    var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
+                    if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
+                }
+
+                if (row.user_id) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                    if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
+                }
+
+                timesheetList.push({
+                    id: row.id,
+                    instance: instanceName,
+                    name: row.name || '',
+                    spentHours: Utils.convertDecimalHoursToHHMM(row.unit_amount),
+                    project: projectName,
+                    quadrant: quadrantMap[row.quadrant_id] || "Unknown",
+                    date: row.record_date,
+                    status: row.status,
+                    task: taskName,
+                    user: userName,
+                    timer_type: row.timer_type || 'manual',
+                    color_pallet: parseInt(inheritedColor) || 0
+                });
+            }
+        });
+    } catch (e) {
+        console.error("Error in fetchTimesheetsForAllAccounts:", e.message);
+        DBCommon.logException("fetchTimesheetsForAllAccounts", e);
+    }
+
+    return timesheetList;
+}
+
 
 
 function getAttachmentsForTimesheet(odooRecordId) {

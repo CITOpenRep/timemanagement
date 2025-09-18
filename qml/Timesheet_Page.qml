@@ -154,33 +154,45 @@ Page {
         id: timesheetModel
     }
 
-    function fetch_timesheets_list() {
-        var currentAccountId = selectedAccountId
-        console.log("Fetching timesheets for account:", currentAccountId, "filter:", currentFilter)
+  function fetch_timesheets_list() {
+    var currentAccountId = selectedAccountId;
+    console.log("Selected Account ID intimesheet file:", currentAccountId);
+    console.log("Fetching timesheets for account:", currentAccountId, "filter:", currentFilter);
 
-        var timesheets_list = Model.fetchTimesheetsByStatus(currentFilter, currentAccountId)
-        timesheetModel.clear()
-        console.log("Retrieved", timesheets_list.length, "timesheets for account:", currentAccountId)
+    var timesheets_list = [];
 
-        for (var timesheet = 0; timesheet < timesheets_list.length; timesheet++) {
-            timesheetModel.append({
-                'name': timesheets_list[timesheet].name,
-                'id': timesheets_list[timesheet].id,
-                'instance': timesheets_list[timesheet].instance,
-                'project': timesheets_list[timesheet].project,
-                'spentHours': timesheets_list[timesheet].spentHours,
-                'quadrant': timesheets_list[timesheet].quadrant || "Do",
-                'task': timesheets_list[timesheet].task || "Unknown Task",
-                'date': timesheets_list[timesheet].date,
-                'user': timesheets_list[timesheet].user,
-                'status': timesheets_list[timesheet].status,
-                'activetimer': (currentFilter === "active") && (TimerService.getActiveTimesheetId() === timesheets_list[timesheet].id),
-                'color_pallet': timesheets_list[timesheet].color_pallet
-            });
-        }
-
-        console.log("Populated timesheetModel with", timesheetModel.count, "items");
+    // Use different fetch method depending on whether 'All accounts' is selected
+    if (currentAccountId == -1) {
+        console.log("All accounts selected — fetching all timesheets");
+        timesheets_list = Model.fetchTimesheetsForAllAccounts(currentFilter);
+    } else {
+      //  console.log("Single account selected — fetching timesheets for account", currentAccountId);
+        timesheets_list = Model.fetchTimesheetsByStatus(currentFilter, currentAccountId);
     }
+
+    timesheetModel.clear();
+  //  console.log("Retrieved", timesheets_list.length, "timesheets");
+
+    for (var timesheet = 0; timesheet < timesheets_list.length; timesheet++) {
+        timesheetModel.append({
+            'name': timesheets_list[timesheet].name,
+            'id': timesheets_list[timesheet].id,
+            'instance': timesheets_list[timesheet].instance,
+            'project': timesheets_list[timesheet].project,
+            'spentHours': timesheets_list[timesheet].spentHours,
+            'quadrant': timesheets_list[timesheet].quadrant || "Do",
+            'task': timesheets_list[timesheet].task || "Unknown Task",
+            'date': timesheets_list[timesheet].date,
+            'user': timesheets_list[timesheet].user,
+            'status': timesheets_list[timesheet].status,
+            'activetimer': (currentFilter === "active") && (TimerService.getActiveTimesheetId() === timesheets_list[timesheet].id),
+            'color_pallet': timesheets_list[timesheet].color_pallet
+        });
+    }
+
+    console.log("Populated timesheetModel with", timesheetModel.count, "items");
+}
+
 
     ListView {
         id: timesheetlist
