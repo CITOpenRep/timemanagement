@@ -474,13 +474,13 @@ Page {
             }
         } else {
             // Page is becoming invisible - check if we need to clean up unsaved activity
-            if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
-                // Check if the activity is still in its default unsaved state
-                if (Activity.isActivityUnsaved(accountid, recordid)) {
-                    console.log("🗑️ Cleaning up unsaved activity with ID:", recordid);
-                    Activity.deleteActivity(accountid, recordid);
-                }
-            }
+            // if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
+            //     // Check if the activity is still in its default unsaved state
+            //     if (Activity.isActivityUnsaved(accountid, recordid)) {
+            //         console.log("🗑️ Cleaning up unsaved activity with ID:", recordid);
+            //         Activity.deleteActivity(accountid, recordid);
+            //     }
+            // }
             Global.description_temporary_holder = "";
         }
     }
