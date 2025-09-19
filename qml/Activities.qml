@@ -39,7 +39,7 @@ Page {
     property bool navigatingToReadMore: false
     // Track if user has modified form fields
     property bool formModified: false
-    
+
     header: PageHeader {
         id: header
         title: activityDetailsPage.title
@@ -65,7 +65,7 @@ Page {
         width: units.gu(80)
         height: units.gu(80)
     }
-    
+
     SaveDiscardDialog {
         id: saveDiscardDialog
         onSaveRequested: {
@@ -316,10 +316,10 @@ Page {
 
     Component.onCompleted: {
         console.log("🔍 Activities.qml: Component completed - recordid:", recordid, "accountid:", accountid, "isReadOnly:", isReadOnly);
-        
+
         // Initialize form modification tracking
         formModified = false;
-        
+
         if (recordid != 0) {
             currentActivity = Activity.getActivityById(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
@@ -497,19 +497,19 @@ Page {
             // User can use back button to return to list page
         }
     }
-    
+
     onActiveChanged: {
         console.log("🔍 Activities.qml: Active changed to:", active, "- recordid:", recordid, "hasBeenSaved:", hasBeenSaved, "isReadOnly:", isReadOnly, "formModified:", formModified);
     }
-    
+
     onVisibleChanged: {
-        console.log("� VISIBILITY CHANGED EVENT FIRED! visible =", visible);
-        console.log("�🔍 Activities.qml: Visibility changed to:", visible, "- recordid:", recordid, "hasBeenSaved:", hasBeenSaved, "isReadOnly:", isReadOnly, "navigatingToReadMore:", navigatingToReadMore, "formModified:", formModified);
-        
+        console.log(" VISIBILITY CHANGED EVENT FIRED! visible =", visible);
+        console.log(" Activities.qml: Visibility changed to:", visible, "- recordid:", recordid, "hasBeenSaved:", hasBeenSaved, "isReadOnly:", isReadOnly, "navigatingToReadMore:", navigatingToReadMore, "formModified:", formModified);
+
         if (visible) {
             // Reset the navigation tracking flag when page becomes visible
             navigatingToReadMore = false;
-            
+
             // Reload activity data when page becomes visible
             if (recordid != 0) {
                 currentActivity = Activity.getActivityById(recordid, accountid);
@@ -520,7 +520,7 @@ Page {
                 notes.setContent(currentActivity.notes || "");
                 date_widget.setSelectedDate(currentActivity.due_date);
                 console.log("📅 Activities.qml: Set date widget to:", currentActivity.due_date);
-                
+
                 // Reset form modification flag after loading data
                 formModified = false;
             }
@@ -541,28 +541,28 @@ Page {
             console.log("  - navigatingToReadMore:", navigatingToReadMore);
             console.log("  - Global.description_context:", Global.description_context);
             console.log("  - formModified:", formModified);
-            
+
             // Only show dialog if:
             // 1. We have an unsaved activity (recordid > 0 && !hasBeenSaved)
             // 2. We're not in read-only mode (!isReadOnly)
             // 3. We're NOT navigating to ReadMorePage (!navigatingToReadMore)
             // 4. Global context is not set for activity notes (additional check for ReadMorePage)
             var isNavigatingToReadMore = navigatingToReadMore || (Global.description_context === "activity_notes");
-            
+
             console.log("🔍 Condition checks:");
             console.log("  - recordid > 0:", recordid > 0);
             console.log("  - !hasBeenSaved:", !hasBeenSaved);
             console.log("  - !isReadOnly:", !isReadOnly);
             console.log("  - !isNavigatingToReadMore:", !isNavigatingToReadMore);
-            
+
             if (recordid > 0 && !hasBeenSaved && !isReadOnly && !isNavigatingToReadMore) {
                 console.log("🔍 Passed initial conditions, checking unsaved state...");
-                
+
                 var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
                 var shouldShowDialog = isUnsaved || formModified;
-                
+
                 console.log("🔍 Final check - isUnsaved:", isUnsaved, "formModified:", formModified, "shouldShowDialog:", shouldShowDialog);
-                
+
                 if (shouldShowDialog) {
                     console.log("⚠️ SHOWING SAVE/DISCARD DIALOG NOW!");
                     saveDiscardDialog.open();
@@ -576,7 +576,7 @@ Page {
                 console.log("    !isReadOnly:", !isReadOnly);
                 console.log("    !isNavigatingToReadMore:", !isNavigatingToReadMore);
             }
-            
+
             // Clear global holders only if not navigating to ReadMore
             if (!isNavigatingToReadMore) {
                 Global.description_temporary_holder = "";
@@ -584,14 +584,14 @@ Page {
             }
         }
     }
-    
+
     Component.onDestruction: {
         console.log("🔍 Activities.qml: Component being destroyed - recordid:", recordid, "hasBeenSaved:", hasBeenSaved, "isReadOnly:", isReadOnly, "formModified:", formModified);
-        
+
         // Final check before page destruction
         if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
             var shouldShowDialog = Activity.isActivityUnsaved(accountid, recordid) || formModified;
-            
+
             if (shouldShowDialog) {
                 console.log("⚠️ Component destruction: Activity has unsaved changes, showing save/discard dialog");
                 saveDiscardDialog.open();

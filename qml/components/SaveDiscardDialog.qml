@@ -33,9 +33,9 @@ Item {
     height: 0
 
     // Signals
-    signal saveRequested()
-    signal discardRequested()
-    signal cancelled()
+    signal saveRequested
+    signal discardRequested
+    signal cancelled
 
     Component {
         id: dialogComponent
