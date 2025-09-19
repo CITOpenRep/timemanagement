@@ -73,7 +73,7 @@ Page {
                 }
             },
             Action {
-                iconName: "account"  
+                iconName: "account"
                 onTriggered: {
                     accountFilterVisible = !accountFilterVisible
                 }
@@ -95,33 +95,43 @@ Page {
     property int projectAccountId: -1
     property string projectName: ""
 
+    // SEPARATED CONCERNS:
+    // selectedAccountId - ONLY for filtering/viewing data (from account selector)
+    // defaultAccountId - ONLY for creating new records (from default account setting)
+    // Use variant so we can hold number or string temporarily, but we will always set numeric values
+    property variant selectedAccountId: -1 // initialize with numeric -1 (All accounts)
+    property variant defaultAccountId: Account.getDefaultAccountId() // For creating records (DO NOT use for filtering)
 
     function getTaskList(filter, searchQuery) {
         taskModel.clear();
 
         try {
             var allTasks = [];
-            var currentAccountId = Account.getDefaultAccountId();
-            
+            // Use task.selectedAccountId (set on TaskList component) for filtering
+            var currentAccountId = tasklist.selectedAccountId;
+            if (typeof currentAccountId === "undefined" || currentAccountId === null) currentAccountId = -1;
+
             console.log("Fetching tasks for account:", currentAccountId, "filter:", filter);
-            
+
             if (filterByProject) {
-   
                 allTasks = Task.getTasksForProject(projectOdooRecordId, projectAccountId);
             } else {
-
                 if (filter || searchQuery) {
-                    allTasks = Task.getFilteredTasks(filter, searchQuery, currentAccountId);
+                    // Map -1 to -1 for API, otherwise pass number (or original if it's non-numeric)
+                    var accountParam = (Number(currentAccountId) === -1 || isNaN(Number(currentAccountId))) ? (Number(currentAccountId) === -1 ? -1 : currentAccountId) : Number(currentAccountId);
+                    allTasks = Task.getFilteredTasks(filter, searchQuery, accountParam);
                 } else {
-                    allTasks = Task.getTasksForAccount(currentAccountId);
+                    var acctParam = (Number(currentAccountId) === -1 || isNaN(Number(currentAccountId))) ? (Number(currentAccountId) === -1 ? -1 : currentAccountId) : Number(currentAccountId);
+                    allTasks = Task.getTasksForAccount(acctParam);
                 }
             }
 
+            if (!allTasks) allTasks = [];
             console.log("Retrieved", allTasks.length, "tasks for account:", currentAccountId);
 
             for (var i = 0; i < allTasks.length; i++) {
                 var taskItem = allTasks[i];
-                var projectName = ""; // You can add project lookup here if needed
+                var projectNameLocal = ""; // You can add project lookup here if needed
 
                 taskModel.append({
                     id: taskItem.id,
@@ -134,7 +144,7 @@ Page {
                     initial_planned_hours: taskItem.initial_planned_hours,
                     spent_hours: taskItem.spent_hours || 0,
                     favorites: taskItem.favorites,
-                    project_name: projectName,
+                    project_name: projectNameLocal,
                     account_id: taskItem.account_id,
                     project_id: taskItem.project_id,
                     user_id: taskItem.user_id,
@@ -143,7 +153,7 @@ Page {
                     priority: taskItem.priority || "0"
                 });
             }
-            
+
             console.log("Populated taskModel with", taskModel.count, "items");
         } catch (e) {
             console.error("Error in getTaskList():", e);
@@ -158,7 +168,7 @@ Page {
         anchors.right: parent.right
 
         label1: "Today"
-        label2: "This Week"  
+        label2: "This Week"
         label3: "This Month"
         label4: "Later"
         label5: "Done"
@@ -167,7 +177,7 @@ Page {
 
         filter1: "today"
         filter2: "this_week"
-        filter3: "this_month" 
+        filter3: "this_month"
         filter4: "later"
         filter5: "done"
         filter6: "all"
@@ -213,9 +223,12 @@ Page {
             projectOdooRecordId: task.projectOdooRecordId
             projectAccountId: task.projectAccountId
 
-           
+            // NOTE: selectedAccountId is no longer initialized to default account.
+            // It will be set on Component.onCompleted by probing accountFilter,
+            // and when the user changes the account in the account selector.
             filterByAccount: true
-            selectedAccountId: Account.getDefaultAccountId()
+            // Child component likely expects an int. Initialize to numeric -1.
+            selectedAccountId: -1
 
             onTaskEditRequested: {
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
@@ -309,12 +322,54 @@ Page {
         }
     }
 
+    // Listen for account selector changes directly (so filter updates immediately)
+    Connections {
+        target: accountFilter
+        onAccountChanged: function(accountId, accountName) {
+            console.log("Task_Page: Account filter changed to:", accountName, "ID:", accountId);
+            // Normalize id to number, fallback to -1
+            var idNum = -1;
+            try {
+                if (typeof accountId !== "undefined" && accountId !== null) {
+                    var maybeNum = Number(accountId);
+                    idNum = isNaN(maybeNum) ? -1 : maybeNum;
+                } else {
+                    idNum = -1;
+                }
+            } catch (e) {
+                idNum = -1;
+            }
+
+            tasklist.selectedAccountId = idNum;
+
+            // Reapply current filter/search depending on project mode
+            if (filterByProject) {
+                if (currentSearchQuery) {
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
+                } else {
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
+                }
+            } else {
+                if (currentSearchQuery) {
+                    tasklist.applySearch(currentSearchQuery);
+                } else {
+                    tasklist.applyFilter(currentFilter);
+                }
+            }
+        }
+    }
+
     Connections {
         target: mainView
         onGlobalAccountChanged: function(accountId, accountName) {
             console.log("Task_Page: GlobalAccountChanged →", accountId, accountName)
-            tasklist.selectedAccountId = accountId
-        
+            var acctNum = -1;
+            if (typeof accountId !== "undefined" && accountId !== null) {
+                var maybe = Number(accountId);
+                acctNum = isNaN(maybe) ? -1 : maybe;
+            }
+            tasklist.selectedAccountId = acctNum;
+
             if (filterByProject) {
                 if (currentSearchQuery) {
                     tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery)
@@ -330,9 +385,13 @@ Page {
             }
         }
         onAccountDataRefreshRequested: function(accountId) {
+            var acctNum = -1;
+            if (typeof accountId !== "undefined" && accountId !== null) {
+                var maybe2 = Number(accountId);
+                acctNum = isNaN(maybe2) ? -1 : maybe2;
+            }
+            tasklist.selectedAccountId = acctNum;
 
-            tasklist.selectedAccountId = accountId
-       
             if (filterByProject) {
                 if (currentSearchQuery) {
                     tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery)
@@ -349,8 +408,40 @@ Page {
         }
     }
 
-
     Component.onCompleted: {
+        // Determine initial account selection from accountFilter (try common property names),
+        // fall back to numeric -1 (All accounts) if none found. This ensures initial list is filtered.
+        try {
+            var initialAccountNum = -1;
+            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
+                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
+                    var maybe = Number(accountFilter.selectedAccountId);
+                    initialAccountNum = isNaN(maybe) ? -1 : maybe;
+                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
+                    var maybe2 = Number(accountFilter.currentAccountId);
+                    initialAccountNum = isNaN(maybe2) ? -1 : maybe2;
+                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
+                    // index mapping may not equate to account id — default to -1 unless you map index -> id
+                    initialAccountNum = -1;
+                } else {
+                    initialAccountNum = -1;
+                }
+            } else if (typeof Account.getSelectedAccountId === "function") {
+                var acct = Account.getSelectedAccountId();
+                var acctNum = Number(acct);
+                initialAccountNum = (acct !== null && typeof acct !== "undefined" && !isNaN(acctNum)) ? acctNum : -1;
+            } else {
+                initialAccountNum = -1;
+            }
+
+            console.log("Task_Page initial account selection (numeric):", initialAccountNum);
+            tasklist.selectedAccountId = initialAccountNum;
+        } catch (e) {
+            console.error("Task_Page: error determining initial account:", e);
+            tasklist.selectedAccountId = -1;
+        }
+
+        // Apply the filter/search that you want to show initially
         if (filterByProject) {
             tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
         } else {
