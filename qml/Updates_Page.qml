@@ -108,6 +108,7 @@ Page {
 
             onShowDescription: {
                 Global.description_temporary_holder = description;
+                Global.description_context = "update_description";
                 apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("ReadMorePage.qml"), {
                     "isReadOnly": true
                 });

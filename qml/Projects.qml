@@ -277,6 +277,7 @@ Page {
                         onClicked: {
                             //set the data to a global Store and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
+                            Global.description_context = "project_description";
                             apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly
                             });
@@ -566,13 +567,18 @@ Page {
     }
     onVisibleChanged: {
         if (visible) {
-            if (Global.description_temporary_holder !== "") {
-                //Check if you are coming back from the ReadMore page
+            if (Global.description_temporary_holder !== "" && Global.description_context === "project_description") {
+                //Check if you are coming back from the ReadMore page for project description
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
+                Global.description_context = "";
             }
         } else {
-            Global.description_temporary_holder = "";
+            // Only clear if we're in project context to avoid clearing other contexts
+            if (Global.description_context === "project_description") {
+                Global.description_temporary_holder = "";
+                Global.description_context = "";
+            }
         }
     }
 }
