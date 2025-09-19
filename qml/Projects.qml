@@ -573,12 +573,8 @@ Page {
                 Global.description_temporary_holder = "";
                 Global.description_context = "";
             }
-        } else {
-            // Only clear if we're in project context to avoid clearing other contexts
-            if (Global.description_context === "project_description") {
-                Global.description_temporary_holder = "";
-                Global.description_context = "";
-            }
         }
+        // Don't clear context when page becomes invisible as it might be needed
+        // for the ReadMore page editing flow
     }
 }
