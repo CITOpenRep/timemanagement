@@ -322,8 +322,9 @@ Page {
             // Update due date
             date_widget.setSelectedDate(currentActivity.due_date);
 
-            // Mark as saved if this is an existing activity (not newly created)
-            hasBeenSaved = true;
+            // Check if this is a truly saved activity or a newly created one with default values
+            hasBeenSaved = !Activity.isActivityUnsaved(accountid, recordid);
+            console.log("🔍 Activity", recordid, "hasBeenSaved:", hasBeenSaved, "isUnsaved:", Activity.isActivityUnsaved(accountid, recordid));
         } else {
             // For new activities
             let account = Accounts.getAccountsList();
