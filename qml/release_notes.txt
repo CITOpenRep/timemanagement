@@ -54,6 +54,12 @@
   <li>Stage labels have been simplified to plain text (removing background colors). Button colors in the Project Detailed View have also been updated.</li>
 </ul>
 
+<h5>In Progress</h5>
+<ul>
+  <li>Fix for activity creation from project updates page.</li>
+</ul>
+
+
 <br>
 
 <h4>05-09-2025 : Version 1.1.5</h4>
