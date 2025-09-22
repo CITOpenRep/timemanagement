@@ -109,16 +109,9 @@ Item {
 
     function open(page) {
         console.log("🔍 SaveDiscardDialog: Opening dialog");
-        targetPage = page;
-        PopupUtils.open(dialogComponent);
-    }
-    
-    function navigateBack() {
-        if (targetPage && targetPage.pageStack) {
-            console.log("🔙 SaveDiscardDialog: Navigating back");
-            targetPage.pageStack.pop();
-        } else {
-            console.log("❌ SaveDiscardDialog: Cannot navigate back - no target page or pageStack");
+        if (page) {
+            targetPage = page;
         }
+        PopupUtils.open(dialogComponent);
     }
 }
