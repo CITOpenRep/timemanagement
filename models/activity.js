@@ -903,3 +903,244 @@ function isActivityUnsaved(accountId, recordId) {
         return false;
     }
 }
+
+/**
+* Retrieves activities for a specific account, similar to getTasksForAccount
+* @param {number} accountId - The account identifier
+* @returns {Array<Object>} Array of activity records for the specified account
+*/
+function getActivitiesForAccount(accountId) {
+    var activityList = [];
+ 
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
+ 
+        db.transaction(function (tx) {
+           
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?", [accountId]);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var row = projectResult.rows.item(j);
+                projectColorMap[row.odoo_record_id] = row.color_pallet;
+            }
+ 
+           
+            var rs = tx.executeSql(`
+                SELECT * FROM mail_activity_app
+                WHERE state != 'done' AND account_id = ?
+                ORDER BY due_date ASC
+            `, [accountId]);
+ 
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(row);
+ 
+               
+                let inheritedColor = 0;
+ 
+                if (activity.resModel === "project.project" && activity.link_id) {
+                    inheritedColor = projectColorMap[activity.link_id] || 0;
+ 
+                } else if (activity.resModel === "project.task" && activity.link_id) {
+                   
+                    var taskRs = tx.executeSql(
+                        "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
+                        [activity.link_id, accountId]
+                    );
+ 
+                    if (taskRs.rows.length > 0) {
+                        var taskProjectId = taskRs.rows.item(0).project_id;
+                        inheritedColor = projectColorMap[taskProjectId] || 0;
+                    }
+                }
+ 
+            
+                activity.color_pallet = parseInt(inheritedColor) || 0;
+ 
+                activityList.push(activity);
+            }
+        });
+ 
+    } catch (e) {
+        DBCommon.logException("getActivitiesForAccount", e);
+    }
+ 
+    return activityList;
+}
+ 
+/**
+* Gets filtered activities with optional account filtering
+* Similar to Task.getFilteredTasks() but for activities
+* @param {string} filterType - The filter type: "today", "week", "month", "later", "overdue", "all"
+* @param {string} searchQuery - The search query string
+* @param {number} accountId - Optional account ID to filter by
+* @returns {Array<Object>} Filtered list of activities
+*/
+function getFilteredActivities(filterType, searchQuery, accountId) {
+    var allActivities;
+    
+ 
+    if (accountId !== undefined && accountId >= 0) {
+        allActivities = getActivitiesForAccount(accountId);
+    } else {
+        allActivities = getAllActivities();
+    }
+    
+    var filteredActivities = [];
+    var currentDate = new Date();
+    
+    for (var i = 0; i < allActivities.length; i++) {
+        var activity = allActivities[i];
+        var passesFilter = true;
+        
+      
+        if (!passesActivityDateFilter(activity, filterType, currentDate)) {
+            passesFilter = false;
+        }
+        
+    
+        if (passesFilter && searchQuery && !passesActivitySearchFilter(activity, searchQuery)) {
+            passesFilter = false;
+        }
+        
+        if (passesFilter) {
+            filteredActivities.push(activity);
+        }
+    }
+    
+    return filteredActivities;
+}
+ 
+/**
+* Gets account statistics for activities (similar to Task.getAccountsWithTaskCounts)
+* @returns {Array<Object>} Array of account objects with activity counts
+*/
+function getAccountsWithActivityCounts() {
+    var accounts = [];
+    console.log("🔍 getAccountsWithActivityCounts called");
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function (tx) {
+            var query = `
+                SELECT
+                    a.account_id,
+                    COUNT(a.id) as activity_count,
+                    COUNT(CASE WHEN a.state != 'done' THEN 1 END) as active_activity_count
+                FROM mail_activity_app a
+                GROUP BY a.account_id
+                ORDER BY a.account_id ASC
+            `;
+            
+            var result = tx.executeSql(query);
+            console.log("📊 Found", result.rows.length, "accounts with activities in database");
+            
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                console.log("📝 DB Account:", row.account_id, "Total activities:", row.activity_count, "Active activities:", row.active_activity_count);
+                accounts.push({
+                    account_id: row.account_id,
+                    account_name: row.account_id === 0 ? "Local Account" : "Account " + row.account_id,
+                    activity_count: row.activity_count,
+                    active_activity_count: row.active_activity_count
+                });
+            }
+        });
+    } catch (e) {
+        console.error("❌ getAccountsWithActivityCounts failed:", e);
+    }
+    
+    console.log("📊 Returning", accounts.length, "accounts with activities");
+    return accounts;
+}
+ 
+/**
+* Helper function to check if activity passes date filter
+* @param {Object} activity - The activity object
+* @param {string} filter - The filter type
+* @param {Date} currentDate - Current date for comparison
+* @returns {boolean} True if activity passes the filter
+*/
+function passesActivityDateFilter(activity, filter, currentDate) {
+ 
+    if (filter === "all") {
+        return true;
+    }
+ 
+ 
+    if (!activity.due_date) {
+        return false;
+    }
+ 
+    var dueDate = new Date(activity.due_date);
+    var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    var itemDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+ 
+ 
+    var isOverdue = itemDate < today;
+ 
+    switch (filter) {
+    case "today":
+       
+        return itemDate.getTime() <= today.getTime();
+    case "week":
+        var weekStart = new Date(today);
+        
+        weekStart.setDate(today.getDate() - today.getDay());
+        var weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+ 
+      
+        return (itemDate >= weekStart && itemDate <= weekEnd) && !isOverdue;
+    case "month":
+        var isThisMonth = itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
+ 
+    
+        return isThisMonth && !isOverdue;
+    case "later":
+      
+        var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
+        var monthEndDay = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate());
+ 
+     
+        return itemDate > monthEndDay && !isOverdue;
+    case "overdue":
+ 
+        return isOverdue;
+    default:
+        return true;
+    }
+}
+ 
+/**
+* Helper function to check if activity passes search filter
+* @param {Object} activity - The activity object
+* @param {string} searchQuery - The search query
+* @returns {boolean} True if activity matches the search
+*/
+function passesActivitySearchFilter(activity, searchQuery) {
+    if (!searchQuery || searchQuery.trim() === "") {
+        return true;
+    }
+ 
+    var query = searchQuery.toLowerCase().trim();
+ 
+ 
+    if (activity.summary && activity.summary.toLowerCase().indexOf(query) >= 0) {
+        return true;
+    }
+ 
+ 
+    if (activity.notes && activity.notes.toLowerCase().indexOf(query) >= 0) {
+        return true;
+    }
+ 
+ 
+    var activityTypeName = getActivityTypeName(activity.activity_type_id);
+    if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
+        return true;
+    }
+ 
+    return false;
+}

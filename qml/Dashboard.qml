@@ -43,13 +43,45 @@ Page {
     anchors.fill: parent
     property bool isMultiColumn: apLayout.columns > 1
     property var page: 0
+
+    // Helper: probe accountFilter or Account model for the currently selected account id.
+    // Returns numeric account id, or -1 for "All accounts" or on error.
+    function getSelectedAccountFromFilter() {
+        try {
+            // Prefer the accountFilter component if present
+            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
+                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
+                    var maybe = Number(accountFilter.selectedAccountId);
+                    return isNaN(maybe) ? -1 : maybe;
+                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
+                    var maybe2 = Number(accountFilter.currentAccountId);
+                    return isNaN(maybe2) ? -1 : maybe2;
+                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
+                    // If the selector only exposes index we'd need a mapping index->id.
+                    // Fallback to -1 to be safe.
+                    return -1;
+                }
+            }
+
+            // Fallback: Accounts model helper if available
+            if (typeof Account !== "undefined" && typeof Account.getSelectedAccountId === "function") {
+                var acct = Account.getSelectedAccountId();
+                var maybe3 = Number(acct);
+                return (acct !== null && typeof acct !== "undefined" && !isNaN(maybe3)) ? maybe3 : -1;
+            }
+        } catch (e) {
+            console.error("getSelectedAccountFromFilter error:", e);
+        }
+        return -1;
+    }
+
     onVisibleChanged: {
         if (visible) {
-            //update graph etc
-            var data = Project.getProjectSpentHoursList(true);
-            projectchart.load(data);
-            // For testing notifications
-            // simulateTestNotifications();
+            // Prefer the selected account from the account selector (NOT the default account)
+            var selected = getSelectedAccountFromFilter();
+            if (typeof projectchart !== "undefined") projectchart.refreshForAccount(selected);
+            // Also refresh other dashboard data
+            refreshData();
         }
     }
 
@@ -82,37 +114,27 @@ Page {
         id: header
         StyleHints {
             foregroundColor: "white"
-
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
         title: "Time Management"
         visible: true
 
-        //Later we can merge all these with Global Timer as a taskbar
-        /*NotificationBell {
-            z: 9999
-            anchors.centerIn: parent
-            parentWindow: mainPage
-            visible: false // Set to true if you want to show the notification bell
-        }*/
-
-        // ActionBar {
-
-        //     id: actionbar
-        //     visible: isMultiColumn ? false : true
-        //     numberOfSlots: 2
-        //     anchors.right: parent.right
         trailingActionBar.visible: isMultiColumn ? false : true
         trailingActionBar.numberOfSlots: 3
 
         trailingActionBar.actions: [
             Action {
+                iconName: "account"
+                onTriggered: {
+                    accountFilterVisible = !accountFilterVisible
+                }
+            },
+            Action {
                 iconName: "help"
                 text: "About"
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Aboutus.qml"));
-                    //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
                     page = 7;
                     apLayout.setCurrentPage(page);
                 }
@@ -122,11 +144,6 @@ Page {
                 text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
                 onTriggered: {
                     Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
-
-                    // // Save theme preference to persist across app restarts
-                    // if (typeof mainView !== 'undefined' && mainView.saveThemePreference) {
-                    //     mainView.saveThemePreference(newTheme);
-                    // }
                 }
             },
             Action {
@@ -134,7 +151,6 @@ Page {
                 text: "Timesheet"
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
-                    //  console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage);
                     page = 7;
                     apLayout.setCurrentPage(page);
                 }
@@ -152,7 +168,7 @@ Page {
                 iconName: "view-list-symbolic"
                 text: "Tasks"
                 onTriggered: {
-                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
                     page = 3;
                     apLayout.setCurrentPage(page);
                 }
@@ -161,7 +177,7 @@ Page {
                 iconName: "folder-symbolic"
                 text: "Projects"
                 onTriggered: {
-                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"));
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"));
                     page = 4;
                     apLayout.setCurrentPage(page);
                 }
@@ -170,7 +186,7 @@ Page {
                 iconName: "history"
                 text: "Project Updates"
                 onTriggered: {
-                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
                     page = 5;
                     apLayout.setCurrentPage(page);
                 }
@@ -179,21 +195,13 @@ Page {
                 iconName: "settings"
                 text: "Settings"
                 onTriggered: {
-                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Settings_Page.qml"));
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Settings_Page.qml"));
                     page = 6;
                     apLayout.setCurrentPage(page);
                 }
             }
         ]
     }
-
-    /*    function handle_convergence(){
-            console.log(" In Dashboard convergence: " + apLayout.columns)
-        if (apLayout.columns === 3){
-            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml"))
-        }
-
-    }*/
 
     property variant project_timecat: []
     property variant project: []
@@ -204,7 +212,6 @@ Page {
     property variant task_data: []
 
     function get_project_chart_data() {
-        //   console.log("get_project_chart_data called");
         project_data = Model.get_projects_spent_hours();
         var count = 0;
         var timeval;
@@ -220,7 +227,6 @@ Page {
     }
 
     function get_task_chart_data() {
-        //  console.log("get_task_chart_data called");
         task_data = Model.get_tasks_spent_hours();
         var count = 0;
         var timeval;
@@ -239,11 +245,10 @@ Page {
         console.log("🔄 Refreshing Dashboard data...");
         get_project_chart_data();
         get_task_chart_data();
-
-        // Refresh project chart if it exists
+        // Refresh project chart using the account selector's selection (not default account)
         if (typeof projectchart !== 'undefined') {
-            var data = Project.getProjectSpentHoursList(true);
-            projectchart.load(data);
+            var selected = getSelectedAccountFromFilter();
+            projectchart.refreshForAccount(selected);
         }
     }
 
@@ -252,26 +257,18 @@ Page {
         anchors.fill: parent
         z: 9999
         menuModel: [
-            {
-                label: "Task"
-            },
-            {
-                label: "Timesheet"
-            },
-            {
-                label: "Activity"
-            },
+            { label: "Task" },
+            { label: "Timesheet" },
+            { label: "Activity" }
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                // console.log("add task");
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
                 });
             }
             if (index === 1) {
-                // console.log("add time sheet");
                 const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
                 if (result.success) {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
@@ -283,9 +280,7 @@ Page {
                 }
             }
             if (index === 2) {
-                //   console.log("add activity");
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
-                    // "recordid": 0,
                     "isReadOnly": false
                 });
             }
@@ -294,14 +289,12 @@ Page {
 
     Flickable {
         id: flick1
-        //z: 888 //Set it to Zero or just remove it to avoid flickable being on top of the header
         width: parent.width
         height: parent.height - header.height
         anchors.top: header.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         contentWidth: parent.width
         contentHeight: 4000
-
         rebound: Transition {
             NumberAnimation {
                 properties: "x,y"
@@ -320,7 +313,7 @@ Page {
             Item {
                 id: quadrantWrapper
                 width: parent.width
-                height: width  // Maintain square layout
+                height: width
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 Rectangle {
@@ -341,148 +334,112 @@ Page {
                         quadrant2Hours: "65.5"
                         quadrant3Hours: "55.0"
                         quadrant4Hours: "178.1"
-                        onQuadrantClicked:
-                        //  console.log("Quadrant clicked:", quadrant);
-                        {}
+                        onQuadrantClicked: {}
                     }
                 }
             }
-
-            /*  The below widget is useful for getting an overview of tasks . For future integration, please note that thereis a bug in the odooid we get , to be fixed.
-            Item {
-                id: tasksForTheDay
-                width: parent.width
-                height: width/2  // Maintain square layout
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                TasksForDayWidget {
-                    id: tasks_widget
-                    width: parent.width * 0.98
-                    height: parent.height
-                    anchors.centerIn: parent
-                    onTaskSelected: {
-                        if (odooId > 0) {
-                            console.log("---> Record ID received:", odooId, typeof odooId);
-                            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
-                                                             "recordid": String(odooId),
-                                                             "isReadOnly": true
-                                                         });
-                        }
-                    }
-                }
-            }*/
 
             ProjectPieChart {
                 id: projectchart
                 width: parent.width * 0.95
-                height: width  // Also square
+                height: width
                 anchors.horizontalCenter: parent.horizontalCenter
-                Component.onCompleted: {
-                    var data = Project.getProjectSpentHoursList(true);
-                    projectchart.load(data);
+            }
+
+            Connections {
+                target: accountFilter
+                onAccountChanged: function(accountId, accountName) {
+                    var acctNum = -1;
+                    try {
+                        if (typeof accountId !== "undefined" && accountId !== null) {
+                            var maybe = Number(accountId);
+                            acctNum = isNaN(maybe) ? -1 : maybe;
+                        } else {
+                            acctNum = -1;
+                        }
+                    } catch (e) {
+                        acctNum = -1;
+                    }
+                    console.log("Dashboard: accountFilter changed ->", acctNum, accountName);
+                    projectchart.refreshForAccount(acctNum);
                 }
             }
-        }
+
+            Connections {
+                target: mainView
+                onAccountDataRefreshRequested: function(accountId) {
+                    var acctNum = -1;
+                    try {
+                        if (typeof accountId !== "undefined" && accountId !== null) {
+                            var maybe = Number(accountId);
+                            acctNum = isNaN(maybe) ? -1 : maybe;
+                        } else {
+                            acctNum = -1;
+                        }
+                    } catch (e) {
+                        acctNum = -1;
+                    }
+                    console.log("Dashboard: mainView.AccountDataRefreshRequested ->", acctNum);
+                    projectchart.refreshForAccount(acctNum);
+                }
+                onGlobalAccountChanged: function(accountId, accountName) {
+                    var acctNum = -1;
+                    try {
+                        if (typeof accountId !== "undefined" && accountId !== null) {
+                            var maybe = Number(accountId);
+                            acctNum = isNaN(maybe) ? -1 : maybe;
+                        } else {
+                            acctNum = -1;
+                        }
+                    } catch (e) {
+                        acctNum = -1;
+                    }
+                    console.log("Dashboard: mainView.GlobalAccountChanged ->", acctNum, accountName);
+                    projectchart.refreshForAccount(acctNum);
+                }
+            }
+
+            Component.onCompleted: {
+                try {
+                    var initial = getSelectedAccountFromFilter();
+                    console.log("Dashboard: initial account for project chart ->", initial);
+                    projectchart.refreshForAccount(initial);
+                } catch (e) {
+                    console.error("Dashboard: error determining initial account for project chart:", e);
+                    projectchart.refreshForAccount(-1);
+                }
+            }
+
+        } // end Column
 
         onFlickEnded: {
-            //load not defined: Commented by Gokul
-            //load.active = false;
-            //load2.active = false;
-            if (apLayout.columns === 1)
-            // load3.active = false;
-            // load4.active = false;
-            {}
-            //  console.log("Flickable flick ended");
-            //load.active = true;
-            // load2.active = true;
-            if (apLayout.columns === 1)
-            //  load3.active = true;
-            //  load4.active = true;
-            {} else
-            //                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml"))
-            {}
+            if (apLayout.columns === 1) {}
         }
-    }
+    } // end Flickable
 
     Scrollbar {
         flickableItem: flick1
         align: Qt.AlignTrailing
     }
+
     Timer {
         interval: 100
         running: true
         repeat: false
         onTriggered: {
             if (apLayout.columns === 3) {
-                // console.log("In Dashboard timer columns: " + apLayout.columns);
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml"));
             }
         }
     }
 
-    // Rectangle {
-
-    //     visible: !isMultiColumn
-    //     id: swipeIndicator
-    //     width: units.gu(6)
-    //     height: units.gu(0.7)
-    //     radius: height / 2
-    //     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ?  LomiriColors.orange : "#0cc0df"
-    //   //  opacity: 0.7
-    //     anchors.horizontalCenter: parent.horizontalCenter
-    //     anchors.bottom: swipeUpArea.top
-    //     anchors.bottomMargin: units.gu(0.5)
-    //     z: 1000
-    // }
-
-    Icon {
-        visible: !isMultiColumn
-        width: units.gu(5)
-        height: units.gu(4)
-        z: 1000
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: swipeUpArea.top
-        name: 'toolkit_chevron-up_3gu'
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? LomiriColors.orange : LomiriColors.slate
-    }
-
-    MultiPointTouchArea {
-        id: swipeUpArea
-        enabled: !isMultiColumn
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: units.gu(1)
-        minimumTouchPoints: 1
-        maximumTouchPoints: 1
-
-        property real startY: 0
-
-        onPressed: {
-            startY = touchPoints[0].y;
+    Connections {
+        target: mainView
+        onAccountDataRefreshRequested: function(accountId) {
+            refreshData();
         }
-        onReleased: {
-            var endY = touchPoints[0].y;
-            // Detect upward swipe (swipe up: startY > endY)
-            if (startY - endY > units.gu(2)) {
-                // threshold for swipe - open new timesheet
-                const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
-                if (result.success) {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
-                        "recordid": result.id,
-                        "isReadOnly": false
-                    });
-                } else {
-                    console.error("Error creating timesheet: " + result.message);
-                }
-            }
-        }
-        z: 999 // Ensure it's above other content
-
-        Rectangle {
-            anchors.fill: parent
-            color: "lightgray"
-            opacity: 0.0 // Make it invisible but still interactive
+        onGlobalAccountChanged: function(accountId, accountName) {
+            refreshData();
         }
     }
 

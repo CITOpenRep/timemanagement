@@ -61,10 +61,10 @@ function setDefaultAccount(id) {
             // Reset all accounts to is_default = 0
             tx.executeSql("UPDATE users SET is_default = 0");
 
-            // Set the selected account to is_default = 1
-            tx.executeSql("UPDATE users SET is_default = 1 WHERE id = ?", [id]);
-
-          //  console.log("Default account set to ID:", id);
+            if (id !== -1) {
+                // Set the selected account to is_default = 1
+                tx.executeSql("UPDATE users SET is_default = 1 WHERE id = ?", [id]);
+            }
         });
 
     } catch (e) {
@@ -72,13 +72,14 @@ function setDefaultAccount(id) {
     }
 }
 
+
 /**
  * Retrieves the ID of the currently marked default account from the database.
  *
  * @returns {number} The account ID marked as default, or 0 if none found.
  */
 function getDefaultAccountId() {
-    var defaultId = 0;
+    var defaultId = -1;  // Default to -1 instead of 0
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -96,6 +97,7 @@ function getDefaultAccountId() {
 
     return defaultId;
 }
+
 
 /**
  * Retrieves a list of Odoo users associated with the given account ID.
@@ -451,4 +453,13 @@ function getOdooModelId(accountId, technicalName) {
         return null;
     }
 }
-    
+function clearDefaultAccount() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function(tx) {
+            tx.executeSql("UPDATE users SET is_default = 0");
+        });
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+}

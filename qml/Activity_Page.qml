@@ -59,13 +59,31 @@ Page {
                 text: "New"
                 onTriggered: {
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
-                        // "recordid": recordid,
                         "isReadOnly": false
                     });
+                }
+            },
+            Action {
+                iconName: "account"   
+                onTriggered: {
+                    accountFilterVisible = !accountFilterVisible
                 }
             }
         ]
     }
+
+
+
+    property string currentFilter: "today"
+    property string currentSearchQuery: ""
+
+    property bool filterByProject: false
+    property int projectOdooRecordId: -1
+    property int projectAccountId: -1
+    property string projectName: ""
+
+    property bool filterByAccount: true
+    property int selectedAccountId: Accounts.getDefaultAccountId()
 
 
     NotificationPopup {
@@ -85,7 +103,7 @@ Page {
         return dueDateOk && searchOk;
     }
 
-    // Helper function to get project details
+ 
     function getProjectDetails(projectId) {
         try {
             return Project.getProjectDetails(projectId);
@@ -107,47 +125,59 @@ Page {
         }
     }
 
+
     function get_activity_list() {
         activityListModel.clear();
 
         try {
-            // Get activities based on whether we're filtering by project or not
-            const allActivities = filterByProject ? Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId) : Activity.getAllActivities();
-            var filteredActivities = [];
-
-            // First filter the activities
-            for (let i = 0; i < allActivities.length; i++) {
-                var item = allActivities[i];
-                if (shouldIncludeItem(item)) {
-                    var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
-                    var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
-                    var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";  // Assuming you have getTaskDetails()
-                    var user = Accounts.getUserNameByOdooId(item.user_id);
-
-                    filteredActivities.push({
-                        id: item.id,
-                        summary: item.summary,
-                        due_date: item.due_date,
-                        notes: item.notes,
-                        activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
-                        state: item.state,
-                        task_id: item.task_id,
-                        task_name: taskName,
-                        project_name: projectName,
-                        odoo_record_id: item.odoo_record_id || 0,
-                        user: user,
-                        account_id: item.account_id,
-                        resId: item.resId,
-                        resModel: item.resModel,
-                        last_modified: item.last_modified,
-                        color_pallet: item.color_pallet
-                    });
-                }
+            var allActivities = [];
+            // const allActivities = filterByProject ? Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId) : Activity.getAllActivities();
+            var currentAccountId = selectedAccountId;
+            
+            console.log("Fetching activities for account:", currentAccountId, "filter:", currentFilter);
+            
+            if (currentFilter && currentFilter !== "" || currentSearchQuery) {
+                
+                allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, currentAccountId);
+            } else {
+              
+                allActivities = Activity.getActivitiesForAccount(currentAccountId);
             }
 
-            // Sort activities by end date time (most recent first)
+            console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId);
+
+            var filteredActivities = [];
+
+            
+            for (let i = 0; i < allActivities.length; i++) {
+                var item = allActivities[i];
+                var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
+                var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
+                var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";
+                var user = Accounts.getUserNameByOdooId(item.user_id);
+
+                filteredActivities.push({
+                    id: item.id,
+                    summary: item.summary,
+                    due_date: item.due_date,
+                    notes: item.notes,
+                    activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
+                    state: item.state,
+                    task_id: item.task_id,
+                    task_name: taskName,
+                    project_name: projectName,
+                    odoo_record_id: item.odoo_record_id || 0,
+                    user: user,
+                    account_id: item.account_id,
+                    resId: item.resId,
+                    resModel: item.resModel,
+                    last_modified: item.last_modified,
+                    color_pallet: item.color_pallet
+                });
+            }
+
+    
             filteredActivities.sort(function (a, b) {
-                // If either end date is missing, fall back to summary
                 if (!a.due_date || !b.due_date) {
                     return (a.summary || "").localeCompare(b.summary || "");
                 }
@@ -155,16 +185,36 @@ Page {
                 return new Date(a.due_date) - new Date(b.due_date);
             });
 
-            // Add sorted activities to the model
+          
             for (let j = 0; j < filteredActivities.length; j++) {
                 activityListModel.append(filteredActivities[j]);
             }
+            
+            console.log("Populated activityListModel with", activityListModel.count, "items");
         } catch (e) {
-            console.error("❌ Error in get_activity_list():", e);
+            console.error("Error in get_activity_list():", e);
         }
     }
 
-    /*
+    function applyAccountFilter(accountId) {
+        console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
+        
+        filterByAccount = (accountId >= 0);
+        selectedAccountId = accountId;
+        
+        get_activity_list();
+    }
+
+    function clearAccountFilter() {
+        console.log("Activity_Page.clearAccountFilter called");
+        
+        filterByAccount = false;
+        selectedAccountId = -1;
+        
+        get_activity_list();
+    }
+
+        /*
     Todo :   - Refactor the date filter logic to be more modular and reusable. And Move to Activity.js
     */
 
@@ -263,6 +313,7 @@ Page {
         return false;
     }
 
+
     ListModel {
         id: activityListModel
     }
@@ -282,7 +333,7 @@ Page {
         label7: ""
 
         showSearchBox: false
-        currentFilter: activity.currentFilter  // Bind to page's current filter
+        currentFilter: activity.currentFilter
 
         filter1: "today"
         filter2: "week"
@@ -307,7 +358,6 @@ Page {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        // anchors.topMargin: units.gu(1)
         clip: true
 
         LomiriListView {
@@ -328,7 +378,6 @@ Page {
                 colorPallet: model.color_pallet
 
                 onCardClicked: function (accountid, recordid) {
-                    //  console.log("Page : Loading record " + recordid + " account id " + accountid);
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         "recordid": recordid,
                         "accountid": accountid,
@@ -336,17 +385,12 @@ Page {
                     });
                 }
                 onMarkAsDone: function (accountid, recordid) {
-                    // console.log("Requesting to Make done activity with id " + recordid);
-                    //Here we need to delete the record and see? if it get synced
                     Activity.markAsDone(accountid, recordid);
                     get_activity_list();
                 }
                 onDateChanged: function (accountid, recordid, newDate) {
-                    console.log("📅 Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
-                    console.log("📅 Activity_Page: Date format received:", typeof newDate, newDate);
-                    // Update the activity date in the database
+                    console.log("Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
                     Activity.updateActivityDate(accountid, recordid, newDate);
-                    // Refresh the activity list to show updated data
                     get_activity_list();
                 }
 
@@ -372,25 +416,21 @@ Page {
                }
             }
             currentIndex: 0
-            onCurrentIndexChanged:
-            // console.log("currentIndex changed");
-            {}
+            onCurrentIndexChanged: {}
 
             Component.onCompleted: {
                 get_activity_list();
             }
         }
+
+        Text {
+            id: labelNoActivity
+            anchors.centerIn: parent
+            font.pixelSize: units.gu(2)
+            visible: activityListModel.count === 0
+            text: 'No Activities Available'
+        }
     }
-
-    // Store current filter and search state
-    property string currentFilter: "today"
-    property string currentSearchQuery: ""
-
-    // Properties for project filtering
-    property bool filterByProject: false
-    property int projectOdooRecordId: -1
-    property int projectAccountId: -1
-    property string projectName: ""
 
     onVisibleChanged: {
         if (visible) {
@@ -398,8 +438,19 @@ Page {
         }
     }
 
+    Connections {
+        target: mainView
+        onAccountDataRefreshRequested: function(accountId) {
+
+            applyAccountFilter(accountId)
+        }
+        onGlobalAccountChanged: function(accountId, accountName) {
+
+            applyAccountFilter(accountId)
+        }
+    }
+
     Component.onCompleted: {
-        // Load activities based on filtering mode
         get_activity_list();
     }
 }
