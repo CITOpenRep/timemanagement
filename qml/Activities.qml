@@ -13,10 +13,6 @@ import "../models/task.js" as Task
 import "../models/global.js" as Global
 import "components"
 
-// Ensure all required QML types are available
-// QtQuick.Controls 2.2 provides RadioButton, TextArea, etc.
-// QtQuick.Layouts 1.3 provides Row, Column, etc.
-
 Page {
     id: activityDetailsPage
     title: "Activity"
@@ -44,22 +40,18 @@ Page {
     Keys.onReleased: {
         if (event.key === Qt.Key_Back || event.key === Qt.Key_Escape) {
             event.accepted = true;
-            console.log("🔙 Hardware back button pressed");
 
-            // Use the same logic as the custom back button
+            // Check if we need to show save/discard dialog
             if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
                 var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
                 var shouldShowDialog = isUnsaved || formModified;
 
                 if (shouldShowDialog) {
-                    console.log("⚠️ Showing save/discard dialog from hardware back button");
                     saveDiscardDialog.open();
                     return;
                 }
             }
 
-            // Safe to navigate back
-            console.log("✅ Safe to navigate back from hardware button");
             navigateBack();
         }
     }
@@ -89,26 +81,17 @@ Page {
                 iconName: "back"
                 text: "Back"
                 onTriggered: {
-                    console.log("🔙 Back button pressed - checking for unsaved changes");
-                    console.log("🔍 Debug values - recordid:", recordid, "hasBeenSaved:", hasBeenSaved, "isReadOnly:", isReadOnly, "formModified:", formModified);
-
                     // Check if we need to show save/discard dialog
                     if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
                         var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
-                        console.log("🔍 Activity.isActivityUnsaved result:", isUnsaved);
                         var shouldShowDialog = isUnsaved || formModified;
 
-                        console.log("🔍 Should show dialog:", shouldShowDialog, "(isUnsaved:", isUnsaved, "|| formModified:", formModified, ")");
-
                         if (shouldShowDialog) {
-                            console.log("⚠️ Showing save/discard dialog");
                             saveDiscardDialog.open();
                             return;
                         }
                     }
 
-                    // Safe to navigate back
-                    console.log("✅ No unsaved changes, navigating back");
                     navigateBack();
                 }
             }
@@ -124,25 +107,21 @@ Page {
     SaveDiscardDialog {
         id: saveDiscardDialog
         onSaveRequested: {
-            console.log("💾 Activities.qml: Save requested from dialog");
             saveActivityData();
             navigateBack();
         }
         onDiscardRequested: {
-            console.log("🗑️ Activities.qml: Discard requested from dialog");
-            // Delete the unsaved activity and allow navigation
+            // Delete the unsaved activity
             if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
                 if (Activity.isActivityUnsaved(accountid, recordid)) {
-                    console.log("🗑️ Discarding unsaved activity with ID:", recordid);
                     Activity.deleteActivity(accountid, recordid);
                 }
             }
             navigateBack();
         }
-        onCancelled: {
-            console.log("❌ Activities.qml: Cancel requested from dialog");
-            // User wants to stay and continue editing - no navigation
-        }
+        onCancelled:
+        // User wants to stay and continue editing
+        {}
     }
     Flickable {
         id: flickable
@@ -370,8 +349,6 @@ Page {
     }
 
     Component.onCompleted: {
-        console.log("🔍 Activities.qml: Component completed - recordid:", recordid, "accountid:", accountid, "isReadOnly:", isReadOnly);
-
         // Initialize form modification tracking
         formModified = false;
 
@@ -421,7 +398,6 @@ Page {
 
             // Check if this is a truly saved activity or a newly created one with default values
             hasBeenSaved = !Activity.isActivityUnsaved(accountid, recordid);
-            console.log("🔍 Activity", recordid, "hasBeenSaved:", hasBeenSaved, "isUnsaved:", Activity.isActivityUnsaved(accountid, recordid));
         } else {
             // For new activities
             let account = Accounts.getAccountsList();
@@ -438,59 +414,37 @@ Page {
         }
     }
 
-    // Add a robust navigation function to handle back navigation
+    // Robust navigation function with multiple fallback methods
     function navigateBack() {
-        console.log("🔙 Attempting to navigate back");
-
         try {
-            // Method 1: Try pageStack (most common)
             if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
-                console.log("✅ Using pageStack.pop()");
                 pageStack.pop();
                 return;
             }
-        } catch (e) {
-            console.log("❌ pageStack.pop() failed:", e.toString());
-        }
+        } catch (e) {}
 
         try {
-            // Method 2: Try Stack.view
             if (typeof Stack !== "undefined" && Stack.view && Stack.view.pop) {
-                console.log("✅ Using Stack.view.pop()");
                 Stack.view.pop();
                 return;
             }
-        } catch (e) {
-            console.log("❌ Stack.view.pop() failed:", e.toString());
-        }
+        } catch (e) {}
 
         try {
-            // Method 3: Try pageStack.removePages (like other QML files)
             if (typeof pageStack !== "undefined" && pageStack && pageStack.removePages) {
-                console.log("✅ Using pageStack.removePages()");
                 pageStack.removePages(activityDetailsPage);
                 return;
             }
-        } catch (e) {
-            console.log("❌ pageStack.removePages() failed:", e.toString());
-        }
+        } catch (e) {}
 
         try {
-            // Method 4: Try parent navigation
             if (parent && parent.pop) {
-                console.log("✅ Using parent.pop()");
                 parent.pop();
                 return;
             }
-        } catch (e) {
-            console.log("❌ parent.pop() failed:", e.toString());
-        }
-
-        console.log("❌ All navigation methods failed - cannot navigate back");
+        } catch (e) {}
     }
-
     function reloadActivityTypeSelector(accountId, selectedTypeId) {
-        //  console.log("->-> Loading Activity Types for account " + accountId);
         let rawTypes = Activity.getActivityTypesForAccount(accountId);
         let flatModel = [];
 
@@ -648,19 +602,13 @@ Page {
         }
     }
 
-    // Alternative approach: Check for unsaved changes when page is being destroyed
+    // Check for unsaved changes when page is being destroyed
     Component.onDestruction: {
-        console.log("🚪 Activities.qml: Page being destroyed");
-
-        // Note: This is called after navigation has already started
-        // In a real app, you'd want to prevent navigation earlier
-        // This is mainly for cleanup and logging
         if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
             var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
-            if (isUnsaved) {
-                console.log("⚠️ Activities.qml: Page destroyed with unsaved changes - recordid:", recordid);
-                // Could potentially auto-save here or mark for recovery
-            }
+            if (isUnsaved)
+            // Could potentially auto-save here or mark for recovery
+            {}
         }
     }
 }
