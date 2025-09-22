@@ -13,10 +13,6 @@ import "../models/task.js" as Task
 import "../models/global.js" as Global
 import "components"
 
-// Ensure all required QML types are available
-// QtQuick.Controls 2.2 provides RadioButton, TextArea, etc.
-// QtQuick.Layouts 1.3 provides Row, Column, etc.
-
 Page {
     id: activityDetailsPage
     title: "Activity"
@@ -35,6 +31,31 @@ Page {
 
     // Track if the activity has been saved at least once
     property bool hasBeenSaved: false
+    // Track if we're navigating to ReadMorePage to avoid showing save dialog
+    property bool navigatingToReadMore: false
+    // Track if user has modified form fields
+    property bool formModified: false
+
+    // Handle hardware back button presses
+    Keys.onReleased: {
+        if (event.key === Qt.Key_Back || event.key === Qt.Key_Escape) {
+            event.accepted = true;
+
+            // Check if we need to show save/discard dialog
+            if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
+                var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
+                var shouldShowDialog = isUnsaved || formModified;
+
+                if (shouldShowDialog) {
+                    saveDiscardDialog.open();
+                    return;
+                }
+            }
+
+            navigateBack();
+        }
+    }
+
     header: PageHeader {
         id: header
         title: activityDetailsPage.title
@@ -53,12 +74,54 @@ Page {
                 }
             }
         ]
+
+        // Add back button with save/discard logic
+        leadingActionBar.actions: [
+            Action {
+                iconName: "back"
+                text: "Back"
+                onTriggered: {
+                    // Check if we need to show save/discard dialog
+                    if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
+                        var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
+                        var shouldShowDialog = isUnsaved || formModified;
+
+                        if (shouldShowDialog) {
+                            saveDiscardDialog.open();
+                            return;
+                        }
+                    }
+
+                    navigateBack();
+                }
+            }
+        ]
     }
 
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
+    }
+
+    SaveDiscardDialog {
+        id: saveDiscardDialog
+        onSaveRequested: {
+            saveActivityData();
+           // navigateBack(); // Do not navigate back immediately after save - stay on the page so if user wants to continue editing, they can or if there are validation errors they can correct them
+        }
+        onDiscardRequested: {
+            // Delete the unsaved activity
+            if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
+                if (Activity.isActivityUnsaved(accountid, recordid)) {
+                    Activity.deleteActivity(accountid, recordid);
+                }
+            }
+            navigateBack();
+        }
+        onCancelled:
+        // User wants to stay and continue editing
+        {}
     }
     Flickable {
         id: flickable
@@ -191,6 +254,12 @@ Page {
                     anchors.centerIn: parent.centerIn
                     text: currentActivity.summary
 
+                    onTextChanged: {
+                        if (text !== currentActivity.summary) {
+                            formModified = true;
+                        }
+                    }
+
                     // Custom styling for border highlighting
                     Rectangle {
                         // visible: !isReadOnly
@@ -228,8 +297,10 @@ Page {
                         text: ""
                         is_read_only: isReadOnly
                         onClicked: {
-                            //set the data to a global Slore and pass the key to the page
+                            //set the data to a global Store and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
+                            Global.description_context = "activity_notes";
+                            navigatingToReadMore = true;
                             apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly
                                 //useRichText: false
@@ -278,6 +349,9 @@ Page {
     }
 
     Component.onCompleted: {
+        // Initialize form modification tracking
+        formModified = false;
+
         if (recordid != 0) {
             currentActivity = Activity.getActivityById(recordid, accountid);
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
@@ -324,7 +398,6 @@ Page {
 
             // Check if this is a truly saved activity or a newly created one with default values
             hasBeenSaved = !Activity.isActivityUnsaved(accountid, recordid);
-            console.log("🔍 Activity", recordid, "hasBeenSaved:", hasBeenSaved, "isUnsaved:", Activity.isActivityUnsaved(accountid, recordid));
         } else {
             // For new activities
             let account = Accounts.getAccountsList();
@@ -337,11 +410,41 @@ Page {
 
             // New activities start as unsaved
             hasBeenSaved = false;
+            console.log("📝 Activities.qml: New activity creation mode");
         }
     }
 
+    // Robust navigation function with multiple fallback methods
+    function navigateBack() {
+        try {
+            if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
+                pageStack.pop();
+                return;
+            }
+        } catch (e) {}
+
+        try {
+            if (typeof Stack !== "undefined" && Stack.view && Stack.view.pop) {
+                Stack.view.pop();
+                return;
+            }
+        } catch (e) {}
+
+        try {
+            if (typeof pageStack !== "undefined" && pageStack && pageStack.removePages) {
+                pageStack.removePages(activityDetailsPage);
+                return;
+            }
+        } catch (e) {}
+
+        try {
+            if (parent && parent.pop) {
+                parent.pop();
+                return;
+            }
+        } catch (e) {}
+    }
     function reloadActivityTypeSelector(accountId, selectedTypeId) {
-        //  console.log("->-> Loading Activity Types for account " + accountId);
         let rawTypes = Activity.getActivityTypesForAccount(accountId);
         let flatModel = [];
 
@@ -448,13 +551,24 @@ Page {
             notifPopup.open("Error", "Unable to save the Activity", "error");
         } else {
             hasBeenSaved = true;  // Mark that this activity has been properly saved
+            formModified = false; // Reset form modification flag after successful save
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
             // No navigation - stay on the same page like Timesheet.qml
             // User can use back button to return to list page
         }
     }
+
+    onActiveChanged: {
+        console.log("🔍 Activities.qml: Active changed to:", active, "- recordid:", recordid, "hasBeenSaved:", hasBeenSaved, "isReadOnly:", isReadOnly, "formModified:", formModified);
+    }
+
     onVisibleChanged: {
+        console.log("🔍 Activities.qml: Visibility changed to:", visible, "- recordid:", recordid);
+
         if (visible) {
+            // Reset the navigation tracking flag when page becomes visible
+            navigatingToReadMore = false;
+
             // Reload activity data when page becomes visible
             if (recordid != 0) {
                 currentActivity = Activity.getActivityById(recordid, accountid);
@@ -465,23 +579,37 @@ Page {
                 notes.setContent(currentActivity.notes || "");
                 date_widget.setSelectedDate(currentActivity.due_date);
                 console.log("📅 Activities.qml: Set date widget to:", currentActivity.due_date);
+
+                // Reset form modification flag after loading data
+                formModified = false;
             }
 
-            if (Global.description_temporary_holder !== "") {
+            if (Global.description_temporary_holder !== "" && Global.description_context === "activity_notes") {
                 //Check if you are coming back from the ReadMore page
                 notes.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
+                Global.description_context = "";
             }
         } else {
-            // Page is becoming invisible - check if we need to clean up unsaved activity
-            // if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
-            //     // Check if the activity is still in its default unsaved state
-            //     if (Activity.isActivityUnsaved(accountid, recordid)) {
-            //         console.log("🗑️ Cleaning up unsaved activity with ID:", recordid);
-            //         Activity.deleteActivity(accountid, recordid);
-            //     }
-            // }
-            Global.description_temporary_holder = "";
+
+            // Page becoming invisible - only handle ReadMore cleanup
+            var isNavigatingToReadMore = navigatingToReadMore || (Global.description_context === "activity_notes");
+
+            // Clear global holders only if not navigating to ReadMore
+            if (!isNavigatingToReadMore) {
+                Global.description_temporary_holder = "";
+                Global.description_context = "";
+            }
+        }
+    }
+
+    // Check for unsaved changes when page is being destroyed
+    Component.onDestruction: {
+        if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
+            var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
+            if (isUnsaved)
+            // Could potentially auto-save here or mark for recovery
+            {}
         }
     }
 }

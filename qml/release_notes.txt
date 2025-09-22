@@ -55,7 +55,9 @@
 
 <h5>In Progress</h5>
 <ul>
+
   <li> Fix for activity creation from project updates page.</li>
+
 </ul>
 
 

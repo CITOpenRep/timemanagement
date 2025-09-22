@@ -256,7 +256,7 @@ ListItem {
             id: progressindicator
             anchors.bottom: parent.bottom
             width: parent.width
-            height: units.gu(2)
+            height: units.gu(1.5)
             //  visible: !hasChildren //if there are tasks with child tasks then we will hide this view
             color: "transparent"
 
