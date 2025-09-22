@@ -11,7 +11,7 @@
  *
  * @returns {Array<Object>} - A list of enriched timesheet entries.
  */
-function fetchTimesheetsByStatus(status) {
+function fetchTimesheetsByStatus(status, accountId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheetList = [];
 
@@ -28,14 +28,18 @@ function fetchTimesheetsByStatus(status) {
             var query = "";
             var params = [];
 
+           
             if (!status || status.toLowerCase() === "all") {
-                query = "SELECT * FROM account_analytic_line_app WHERE (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                params = [accountId];
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC";
-                params = [status];
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY last_modified DESC";
+                params = [accountId, status];
             }
 
+            console.log("Executing fetchTimesheetsByStatus query:", query, "with params:", params);
             var result = tx.executeSql(query, params);
+            console.log("Found", result.rows.length, "timesheets for account:", accountId);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -43,7 +47,7 @@ function fetchTimesheetsByStatus(status) {
                 var quadrantMap = {
                     0: "Unknown",
                     1: "Do",
-                    2: "Plan",
+                    2: "Plan", 
                     3: "Delegate",
                     4: "Delete"
                 };
@@ -122,11 +126,128 @@ function fetchTimesheetsByStatus(status) {
             }
         });
     } catch (e) {
+        console.error("Error in fetchTimesheetsByStatus:", e.message);
         DBCommon.logException("fetchTimesheetsByStatus", e);
     }
 
     return timesheetList;
 }
+function fetchTimesheetsForAllAccounts(status) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timesheetList = [];
+
+    try {
+        db.transaction(function (tx) {
+            var projectColorMap = {};
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+            var query = "";
+            var params = [];
+
+            if (!status || status.toLowerCase() === "all") {
+                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY last_modified DESC";
+                params = [];
+            } else {
+                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC";
+                params = [status];
+            }
+
+           // console.log("Executing fetchTimesheetsForAllAccounts query:", query, "with params:", params);
+            var result = tx.executeSql(query, params);
+           // console.log("Found", result.rows.length, "timesheets for all accounts");
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+
+                var quadrantMap = {
+                    0: "Unknown",
+                    1: "Do",
+                    2: "Plan", 
+                    3: "Delegate",
+                    4: "Delete"
+                };
+
+                // Resolve project name and parent name
+                var projectName = "Unknown Project";
+                var inheritedColor = 0;
+
+                if (row.project_id) {
+                    var rs_project = tx.executeSql(
+                        "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                        [row.project_id]
+                    );
+
+                    if (rs_project.rows.length > 0) {
+                        var project_row = rs_project.rows.item(0);
+                        if (project_row.parent_id && project_row.parent_id > 0) {
+                            var rs_parent = tx.executeSql(
+                                "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                                [project_row.parent_id]
+                            );
+                            if (rs_parent.rows.length > 0) {
+                                projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
+                            } else {
+                                projectName = project_row.name;
+                            }
+                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
+                        } else {
+                            projectName = project_row.name;
+                            inheritedColor = projectColorMap[row.project_id] || 0;
+                        }
+                    }
+                }
+
+                // Resolve task name
+                var taskName = "Unknown Task";
+                if (row.task_id) {
+                    var rs_task = tx.executeSql(
+                        "SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [row.task_id]
+                    );
+                    if (rs_task.rows.length > 0) {
+                        taskName = rs_task.rows.item(0).name;
+                    }
+                }
+
+                // Resolve instance and user names
+                var instanceName = "", userName = "";
+                if (row.account_id) {
+                    var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
+                    if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
+                }
+
+                if (row.user_id) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                    if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
+                }
+
+                timesheetList.push({
+                    id: row.id,
+                    instance: instanceName,
+                    name: row.name || '',
+                    spentHours: Utils.convertDecimalHoursToHHMM(row.unit_amount),
+                    project: projectName,
+                    quadrant: quadrantMap[row.quadrant_id] || "Unknown",
+                    date: row.record_date,
+                    status: row.status,
+                    task: taskName,
+                    user: userName,
+                    timer_type: row.timer_type || 'manual',
+                    color_pallet: parseInt(inheritedColor) || 0
+                });
+            }
+        });
+    } catch (e) {
+        console.error("Error in fetchTimesheetsForAllAccounts:", e.message);
+        DBCommon.logException("fetchTimesheetsForAllAccounts", e);
+    }
+
+    return timesheetList;
+}
+
 
 
 function getAttachmentsForTimesheet(odooRecordId) {
@@ -296,27 +417,62 @@ function markTimesheetAsDeleted(taskId) {
  * @param {number} record_id - The local database ID of the timesheet entry.
  * @returns {Object} - A timesheet detail object, or an empty object if not found.
  */
-function getTimeSheetDetails(record_id) {
+function getTimeSheetDetails(record_id, accountId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheet_detail = {};
-    db.transaction(function (tx) {
-        var timesheet = tx.executeSql('SELECT * FROM account_analytic_line_app\
-                                    WHERE id = ?', [record_id]);
-        if (timesheet.rows.length) {
-            timesheet_detail = {
-                'instance_id': timesheet.rows.item(0).account_id,
-                'project_id': timesheet.rows.item(0).project_id,
-                'sub_project_id': timesheet.rows.item(0).sub_project_id,
-                'task_id': timesheet.rows.item(0).task_id,
-                'sub_task_id': timesheet.rows.item(0).sub_task_id,
-                'name': timesheet.rows.item(0).name,
-                'spentHours': Utils.convertDecimalHoursToHHMM(timesheet.rows.item(0).unit_amount),
-                'quadrant_id': timesheet.rows.item(0).quadrant_id,
-                'record_date': Utils.formatDate(new Date(timesheet.rows.item(0).record_date)),
-                'timer_type': timesheet.rows.item(0).timer_type || 'manual'
-            };
-        }
-    });
+    
+    try {
+        db.transaction(function (tx) {
+            var query = 'SELECT * FROM account_analytic_line_app WHERE id = ?';
+            var params = [record_id];
+            
+
+            if (accountId !== undefined && accountId !== null && accountId !== -1) {
+                query += ' AND account_id = ?';
+                params.push(accountId);
+                console.log("Applying security filter - accountId:", accountId);
+            } else {
+                console.log("WARNING: No account filter applied - this may be a security risk");
+            }
+            
+            console.log("Executing query:", query, "with params:", params);
+            
+            var timesheet = tx.executeSql(query, params);
+            
+            if (timesheet.rows.length) {
+                var row = timesheet.rows.item(0);
+                console.log("Found record with account_id:", row.account_id);
+                
+                timesheet_detail = {
+                    'instance_id': row.account_id,
+                    'project_id': row.project_id,
+                    'sub_project_id': row.sub_project_id,
+                    'task_id': row.task_id,
+                    'sub_task_id': row.sub_task_id,
+                    'name': row.name,
+                    'spentHours': Utils.convertDecimalHoursToHHMM(row.unit_amount),
+                    'quadrant_id': row.quadrant_id,
+                    'record_date': Utils.formatDate(new Date(row.record_date)),
+                    'timer_type': row.timer_type || 'manual'
+                };
+            } else {
+                console.log("No matching record found for id:", record_id, "accountId:", accountId);
+                
+                
+                var debugCheck = tx.executeSql('SELECT account_id FROM account_analytic_line_app WHERE id = ?', [record_id]);
+                if (debugCheck.rows.length) {
+                    console.log("Record exists but has account_id:", debugCheck.rows.item(0).account_id, 
+                              "Expected:", accountId);
+                } else {
+                    console.log("Record with id", record_id, "does not exist in database");
+                }
+            }
+        });
+    } catch (e) {
+        console.error("Error in getTimeSheetDetails:", e.message);
+        DBCommon.logException("getTimeSheetDetails", e);
+    }
+    
     return timesheet_detail;
 }
 

@@ -591,6 +591,7 @@ Page {
                 Global.description_context = "";
             }
         } else {
+
             // Page becoming invisible - only handle ReadMore cleanup
             var isNavigatingToReadMore = navigatingToReadMore || (Global.description_context === "activity_notes");
 

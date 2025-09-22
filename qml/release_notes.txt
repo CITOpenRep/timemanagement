@@ -48,7 +48,6 @@
 <h5>Fixes and Improvements</h5>
 <ul>
   <li>Resolved an issue in Tasks where incorrect parent assignments occurred with multiple instances.</li>
-  <li>Fixed duplicate activity creation when navigating back without saving, in both Tasks and Projects.</li>
   <li>Task sorting is now strictly aligned with End Date for consistent ordering.</li>
   <li>The Activity Create button in Tasks is now visible in both Edit and View modes.</li>
   <li>Stage labels have been simplified to plain text (removing background colors). Button colors in the Project Detailed View have also been updated.</li>
@@ -56,7 +55,9 @@
 
 <h5>In Progress</h5>
 <ul>
-  <li>Fix for activity creation from project updates page.</li>
+
+  <li> Fix for activity creation from project updates page.</li>
+
 </ul>
 
 

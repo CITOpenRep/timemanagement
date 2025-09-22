@@ -48,6 +48,9 @@ Item {
     property int projectOdooRecordId: -1
     property int projectAccountId: -1
 
+    property bool filterByAccount: false
+    property int selectedAccountId: -1
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
@@ -154,17 +157,53 @@ Item {
         return Task.getTasksForProject(projectOdooId, accountId);
     }
 
-    // New function to refresh with filter applied
+
     function refreshWithFilter() {
-        if (currentFilter === "all" && !currentSearchQuery) {
-            populateTaskChildrenMap(); // Use original function for "all" filter without search
+        
+        if (filterByAccount && selectedAccountId >= 0) {
+
+            var accountTasks;
+            if (currentFilter === "all" && !currentSearchQuery) {
+                accountTasks = Task.getTasksForAccount(selectedAccountId);
+            } else {
+                accountTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery, selectedAccountId);
+            }
+            updateDisplayedTasks(accountTasks);
+        } else if (currentFilter === "all" && !currentSearchQuery) {
+            populateTaskChildrenMap(); 
         } else if (currentFilter && currentFilter !== "" || currentSearchQuery) {
             var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
             updateDisplayedTasks(filteredTasks);
         } else {
-            populateTaskChildrenMap(); // Use original function when no filters
+            populateTaskChildrenMap();
         }
+
     }
+
+    function applyAccountFilter(accountId) {
+        console.log("🔍 TaskList.applyAccountFilter called with accountId:", accountId);
+        
+        filterByAccount = (accountId >= 0);
+        selectedAccountId = accountId;
+        filterByProject = false; 
+
+        
+        refreshWithFilter();
+
+    }
+
+    function clearAccountFilter() {
+        
+        filterByAccount = false;
+        selectedAccountId = -1;
+        
+
+        
+        refreshWithFilter();
+        
+
+    }
+
 
     // New function to update displayed tasks with filtered data
     function updateDisplayedTasks(tasks) {

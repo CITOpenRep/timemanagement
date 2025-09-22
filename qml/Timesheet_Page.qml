@@ -39,6 +39,12 @@ Page {
 
     property string currentFilter: "all"
     property bool workpersonaSwitchState: true
+    
+    // SEPARATED CONCERNS:
+    // 1. selectedAccountId - ONLY for filtering/viewing data (from account selector)
+    // 2. defaultAccountId - ONLY for creating new records (from default account setting)
+    property string selectedAccountId: "-1" // Start with "All accounts" for filtering
+    property string defaultAccountId: Account.getDefaultAccountId() // For creating records
 
     header: PageHeader {
         id: timesheetsheader
@@ -54,7 +60,11 @@ Page {
                 iconName: "reminder-new"
                 text: "New"
                 onTriggered: {
-                    const result = Model.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                    // Use DEFAULT account for creating new timesheets (not the filter selection)
+                    const result = Model.createTimesheet(
+                        defaultAccountId,
+                        Account.getCurrentUserOdooId(defaultAccountId)
+                    )
                     if (result.success) {
                         apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                             "recordid": result.id,
@@ -64,12 +74,38 @@ Page {
                         notifPopup.open("Error", result.message, "error");
                     }
                 }
+            },
+            Action {
+                iconName: "account"
+                onTriggered: {
+                    accountFilterVisible = !accountFilterVisible
+                }
             }
         ]
     }
+
+    // Listen to AccountFilter component changes (for filtering only)
+    Connections {
+        target: accountFilter // Make sure this targets your AccountFilter component
+        onAccountChanged: function(accountId, accountName) {
+            console.log("Account filter changed to:", accountName, "ID:", accountId);
+            selectedAccountId = accountId; // Update filter selection
+            fetch_timesheets_list(); // Refresh with new filter
+        }
+    }
+
+    // Listen for default account changes (for creation only)
+    Connections {
+        target: mainView
+        onDefaultAccountChanged: function(accountId) {
+            console.log("Default account changed to:", accountId);
+            defaultAccountId = accountId; // Update default for creation
+            // Don't refresh list here - this is only for creation, not filtering
+        }
+    }
+
     Connections {
         target: globalTimerWidget
-
         onTimerStopped: {
             fetch_timesheets_list();
         }
@@ -81,6 +117,21 @@ Page {
         }
         onTimerResumed: {
             fetch_timesheets_list();
+        }
+    }
+
+    // Keep account-data-refresh handler but accept permissive signal signature
+    Connections {
+        target: mainView
+        onAccountDataRefreshRequested: function(accountId) {
+            // If accountId isn't passed by signal, accountId will be undefined -> refresh if our filter is "-1" or always refresh
+            if (typeof accountId === "undefined" || accountId === null) {
+                fetch_timesheets_list();
+            } else {
+                if (selectedAccountId === accountId || selectedAccountId === "-1") {
+                    fetch_timesheets_list();
+                }
+            }
         }
     }
 
@@ -105,7 +156,6 @@ Page {
         filter2: "active"
         filter3: "draft"
         // Hide unused labels/filters
-
         label4: ""
         label5: ""
         label6: ""
@@ -130,25 +180,52 @@ Page {
     }
 
     function fetch_timesheets_list() {
-        var timesheets_list;
-        timesheets_list = Model.fetchTimesheetsByStatus(currentFilter);
+        // Use selectedAccountId for filtering (from account selector)
+        var filterAccountId = selectedAccountId;
+        console.log("Filtering timesheets for account:", filterAccountId, "filter:", currentFilter);
+        console.log("Default account for creation:", defaultAccountId);
+
+        var timesheets_list = [];
+
+        // Use different fetch method depending on account selector choice
+        // strict comparison to string "-1" so "-1" and -1 mismatch issues are avoided
+        if (filterAccountId === "-1") {
+            console.log("Account selector: All accounts selected — fetching all timesheets");
+            timesheets_list = Model.fetchTimesheetsForAllAccounts(currentFilter);
+        } else {
+            console.log("Account selector: Single account selected — fetching timesheets for account", filterAccountId);
+            timesheets_list = Model.fetchTimesheetsByStatus(currentFilter, filterAccountId);
+        }
+
         timesheetModel.clear();
-        for (var timesheet = 0; timesheet < timesheets_list.length; timesheet++) {
+
+        if (!timesheets_list || !timesheets_list.length) {
+            console.log("No timesheets returned from model (length 0 or undefined).");
+        } else {
+            console.log("Retrieved", timesheets_list.length, "timesheets");
+        }
+
+        for (var timesheet = 0; timesheet < (timesheets_list ? timesheets_list.length : 0); timesheet++) {
+            var t = timesheets_list[timesheet] || {};
             timesheetModel.append({
-                'name': timesheets_list[timesheet].name,
-                'id': timesheets_list[timesheet].id,
-                'instance': timesheets_list[timesheet].instance,
-                'project': timesheets_list[timesheet].project,
-                'spentHours': timesheets_list[timesheet].spentHours,
-                'quadrant': timesheets_list[timesheet].quadrant || "Do",
-                'task': timesheets_list[timesheet].task || "Unknown Task",
-                'date': timesheets_list[timesheet].date,
-                'user': timesheets_list[timesheet].user,
-                'status': timesheets_list[timesheet].status,
-                'activetimer': (currentFilter === "active") && (TimerService.getActiveTimesheetId() === timesheets_list[timesheet].id),
-                'color_pallet': timesheets_list[timesheet].color_pallet
+                'name': t.name,
+                'id': t.id,
+                'instance': t.instance,
+                'project': t.project,
+                'spentHours': t.spentHours,
+                'quadrant': t.quadrant || "Do",
+                'task': t.task || "Unknown Task",
+                'date': t.date,
+                'user': t.user,
+                'status': t.status,
+                // preserve timer behavior (normalize comparison to string to be safe)
+                'activetimer': (currentFilter === "active") && (String(TimerService.getActiveTimesheetId()) === String(t.id)),
+                // IMPORTANT: keep the same key name that your delegate expects
+                'color_pallet': (typeof t.color_pallet !== "undefined" ? t.color_pallet : "")
             });
         }
+
+        console.log("Populated timesheetModel with", timesheetModel.count, "items");
     }
 
     ListView {
@@ -215,14 +292,18 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                const result = Model.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                // Use DEFAULT account for creating new timesheets (not the filter selection)
+                const result = Model.createTimesheet(
+                    defaultAccountId,
+                    Account.getCurrentUserOdooId(defaultAccountId)
+                )
                 if (result.success) {
                     apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
-                    });
+                    })
                 } else {
-                    notifPopup.open("Error", result.message, "error");
+                    notifPopup.open("Error", result.message, "error")
                 }
             }
         }
@@ -232,5 +313,37 @@ Page {
         if (visible) {
             fetch_timesheets_list();
         }
+    }
+
+    // Update default account when it changes in settings
+    Component.onCompleted: {
+        // Initialize default account
+        defaultAccountId = Account.getDefaultAccountId();
+
+        // Try to read the account selector's current selection and use it as initial filter.
+        // This will preserve color behavior and run initial filtered fetch.
+        try {
+            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
+                // try common property names — prefer explicit ID property if present
+                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
+                    selectedAccountId = String(accountFilter.selectedAccountId);
+                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
+                    selectedAccountId = String(accountFilter.currentAccountId);
+                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
+                    // fallback: if only index is available, keep "-1" or map index -> id here if you have mapping
+                    selectedAccountId = String(accountFilter.currentIndex);
+                } else {
+                    selectedAccountId = "-1";
+                }
+            } else {
+                // if accountFilter component not available at this time, fallback to "-1"
+                selectedAccountId = "-1";
+            }
+        } catch (e) {
+            console.error("Error reading accountFilter initial selection:", e);
+            selectedAccountId = "-1";
+        }
+
+        console.log("Initial selectedAccountId on load:", selectedAccountId);
     }
 }

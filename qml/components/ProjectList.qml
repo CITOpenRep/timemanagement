@@ -31,6 +31,7 @@ import QtQuick.LocalStorage 2.7 as Sql
 import "../../models/accounts.js" as Accounts
 import "../../models/project.js" as Project
 
+
 /*
     ProjectNavigator.qml - Logic Overview
     --------------------------------------
@@ -85,9 +86,15 @@ import "../../models/project.js" as Project
     Be CAREFUL when changing this code :)
 */
 
+
 Item {
-    id: projectNavigator
+    id: projectList
     anchors.fill: parent
+
+
+    property bool filterByAccount: false
+    property int selectedAccountId: -1
+
 
     property int currentParentId: -1
     property int currentAccountId: -1
@@ -95,15 +102,14 @@ Item {
     property var childrenMap: ({})
     property bool childrenMapReady: false
     property var stageFilter: ({
-            enabled: true  // Enable by default for "Open" filter
-            ,
-            odoo_record_id: -2  // Special value for "Open" filter
-            ,
+            enabled: true,
+            odoo_record_id: -2,
             name: "Open"
         })
     property var stageList: []
-    property var openStagesList: []  // Store list of open stages (fold = 0)
+    property var openStagesList: []
 
+    // Signals
     signal projectSelected(int recordId)
     signal projectEditRequested(int recordId)
     signal projectDeleteRequested(int recordId)
@@ -116,7 +122,6 @@ Item {
             return;
         }
 
-        //  console.log("Navigating to subprojects - from parent:", currentParentId, "account:", currentAccountId, "to parent:", projectId, "account:", accountId);
         navigationStackModel.append({
             parentId: currentParentId !== undefined ? currentParentId : -1,
             accountId: currentAccountId !== undefined ? currentAccountId : -1
@@ -141,20 +146,33 @@ Item {
         navigationStackModel.clear();
         currentParentId = -1;
         currentAccountId = -1;
+        
         // Reset to default "Open" filter
         stageFilter.enabled = true;
         stageFilter.odoo_record_id = -2;
         stageFilter.name = "Open";
-        populateProjectChildrenMap(true);
+        
+        populateProjectChildrenMap();
     }
 
     function populateProjectChildrenMap() {
         childrenMap = {};
         childrenMapReady = false;
 
-        var allProjects = Project.getAllProjects();
+        var allProjects;
+        
+
+        if (filterByAccount && selectedAccountId >= 0) {
+            allProjects = Project.getProjectsForAccount(selectedAccountId);
+            console.log("Loading projects from default account", selectedAccountId + ":", allProjects.length, "projects");
+        } else {
+
+            allProjects = Project.getAllProjects();
+            console.log("Loading projects from ALL accounts:", allProjects.length, "projects");
+        }
 
         if (allProjects.length === 0) {
+            childrenMapReady = true;
             return;
         }
 
@@ -225,7 +243,7 @@ Item {
 
         // Convert to QML ListModels with sorting
         for (var key in tempMap) {
-            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
 
             // Sort the projects by name before adding to model
             tempMap[key].sort(function (a, b) {
@@ -236,10 +254,10 @@ Item {
                 model.append(entry);
             });
             childrenMap[key] = model;
-            //
         }
 
         childrenMapReady = true;
+        console.log("Project children map populated for account filter:", selectedAccountId);
     }
 
     function getCurrentModel() {
@@ -267,7 +285,7 @@ Item {
         // For root level (currentParentId = -1), we need to find models for all accounts
         if (currentParentId === -1) {
             // Combine all root level projects from all accounts
-            var combinedModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+            var combinedModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
             var allRootProjects = [];
 
             // If a filter is enabled, we need to find all children that match the filter
@@ -351,7 +369,6 @@ Item {
                 }
             });
 
-            // console.log("Root level combined model count:", combinedModel.count);
             return combinedModel;
         } else {
             // For specific parent, we need to find the account context
@@ -361,7 +378,7 @@ Item {
 
             // For specific parent, gather projects that either match the filter
             // or are parents of matching projects
-            var finalModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectNavigator);
+            var finalModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
 
             // Find children that match the filter criteria
             var includeParentIds = {};
@@ -438,61 +455,65 @@ Item {
             stageList = Project.getAllProjectStages();
             openStagesList = Project.getOpenProjectStages(); // Load open stages (fold = 0)
 
-            // Build menu model for DialerMenu
-            var menuModel = [];
+            // stageList = Project.getAllProjectStages();
+            // openStagesList = Project.getOpenProjectStages(); // Load open stages (fold = 0)
 
-            // Add "Open" as the first and default option
-            menuModel.push({
-                label: "Open Projects",
-                value: -2 // Special value for "Open" filter
-            });
+            // // Build menu model for DialerMenu
+            // var menuModel = [];
 
-            menuModel.push({
-                label: "All Stages",
-                value: -1,
-                account_id: -1 // Special value for "All"
-            });
+            // // Add "Open" as the first and default option
+            // menuModel.push({
+            //     label: "Open Projects",
+            //     value: -2 // Special value for "Open" filter
+            // });
 
-            // Track unique combinations of odoo_record_id + name + account_id
-            var uniqueCombinations = {};
+            // menuModel.push({
+            //     label: "All Stages",
+            //     value: -1,
+            //     account_id: -1 // Special value for "All"
+            // });
 
-            for (var i = 0; i < stageList.length; i++) {
-                var s = stageList[i];
-                var odooId = s.odoo_record_id || 0;
-                var stageName = s.name || "";
-                var accountId = s.account_id || 0;
+            // // Track unique combinations of odoo_record_id + name + account_id
+            // var uniqueCombinations = {};
 
-                // Create a unique key using odoo_record_id, name, and account_id
-                var combinationKey = odooId + "_" + stageName + "_" + accountId;
+            // for (var i = 0; i < stageList.length; i++) {
+            //     var s = stageList[i];
+            //     var odooId = s.odoo_record_id || 0;
+            //     var stageName = s.name || "";
+            //     var accountId = s.account_id || 0;
 
-                // Skip if we've already included this exact combination
-                if (uniqueCombinations[combinationKey])
-                    continue;
+            //     // Create a unique key using odoo_record_id, name, and account_id
+            //     var combinationKey = odooId + "_" + stageName + "_" + accountId;
 
-                var label = stageName;
+            //     // Skip if we've already included this exact combination
+            //     if (uniqueCombinations[combinationKey])
+            //         continue;
 
-                // Add account name for context
-                if (s.account_id) {
-                    // Append account name to make the label unique
-                    var acct = Accounts.getAccountName(s.account_id) || "Local";
-                    label = label + " (" + acct + ")";
-                }
+            //     var label = stageName;
 
-                // Mark this combination as seen
-                uniqueCombinations[combinationKey] = true;
+            //     // Add account name for context
+            //     if (s.account_id) {
+            //         // Append account name to make the label unique
+            //         var acct = Accounts.getAccountName(s.account_id) || "Local";
+            //         label = label + " (" + acct + ")";
+            //     }
 
-                // Add stage to menu model with its odoo_record_id and account_id as values
-                menuModel.push({
-                    label: label,
-                    value: s.odoo_record_id,
-                    account_id: s.account_id
-                });
-            }
-            dialer.menuModel = menuModel;
+            //     // Mark this combination as seen
+            //     uniqueCombinations[combinationKey] = true;
+
+            //     // Add stage to menu model with its odoo_record_id and account_id as values
+            //     menuModel.push({
+            //         label: label,
+            //         value: s.odoo_record_id,
+            //         account_id: s.account_id
+            //     });
+            // }
+            // dialer.menuModel = menuModel;
         } catch (e) {
             console.error("Failed to load stages:", e);
         }
     }
+
     Column {
         anchors.fill: parent
         spacing: units.gu(1)
@@ -509,7 +530,6 @@ Item {
                     navigationStackModel.remove(navigationStackModel.count - 1);
                     currentParentId = last.parentId !== undefined ? last.parentId : -1;
                     currentAccountId = last.accountId !== undefined ? last.accountId : -1;
-                    //  console.log("Back navigation - restored parent:", currentParentId, "account:", currentAccountId);
                 }
             }
         }
@@ -559,7 +579,7 @@ Item {
                     }
 
                     onNavigationRequested: (projectId, accountId) => {
-                        // console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
+                        console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
                         navigateToProject(projectId, accountId);
                     }
                     onTimesheetRequested: localId => {
@@ -571,7 +591,6 @@ Item {
         }
     }
 
-    // Floating filter menu using DialerMenu component
     // Floating stage filter menu using StageFilterMenu component
     Components.StageFilterMenu {
         id: stageFilterMenu
@@ -654,8 +673,9 @@ Item {
             projectListView.model = getCurrentModel();
         }
     }
+
     Connections {
-        target: projectNavigator
+        target: projectList
         onChildrenMapReadyChanged: {
             if (childrenMapReady) {
                 projectListView.model = getCurrentModel();
@@ -676,8 +696,8 @@ Item {
     }
 
     Component.onCompleted: {
-        populateProjectChildrenMap(true);
-        // Load available project stages to populate FAB menu
+        populateProjectChildrenMap();
+        // Load available project stages to populate filter menu
         loadStages();
     }
 }
