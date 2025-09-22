@@ -4,6 +4,7 @@ import Lomiri.Components 1.3
 import io.thp.pyotherside 1.4
 import "../../models/project.js" as Project
 
+
 Item {
     id: card
     width: parent.width
@@ -20,7 +21,7 @@ Item {
         id: python
 
         Component.onCompleted: {
-            addImportPath(Qt.resolvedUrl('../../src/'));
+            addImportPath(Qt.resolvedUrl("../../src/"));
             importModule_sync("backend");
         }
 
@@ -85,6 +86,44 @@ Item {
         });
     }
 
+    /* ===========================
+       Export/Save via generic component
+       =========================== */
+
+    // Writes base64 -> temp file in Python, then opens the reusable exporter dialog
+    function saveViaContentHub() {
+        if (!datas || !mimetype) {
+            console.warn("Nothing to export: datas/mimetype missing");
+            return;
+        }
+
+        var defaultName = (name && name.length) ? name : "attachment";
+        python.call(
+            "backend.ensure_export_file_from_base64",
+            [defaultName, datas, mimetype],
+            function(resultPath) {
+                if (!resultPath) {
+                    console.warn("Failed to prepare file for export");
+                    return;
+                }
+                // Hand off to the reusable dialog component
+                exporter.open(resultPath, mimetype, defaultName);
+            }
+        );
+    }
+
+    // Reusable dialog component instance
+    AttachmentExporter {
+        id: exporter
+        width: units.gu(80)
+        height: units.gu(100)
+        // Optional: react to results
+        onCompleted: console.log("Export completed")
+        onAborted:   console.log("Export aborted")
+        onError:     function(msg) { console.warn("Export error:", msg) }
+        onCancelled: console.log("Export cancelled")
+    }
+
     signal imageClicked(string mimetype, string datas)
 
     Column {
@@ -112,9 +151,10 @@ Item {
         }
         Button {
             text: "Download"
-            enabled: false
-            visible: false
+            enabled: !!datas && !!mimetype
+            visible: true
             anchors.horizontalCenter: parent.horizontalCenter
+            onClicked: saveViaContentHub()
         }
     }
 
@@ -157,12 +197,6 @@ Item {
                 running: card.downloading || pic.status === Image.Loading || !datas
                 visible: running
             }
-            // (If you prefer Lomiri's)
-            // ActivityIndicator {
-            //     anchors.centerIn: parent
-            //     running: card.downloading || pic.status === Image.Loading || !datas
-            //     visible: running
-            // }
 
             // optional: show network load progress (0..1)
             ProgressBar {
@@ -194,6 +228,7 @@ Item {
             }
         }
     }
+
     Component.onCompleted: {
         download_image();
     }

@@ -37,9 +37,15 @@ Page {
     id: updates
     title: "Project Updates"
 
+    // Properties for filtering by project
+    property bool filterByProject: false
+    property string projectOdooRecordId: ""
+    property int projectAccountId: -1
+    property string projectName: ""
+
     header: PageHeader {
         id: updatesheader
-        title: updates.title
+        title: filterByProject ? "Updates - " + projectName : updates.title
         StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
@@ -59,7 +65,11 @@ Page {
 
     function fetchupdates() {
         var updates_list;
-        updates_list = Project.getAllProjectUpdates();
+        if (filterByProject && projectOdooRecordId && projectAccountId >= 0) {
+            updates_list = Project.getProjectUpdatesByProject(projectOdooRecordId, projectAccountId);
+        } else {
+            updates_list = Project.getAllProjectUpdates();
+        }
         updatesModel.clear();
         for (var index = 0; index < updates_list.length; index++) {
             updatesModel.append({
@@ -98,6 +108,7 @@ Page {
 
             onShowDescription: {
                 Global.description_temporary_holder = description;
+                Global.description_context = "update_description";
                 apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("ReadMorePage.qml"), {
                     "isReadOnly": true
                 });

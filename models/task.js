@@ -726,22 +726,25 @@ function getTaskDetails(task_id) {
 
                 // Extract initial project_id
                 var project_id = (row.project_id !== undefined && row.project_id !== null && row.project_id > 0) ? row.project_id : -1;
+              //  console.log("getTaskDetails initial project_id:", project_id);
                 var sub_project_id = -1;
 
                 if (project_id > 0) {
                     // Look up project_project_app to check if this project has a parent_id (indicating it is a subproject)
+                    // Include account_id check to ensure project is from the same account
                     var rs_project = tx.executeSql(
-                        'SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1',
-                        [project_id]
+                        'SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
+                        [project_id, row.account_id]
                     );
 
                     if (rs_project.rows.length > 0) {
                         var parent_id = rs_project.rows.item(0).parent_id;
+                       // console.log("#####->>>>", rs_project.rows.item(0).parent_id)
                         if (parent_id !== undefined && parent_id !== null && parent_id > 0) {
                             // This project is a subproject
                             sub_project_id = project_id;
                             project_id = parent_id;
-                            //console.log("Subproject detected: sub_project_id =", sub_project_id, ", parent project_id =", project_id);
+                         //   console.log("@@@@@@@@@Subproject detected: sub_project_id =", sub_project_id, ", parent project_id =", project_id);
                         } else {
                             // Top-level project
                             sub_project_id = row.sub_project_id;
@@ -772,7 +775,7 @@ function getTaskDetails(task_id) {
                     odoo_record_id: row.odoo_record_id
                 };
 
-                //console.log("getTaskDetails enriched task:", JSON.stringify(task_detail));
+              //  console.log("getTaskDetails enriched task:", JSON.stringify(task_detail));
             } else {
                 console.error("No task found for local task_id:", task_id);
             }
@@ -808,7 +811,7 @@ function getAllTasks() {
             }
 
             // Step 2: Fetch tasks and attach inherited color and total hours
-            var query = "SELECT * FROM project_task_app WHERE status IS NULL OR status != 'deleted' ORDER BY last_modified DESC";
+            var query = "SELECT * FROM project_task_app WHERE status IS NULL OR status != 'deleted' ORDER BY end_date ASC";
             var result = tx.executeSql(query);
 
             for (var i = 0; i < result.rows.length; i++) {

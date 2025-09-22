@@ -24,7 +24,7 @@
 
 from config import get_all_accounts, initialize_app_settings_db
 from odoo_client import OdooClient
-from sync_from_odoo import sync_all_from_odoo
+from sync_from_odoo import sync_all_from_odoo,sync_ondemand_tables_from_odoo
 from sync_to_odoo import sync_all_to_odoo
 from logger import setup_logger
 from bus import send
@@ -228,6 +228,40 @@ def get_db_list(url):
         return []
     return []
 
+import os, base64, mimetypes
+from pathlib import Path
+
+def _app_data_dir():
+    # adjust to your app-id if you want a subdir
+    return Path.home() / ".local/share"
+
+def _safe_ext_for(mime):
+    ext = mimetypes.guess_extension(mime or "")
+    return ext or ""
+
+def ensure_export_file_from_base64(suggested_name, b64_data, mime):
+    """
+    Creates a temp file from base64 data inside app sandbox and returns its absolute path.
+    """
+    try:
+        base = _app_data_dir() / "ubtms" / "tmp"
+        base.mkdir(parents=True, exist_ok=True)
+
+        # normalize filename + extension
+        name = (suggested_name or "attachment").strip().replace("/", "_")
+        root, ext = os.path.splitext(name)
+        if not ext:
+            ext = _safe_ext_for(mime)
+        out = base / f"{root}{ext}"
+
+        # write bytes
+        with open(out, "wb") as f:
+            f.write(base64.b64decode(b64_data))
+
+        return str(out)
+    except Exception as e:
+        print("ensure_export_file_from_base64 error:", e)
+        return None
 
 def attachment_ondemand_download(settings_db,account_id, remote_record_id):
     accounts = get_all_accounts(settings_db)
@@ -249,6 +283,7 @@ def attachment_ondemand_download(settings_db,account_id, remote_record_id):
     return client.ondemanddownload(remote_record_id,selected["username"],selected["api_key"],False)
 
 def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
+    send("ondemand_upload_message","Initiating upload")
     log.debug(f"[SYNC] Starting attachment_upload  to {account_id} : {filepath} , {res_type} ,{res_id}")
     accounts = get_all_accounts(settings_db)
     selected = None
@@ -259,7 +294,7 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
 
     if not selected:
         return None
-
+    send("ondemand_upload_message","Finding Account")
     filename = os.path.basename(filepath)
     EXT_TO_MIME = {
         '.jpg': 'image/jpeg',
@@ -274,6 +309,7 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
         '.zip': 'application/zip'
         # add more extensions as needed
     }
+    send("ondemand_upload_message","Reading file ...")
     ext = os.path.splitext(filename)[1].lower()  # get extension including dot
     mimetype = EXT_TO_MIME.get(ext, 'application/octet-stream')
 
@@ -298,8 +334,13 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
         'datas': base64.b64encode(file_bytes).decode('utf-8'),
         'mimetype': mimetype
     }
-
+    send("ondemand_upload_message","Uploading file .. ")
     attachment_id = client.call('ir.attachment', 'create', [vals])
+    if attachment_id <=0:
+        send("ondemand_upload_completed",False)
+    send("ondemand_upload_message","Syncing to local device .. ")
+    sync_ondemand_tables_from_odoo(client, selected["id"], settings_db)
+    send("ondemand_upload_completed",True)
     return attachment_id
 
 def sync(settings_db, account_id):
@@ -418,7 +459,7 @@ def sync_background(settings_db, account_id):
         except Exception as e:
             log.exception(f"[SYNC] Error during background sync: {e}")
             write_sync_report_to_db(settings_db, account_id, "Failed", str(e))
-            send("sync_error",True)
+            send("sync_completed",False)
         finally:
             with sync_lock:
                 sync_in_progress = False

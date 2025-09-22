@@ -107,6 +107,28 @@ function getAllProjectUpdates() {
     return updateList;
 }
 
+function getProjectUpdatesByProject(projectOdooRecordId, accountId) {
+    var updateList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND project_id = ? AND account_id = ? ORDER BY date DESC";
+            var result = tx.executeSql(query, [projectOdooRecordId, accountId]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                updateList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("❌ getProjectUpdatesByProject failed:", e);
+    }
+
+    return updateList;
+}
+
 function getProjectStageName(odooRecordId) {
     var stageName = null;
 

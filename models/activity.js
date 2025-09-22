@@ -692,6 +692,69 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
     }
 }
 
+function createFollowupActivity(account_id,activityId) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var newRecordId = 0;
+
+    try {
+        var timestamp = Utils.getFormattedTimestampUTC();
+        var createDate = timestamp.split(" ")[0];
+
+        db.transaction(function(tx) {
+            // 1. Fetch the existing activity
+            var result = tx.executeSql(
+                "SELECT * FROM mail_activity_app WHERE id = ? AND account_id = ?",
+                [activityId, account_id]
+            );
+
+            if (result.rows.length === 0) {
+                throw new Error("Activity not found for ID " + activityId);
+            }
+
+            var original = result.rows.item(0);
+
+            // 2. Insert a new record with cloned values
+            tx.executeSql(
+                `INSERT INTO mail_activity_app (
+                    account_id, activity_type_id, summary, user_id, due_date,
+                    notes, resModel, resId, task_id, project_id, link_id,
+                    state, last_modified, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    account_id,
+                    original.activity_type_id,
+                    "Followup: " + (original.summary || "Untitled"),
+                    original.user_id,
+                    createDate,              // new due date = today
+                    original.notes || "",
+                    original.resModel,
+                    original.resId,
+                    original.task_id,
+                    original.project_id,
+                    original.link_id,
+                    "planned",               // reset state
+                    timestamp,
+                    "updated"                       // unsynced
+                ]
+            );
+
+            // 3. Get new record ID
+            var inserted = tx.executeSql("SELECT last_insert_rowid() AS id");
+            if (inserted.rows.length > 0) {
+                newRecordId = inserted.rows.item(0).id;
+            }
+        });
+
+        console.log("Cloned activity", activityId, "into new ID:", newRecordId);
+        return { success: true, record_id: newRecordId };
+
+    } catch (e) {
+        console.error("cloneActivity failed:", e.message);
+        return { success: false, error: e.message };
+    }
+}
+
+
 /**
  * Retrieves all non-deleted activities linked to a specific project from the `mail_activity_app` table.
  *
@@ -772,4 +835,71 @@ function getActivitiesForProject(projectOdooRecordId, accountId) {
     }
 
     return activityList;
+}
+
+/**
+ * Deletes an activity record from the local database.
+ * This is useful for cleaning up activities that were created but never properly saved.
+ *
+ * @function deleteActivity
+ * @param {number} accountId - The account ID associated with the activity.
+ * @param {number} recordId - The local ID of the activity record to delete.
+ * @returns {Object} - Returns { success: true } on success or { success: false, error: <message> } on failure.
+ */
+function deleteActivity(accountId, recordId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = `DELETE FROM mail_activity_app WHERE account_id = ? AND id = ?`;
+            tx.executeSql(query, [accountId, recordId]);
+            console.log("✅ Deleted activity: Account ID =", accountId, ", Record ID =", recordId);
+        });
+
+        return { success: true };
+    } catch (e) {
+        DBCommon.logException("deleteActivity", e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Checks if an activity is still in its default "unsaved" state.
+ * An activity is considered unsaved if it has default values for summary and notes.
+ *
+ * @function isActivityUnsaved
+ * @param {number} accountId - The account ID associated with the activity.
+ * @param {number} recordId - The local ID of the activity record to check.
+ * @returns {boolean} - Returns true if the activity appears to be unsaved, false otherwise.
+ */
+function isActivityUnsaved(accountId, recordId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var isUnsaved = false;
+
+        db.transaction(function (tx) {
+            var query = `SELECT summary, notes, activity_type_id FROM mail_activity_app WHERE account_id = ? AND id = ? LIMIT 1`;
+            var rs = tx.executeSql(query, [accountId, recordId]);
+
+            if (rs.rows.length > 0) {
+                var row = rs.rows.item(0);
+                var summary = (row.summary || "").trim();
+                var notes = (row.notes || "").trim();
+                var activityTypeId = row.activity_type_id;
+
+                // Consider unsaved if:
+                // 1. Summary is "Untitled" or empty
+                // 2. Notes is "No Notes" or empty  
+                // 3. No activity type selected (null or empty)
+                isUnsaved = (summary === "Untitled" || summary === "") &&
+                           (notes === "No Notes" || notes === "") &&
+                           (activityTypeId === null || activityTypeId === "");
+            }
+        });
+
+        return isUnsaved;
+    } catch (e) {
+        DBCommon.logException("isActivityUnsaved", e);
+        return false;
+    }
 }

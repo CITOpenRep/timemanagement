@@ -31,7 +31,35 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.5) </h3>
+      <h3>Change History : (Version 1.1.6) </h3>
+
+      <h4>19-09-2025 : Version 1.1.6</h4>
+
+<h5>New Features</h5>
+<ul>
+  <li><strong>Enhanced Sync Messaging:</strong> Now powered by Backend Bridge for improved accuracy. Sync progress and details are communicated directly with the backend.</li>
+  <li><strong>Partial Sync Capability:</strong> Attachments are uploaded directly to the server automatically—no need to sync manually via the settings page.</li>
+  <li><strong>Project Update Access:</strong> A new "View Project Update" button has been added to the Project Detailed View, enabling drill-down into updates specific to each project.</li>
+  <li><strong>Rich Text Editor:</strong> Available on supported description fields (Activities, Tasks, Projects). Powered by a web engine and currently in development. Note: Please save your work before navigating away.</li>
+  <li><strong>Follow-Up Activities:</strong> Create follow-up activities seamlessly with a right-swipe gesture.</li>
+  <li><strong>Attachment Downloads:</strong> Users can now download attachments directly from Tasks and Projects.</li>
+</ul>
+
+<h5>Fixes and Improvements</h5>
+<ul>
+  <li>Resolved an issue in Tasks where incorrect parent assignments occurred with multiple instances.</li>
+  <li>Task sorting is now strictly aligned with End Date for consistent ordering.</li>
+  <li>The Activity Create button in Tasks is now visible in both Edit and View modes.</li>
+  <li>Stage labels have been simplified to plain text (removing background colors). Button colors in the Project Detailed View have also been updated.</li>
+</ul>
+
+<h5>In Progress</h5>
+<ul>
+  <li> Fix for activity creation from project updates page.</li>
+</ul>
+
+
+<br>
 
 <h4>05-09-2025 : Version 1.1.5</h4>
 

@@ -134,7 +134,7 @@ Page {
             }
 
             project_name.text = project.name || "";
-            description_text.text = project.description || "";
+            description_text.setContent(project.description || "");
 
             // Handle color inheritance for subprojects
             let projectColor = project.color_pallet || 0;
@@ -275,8 +275,9 @@ Page {
                         text: ""
                         is_read_only: isReadOnly
                         onClicked: {
-                            //set the data to a global Slore and pass the key to the page
-                            Global.description_temporary_holder = text;
+                            //set the data to a global Store and pass the key to the page
+                            Global.description_temporary_holder = getFormattedText();
+                            Global.description_context = "project_description";
                             apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly
                             });
@@ -297,6 +298,9 @@ Page {
 
             TSButton {
                 visible: isReadOnly
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+
                 width: (parent.width - units.gu(1)) / 2
                 text: "Create Project Update"
                 onClicked: {
@@ -307,6 +311,9 @@ Page {
 
             TSButton {
                 visible: isReadOnly
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+
                 width: (parent.width - units.gu(1)) / 2
                 text: "Create Activity"
                 onClicked: {
@@ -326,6 +333,9 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Tasks"
                 onClicked: {
@@ -341,11 +351,32 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+
                 width: (parent.width - units.gu(1)) / 2
                 text: "View Activities"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activity_Page.qml"), {
+                        "filterByProject": true,
+                        "projectOdooRecordId": project.odoo_record_id,
+                        "projectAccountId": project.account_id,
+                        "projectName": project.name
+                    });
+                }
+            }
+
+            TSButton {
+                visible: isReadOnly && recordid > 0
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+
+                width: (parent.width - units.gu(1)) / 2
+                text: "View Project Updates"
+                onClicked: {
+                    let project = Project.getProjectDetails(recordid);
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Updates_Page.qml"), {
                         "filterByProject": true,
                         "projectOdooRecordId": project.odoo_record_id,
                         "projectAccountId": project.account_id,
@@ -496,6 +527,14 @@ Page {
                 anchors.fill: parent
                 resource_id: project.odoo_record_id
                 account_id: project.account_id
+                onProcessed: {
+                    console.log("Uploaded the attchment lets do a refresh");
+                    if (recordid !== 0) {
+                        if (!loadProjectData(recordid)) {
+                            notifPopup.open("Failed", "Error during attachment refresh", "error");
+                        }
+                    }
+                }
             }
         }
     }
@@ -528,13 +567,14 @@ Page {
     }
     onVisibleChanged: {
         if (visible) {
-            if (Global.description_temporary_holder !== "") {
-                //Check if you are coming back from the ReadMore page
-                description_text.text = Global.description_temporary_holder;
+            if (Global.description_temporary_holder !== "" && Global.description_context === "project_description") {
+                //Check if you are coming back from the ReadMore page for project description
+                description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
+                Global.description_context = "";
             }
-        } else {
-            Global.description_temporary_holder = "";
         }
+        // Don't clear context when page becomes invisible as it might be needed
+        // for the ReadMore page editing flow
     }
 }

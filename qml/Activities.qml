@@ -32,6 +32,9 @@ Page {
     }
     property bool isReadOnly: true
     property var accountid: 0
+
+    // Track if the activity has been saved at least once
+    property bool hasBeenSaved: false
     header: PageHeader {
         id: header
         title: activityDetailsPage.title
@@ -226,7 +229,7 @@ Page {
                         is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
-                            Global.description_temporary_holder = text;
+                            Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly
                                 //useRichText: false
@@ -314,11 +317,16 @@ Page {
 
             // Update fields with loaded data
             summary.text = currentActivity.summary || "";
-            notes.text = currentActivity.notes || "";
+            notes.setContent(currentActivity.notes || "");
 
             // Update due date
             date_widget.setSelectedDate(currentActivity.due_date);
+
+            // Check if this is a truly saved activity or a newly created one with default values
+            hasBeenSaved = !Activity.isActivityUnsaved(accountid, recordid);
+            console.log("🔍 Activity", recordid, "hasBeenSaved:", hasBeenSaved, "isUnsaved:", Activity.isActivityUnsaved(accountid, recordid));
         } else {
+            // For new activities
             let account = Accounts.getAccountsList();
             reloadActivityTypeSelector(account, -1);
 
@@ -326,6 +334,9 @@ Page {
             taskRadio.checked = true;
             projectRadio.checked = false;
             workItem.loadAccounts();
+
+            // New activities start as unsaved
+            hasBeenSaved = false;
         }
     }
 
@@ -436,6 +447,7 @@ Page {
         if (!result.success) {
             notifPopup.open("Error", "Unable to save the Activity", "error");
         } else {
+            hasBeenSaved = true;  // Mark that this activity has been properly saved
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
             // No navigation - stay on the same page like Timesheet.qml
             // User can use back button to return to list page
@@ -450,17 +462,25 @@ Page {
 
                 // Update all fields with the latest data
                 summary.text = currentActivity.summary || "";
-                notes.text = currentActivity.notes || "";
+                notes.setContent(currentActivity.notes || "");
                 date_widget.setSelectedDate(currentActivity.due_date);
                 console.log("📅 Activities.qml: Set date widget to:", currentActivity.due_date);
             }
 
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
-                notes.text = Global.description_temporary_holder;
+                notes.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
             }
         } else {
+            // Page is becoming invisible - check if we need to clean up unsaved activity
+            // if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
+            //     // Check if the activity is still in its default unsaved state
+            //     if (Activity.isActivityUnsaved(accountid, recordid)) {
+            //         console.log("🗑️ Cleaning up unsaved activity with ID:", recordid);
+            //         Activity.deleteActivity(accountid, recordid);
+            //     }
+            // }
             Global.description_temporary_holder = "";
         }
     }

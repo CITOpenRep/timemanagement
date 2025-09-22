@@ -56,7 +56,7 @@ Rectangle {
         if (!data || !data.event || !isSyncing)
             return;
 
-     //   console.log("🔥 GlobalTimer: Received sync event:", data.event, "Payload:", data.payload);
+        //   console.log("🔥 GlobalTimer: Received sync event:", data.event, "Payload:", data.payload);
 
         switch (data.event) {
         case "sync_progress":
@@ -67,10 +67,13 @@ Rectangle {
             syncStatusMessage = data.payload;
             break;
         case "sync_completed":
-            completeSyncSuccessfully();
+            if (data.payload === true)
+                completeSyncSuccessfully();
+            else
+                failSync("Sync Failed ");
             break;
         case "sync_error":
-            failSync("Sync failed - check connection");
+            failSync("Failed " + data.payload);
             break;
         }
     }
@@ -97,7 +100,7 @@ Rectangle {
 
     // Complete sync successfully
     function completeSyncSuccessfully() {
-      //  console.log("✅ GlobalTimer: Sync completed successfully for account", syncAccountId);
+        //  console.log("✅ GlobalTimer: Sync completed successfully for account", syncAccountId);
 
         syncSuccessful = true;
         syncFailed = false;
@@ -136,7 +139,7 @@ Rectangle {
 
     // Function to start sync indication with BackendBridge integration
     function startSync(accountId, accountName) {
-     //   console.log("🔥 GlobalTimer: Starting enhanced sync indication for account", accountId, "(" + accountName + ")");
+        //   console.log("🔥 GlobalTimer: Starting enhanced sync indication for account", accountId, "(" + accountName + ")");
 
         syncAccountId = accountId;
         syncAccountName = accountName || "Account " + accountId;

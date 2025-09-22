@@ -42,7 +42,6 @@ Page {
         id: projectheader
         StyleHints {
             foregroundColor: "white"
-
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }

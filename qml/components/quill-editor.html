@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rich Text Editor</title>
+    <!-- Include Quill.js from CDN -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <style>
+        /* CSS Variables for theming */
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: white;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-placeholder: #999;
+            --border-color: #ccc;
+            --border-color-focus: #007bff;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+            --toolbar-bg: white;
+            --editor-bg: white;
+        }
+
+        /* Dark mode variables */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #2c2c2c;
+                --bg-secondary: #3c3c3c;
+                --text-primary: #e6e6e6;
+                --text-secondary: #b3b3b3;
+                --text-placeholder: #666;
+                --border-color: #555;
+                --border-color-focus: #4db8ff;
+                --shadow: 0 2px 4px rgba(0,0,0,0.3);
+                --toolbar-bg: #3c3c3c;
+                --editor-bg: #3c3c3c;
+            }
+        }
+
+        /* Manual dark mode class for when system preference isn't available */
+        .dark-mode {
+            --bg-primary: #2c2c2c;
+            --bg-secondary: #3c3c3c;
+            --text-primary: #e6e6e6;
+            --text-secondary: #d3d0d0;
+            --text-placeholder: #666;
+            --border-color: #555;
+            --border-color-focus: #4db8ff;
+            --shadow: 0 2px 4px rgba(0,0,0,0.3);
+            --toolbar-bg: #3c3c3c;
+            --editor-bg: #3c3c3c;
+        }
+
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        #editor-container {
+            height: calc(100vh - 20px);
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .ql-toolbar {
+            border-top: 1px solid var(--border-color);
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            border-radius: 8px 8px 0 0;
+            background-color: var(--toolbar-bg);
+        }
+
+        .ql-container {
+            border-bottom: 1px solid var(--border-color);
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            border-radius: 0 0 8px 8px;
+            height: calc(100% - 42px);
+            background-color: var(--editor-bg);
+        }
+
+        .ql-editor {
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        .ql-editor.ql-blank::before {
+            font-style: italic;
+            color: var(--text-placeholder);
+        }
+
+        /* Dark mode toolbar styling */
+        @media (prefers-color-scheme: dark) {
+            .ql-toolbar .ql-stroke {
+                stroke: var(--text-primary);
+            }
+            
+            .ql-toolbar .ql-fill {
+                fill: var(--text-primary);
+            }
+            
+            .ql-toolbar .ql-picker-label {
+                color: var(--text-primary);
+            }
+            
+            .ql-toolbar button:hover,
+            .ql-toolbar button:focus {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+            
+            .ql-toolbar .ql-active {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+            
+            .ql-dropdown {
+                background-color: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+            }
+            
+            .ql-picker-options {
+                background-color: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+            }
+            
+            .ql-picker-item:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        /* Manual dark mode class styling */
+        .dark-mode .ql-toolbar .ql-stroke {
+            stroke: var(--text-primary);
+        }
+        
+        .dark-mode .ql-toolbar .ql-fill {
+            fill: var(--text-primary);
+        }
+        
+        .dark-mode .ql-toolbar .ql-picker-label {
+            color: var(--text-primary);
+        }
+        
+        .dark-mode .ql-toolbar button:hover,
+        .dark-mode .ql-toolbar button:focus {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .dark-mode .ql-toolbar .ql-active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark-mode .ql-dropdown {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .dark-mode .ql-picker-options {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .dark-mode .ql-picker-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="editor-container"></div>
+
+    <script>
+        // Function to detect and apply dark mode
+        function applyTheme() {
+            // Check if the system prefers dark mode or if we should use manual detection
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            // Also check if we can detect dark mode from the parent QML application
+            // We'll add a URL parameter to force dark mode when needed
+            const urlParams = new URLSearchParams(window.location.search);
+            const forceDark = urlParams.get('darkMode') === 'true';
+            
+            if (prefersDark || forceDark) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
+
+        // Apply initial theme
+        applyTheme();
+
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+        }
+
+        // Initialize Quill editor
+        var quill = new Quill('#editor-container', {
+            theme: 'snow',
+            placeholder: 'Start typing...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'align': [] }],
+                    ['link', 'blockquote', 'code-block'],
+                    ['clean']
+                ]
+            }
+        });
+
+        // Global variables to store content and read-only state
+        var isReadOnly = false;
+        var lastContent = '';
+
+        // Function to set content from QML
+        function setContent(html) {
+            try {
+                var content = html || '';
+                console.log('setContent called with:', content);
+                
+                if (content !== lastContent) {
+                    if (content.trim() === '') {
+                        // Empty content
+                        quill.setText('');
+                        lastContent = content;
+                        return;
+                    }
+                    
+                    // Check if content contains HTML tags
+                    var hasHtmlTags = /<[^>]+>/.test(content);
+                    console.log('Content has HTML tags:', hasHtmlTags);
+                    
+                    if (hasHtmlTags) {
+                        // Content has HTML - use dangerouslyPasteHTML to preserve all formatting
+                        console.log('Setting HTML content:', content);
+                        quill.clipboard.dangerouslyPasteHTML(content);
+                    } else {
+                        // Plain text - convert line breaks and set as HTML
+                        var htmlContent = content
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/\n/g, '<br>');
+                        
+                        if (htmlContent.trim() !== '') {
+                            console.log('Setting plain text as HTML:', htmlContent);
+                            quill.clipboard.dangerouslyPasteHTML('<p>' + htmlContent + '</p>');
+                        } else {
+                            quill.setText('');
+                        }
+                    }
+                    
+                    lastContent = content;
+                    console.log('Content set, new innerHTML:', quill.root.innerHTML);
+                }
+            } catch (e) {
+                console.error('Error setting content:', e);
+                // Fallback - try direct innerHTML setting
+                try {
+                    if (html && html.trim() !== '') {
+                        console.log('Using fallback innerHTML method');
+                        quill.root.innerHTML = html;
+                    } else {
+                        quill.setText('');
+                    }
+                    lastContent = html || '';
+                } catch (e2) {
+                    console.error('Fallback also failed:', e2);
+                    quill.setText(html || '');
+                    lastContent = html || '';
+                }
+            }
+        }
+
+        // Function to get content for QML
+        function getContent() {
+            try {
+                // Get HTML content from Quill editor
+                var htmlContent = quill.root.innerHTML;
+                
+                // Clean up empty paragraphs that might be added by Quill
+                htmlContent = htmlContent.replace(/<p><br><\/p>/g, '<p></p>');
+                htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
+                
+                return htmlContent;
+            } catch (e) {
+                console.error('Error getting content:', e);
+                // Fallback to text content
+                return quill.getText();
+            }
+        }
+
+        // Function to set read-only mode
+        function setReadOnly(readOnly) {
+            isReadOnly = readOnly;
+            quill.enable(!readOnly);
+            
+            // Hide toolbar in read-only mode
+            var toolbar = document.querySelector('.ql-toolbar');
+            if (toolbar) {
+                toolbar.style.display = readOnly ? 'none' : 'block';
+            }
+        }
+
+        // Function to check if content has changed
+        function hasContentChanged() {
+            return getContent() !== lastContent;
+        }
+
+        // Listen for text changes
+        quill.on('text-change', function(delta, oldDelta, source) {
+            if (source === 'user') {
+                // Notify QML about content change
+                if (typeof qt !== 'undefined' && qt.webChannelTransport) {
+                    qt.webChannelTransport.send({
+                        type: 'contentChanged',
+                        content: getContent()
+                    });
+                }
+            }
+        });
+
+        // Expose functions to QML
+        window.quillEditor = {
+            setContent: setContent,
+            getContent: getContent,
+            setReadOnly: setReadOnly,
+            hasContentChanged: hasContentChanged
+        };
+
+        // Initialize with empty content
+        setContent('');
+        
+        // Set initial read-only state based on URL parameters
+        var urlParams = new URLSearchParams(window.location.search);
+        var readOnlyParam = urlParams.get('readonly');
+        if (readOnlyParam === 'true') {
+            setReadOnly(true);
+        }
+
+        // Add console logging for viewport/zoom changes
+        if (window.visualViewport) {
+            // Log initial scale after a short delay to ensure layout is complete
+            setTimeout(() => console.log('Initial visual viewport scale:', window.visualViewport.scale), 100);
+
+            window.visualViewport.addEventListener('resize', function() {
+                console.log('Viewport resized. New scale:', window.visualViewport.scale);
+            });
+        } else {
+            console.log('visualViewport API not supported. Cannot track zoom changes effectively.');
+        }
+    </script>
+</body>
+</html>
