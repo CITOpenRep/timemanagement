@@ -32,6 +32,9 @@ Item {
     width: 0
     height: 0
 
+    // Property to store page reference for navigation
+    property var targetPage: null
+
     // Signals
     signal saveRequested
     signal discardRequested
@@ -43,12 +46,6 @@ Item {
         Dialog {
             id: confirmDialog
             title: "Unsaved Changes"
-
-            // Dark mode friendly styling
-            StyleHints {
-                backgroundColor: theme.palette.normal.background
-                foregroundColor: theme.palette.normal.backgroundText
-            }
 
             Text {
                 id: messageText
@@ -110,8 +107,18 @@ Item {
         }
     }
 
-    function open() {
+    function open(page) {
         console.log("🔍 SaveDiscardDialog: Opening dialog");
+        targetPage = page;
         PopupUtils.open(dialogComponent);
+    }
+    
+    function navigateBack() {
+        if (targetPage && targetPage.pageStack) {
+            console.log("🔙 SaveDiscardDialog: Navigating back");
+            targetPage.pageStack.pop();
+        } else {
+            console.log("❌ SaveDiscardDialog: Cannot navigate back - no target page or pageStack");
+        }
     }
 }

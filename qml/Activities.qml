@@ -58,6 +58,35 @@ Page {
                 }
             }
         ]
+        
+        leadingActionBar.actions: [
+            Action {
+                iconName: "back"
+                text: "Back"
+                onTriggered: {
+                    console.log("🔙 Custom back button pressed");
+                    console.log("🔍 Checking if save dialog needed - recordid:", recordid, "hasBeenSaved:", hasBeenSaved, "isReadOnly:", isReadOnly, "formModified:", formModified);
+                    
+                    // Check if we need to show save/discard dialog
+                    if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
+                        var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
+                        var shouldShowDialog = isUnsaved || formModified;
+                        
+                        console.log("🔍 Save dialog check - isUnsaved:", isUnsaved, "formModified:", formModified, "shouldShowDialog:", shouldShowDialog);
+                        
+                        if (shouldShowDialog) {
+                            console.log("⚠️ Showing save/discard dialog from custom back button");
+                            saveDiscardDialog.open(activityDetailsPage);
+                            return; // Don't navigate yet, let dialog handle it
+                        }
+                    }
+                    
+                    // Safe to navigate - either no unsaved changes or read-only mode
+                    console.log("✅ Safe to navigate back - no unsaved changes");
+                    activityDetailsPage.pageStack.pop();
+                }
+            }
+        ]
     }
 
     NotificationPopup {
@@ -71,6 +100,8 @@ Page {
         onSaveRequested: {
             console.log("💾 Activities.qml: Save requested from dialog");
             saveActivityData();
+            // After saving, navigate back
+            saveDiscardDialog.navigateBack();
         }
         onDiscardRequested: {
             console.log("🗑️ Activities.qml: Discard requested from dialog");
@@ -81,12 +112,13 @@ Page {
                     Activity.deleteActivity(accountid, recordid);
                 }
             }
+            // After discarding, navigate back
+            saveDiscardDialog.navigateBack();
         }
         onCancelled: {
             console.log("❌ Activities.qml: Cancel requested from dialog");
-            // User wants to stay and continue editing
-            console.log("User cancelled save/discard dialog - they can navigate back to continue editing");
-            notifPopup.open("Navigation", "You can navigate back to the Activity to continue editing", "info");
+            // User wants to stay and continue editing - no navigation
+            console.log("User cancelled save/discard dialog - staying on current page");
         }
     }
     Flickable {
@@ -503,13 +535,12 @@ Page {
     }
 
     onVisibleChanged: {
-        console.log(" VISIBILITY CHANGED EVENT FIRED! visible =", visible);
-        console.log(" Activities.qml: Visibility changed to:", visible, "- recordid:", recordid, "hasBeenSaved:", hasBeenSaved, "isReadOnly:", isReadOnly, "navigatingToReadMore:", navigatingToReadMore, "formModified:", formModified);
-
+        console.log("🔍 Activities.qml: Visibility changed to:", visible, "- recordid:", recordid);
+        
         if (visible) {
             // Reset the navigation tracking flag when page becomes visible
             navigatingToReadMore = false;
-
+            
             // Reload activity data when page becomes visible
             if (recordid != 0) {
                 currentActivity = Activity.getActivityById(recordid, accountid);
@@ -520,7 +551,7 @@ Page {
                 notes.setContent(currentActivity.notes || "");
                 date_widget.setSelectedDate(currentActivity.due_date);
                 console.log("📅 Activities.qml: Set date widget to:", currentActivity.due_date);
-
+                
                 // Reset form modification flag after loading data
                 formModified = false;
             }
@@ -532,69 +563,13 @@ Page {
                 Global.description_context = "";
             }
         } else {
-            // Page is becoming invisible - check if we should show save/discard dialog
-            console.log("🔍 Page becoming invisible - checking conditions");
-            console.log("🔍 Debug values:");
-            console.log("  - recordid:", recordid);
-            console.log("  - hasBeenSaved:", hasBeenSaved);
-            console.log("  - isReadOnly:", isReadOnly);
-            console.log("  - navigatingToReadMore:", navigatingToReadMore);
-            console.log("  - Global.description_context:", Global.description_context);
-            console.log("  - formModified:", formModified);
-
-            // Only show dialog if:
-            // 1. We have an unsaved activity (recordid > 0 && !hasBeenSaved)
-            // 2. We're not in read-only mode (!isReadOnly)
-            // 3. We're NOT navigating to ReadMorePage (!navigatingToReadMore)
-            // 4. Global context is not set for activity notes (additional check for ReadMorePage)
+            // Page becoming invisible - only handle ReadMore cleanup
             var isNavigatingToReadMore = navigatingToReadMore || (Global.description_context === "activity_notes");
-
-            console.log("🔍 Condition checks:");
-            console.log("  - recordid > 0:", recordid > 0);
-            console.log("  - !hasBeenSaved:", !hasBeenSaved);
-            console.log("  - !isReadOnly:", !isReadOnly);
-            console.log("  - !isNavigatingToReadMore:", !isNavigatingToReadMore);
-
-            if (recordid > 0 && !hasBeenSaved && !isReadOnly && !isNavigatingToReadMore) {
-                console.log("🔍 Passed initial conditions, checking unsaved state...");
-
-                var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
-                var shouldShowDialog = isUnsaved || formModified;
-
-                console.log("🔍 Final check - isUnsaved:", isUnsaved, "formModified:", formModified, "shouldShowDialog:", shouldShowDialog);
-
-                if (shouldShowDialog) {
-                    console.log("⚠️ SHOWING SAVE/DISCARD DIALOG NOW!");
-                    saveDiscardDialog.open();
-                } else {
-                    console.log("❌ Not showing dialog - shouldShowDialog is false");
-                }
-            } else {
-                console.log("❌ Not showing dialog - initial conditions not met:");
-                console.log("    recordid > 0:", recordid > 0);
-                console.log("    !hasBeenSaved:", !hasBeenSaved);
-                console.log("    !isReadOnly:", !isReadOnly);
-                console.log("    !isNavigatingToReadMore:", !isNavigatingToReadMore);
-            }
-
+            
             // Clear global holders only if not navigating to ReadMore
             if (!isNavigatingToReadMore) {
                 Global.description_temporary_holder = "";
                 Global.description_context = "";
-            }
-        }
-    }
-
-    Component.onDestruction: {
-        console.log("🔍 Activities.qml: Component being destroyed - recordid:", recordid, "hasBeenSaved:", hasBeenSaved, "isReadOnly:", isReadOnly, "formModified:", formModified);
-
-        // Final check before page destruction
-        if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
-            var shouldShowDialog = Activity.isActivityUnsaved(accountid, recordid) || formModified;
-
-            if (shouldShowDialog) {
-                console.log("⚠️ Component destruction: Activity has unsaved changes, showing save/discard dialog");
-                saveDiscardDialog.open();
             }
         }
     }
