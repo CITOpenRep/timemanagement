@@ -108,7 +108,7 @@ Page {
         id: saveDiscardDialog
         onSaveRequested: {
             saveActivityData();
-            navigateBack();
+           // navigateBack(); // Do not navigate back immediately after save - stay on the page so if user wants to continue editing, they can or if there are validation errors they can correct them
         }
         onDiscardRequested: {
             // Delete the unsaved activity
