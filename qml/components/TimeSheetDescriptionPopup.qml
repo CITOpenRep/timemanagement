@@ -27,6 +27,7 @@ import QtQuick.Controls 2.2
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components 1.3
 import "../../models/timesheet.js" as Model
+import "../../models/accounts.js" as Accounts
 import "../../models/utils.js" as Utils
 
 Item {
@@ -173,12 +174,22 @@ Item {
         try {
             // Get current timesheet details (without account filter for now)
             var currentDetails = Model.getTimeSheetDetails(popupWrapper.timesheetId);
+            console.log("TimeSheetDescriptionPopup: Retrieved timesheet details:", JSON.stringify(currentDetails));
 
             if (!currentDetails || !currentDetails.instance_id) {
                 return {
                     success: false,
                     error: "Could not retrieve timesheet details"
                 };
+            }
+
+            // Determine user_id with fallback
+            var userId = currentDetails.user_id;
+            if (!userId || userId <= 0) {
+                userId = Accounts.getCurrentUserOdooId(currentDetails.instance_id);
+                console.log("TimeSheetDescriptionPopup: Using fallback current user:", userId);
+            } else {
+                console.log("TimeSheetDescriptionPopup: Using existing user_id:", userId);
             }
 
             // Update the timesheet with new description
@@ -194,8 +205,10 @@ Item {
                 'unit_amount': Utils.convertHHMMtoDecimalHours(popupWrapper.elapsedTime),
                 'quadrant': currentDetails.quadrant_id || 1,
                 'status': status,
-                'user_id': currentDetails.user_id
+                'user_id': userId
             };
+
+            console.log("TimeSheetDescriptionPopup: Saving timesheet data:", JSON.stringify(timesheet_data));
 
             // Use the appropriate function based on status
             if (status === "updated") {
