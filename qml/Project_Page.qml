@@ -60,9 +60,16 @@ Page {
                 }
             },
             Action {
+                iconName: "search"
+                text: "Search"
+                onTriggered: {
+                    projectlist.toggleSearchVisibility();
+                }
+            },
+            Action {
                 iconName: "account"
                 onTriggered: {
-                    accountFilterVisible = !accountFilterVisible
+                    accountFilterVisible = !accountFilterVisible;
                 }
             }
         ]
@@ -114,7 +121,7 @@ Page {
     Connections {
         target: mainView
 
-        onAccountDataRefreshRequested: function(accountId) {
+        onAccountDataRefreshRequested: function (accountId) {
             var acctNum = -1;
             try {
                 if (typeof accountId !== "undefined" && accountId !== null) {
@@ -131,7 +138,7 @@ Page {
             projectlist.refresh();
         }
 
-        onGlobalAccountChanged: function(accountId, accountName) {
+        onGlobalAccountChanged: function (accountId, accountName) {
             var acctNum = -1;
             try {
                 if (typeof accountId !== "undefined" && accountId !== null) {
@@ -152,7 +159,7 @@ Page {
     // Listen to accountFilter directly so page initializes and updates from the selector's current selection
     Connections {
         target: accountFilter
-        onAccountChanged: function(accountId, accountName) {
+        onAccountChanged: function (accountId, accountName) {
             console.log("Project_Page: Account filter changed to:", accountName, "ID:", accountId);
             var acctNum = -1;
             try {

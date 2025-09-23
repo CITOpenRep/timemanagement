@@ -601,6 +601,7 @@ Item {
             }
         }
 
+        // Header row with back button
         TSButton {
             id: backbutton
             text: "← Back"
@@ -619,7 +620,7 @@ Item {
         LomiriListView {
             id: projectListView
             width: parent.width
-            height: parent.height - backbutton.height - (showSearchBox ? units.gu(6) : 0)
+            height: parent.height - (backbutton.visible ? units.gu(4) : 0) - (showSearchBox ? units.gu(6) : 0) // Account for back button and search field heights
             clip: true
             model: getCurrentModel()
 
