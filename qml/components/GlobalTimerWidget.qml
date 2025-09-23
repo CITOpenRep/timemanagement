@@ -351,8 +351,17 @@ Rectangle {
             onReleased: stopbutton.opacity = 1.0
             onCanceled: stopbutton.opacity = 1.0
             onClicked: {
-                // Stop the timer and set timesheet status to draft
-                TimerService.stop();
+                // Show description popup before stopping timer
+                var activeTimesheetId = TimerService.getActiveTimesheetId();
+                var activeTimesheetName = TimerService.getActiveTimesheetName();
+                var elapsedTime = TimerService.getElapsedTime();
+
+                if (activeTimesheetId && activeTimesheetId > 0) {
+                    descriptionPopup.open(activeTimesheetId, activeTimesheetName, elapsedTime);
+                } else {
+                    // Fallback: just stop the timer if no active timesheet
+                    TimerService.stop();
+                }
             }
         }
     }
@@ -456,6 +465,22 @@ Rectangle {
                     duration: 200
                 }
             }
+        }
+    }
+
+    // Description popup for when timer is stopped
+    TimeSheetDescriptionPopup {
+        id: descriptionPopup
+
+        onSaved: function (description, status) {
+            console.log("Timesheet description saved:", description, "Status:", status);
+            // Stop the timer after saving
+            TimerService.stop();
+        }
+
+        onCancelled: {
+            console.log("Description popup cancelled - timer continues running");
+            // Don't stop timer if user cancels
         }
     }
 }
