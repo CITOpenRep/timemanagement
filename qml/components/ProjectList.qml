@@ -563,41 +563,44 @@ Item {
         spacing: units.gu(1)
 
         // Search field
-        Rectangle {
+
+        TextField {
+            id: searchField
             visible: showSearchBox
             height: units.gu(5)
-            width: parent.width
-            anchors.left: parent.left
-            anchors.right: parent.right
-            color: "#F5F5F5"
-            border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
-            border.width: searchField.activeFocus ? 2 : 1
-
-            TextField {
-                id: searchField
-                anchors.fill: parent
-                anchors.rightMargin: units.gu(4) // Space for clear button
-                placeholderText: "Search projects..."
-                color: "#333333"
-                selectByMouse: true
-                onAccepted: performSearch(text)
-                onTextChanged: {
-                    searchQuery = text;
-                    // Debounced search - only search after user stops typing
-                    searchTimer.restart();
-                }
+                width: parent.width
+        //    anchors.rightMargin: units.gu(4) // Space for clear button
+            placeholderText: "Search projects..."
+            color: "#333333"
+            selectByMouse: true
+            onAccepted: performSearch(text)
+            onTextChanged: {
+                searchQuery = text;
+                // Debounced search - only search after user stops typing
+                searchTimer.restart();
             }
 
-            Button {
-                id: clearSearchButton
-                visible: searchField.text.length > 0
+            Rectangle {
+
+                height: parent.height
+                width: parent.width
+                anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.rightMargin: units.gu(0.5)
-                width: units.gu(3)
-                height: units.gu(3)
-                text: "×"
-                onClicked: clearSearch()
+                color: "transparent"
+                border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
+                border.width: searchField.activeFocus ? 2 : 1
+
+                Button {
+                    id: clearSearchButton
+                    visible: searchField.text.length > 0
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.rightMargin: units.gu(0.5)
+                    width: units.gu(3)
+                    height: units.gu(3)
+                    text: "×"
+                    onClicked: clearSearch()
+                }
             }
         }
 
