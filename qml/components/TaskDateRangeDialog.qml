@@ -164,6 +164,7 @@ Item {
 
                         TSButton {
                             text: Qt.formatDate(selectedStartDate, "dd-MM-yyyy")
+                             bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                             width: parent.width - units.gu(13)
                             onClicked: {
                                 PickerPanel.openDatePicker(rangeDialog, "selectedStartDate", "Years|Months|Days");
@@ -185,6 +186,7 @@ Item {
 
                         TSButton {
                             text: Qt.formatDate(selectedEndDate, "dd-MM-yyyy")
+                             bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                             width: parent.width - units.gu(13)
                             onClicked: {
                                 PickerPanel.openDatePicker(rangeDialog, "selectedEndDate", "Years|Months|Days");
@@ -218,7 +220,7 @@ Item {
                     TSButton {
                         text: "Apply"
                         width: (parent.width - units.gu(1)) / 2
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#28a745" : "#22BABB"
+                        bgColor: "#1F7D53"
                         onClicked: selectDateRange()
                     }
                 }
