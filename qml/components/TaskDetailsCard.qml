@@ -67,14 +67,14 @@ ListItem {
         height: units.gu(80)
     }
 
-    CustomDatePicker {
-        id: dateSelector
+    TaskDateRangeDialog {
+        id: dateRangeSelector
         titleText: "Reschedule Task"
-        mode: "next"
-        currentDate: endDate || Utils.getToday()
+        currentStartDate: startDate || Utils.getToday()
+        currentEndDate: endDate || Utils.getTomorrow()
 
-        onDateSelected: {
-            updateTaskEndDate(date);
+        onDateRangeSelected: {
+            updateTaskDateRange(startDate, endDate);
         }
     }
 
@@ -103,7 +103,7 @@ ListItem {
         }
     }
 
-    function updateTaskEndDate(newDate) {
+    function updateTaskDateRange(newStartDate, newEndDate) {
         try {
             // Get current task details to preserve existing data
             var taskDetails = Task.getTaskDetails(localId);
@@ -125,8 +125,9 @@ ListItem {
                 description: taskDetails.description,
                 assigneeUserId: taskDetails.user_id,
                 subProjectId: taskDetails.sub_project_id,
-                startDate: taskDetails.start_date,
-                endDate: newDate  // This is what we're updating
+                startDate: newStartDate  // Update start date
+                ,
+                endDate: newEndDate      // Update end date
                 ,
                 deadline: taskDetails.deadline,
                 status: "updated"
@@ -136,20 +137,23 @@ ListItem {
             var result = Task.saveOrUpdateTask(updateData);
 
             if (result.success) {
-                // Update the endDate property for UI feedback
-                endDate = newDate;
+                // Update both date properties for UI feedback
+                startDate = newStartDate;
+                endDate = newEndDate;
 
                 // Emit signal to notify parent components that task was updated
                 taskUpdated(localId);
 
                 // Show success notification
-                notifPopup.open("Success", "Task Rescheduled to " + Utils.formatDate(new Date(newDate)), "success");
+                var startFormatted = Utils.formatDate(new Date(newStartDate));
+                var endFormatted = Utils.formatDate(new Date(newEndDate));
+                notifPopup.open("Success", "Task Rescheduled: " + startFormatted + " to " + endFormatted, "success");
             } else {
                 throw result.error || "Update failed";
             }
         } catch (error) {
-            console.error("Failed to update task end date:", error);
-            notifPopup.open("Error", "Failed to update end date: " + error, "error");
+            console.error("Failed to update task date range:", error);
+            notifPopup.open("Error", "Failed to update task dates: " + error, "error");
         }
     }
 
@@ -221,8 +225,8 @@ ListItem {
             Action {
                 iconName: "reload"
                 onTriggered: {
-                    // Open date selector popup
-                    dateSelector.open();
+                    // Open date range selector popup
+                    dateRangeSelector.open();
                 }
             }
         ]
@@ -361,7 +365,7 @@ ListItem {
                             text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
                             color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                             font.pixelSize: units.gu(2)
-                           
+
                             wrapMode: Text.WordWrap
                             maximumLineCount: 2
                             clip: true
@@ -488,16 +492,13 @@ ListItem {
                             width: parent.width
                         }
 
-                      
+                        Text {
 
-                            Text {
-                                
-                                text: Task.getTaskStageName(stage)
-                                color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
-                                font.pixelSize: units.gu(1.75)
-                                font.bold: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? true : false
-                            }
-                        
+                            text: Task.getTaskStageName(stage)
+                            color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
+                            font.pixelSize: units.gu(1.75)
+                            font.bold: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? true : false
+                        }
                     }
                 }
             }
