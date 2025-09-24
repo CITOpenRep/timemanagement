@@ -39,6 +39,7 @@ Item {
     property int timesheetId: 0
     property string timesheetName: ""
     property string elapsedTime: ""
+    property bool hasTask: false
 
     // Signals
     signal saved(string description, string status)
@@ -107,7 +108,7 @@ Item {
 
                 // Help text
                 Label {
-                    text: "• Save: Keeps timesheet as draft for later editing\n• Finalize: Marks timesheet as ready for sync"
+                    text: popupWrapper.hasTask ? "• Save: Keeps timesheet as draft for later editing\n• Finalize: Marks timesheet as ready for sync" : "• Save: Keeps timesheet as draft for later editing\n• Note: Finalize is only available for timesheets with tasks"
                     color: theme.palette.normal.backgroundText
                     opacity: 0.7
                     font.pixelSize: units.gu(1.8)
@@ -138,6 +139,7 @@ Item {
                 id: finalizeButton
                 text: "Finalize"
                 color: LomiriColors.green
+                visible: popupWrapper.hasTask
                 onClicked: {
                     var description = descriptionText.text.trim();
                     var result = updateTimesheetDescription(description, "updated");
@@ -238,6 +240,15 @@ Item {
         popupWrapper.timesheetId = timesheetId || 0;
         popupWrapper.timesheetName = timesheetName || "";
         popupWrapper.elapsedTime = elapsedTime || "00:00";
+
+        // Check if timesheet has a task to determine if Finalize button should be shown
+        if (popupWrapper.timesheetId > 0) {
+            var timesheetDetails = Model.getTimeSheetDetails(popupWrapper.timesheetId);
+            popupWrapper.hasTask = (timesheetDetails.task_id && timesheetDetails.task_id > 0) || (timesheetDetails.sub_task_id && timesheetDetails.sub_task_id > 0);
+            console.log("TimeSheetDescriptionPopup: Timesheet", popupWrapper.timesheetId, "hasTask:", popupWrapper.hasTask, "task_id:", timesheetDetails.task_id, "sub_task_id:", timesheetDetails.sub_task_id);
+        } else {
+            popupWrapper.hasTask = false;
+        }
 
         PopupUtils.open(dialogComponent);
     }
