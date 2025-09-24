@@ -139,13 +139,13 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             },
-            Action {
-                iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
-                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
-                onTriggered: {
-                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
-                }
-            },
+            // Action {
+            //     iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
+            //     text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
+            //     onTriggered: {
+            //         Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+            //     }
+            // },
             Action {
                 iconName: "clock"
                 text: "Timesheet"
@@ -430,6 +430,57 @@ Page {
             if (apLayout.columns === 3) {
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml"));
             }
+        }
+    }
+
+     Icon {
+        visible: !isMultiColumn
+        width: units.gu(5)
+        height: units.gu(4)
+        z: 1000
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: swipeUpArea.top
+        name: 'toolkit_chevron-up_3gu'
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? LomiriColors.orange : LomiriColors.slate
+    }
+
+    MultiPointTouchArea {
+        id: swipeUpArea
+        enabled: !isMultiColumn
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: units.gu(1)
+        minimumTouchPoints: 1
+        maximumTouchPoints: 1
+
+        property real startY: 0
+
+        onPressed: {
+            startY = touchPoints[0].y;
+        }
+        onReleased: {
+            var endY = touchPoints[0].y;
+            // Detect upward swipe (swipe up: startY > endY)
+            if (startY - endY > units.gu(2)) {
+                // threshold for swipe - open new timesheet
+                const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                if (result.success) {
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                        "recordid": result.id,
+                        "isReadOnly": false
+                    });
+                } else {
+                    console.error("Error creating timesheet: " + result.message);
+                }
+            }
+        }
+        z: 999 // Ensure it's above other content
+
+        Rectangle {
+            anchors.fill: parent
+            color: "lightgray"
+            opacity: 0.0 // Make it invisible but still interactive
         }
     }
 

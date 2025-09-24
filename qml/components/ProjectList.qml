@@ -31,7 +31,6 @@ import QtQuick.LocalStorage 2.7 as Sql
 import "../../models/accounts.js" as Accounts
 import "../../models/project.js" as Project
 
-
 /*
     ProjectNavigator.qml - Logic Overview
     --------------------------------------
@@ -86,15 +85,12 @@ import "../../models/project.js" as Project
     Be CAREFUL when changing this code :)
 */
 
-
 Item {
     id: projectList
     anchors.fill: parent
 
-
     property bool filterByAccount: false
     property int selectedAccountId: -1
-
 
     property int currentParentId: -1
     property int currentAccountId: -1
@@ -109,11 +105,16 @@ Item {
     property var stageList: []
     property var openStagesList: []
 
+    // Search properties
+    property string searchQuery: ""
+    property bool showSearchBox: false
+
     // Signals
     signal projectSelected(int recordId)
     signal projectEditRequested(int recordId)
     signal projectDeleteRequested(int recordId)
     signal projectTimesheetRequested(int localId)
+    signal customSearch(string query)
 
     function navigateToProject(projectId, accountId) {
         // Ensure we have valid IDs before proceeding
@@ -146,13 +147,36 @@ Item {
         navigationStackModel.clear();
         currentParentId = -1;
         currentAccountId = -1;
-        
+
         // Reset to default "Open" filter
         stageFilter.enabled = true;
         stageFilter.odoo_record_id = -2;
         stageFilter.name = "Open";
-        
+
+        // Clear search
+        searchQuery = "";
+
         populateProjectChildrenMap();
+    }
+
+    // Search functions
+    function toggleSearchVisibility() {
+        showSearchBox = !showSearchBox;
+    }
+
+    function clearSearch() {
+        searchField.text = "";
+        searchQuery = "";
+        customSearch("");
+    }
+
+    function performSearch(query) {
+        searchQuery = query;
+        customSearch(query);
+        // Refresh the model with search filter applied
+        if (childrenMapReady) {
+            projectListView.model = getCurrentModel();
+        }
     }
 
     function populateProjectChildrenMap() {
@@ -160,13 +184,11 @@ Item {
         childrenMapReady = false;
 
         var allProjects;
-        
 
         if (filterByAccount && selectedAccountId >= 0) {
             allProjects = Project.getProjectsForAccount(selectedAccountId);
             console.log("Loading projects from default account", selectedAccountId + ":", allProjects.length, "projects");
         } else {
-
             allProjects = Project.getAllProjects();
             console.log("Loading projects from ALL accounts:", allProjects.length, "projects");
         }
@@ -281,6 +303,20 @@ Item {
             return project.stage == stageFilter.odoo_record_id;
         }
 
+        // Helper function to check if a project matches the search query
+        function matchesSearchQuery(project) {
+            if (!searchQuery || searchQuery.trim() === "") {
+                return true;
+            }
+
+            var query = searchQuery.toLowerCase().trim();
+            var projectName = (project.projectName || "").toLowerCase();
+            var description = (project.description || "").toLowerCase();
+            var accountName = (project.accountName || "").toLowerCase();
+
+            return projectName.indexOf(query) !== -1 || description.indexOf(query) !== -1 || accountName.indexOf(query) !== -1;
+        }
+
         // Find the model that matches current parent and account
         // For root level (currentParentId = -1), we need to find models for all accounts
         if (currentParentId === -1) {
@@ -364,7 +400,7 @@ Item {
 
             // Apply filter or include if it's a parent of a matching project
             allRootProjects.forEach(function (project) {
-                if (!stageFilter.enabled || matchesStageFilter(project) || includeParentIds[project.id_val + "_" + project.account_id]) {
+                if ((!stageFilter.enabled || matchesStageFilter(project) || includeParentIds[project.id_val + "_" + project.account_id]) && matchesSearchQuery(project)) {
                     combinedModel.append(project);
                 }
             });
@@ -441,7 +477,7 @@ Item {
             if (model) {
                 for (var i = 0; i < model.count; i++) {
                     var item = model.get(i);
-                    if (!stageFilter.enabled || matchesStageFilter(item) || includeParentIds[item.id_val + "_" + item.account_id]) {
+                    if ((!stageFilter.enabled || matchesStageFilter(item) || includeParentIds[item.id_val + "_" + item.account_id]) && matchesSearchQuery(item)) {
                         finalModel.append(item);
                     }
                 }
@@ -514,10 +550,61 @@ Item {
         }
     }
 
+    // Timer for debounced search
+    Timer {
+        id: searchTimer
+        interval: 300 // 300ms delay
+        repeat: false
+        onTriggered: performSearch(searchField.text)
+    }
+
     Column {
         anchors.fill: parent
         spacing: units.gu(1)
 
+        // Search field
+
+        TextField {
+            id: searchField
+            visible: showSearchBox
+            height: units.gu(5)
+            width: parent.width
+            //    anchors.rightMargin: units.gu(4) // Space for clear button
+            placeholderText: "Search projects..."
+            //   color: "#333333"
+            selectByMouse: true
+            onAccepted: performSearch(text)
+            // onTextChanged: {
+            //     searchQuery = text;
+            //     // Debounced search - only search after user stops typing
+            //    // searchTimer.restart();
+            // }
+
+            Rectangle {
+
+                height: parent.height
+                width: parent.width
+                anchors.left: parent.left
+                anchors.right: parent.right
+                color: "transparent"
+                border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
+                border.width: searchField.activeFocus ? 2 : 1
+
+                // Button {
+                //     id: clearSearchButton
+                //     visible: searchField.text.length > 0
+                //     anchors.right: parent.right
+                //     anchors.verticalCenter: parent.verticalCenter
+                //     anchors.rightMargin: units.gu(0.5)
+                //     width: units.gu(3)
+                //     height: units.gu(3)
+                //     text: "×"
+                //     onClicked: clearSearch()
+                // }
+            }
+        }
+
+        // Header row with back button
         TSButton {
             id: backbutton
             text: "← Back"
@@ -536,7 +623,7 @@ Item {
         LomiriListView {
             id: projectListView
             width: parent.width
-            height: parent.height - backbutton.height
+            height: parent.height - (backbutton.visible ? units.gu(4) : 0) - (showSearchBox ? units.gu(6) : 0) // Account for back button and search field heights
             clip: true
             model: getCurrentModel()
 
@@ -690,6 +777,12 @@ Item {
     }
 
     onCurrentAccountIdChanged: {
+        if (childrenMapReady) {
+            projectListView.model = getCurrentModel();
+        }
+    }
+
+    onSearchQueryChanged: {
         if (childrenMapReady) {
             projectListView.model = getCurrentModel();
         }

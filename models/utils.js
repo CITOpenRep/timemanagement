@@ -373,6 +373,36 @@ function formatDate(date) {
     return month + '/' + day + '/' + year;
 }
 
+/**
+ * Converts date from M/d/yyyy format to yyyy-MM-dd ISO format for database/API use
+ * @param {string} dateString - Date in M/d/yyyy format (e.g., "9/24/2025")
+ * @returns {string} - Date in yyyy-MM-dd format (e.g., "2025-09-24")
+ */
+function convertToISODate(dateString) {
+    if (!dateString) return "";
+    
+    try {
+        // Parse the M/d/yyyy format
+        var parts = dateString.split('/');
+        if (parts.length !== 3) return dateString; // Return original if not in expected format
+        
+        var month = parseInt(parts[0]);
+        var day = parseInt(parts[1]);
+        var year = parseInt(parts[2]);
+        
+        // Format as yyyy-MM-dd with zero padding
+        var isoDate = year + '-' + 
+                     (month < 10 ? '0' : '') + month + '-' + 
+                     (day < 10 ? '0' : '') + day;
+                     
+        console.log("convertToISODate: converted", dateString, "to", isoDate);
+        return isoDate;
+    } catch (e) {
+        console.error("Error converting date to ISO format:", e);
+        return dateString; // Return original on error
+    }
+}
+
 function getTimeStatusInText(endDateString) {
     if (!endDateString)
         return "N/A";

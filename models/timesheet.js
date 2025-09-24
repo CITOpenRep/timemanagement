@@ -1,6 +1,7 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
+.import "accounts.js" as Accounts
 
 
 /**
@@ -442,6 +443,7 @@ function getTimeSheetDetails(record_id, accountId) {
             if (timesheet.rows.length) {
                 var row = timesheet.rows.item(0);
                 console.log("Found record with account_id:", row.account_id);
+                console.log("getTimeSheetDetails: Raw user_id from DB:", row.user_id);
                 
                 timesheet_detail = {
                     'instance_id': row.account_id,
@@ -453,8 +455,11 @@ function getTimeSheetDetails(record_id, accountId) {
                     'spentHours': Utils.convertDecimalHoursToHHMM(row.unit_amount),
                     'quadrant_id': row.quadrant_id,
                     'record_date': Utils.formatDate(new Date(row.record_date)),
-                    'timer_type': row.timer_type || 'manual'
+                    'timer_type': row.timer_type || 'manual',
+                    'user_id': row.user_id
                 };
+                
+                console.log("getTimeSheetDetails: Returning timesheet_detail:", JSON.stringify(timesheet_detail));
             } else {
                 console.log("No matching record found for id:", record_id, "accountId:", accountId);
                 
@@ -500,6 +505,7 @@ function saveTimesheet(data) {
     }
 
     try {
+        console.log("saveTimesheet: Saving timesheet data:", JSON.stringify(data));
         db.transaction(function (tx) {
             tx.executeSql(`UPDATE account_analytic_line_app SET
                           account_id = ?,
@@ -529,7 +535,7 @@ function saveTimesheet(data) {
                               timestamp,
                               data.status || "draft",
                               data.timer_type || "manual",
-                              data.user_id || null,
+                              (data.user_id !== undefined && data.user_id !== null) ? data.user_id : null,
                               data.id
                           ]);
 
@@ -547,6 +553,17 @@ function createTimesheet(instance_id,userid) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
     var result = { success: false, error: "", id: null };
+
+    // Validate required parameters
+    if (!instance_id || instance_id <= 0) {
+        result.error = "Invalid instance_id provided";
+        return result;
+    }
+    
+    if (!userid || userid <= 0) {
+        result.error = "Invalid user_id provided";
+        return result;
+    }
 
     try {
         db.transaction(function (tx) {
@@ -623,8 +640,17 @@ function createTimesheet(instance_id,userid) {
              return result;
          }
 
+         // Always use the current logged-in user for timesheet creation
+         // Even if task has an assigned user, the timesheet should belong to who is creating it
+         var userId = Accounts.getCurrentUserOdooId(task.account_id);
+         if (!userId || userId <= 0) {
+             result.error = "Unable to determine current user for account " + task.account_id;
+             return result;
+         }
+         console.log("Creating timesheet for current user:", userId);
+
          // Use createTimesheet(instance_id, user_id) to create the empty record
-         var tsResult = createTimesheet(task.account_id, task.user_id);
+         var tsResult = createTimesheet(task.account_id, userId);
 
          if (!tsResult.success) {
              result.error = tsResult.error || "Failed to create base timesheet record.";
@@ -648,7 +674,7 @@ function createTimesheet(instance_id,userid) {
              unit_amount: 0,
              timer_type: "manual", // Default to manual when created from task
              status: "draft",
-             user_id: task.user_id
+             user_id: userId  // Use the resolved user ID
          };
 
          console.log("Updating created timesheet ID " + timesheetId + " with task data.");
@@ -697,14 +723,14 @@ function createTimesheetFromProject(projectRecordId) {
             return result;
         }
 
-        // **Handle missing user_id by using a default or current user**
-        var userId = project.user_id;
-        if (!userId || userId === undefined || userId === null) {
-            // Option 1: Use a default user ID or get current logged-in user
-            // You'll need to implement getCurrentUserId() or use a default
-            userId = 1; // Fallback to user ID 1
-            console.log("Project missing user_id, using fallback:", userId);
+        // Always use the current logged-in user for timesheet creation
+        // Projects don't have assigned users, so use whoever is creating the timesheet
+        var userId = Accounts.getCurrentUserOdooId(project.account_id);
+        if (!userId || userId <= 0) {
+            result.error = "Unable to determine current user for account " + project.account_id;
+            return result;
         }
+        console.log("Creating timesheet for current user:", userId);
 
         // Create empty timesheet
         var tsResult = createTimesheet(project.account_id, userId);
@@ -805,9 +831,10 @@ function updateTimesheetWithDuration(timesheetId, durationHours) {
 
     try {
         db.transaction(function(tx) {
+            // Only update duration and timestamp, preserve existing status
             tx.executeSql(
-                        "UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ?, status = ? WHERE id = ?",
-                        [time_taken, timestamp, "active", timesheetId]
+                        "UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ? WHERE id = ?",
+                        [time_taken, timestamp, timesheetId]
                         );
         });
     } catch (e) {
@@ -880,6 +907,32 @@ function markTimesheetAsReadyById(timesheetId) {
  * @param {number} timesheetId - The ID of the timesheet to be marked as draft
  * @returns {Object} - An object with `success` (boolean) and `error` (string) indicating the result
  */
+/**
+ * Checks if a timesheet is finalized (has "updated" status).
+ *
+ * @param {number} timesheetId - The ID of the timesheet to check
+ * @returns {boolean} - True if the timesheet is finalized, false otherwise
+ */
+function isTimesheetFinalized(timesheetId) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var isFinalized = false;
+    
+    try {
+        db.transaction(function(tx) {
+            var result = tx.executeSql("SELECT status FROM account_analytic_line_app WHERE id = ?", [timesheetId]);
+            if (result.rows.length > 0) {
+                var status = result.rows.item(0).status;
+                isFinalized = (status === "updated");
+                console.log("Timesheet", timesheetId, "status:", status, "finalized:", isFinalized);
+            }
+        });
+    } catch (e) {
+        console.error("Error checking timesheet finalization status:", e);
+    }
+    
+    return isFinalized;
+}
+
 function markTimesheetAsDraftById(timesheetId) {
     var result = { success: false, error: "", id: null };
     

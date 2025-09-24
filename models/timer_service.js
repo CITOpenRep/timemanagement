@@ -120,7 +120,14 @@ function stop() {
 
             if (activeTimesheetId !== null) {
                 Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-                Model.markTimesheetAsDraftById(activeTimesheetId);
+                
+                // Only mark as draft if it's not already finalized (updated status)
+                if (!Model.isTimesheetFinalized(activeTimesheetId)) {
+                    Model.markTimesheetAsDraftById(activeTimesheetId);
+                } else {
+                    console.log("Timer stopped but timesheet", activeTimesheetId, "is already finalized - keeping status");
+                }
+                
                 console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
             }
 
@@ -134,7 +141,14 @@ function stop() {
 
             if (activeTimesheetId !== null) {
                 Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-                Model.markTimesheetAsDraftById(activeTimesheetId);
+                
+                                // Only mark as draft if it's not already finalized (updated status)
+                if (!Model.isTimesheetFinalized(activeTimesheetId)) {
+                    Model.markTimesheetAsDraftById(activeTimesheetId);
+                } else {
+                    console.log("Timer stopped but timesheet", activeTimesheetId, "is already finalized - keeping status");
+                }
+                
                 console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
             }
 
