@@ -37,7 +37,7 @@ Item {
     property string titleText: "Reschedule Task"
     property string currentStartDate: ""
     property string currentEndDate: ""
-    
+
     signal dateRangeSelected(string startDate, string endDate)
 
     function open() {
@@ -64,14 +64,14 @@ Item {
             function selectDateRange() {
                 var startStr = formatDateToString(selectedStartDate);
                 var endStr = formatDateToString(selectedEndDate);
-                
+
                 // Validate that end date is not before start date
                 if (selectedEndDate < selectedStartDate) {
                     // Auto-correct: set end date to start date + 1 day
                     selectedEndDate = new Date(selectedStartDate.getTime() + 24 * 60 * 60 * 1000);
                     endStr = formatDateToString(selectedEndDate);
                 }
-                
+
                 dateRangeSelected(startStr, endStr);
                 PopupUtils.close(rangeDialog);
             }
@@ -92,29 +92,20 @@ Item {
                     }
 
                     TSButton {
-                        text: "Postpone by 1 day"
+                        text: "Tomorrow"
                         width: parent.width
                         bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         onClicked: {
-                            selectedStartDate = new Date(selectedStartDate.getTime() + 24 * 60 * 60 * 1000);
-                            selectedEndDate = new Date(selectedEndDate.getTime() + 24 * 60 * 60 * 1000);
+                            var tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            selectedStartDate = new Date(tomorrow);
+                            selectedEndDate = new Date(tomorrow);
                             selectDateRange();
                         }
                     }
 
                     TSButton {
-                        text: "Postpone by 1 week"
-                        width: parent.width
-                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
-                        onClicked: {
-                            selectedStartDate = new Date(selectedStartDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-                            selectedEndDate = new Date(selectedEndDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-                            selectDateRange();
-                        }
-                    }
-
-                    TSButton {
-                        text: "Move to next week (Mon-Fri)"
+                        text: "Next Week"
                         width: parent.width
                         bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         onClicked: {
@@ -122,6 +113,20 @@ Item {
                             var daysUntilNextMonday = today.getDay() === 0 ? 1 : (8 - today.getDay());
                             selectedStartDate = new Date(today.getTime() + daysUntilNextMonday * 24 * 60 * 60 * 1000);
                             selectedEndDate = new Date(selectedStartDate.getTime() + 4 * 24 * 60 * 60 * 1000); // Friday
+                            selectDateRange();
+                        }
+                    }
+
+                    TSButton {
+                        text: "Next Month"
+                        width: parent.width
+                        bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
+                        onClicked: {
+                            var today = new Date();
+                            var nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1); // First day of next month
+                            var lastDayOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0); // Last day of next month
+                            selectedStartDate = new Date(nextMonth);
+                            selectedEndDate = new Date(lastDayOfNextMonth);
                             selectDateRange();
                         }
                     }

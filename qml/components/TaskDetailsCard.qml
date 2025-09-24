@@ -125,8 +125,10 @@ ListItem {
                 description: taskDetails.description,
                 assigneeUserId: taskDetails.user_id,
                 subProjectId: taskDetails.sub_project_id,
-                startDate: newStartDate,  // Update start date
-                endDate: newEndDate,      // Update end date
+                startDate: newStartDate  // Update start date
+                ,
+                endDate: newEndDate      // Update end date
+                ,
                 deadline: taskDetails.deadline,
                 status: "updated"
             };
@@ -363,7 +365,7 @@ ListItem {
                             text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
                             color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                             font.pixelSize: units.gu(2)
-                           
+
                             wrapMode: Text.WordWrap
                             maximumLineCount: 2
                             clip: true
@@ -490,16 +492,13 @@ ListItem {
                             width: parent.width
                         }
 
-                      
+                        Text {
 
-                            Text {
-                                
-                                text: Task.getTaskStageName(stage)
-                                color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
-                                font.pixelSize: units.gu(1.75)
-                                font.bold: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? true : false
-                            }
-                        
+                            text: Task.getTaskStageName(stage)
+                            color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
+                            font.pixelSize: units.gu(1.75)
+                            font.bold: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? true : false
+                        }
                     }
                 }
             }
