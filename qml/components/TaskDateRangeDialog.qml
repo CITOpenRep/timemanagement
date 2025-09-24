@@ -51,8 +51,8 @@ Item {
             id: rangeDialog
             title: dialogWrapper.titleText
             modal: true
-            width: units.gu(50)
-            height: units.gu(40)
+            // width: units.gu(40)
+          //   height: units.gu(40)
 
             property date selectedStartDate: new Date(currentStartDate || Utils.getToday())
             property date selectedEndDate: new Date(currentEndDate || Utils.getTomorrow())
