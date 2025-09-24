@@ -194,11 +194,14 @@ Item {
                 console.log("TimeSheetDescriptionPopup: Using existing user_id:", userId);
             }
 
+            // Convert date from display format (M/d/yyyy) to ISO format (yyyy-MM-dd) for sync compatibility
+            var isoDate = Utils.convertToISODate(currentDetails.record_date);
+            
             // Update the timesheet with new description
             var timesheet_data = {
                 'id': popupWrapper.timesheetId,
                 'instance_id': currentDetails.instance_id,
-                'record_date': currentDetails.record_date,
+                'record_date': isoDate,
                 'project': currentDetails.project_id,
                 'task': currentDetails.task_id,
                 'subprojectId': currentDetails.sub_project_id,
