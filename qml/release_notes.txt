@@ -38,7 +38,7 @@
 <section>
   <h3>Enhancement: Task Rescheduler</h3>
   <p>
-    The Task Rescheduler has been enhanced to provide additional scheduling options. 
+    The Task Rescheduler has been enhanced to provide scheduling options with both Start and End Date. 
     The available options include:
   </p>
   <ul>
