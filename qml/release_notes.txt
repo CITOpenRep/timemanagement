@@ -31,7 +31,38 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.6) </h3>
+      <h3>Change History : (Version 1.1.6.1) </h3>
+
+       <h4>24-09-2025 : Version 1.1.6.1</h4>
+
+<section>
+  <h3>Enhancement: Task Rescheduler</h3>
+  <p>
+    The Task Rescheduler has been enhanced to provide additional scheduling options. 
+    The available options include:
+  </p>
+  <ul>
+    <li>
+      <strong>Tomorrow</strong> – Automatically sets both the start date and end date to tomorrow’s date.
+    </li>
+    <li>
+      <strong>Next Week</strong> – Automatically sets the start date to the beginning of the upcoming week and 
+      the end date to the end of that week.
+    </li>
+    <li>
+      <strong>Next Month</strong> – Automatically sets the start date to the first day of the upcoming month 
+      and the end date to the last day of that month.
+    </li>
+    <li>
+      <strong>Custom</strong> – Allows users to manually define both start and end dates.
+    </li>
+  </ul>
+  <p>
+    Additionally, a <strong>Duration</strong> field dynamically calculates and displays the difference between 
+    the start and end dates, providing better visibility into task timelines.
+  </p>
+</section>
+
 
       <h4>19-09-2025 : Version 1.1.6</h4>
 
