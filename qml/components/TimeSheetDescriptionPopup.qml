@@ -214,7 +214,7 @@ Item {
 
             // Use the appropriate function based on status
             if (status === "updated") {
-                // First save the description, then mark as ready
+                // For finalize: first save the description, then mark as ready
                 var saveResult = Model.saveTimesheet(timesheet_data);
                 if (saveResult.success) {
                     return Model.markTimesheetAsReadyById(popupWrapper.timesheetId);

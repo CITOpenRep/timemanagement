@@ -831,9 +831,10 @@ function updateTimesheetWithDuration(timesheetId, durationHours) {
 
     try {
         db.transaction(function(tx) {
+            // Only update duration and timestamp, preserve existing status
             tx.executeSql(
-                        "UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ?, status = ? WHERE id = ?",
-                        [time_taken, timestamp, "active", timesheetId]
+                        "UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ? WHERE id = ?",
+                        [time_taken, timestamp, timesheetId]
                         );
         });
     } catch (e) {
@@ -906,6 +907,32 @@ function markTimesheetAsReadyById(timesheetId) {
  * @param {number} timesheetId - The ID of the timesheet to be marked as draft
  * @returns {Object} - An object with `success` (boolean) and `error` (string) indicating the result
  */
+/**
+ * Checks if a timesheet is finalized (has "updated" status).
+ *
+ * @param {number} timesheetId - The ID of the timesheet to check
+ * @returns {boolean} - True if the timesheet is finalized, false otherwise
+ */
+function isTimesheetFinalized(timesheetId) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var isFinalized = false;
+    
+    try {
+        db.transaction(function(tx) {
+            var result = tx.executeSql("SELECT status FROM account_analytic_line_app WHERE id = ?", [timesheetId]);
+            if (result.rows.length > 0) {
+                var status = result.rows.item(0).status;
+                isFinalized = (status === "updated");
+                console.log("Timesheet", timesheetId, "status:", status, "finalized:", isFinalized);
+            }
+        });
+    } catch (e) {
+        console.error("Error checking timesheet finalization status:", e);
+    }
+    
+    return isFinalized;
+}
+
 function markTimesheetAsDraftById(timesheetId) {
     var result = { success: false, error: "", id: null };
     
