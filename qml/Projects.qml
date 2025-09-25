@@ -304,7 +304,7 @@ Page {
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
-                // font.bold: true
+                fontBold: true
                 color: LomiriColors.orange
             }
 
@@ -354,7 +354,7 @@ Page {
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
-                //  font.bold: true
+                fontBold: true
                 color: LomiriColors.orange
             }
 
@@ -410,7 +410,7 @@ Page {
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
-                //  font.bold: true
+                fontBold: true
                 color: LomiriColors.orange
             }
 
