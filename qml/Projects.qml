@@ -332,6 +332,25 @@ Page {
             }
 
             TSButton {
+                visible: isReadOnly
+                bgColor: LomiriColors.slate
+                fgColor: "white"
+
+                width: (parent.width - units.gu(1)) / 2
+                text: "Create Task"
+                onClicked: {
+                    let project = Project.getProjectDetails(recordid);
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Tasks.qml"), {
+                        "recordid": 0,  // 0 means creation mode
+                        "isReadOnly": false,
+                        "prefilledAccountId": project.account_id,
+                        "prefilledProjectId": project.odoo_record_id,
+                        "prefilledProjectName": project.name
+                    });
+                }
+            }
+
+            TSButton {
                 visible: isReadOnly && recordid > 0
                 bgColor: LomiriColors.slate
                 fgColor: "white"
