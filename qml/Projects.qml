@@ -340,11 +340,20 @@ Page {
                 text: "Create Task"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
+                    // Determine if this is a subproject and get parent project info
+                    let isSubProject = project.parent_id && project.parent_id > 0;
+                    let parentProjectId = isSubProject ? project.parent_id : -1;
+
                     apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Tasks.qml"), {
-                        "recordid": 0,  // 0 means creation mode
+                        "recordid": 0  // 0 means creation mode
+                        ,
                         "isReadOnly": false,
                         "prefilledAccountId": project.account_id,
-                        "prefilledProjectId": project.odoo_record_id,
+                        "prefilledProjectId": isSubProject ? -1 : project.odoo_record_id  // Main project if not subproject
+                        ,
+                        "prefilledSubProjectId": isSubProject ? project.odoo_record_id : -1  // Subproject if it is one
+                        ,
+                        "prefilledParentProjectId": parentProjectId,
                         "prefilledProjectName": project.name
                     });
                 }
