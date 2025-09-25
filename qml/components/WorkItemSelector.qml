@@ -266,7 +266,9 @@ Rectangle {
 
         // Load Tasks under project/subproject with selected taskId
         if (accountId !== -1 && (projectId !== -1 || subProjectId !== -1)) {
-            loadTasks(accountId, projectId, taskId);
+            // Use subproject ID if available, otherwise use project ID
+            var parentIdForTasks = subProjectId !== -1 ? subProjectId : projectId;
+            loadTasks(accountId, parentIdForTasks, taskId);
         }
 
         // Load Subtasks under task with selected subTaskId
