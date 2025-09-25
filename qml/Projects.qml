@@ -310,8 +310,10 @@ Page {
 
             TSButton {
                 visible: isReadOnly
-                bgColor: LomiriColors.slate
-                fgColor: "white"
+                bgColor: "#fef1e7"
+                fgColor: "#f97316"
+                hoverColor: '#f3e0d1'
+                fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
                 onClicked: {
@@ -331,8 +333,11 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
-                bgColor: LomiriColors.slate
-                fgColor: "white"
+                bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "View"
                 onClicked: {
@@ -360,8 +365,10 @@ Page {
 
             TSButton {
                 visible: isReadOnly
-                bgColor: LomiriColors.slate
-                fgColor: "white"
+                bgColor: "#fef1e7"
+                fgColor: "#f97316"
+                hoverColor: '#f3e0d1'
+                fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
                 onClicked: {
@@ -387,8 +394,11 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
-                bgColor: LomiriColors.slate
-                fgColor: "white"
+                bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "View"
                 onClicked: {
@@ -416,8 +426,10 @@ Page {
 
             TSButton {
                 visible: isReadOnly
-                bgColor: LomiriColors.slate
-                fgColor: "white"
+                bgColor: "#fef1e7"
+                fgColor: "#f97316"
+                hoverColor: '#f3e0d1'
+                fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
                 onClicked: {
@@ -428,8 +440,11 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
-                bgColor: LomiriColors.slate
-                fgColor: "white"
+               bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "View"
                 onClicked: {
