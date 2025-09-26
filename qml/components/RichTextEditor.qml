@@ -43,48 +43,48 @@ Item {
             z: -1
         }
 
-            WebEngineView {
+        WebEngineView {
             id: webView
             anchors.fill: parent
             anchors.margins: 1
 
-        // Set a default zoom factor to make content larger on high-DPI screens (Please uncomment while building on a real device.)
-       // zoomFactor: 2.52
+            // Set a default zoom factor to make content larger on high-DPI screens (Please uncomment while building on a real device.)
+            zoomFactor: 2.52
 
-        // Load the Quill.js HTML file
-        url: Qt.resolvedUrl("quill-editor.html") + "?" + (readOnly ? "readonly=true" : "readonly=false") + "&darkMode=" + darkMode
+            // Load the Quill.js HTML file
+            url: Qt.resolvedUrl("quill-editor.html") + "?" + (readOnly ? "readonly=true" : "readonly=false") + "&darkMode=" + darkMode
 
-        // Handle page load completion
-        onLoadingChanged: {
-            if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
-                _isLoaded = true;
-                contentLoaded();
+            // Handle page load completion
+            onLoadingChanged: {
+                if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
+                    _isLoaded = true;
+                    contentLoaded();
 
-                // Set initial content if there was pending text
-                if (_pendingText !== "") {
-                    setText(_pendingText);
-                    _pendingText = "";
+                    // Set initial content if there was pending text
+                    if (_pendingText !== "") {
+                        setText(_pendingText);
+                        _pendingText = "";
+                    }
+
+                    // Set read-only mode
+                    setReadOnly(readOnly);
                 }
-
-                // Set read-only mode
-                setReadOnly(readOnly);
             }
-        }
 
-        // Handle JavaScript messages from the web page
-        onNewViewRequested: {
-            // Handle any navigation requests if needed
-            request.action = WebEngineView.IgnoreRequest;
-        }
+            // Handle JavaScript messages from the web page
+            onNewViewRequested: {
+                // Handle any navigation requests if needed
+                request.action = WebEngineView.IgnoreRequest;
+            }
 
-        onJavaScriptConsoleMessage: {
-            console.log("WebView Console:", message)
-        }
+            onJavaScriptConsoleMessage: {
+                console.log("WebView Console:", message);
+            }
 
             // Enable JavaScript
             settings.javascriptEnabled: true
-            }
-        }    // Function to clean Qt HTML and convert it to standard HTML
+        }
+    }    // Function to clean Qt HTML and convert it to standard HTML
     function cleanQtHtml(qtHtml) {
         if (!qtHtml || qtHtml.trim() === "") {
             return "";
@@ -280,4 +280,3 @@ Item {
         }
     }
 }
-   
