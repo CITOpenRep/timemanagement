@@ -313,6 +313,7 @@ Page {
                 bgColor: "#fef1e7"
                 fgColor: "#f97316"
                 hoverColor: '#f3e0d1'
+              iconName: "add"
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
@@ -338,6 +339,7 @@ Page {
                 hoverColor: '#d1d5db'
                 borderColor: "#d1d5db"
                 fontBold: true
+                iconName: "view-on"
                 width: (parent.width - units.gu(2)) / 3
                 text: "View"
                 onClicked: {
