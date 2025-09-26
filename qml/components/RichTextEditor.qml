@@ -8,9 +8,11 @@ Item {
     // Public properties
     property string text: ""
     property bool readOnly: false
-    property int fontSize: 16
-    property string placeholder: "Start typing..."
+    property int fontSize: 13
+    property string placeholder: "Write something amazing..."
     property bool darkMode: theme.name === "Ubuntu.Components.Themes.SuruDark"
+    property color borderColor: "#dee2e6"
+    property color focusColor: "#714B67"
 
     // Signals
     signal contentChanged(string newText)
@@ -20,12 +22,34 @@ Item {
     property bool _isLoaded: false
     property string _pendingText: ""
 
-    WebEngineView {
-        id: webView
+    // Odoo-style wrapper
+    Rectangle {
+        id: editorWrapper
         anchors.fill: parent
+        color: darkMode ? "#2d2d2d" : "#ffffff"
+        border.width: 1
+        border.color: darkMode ? "#495057" : borderColor
+        radius: 4
+
+        // Add subtle shadow effect
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -1
+            color: "transparent"
+            border.width: 1
+            border.color: parent.border.color
+            radius: parent.radius
+            opacity: 0.1
+            z: -1
+        }
+
+            WebEngineView {
+            id: webView
+            anchors.fill: parent
+            anchors.margins: 1
 
         // Set a default zoom factor to make content larger on high-DPI screens (Please uncomment while building on a real device.)
-        zoomFactor: 2.52
+       // zoomFactor: 2.52
 
         // Load the Quill.js HTML file
         url: Qt.resolvedUrl("quill-editor.html") + "?" + (readOnly ? "readonly=true" : "readonly=false") + "&darkMode=" + darkMode
@@ -57,11 +81,10 @@ Item {
             console.log("WebView Console:", message)
         }
 
-        // Enable JavaScript
-        settings.javascriptEnabled: true
-    }
-
-    // Function to clean Qt HTML and convert it to standard HTML
+            // Enable JavaScript
+            settings.javascriptEnabled: true
+            }
+        }    // Function to clean Qt HTML and convert it to standard HTML
     function cleanQtHtml(qtHtml) {
         if (!qtHtml || qtHtml.trim() === "") {
             return "";
