@@ -313,9 +313,9 @@ Page {
                 bgColor: "#fef1e7"
                 fgColor: "#f97316"
                 hoverColor: '#f3e0d1'
-              iconName: "add"
-              iconColor: "#f97316"
-            
+                iconName: "add"
+                iconColor: "#f97316"
+
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
@@ -373,8 +373,8 @@ Page {
                 bgColor: "#fef1e7"
                 fgColor: "#f97316"
                 hoverColor: '#f3e0d1'
-                  iconName: "add"
-              iconColor: "#f97316"
+                iconName: "add"
+                iconColor: "#f97316"
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
@@ -407,7 +407,7 @@ Page {
                 borderColor: "#d1d5db"
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
-                 iconName: "view-on"
+                iconName: "view-on"
                 iconColor: "#1f2937"
                 text: "View"
                 onClicked: {
@@ -438,8 +438,8 @@ Page {
                 bgColor: "#fef1e7"
                 fgColor: "#f97316"
                 hoverColor: '#f3e0d1'
-                  iconName: "add"
-              iconColor: "#f97316"
+                iconName: "add"
+                iconColor: "#f97316"
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
@@ -451,12 +451,12 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
-               bgColor: "#f3f4f6"
+                bgColor: "#f3f4f6"
                 fgColor: "#1f2937"
                 hoverColor: '#d1d5db'
                 borderColor: "#d1d5db"
                 fontBold: true
-                 iconName: "view-on"
+                iconName: "view-on"
                 iconColor: "#1f2937"
                 width: (parent.width - units.gu(2)) / 3
                 text: "View"
