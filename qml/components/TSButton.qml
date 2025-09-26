@@ -43,7 +43,8 @@ Item {
     property string iconSource: ""  // Path to custom icon image file
     property color iconColor: root.fgColor  // Icon color (for colorized icons)
     property real iconSize: units.gu(1.5)  // Icon size
-    property int spacing: units.gu(0.5)  // Spacing between icon and text
+    property bool iconBold: false  // Make icon appear bolder (increases size and adjusts appearance)
+    property int spacing: units.gu(1)  // Spacing between icon and text
 
     // Customizable colors
     property color bgColor: (enabled) ? AppConst.Colors.Button : AppConst.Colors.ButtonDisabled
@@ -70,10 +71,10 @@ Item {
                 id: builtinIcon
                 visible: root.iconName !== ""
                 name: root.iconName
-                width: visible ? root.iconSize : 0
-                height: visible ? root.iconSize : 0
+                width: visible ? (root.iconBold ? root.iconSize * 1.2 : root.iconSize) : 0
+                height: visible ? (root.iconBold ? root.iconSize * 1.2 : root.iconSize) : 0
                 anchors.verticalCenter: parent.verticalCenter
-                color: root.iconColor
+                color: root.iconBold ? Qt.darker(root.iconColor, 0.8) : root.iconColor
             }
 
             // Custom icon using Image component
@@ -81,14 +82,15 @@ Item {
                 id: customIcon
                 visible: root.iconSource !== "" && root.iconName === ""
                 source: root.iconSource
-                width: visible ? root.iconSize : 0
-                height: visible ? root.iconSize : 0
+                width: visible ? (root.iconBold ? root.iconSize * 1.2 : root.iconSize) : 0
+                height: visible ? (root.iconBold ? root.iconSize * 1.2 : root.iconSize) : 0
                 anchors.verticalCenter: parent.verticalCenter
+                opacity: root.iconBold ? 1.0 : 0.9  // Slightly more opaque when bold
                 // Optional: Add color overlay for monochrome icons
                 // ColorOverlay {
                 //     anchors.fill: parent
                 //     source: parent
-                //     color: root.iconColor
+                //     color: root.iconBold ? Qt.darker(root.iconColor, 0.8) : root.iconColor
                 //     visible: root.iconSource !== "" && root.iconColor !== "transparent"
                 // }
             }

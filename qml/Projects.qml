@@ -302,10 +302,10 @@ Page {
                 text: "Activities"
                 width: (parent.width - units.gu(2)) / 3
                 height: units.gu(6)
-                horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: Text.AlignHLeft
                 verticalAlignment: Text.AlignVCenter
                 fontBold: true
-                color: LomiriColors.orange
+                color: "#f97316"
             }
 
             TSButton {
@@ -314,6 +314,8 @@ Page {
                 fgColor: "#f97316"
                 hoverColor: '#f3e0d1'
               iconName: "add"
+              iconColor: "#f97316"
+            
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
@@ -340,6 +342,7 @@ Page {
                 borderColor: "#d1d5db"
                 fontBold: true
                 iconName: "view-on"
+                iconColor: "#1f2937"
                 width: (parent.width - units.gu(2)) / 3
                 text: "View"
                 onClicked: {
@@ -359,10 +362,10 @@ Page {
                 text: "Tasks"
                 width: (parent.width - units.gu(2)) / 3
                 height: units.gu(6)
-                horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: Text.AlignHLeft
                 verticalAlignment: Text.AlignVCenter
                 fontBold: true
-                color: LomiriColors.orange
+                color: "#f97316"
             }
 
             TSButton {
@@ -370,6 +373,8 @@ Page {
                 bgColor: "#fef1e7"
                 fgColor: "#f97316"
                 hoverColor: '#f3e0d1'
+                  iconName: "add"
+              iconColor: "#f97316"
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
@@ -402,6 +407,8 @@ Page {
                 borderColor: "#d1d5db"
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
+                 iconName: "view-on"
+                iconColor: "#1f2937"
                 text: "View"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
@@ -420,10 +427,10 @@ Page {
                 text: "Project Updates"
                 width: (parent.width - units.gu(2)) / 3
                 height: units.gu(6)
-                horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: Text.AlignHLeft
                 verticalAlignment: Text.AlignVCenter
                 fontBold: true
-                color: LomiriColors.orange
+                color: "#f97316"
             }
 
             TSButton {
@@ -431,6 +438,8 @@ Page {
                 bgColor: "#fef1e7"
                 fgColor: "#f97316"
                 hoverColor: '#f3e0d1'
+                  iconName: "add"
+              iconColor: "#f97316"
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
                 text: "Create"
@@ -447,6 +456,8 @@ Page {
                 hoverColor: '#d1d5db'
                 borderColor: "#d1d5db"
                 fontBold: true
+                 iconName: "view-on"
+                iconColor: "#1f2937"
                 width: (parent.width - units.gu(2)) / 3
                 text: "View"
                 onClicked: {
