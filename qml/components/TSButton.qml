@@ -38,6 +38,14 @@ Item {
     property bool enabled: true
     signal clicked
 
+    // Icon properties
+    property string iconName: ""  // Built-in symbolic icon name (e.g., "add", "edit", "delete")
+    property string iconSource: ""  // Path to custom icon image file
+    property color iconColor: root.fgColor  // Icon color (for colorized icons)
+    property real iconSize: units.gu(1.5)  // Icon size
+    property bool iconBold: false  // Make icon appear bolder (increases size and adjusts appearance)
+    property int spacing: units.gu(1)  // Spacing between icon and text
+
     // Customizable colors
     property color bgColor: (enabled) ? AppConst.Colors.Button : AppConst.Colors.ButtonDisabled
     property color fgColor: AppConst.Colors.ButtonText
@@ -53,12 +61,48 @@ Item {
         color: mouseArea.containsMouse ? root.hoverColor : root.bgColor
         border.color: root.borderColor
 
-        Text {
-            id: label
+        Row {
+            id: contentRow
             anchors.centerIn: parent
-            color: root.fgColor
-            font.bold: false
-            font.pixelSize: units.gu(1.5)
+            spacing: root.spacing
+
+            // Built-in icon using Lomiri Icon component
+            Icon {
+                id: builtinIcon
+                visible: root.iconName !== ""
+                name: root.iconName
+                width: visible ? (root.iconBold ? root.iconSize * 1.2 : root.iconSize) : 0
+                height: visible ? (root.iconBold ? root.iconSize * 1.2 : root.iconSize) : 0
+                anchors.verticalCenter: parent.verticalCenter
+                color: root.iconBold ? Qt.darker(root.iconColor, 0.8) : root.iconColor
+            }
+
+            // Custom icon using Image component
+            Image {
+                id: customIcon
+                visible: root.iconSource !== "" && root.iconName === ""
+                source: root.iconSource
+                width: visible ? (root.iconBold ? root.iconSize * 1.2 : root.iconSize) : 0
+                height: visible ? (root.iconBold ? root.iconSize * 1.2 : root.iconSize) : 0
+                anchors.verticalCenter: parent.verticalCenter
+                opacity: root.iconBold ? 1.0 : 0.9  // Slightly more opaque when bold
+                // Optional: Add color overlay for monochrome icons
+                // ColorOverlay {
+                //     anchors.fill: parent
+                //     source: parent
+                //     color: root.iconBold ? Qt.darker(root.iconColor, 0.8) : root.iconColor
+                //     visible: root.iconSource !== "" && root.iconColor !== "transparent"
+                // }
+            }
+
+            Text {
+                id: label
+                anchors.verticalCenter: parent.verticalCenter
+                color: root.fgColor
+                font.bold: false
+                font.pixelSize: units.gu(1.5)
+                visible: text !== ""
+            }
         }
 
         MouseArea {

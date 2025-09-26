@@ -64,15 +64,13 @@ Page {
                 }
             },
             Action {
-                iconName: "account"   
+                iconName: "account"
                 onTriggered: {
-                    accountFilterVisible = !accountFilterVisible
+                    accountFilterVisible = !accountFilterVisible;
                 }
             }
         ]
     }
-
-
 
     property string currentFilter: "today"
     property string currentSearchQuery: ""
@@ -84,7 +82,6 @@ Page {
 
     property bool filterByAccount: true
     property int selectedAccountId: Accounts.getDefaultAccountId()
-
 
     NotificationPopup {
         id: notifPopup
@@ -103,7 +100,6 @@ Page {
         return dueDateOk && searchOk;
     }
 
- 
     function getProjectDetails(projectId) {
         try {
             return Project.getProjectDetails(projectId);
@@ -125,32 +121,40 @@ Page {
         }
     }
 
-
     function get_activity_list() {
         activityListModel.clear();
 
         try {
             var allActivities = [];
-            // const allActivities = filterByProject ? Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId) : Activity.getAllActivities();
             var currentAccountId = selectedAccountId;
-            
-            console.log("Fetching activities for account:", currentAccountId, "filter:", currentFilter);
-            
-            if (currentFilter && currentFilter !== "" || currentSearchQuery) {
-                
-                allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, currentAccountId);
-            } else {
-              
-                allActivities = Activity.getActivitiesForAccount(currentAccountId);
-            }
 
-            console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId);
+            console.log("Fetching activities - filterByProject:", filterByProject, "projectOdooRecordId:", projectOdooRecordId, "account:", currentAccountId, "filter:", currentFilter);
+
+            if (filterByProject) {
+                // When filtering by project, get activities for that specific project
+                allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
+                console.log("Retrieved", allActivities.length, "activities for project:", projectOdooRecordId);
+            } else {
+                // Normal account-based filtering
+                if (currentFilter && currentFilter !== "" || currentSearchQuery) {
+                    allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, currentAccountId);
+                } else {
+                    allActivities = Activity.getActivitiesForAccount(currentAccountId);
+                }
+                console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId);
+            }
 
             var filteredActivities = [];
 
-            
+            // Apply additional filtering (date/search) when using project filtering
             for (let i = 0; i < allActivities.length; i++) {
                 var item = allActivities[i];
+
+                // When filtering by project, still apply date and search filters
+                if (filterByProject && !shouldIncludeItem(item)) {
+                    continue;
+                }
+
                 var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
                 var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
                 var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";
@@ -176,7 +180,6 @@ Page {
                 });
             }
 
-    
             filteredActivities.sort(function (a, b) {
                 if (!a.due_date || !b.due_date) {
                     return (a.summary || "").localeCompare(b.summary || "");
@@ -185,11 +188,10 @@ Page {
                 return new Date(a.due_date) - new Date(b.due_date);
             });
 
-          
             for (let j = 0; j < filteredActivities.length; j++) {
                 activityListModel.append(filteredActivities[j]);
             }
-            
+
             console.log("Populated activityListModel with", activityListModel.count, "items");
         } catch (e) {
             console.error("Error in get_activity_list():", e);
@@ -198,23 +200,23 @@ Page {
 
     function applyAccountFilter(accountId) {
         console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
-        
+
         filterByAccount = (accountId >= 0);
         selectedAccountId = accountId;
-        
+
         get_activity_list();
     }
 
     function clearAccountFilter() {
         console.log("Activity_Page.clearAccountFilter called");
-        
+
         filterByAccount = false;
         selectedAccountId = -1;
-        
+
         get_activity_list();
     }
 
-        /*
+    /*
     Todo :   - Refactor the date filter logic to be more modular and reusable. And Move to Activity.js
     */
 
@@ -313,7 +315,6 @@ Page {
         return false;
     }
 
-
     ListModel {
         id: activityListModel
     }
@@ -394,26 +395,23 @@ Page {
                     get_activity_list();
                 }
 
-               onCreateFollowup:  function (accountid, recordid) {
-                   //first mark this activity as Done and create a followup activity
-                   Activity.markAsDone(accountid, recordid);
-                   var result=Activity.createFollowupActivity(accountid,recordid)
-                   if(result.success===true)
-                   {
-                       console.log("Followup activity has been created")
-                       apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
-                           "recordid": result.record_id,
-                           "accountid": accountid,
-                           "isReadOnly": false
-                       });
-                   }
-                   else
-                   {
-                         notifPopup.open("Error", "Failed to create a followup activity.", "error");
-                   }
+                onCreateFollowup: function (accountid, recordid) {
+                    //first mark this activity as Done and create a followup activity
+                    Activity.markAsDone(accountid, recordid);
+                    var result = Activity.createFollowupActivity(accountid, recordid);
+                    if (result.success === true) {
+                        console.log("Followup activity has been created");
+                        apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                            "recordid": result.record_id,
+                            "accountid": accountid,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        notifPopup.open("Error", "Failed to create a followup activity.", "error");
+                    }
 
-                   get_activity_list();
-               }
+                    get_activity_list();
+                }
             }
             currentIndex: 0
             onCurrentIndexChanged: {}
@@ -440,13 +438,11 @@ Page {
 
     Connections {
         target: mainView
-        onAccountDataRefreshRequested: function(accountId) {
-
-            applyAccountFilter(accountId)
+        onAccountDataRefreshRequested: function (accountId) {
+            applyAccountFilter(accountId);
         }
-        onGlobalAccountChanged: function(accountId, accountName) {
-
-            applyAccountFilter(accountId)
+        onGlobalAccountChanged: function (accountId, accountName) {
+            applyAccountFilter(accountId);
         }
     }
 
