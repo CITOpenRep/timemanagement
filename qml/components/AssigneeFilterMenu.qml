@@ -292,7 +292,7 @@ Item {
                         onClicked: {
                             // Toggle checkbox state
                             checkbox.checked = !checkbox.checked;
-                            
+
                             // Update selection logic
                             var assigneeId = model.assigneeId;
                             var currentIndex = selectedAssigneeIds.indexOf(assigneeId);

@@ -163,6 +163,14 @@ Item {
 
     function refreshWithFilter() {
         console.log("refreshWithFilter called - filterByAssignees:", filterByAssignees, "selectedAssigneeIds:", JSON.stringify(selectedAssigneeIds));
+
+        // Restore from global state if assignee filter is enabled but IDs are missing
+        if (filterByAssignees && selectedAssigneeIds.length === 0) {
+            // Try to restore from global state - we need to access the Global object from TaskList
+            // Since TaskList doesn't import Global, we'll let Task_Page handle this restoration
+            console.log("⚠️ Assignee filter enabled but no IDs - should be restored from global state");
+        }
+
         if (filterByAssignees && selectedAssigneeIds.length > 0) {
             // Filter by assignees
             console.log("Filtering by assignees:", selectedAssigneeIds.length, "assignees");
