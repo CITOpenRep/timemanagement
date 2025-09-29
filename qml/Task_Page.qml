@@ -153,14 +153,22 @@ Page {
 
     // Function to restore assignee filter state from global storage
     function restoreAssigneeFilterState() {
-        if (task.filterByAssignees && task.selectedAssigneeIds.length === 0) {
-            var globalFilter = Global.getAssigneeFilter();
-            if (globalFilter.enabled && globalFilter.assigneeIds.length > 0) {
-                console.log("🔄 Restoring assignee filter from global state:", globalFilter.assigneeIds.length, "assignees");
-                task.selectedAssigneeIds = globalFilter.assigneeIds;
-                tasklist.selectedAssigneeIds = globalFilter.assigneeIds;
-                console.log("   Restored IDs:", JSON.stringify(task.selectedAssigneeIds));
-            }
+        var globalFilter = Global.getAssigneeFilter();
+        console.log("🔄 Restoring assignee filter from global state - enabled:", globalFilter.enabled, "IDs:", JSON.stringify(globalFilter.assigneeIds));
+
+        if (globalFilter.enabled && globalFilter.assigneeIds.length > 0) {
+            console.log("   Applying restored filter with", globalFilter.assigneeIds.length, "assignees");
+            task.filterByAssignees = true;
+            task.selectedAssigneeIds = globalFilter.assigneeIds;
+            tasklist.filterByAssignees = true;
+            tasklist.selectedAssigneeIds = globalFilter.assigneeIds;
+            console.log("   Task and TaskList properties updated - filterByAssignees: true, selectedAssigneeIds:", JSON.stringify(task.selectedAssigneeIds));
+        } else if (!globalFilter.enabled) {
+            console.log("   No active assignee filter - clearing filter state");
+            task.filterByAssignees = false;
+            task.selectedAssigneeIds = [];
+            tasklist.filterByAssignees = false;
+            tasklist.selectedAssigneeIds = [];
         }
     }
 
@@ -196,15 +204,16 @@ Page {
 
             task.currentFilter = filterKey;
 
-            // Restore assignee filter state if needed
+            // Restore assignee filter state from global storage
             restoreAssigneeFilterState();
 
-            // Update TaskList properties and apply filter
+            // Ensure TaskList properties are synchronized after restoration
             tasklist.filterByAssignees = task.filterByAssignees;
             tasklist.selectedAssigneeIds = task.selectedAssigneeIds;
 
-            console.log("   TaskList updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
+            console.log("   Final TaskList state - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
 
+            // Apply the appropriate filter with assignee filtering
             if (filterByProject) {
                 console.log("   Applying project and time filter:", filterKey);
                 tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, filterKey);
@@ -212,23 +221,33 @@ Page {
                 console.log("   Applying time filter:", filterKey);
                 tasklist.applyFilter(filterKey);
             }
+
+            console.log("🔄 TAB SWITCH COMPLETED - Filter applied for:", filterKey);
         }
 
         onCustomSearch: {
+            console.log("🔍 SEARCH DETECTED - Query:", query);
             task.currentSearchQuery = query;
 
-            // Restore assignee filter state if needed
+            // Restore assignee filter state from global storage
             restoreAssigneeFilterState();
 
-            // Update TaskList properties and apply search
+            // Ensure TaskList properties are synchronized after restoration
             tasklist.filterByAssignees = task.filterByAssignees;
             tasklist.selectedAssigneeIds = task.selectedAssigneeIds;
 
+            console.log("   Final TaskList state for search - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
+
+            // Apply search with assignee filtering
             if (filterByProject) {
+                console.log("   Applying project and search filter:", query);
                 tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, query);
             } else {
+                console.log("   Applying search filter:", query);
                 tasklist.applySearch(query);
             }
+
+            console.log("🔍 SEARCH COMPLETED - Filter applied for query:", query);
         }
     }
 
