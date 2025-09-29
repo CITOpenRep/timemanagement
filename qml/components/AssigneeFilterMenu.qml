@@ -82,7 +82,6 @@ Item {
 
         onClicked: {
             expanded = !expanded;
-            console.log("Assignee filter menu", expanded ? "expanded" : "collapsed", "- Assignees available:", assigneeModel.length);
         }
 
         // Badge showing number of selected assignees
@@ -208,6 +207,8 @@ Item {
                 height: units.gu(4)
                 placeholderText: "Search assignees..."
 
+              
+
                 onTextChanged: {
                     filterModel.update();
                 }
@@ -296,7 +297,7 @@ Item {
 
                             Text {
                                 visible: model.account_name !== ""
-                                text: "(" + model.account_name  + ")"
+                                text: "(" + model.account_name + ")"
                                 font.pixelSize: units.gu(1.5)
                                 color: theme.palette.normal.backgroundSecondaryText
                                 elide: Text.ElideRight
@@ -319,24 +320,16 @@ Item {
                             var assigneeId = model.assigneeId;
                             var currentIndex = selectedAssigneeIds.indexOf(assigneeId);
 
-                            console.log("MouseArea clicked - Assignee:", model.name, "ID:", assigneeId, "Account:", model.account_name, "Account ID:", model.account_id, "Checked:", checkbox.checked);
-                            console.log("Current selectedAssigneeIds before:", JSON.stringify(selectedAssigneeIds));
-
                             if (checkbox.checked && currentIndex === -1) {
                                 // Add to selection
                                 selectedAssigneeIds.push(assigneeId);
-                                console.log("Added assignee ID", assigneeId, "to selection");
                             } else if (!checkbox.checked && currentIndex !== -1) {
                                 // Remove from selection
                                 selectedAssigneeIds.splice(currentIndex, 1);
-                                console.log("Removed assignee ID", assigneeId, "from selection");
                             }
 
                             // Trigger property change notification
                             selectedAssigneeIds = selectedAssigneeIds.slice();
-
-                            console.log("Current selectedAssigneeIds after:", JSON.stringify(selectedAssigneeIds));
-                            console.log("Apply button should be enabled:", selectedAssigneeIds.length > 0);
 
                             // Update model
                             filterModel.setProperty(index, "selected", checkbox.checked);
@@ -385,18 +378,13 @@ Item {
                         bgColor: enabled ? LomiriColors.blue : LomiriColors.ash
                         fgColor: "white"
 
-                        Component.onCompleted: {
-                            console.log("Apply button created, enabled:", enabled);
-                        }
+                        Component.onCompleted: {}
 
                         onClicked: {
                             if (selectedAssigneeIds.length > 0) {
-                                console.log("Apply button clicked with", selectedAssigneeIds.length, "assignees");
                                 expanded = false;
                                 filterApplied(selectedAssigneeIds.slice());
-                            } else {
-                                console.log("Apply button clicked but no assignees selected - ignoring");
-                            }
+                            } else {}
                         }
                     }
 
@@ -409,12 +397,9 @@ Item {
                         bgColor: enabled ? LomiriColors.orange : LomiriColors.ash
                         fgColor: "white"
 
-                        Component.onCompleted: {
-                            console.log("Clear button created, enabled:", enabled);
-                        }
+                        Component.onCompleted: {}
 
                         onClicked: {
-                            console.log("Clear button clicked");
                             selectedAssigneeIds = [];
                             filterModel.update();
                             expanded = false;
