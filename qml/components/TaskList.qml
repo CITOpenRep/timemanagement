@@ -51,6 +51,10 @@ Item {
     property bool filterByAccount: false
     property int selectedAccountId: -1
 
+    // Properties for assignee filtering
+    property bool filterByAssignees: false
+    property var selectedAssigneeIds: []
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
@@ -160,8 +164,13 @@ Item {
 
     function refreshWithFilter() {
         
-        if (filterByAccount && selectedAccountId >= 0) {
-
+        if (filterByAssignees && selectedAssigneeIds.length > 0) {
+            // Filter by assignees
+            var assigneeTasks;
+            var accountParam = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1;
+            assigneeTasks = Task.getTasksByAssignees(selectedAssigneeIds, accountParam, currentFilter, currentSearchQuery);
+            updateDisplayedTasks(assigneeTasks);
+        } else if (filterByAccount && selectedAccountId >= 0) {
             var accountTasks;
             if (currentFilter === "all" && !currentSearchQuery) {
                 accountTasks = Task.getTasksForAccount(selectedAccountId);
