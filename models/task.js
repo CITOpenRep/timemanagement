@@ -1723,10 +1723,11 @@ function getAllTaskAssignees(accountId) {
                     var placeholders = userIds.map(function() { return '?'; }).join(',');
                     
                     var userQuery = `
-                        SELECT id, odoo_record_id, name, account_id
-                        FROM res_users_app 
-                        WHERE account_id = ? AND odoo_record_id IN (${placeholders})
-                        ORDER BY name COLLATE NOCASE ASC
+                        SELECT u.id, u.odoo_record_id, u.name, u.account_id, a.name as account_name
+                        FROM res_users_app u
+                        LEFT JOIN users a ON u.account_id = a.id
+                        WHERE u.account_id = ? AND u.odoo_record_id IN (${placeholders})
+                        ORDER BY u.name COLLATE NOCASE ASC
                     `;
                     
                     var queryParams = [acctId].concat(userIds);
@@ -1734,11 +1735,13 @@ function getAllTaskAssignees(accountId) {
                     
                     for (var k = 0; k < userResult.rows.length; k++) {
                         var userRow = userResult.rows.item(k);
+                        console.log("Loading assignee:", userRow.name, "Account:", userRow.account_name, "ID:", userRow.odoo_record_id);
                         assignees.push({
                             id: userRow.id,
                             odoo_record_id: userRow.odoo_record_id,
                             name: userRow.name,
-                            account_id: userRow.account_id
+                            account_id: userRow.account_id,
+                            account_name: userRow.account_name || "Unknown Account"
                         });
                     }
                 }

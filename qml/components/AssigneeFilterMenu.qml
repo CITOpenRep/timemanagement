@@ -229,10 +229,16 @@ Item {
 
                         for (var i = 0; i < assigneeModel.length; i++) {
                             var assignee = assigneeModel[i];
-                            if (!searchText || assignee.name.toLowerCase().indexOf(searchText) >= 0) {
+                            var displayText = assignee.name;
+                            if (assignee.account_name) {
+                                displayText = assignee.name + " (" + assignee.account_name + ")";
+                            }
+                            if (!searchText || displayText.toLowerCase().indexOf(searchText) >= 0) {
                                 append({
                                     "assigneeId": assignee.odoo_record_id || assignee.id,
                                     "name": assignee.name,
+                                    "account_name": assignee.account_name || "",
+                                    "displayText": displayText,
                                     "selected": selectedAssigneeIds.indexOf(assignee.odoo_record_id || assignee.id) !== -1
                                 });
                             }
@@ -273,14 +279,29 @@ Item {
                             color: theme.palette.normal.backgroundText
                         }
 
-                        // Assignee name
-                        Text {
-                            text: model.name
-                            font.pixelSize: units.gu(2)
-                            color: theme.palette.normal.backgroundText
+                        // Assignee name with account
+                        Column {
                             anchors.verticalCenter: parent.verticalCenter
-                            elide: Text.ElideRight
                             width: parent.width - checkbox.width - units.gu(6)
+                            spacing: units.gu(0.2)
+                            
+                            Text {
+                                text: model.name
+                                font.pixelSize: units.gu(2)
+                                color: theme.palette.normal.backgroundText
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
+                            
+                            Text {
+                                visible: model.account_name !== ""
+                                text: "(" + (model.account_name || "") + ")"
+                                font.pixelSize: units.gu(1.5)
+                                color: theme.palette.normal.backgroundSecondaryText
+                                elide: Text.ElideRight
+                                width: parent.width
+                                opacity: 0.7
+                            }
                         }
                     }
 
