@@ -72,7 +72,7 @@ Item {
         radius: width / 2
         anchors.bottom: parent.bottom
         anchors.right: parent.right
-        anchors.margins: units.gu(3)
+        anchors.margins: units.gu(2)
         anchors.bottomMargin: units.gu(11) // Position above the stage filter menu
         iconName: expanded ? "close" : "contact"
         iconBold: true
