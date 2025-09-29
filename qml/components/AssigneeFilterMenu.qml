@@ -220,7 +220,7 @@ Item {
             ListView {
                 id: assigneeListView
                 width: parent.width
-                height: Math.min(units.gu(20), Math.max(units.gu(12), filterModel.count * units.gu(6)))
+                height: Math.min(units.gu(25), Math.max(units.gu(12), filterModel.count * units.gu(6)))
                 clip: true
 
                 model: ListModel {
@@ -271,7 +271,7 @@ Item {
                             id: checkbox
                             anchors.verticalCenter: parent.verticalCenter
                             checked: model.selected
-                            enabled: false  // Disable direct checkbox interaction to avoid conflicts
+                            //   enabled: false  // Disable direct checkbox interaction to avoid conflicts
                         }
 
                         // User icon
