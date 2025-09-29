@@ -1650,7 +1650,7 @@ function getTasksForProject(projectOdooRecordId, accountId) {
 
 /**
  * Gets all unique assignees who have been assigned to tasks in the given account
- * @param {number} accountId - The account ID to filter assignees by
+ * @param {number} accountId - The account ID to filter assignees by (use -1 for all accounts)
  * @returns {Array} Array of assignee objects with id, name, and odoo_record_id
  */
 function getAllTaskAssignees(accountId) {
@@ -1661,50 +1661,81 @@ function getAllTaskAssignees(accountId) {
         
         db.transaction(function (tx) {
             // Get all unique user IDs from tasks (handling comma-separated values)
-            var taskQuery = `
-                SELECT DISTINCT user_id 
-                FROM project_task_app 
-                WHERE account_id = ? AND user_id IS NOT NULL AND user_id != ''
-            `;
-            var taskResult = tx.executeSql(taskQuery, [accountId]);
+            var taskQuery, taskParams;
             
-            var allUserIds = [];
+            if (accountId === -1) {
+                // Get from all accounts
+                taskQuery = `
+                    SELECT DISTINCT user_id, account_id
+                    FROM project_task_app 
+                    WHERE user_id IS NOT NULL AND user_id != ''
+                `;
+                taskParams = [];
+            } else {
+                // Get from specific account
+                taskQuery = `
+                    SELECT DISTINCT user_id, account_id
+                    FROM project_task_app 
+                    WHERE account_id = ? AND user_id IS NOT NULL AND user_id != ''
+                `;
+                taskParams = [accountId];
+            }
+            
+            var taskResult = tx.executeSql(taskQuery, taskParams);
+            
+            var userAccountMap = {}; // Map user_id -> account_id for users
             
             // Parse comma-separated user IDs from all tasks
             for (var i = 0; i < taskResult.rows.length; i++) {
-                var userIdField = taskResult.rows.item(i).user_id;
+                var row = taskResult.rows.item(i);
+                var userIdField = row.user_id;
+                var taskAccountId = row.account_id;
+                
                 if (userIdField) {
                     var userIds = parseAssigneeIds(userIdField);
                     for (var j = 0; j < userIds.length; j++) {
-                        if (allUserIds.indexOf(userIds[j]) === -1) {
-                            allUserIds.push(userIds[j]);
-                        }
+                        userAccountMap[userIds[j]] = taskAccountId;
                     }
                 }
             }
             
+            var allUserIds = Object.keys(userAccountMap).map(function(key) { return parseInt(key); });
+            
             if (allUserIds.length > 0) {
-                // Create placeholders for IN clause
-                var placeholders = allUserIds.map(function() { return '?'; }).join(',');
+                // Group user IDs by account for efficient querying
+                var accountUserMap = {};
+                for (var userId in userAccountMap) {
+                    var userAccountId = userAccountMap[userId];
+                    if (!accountUserMap[userAccountId]) {
+                        accountUserMap[userAccountId] = [];
+                    }
+                    accountUserMap[userAccountId].push(parseInt(userId));
+                }
                 
-                // Get user details for each unique ID
-                var userQuery = `
-                    SELECT id, odoo_record_id, name
-                    FROM res_users_app 
-                    WHERE account_id = ? AND odoo_record_id IN (${placeholders})
-                    ORDER BY name COLLATE NOCASE ASC
-                `;
-                
-                var queryParams = [accountId].concat(allUserIds);
-                var userResult = tx.executeSql(userQuery, queryParams);
-                
-                for (var k = 0; k < userResult.rows.length; k++) {
-                    var row = userResult.rows.item(k);
-                    assignees.push({
-                        id: row.id,
-                        odoo_record_id: row.odoo_record_id,
-                        name: row.name
-                    });
+                // Query each account's users
+                for (var acctId in accountUserMap) {
+                    var userIds = accountUserMap[acctId];
+                    var placeholders = userIds.map(function() { return '?'; }).join(',');
+                    
+                    var userQuery = `
+                        SELECT id, odoo_record_id, name, account_id
+                        FROM res_users_app 
+                        WHERE account_id = ? AND odoo_record_id IN (${placeholders})
+                        ORDER BY name COLLATE NOCASE ASC
+                    `;
+                    
+                    var queryParams = [acctId].concat(userIds);
+                    var userResult = tx.executeSql(userQuery, queryParams);
+                    
+                    for (var k = 0; k < userResult.rows.length; k++) {
+                        var userRow = userResult.rows.item(k);
+                        assignees.push({
+                            id: userRow.id,
+                            odoo_record_id: userRow.odoo_record_id,
+                            name: userRow.name,
+                            account_id: userRow.account_id
+                        });
+                    }
                 }
             }
         });

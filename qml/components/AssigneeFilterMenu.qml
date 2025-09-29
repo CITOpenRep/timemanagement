@@ -255,11 +255,11 @@ Item {
                             id: checkbox
                             anchors.verticalCenter: parent.verticalCenter
                             checked: model.selected
-                            
+
                             onClicked: {
                                 var assigneeId = model.assigneeId;
                                 var currentIndex = selectedAssigneeIds.indexOf(assigneeId);
-                                
+
                                 if (checked && currentIndex === -1) {
                                     // Add to selection
                                     selectedAssigneeIds.push(assigneeId);
@@ -267,10 +267,10 @@ Item {
                                     // Remove from selection
                                     selectedAssigneeIds.splice(currentIndex, 1);
                                 }
-                                
+
                                 // Trigger property change
                                 selectedAssigneeIds = selectedAssigneeIds.slice();
-                                
+
                                 // Update model
                                 filterModel.setProperty(index, "selected", checked);
                             }
@@ -347,7 +347,7 @@ Item {
                         height: units.gu(4)
                         bgColor: enabled ? LomiriColors.blue : LomiriColors.ash
                         fgColor: "white"
-                        
+
                         onClicked: {
                             expanded = false;
                             filterApplied(selectedAssigneeIds.slice());
@@ -362,7 +362,7 @@ Item {
                         height: units.gu(4)
                         bgColor: enabled ? LomiriColors.orange : LomiriColors.ash
                         fgColor: "white"
-                        
+
                         onClicked: {
                             selectedAssigneeIds = [];
                             filterModel.update();
@@ -400,8 +400,8 @@ Item {
 
     // Function to load assignees for the current account
     function loadAssignees(accountId) {
-        // This will be called from the parent component
-        // to populate the assigneeModel
+    // This will be called from the parent component
+    // to populate the assigneeModel
     }
 
     // Initialize the filter model when assigneeModel changes

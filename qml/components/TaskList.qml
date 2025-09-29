@@ -161,9 +161,7 @@ Item {
         return Task.getTasksForProject(projectOdooId, accountId);
     }
 
-
     function refreshWithFilter() {
-        
         if (filterByAssignees && selectedAssigneeIds.length > 0) {
             // Filter by assignees
             var assigneeTasks;
@@ -179,40 +177,31 @@ Item {
             }
             updateDisplayedTasks(accountTasks);
         } else if (currentFilter === "all" && !currentSearchQuery) {
-            populateTaskChildrenMap(); 
+            populateTaskChildrenMap();
         } else if (currentFilter && currentFilter !== "" || currentSearchQuery) {
             var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
             updateDisplayedTasks(filteredTasks);
         } else {
             populateTaskChildrenMap();
         }
-
     }
 
     function applyAccountFilter(accountId) {
         console.log("🔍 TaskList.applyAccountFilter called with accountId:", accountId);
-        
+
         filterByAccount = (accountId >= 0);
         selectedAccountId = accountId;
-        filterByProject = false; 
+        filterByProject = false;
 
-        
         refreshWithFilter();
-
     }
 
     function clearAccountFilter() {
-        
         filterByAccount = false;
         selectedAccountId = -1;
-        
 
-        
         refreshWithFilter();
-        
-
     }
-
 
     // New function to update displayed tasks with filtered data
     function updateDisplayedTasks(tasks) {

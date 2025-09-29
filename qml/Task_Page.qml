@@ -75,13 +75,11 @@ Page {
             Action {
                 iconName: "account"
                 onTriggered: {
-                    accountFilterVisible = !accountFilterVisible
+                    accountFilterVisible = !accountFilterVisible;
                 }
             }
         ]
     }
-
-
 
     // Add properties to track filter and search state
     property string currentFilter: "today"
@@ -105,21 +103,45 @@ Page {
     property variant selectedAccountId: -1 // initialize with numeric -1 (All accounts)
     property variant defaultAccountId: Account.getDefaultAccountId() // For creating records (DO NOT use for filtering)
 
-
-
     // Function to load available assignees for the current account
     function loadAssignees() {
         try {
             var currentAccountId = tasklist.selectedAccountId;
-            if (typeof currentAccountId === "undefined" || currentAccountId === null) currentAccountId = -1;
+            if (typeof currentAccountId === "undefined" || currentAccountId === null)
+                currentAccountId = -1;
+
+            console.log("Loading assignees for account ID:", currentAccountId);
             
             if (currentAccountId >= 0) {
-                availableAssignees = Task.getAllTaskAssignees(currentAccountId);
+                // Use the same method as MultiAssigneeSelector for specific account
+                var rawAssignees = Account.getUsers(currentAccountId);
+                console.log("Raw assignees from Account.getUsers:", rawAssignees.length);
+                
+                // Filter and format assignees like MultiAssigneeSelector does
+                var filteredAssignees = [];
+                for (var i = 0; i < rawAssignees.length; i++) {
+                    var assignee = rawAssignees[i];
+                    var id = (currentAccountId === 0) ? assignee.id : assignee.odoo_record_id;
+                    if (id > 0) {
+                        // Skip invalid/placeholder entries
+                        filteredAssignees.push({
+                            id: id,
+                            odoo_record_id: id,
+                            name: assignee.name,
+                            account_id: currentAccountId
+                        });
+                    }
+                }
+                
+                availableAssignees = filteredAssignees;
                 assigneeFilterMenu.assigneeModel = availableAssignees;
                 console.log("Loaded", availableAssignees.length, "assignees for account:", currentAccountId);
             } else {
-                availableAssignees = [];
-                assigneeFilterMenu.assigneeModel = [];
+                // For "All Accounts" (-1), load assignees from all accounts that have tasks
+                console.log("Loading assignees from all accounts with tasks");
+                availableAssignees = Task.getAllTaskAssignees(-1); // -1 means all accounts
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+                console.log("Loaded", availableAssignees.length, "assignees from all accounts");
             }
         } catch (e) {
             console.error("Error loading assignees:", e);
@@ -159,7 +181,7 @@ Page {
             // Update TaskList properties and apply filter
             tasklist.filterByAssignees = task.filterByAssignees;
             tasklist.selectedAssigneeIds = task.selectedAssigneeIds;
-            
+
             if (filterByProject) {
                 tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, filterKey);
             } else {
@@ -172,7 +194,7 @@ Page {
             // Update TaskList properties and apply search
             tasklist.filterByAssignees = task.filterByAssignees;
             tasklist.selectedAssigneeIds = task.selectedAssigneeIds;
-            
+
             if (filterByProject) {
                 tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, query);
             } else {
@@ -286,15 +308,15 @@ Page {
         anchors.fill: parent
         z: 10
 
-        onFilterApplied: function(assigneeIds) {
+        onFilterApplied: function (assigneeIds) {
             console.log("Assignee filter applied:", assigneeIds.length, "assignees selected");
             selectedAssigneeIds = assigneeIds;
             filterByAssignees = true;
-            
+
             // Update TaskList properties
             tasklist.filterByAssignees = true;
             tasklist.selectedAssigneeIds = assigneeIds;
-            
+
             // Refresh task list with assignee filter
             if (currentSearchQuery) {
                 tasklist.applySearch(currentSearchQuery);
@@ -303,15 +325,15 @@ Page {
             }
         }
 
-        onFilterCleared: function() {
+        onFilterCleared: function () {
             console.log("Assignee filter cleared");
             selectedAssigneeIds = [];
             filterByAssignees = false;
-            
+
             // Update TaskList properties
             tasklist.filterByAssignees = false;
             tasklist.selectedAssigneeIds = [];
-            
+
             // Refresh task list without assignee filter
             if (currentSearchQuery) {
                 tasklist.applySearch(currentSearchQuery);
@@ -342,7 +364,7 @@ Page {
     // Listen for account selector changes directly (so filter updates immediately)
     Connections {
         target: accountFilter
-        onAccountChanged: function(accountId, accountName) {
+        onAccountChanged: function (accountId, accountName) {
             console.log("Task_Page: Account filter changed to:", accountName, "ID:", accountId);
             // Normalize id to number, fallback to -1
             var idNum = -1;
@@ -358,10 +380,10 @@ Page {
             }
 
             tasklist.selectedAccountId = idNum;
-            
+
             // Reload assignees for the new account
             loadAssignees();
-            
+
             // Clear assignee filter when account changes
             if (filterByAssignees) {
                 selectedAssigneeIds = [];
@@ -388,8 +410,8 @@ Page {
 
     Connections {
         target: mainView
-        onGlobalAccountChanged: function(accountId, accountName) {
-            console.log("Task_Page: GlobalAccountChanged →", accountId, accountName)
+        onGlobalAccountChanged: function (accountId, accountName) {
+            console.log("Task_Page: GlobalAccountChanged →", accountId, accountName);
             var acctNum = -1;
             if (typeof accountId !== "undefined" && accountId !== null) {
                 var maybe = Number(accountId);
@@ -399,7 +421,7 @@ Page {
 
             // Reload assignees for the new account
             loadAssignees();
-            
+
             // Clear assignee filter when account changes
             if (filterByAssignees) {
                 selectedAssigneeIds = [];
@@ -409,19 +431,19 @@ Page {
 
             if (filterByProject) {
                 if (currentSearchQuery) {
-                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery)
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
                 } else {
-                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter)
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
                 }
             } else {
                 if (currentSearchQuery) {
-                    tasklist.applySearch(currentSearchQuery)
+                    tasklist.applySearch(currentSearchQuery);
                 } else {
-                    tasklist.applyFilter(currentFilter)
+                    tasklist.applyFilter(currentFilter);
                 }
             }
         }
-        onAccountDataRefreshRequested: function(accountId) {
+        onAccountDataRefreshRequested: function (accountId) {
             var acctNum = -1;
             if (typeof accountId !== "undefined" && accountId !== null) {
                 var maybe2 = Number(accountId);
@@ -434,15 +456,15 @@ Page {
 
             if (filterByProject) {
                 if (currentSearchQuery) {
-                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery)
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
                 } else {
-                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter)
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
                 }
             } else {
                 if (currentSearchQuery) {
-                    tasklist.applySearch(currentSearchQuery)
+                    tasklist.applySearch(currentSearchQuery);
                 } else {
-                    tasklist.applyFilter(currentFilter)
+                    tasklist.applyFilter(currentFilter);
                 }
             }
         }
