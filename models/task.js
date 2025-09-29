@@ -1055,19 +1055,23 @@ function getFilteredTasks(filterType, searchQuery, accountId) {
  * @returns {Array<Object>} Filtered list of tasks
  */
 function getTasksByAssignees(assigneeIds, accountId, filterType, searchQuery) {
+    console.log("getTasksByAssignees called with:", JSON.stringify(assigneeIds), accountId, filterType, searchQuery);
     var allTasks;
     
     // If accountId is provided, filter by account first
     if (accountId !== undefined && accountId >= 0) {
         allTasks = getTasksForAccount(accountId);
+        console.log("Got", allTasks.length, "tasks for account", accountId);
     } else {
         allTasks = getAllTasks();
+        console.log("Got", allTasks.length, "total tasks");
     }
     
     var filteredTasks = [];
     var currentDate = new Date();
     
     if (!assigneeIds || assigneeIds.length === 0) {
+        console.log("No assignee IDs provided, returning empty array");
         return filteredTasks;
     }
     
@@ -1108,6 +1112,7 @@ function getTasksByAssignees(assigneeIds, accountId, filterType, searchQuery) {
         }
     }
     
+    console.log("getTasksByAssignees returning", filteredTasks.length, "filtered tasks");
     return filteredTasks;
 }
 

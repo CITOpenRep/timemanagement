@@ -111,12 +111,12 @@ Page {
                 currentAccountId = -1;
 
             console.log("Loading assignees for account ID:", currentAccountId);
-            
+
             if (currentAccountId >= 0) {
                 // Use the same method as MultiAssigneeSelector for specific account
                 var rawAssignees = Account.getUsers(currentAccountId);
                 console.log("Raw assignees from Account.getUsers:", rawAssignees.length);
-                
+
                 // Filter and format assignees like MultiAssigneeSelector does
                 var filteredAssignees = [];
                 for (var i = 0; i < rawAssignees.length; i++) {
@@ -132,7 +132,7 @@ Page {
                         });
                     }
                 }
-                
+
                 availableAssignees = filteredAssignees;
                 assigneeFilterMenu.assigneeModel = availableAssignees;
                 console.log("Loaded", availableAssignees.length, "assignees for account:", currentAccountId);
@@ -310,12 +310,15 @@ Page {
 
         onFilterApplied: function (assigneeIds) {
             console.log("Assignee filter applied:", assigneeIds.length, "assignees selected");
+            console.log("Selected assignee IDs:", JSON.stringify(assigneeIds));
             selectedAssigneeIds = assigneeIds;
             filterByAssignees = true;
 
             // Update TaskList properties
             tasklist.filterByAssignees = true;
             tasklist.selectedAssigneeIds = assigneeIds;
+            
+            console.log("TaskList properties updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
 
             // Refresh task list with assignee filter
             if (currentSearchQuery) {

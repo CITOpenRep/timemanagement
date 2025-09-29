@@ -82,6 +82,7 @@ Item {
 
         onClicked: {
             expanded = !expanded;
+            console.log("Assignee filter menu", expanded ? "expanded" : "collapsed", "- Assignees available:", assigneeModel.length);
         }
 
         // Badge showing number of selected assignees
@@ -111,7 +112,12 @@ Item {
         id: menuContainer
         visible: expanded
         width: units.gu(40)
-        height: units.gu(40) // Initial height, will adjust based on content
+        height: {
+            // Calculate dynamic height: header + search + assignee list + buttons + margins
+            var baseHeight = units.gu(22); // Header + search + buttons + margins
+            var assigneeListHeight = Math.min(assigneeModel.length * units.gu(6), units.gu(25)); // Max 25 units for list
+            return Math.min(units.gu(50), baseHeight + assigneeListHeight);
+        }
 
         anchors.bottom: fab.top
         anchors.right: parent.right
@@ -211,7 +217,7 @@ Item {
             ListView {
                 id: assigneeListView
                 width: parent.width
-                height: Math.min(units.gu(30), Math.max(units.gu(15), filterModel.count * units.gu(6)))
+                height: Math.min(units.gu(20), Math.max(units.gu(12), filterModel.count * units.gu(6)))
                 clip: true
 
                 model: ListModel {
@@ -255,25 +261,7 @@ Item {
                             id: checkbox
                             anchors.verticalCenter: parent.verticalCenter
                             checked: model.selected
-
-                            onClicked: {
-                                var assigneeId = model.assigneeId;
-                                var currentIndex = selectedAssigneeIds.indexOf(assigneeId);
-
-                                if (checked && currentIndex === -1) {
-                                    // Add to selection
-                                    selectedAssigneeIds.push(assigneeId);
-                                } else if (!checked && currentIndex !== -1) {
-                                    // Remove from selection
-                                    selectedAssigneeIds.splice(currentIndex, 1);
-                                }
-
-                                // Trigger property change
-                                selectedAssigneeIds = selectedAssigneeIds.slice();
-
-                                // Update model
-                                filterModel.setProperty(index, "selected", checked);
-                            }
+                            enabled: false  // Disable direct checkbox interaction to avoid conflicts
                         }
 
                         // User icon
@@ -302,7 +290,34 @@ Item {
                         hoverEnabled: true
 
                         onClicked: {
+                            // Toggle checkbox state
                             checkbox.checked = !checkbox.checked;
+                            
+                            // Update selection logic
+                            var assigneeId = model.assigneeId;
+                            var currentIndex = selectedAssigneeIds.indexOf(assigneeId);
+
+                            console.log("MouseArea clicked - Assignee:", model.name, "ID:", assigneeId, "Checked:", checkbox.checked);
+                            console.log("Current selectedAssigneeIds before:", JSON.stringify(selectedAssigneeIds));
+
+                            if (checkbox.checked && currentIndex === -1) {
+                                // Add to selection
+                                selectedAssigneeIds.push(assigneeId);
+                                console.log("Added assignee ID", assigneeId, "to selection");
+                            } else if (!checkbox.checked && currentIndex !== -1) {
+                                // Remove from selection
+                                selectedAssigneeIds.splice(currentIndex, 1);
+                                console.log("Removed assignee ID", assigneeId, "from selection");
+                            }
+
+                            // Trigger property change notification
+                            selectedAssigneeIds = selectedAssigneeIds.slice();
+
+                            console.log("Current selectedAssigneeIds after:", JSON.stringify(selectedAssigneeIds));
+                            console.log("Apply button should be enabled:", selectedAssigneeIds.length > 0);
+
+                            // Update model
+                            filterModel.setProperty(index, "selected", checkbox.checked);
                         }
                     }
 
@@ -348,9 +363,18 @@ Item {
                         bgColor: enabled ? LomiriColors.blue : LomiriColors.ash
                         fgColor: "white"
 
+                        Component.onCompleted: {
+                            console.log("Apply button created, enabled:", enabled);
+                        }
+
                         onClicked: {
-                            expanded = false;
-                            filterApplied(selectedAssigneeIds.slice());
+                            if (selectedAssigneeIds.length > 0) {
+                                console.log("Apply button clicked with", selectedAssigneeIds.length, "assignees");
+                                expanded = false;
+                                filterApplied(selectedAssigneeIds.slice());
+                            } else {
+                                console.log("Apply button clicked but no assignees selected - ignoring");
+                            }
                         }
                     }
 
@@ -363,7 +387,12 @@ Item {
                         bgColor: enabled ? LomiriColors.orange : LomiriColors.ash
                         fgColor: "white"
 
+                        Component.onCompleted: {
+                            console.log("Clear button created, enabled:", enabled);
+                        }
+
                         onClicked: {
+                            console.log("Clear button clicked");
                             selectedAssigneeIds = [];
                             filterModel.update();
                             expanded = false;

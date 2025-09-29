@@ -162,11 +162,15 @@ Item {
     }
 
     function refreshWithFilter() {
+        console.log("refreshWithFilter called - filterByAssignees:", filterByAssignees, "selectedAssigneeIds:", JSON.stringify(selectedAssigneeIds));
         if (filterByAssignees && selectedAssigneeIds.length > 0) {
             // Filter by assignees
+            console.log("Filtering by assignees:", selectedAssigneeIds.length, "assignees");
             var assigneeTasks;
             var accountParam = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1;
+            console.log("Calling Task.getTasksByAssignees with params:", JSON.stringify(selectedAssigneeIds), accountParam, currentFilter, currentSearchQuery);
             assigneeTasks = Task.getTasksByAssignees(selectedAssigneeIds, accountParam, currentFilter, currentSearchQuery);
+            console.log("getTasksByAssignees returned", assigneeTasks.length, "tasks");
             updateDisplayedTasks(assigneeTasks);
         } else if (filterByAccount && selectedAccountId >= 0) {
             var accountTasks;
