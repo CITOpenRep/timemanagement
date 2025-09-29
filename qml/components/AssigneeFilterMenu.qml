@@ -207,11 +207,13 @@ Item {
                 height: units.gu(4)
                 placeholderText: "Search assignees..."
 
-              
-
-                onTextChanged: {
-                    filterModel.update();
+                onAccepted: {
+                    filterModel.update(); // Optionally handle enter key press if needed
                 }
+
+                // onTextChanged: {
+                //     filterModel.update();
+                // }
             }
 
             // Assignee list view
