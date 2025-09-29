@@ -238,6 +238,7 @@ Item {
                                     "assigneeId": assignee.odoo_record_id || assignee.id,
                                     "name": assignee.name,
                                     "account_name": assignee.account_name || "",
+                                    "account_id": assignee.account_id || -1,
                                     "displayText": displayText,
                                     "selected": selectedAssigneeIds.indexOf(assignee.odoo_record_id || assignee.id) !== -1
                                 });
@@ -284,7 +285,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - checkbox.width - units.gu(6)
                             spacing: units.gu(0.2)
-                            
+
                             Text {
                                 text: model.name
                                 font.pixelSize: units.gu(2)
@@ -292,10 +293,10 @@ Item {
                                 elide: Text.ElideRight
                                 width: parent.width
                             }
-                            
+
                             Text {
                                 visible: model.account_name !== ""
-                                text: "(" + (model.account_name || "") + ")"
+                                text: "(" + model.account_name  + ")"
                                 font.pixelSize: units.gu(1.5)
                                 color: theme.palette.normal.backgroundSecondaryText
                                 elide: Text.ElideRight
@@ -318,7 +319,7 @@ Item {
                             var assigneeId = model.assigneeId;
                             var currentIndex = selectedAssigneeIds.indexOf(assigneeId);
 
-                            console.log("MouseArea clicked - Assignee:", model.name, "ID:", assigneeId, "Checked:", checkbox.checked);
+                            console.log("MouseArea clicked - Assignee:", model.name, "ID:", assigneeId, "Account:", model.account_name, "Account ID:", model.account_id, "Checked:", checkbox.checked);
                             console.log("Current selectedAssigneeIds before:", JSON.stringify(selectedAssigneeIds));
 
                             if (checkbox.checked && currentIndex === -1) {

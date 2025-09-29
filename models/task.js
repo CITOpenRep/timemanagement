@@ -1087,6 +1087,16 @@ function getTasksByAssignees(assigneeIds, accountId, filterType, searchQuery) {
             
             for (var j = 0; j < assigneeIds.length; j++) {
                 if (taskAssigneeIds.indexOf(assigneeIds[j]) !== -1) {
+                    // Additional check: When filtering across multiple accounts,
+                    // ensure the assignee belongs to the same account as the task
+                    if (accountId === -1) {
+                        // For "All Accounts" view, verify assignee-task account match
+                        var assigneeAccountId = getAssigneeAccountId(assigneeIds[j]);
+                        if (assigneeAccountId !== -1 && task.account_id !== assigneeAccountId) {
+                            console.log("Skipping task", task.id, "- assignee", assigneeIds[j], "from account", assigneeAccountId, "doesn't match task account", task.account_id);
+                            continue;
+                        }
+                    }
                     hasMatchingAssignee = true;
                     break;
                 }
@@ -1114,6 +1124,32 @@ function getTasksByAssignees(assigneeIds, accountId, filterType, searchQuery) {
     
     console.log("getTasksByAssignees returning", filteredTasks.length, "filtered tasks");
     return filteredTasks;
+}
+
+/**
+ * Helper function to get the account ID for a given assignee ID
+ * This is used to ensure proper account matching in multi-account filtering
+ */
+function getAssigneeAccountId(assigneeId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var accountId = -1;
+        
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                "SELECT account_id FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", 
+                [assigneeId]
+            );
+            if (result.rows.length > 0) {
+                accountId = result.rows.item(0).account_id;
+            }
+        });
+        
+        return accountId;
+    } catch (e) {
+        console.error("getAssigneeAccountId failed for assignee", assigneeId, ":", e);
+        return -1;
+    }
 }
 
 function getAccountsWithTaskCounts() {
