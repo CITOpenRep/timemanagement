@@ -1144,3 +1144,151 @@ function passesActivitySearchFilter(activity, searchQuery) {
  
     return false;
 }
+
+/**
+ * Gets all unique assignees who have been assigned to activities in the given account
+ * @param {number} accountId - The account ID to filter assignees by (use -1 for all accounts)
+ * @returns {Array} Array of assignee objects with id, name, and odoo_record_id
+ */
+function getAllActivityAssignees(accountId) {
+    var assignees = [];
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function (tx) {
+            // Get all unique user IDs from activities
+            var activityQuery, activityParams;
+            
+            if (accountId === -1) {
+                // Get from all accounts
+                activityQuery = `
+                    SELECT DISTINCT user_id, account_id
+                    FROM mail_activity_app 
+                    WHERE user_id IS NOT NULL AND user_id != '' AND user_id != 0
+                `;
+                activityParams = [];
+            } else {
+                // Get from specific account
+                activityQuery = `
+                    SELECT DISTINCT user_id, account_id
+                    FROM mail_activity_app 
+                    WHERE account_id = ? AND user_id IS NOT NULL AND user_id != '' AND user_id != 0
+                `;
+                activityParams = [accountId];
+            }
+            
+            var activityResult = tx.executeSql(activityQuery, activityParams);
+            
+            var userAccountMap = {}; // Map user_id -> account_id for users
+            
+            // Parse user IDs from all activities
+            for (var i = 0; i < activityResult.rows.length; i++) {
+                var row = activityResult.rows.item(i);
+                var userIdField = row.user_id;
+                var activityAccountId = row.account_id;
+                
+                if (userIdField && parseInt(userIdField) > 0) {
+                    userAccountMap[parseInt(userIdField)] = activityAccountId;
+                }
+            }
+            
+            var allUserIds = Object.keys(userAccountMap).map(function(key) { return parseInt(key); });
+            
+            if (allUserIds.length > 0) {
+                // Group user IDs by account for efficient querying
+                var accountUserMap = {};
+                for (var userId in userAccountMap) {
+                    var userAccountId = userAccountMap[userId];
+                    if (!accountUserMap[userAccountId]) {
+                        accountUserMap[userAccountId] = [];
+                    }
+                    accountUserMap[userAccountId].push(parseInt(userId));
+                }
+                
+                // Query each account's users
+                for (var acctId in accountUserMap) {
+                    var userIds = accountUserMap[acctId];
+                    var placeholders = userIds.map(function() { return '?'; }).join(',');
+                    
+                    var userQuery = `
+                        SELECT u.id, u.odoo_record_id, u.name, u.account_id, a.name as account_name
+                        FROM res_users_app u
+                        LEFT JOIN users a ON u.account_id = a.id
+                        WHERE u.account_id = ? AND u.odoo_record_id IN (${placeholders})
+                        ORDER BY u.name COLLATE NOCASE ASC
+                    `;
+                    
+                    var queryParams = [acctId].concat(userIds);
+                    var userResult = tx.executeSql(userQuery, queryParams);
+                    
+                    for (var k = 0; k < userResult.rows.length; k++) {
+                        var userRow = userResult.rows.item(k);
+                        console.log("Loading activity assignee:", userRow.name, "Account:", userRow.account_name, "ID:", userRow.odoo_record_id);
+                        assignees.push({
+                            id: userRow.id,
+                            odoo_record_id: userRow.odoo_record_id,
+                            name: userRow.name,
+                            account_id: userRow.account_id,
+                            account_name: userRow.account_name || "Unknown Account"
+                        });
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        console.error("getAllActivityAssignees failed:", e);
+    }
+    
+    return assignees;
+}
+
+/**
+ * Gets filtered activities with optional assignee filtering
+ * @param {string} filterType - The date filter type
+ * @param {string} searchQuery - The search query string
+ * @param {number} accountId - Optional account ID to filter by
+ * @param {Array} assigneeIds - Optional array of assignee IDs to filter by
+ * @returns {Array<Object>} Filtered list of activities
+ */
+function getFilteredActivitiesWithAssignees(filterType, searchQuery, accountId, assigneeIds) {
+    var allActivities;
+    
+    if (accountId !== undefined && accountId >= 0) {
+        allActivities = getActivitiesForAccount(accountId);
+    } else {
+        allActivities = getAllActivities();
+    }
+    
+    var filteredActivities = [];
+    var currentDate = new Date();
+    
+    for (var i = 0; i < allActivities.length; i++) {
+        var activity = allActivities[i];
+        var passesFilter = true;
+        
+        // Apply date filter
+        if (!passesActivityDateFilter(activity, filterType, currentDate)) {
+            passesFilter = false;
+        }
+        
+        // Apply search filter
+        if (passesFilter && searchQuery && !passesActivitySearchFilter(activity, searchQuery)) {
+            passesFilter = false;
+        }
+        
+        // Apply assignee filter
+        if (passesFilter && assigneeIds && assigneeIds.length > 0) {
+            var activityUserId = parseInt(activity.user_id);
+            if (!activityUserId || assigneeIds.indexOf(activityUserId) === -1) {
+                passesFilter = false;
+            }
+        }
+        
+        if (passesFilter) {
+            filteredActivities.push(activity);
+        }
+    }
+    
+    return filteredActivities;
+}
