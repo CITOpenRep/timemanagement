@@ -51,6 +51,10 @@ Item {
     property bool filterByAccount: false
     property int selectedAccountId: -1
 
+    // Properties for assignee filtering
+    property bool filterByAssignees: false
+    property var selectedAssigneeIds: []
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
@@ -157,11 +161,25 @@ Item {
         return Task.getTasksForProject(projectOdooId, accountId);
     }
 
-
     function refreshWithFilter() {
-        
-        if (filterByAccount && selectedAccountId >= 0) {
 
+        // Restore from global state if assignee filter is enabled but IDs are missing
+        if (filterByAssignees && selectedAssigneeIds.length === 0)
+        // Try to restore from global state - we need to access the Global object from TaskList
+        // Since TaskList doesn't import Global, we'll let Task_Page handle this restoration
+
+        {}
+
+        if (filterByAssignees && selectedAssigneeIds.length > 0) {
+            // Filter by assignees
+
+            var assigneeTasks;
+            var accountParam = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1;
+
+            assigneeTasks = Task.getTasksByAssignees(selectedAssigneeIds, accountParam, currentFilter, currentSearchQuery);
+
+            updateDisplayedTasks(assigneeTasks);
+        } else if (filterByAccount && selectedAccountId >= 0) {
             var accountTasks;
             if (currentFilter === "all" && !currentSearchQuery) {
                 accountTasks = Task.getTasksForAccount(selectedAccountId);
@@ -170,40 +188,29 @@ Item {
             }
             updateDisplayedTasks(accountTasks);
         } else if (currentFilter === "all" && !currentSearchQuery) {
-            populateTaskChildrenMap(); 
+            populateTaskChildrenMap();
         } else if (currentFilter && currentFilter !== "" || currentSearchQuery) {
             var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
             updateDisplayedTasks(filteredTasks);
         } else {
             populateTaskChildrenMap();
         }
-
     }
 
     function applyAccountFilter(accountId) {
-        console.log("🔍 TaskList.applyAccountFilter called with accountId:", accountId);
-        
         filterByAccount = (accountId >= 0);
         selectedAccountId = accountId;
-        filterByProject = false; 
+        filterByProject = false;
 
-        
         refreshWithFilter();
-
     }
 
     function clearAccountFilter() {
-        
         filterByAccount = false;
         selectedAccountId = -1;
-        
 
-        
         refreshWithFilter();
-        
-
     }
-
 
     // New function to update displayed tasks with filtered data
     function updateDisplayedTasks(tasks) {

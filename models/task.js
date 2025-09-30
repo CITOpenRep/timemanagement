@@ -1046,9 +1046,115 @@ function getFilteredTasks(filterType, searchQuery, accountId) {
     return filteredTasks;
 }
 
+/**
+ * Gets filtered tasks by assignees
+ * @param {Array} assigneeIds - Array of assignee IDs to filter by
+ * @param {number} accountId - Account ID to filter tasks
+ * @param {string} filterType - Date filter type (optional)
+ * @param {string} searchQuery - Search query (optional)
+ * @returns {Array<Object>} Filtered list of tasks
+ */
+function getTasksByAssignees(assigneeIds, accountId, filterType, searchQuery) {
+
+    var allTasks;
+    
+    // If accountId is provided, filter by account first
+    if (accountId !== undefined && accountId >= 0) {
+        allTasks = getTasksForAccount(accountId);
+
+    } else {
+        allTasks = getAllTasks();
+
+    }
+    
+    var filteredTasks = [];
+    var currentDate = new Date();
+    
+    if (!assigneeIds || assigneeIds.length === 0) {
+
+        return filteredTasks;
+    }
+    
+    // Filter tasks by assignees
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        
+        // Check if task has any of the selected assignees
+        var hasMatchingAssignee = false;
+        
+        if (task.user_id) {
+            var taskAssigneeIds = parseAssigneeIds(task.user_id);
+            
+            for (var j = 0; j < assigneeIds.length; j++) {
+                if (taskAssigneeIds.indexOf(assigneeIds[j]) !== -1) {
+                    // Additional check: When filtering across multiple accounts,
+                    // ensure the assignee belongs to the same account as the task
+                    if (accountId === -1) {
+                        // For "All Accounts" view, verify assignee-task account match
+                        var assigneeAccountId = getAssigneeAccountId(assigneeIds[j]);
+                        if (assigneeAccountId !== -1 && task.account_id !== assigneeAccountId) {
+
+                            continue;
+                        }
+                    }
+                    hasMatchingAssignee = true;
+                    break;
+                }
+            }
+        }
+        
+        if (hasMatchingAssignee) {
+            var passesFilter = true;
+            
+            // Apply date filter if specified
+            if (filterType && !passesDateFilter(task, filterType, currentDate)) {
+                passesFilter = false;
+            }
+            
+            // Apply search filter if specified
+            if (passesFilter && searchQuery && !passesSearchFilter(task, searchQuery)) {
+                passesFilter = false;
+            }
+            
+            if (passesFilter) {
+                filteredTasks.push(task);
+            }
+        }
+    }
+    
+
+    return filteredTasks;
+}
+
+/**
+ * Helper function to get the account ID for a given assignee ID
+ * This is used to ensure proper account matching in multi-account filtering
+ */
+function getAssigneeAccountId(assigneeId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var accountId = -1;
+        
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                "SELECT account_id FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", 
+                [assigneeId]
+            );
+            if (result.rows.length > 0) {
+                accountId = result.rows.item(0).account_id;
+            }
+        });
+        
+        return accountId;
+    } catch (e) {
+        console.error("getAssigneeAccountId failed for assignee", assigneeId, ":", e);
+        return -1;
+    }
+}
+
 function getAccountsWithTaskCounts() {
     var accounts = [];
-    console.log("🔍 getAccountsWithTaskCounts called");
+
     
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -1065,7 +1171,7 @@ function getAccountsWithTaskCounts() {
             `;
             
             var result = tx.executeSql(query);
-            console.log("📊 Found", result.rows.length, "accounts in database");
+
             
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -1581,5 +1687,106 @@ function getTasksForProject(projectOdooRecordId, accountId) {
     }
 
     return taskList;
+}
+
+/**
+ * Gets all unique assignees who have been assigned to tasks in the given account
+ * @param {number} accountId - The account ID to filter assignees by (use -1 for all accounts)
+ * @returns {Array} Array of assignee objects with id, name, and odoo_record_id
+ */
+function getAllTaskAssignees(accountId) {
+    var assignees = [];
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function (tx) {
+            // Get all unique user IDs from tasks (handling comma-separated values)
+            var taskQuery, taskParams;
+            
+            if (accountId === -1) {
+                // Get from all accounts
+                taskQuery = `
+                    SELECT DISTINCT user_id, account_id
+                    FROM project_task_app 
+                    WHERE user_id IS NOT NULL AND user_id != ''
+                `;
+                taskParams = [];
+            } else {
+                // Get from specific account
+                taskQuery = `
+                    SELECT DISTINCT user_id, account_id
+                    FROM project_task_app 
+                    WHERE account_id = ? AND user_id IS NOT NULL AND user_id != ''
+                `;
+                taskParams = [accountId];
+            }
+            
+            var taskResult = tx.executeSql(taskQuery, taskParams);
+            
+            var userAccountMap = {}; // Map user_id -> account_id for users
+            
+            // Parse comma-separated user IDs from all tasks
+            for (var i = 0; i < taskResult.rows.length; i++) {
+                var row = taskResult.rows.item(i);
+                var userIdField = row.user_id;
+                var taskAccountId = row.account_id;
+                
+                if (userIdField) {
+                    var userIds = parseAssigneeIds(userIdField);
+                    for (var j = 0; j < userIds.length; j++) {
+                        userAccountMap[userIds[j]] = taskAccountId;
+                    }
+                }
+            }
+            
+            var allUserIds = Object.keys(userAccountMap).map(function(key) { return parseInt(key); });
+            
+            if (allUserIds.length > 0) {
+                // Group user IDs by account for efficient querying
+                var accountUserMap = {};
+                for (var userId in userAccountMap) {
+                    var userAccountId = userAccountMap[userId];
+                    if (!accountUserMap[userAccountId]) {
+                        accountUserMap[userAccountId] = [];
+                    }
+                    accountUserMap[userAccountId].push(parseInt(userId));
+                }
+                
+                // Query each account's users
+                for (var acctId in accountUserMap) {
+                    var userIds = accountUserMap[acctId];
+                    var placeholders = userIds.map(function() { return '?'; }).join(',');
+                    
+                    var userQuery = `
+                        SELECT u.id, u.odoo_record_id, u.name, u.account_id, a.name as account_name
+                        FROM res_users_app u
+                        LEFT JOIN users a ON u.account_id = a.id
+                        WHERE u.account_id = ? AND u.odoo_record_id IN (${placeholders})
+                        ORDER BY u.name COLLATE NOCASE ASC
+                    `;
+                    
+                    var queryParams = [acctId].concat(userIds);
+                    var userResult = tx.executeSql(userQuery, queryParams);
+                    
+                    for (var k = 0; k < userResult.rows.length; k++) {
+                        var userRow = userResult.rows.item(k);
+                        console.log("Loading assignee:", userRow.name, "Account:", userRow.account_name, "ID:", userRow.odoo_record_id);
+                        assignees.push({
+                            id: userRow.id,
+                            odoo_record_id: userRow.odoo_record_id,
+                            name: userRow.name,
+                            account_id: userRow.account_id,
+                            account_name: userRow.account_name || "Unknown Account"
+                        });
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        console.error("getAllTaskAssignees failed:", e);
+    }
+    
+    return assignees;
 }
 
