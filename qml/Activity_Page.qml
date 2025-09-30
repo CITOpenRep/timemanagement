@@ -72,8 +72,9 @@ Page {
             }
             // Action {
             //     iconName: "account"
+            //     text: "Filter by Account"
             //     onTriggered: {
-            //         accountFilterVisible = !accountFilterVisible;
+            //         accountFilter.expanded = !accountFilter.expanded;
             //     }
             // }
         ]
@@ -87,8 +88,8 @@ Page {
     property int projectAccountId: -1
     property string projectName: ""
 
-    property bool filterByAccount: true
-    property int selectedAccountId: Accounts.getDefaultAccountId()
+    property bool filterByAccount: false
+    property int selectedAccountId: -1
 
     // Properties for assignee filtering
     property bool filterByAssignees: false
@@ -149,25 +150,30 @@ Page {
             } else {
                 // Normal account-based filtering
                 if (currentFilter && currentFilter !== "" || currentSearchQuery) {
-                    allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, currentAccountId);
+                    // Pass currentAccountId only if filterByAccount is true and selectedAccountId >= 0
+                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                    allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
                 } else {
-                    allActivities = Activity.getActivitiesForAccount(currentAccountId);
+                    if (filterByAccount && currentAccountId >= 0) {
+                        allActivities = Activity.getActivitiesForAccount(currentAccountId);
+                    } else {
+                        allActivities = Activity.getAllActivities();
+                    }
                 }
-                console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId);
+                console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId >= 0 ? currentAccountId : "all");
             }
 
             // Apply assignee filtering if enabled
-            if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-                console.log("Applying assignee filter with IDs:", JSON.stringify(selectedAssigneeIds));
+            var menuSelectedIds = assigneeFilterMenu.selectedAssigneeIds || [];
+            if (filterByAssignees && menuSelectedIds && menuSelectedIds.length > 0) {
                 var assigneeFilteredActivities = [];
                 for (let i = 0; i < allActivities.length; i++) {
                     var item = allActivities[i];
-                    if (item.user_id && selectedAssigneeIds.indexOf(parseInt(item.user_id)) !== -1) {
+                    if (item.user_id && menuSelectedIds.indexOf(parseInt(item.user_id)) !== -1) {
                         assigneeFilteredActivities.push(item);
                     }
                 }
                 allActivities = assigneeFilteredActivities;
-                console.log("After assignee filtering:", allActivities.length, "activities");
             }
 
             var filteredActivities = [];
@@ -227,7 +233,7 @@ Page {
     function applyAccountFilter(accountId) {
         console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
 
-        filterByAccount = (accountId >= 0);
+        filterByAccount = true;
         selectedAccountId = accountId;
 
         get_activity_list();
@@ -249,7 +255,7 @@ Page {
             if (typeof currentAccountId === "undefined" || currentAccountId === null)
                 currentAccountId = -1;
 
-            if (currentAccountId >= 0) {
+            if (filterByAccount && currentAccountId >= 0) {
                 // Use the same method as MultiAssigneeSelector for specific account
                 var rawAssignees = Accounts.getUsers(currentAccountId);
 
@@ -510,49 +516,46 @@ Page {
         z: 10
 
         onFilterApplied: function (assigneeIds) {
-            console.log("Activity assignee filter applied:", assigneeIds.length, "assignees selected");
-            activity.selectedAssigneeIds = assigneeIds;
-            activity.filterByAssignees = true;
-
-            // Refresh activity list with assignee filter
+            selectedAssigneeIds = assigneeIds;
+            filterByAssignees = true;
             get_activity_list();
         }
 
         onFilterCleared: function () {
-            console.log("Activity assignee filter cleared");
-            activity.selectedAssigneeIds = [];
-            activity.filterByAssignees = false;
-
-            // Refresh activity list without assignee filter
+            selectedAssigneeIds = [];
+            filterByAssignees = false;
             get_activity_list();
+        }
+    }
+
+    // Account Filter
+    AccountFilter {
+        id: accountFilter
+        anchors.fill: parent
+        z: 9
+
+        onAccountChanged: function (accountId, accountName) {
+            console.log("Activity_Page: AccountFilter.accountChanged →", accountId, accountName);
+            applyAccountFilter(accountId);
+            loadAssignees();
         }
     }
 
     Connections {
         target: mainView
         onAccountDataRefreshRequested: function (accountId) {
-            applyAccountFilter(accountId);
-            // Reload assignees for the new account
+            // Only reload assignees, don't force account filtering
             loadAssignees();
-            
-            // Clear assignee filter when account changes
-            if (filterByAssignees) {
-                selectedAssigneeIds = [];
-                filterByAssignees = false;
-                assigneeFilterMenu.selectedAssigneeIds = [];
-            }
+
+            // Refresh the activity list to show updated data
+            get_activity_list();
         }
         onGlobalAccountChanged: function (accountId, accountName) {
-            applyAccountFilter(accountId);
-            // Reload assignees for the new account
+            // Only reload assignees, don't force account filtering
             loadAssignees();
-            
-            // Clear assignee filter when account changes
-            if (filterByAssignees) {
-                selectedAssigneeIds = [];
-                filterByAssignees = false;
-                assigneeFilterMenu.selectedAssigneeIds = [];
-            }
+
+            // Refresh the activity list to show updated data
+            get_activity_list();
         }
     }
 
