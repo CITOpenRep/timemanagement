@@ -575,6 +575,18 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            // Clear assignee filter when page becomes visible through navigation
+            // This ensures a clean state when returning from other pages
+            activity.filterByAssignees = false;
+            activity.selectedAssigneeIds = [];
+
+            // Update the AssigneeFilterMenu to reflect cleared state
+            assigneeFilterMenu.selectedAssigneeIds = [];
+
+            // Clear global assignee filter state to prevent restoration
+            Global.clearAssigneeFilter();
+            console.log("Activity_Page: Cleared global assignee filter on page visibility");
+
             get_activity_list();
         }
     }
@@ -640,16 +652,14 @@ Page {
         // Load assignees for the assignee filter
         loadAssignees();
 
-        // Restore global assignee filter state if no local state is set
-        if (!activity.filterByAssignees || activity.selectedAssigneeIds.length === 0) {
-            var globalFilter = Global.getAssigneeFilter();
-            if (globalFilter.enabled && globalFilter.assigneeIds.length > 0) {
-                console.log("Activity_Page: Restoring global assignee filter:", globalFilter.assigneeIds.length, "assignees");
-                activity.filterByAssignees = true;
-                activity.selectedAssigneeIds = globalFilter.assigneeIds;
-                assigneeFilterMenu.selectedAssigneeIds = globalFilter.assigneeIds;
-            }
-        }
+        // Don't automatically restore global assignee filter on page load
+        // The filter should only be restored when user explicitly uses filter tabs or search
+        // This allows the page to show unfiltered results when navigating back from other pages
+
+        // Initialize with no assignee filter by default
+        activity.filterByAssignees = false;
+        activity.selectedAssigneeIds = [];
+        assigneeFilterMenu.selectedAssigneeIds = [];
 
         get_activity_list();
     }

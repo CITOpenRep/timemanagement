@@ -436,6 +436,20 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            // Clear assignee filter when page becomes visible through navigation
+            // This ensures a clean state when returning from other pages
+            task.filterByAssignees = false;
+            task.selectedAssigneeIds = [];
+            tasklist.filterByAssignees = false;
+            tasklist.selectedAssigneeIds = [];
+
+            // Update the AssigneeFilterMenu to reflect cleared state
+            assigneeFilterMenu.selectedAssigneeIds = [];
+
+            // Clear global assignee filter state to prevent restoration
+            Global.clearAssigneeFilter();
+            console.log("Task_Page: Cleared global assignee filter on page visibility");
+
             if (filterByProject) {
                 if (currentSearchQuery) {
                     tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
@@ -593,20 +607,15 @@ Page {
         // Load assignees for the assignee filter
         loadAssignees();
 
-        // Restore global assignee filter state if no local state is set
-        if (!task.filterByAssignees || task.selectedAssigneeIds.length === 0) {
-            var globalFilter = Global.getAssigneeFilter();
-            if (globalFilter.enabled && globalFilter.assigneeIds.length > 0) {
-                console.log("Restoring global assignee filter:", globalFilter.assigneeIds.length, "assignees");
-                task.filterByAssignees = true;
-                task.selectedAssigneeIds = globalFilter.assigneeIds;
-            }
-        }
+        // Don't automatically restore global assignee filter on page load
+        // The filter should only be restored when user explicitly uses filter tabs or search
+        // This allows the page to show unfiltered results when navigating back from other pages
 
-        // Apply the filter/search that you want to show initially
-        // Preserve any existing assignee filter state
-        tasklist.filterByAssignees = task.filterByAssignees;
-        tasklist.selectedAssigneeIds = task.selectedAssigneeIds;
+        // Initialize with no assignee filter by default
+        task.filterByAssignees = false;
+        task.selectedAssigneeIds = [];
+        tasklist.filterByAssignees = false;
+        tasklist.selectedAssigneeIds = [];
 
         if (filterByProject) {
             tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
