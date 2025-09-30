@@ -89,6 +89,37 @@ Item {
         projectOdooRecordId = projectOdooId;
         projectAccountId = projectAccountId;
         var projectTasks = getTasksForProject(projectOdooId, projectAccountId);
+
+        // Apply assignee filtering if enabled
+        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+            var assigneeFilteredTasks = [];
+            for (var i = 0; i < projectTasks.length; i++) {
+                var task = projectTasks[i];
+                var matchesSelectedAssignee = false;
+                for (var j = 0; j < selectedAssigneeIds.length; j++) {
+                    var selectedId = selectedAssigneeIds[j];
+                    // Handle both simple ID (old format) and composite format
+                    if (typeof selectedId === 'object') {
+                        // New format: {user_id: X, account_id: Y}
+                        if (task.user_id && task.account_id && parseInt(task.user_id) === selectedId.user_id && parseInt(task.account_id) === selectedId.account_id) {
+                            matchesSelectedAssignee = true;
+                            break;
+                        }
+                    } else {
+                        // Legacy format: just user_id (for backward compatibility)
+                        if (task.user_id && parseInt(task.user_id) === parseInt(selectedId)) {
+                            matchesSelectedAssignee = true;
+                            break;
+                        }
+                    }
+                }
+                if (matchesSelectedAssignee) {
+                    assigneeFilteredTasks.push(task);
+                }
+            }
+            projectTasks = assigneeFilteredTasks;
+        }
+
         updateDisplayedTasks(projectTasks);
     }
 
@@ -121,6 +152,36 @@ Item {
             }
         }
 
+        // Apply assignee filtering if enabled
+        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+            var assigneeFilteredTasks = [];
+            for (var k = 0; k < filteredProjectTasks.length; k++) {
+                var task = filteredProjectTasks[k];
+                var matchesSelectedAssignee = false;
+                for (var l = 0; l < selectedAssigneeIds.length; l++) {
+                    var selectedId = selectedAssigneeIds[l];
+                    // Handle both simple ID (old format) and composite format
+                    if (typeof selectedId === 'object') {
+                        // New format: {user_id: X, account_id: Y}
+                        if (task.user_id && task.account_id && parseInt(task.user_id) === selectedId.user_id && parseInt(task.account_id) === selectedId.account_id) {
+                            matchesSelectedAssignee = true;
+                            break;
+                        }
+                    } else {
+                        // Legacy format: just user_id (for backward compatibility)
+                        if (task.user_id && parseInt(task.user_id) === parseInt(selectedId)) {
+                            matchesSelectedAssignee = true;
+                            break;
+                        }
+                    }
+                }
+                if (matchesSelectedAssignee) {
+                    assigneeFilteredTasks.push(task);
+                }
+            }
+            filteredProjectTasks = assigneeFilteredTasks;
+        }
+
         updateDisplayedTasks(filteredProjectTasks);
     }
 
@@ -151,6 +212,36 @@ Item {
             if (projectTasksMap[taskKey]) {
                 searchedProjectTasks.push(searchedTask);
             }
+        }
+
+        // Apply assignee filtering if enabled
+        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+            var assigneeFilteredTasks = [];
+            for (var k = 0; k < searchedProjectTasks.length; k++) {
+                var task = searchedProjectTasks[k];
+                var matchesSelectedAssignee = false;
+                for (var l = 0; l < selectedAssigneeIds.length; l++) {
+                    var selectedId = selectedAssigneeIds[l];
+                    // Handle both simple ID (old format) and composite format
+                    if (typeof selectedId === 'object') {
+                        // New format: {user_id: X, account_id: Y}
+                        if (task.user_id && task.account_id && parseInt(task.user_id) === selectedId.user_id && parseInt(task.account_id) === selectedId.account_id) {
+                            matchesSelectedAssignee = true;
+                            break;
+                        }
+                    } else {
+                        // Legacy format: just user_id (for backward compatibility)
+                        if (task.user_id && parseInt(task.user_id) === parseInt(selectedId)) {
+                            matchesSelectedAssignee = true;
+                            break;
+                        }
+                    }
+                }
+                if (matchesSelectedAssignee) {
+                    assigneeFilteredTasks.push(task);
+                }
+            }
+            searchedProjectTasks = assigneeFilteredTasks;
         }
 
         updateDisplayedTasks(searchedProjectTasks);

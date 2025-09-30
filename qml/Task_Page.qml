@@ -120,7 +120,31 @@ Page {
             if (typeof currentAccountId === "undefined" || currentAccountId === null)
                 currentAccountId = -1;
 
-            if (currentAccountId >= 0) {
+            // When filtering by project, use the project's account for assignee loading
+            if (filterByProject && projectAccountId >= 0) {
+                // Use the project's account to load assignees
+                var rawAssignees = Account.getUsers(projectAccountId);
+
+                // Filter and format assignees like MultiAssigneeSelector does
+                var filteredAssignees = [];
+                for (var i = 0; i < rawAssignees.length; i++) {
+                    var assignee = rawAssignees[i];
+                    var id = (projectAccountId === 0) ? assignee.id : assignee.odoo_record_id;
+                    if (id > 0) {
+                        // Skip invalid/placeholder entries
+                        filteredAssignees.push({
+                            id: id,
+                            odoo_record_id: id,
+                            name: assignee.name,
+                            account_name: assignee.account_name || "",
+                            account_id: projectAccountId
+                        });
+                    }
+                }
+
+                availableAssignees = filteredAssignees;
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+            } else if (currentAccountId >= 0) {
                 // Use the same method as MultiAssigneeSelector for specific account
                 var rawAssignees = Account.getUsers(currentAccountId);
 
@@ -135,6 +159,7 @@ Page {
                             id: id,
                             odoo_record_id: id,
                             name: assignee.name,
+                            account_name: assignee.account_name || "",
                             account_id: currentAccountId
                         });
                     }
@@ -364,10 +389,18 @@ Page {
             console.log("TaskList properties updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
 
             // Refresh task list with assignee filter
-            if (currentSearchQuery) {
-                tasklist.applySearch(currentSearchQuery);
+            if (filterByProject) {
+                if (currentSearchQuery) {
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
+                } else {
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
+                }
             } else {
-                tasklist.applyFilter(currentFilter);
+                if (currentSearchQuery) {
+                    tasklist.applySearch(currentSearchQuery);
+                } else {
+                    tasklist.applyFilter(currentFilter);
+                }
             }
         }
 
@@ -385,10 +418,18 @@ Page {
             tasklist.selectedAssigneeIds = [];
 
             // Refresh task list without assignee filter
-            if (currentSearchQuery) {
-                tasklist.applySearch(currentSearchQuery);
+            if (filterByProject) {
+                if (currentSearchQuery) {
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
+                } else {
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
+                }
             } else {
-                tasklist.applyFilter(currentFilter);
+                if (currentSearchQuery) {
+                    tasklist.applySearch(currentSearchQuery);
+                } else {
+                    tasklist.applyFilter(currentFilter);
+                }
             }
         }
     }
