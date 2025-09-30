@@ -32,6 +32,7 @@ import "../models/task.js" as Task
 import "../models/activity.js" as Activity
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Accounts
+import "../models/global.js" as Global
 import "components"
 
 Page {
@@ -276,7 +277,31 @@ Page {
             if (typeof currentAccountId === "undefined" || currentAccountId === null)
                 currentAccountId = -1;
 
-            if (filterByAccount && currentAccountId >= 0) {
+            // When filtering by project, use the project's account for assignee loading
+            if (filterByProject && projectAccountId >= 0) {
+                // Use the project's account to load assignees
+                var rawAssignees = Accounts.getUsers(projectAccountId);
+
+                // Filter and format assignees like MultiAssigneeSelector does
+                var filteredAssignees = [];
+                for (var i = 0; i < rawAssignees.length; i++) {
+                    var assignee = rawAssignees[i];
+                    var id = (projectAccountId === 0) ? assignee.id : assignee.odoo_record_id;
+                    if (id > 0) {
+                        // Skip invalid/placeholder entries
+                        filteredAssignees.push({
+                            id: id,
+                            odoo_record_id: id,
+                            name: assignee.name,
+                            account_name: assignee.account_name || "",
+                            account_id: projectAccountId
+                        });
+                    }
+                }
+
+                availableAssignees = filteredAssignees;
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+            } else if (filterByAccount && currentAccountId >= 0) {
                 // Use the same method as MultiAssigneeSelector for specific account
                 var rawAssignees = Accounts.getUsers(currentAccountId);
 
@@ -291,6 +316,7 @@ Page {
                             id: id,
                             odoo_record_id: id,
                             name: assignee.name,
+                            account_name: assignee.account_name || "",
                             account_id: currentAccountId
                         });
                     }
@@ -307,6 +333,21 @@ Page {
             console.error("Error loading assignees:", e);
             availableAssignees = [];
             assigneeFilterMenu.assigneeModel = [];
+        }
+    }
+
+    // Function to restore assignee filter state from global storage
+    function restoreAssigneeFilterState() {
+        var globalFilter = Global.getAssigneeFilter();
+
+        if (globalFilter.enabled && globalFilter.assigneeIds.length > 0) {
+            activity.filterByAssignees = true;
+            activity.selectedAssigneeIds = globalFilter.assigneeIds;
+            assigneeFilterMenu.selectedAssigneeIds = globalFilter.assigneeIds;
+        } else if (!globalFilter.enabled) {
+            activity.filterByAssignees = false;
+            activity.selectedAssigneeIds = [];
+            assigneeFilterMenu.selectedAssigneeIds = [];
         }
     }
 
@@ -440,10 +481,18 @@ Page {
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
+
+            // Restore assignee filter state from global storage
+            restoreAssigneeFilterState();
+
             get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
+
+            // Restore assignee filter state from global storage
+            restoreAssigneeFilterState();
+
             get_activity_list();
         }
     }
@@ -537,14 +586,31 @@ Page {
         z: 10
 
         onFilterApplied: function (assigneeIds) {
-            selectedAssigneeIds = assigneeIds;
-            filterByAssignees = true;
+            // Read directly from AssigneeFilterMenu to avoid timing issues
+            var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
+            console.log("Activity_Page: Assignee filter applied - Reading directly from AssigneeFilterMenu");
+            console.log("   Passed parameter:", JSON.stringify(assigneeIds));
+            console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
+
+            selectedAssigneeIds = actualSelectedIds;
+            filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
+
+            // Save to global state for persistence across navigation
+            Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
+            console.log("Activity_Page: Assignee filter saved to global state - enabled:", filterByAssignees);
+
             get_activity_list();
         }
 
         onFilterCleared: function () {
+            console.log("Activity_Page: Assignee filter cleared");
             selectedAssigneeIds = [];
             filterByAssignees = false;
+
+            // Clear global state
+            Global.clearAssigneeFilter();
+            console.log("Activity_Page: Assignee filter cleared from global state");
+
             get_activity_list();
         }
     }
@@ -573,6 +639,18 @@ Page {
     Component.onCompleted: {
         // Load assignees for the assignee filter
         loadAssignees();
+
+        // Restore global assignee filter state if no local state is set
+        if (!activity.filterByAssignees || activity.selectedAssigneeIds.length === 0) {
+            var globalFilter = Global.getAssigneeFilter();
+            if (globalFilter.enabled && globalFilter.assigneeIds.length > 0) {
+                console.log("Activity_Page: Restoring global assignee filter:", globalFilter.assigneeIds.length, "assignees");
+                activity.filterByAssignees = true;
+                activity.selectedAssigneeIds = globalFilter.assigneeIds;
+                assigneeFilterMenu.selectedAssigneeIds = globalFilter.assigneeIds;
+            }
+        }
+
         get_activity_list();
     }
 }
