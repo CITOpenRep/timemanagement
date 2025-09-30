@@ -92,31 +92,54 @@ Item {
 
         // Apply assignee filtering if enabled
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+            console.log("TaskList applyProjectFilter: Applying assignee filter with", selectedAssigneeIds.length, "assignees:", JSON.stringify(selectedAssigneeIds));
             var assigneeFilteredTasks = [];
             for (var i = 0; i < projectTasks.length; i++) {
                 var task = projectTasks[i];
                 var matchesSelectedAssignee = false;
+                console.log("TaskList: Checking task", task.name, "user_id:", task.user_id, "account_id:", task.account_id);
+
                 for (var j = 0; j < selectedAssigneeIds.length; j++) {
                     var selectedId = selectedAssigneeIds[j];
+                    console.log("TaskList: Comparing with selectedId", j, ":", JSON.stringify(selectedId));
+
                     // Handle both simple ID (old format) and composite format
-                    if (typeof selectedId === 'object') {
+                    if (typeof selectedId === 'object' && selectedId !== null) {
                         // New format: {user_id: X, account_id: Y}
-                        if (task.user_id && task.account_id && parseInt(task.user_id) === selectedId.user_id && parseInt(task.account_id) === selectedId.account_id) {
+                        var taskUserIds = parseUserIds(task.user_id);
+                        var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
+                        var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
+                        var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
+
+                        console.log("TaskList: Object format comparison - taskUserIds:", JSON.stringify(taskUserIds), "selectedUserId:", selectedUserId, "taskAccountId:", taskAccountId, "selectedAccountId:", selectedAccountId);
+
+                        if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
+                            console.log("TaskList: Match found for task:", task.name);
                             matchesSelectedAssignee = true;
                             break;
                         }
                     } else {
                         // Legacy format: just user_id (for backward compatibility)
-                        if (task.user_id && parseInt(task.user_id) === parseInt(selectedId)) {
+                        var taskUserIds = parseUserIds(task.user_id);
+                        var selectedUserId = selectedId ? parseInt(selectedId) : null;
+
+                        console.log("TaskList: Simple format comparison - taskUserIds:", JSON.stringify(taskUserIds), "selectedUserId:", selectedUserId);
+
+                        if (taskUserIds.length > 0 && selectedUserId !== null && taskUserIds.indexOf(selectedUserId) >= 0) {
+                            console.log("TaskList: Match found for task:", task.name);
                             matchesSelectedAssignee = true;
                             break;
                         }
                     }
                 }
                 if (matchesSelectedAssignee) {
+                    console.log("TaskList: Adding task to filtered list:", task.name);
                     assigneeFilteredTasks.push(task);
+                } else {
+                    console.log("TaskList: Task", task.name, "does not match any selected assignee");
                 }
             }
+            console.log("TaskList applyProjectFilter: Final filtered tasks count:", assigneeFilteredTasks.length);
             projectTasks = assigneeFilteredTasks;
         }
 
@@ -154,22 +177,33 @@ Item {
 
         // Apply assignee filtering if enabled
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+            console.log("TaskList applyProjectAndTimeFilter: Applying assignee filter with", selectedAssigneeIds.length, "assignees");
             var assigneeFilteredTasks = [];
             for (var k = 0; k < filteredProjectTasks.length; k++) {
                 var task = filteredProjectTasks[k];
                 var matchesSelectedAssignee = false;
+
                 for (var l = 0; l < selectedAssigneeIds.length; l++) {
                     var selectedId = selectedAssigneeIds[l];
+
                     // Handle both simple ID (old format) and composite format
-                    if (typeof selectedId === 'object') {
+                    if (typeof selectedId === 'object' && selectedId !== null) {
                         // New format: {user_id: X, account_id: Y}
-                        if (task.user_id && task.account_id && parseInt(task.user_id) === selectedId.user_id && parseInt(task.account_id) === selectedId.account_id) {
+                        var taskUserIds = parseUserIds(task.user_id);
+                        var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
+                        var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
+                        var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
+
+                        if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
                             matchesSelectedAssignee = true;
                             break;
                         }
                     } else {
                         // Legacy format: just user_id (for backward compatibility)
-                        if (task.user_id && parseInt(task.user_id) === parseInt(selectedId)) {
+                        var taskUserIds = parseUserIds(task.user_id);
+                        var selectedUserId = selectedId ? parseInt(selectedId) : null;
+
+                        if (taskUserIds.length > 0 && selectedUserId !== null && taskUserIds.indexOf(selectedUserId) >= 0) {
                             matchesSelectedAssignee = true;
                             break;
                         }
@@ -179,6 +213,7 @@ Item {
                     assigneeFilteredTasks.push(task);
                 }
             }
+            console.log("TaskList applyProjectAndTimeFilter: Final filtered tasks count:", assigneeFilteredTasks.length);
             filteredProjectTasks = assigneeFilteredTasks;
         }
 
@@ -223,15 +258,23 @@ Item {
                 for (var l = 0; l < selectedAssigneeIds.length; l++) {
                     var selectedId = selectedAssigneeIds[l];
                     // Handle both simple ID (old format) and composite format
-                    if (typeof selectedId === 'object') {
+                    if (typeof selectedId === 'object' && selectedId !== null) {
                         // New format: {user_id: X, account_id: Y}
-                        if (task.user_id && task.account_id && parseInt(task.user_id) === selectedId.user_id && parseInt(task.account_id) === selectedId.account_id) {
+                        var taskUserIds = parseUserIds(task.user_id);
+                        var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
+                        var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
+                        var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
+
+                        if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
                             matchesSelectedAssignee = true;
                             break;
                         }
                     } else {
                         // Legacy format: just user_id (for backward compatibility)
-                        if (task.user_id && parseInt(task.user_id) === parseInt(selectedId)) {
+                        var taskUserIds = parseUserIds(task.user_id);
+                        var selectedUserId = selectedId ? parseInt(selectedId) : null;
+
+                        if (taskUserIds.length > 0 && selectedUserId !== null && taskUserIds.indexOf(selectedUserId) >= 0) {
                             matchesSelectedAssignee = true;
                             break;
                         }
@@ -250,6 +293,30 @@ Item {
     // New function to get tasks for a specific project
     function getTasksForProject(projectOdooId, accountId) {
         return Task.getTasksForProject(projectOdooId, accountId);
+    }
+
+    // Helper function to parse comma-separated user IDs
+    function parseUserIds(userIdValue) {
+        var userIds = [];
+        if (userIdValue) {
+            if (typeof userIdValue === 'string' && userIdValue.indexOf(',') >= 0) {
+                // Handle comma-separated IDs like "9,13" or "13,11"
+                var userIdParts = userIdValue.split(',');
+                for (var i = 0; i < userIdParts.length; i++) {
+                    var parsedId = parseInt(userIdParts[i].trim());
+                    if (!isNaN(parsedId)) {
+                        userIds.push(parsedId);
+                    }
+                }
+            } else {
+                // Single ID (number or string)
+                var parsedId = parseInt(userIdValue);
+                if (!isNaN(parsedId)) {
+                    userIds.push(parsedId);
+                }
+            }
+        }
+        return userIds;
     }
 
     function refreshWithFilter() {
