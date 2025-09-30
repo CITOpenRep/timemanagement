@@ -1141,6 +1141,141 @@ function getTasksByAssignees(assigneeIds, accountId, filterType, searchQuery) {
 }
 
 /**
+ * Gets filtered tasks by assignees with hierarchical support
+ * If a subtask matches the assignee filter, its parent task is also included
+ * to maintain parent-child hierarchy for navigation
+ * @param {Array} assigneeIds - Array of assignee IDs to filter by
+ * @param {number} accountId - Account ID to filter tasks
+ * @param {string} filterType - Date filter type (optional)
+ * @param {string} searchQuery - Search query (optional)
+ * @returns {Array<Object>} Filtered list of tasks with hierarchy preserved
+ */
+function getTasksByAssigneesHierarchical(assigneeIds, accountId, filterType, searchQuery) {
+    var allTasks;
+    
+    // If accountId is provided, filter by account first
+    if (accountId !== undefined && accountId >= 0) {
+        allTasks = getTasksForAccount(accountId);
+    } else {
+        allTasks = getAllTasks();
+    }
+    
+    if (!assigneeIds || assigneeIds.length === 0) {
+        return [];
+    }
+    
+    var currentDate = new Date();
+    var matchingTaskIds = new Set();
+    var taskById = {};
+    var tasksByParent = {};
+    
+    // Create lookup maps
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        var compositeId = task.odoo_record_id + "_" + task.account_id;
+        taskById[compositeId] = task;
+        
+        var parentId = (task.parent_id === null || task.parent_id === 0) ? -1 : task.parent_id;
+        var parentCompositeId = parentId + "_" + task.account_id;
+        
+        if (!tasksByParent[parentCompositeId]) {
+            tasksByParent[parentCompositeId] = [];
+        }
+        tasksByParent[parentCompositeId].push(task);
+    }
+    
+    // First pass: Find tasks that directly match the assignee filter
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        var hasMatchingAssignee = false;
+        
+        if (task.user_id) {
+            var taskAssigneeIds = parseAssigneeIds(task.user_id);
+            
+            for (var j = 0; j < assigneeIds.length; j++) {
+                var selectedAssignee = assigneeIds[j];
+                
+                // Handle both legacy format (simple IDs) and new format (composite objects)
+                if (typeof selectedAssignee === 'object' && selectedAssignee.user_id !== undefined) {
+                    // New composite ID format: check both user_id and account_id
+                    var userIdMatches = taskAssigneeIds.indexOf(selectedAssignee.user_id) !== -1;
+                    var accountMatches = (task.account_id === selectedAssignee.account_id);
+                    
+                    if (userIdMatches && accountMatches) {
+                        hasMatchingAssignee = true;
+                        break;
+                    }
+                } else {
+                    // Legacy format: simple ID matching with account verification
+                    if (taskAssigneeIds.indexOf(selectedAssignee) !== -1) {
+                        // Additional check: When filtering across multiple accounts,
+                        // ensure the assignee belongs to the same account as the task
+                        if (accountId === -1) {
+                            // For "All Accounts" view, verify assignee-task account match
+                            var assigneeAccountId = getAssigneeAccountId(selectedAssignee);
+                            if (assigneeAccountId !== -1 && task.account_id !== assigneeAccountId) {
+                                continue;
+                            }
+                        }
+                        hasMatchingAssignee = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (hasMatchingAssignee) {
+            var passesFilter = true;
+            
+            // Apply date filter if specified
+            if (filterType && !passesDateFilter(task, filterType, currentDate)) {
+                passesFilter = false;
+            }
+            
+            // Apply search filter if specified
+            if (passesFilter && searchQuery && !passesSearchFilter(task, searchQuery)) {
+                passesFilter = false;
+            }
+            
+            if (passesFilter) {
+                var compositeId = task.odoo_record_id + "_" + task.account_id;
+                matchingTaskIds.add(compositeId);
+            }
+        }
+    }
+    
+    // Second pass: Include parent tasks for matched tasks to maintain hierarchy
+    var toProcess = Array.from(matchingTaskIds);
+    for (var i = 0; i < toProcess.length; i++) {
+        var compositeId = toProcess[i];
+        var task = taskById[compositeId];
+        
+        if (task && task.parent_id && task.parent_id !== 0) {
+            var parentCompositeId = task.parent_id + "_" + task.account_id;
+            var parentTask = taskById[parentCompositeId];
+            
+            if (parentTask && !matchingTaskIds.has(parentCompositeId)) {
+                matchingTaskIds.add(parentCompositeId);
+                toProcess.push(parentCompositeId); // Continue up the hierarchy
+            }
+        }
+    }
+    
+    // Build final filtered tasks list
+    var filteredTasks = [];
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        var compositeId = task.odoo_record_id + "_" + task.account_id;
+        
+        if (matchingTaskIds.has(compositeId)) {
+            filteredTasks.push(task);
+        }
+    }
+    
+    return filteredTasks;
+}
+
+/**
  * Helper function to get the account ID for a given assignee ID
  * This is used to ensure proper account matching in multi-account filtering
  */

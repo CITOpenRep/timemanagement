@@ -90,57 +90,11 @@ Item {
         projectAccountId = projectAccountId;
         var projectTasks = getTasksForProject(projectOdooId, projectAccountId);
 
-        // Apply assignee filtering if enabled
+        // Apply assignee filtering if enabled (with hierarchy support)
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            console.log("TaskList applyProjectFilter: Applying assignee filter with", selectedAssigneeIds.length, "assignees:", JSON.stringify(selectedAssigneeIds));
-            var assigneeFilteredTasks = [];
-            for (var i = 0; i < projectTasks.length; i++) {
-                var task = projectTasks[i];
-                var matchesSelectedAssignee = false;
-                console.log("TaskList: Checking task", task.name, "user_id:", task.user_id, "account_id:", task.account_id);
-
-                for (var j = 0; j < selectedAssigneeIds.length; j++) {
-                    var selectedId = selectedAssigneeIds[j];
-                    console.log("TaskList: Comparing with selectedId", j, ":", JSON.stringify(selectedId));
-
-                    // Handle both simple ID (old format) and composite format
-                    if (typeof selectedId === 'object' && selectedId !== null) {
-                        // New format: {user_id: X, account_id: Y}
-                        var taskUserIds = parseUserIds(task.user_id);
-                        var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
-                        var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
-                        var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
-
-                        console.log("TaskList: Object format comparison - taskUserIds:", JSON.stringify(taskUserIds), "selectedUserId:", selectedUserId, "taskAccountId:", taskAccountId, "selectedAccountId:", selectedAccountId);
-
-                        if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
-                            console.log("TaskList: Match found for task:", task.name);
-                            matchesSelectedAssignee = true;
-                            break;
-                        }
-                    } else {
-                        // Legacy format: just user_id (for backward compatibility)
-                        var taskUserIds = parseUserIds(task.user_id);
-                        var selectedUserId = selectedId ? parseInt(selectedId) : null;
-
-                        console.log("TaskList: Simple format comparison - taskUserIds:", JSON.stringify(taskUserIds), "selectedUserId:", selectedUserId);
-
-                        if (taskUserIds.length > 0 && selectedUserId !== null && taskUserIds.indexOf(selectedUserId) >= 0) {
-                            console.log("TaskList: Match found for task:", task.name);
-                            matchesSelectedAssignee = true;
-                            break;
-                        }
-                    }
-                }
-                if (matchesSelectedAssignee) {
-                    console.log("TaskList: Adding task to filtered list:", task.name);
-                    assigneeFilteredTasks.push(task);
-                } else {
-                    console.log("TaskList: Task", task.name, "does not match any selected assignee");
-                }
-            }
-            console.log("TaskList applyProjectFilter: Final filtered tasks count:", assigneeFilteredTasks.length);
-            projectTasks = assigneeFilteredTasks;
+            console.log("TaskList applyProjectFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees:", JSON.stringify(selectedAssigneeIds));
+            projectTasks = applyAssigneeFilterWithHierarchy(projectTasks, selectedAssigneeIds);
+            console.log("TaskList applyProjectFilter: Final filtered tasks count:", projectTasks.length);
         }
 
         updateDisplayedTasks(projectTasks);
@@ -175,46 +129,11 @@ Item {
             }
         }
 
-        // Apply assignee filtering if enabled
+        // Apply assignee filtering if enabled (with hierarchy support)
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            console.log("TaskList applyProjectAndTimeFilter: Applying assignee filter with", selectedAssigneeIds.length, "assignees");
-            var assigneeFilteredTasks = [];
-            for (var k = 0; k < filteredProjectTasks.length; k++) {
-                var task = filteredProjectTasks[k];
-                var matchesSelectedAssignee = false;
-
-                for (var l = 0; l < selectedAssigneeIds.length; l++) {
-                    var selectedId = selectedAssigneeIds[l];
-
-                    // Handle both simple ID (old format) and composite format
-                    if (typeof selectedId === 'object' && selectedId !== null) {
-                        // New format: {user_id: X, account_id: Y}
-                        var taskUserIds = parseUserIds(task.user_id);
-                        var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
-                        var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
-                        var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
-
-                        if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
-                            matchesSelectedAssignee = true;
-                            break;
-                        }
-                    } else {
-                        // Legacy format: just user_id (for backward compatibility)
-                        var taskUserIds = parseUserIds(task.user_id);
-                        var selectedUserId = selectedId ? parseInt(selectedId) : null;
-
-                        if (taskUserIds.length > 0 && selectedUserId !== null && taskUserIds.indexOf(selectedUserId) >= 0) {
-                            matchesSelectedAssignee = true;
-                            break;
-                        }
-                    }
-                }
-                if (matchesSelectedAssignee) {
-                    assigneeFilteredTasks.push(task);
-                }
-            }
-            console.log("TaskList applyProjectAndTimeFilter: Final filtered tasks count:", assigneeFilteredTasks.length);
-            filteredProjectTasks = assigneeFilteredTasks;
+            console.log("TaskList applyProjectAndTimeFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
+            filteredProjectTasks = applyAssigneeFilterWithHierarchy(filteredProjectTasks, selectedAssigneeIds);
+            console.log("TaskList applyProjectAndTimeFilter: Final filtered tasks count:", filteredProjectTasks.length);
         }
 
         updateDisplayedTasks(filteredProjectTasks);
@@ -249,42 +168,11 @@ Item {
             }
         }
 
-        // Apply assignee filtering if enabled
+        // Apply assignee filtering if enabled (with hierarchy support)
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            var assigneeFilteredTasks = [];
-            for (var k = 0; k < searchedProjectTasks.length; k++) {
-                var task = searchedProjectTasks[k];
-                var matchesSelectedAssignee = false;
-                for (var l = 0; l < selectedAssigneeIds.length; l++) {
-                    var selectedId = selectedAssigneeIds[l];
-                    // Handle both simple ID (old format) and composite format
-                    if (typeof selectedId === 'object' && selectedId !== null) {
-                        // New format: {user_id: X, account_id: Y}
-                        var taskUserIds = parseUserIds(task.user_id);
-                        var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
-                        var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
-                        var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
-
-                        if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
-                            matchesSelectedAssignee = true;
-                            break;
-                        }
-                    } else {
-                        // Legacy format: just user_id (for backward compatibility)
-                        var taskUserIds = parseUserIds(task.user_id);
-                        var selectedUserId = selectedId ? parseInt(selectedId) : null;
-
-                        if (taskUserIds.length > 0 && selectedUserId !== null && taskUserIds.indexOf(selectedUserId) >= 0) {
-                            matchesSelectedAssignee = true;
-                            break;
-                        }
-                    }
-                }
-                if (matchesSelectedAssignee) {
-                    assigneeFilteredTasks.push(task);
-                }
-            }
-            searchedProjectTasks = assigneeFilteredTasks;
+            console.log("TaskList applyProjectAndSearchFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
+            searchedProjectTasks = applyAssigneeFilterWithHierarchy(searchedProjectTasks, selectedAssigneeIds);
+            console.log("TaskList applyProjectAndSearchFilter: Final filtered tasks count:", searchedProjectTasks.length);
         }
 
         updateDisplayedTasks(searchedProjectTasks);
@@ -319,6 +207,99 @@ Item {
         return userIds;
     }
 
+    // Helper function to apply assignee filter with hierarchy preservation
+    function applyAssigneeFilterWithHierarchy(tasks, selectedAssigneeIds) {
+        var matchingTaskIds = new Set();
+        var taskById = {};
+        var tasksByParent = {};
+
+        // Create lookup maps
+        for (var i = 0; i < tasks.length; i++) {
+            var task = tasks[i];
+            var compositeId = task.odoo_record_id + "_" + task.account_id;
+            taskById[compositeId] = task;
+
+            var parentId = (task.parent_id === null || task.parent_id === 0) ? -1 : task.parent_id;
+            var parentCompositeId = parentId + "_" + task.account_id;
+
+            if (!tasksByParent[parentCompositeId]) {
+                tasksByParent[parentCompositeId] = [];
+            }
+            tasksByParent[parentCompositeId].push(task);
+        }
+
+        // First pass: Find tasks that directly match the assignee filter
+        for (var i = 0; i < tasks.length; i++) {
+            var task = tasks[i];
+            var matchesSelectedAssignee = false;
+
+            for (var j = 0; j < selectedAssigneeIds.length; j++) {
+                var selectedId = selectedAssigneeIds[j];
+
+                // Handle both simple ID (old format) and composite format
+                if (typeof selectedId === 'object' && selectedId !== null) {
+                    // New format: {user_id: X, account_id: Y}
+                    var taskUserIds = parseUserIds(task.user_id);
+                    var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
+                    var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
+                    var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
+
+                    if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
+                        matchesSelectedAssignee = true;
+                        break;
+                    }
+                } else {
+                    // Legacy format: just user_id (for backward compatibility)
+                    var taskUserIds = parseUserIds(task.user_id);
+                    var selectedUserId = selectedId ? parseInt(selectedId) : null;
+
+                    if (taskUserIds.length > 0 && selectedUserId !== null && taskUserIds.indexOf(selectedUserId) >= 0) {
+                        matchesSelectedAssignee = true;
+                        break;
+                    }
+                }
+            }
+
+            if (matchesSelectedAssignee) {
+                var compositeId = task.odoo_record_id + "_" + task.account_id;
+                matchingTaskIds.add(compositeId);
+                console.log("TaskList: Direct match found for task:", task.name, "ID:", compositeId);
+            }
+        }
+
+        // Second pass: Include parent tasks for matched tasks to maintain hierarchy
+        var toProcess = Array.from(matchingTaskIds);
+        for (var i = 0; i < toProcess.length; i++) {
+            var compositeId = toProcess[i];
+            var task = taskById[compositeId];
+
+            if (task && task.parent_id && task.parent_id !== 0) {
+                var parentCompositeId = task.parent_id + "_" + task.account_id;
+                var parentTask = taskById[parentCompositeId];
+
+                if (parentTask && !matchingTaskIds.has(parentCompositeId)) {
+                    matchingTaskIds.add(parentCompositeId);
+                    toProcess.push(parentCompositeId); // Continue up the hierarchy
+                    console.log("TaskList: Adding parent task for hierarchy:", parentTask.name, "ID:", parentCompositeId);
+                }
+            }
+        }
+
+        // Build final filtered tasks list
+        var filteredTasks = [];
+        for (var i = 0; i < tasks.length; i++) {
+            var task = tasks[i];
+            var compositeId = task.odoo_record_id + "_" + task.account_id;
+
+            if (matchingTaskIds.has(compositeId)) {
+                filteredTasks.push(task);
+            }
+        }
+
+        console.log("TaskList: Hierarchical filter result - matched tasks:", matchingTaskIds.size, "final count:", filteredTasks.length);
+        return filteredTasks;
+    }
+
     function refreshWithFilter() {
 
         // Restore from global state if assignee filter is enabled but IDs are missing
@@ -329,12 +310,11 @@ Item {
         {}
 
         if (filterByAssignees && selectedAssigneeIds.length > 0) {
-            // Filter by assignees
-
+            // Filter by assignees with hierarchical support
             var assigneeTasks;
             var accountParam = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1;
 
-            assigneeTasks = Task.getTasksByAssignees(selectedAssigneeIds, accountParam, currentFilter, currentSearchQuery);
+            assigneeTasks = Task.getTasksByAssigneesHierarchical(selectedAssigneeIds, accountParam, currentFilter, currentSearchQuery);
 
             updateDisplayedTasks(assigneeTasks);
         } else if (filterByAccount && selectedAccountId >= 0) {
