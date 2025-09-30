@@ -87,6 +87,7 @@ Page {
             //     }
             // }
 
+
         ]
     }
 
@@ -343,18 +344,22 @@ Page {
         z: 10
 
         onFilterApplied: function (assigneeIds) {
-            console.log("Assignee filter applied:", assigneeIds.length, "assignees selected");
-            console.log("Selected assignee IDs:", JSON.stringify(assigneeIds));
-            selectedAssigneeIds = assigneeIds;
-            filterByAssignees = true;
+            // Read directly from AssigneeFilterMenu to avoid timing issues
+            var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
+            console.log("Assignee filter applied - Reading directly from AssigneeFilterMenu");
+            console.log("   Passed parameter:", JSON.stringify(assigneeIds));
+            console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
+
+            selectedAssigneeIds = actualSelectedIds;
+            filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
             // Save to global state for persistence across navigation
-            Global.setAssigneeFilter(true, assigneeIds);
-            console.log("Assignee filter saved to global state");
+            Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
+            console.log("Assignee filter saved to global state - enabled:", filterByAssignees);
 
             // Update TaskList properties
-            tasklist.filterByAssignees = true;
-            tasklist.selectedAssigneeIds = assigneeIds;
+            tasklist.filterByAssignees = filterByAssignees;
+            tasklist.selectedAssigneeIds = actualSelectedIds;
 
             console.log("TaskList properties updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
 
@@ -467,12 +472,8 @@ Page {
             // Reload assignees for the new account
             loadAssignees();
 
-            // Clear assignee filter when account changes
-            if (filterByAssignees) {
-                selectedAssigneeIds = [];
-                filterByAssignees = false;
-                assigneeFilterMenu.selectedAssigneeIds = [];
-            }
+            // Don't clear assignee filter when account changes - preserve user selections
+            // The filtering logic will handle account-aware filtering automatically
 
             if (filterByProject) {
                 if (currentSearchQuery) {

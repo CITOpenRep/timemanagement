@@ -41,6 +41,22 @@ Item {
     property var selectedAssigneeIds: []
     property int maxMenuHeight: units.gu(50)
 
+    // Helper function to check if an assignee is selected (handles both old and new format)
+    function isAssigneeSelected(userId, accountId) {
+        for (var i = 0; i < selectedAssigneeIds.length; i++) {
+            var selectedId = selectedAssigneeIds[i];
+            if (typeof selectedId === 'object') {
+                if (selectedId.user_id === userId && selectedId.account_id === accountId) {
+                    return true;
+                }
+            } else if (selectedId === userId) {
+                // Legacy format - consider it selected for backward compatibility
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Background overlay when expanded
     Rectangle {
         anchors.fill: parent
@@ -197,7 +213,7 @@ Item {
                                     "account_name": assignee.account_name || "",
                                     "account_id": assignee.account_id || -1,
                                     "displayText": displayText,
-                                    "selected": selectedAssigneeIds.indexOf(assignee.odoo_record_id || assignee.id) !== -1
+                                    "selected": isAssigneeSelected(assignee.odoo_record_id || assignee.id, assignee.account_id || -1)
                                 });
                             }
                         }
@@ -272,13 +288,35 @@ Item {
                             // Toggle checkbox state
                             checkbox.checked = !checkbox.checked;
 
-                            // Update selection logic
+                            // Update selection logic with user_id and account_id combination
                             var assigneeId = model.assigneeId;
-                            var currentIndex = selectedAssigneeIds.indexOf(assigneeId);
+                            var accountId = model.account_id;
+
+                            // Create composite identifier to handle users with same ID from different accounts
+                            var compositeId = {
+                                user_id: assigneeId,
+                                account_id: accountId
+                            };
+
+                            // Find existing selection by comparing both user_id and account_id
+                            var currentIndex = -1;
+                            for (var i = 0; i < selectedAssigneeIds.length; i++) {
+                                var existingId = selectedAssigneeIds[i];
+                                if (typeof existingId === 'object') {
+                                    if (existingId.user_id === assigneeId && existingId.account_id === accountId) {
+                                        currentIndex = i;
+                                        break;
+                                    }
+                                } else if (existingId === assigneeId) {
+                                    // Legacy format - replace with new format
+                                    currentIndex = i;
+                                    break;
+                                }
+                            }
 
                             if (checkbox.checked && currentIndex === -1) {
                                 // Add to selection
-                                selectedAssigneeIds.push(assigneeId);
+                                selectedAssigneeIds.push(compositeId);
                             } else if (!checkbox.checked && currentIndex !== -1) {
                                 // Remove from selection
                                 selectedAssigneeIds.splice(currentIndex, 1);

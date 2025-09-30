@@ -77,6 +77,7 @@ Page {
             //         accountFilter.expanded = !accountFilter.expanded;
             //     }
             // }
+
         ]
     }
 
@@ -169,7 +170,26 @@ Page {
                 var assigneeFilteredActivities = [];
                 for (let i = 0; i < allActivities.length; i++) {
                     var item = allActivities[i];
-                    if (item.user_id && menuSelectedIds.indexOf(parseInt(item.user_id)) !== -1) {
+                    // Check if the activity matches any selected assignee (considering both user_id and account_id)
+                    var matchesSelectedAssignee = false;
+                    for (let j = 0; j < menuSelectedIds.length; j++) {
+                        var selectedId = menuSelectedIds[j];
+                        // Handle both simple ID (old format) and composite format
+                        if (typeof selectedId === 'object') {
+                            // New format: {user_id: X, account_id: Y}
+                            if (item.user_id && item.account_id && parseInt(item.user_id) === selectedId.user_id && parseInt(item.account_id) === selectedId.account_id) {
+                                matchesSelectedAssignee = true;
+                                break;
+                            }
+                        } else {
+                            // Legacy format: just user_id (for backward compatibility)
+                            if (item.user_id && parseInt(item.user_id) === parseInt(selectedId)) {
+                                matchesSelectedAssignee = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (matchesSelectedAssignee) {
                         assigneeFilteredActivities.push(item);
                     }
                 }

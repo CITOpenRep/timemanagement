@@ -1086,19 +1086,33 @@ function getTasksByAssignees(assigneeIds, accountId, filterType, searchQuery) {
             var taskAssigneeIds = parseAssigneeIds(task.user_id);
             
             for (var j = 0; j < assigneeIds.length; j++) {
-                if (taskAssigneeIds.indexOf(assigneeIds[j]) !== -1) {
-                    // Additional check: When filtering across multiple accounts,
-                    // ensure the assignee belongs to the same account as the task
-                    if (accountId === -1) {
-                        // For "All Accounts" view, verify assignee-task account match
-                        var assigneeAccountId = getAssigneeAccountId(assigneeIds[j]);
-                        if (assigneeAccountId !== -1 && task.account_id !== assigneeAccountId) {
-
-                            continue;
-                        }
+                var selectedAssignee = assigneeIds[j];
+                
+                // Handle both legacy format (simple IDs) and new format (composite objects)
+                if (typeof selectedAssignee === 'object' && selectedAssignee.user_id !== undefined) {
+                    // New composite ID format: check both user_id and account_id
+                    var userIdMatches = taskAssigneeIds.indexOf(selectedAssignee.user_id) !== -1;
+                    var accountMatches = (task.account_id === selectedAssignee.account_id);
+                    
+                    if (userIdMatches && accountMatches) {
+                        hasMatchingAssignee = true;
+                        break;
                     }
-                    hasMatchingAssignee = true;
-                    break;
+                } else {
+                    // Legacy format: simple ID matching with account verification
+                    if (taskAssigneeIds.indexOf(selectedAssignee) !== -1) {
+                        // Additional check: When filtering across multiple accounts,
+                        // ensure the assignee belongs to the same account as the task
+                        if (accountId === -1) {
+                            // For "All Accounts" view, verify assignee-task account match
+                            var assigneeAccountId = getAssigneeAccountId(selectedAssignee);
+                            if (assigneeAccountId !== -1 && task.account_id !== assigneeAccountId) {
+                                continue;
+                            }
+                        }
+                        hasMatchingAssignee = true;
+                        break;
+                    }
                 }
             }
         }
