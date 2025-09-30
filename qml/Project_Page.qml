@@ -65,13 +65,13 @@ Page {
                 onTriggered: {
                     projectlist.toggleSearchVisibility();
                 }
-            },
-            Action {
-                iconName: "account"
-                onTriggered: {
-                    accountFilterVisible = !accountFilterVisible;
-                }
             }
+            // Action {
+            //     iconName: "account"
+            //     onTriggered: {
+            //         accountFilterVisible = !accountFilterVisible;
+            //     }
+            // }
         ]
     }
 

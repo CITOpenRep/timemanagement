@@ -57,11 +57,11 @@ Page {
 
         trailingActionBar.actions: [
             Action {
-                iconName: "account"
-                text: "Account"
-                onTriggered: {
-                    accountFilterVisible = !accountFilterVisible
-                }
+                // iconName: "account"
+                // text: "Account"
+                // onTriggered: {
+                //     accountFilterVisible = !accountFilterVisible
+                // }
             }
         ]
     }

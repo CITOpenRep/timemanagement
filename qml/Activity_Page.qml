@@ -62,13 +62,13 @@ Page {
                         "isReadOnly": false
                     });
                 }
-            },
-            Action {
-                iconName: "account"
-                onTriggered: {
-                    accountFilterVisible = !accountFilterVisible;
-                }
             }
+            // Action {
+            //     iconName: "account"
+            //     onTriggered: {
+            //         accountFilterVisible = !accountFilterVisible;
+            //     }
+            // }
         ]
     }
 

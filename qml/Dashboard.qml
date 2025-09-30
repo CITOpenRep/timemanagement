@@ -124,12 +124,12 @@ Page {
         trailingActionBar.numberOfSlots: 3
 
         trailingActionBar.actions: [
-            Action {
-                iconName: "account"
-                onTriggered: {
-                    accountFilterVisible = !accountFilterVisible
-                }
-            },
+            // Action {
+            //     iconName: "account"
+            //     onTriggered: {
+            //         accountFilterVisible = !accountFilterVisible
+            //     }
+            // },
             Action {
                 iconName: "help"
                 text: "About"
@@ -139,13 +139,13 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             },
-            // Action {
-            //     iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
-            //     text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
-            //     onTriggered: {
-            //         Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
-            //     }
-            // },
+            Action {
+                iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
+                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
+                onTriggered: {
+                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                }
+            },
             Action {
                 iconName: "clock"
                 text: "Timesheet"
@@ -242,7 +242,7 @@ Page {
     }
 
     function refreshData() {
-        console.log("🔄 Refreshing Dashboard data...");
+      //  console.log("🔄 Refreshing Dashboard data...");
         get_project_chart_data();
         get_task_chart_data();
         // Refresh project chart using the account selector's selection (not default account)

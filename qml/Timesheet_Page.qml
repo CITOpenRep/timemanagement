@@ -74,13 +74,13 @@ Page {
                         notifPopup.open("Error", result.message, "error");
                     }
                 }
-            },
-            Action {
-                iconName: "account"
-                onTriggered: {
-                    accountFilterVisible = !accountFilterVisible
-                }
             }
+            // Action {
+            //     iconName: "account"
+            //     onTriggered: {
+            //         accountFilterVisible = !accountFilterVisible
+            //     }
+            // }
         ]
     }
 
