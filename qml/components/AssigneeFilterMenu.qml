@@ -89,9 +89,9 @@ Item {
         }
 
         anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.margins: units.gu(1)
-        anchors.topMargin: units.gu(8) // Position below the header
+        //  anchors.right: parent.right
+        anchors.margins: units.gu(3)
+        anchors.horizontalCenter: parent.horizontalCenter
 
         radius: units.gu(2)
         color: theme.palette.normal.background
@@ -170,20 +170,58 @@ Item {
             }
 
             // Search bar for long lists
-            TextField {
-                id: searchField
+            Row {
                 visible: assigneeModel.length > 5
                 width: parent.width
                 height: units.gu(4)
-                placeholderText: "Search assignees..."
+                spacing: units.gu(0.5)
 
-                onAccepted: {
-                    filterModel.update(); // Optionally handle enter key press if needed
+                TextField {
+                    id: searchField
+                    width: parent.width - clearSearchButton.width - parent.spacing
+                    height: parent.height
+                    placeholderText: "Search assignees..."
+
+                    onAccepted: {
+                        filterModel.update(); // Handle enter key press
+                    }
+
+                    // onTextChanged: {
+                    //     filterModel.update();
+                    // }
                 }
 
-                // onTextChanged: {
-                //     filterModel.update();
-                // }
+                // Custom clear search button (needed because native clear doesn't trigger filter update)
+                Rectangle {
+                    id: clearSearchButton
+                    width: units.gu(3.5)
+                    height: parent.height
+               
+                    color: clearMouseArea.pressed ? theme.palette.selected.background : "transparent"
+                    radius: units.gu(0.5)
+                    border.color: clearMouseArea.containsMouse ? theme.palette.normal.base : "transparent"
+                    border.width: 1
+
+                    Icon {
+                        name: "edit-clear"
+                        width: units.gu(2)
+                        height: units.gu(2)
+                        anchors.centerIn: parent
+                        color: theme.palette.normal.backgroundText
+                    }
+
+                    MouseArea {
+                        id: clearMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        
+                        onClicked: {
+                            searchField.text = "";
+                            searchField.focus = false;
+                            filterModel.update(); // This is why we need custom clear - native clear doesn't do this
+                        }
+                    }
+                }
             }
 
             // Assignee list view
