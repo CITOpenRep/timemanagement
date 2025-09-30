@@ -78,6 +78,7 @@ Page {
             //     }
             // }
 
+
         ]
     }
 
@@ -548,18 +549,8 @@ Page {
         }
     }
 
-    // Account Filter
-    AccountFilter {
-        id: accountFilter
-        anchors.fill: parent
-        z: 9
-
-        onAccountChanged: function (accountId, accountName) {
-            console.log("Activity_Page: AccountFilter.accountChanged →", accountId, accountName);
-            applyAccountFilter(accountId);
-            loadAssignees();
-        }
-    }
+    // Account Filter component removed to prevent interference with PageHeader clicks
+    // Account filtering is now handled through global mainView connections
 
     Connections {
         target: mainView
