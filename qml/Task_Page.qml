@@ -74,11 +74,19 @@ Page {
                 }
             },
             Action {
-                iconName: "account"
+                iconName: "contact"
+                text: "Filter by Assignees"
                 onTriggered: {
-                    accountFilterVisible = !accountFilterVisible;
+                    assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
                 }
             }
+            // Action {
+            //     iconName: "account"
+            //     onTriggered: {
+            //         accountFilterVisible = !accountFilterVisible;
+            //     }
+            // }
+
         ]
     }
 

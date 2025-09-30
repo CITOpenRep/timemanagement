@@ -39,7 +39,6 @@ Item {
     property var assigneeModel: []
     property bool expanded: false
     property var selectedAssigneeIds: []
-    property int fabSize: units.gu(7)
     property int maxMenuHeight: units.gu(50)
 
     // Background overlay when expanded
@@ -61,51 +60,6 @@ Item {
         }
     }
 
-    // Floating Action Button (FAB)
-    TSIconButton {
-        id: fab
-        width: fabSize
-        height: fabSize
-        bgColor: LomiriColors.blue
-        fgColor: "white"
-        hoverColor: Qt.darker(bgColor, 1.2)
-        radius: width / 2
-        anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        anchors.margins: units.gu(2)
-        anchors.bottomMargin: units.gu(11) // Position above the stage filter menu
-        iconName: expanded ? "close" : "contact"
-        iconBold: true
-        iconSize: units.gu(3)
-
-        z: 15
-
-        onClicked: {
-            expanded = !expanded;
-        }
-
-        // Badge showing number of selected assignees
-        Rectangle {
-            visible: selectedAssigneeIds.length > 0
-            width: units.gu(2.5)
-            height: units.gu(2.5)
-            radius: width / 2
-            color: LomiriColors.red
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.topMargin: units.gu(0.2)
-            anchors.rightMargin: units.gu(0.2)
-
-            Text {
-                anchors.centerIn: parent
-                text: selectedAssigneeIds.length.toString()
-                color: "white"
-                font.pixelSize: units.gu(1.2)
-                font.bold: true
-            }
-        }
-    }
-
     // Filter menu container
     Rectangle {
         id: menuContainer
@@ -118,10 +72,10 @@ Item {
             return Math.min(units.gu(50), baseHeight + assigneeListHeight);
         }
 
-        anchors.bottom: fab.top
+        anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: units.gu(1)
-        anchors.bottomMargin: units.gu(2)
+        anchors.topMargin: units.gu(8) // Position below the header
 
         radius: units.gu(2)
         color: theme.palette.normal.background
