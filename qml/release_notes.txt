@@ -31,7 +31,27 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.6.1) </h3>
+      <h3>Change History : (Version 1.1.7) </h3>
+
+
+      <h4>03-10-2025 : Version 1.1.7</h4>
+
+<h5>New Features</h5>
+<ul>
+ <li> Added new Search feature in Project List View. </li>
+ <li> Added Pop up for Timesheet Remark Description. Now Timesheets can be directly Finalised by clicking on "Finalise" button or just Save as Draft using Save as draft Button. </li>
+ <li> Added new Task Create button in Project List View. </li>
+ <li> Added new Assignee Filter in Task List View. </li>
+</ul>
+
+<h5>Fixes and Improvements</h5>
+<ul>
+
+<li> Fixed Duplicate Activate Creation Issue , Added Feedback Mechanism to Save or Discard unsaved Changes. </li>
+<li> Fixed Button Layout Arrangement in Project List View. </li>
+<li> Reduced progress bar height in Task ListView </li>
+
+</ul>
 
        <h4>24-09-2025 : Version 1.1.6.1</h4>
 
