@@ -43,6 +43,7 @@ Item {
 
     // Signals
     signal saved(string description, string status)
+    signal finalized(bool success, string message)
     signal cancelled
 
     Component {
@@ -145,10 +146,12 @@ Item {
                     var result = updateTimesheetDescription(description, "updated");
                     if (result.success) {
                         popupWrapper.saved(description, "updated");
+                        popupWrapper.finalized(true, "Timesheet is now ready to be synced to Odoo");
                         PopupUtils.close(popupDialog);
                     } else {
                         console.error("Failed to finalize timesheet:", result.error);
-                        // Could show an error notification here
+                        popupWrapper.finalized(false, result.error || "Both Project and Task must be selected before syncing");
+                        // Don't close popup on error to allow user to fix issues
                     }
                 }
             }
@@ -196,7 +199,7 @@ Item {
 
             // Convert date from display format (M/d/yyyy) to ISO format (yyyy-MM-dd) for sync compatibility
             var isoDate = Utils.convertToISODate(currentDetails.record_date);
-            
+
             // Update the timesheet with new description
             var timesheet_data = {
                 'id': popupWrapper.timesheetId,

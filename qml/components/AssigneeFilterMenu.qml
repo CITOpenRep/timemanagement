@@ -41,6 +41,22 @@ Item {
     property var selectedAssigneeIds: []
     property int maxMenuHeight: units.gu(50)
 
+    // Helper function to check if an assignee is selected (handles both old and new format)
+    function isAssigneeSelected(userId, accountId) {
+        for (var i = 0; i < selectedAssigneeIds.length; i++) {
+            var selectedId = selectedAssigneeIds[i];
+            if (typeof selectedId === 'object') {
+                if (selectedId.user_id === userId && selectedId.account_id === accountId) {
+                    return true;
+                }
+            } else if (selectedId === userId) {
+                // Legacy format - consider it selected for backward compatibility
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Background overlay when expanded
     Rectangle {
         anchors.fill: parent
@@ -73,9 +89,9 @@ Item {
         }
 
         anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.margins: units.gu(1)
-        anchors.topMargin: units.gu(8) // Position below the header
+        //  anchors.right: parent.right
+        anchors.margins: units.gu(3)
+        anchors.horizontalCenter: parent.horizontalCenter
 
         radius: units.gu(2)
         color: theme.palette.normal.background
@@ -154,20 +170,58 @@ Item {
             }
 
             // Search bar for long lists
-            TextField {
-                id: searchField
+            Row {
                 visible: assigneeModel.length > 5
                 width: parent.width
                 height: units.gu(4)
-                placeholderText: "Search assignees..."
+                spacing: units.gu(0.5)
 
-                onAccepted: {
-                    filterModel.update(); // Optionally handle enter key press if needed
+                TextField {
+                    id: searchField
+                    width: parent.width - clearSearchButton.width - parent.spacing
+                    height: parent.height
+                    placeholderText: "Search assignees..."
+
+                    onAccepted: {
+                        filterModel.update(); // Handle enter key press
+                    }
+
+                    // onTextChanged: {
+                    //     filterModel.update();
+                    // }
                 }
 
-                // onTextChanged: {
-                //     filterModel.update();
-                // }
+                // Custom clear search button (needed because native clear doesn't trigger filter update)
+                Rectangle {
+                    id: clearSearchButton
+                    width: units.gu(3.5)
+                    height: parent.height
+               
+                    color: clearMouseArea.pressed ? theme.palette.selected.background : "transparent"
+                    radius: units.gu(0.5)
+                    border.color: clearMouseArea.containsMouse ? theme.palette.normal.base : "transparent"
+                    border.width: 1
+
+                    Icon {
+                        name: "edit-clear"
+                        width: units.gu(2)
+                        height: units.gu(2)
+                        anchors.centerIn: parent
+                        color: theme.palette.normal.backgroundText
+                    }
+
+                    MouseArea {
+                        id: clearMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        
+                        onClicked: {
+                            searchField.text = "";
+                            searchField.focus = false;
+                            filterModel.update(); // This is why we need custom clear - native clear doesn't do this
+                        }
+                    }
+                }
             }
 
             // Assignee list view
@@ -197,7 +251,7 @@ Item {
                                     "account_name": assignee.account_name || "",
                                     "account_id": assignee.account_id || -1,
                                     "displayText": displayText,
-                                    "selected": selectedAssigneeIds.indexOf(assignee.odoo_record_id || assignee.id) !== -1
+                                    "selected": isAssigneeSelected(assignee.odoo_record_id || assignee.id, assignee.account_id || -1)
                                 });
                             }
                         }
@@ -272,13 +326,35 @@ Item {
                             // Toggle checkbox state
                             checkbox.checked = !checkbox.checked;
 
-                            // Update selection logic
+                            // Update selection logic with user_id and account_id combination
                             var assigneeId = model.assigneeId;
-                            var currentIndex = selectedAssigneeIds.indexOf(assigneeId);
+                            var accountId = model.account_id;
+
+                            // Create composite identifier to handle users with same ID from different accounts
+                            var compositeId = {
+                                user_id: assigneeId,
+                                account_id: accountId
+                            };
+
+                            // Find existing selection by comparing both user_id and account_id
+                            var currentIndex = -1;
+                            for (var i = 0; i < selectedAssigneeIds.length; i++) {
+                                var existingId = selectedAssigneeIds[i];
+                                if (typeof existingId === 'object') {
+                                    if (existingId.user_id === assigneeId && existingId.account_id === accountId) {
+                                        currentIndex = i;
+                                        break;
+                                    }
+                                } else if (existingId === assigneeId) {
+                                    // Legacy format - replace with new format
+                                    currentIndex = i;
+                                    break;
+                                }
+                            }
 
                             if (checkbox.checked && currentIndex === -1) {
                                 // Add to selection
-                                selectedAssigneeIds.push(assigneeId);
+                                selectedAssigneeIds.push(compositeId);
                             } else if (!checkbox.checked && currentIndex !== -1) {
                                 // Remove from selection
                                 selectedAssigneeIds.splice(currentIndex, 1);

@@ -74,7 +74,7 @@ Page {
                 }
             },
             Action {
-                iconName: "contact"
+                iconName: "filters"
                 text: "Filter by Assignees"
                 onTriggered: {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
@@ -86,6 +86,7 @@ Page {
             //         accountFilterVisible = !accountFilterVisible;
             //     }
             // }
+
 
         ]
     }
@@ -119,7 +120,31 @@ Page {
             if (typeof currentAccountId === "undefined" || currentAccountId === null)
                 currentAccountId = -1;
 
-            if (currentAccountId >= 0) {
+            // When filtering by project, use the project's account for assignee loading
+            if (filterByProject && projectAccountId >= 0) {
+                // Use the project's account to load assignees
+                var rawAssignees = Account.getUsers(projectAccountId);
+
+                // Filter and format assignees like MultiAssigneeSelector does
+                var filteredAssignees = [];
+                for (var i = 0; i < rawAssignees.length; i++) {
+                    var assignee = rawAssignees[i];
+                    var id = (projectAccountId === 0) ? assignee.id : assignee.odoo_record_id;
+                    if (id > 0) {
+                        // Skip invalid/placeholder entries
+                        filteredAssignees.push({
+                            id: id,
+                            odoo_record_id: id,
+                            name: assignee.name,
+                            account_name: assignee.account_name || "",
+                            account_id: projectAccountId
+                        });
+                    }
+                }
+
+                availableAssignees = filteredAssignees;
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+            } else if (currentAccountId >= 0) {
                 // Use the same method as MultiAssigneeSelector for specific account
                 var rawAssignees = Account.getUsers(currentAccountId);
 
@@ -134,6 +159,7 @@ Page {
                             id: id,
                             odoo_record_id: id,
                             name: assignee.name,
+                            account_name: assignee.account_name || "",
                             account_id: currentAccountId
                         });
                     }
@@ -343,26 +369,38 @@ Page {
         z: 10
 
         onFilterApplied: function (assigneeIds) {
-            console.log("Assignee filter applied:", assigneeIds.length, "assignees selected");
-            console.log("Selected assignee IDs:", JSON.stringify(assigneeIds));
-            selectedAssigneeIds = assigneeIds;
-            filterByAssignees = true;
+            // Read directly from AssigneeFilterMenu to avoid timing issues
+            var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
+            console.log("Assignee filter applied - Reading directly from AssigneeFilterMenu");
+            console.log("   Passed parameter:", JSON.stringify(assigneeIds));
+            console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
+
+            selectedAssigneeIds = actualSelectedIds;
+            filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
             // Save to global state for persistence across navigation
-            Global.setAssigneeFilter(true, assigneeIds);
-            console.log("Assignee filter saved to global state");
+            Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
+            console.log("Assignee filter saved to global state - enabled:", filterByAssignees);
 
             // Update TaskList properties
-            tasklist.filterByAssignees = true;
-            tasklist.selectedAssigneeIds = assigneeIds;
+            tasklist.filterByAssignees = filterByAssignees;
+            tasklist.selectedAssigneeIds = actualSelectedIds;
 
             console.log("TaskList properties updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
 
             // Refresh task list with assignee filter
-            if (currentSearchQuery) {
-                tasklist.applySearch(currentSearchQuery);
+            if (filterByProject) {
+                if (currentSearchQuery) {
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
+                } else {
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
+                }
             } else {
-                tasklist.applyFilter(currentFilter);
+                if (currentSearchQuery) {
+                    tasklist.applySearch(currentSearchQuery);
+                } else {
+                    tasklist.applyFilter(currentFilter);
+                }
             }
         }
 
@@ -380,16 +418,38 @@ Page {
             tasklist.selectedAssigneeIds = [];
 
             // Refresh task list without assignee filter
-            if (currentSearchQuery) {
-                tasklist.applySearch(currentSearchQuery);
+            if (filterByProject) {
+                if (currentSearchQuery) {
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
+                } else {
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
+                }
             } else {
-                tasklist.applyFilter(currentFilter);
+                if (currentSearchQuery) {
+                    tasklist.applySearch(currentSearchQuery);
+                } else {
+                    tasklist.applyFilter(currentFilter);
+                }
             }
         }
     }
 
     onVisibleChanged: {
         if (visible) {
+            // Clear assignee filter when page becomes visible through navigation
+            // This ensures a clean state when returning from other pages
+            task.filterByAssignees = false;
+            task.selectedAssigneeIds = [];
+            tasklist.filterByAssignees = false;
+            tasklist.selectedAssigneeIds = [];
+
+            // Update the AssigneeFilterMenu to reflect cleared state
+            assigneeFilterMenu.selectedAssigneeIds = [];
+
+            // Clear global assignee filter state to prevent restoration
+            Global.clearAssigneeFilter();
+            console.log("Task_Page: Cleared global assignee filter on page visibility");
+
             if (filterByProject) {
                 if (currentSearchQuery) {
                     tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
@@ -467,12 +527,8 @@ Page {
             // Reload assignees for the new account
             loadAssignees();
 
-            // Clear assignee filter when account changes
-            if (filterByAssignees) {
-                selectedAssigneeIds = [];
-                filterByAssignees = false;
-                assigneeFilterMenu.selectedAssigneeIds = [];
-            }
+            // Don't clear assignee filter when account changes - preserve user selections
+            // The filtering logic will handle account-aware filtering automatically
 
             if (filterByProject) {
                 if (currentSearchQuery) {
@@ -551,20 +607,15 @@ Page {
         // Load assignees for the assignee filter
         loadAssignees();
 
-        // Restore global assignee filter state if no local state is set
-        if (!task.filterByAssignees || task.selectedAssigneeIds.length === 0) {
-            var globalFilter = Global.getAssigneeFilter();
-            if (globalFilter.enabled && globalFilter.assigneeIds.length > 0) {
-                console.log("Restoring global assignee filter:", globalFilter.assigneeIds.length, "assignees");
-                task.filterByAssignees = true;
-                task.selectedAssigneeIds = globalFilter.assigneeIds;
-            }
-        }
+        // Don't automatically restore global assignee filter on page load
+        // The filter should only be restored when user explicitly uses filter tabs or search
+        // This allows the page to show unfiltered results when navigating back from other pages
 
-        // Apply the filter/search that you want to show initially
-        // Preserve any existing assignee filter state
-        tasklist.filterByAssignees = task.filterByAssignees;
-        tasklist.selectedAssigneeIds = task.selectedAssigneeIds;
+        // Initialize with no assignee filter by default
+        task.filterByAssignees = false;
+        task.selectedAssigneeIds = [];
+        tasklist.filterByAssignees = false;
+        tasklist.selectedAssigneeIds = [];
 
         if (filterByProject) {
             tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
