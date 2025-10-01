@@ -280,7 +280,7 @@ ListItem {
                             }
 
                             Text {
-                                text: accountName !== "" ? accountName : "Local"
+                                text: Utils.truncateText(accountName !== "" ? accountName : "Local", 20)
                                 font.pixelSize: units.gu(1.6)
                                 wrapMode: Text.Wrap
                                 maximumLineCount: 2
