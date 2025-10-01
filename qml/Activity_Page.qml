@@ -65,7 +65,7 @@ Page {
                 }
             },
             Action {
-                iconName: "contact"
+                iconName: "filters"
                 text: "Filter by Assignees"
                 onTriggered: {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
