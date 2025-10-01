@@ -49,6 +49,7 @@
   <li>Fixed Duplicate Activity Creation issue and added a feedback mechanism to save or discard unsaved changes.</li>
   <li>Fixed button layout arrangement in the Project List View.</li>
   <li>Reduced progress bar height in the Task List View.</li>
+  <li>Fix for Extra long Account Name in Project Detail card.</li>
 </ul>
 
 
