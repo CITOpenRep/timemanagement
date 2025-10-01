@@ -49,7 +49,7 @@ Item {
             anchors.margins: 1
 
             // Set a default zoom factor to make content larger on high-DPI screens (Please uncomment while building on a real device.)
-            zoomFactor: 2.52
+          //  zoomFactor: 2.52
 
             // Load the Quill.js HTML file
             url: Qt.resolvedUrl("quill-editor.html") + "?" + (readOnly ? "readonly=true" : "readonly=false") + "&darkMode=" + darkMode

@@ -98,7 +98,7 @@ Page {
 
         Button {
             id: saveButton
-            visible: !isReadOnly
+            visible: false
             text: "Save"
             anchors.horizontalCenter: parent.horizontalCenter
             onClicked: {
