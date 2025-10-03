@@ -209,7 +209,7 @@ Item {
                 'task': currentDetails.task_id,
                 'subprojectId': currentDetails.sub_project_id,
                 'subTask': currentDetails.sub_task_id,
-                'description': description || currentDetails.name,
+                'description': description,
                 'unit_amount': Utils.convertHHMMtoDecimalHours(popupWrapper.elapsedTime),
                 'quadrant': currentDetails.quadrant_id || 1,
                 'status': status,
