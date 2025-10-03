@@ -436,30 +436,42 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
-            // Clear assignee filter when page becomes visible through navigation
-            // This ensures a clean state when returning from other pages
-            task.filterByAssignees = false;
-            task.selectedAssigneeIds = [];
-            tasklist.filterByAssignees = false;
-            tasklist.selectedAssigneeIds = [];
+            // Check if we're coming from a task-related page
+            var previousPage = Global.getLastVisitedPage();
+            var shouldPreserve = Global.shouldPreserveAssigneeFilter("Task_Page", previousPage);
+            
+            console.log("Task_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
+            
+            if (shouldPreserve) {
+                // Restore assignee filter from global state when returning from Tasks detail page
+                restoreAssigneeFilterState();
+                
+                // Update the AssigneeFilterMenu to reflect current state
+                assigneeFilterMenu.selectedAssigneeIds = task.selectedAssigneeIds;
+                
+                console.log("Task_Page: Restored assignee filter - enabled:", task.filterByAssignees);
+            } else {
+                // Clear filter when coming from non-task pages (Dashboard, Home, etc.)
+                task.filterByAssignees = false;
+                task.selectedAssigneeIds = [];
+                tasklist.filterByAssignees = false;
+                tasklist.selectedAssigneeIds = [];
+                assigneeFilterMenu.selectedAssigneeIds = [];
+                Global.clearAssigneeFilter();
+                
+                console.log("Task_Page: Cleared assignee filter (coming from non-task page)");
+            }
 
-            // Update the AssigneeFilterMenu to reflect cleared state
-            assigneeFilterMenu.selectedAssigneeIds = [];
-
-            // Clear global assignee filter state to prevent restoration
-            Global.clearAssigneeFilter();
-            console.log("Task_Page: Cleared global assignee filter on page visibility");
+            // Update navigation tracking
+            Global.setLastVisitedPage("Task_Page");
 
             if (filterByProject) {
-                if (currentSearchQuery) {
-                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
-                } else {
-                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
-                }
             } else {
                 if (currentSearchQuery) {
-                    tasklist.applySearch(currentSearchQuery);
+                    // Reapply search if there was one
+                    tasklist.searchTasks(currentSearchQuery);
                 } else {
+                    // Reapply current filter
                     tasklist.applyFilter(currentFilter);
                 }
             }

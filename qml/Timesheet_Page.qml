@@ -30,6 +30,7 @@ import QtQuick.LocalStorage 2.7
 import "../models/timesheet.js" as Model
 import "../models/project.js" as Project
 import "../models/accounts.js" as Account
+import "../models/global.js" as Global
 import "components"
 import "../models/timer_service.js" as TimerService
 
@@ -311,6 +312,9 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            // Update navigation tracking when Timesheet_Page becomes visible
+            Global.setLastVisitedPage("Timesheet_Page");
+            
             fetch_timesheets_list();
         }
     }
