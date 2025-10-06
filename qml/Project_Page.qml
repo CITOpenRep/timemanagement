@@ -33,6 +33,7 @@ import Lomiri.Components.ListItems 1.3 as ListItem
 import "../models/project.js" as Project
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Account
+import "../models/global.js" as Global
 
 import "components"
 
@@ -113,6 +114,9 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            // Update navigation tracking when Project_Page becomes visible
+            Global.setLastVisitedPage("Project_Page");
+            
             projectlist.refresh();
         }
     }

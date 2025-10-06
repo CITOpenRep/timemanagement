@@ -31,7 +31,14 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.7) </h3>
+      <h3>Change History : (Version 1.1.7.1) </h3>
+
+      <h4>06-10-2025 : Version 1.1.7.1</h4>
+
+<h5>Fixes and Improvements</h5>
+<ul>
+  <li>Fixed the state management for Assignee Filter in Tasks and Activities. Now the Assignee Filter will remember the Assignees selected while moving to Task and Activity Detail Pages.</li>
+</ul>
 
 
       <h4>03-10-2025 : Version 1.1.7</h4>

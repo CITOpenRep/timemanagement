@@ -720,6 +720,9 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            // Update navigation tracking when Tasks detail page becomes visible
+            Global.setLastVisitedPage("Tasks");
+            
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);

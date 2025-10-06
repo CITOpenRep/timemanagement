@@ -34,6 +34,7 @@ import "../models/notifications.js" as Notifications
 import "../models/utils.js" as Utils
 import "../models/timesheet.js" as TimesheetModel
 import "../models/accounts.js" as Account
+import "../models/global.js" as Global
 import io.thp.pyotherside 1.4
 import "components"
 
@@ -77,6 +78,9 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            // Update navigation tracking when Dashboard becomes visible
+            Global.setLastVisitedPage("Dashboard");
+            
             // Prefer the selected account from the account selector (NOT the default account)
             var selected = getSelectedAccountFromFilter();
             if (typeof projectchart !== "undefined") projectchart.refreshForAccount(selected);
