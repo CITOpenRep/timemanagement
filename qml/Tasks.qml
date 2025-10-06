@@ -85,6 +85,13 @@ Page {
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
 
+    // Properties for prefilled data when creating task from project
+    property var prefilledAccountId: -1
+    property var prefilledProjectId: -1
+    property var prefilledSubProjectId: -1
+    property var prefilledParentProjectId: -1
+    property string prefilledProjectName: ""
+
     property var currentTask: {}
 
     function switchToEditMode() {
@@ -687,8 +694,22 @@ Page {
 
             attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
         } else {
+            // We are creating a new task
             workItem.loadAccounts();
             deadline_text.text = "Not set";
+
+            // Handle prefilled data when creating task from project
+            if (prefilledAccountId !== -1) {
+                var mainProjectId = prefilledProjectId !== -1 ? prefilledProjectId : prefilledParentProjectId;
+                var subProjectId = prefilledSubProjectId !== -1 ? prefilledSubProjectId : -1;
+
+                // Set prefilled account, project, and subproject data
+                if (workItem.deferredLoadExistingRecordSet) {
+                    workItem.deferredLoadExistingRecordSet(prefilledAccountId, mainProjectId, subProjectId, -1, -1, -1);
+                } else if (workItem.applyDeferredSelection) {
+                    workItem.applyDeferredSelection(prefilledAccountId, mainProjectId, subProjectId);
+                }
+            }
         }
     //  console.log("currentTask loaded:", JSON.stringify(currentTask));
     }

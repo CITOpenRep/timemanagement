@@ -32,6 +32,7 @@ import "../models/task.js" as Task
 import "../models/activity.js" as Activity
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Accounts
+import "../models/global.js" as Global
 import "components"
 
 Page {
@@ -59,14 +60,44 @@ Page {
                 text: "New"
                 onTriggered: {
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
-                        // "recordid": recordid,
                         "isReadOnly": false
                     });
                 }
+            },
+            Action {
+                iconName: "filters"
+                text: "Filter by Assignees"
+                onTriggered: {
+                    assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
+                }
             }
+            // Action {
+            //     iconName: "account"
+            //     text: "Filter by Account"
+            //     onTriggered: {
+            //         accountFilter.expanded = !accountFilter.expanded;
+            //     }
+            // }
+
+
         ]
     }
 
+    property string currentFilter: "today"
+    property string currentSearchQuery: ""
+
+    property bool filterByProject: false
+    property int projectOdooRecordId: -1
+    property int projectAccountId: -1
+    property string projectName: ""
+
+    property bool filterByAccount: false
+    property int selectedAccountId: -1
+
+    // Properties for assignee filtering
+    property bool filterByAssignees: false
+    property var selectedAssigneeIds: []
+    property var availableAssignees: []
 
     NotificationPopup {
         id: notifPopup
@@ -85,7 +116,6 @@ Page {
         return dueDateOk && searchOk;
     }
 
-    // Helper function to get project details
     function getProjectDetails(projectId) {
         try {
             return Project.getProjectDetails(projectId);
@@ -111,43 +141,100 @@ Page {
         activityListModel.clear();
 
         try {
-            // Get activities based on whether we're filtering by project or not
-            const allActivities = filterByProject ? Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId) : Activity.getAllActivities();
-            var filteredActivities = [];
+            var allActivities = [];
+            var currentAccountId = selectedAccountId;
 
-            // First filter the activities
-            for (let i = 0; i < allActivities.length; i++) {
-                var item = allActivities[i];
-                if (shouldIncludeItem(item)) {
-                    var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
-                    var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
-                    var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";  // Assuming you have getTaskDetails()
-                    var user = Accounts.getUserNameByOdooId(item.user_id);
+            console.log("Fetching activities - filterByProject:", filterByProject, "projectOdooRecordId:", projectOdooRecordId, "account:", currentAccountId, "filter:", currentFilter);
 
-                    filteredActivities.push({
-                        id: item.id,
-                        summary: item.summary,
-                        due_date: item.due_date,
-                        notes: item.notes,
-                        activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
-                        state: item.state,
-                        task_id: item.task_id,
-                        task_name: taskName,
-                        project_name: projectName,
-                        odoo_record_id: item.odoo_record_id || 0,
-                        user: user,
-                        account_id: item.account_id,
-                        resId: item.resId,
-                        resModel: item.resModel,
-                        last_modified: item.last_modified,
-                        color_pallet: item.color_pallet
-                    });
+            if (filterByProject) {
+                // When filtering by project, get activities for that specific project
+                allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
+                console.log("Retrieved", allActivities.length, "activities for project:", projectOdooRecordId);
+            } else {
+                // Normal account-based filtering
+                if (currentFilter && currentFilter !== "" || currentSearchQuery) {
+                    // Pass currentAccountId only if filterByAccount is true and selectedAccountId >= 0
+                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                    allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
+                } else {
+                    if (filterByAccount && currentAccountId >= 0) {
+                        allActivities = Activity.getActivitiesForAccount(currentAccountId);
+                    } else {
+                        allActivities = Activity.getAllActivities();
+                    }
                 }
+                console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId >= 0 ? currentAccountId : "all");
             }
 
-            // Sort activities by end date time (most recent first)
+            // Apply assignee filtering if enabled
+            var menuSelectedIds = assigneeFilterMenu.selectedAssigneeIds || [];
+            if (filterByAssignees && menuSelectedIds && menuSelectedIds.length > 0) {
+                var assigneeFilteredActivities = [];
+                for (let i = 0; i < allActivities.length; i++) {
+                    var item = allActivities[i];
+                    // Check if the activity matches any selected assignee (considering both user_id and account_id)
+                    var matchesSelectedAssignee = false;
+                    for (let j = 0; j < menuSelectedIds.length; j++) {
+                        var selectedId = menuSelectedIds[j];
+                        // Handle both simple ID (old format) and composite format
+                        if (typeof selectedId === 'object') {
+                            // New format: {user_id: X, account_id: Y}
+                            if (item.user_id && item.account_id && parseInt(item.user_id) === selectedId.user_id && parseInt(item.account_id) === selectedId.account_id) {
+                                matchesSelectedAssignee = true;
+                                break;
+                            }
+                        } else {
+                            // Legacy format: just user_id (for backward compatibility)
+                            if (item.user_id && parseInt(item.user_id) === parseInt(selectedId)) {
+                                matchesSelectedAssignee = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (matchesSelectedAssignee) {
+                        assigneeFilteredActivities.push(item);
+                    }
+                }
+                allActivities = assigneeFilteredActivities;
+            }
+
+            var filteredActivities = [];
+
+            // Apply additional filtering (date/search) when using project filtering
+            for (let i = 0; i < allActivities.length; i++) {
+                var item = allActivities[i];
+
+                // When filtering by project, still apply date and search filters
+                if (filterByProject && !shouldIncludeItem(item)) {
+                    continue;
+                }
+
+                var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
+                var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
+                var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";
+                var user = Accounts.getUserNameByOdooId(item.user_id);
+
+                filteredActivities.push({
+                    id: item.id,
+                    summary: item.summary,
+                    due_date: item.due_date,
+                    notes: item.notes,
+                    activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
+                    state: item.state,
+                    task_id: item.task_id,
+                    task_name: taskName,
+                    project_name: projectName,
+                    odoo_record_id: item.odoo_record_id || 0,
+                    user: user,
+                    account_id: item.account_id,
+                    resId: item.resId,
+                    resModel: item.resModel,
+                    last_modified: item.last_modified,
+                    color_pallet: item.color_pallet
+                });
+            }
+
             filteredActivities.sort(function (a, b) {
-                // If either end date is missing, fall back to summary
                 if (!a.due_date || !b.due_date) {
                     return (a.summary || "").localeCompare(b.summary || "");
                 }
@@ -155,12 +242,112 @@ Page {
                 return new Date(a.due_date) - new Date(b.due_date);
             });
 
-            // Add sorted activities to the model
             for (let j = 0; j < filteredActivities.length; j++) {
                 activityListModel.append(filteredActivities[j]);
             }
+
+            console.log("Populated activityListModel with", activityListModel.count, "items");
         } catch (e) {
-            console.error("❌ Error in get_activity_list():", e);
+            console.error("Error in get_activity_list():", e);
+        }
+    }
+
+    function applyAccountFilter(accountId) {
+        console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
+
+        filterByAccount = true;
+        selectedAccountId = accountId;
+
+        get_activity_list();
+    }
+
+    function clearAccountFilter() {
+        console.log("Activity_Page.clearAccountFilter called");
+
+        filterByAccount = false;
+        selectedAccountId = -1;
+
+        get_activity_list();
+    }
+
+    // Function to load available assignees for the current account
+    function loadAssignees() {
+        try {
+            var currentAccountId = selectedAccountId;
+            if (typeof currentAccountId === "undefined" || currentAccountId === null)
+                currentAccountId = -1;
+
+            // When filtering by project, use the project's account for assignee loading
+            if (filterByProject && projectAccountId >= 0) {
+                // Use the project's account to load assignees
+                var rawAssignees = Accounts.getUsers(projectAccountId);
+
+                // Filter and format assignees like MultiAssigneeSelector does
+                var filteredAssignees = [];
+                for (var i = 0; i < rawAssignees.length; i++) {
+                    var assignee = rawAssignees[i];
+                    var id = (projectAccountId === 0) ? assignee.id : assignee.odoo_record_id;
+                    if (id > 0) {
+                        // Skip invalid/placeholder entries
+                        filteredAssignees.push({
+                            id: id,
+                            odoo_record_id: id,
+                            name: assignee.name,
+                            account_name: assignee.account_name || "",
+                            account_id: projectAccountId
+                        });
+                    }
+                }
+
+                availableAssignees = filteredAssignees;
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+            } else if (filterByAccount && currentAccountId >= 0) {
+                // Use the same method as MultiAssigneeSelector for specific account
+                var rawAssignees = Accounts.getUsers(currentAccountId);
+
+                // Filter and format assignees like MultiAssigneeSelector does
+                var filteredAssignees = [];
+                for (var i = 0; i < rawAssignees.length; i++) {
+                    var assignee = rawAssignees[i];
+                    var id = (currentAccountId === 0) ? assignee.id : assignee.odoo_record_id;
+                    if (id > 0) {
+                        // Skip invalid/placeholder entries
+                        filteredAssignees.push({
+                            id: id,
+                            odoo_record_id: id,
+                            name: assignee.name,
+                            account_name: assignee.account_name || "",
+                            account_id: currentAccountId
+                        });
+                    }
+                }
+
+                availableAssignees = filteredAssignees;
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+            } else {
+                // For "All Accounts" (-1), load assignees from all accounts that have activities
+                availableAssignees = Activity.getAllActivityAssignees(-1); // -1 means all accounts
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+            }
+        } catch (e) {
+            console.error("Error loading assignees:", e);
+            availableAssignees = [];
+            assigneeFilterMenu.assigneeModel = [];
+        }
+    }
+
+    // Function to restore assignee filter state from global storage
+    function restoreAssigneeFilterState() {
+        var globalFilter = Global.getAssigneeFilter();
+
+        if (globalFilter.enabled && globalFilter.assigneeIds.length > 0) {
+            activity.filterByAssignees = true;
+            activity.selectedAssigneeIds = globalFilter.assigneeIds;
+            assigneeFilterMenu.selectedAssigneeIds = globalFilter.assigneeIds;
+        } else if (!globalFilter.enabled) {
+            activity.filterByAssignees = false;
+            activity.selectedAssigneeIds = [];
+            assigneeFilterMenu.selectedAssigneeIds = [];
         }
     }
 
@@ -282,7 +469,7 @@ Page {
         label7: ""
 
         showSearchBox: false
-        currentFilter: activity.currentFilter  // Bind to page's current filter
+        currentFilter: activity.currentFilter
 
         filter1: "today"
         filter2: "week"
@@ -294,10 +481,18 @@ Page {
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
+
+            // Restore assignee filter state from global storage
+            restoreAssigneeFilterState();
+
             get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
+
+            // Restore assignee filter state from global storage
+            restoreAssigneeFilterState();
+
             get_activity_list();
         }
     }
@@ -307,7 +502,6 @@ Page {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        // anchors.topMargin: units.gu(1)
         clip: true
 
         LomiriListView {
@@ -328,7 +522,6 @@ Page {
                 colorPallet: model.color_pallet
 
                 onCardClicked: function (accountid, recordid) {
-                    //  console.log("Page : Loading record " + recordid + " account id " + accountid);
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         "recordid": recordid,
                         "accountid": accountid,
@@ -336,70 +529,138 @@ Page {
                     });
                 }
                 onMarkAsDone: function (accountid, recordid) {
-                    // console.log("Requesting to Make done activity with id " + recordid);
-                    //Here we need to delete the record and see? if it get synced
                     Activity.markAsDone(accountid, recordid);
                     get_activity_list();
                 }
                 onDateChanged: function (accountid, recordid, newDate) {
-                    console.log("📅 Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
-                    console.log("📅 Activity_Page: Date format received:", typeof newDate, newDate);
-                    // Update the activity date in the database
+                    console.log("Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
                     Activity.updateActivityDate(accountid, recordid, newDate);
-                    // Refresh the activity list to show updated data
                     get_activity_list();
                 }
 
-               onCreateFollowup:  function (accountid, recordid) {
-                   //first mark this activity as Done and create a followup activity
-                   Activity.markAsDone(accountid, recordid);
-                   var result=Activity.createFollowupActivity(accountid,recordid)
-                   if(result.success===true)
-                   {
-                       console.log("Followup activity has been created")
-                       apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
-                           "recordid": result.record_id,
-                           "accountid": accountid,
-                           "isReadOnly": false
-                       });
-                   }
-                   else
-                   {
-                         notifPopup.open("Error", "Failed to create a followup activity.", "error");
-                   }
+                onCreateFollowup: function (accountid, recordid) {
+                    //first mark this activity as Done and create a followup activity
+                    Activity.markAsDone(accountid, recordid);
+                    var result = Activity.createFollowupActivity(accountid, recordid);
+                    if (result.success === true) {
+                        console.log("Followup activity has been created");
+                        apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                            "recordid": result.record_id,
+                            "accountid": accountid,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        notifPopup.open("Error", "Failed to create a followup activity.", "error");
+                    }
 
-                   get_activity_list();
-               }
+                    get_activity_list();
+                }
             }
             currentIndex: 0
-            onCurrentIndexChanged:
-            // console.log("currentIndex changed");
-            {}
+            onCurrentIndexChanged: {}
 
             Component.onCompleted: {
                 get_activity_list();
             }
         }
+
+        Text {
+            id: labelNoActivity
+            anchors.centerIn: parent
+            font.pixelSize: units.gu(2)
+            visible: activityListModel.count === 0
+            text: 'No Activities Available'
+        }
     }
-
-    // Store current filter and search state
-    property string currentFilter: "today"
-    property string currentSearchQuery: ""
-
-    // Properties for project filtering
-    property bool filterByProject: false
-    property int projectOdooRecordId: -1
-    property int projectAccountId: -1
-    property string projectName: ""
 
     onVisibleChanged: {
         if (visible) {
+            // Clear assignee filter when page becomes visible through navigation
+            // This ensures a clean state when returning from other pages
+            activity.filterByAssignees = false;
+            activity.selectedAssigneeIds = [];
+
+            // Update the AssigneeFilterMenu to reflect cleared state
+            assigneeFilterMenu.selectedAssigneeIds = [];
+
+            // Clear global assignee filter state to prevent restoration
+            Global.clearAssigneeFilter();
+            console.log("Activity_Page: Cleared global assignee filter on page visibility");
+
+            get_activity_list();
+        }
+    }
+
+    // Assignee Filter Menu
+    AssigneeFilterMenu {
+        id: assigneeFilterMenu
+        anchors.fill: parent
+        z: 10
+
+        onFilterApplied: function (assigneeIds) {
+            // Read directly from AssigneeFilterMenu to avoid timing issues
+            var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
+            console.log("Activity_Page: Assignee filter applied - Reading directly from AssigneeFilterMenu");
+            console.log("   Passed parameter:", JSON.stringify(assigneeIds));
+            console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
+
+            selectedAssigneeIds = actualSelectedIds;
+            filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
+
+            // Save to global state for persistence across navigation
+            Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
+            console.log("Activity_Page: Assignee filter saved to global state - enabled:", filterByAssignees);
+
+            get_activity_list();
+        }
+
+        onFilterCleared: function () {
+            console.log("Activity_Page: Assignee filter cleared");
+            selectedAssigneeIds = [];
+            filterByAssignees = false;
+
+            // Clear global state
+            Global.clearAssigneeFilter();
+            console.log("Activity_Page: Assignee filter cleared from global state");
+
+            get_activity_list();
+        }
+    }
+
+    // Account Filter component removed to prevent interference with PageHeader clicks
+    // Account filtering is now handled through global mainView connections
+
+    Connections {
+        target: mainView
+        onAccountDataRefreshRequested: function (accountId) {
+            // Only reload assignees, don't force account filtering
+            loadAssignees();
+
+            // Refresh the activity list to show updated data
+            get_activity_list();
+        }
+        onGlobalAccountChanged: function (accountId, accountName) {
+            // Only reload assignees, don't force account filtering
+            loadAssignees();
+
+            // Refresh the activity list to show updated data
             get_activity_list();
         }
     }
 
     Component.onCompleted: {
-        // Load activities based on filtering mode
+        // Load assignees for the assignee filter
+        loadAssignees();
+
+        // Don't automatically restore global assignee filter on page load
+        // The filter should only be restored when user explicitly uses filter tabs or search
+        // This allows the page to show unfiltered results when navigating back from other pages
+
+        // Initialize with no assignee filter by default
+        activity.filterByAssignees = false;
+        activity.selectedAssigneeIds = [];
+        assigneeFilterMenu.selectedAssigneeIds = [];
+
         get_activity_list();
     }
 }

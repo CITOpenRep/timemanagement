@@ -293,29 +293,32 @@ Page {
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
-            columns: 2
+            columns: 3
             spacing: units.gu(1)
 
-            TSButton {
+            // First Row - Activities
+            TSLabel {
                 visible: isReadOnly
-                bgColor: LomiriColors.slate
-                fgColor: "white"
-
-                width: (parent.width - units.gu(1)) / 2
-                text: "Create Project Update"
-                onClicked: {
-                    let project = Project.getProjectDetails(recordid);
-                    updates_dialog.open(project.account_id, project.odoo_record_id);
-                }
+                text: "Activities"
+                width: (parent.width - units.gu(2)) / 3
+                height: units.gu(6)
+                horizontalAlignment: Text.AlignHLeft
+                verticalAlignment: Text.AlignVCenter
+                fontBold: true
+                color: "#f97316"
             }
 
             TSButton {
                 visible: isReadOnly
-                bgColor: LomiriColors.slate
-                fgColor: "white"
+                bgColor: "#fef1e7"
+                fgColor: "#f97316"
+                hoverColor: '#f3e0d1'
+                iconName: "add"
+                iconColor: "#f97316"
 
-                width: (parent.width - units.gu(1)) / 2
-                text: "Create Activity"
+                fontBold: true
+                width: (parent.width - units.gu(2)) / 3
+                text: "Create"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     let result = Activity.createActivityFromProjectOrTask(true, project.account_id, project.odoo_record_id);
@@ -333,29 +336,15 @@ Page {
 
             TSButton {
                 visible: isReadOnly && recordid > 0
-                bgColor: LomiriColors.slate
-                fgColor: "white"
-
-                width: (parent.width - units.gu(1)) / 2
-                text: "View Tasks"
-                onClicked: {
-                    let project = Project.getProjectDetails(recordid);
-                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Task_Page.qml"), {
-                        "filterByProject": true,
-                        "projectOdooRecordId": project.odoo_record_id,
-                        "projectAccountId": project.account_id,
-                        "projectName": project.name
-                    });
-                }
-            }
-
-            TSButton {
-                visible: isReadOnly && recordid > 0
-                bgColor: LomiriColors.slate
-                fgColor: "white"
-
-                width: (parent.width - units.gu(1)) / 2
-                text: "View Activities"
+                bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
+                iconName: "view-on"
+                iconColor: "#1f2937"
+                width: (parent.width - units.gu(2)) / 3
+                text: "View"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activity_Page.qml"), {
@@ -367,13 +356,110 @@ Page {
                 }
             }
 
+            // Second Row - Tasks
+            TSLabel {
+                visible: isReadOnly
+                text: "Tasks"
+                width: (parent.width - units.gu(2)) / 3
+                height: units.gu(6)
+                horizontalAlignment: Text.AlignHLeft
+                verticalAlignment: Text.AlignVCenter
+                fontBold: true
+                color: "#f97316"
+            }
+
+            TSButton {
+                visible: isReadOnly
+                bgColor: "#fef1e7"
+                fgColor: "#f97316"
+                hoverColor: '#f3e0d1'
+                iconName: "add"
+                iconColor: "#f97316"
+                fontBold: true
+                width: (parent.width - units.gu(2)) / 3
+                text: "Create"
+                onClicked: {
+                    let project = Project.getProjectDetails(recordid);
+                    // Determine if this is a subproject and get parent project info
+                    let isSubProject = project.parent_id && project.parent_id > 0;
+                    let parentProjectId = isSubProject ? project.parent_id : -1;
+
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Tasks.qml"), {
+                        "recordid": 0  // 0 means creation mode
+                        ,
+                        "isReadOnly": false,
+                        "prefilledAccountId": project.account_id,
+                        "prefilledProjectId": isSubProject ? -1 : project.odoo_record_id  // Main project if not subproject
+                        ,
+                        "prefilledSubProjectId": isSubProject ? project.odoo_record_id : -1  // Subproject if it is one
+                        ,
+                        "prefilledParentProjectId": parentProjectId,
+                        "prefilledProjectName": project.name
+                    });
+                }
+            }
+
             TSButton {
                 visible: isReadOnly && recordid > 0
-                bgColor: LomiriColors.slate
-                fgColor: "white"
+                bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
+                width: (parent.width - units.gu(2)) / 3
+                iconName: "view-on"
+                iconColor: "#1f2937"
+                text: "View"
+                onClicked: {
+                    let project = Project.getProjectDetails(recordid);
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Task_Page.qml"), {
+                        "filterByProject": true,
+                        "projectOdooRecordId": project.odoo_record_id,
+                        "projectAccountId": project.account_id,
+                        "projectName": project.name
+                    });
+                }
+            }
 
-                width: (parent.width - units.gu(1)) / 2
-                text: "View Project Updates"
+            // Third Row - Project Updates
+            TSLabel {
+                visible: isReadOnly
+                text: "Project Updates"
+                width: (parent.width - units.gu(2)) / 3
+                height: units.gu(6)
+                horizontalAlignment: Text.AlignHLeft
+                verticalAlignment: Text.AlignVCenter
+                fontBold: true
+                color: "#f97316"
+            }
+
+            TSButton {
+                visible: isReadOnly
+                bgColor: "#fef1e7"
+                fgColor: "#f97316"
+                hoverColor: '#f3e0d1'
+                iconName: "add"
+                iconColor: "#f97316"
+                fontBold: true
+                width: (parent.width - units.gu(2)) / 3
+                text: "Create"
+                onClicked: {
+                    let project = Project.getProjectDetails(recordid);
+                    updates_dialog.open(project.account_id, project.odoo_record_id);
+                }
+            }
+
+            TSButton {
+                visible: isReadOnly && recordid > 0
+                bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
+                iconName: "view-on"
+                iconColor: "#1f2937"
+                width: (parent.width - units.gu(2)) / 3
+                text: "View"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Updates_Page.qml"), {

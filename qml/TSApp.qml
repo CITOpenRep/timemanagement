@@ -35,6 +35,7 @@ import "."
 Todo: Need to Visit this Page Again and Refactor it.
 This is the Main View of the Application.
 It contains the AdaptivePageLayout which is used to switch between different layouts based on the screen size
+
 */
 
 MainView {
@@ -43,28 +44,34 @@ MainView {
     objectName: "TS"
     applicationName: "ubtms"
     property bool init: true
-    property alias globalTimerWidget: globalTimerWidget //TODO: need to clean up the variable case names. //Gokul
+    property alias globalTimerWidget: globalTimerWidget
     property alias backend_bridge: backend_bridge
+
+    property int currentAccountId: -1
+    property string currentAccountName: ""
 
     width: units.gu(50)
     //  width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
     // width: units.gu(50) //GM: for testing with only one column
     // height: units.gu(95)
 
+    signal globalAccountChanged(int accountId, string accountName)
+    signal accountDataRefreshRequested(int accountId)
+
     GlobalTimerWidget {
         id: globalTimerWidget
         z: 9999
         anchors.bottom: parent.bottom
-
         visible: false
+        showNotification: function (title, message, type) {
+            notifPopup.open(title, message, type);
+        }
     }
 
     BackendBridge {
         id: backend_bridge
 
-        onMessageReceived: function (data) {
-        //does nothing , whoever is interested can connect this signal
-        }
+        onMessageReceived: function (data) {}
 
         onPythonError: function (tb) {
             console.error("[FAILURE] Critical Error from backend");
@@ -73,6 +80,39 @@ MainView {
         onReadyChanged: if (ready) {
             console.log("Backend ready");
         }
+    }
+
+    property bool accountFilterVisible: false
+
+    // Account Filter
+    AccountFilter {
+        id: accountFilter
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        z: 1000
+        visible: accountFilterVisible
+
+        onAccountChanged: {
+            console.log("🔄 ACCOUNT CHANGE DETECTED:");
+            console.log("   Previous Account ID:", currentAccountId);
+            console.log("   New Account ID:", accountId);
+            console.log("   New Account Name:", accountName);
+
+            currentAccountId = accountId;
+            currentAccountName = accountName;
+
+            globalAccountChanged(accountId, accountName);
+
+            accountDataRefreshRequested(accountId);
+            accountFilterVisible = false;
+            dashboard_page.instanceSelected(accountId, accountName);
+        }
+    }
+
+    // Global notification popup
+    NotificationPopup {
+        id: notifPopup
     }
 
     InfoBar {
@@ -85,14 +125,16 @@ MainView {
 
     AdaptivePageLayout {
         id: apLayout
-        anchors.fill: parent
+        anchors.top: accountFilter.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         property bool isMultiColumn: true
         property Page currentPage: splash_page
         property Page thirdPage: dashboard_page2
         primaryPage: splash_page
 
         layouts: [
-
             //Tablet Layout
             PageColumnsLayout {
                 when: width > units.gu(80) && width < units.gu(130)
@@ -140,27 +182,96 @@ MainView {
         }
         Dashboard {
             id: dashboard_page
+
+            Connections {
+                target: mainView
+                onAccountDataRefreshRequested: function (accountId) {
+                    if (dashboard_page.visible && typeof dashboard_page.refreshData === 'function') {
+                        dashboard_page.refreshData();
+                    }
+                }
+            }
         }
         Dashboard2 {
             id: dashboard_page2
+
+            Connections {
+                target: mainView
+                onAccountDataRefreshRequested: function (accountId) {
+                    console.log("🔄 Refreshing Dashboard2 data for account:", accountId);
+                    if (dashboard_page2.visible && typeof dashboard_page2.refreshData === 'function') {
+                        dashboard_page2.refreshData();
+                    }
+                }
+            }
         }
         Timesheet {
             id: timesheet_page
+
+            Connections {
+                target: mainView
+                onAccountDataRefreshRequested: function (accountId) {
+                    console.log("🔄 Refreshing Timesheet data for account:", accountId);
+                    if (timesheet_page.visible && typeof timesheet_page.refreshData === 'function') {
+                        timesheet_page.refreshData();
+                    }
+                }
+            }
         }
         Activity_Page {
             id: activity_page
+
+            Connections {
+                target: mainView
+                onAccountDataRefreshRequested: function (accountId) {
+                    console.log("🔄 Refreshing Activity data for account:", accountId);
+                    if (activity_page.visible && typeof activity_page.get_activity_list === 'function') {
+                        activity_page.get_activity_list();
+                    }
+                }
+            }
         }
         Task_Page {
             id: task_page
+
+            Connections {
+                target: mainView
+                onAccountDataRefreshRequested: function (accountId) {
+                    console.log("🔄 Refreshing Task data for account:", accountId);
+                    if (task_page.visible && typeof task_page.getTaskList === 'function') {
+                        task_page.getTaskList(task_page.currentFilter || "today", "");
+                    }
+                }
+            }
         }
         Project_Page {
             id: project_page
+
+            Connections {
+                target: mainView
+                onAccountDataRefreshRequested: function (accountId) {
+                    console.log("🔄 Refreshing Project data for account:", accountId);
+                    if (project_page.visible && project_page.projectlist && typeof project_page.projectlist.refresh === 'function') {
+                        project_page.projectlist.refresh();
+                    }
+                }
+            }
         }
         Settings_Page {
             id: settings_page
         }
         Timesheet_Page {
             id: timesheet_list
+
+            Connections {
+                target: mainView
+                onAccountDataRefreshRequested: function (accountId) {
+                    console.log("🔄 Refreshing Timesheet List data for account:", accountId);
+                    if (timesheet_list.visible && typeof timesheet_list.fetch_timesheets_list === 'function') {
+                        timesheet_list.fetch_timesheets_list();
+                    }
+                }
+            }
         }
 
         function setFirstScreen() {
@@ -185,13 +296,13 @@ MainView {
         }
 
         function setCurrentPage(page) {
-            //   console.log("In setCurrentPage Page is :" + page + " Current Page" + currentPage);
+            console.log("📄 Setting current page to:", page);
             switch (page) {
             case 0:
                 currentPage = dashboard_page;
                 thirdPage = dashboard_page2;
                 if (apLayout.columns === 3)
-                //                        addPageToNextColumn(currentPage,thirdPage);
+                // Could add third page logic here if needed
                 {}
                 break;
             case 1:
@@ -226,9 +337,8 @@ MainView {
         }
 
         onColumnsChanged: {
-            //  console.log("onColumnsChanged: " + columns + " width " + units.gu(width));
+            console.log("📐 Layout columns changed to:", columns);
             if (init === false) {
-                //  console.log("currentPage: " + currentPage + "Primarypage: " + primaryPage + " column changed " + columns + " width " + units.gu(width));
                 switch (columns) {
                 case 1:
                     primaryPage = dashboard_page;
@@ -243,16 +353,105 @@ MainView {
                     addPageToNextColumn(primaryPage, currentPage);
                     if (thirdPage != "")
                         addPageToNextColumn(currentPage, thirdPage);
-
                     break;
                 }
             }
         }
     }
-    Component.onCompleted: {
-        // console.log("From OnComplete " + columns);
 
-        // Initialize database first
+    function reloadApplication() {
+        try {
+            if (typeof apLayout.removePages === 'function') {
+                apLayout.removePages(apLayout.primaryPage);
+            }
+
+            apLayout.primaryPage = splash_page;
+            apLayout.currentPage = splash_page;
+            apLayout.thirdPage = dashboard_page2;
+
+            init = true;
+
+            Qt.callLater(function () {
+                try {
+                    apLayout.setFirstScreen();
+                    Qt.callLater(function () {
+                        refreshAppData();
+                    });
+                } catch (layoutError) {
+                    console.error("❌ ERROR during setFirstScreen():", layoutError);
+                    refreshAppData();
+                }
+            });
+        } catch (e) {
+            console.error("❌ ERROR during application reload:", e);
+            refreshAppData();
+        }
+
+        console.log("✅ Full application reload completed");
+    }
+
+    function refreshAppData() {
+        if (dashboard_page && typeof dashboard_page.refreshData === 'function') {
+            dashboard_page.refreshData();
+        }
+
+        if (dashboard_page2 && typeof dashboard_page2.refreshData === 'function') {
+            dashboard_page2.refreshData();
+        }
+
+        if (timesheet_list && typeof timesheet_list.fetch_timesheets_list === 'function') {
+            timesheet_list.fetch_timesheets_list();
+        }
+
+        if (timesheet_page && typeof timesheet_page.refreshData === 'function') {
+            timesheet_page.refreshData();
+        }
+
+        if (activity_page && typeof activity_page.get_activity_list === 'function') {
+            activity_page.get_activity_list();
+        }
+
+        if (task_page && typeof task_page.getTaskList === 'function') {
+            task_page.getTaskList(task_page.currentFilter || "today", "");
+        }
+
+        if (project_page && project_page.projectlist && typeof project_page.projectlist.refresh === 'function') {
+            project_page.projectlist.refresh();
+        }
+
+        // Force UI layout refresh
+        Qt.callLater(function () {
+            forceAllPagesUIRefresh();
+        });
+    }
+
+    function forceAllPagesUIRefresh() {
+        if (timesheet_list && timesheet_list.timesheetlist) {
+            timesheet_list.timesheetlist.forceLayout();
+        }
+
+        if (task_page && task_page.tasklist) {
+            task_page.tasklist.forceLayout();
+        }
+
+        if (project_page && project_page.projectlist) {
+            project_page.projectlist.forceLayout();
+        }
+
+        if (activity_page && activity_page.activitylist) {
+            activity_page.activitylist.forceLayout();
+        }
+    }
+
+    function openAccountDrawer() {
+        if (accountFilter && typeof accountFilter.refreshAccounts === 'function') {
+            accountFilter.refreshAccounts();
+        } else {
+            console.warn("⚠️  accountFilter.refreshAccounts function not available");
+        }
+    }
+
+    Component.onCompleted: {
         DbInit.initializeDatabase();
 
         // Load and apply saved theme preference
@@ -260,6 +459,7 @@ MainView {
 
         Qt.callLater(function () {
             apLayout.setFirstScreen(); // Delay page setup until after DB init
+
         });
     }
 
@@ -272,23 +472,20 @@ MainView {
                 Theme.name = savedTheme;
             } else {
                 // No saved theme found, set and save a default theme
-
-                // Set Light Mode as default (you can change this to SuruDark if you prefer dark)
                 var defaultTheme = "Ubuntu.Components.Themes.Ambiance";
                 Theme.name = defaultTheme;
                 saveThemePreference(defaultTheme);
             }
         } catch (e) {
-
             // Fallback to light theme if there's an error
             Theme.name = "Ubuntu.Components.Themes.Ambiance";
+            console.warn("⚠️  Theme loading failed, using fallback:", e);
         }
     }
 
     // Function to get saved theme preference from database
     function getSavedThemePreference() {
         try {
-            //   console.log("🗄️ Opening database for theme preference...");
             var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
             var themeName = "";
 
@@ -298,16 +495,14 @@ MainView {
 
                 // Get saved theme
                 var result = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', ['theme_preference']);
-                //   console.log("🗄️ Database query result rows:", result.rows.length);
                 if (result.rows.length > 0) {
                     themeName = result.rows.item(0).value;
-                    // console.log("🗄️ Found saved theme in database:", themeName);
                 }
             });
 
             return themeName;
         } catch (e) {
-            console.warn("🗄️ Error getting saved theme preference:", e);
+            console.warn("⚠️  Error getting saved theme preference:", e);
             return "";
         }
     }
@@ -315,7 +510,6 @@ MainView {
     // Function to save theme preference to database
     function saveThemePreference(themeName) {
         try {
-            // console.log("💾 Saving theme preference to database:", themeName);
             var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
             db.transaction(function (tx) {
@@ -324,12 +518,11 @@ MainView {
 
                 // Save theme preference (INSERT OR REPLACE)
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['theme_preference', themeName]);
-            //    console.log("💾 Theme preference saved successfully:", themeName);
             });
 
-            //    console.log("💾 Database transaction completed for theme:", themeName);
+            console.log("💾 Theme preference saved:", themeName);
         } catch (e) {
-            console.warn("💾 Error saving theme preference:", e);
+            console.warn("⚠️  Error saving theme preference:", e);
         }
     }
 }
