@@ -566,6 +566,9 @@ Page {
         console.log("🔍 Activities.qml: Visibility changed to:", visible, "- recordid:", recordid);
 
         if (visible) {
+            // Update navigation tracking when Activities detail page becomes visible
+            Global.setLastVisitedPage("Activities");
+            
             // Reset the navigation tracking flag when page becomes visible
             navigatingToReadMore = false;
 

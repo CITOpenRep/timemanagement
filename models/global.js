@@ -38,10 +38,17 @@ function getLastVisitedPage() {
     return lastVisitedPage;
 }
 
-// Check if we should preserve filter (navigating between Task_Page and Tasks.qml)
+// Check if we should preserve filter (navigating between related pages)
 function shouldPreserveAssigneeFilter(currentPage, previousPage) {
+    // Define page groups that should preserve filters when navigating between each other
     var taskPages = ["Task_Page", "Tasks"];
-    var isCurrentTaskPage = taskPages.indexOf(currentPage) !== -1;
-    var isPreviousTaskPage = taskPages.indexOf(previousPage) !== -1;
-    return isCurrentTaskPage && isPreviousTaskPage;
+    var activityPages = ["Activity_Page", "Activities"];
+    
+    // Check if both current and previous are in task pages group
+    var bothInTaskPages = taskPages.indexOf(currentPage) !== -1 && taskPages.indexOf(previousPage) !== -1;
+    
+    // Check if both current and previous are in activity pages group
+    var bothInActivityPages = activityPages.indexOf(currentPage) !== -1 && activityPages.indexOf(previousPage) !== -1;
+    
+    return bothInTaskPages || bothInActivityPages;
 }

@@ -575,17 +575,29 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
-            // Clear assignee filter when page becomes visible through navigation
-            // This ensures a clean state when returning from other pages
-            activity.filterByAssignees = false;
-            activity.selectedAssigneeIds = [];
+            // Check if we're coming from an activity-related page
+            var previousPage = Global.getLastVisitedPage();
+            var shouldPreserve = Global.shouldPreserveAssigneeFilter("Activity_Page", previousPage);
+            
+            console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
+            
+            if (shouldPreserve) {
+                // Restore assignee filter from global state when returning from Activities detail page
+                restoreAssigneeFilterState();
+                
+                console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
+            } else {
+                // Clear filter when coming from non-activity pages (Dashboard, Tasks, etc.)
+                activity.filterByAssignees = false;
+                activity.selectedAssigneeIds = [];
+                assigneeFilterMenu.selectedAssigneeIds = [];
+                Global.clearAssigneeFilter();
+                
+                console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
+            }
 
-            // Update the AssigneeFilterMenu to reflect cleared state
-            assigneeFilterMenu.selectedAssigneeIds = [];
-
-            // Clear global assignee filter state to prevent restoration
-            Global.clearAssigneeFilter();
-            console.log("Activity_Page: Cleared global assignee filter on page visibility");
+            // Update navigation tracking
+            Global.setLastVisitedPage("Activity_Page");
 
             get_activity_list();
         }
