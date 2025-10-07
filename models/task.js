@@ -1938,3 +1938,98 @@ function getAllTaskAssignees(accountId) {
     
     return assignees;
 }
+
+/**
+ * Gets all task stages (types) for a specific project and account
+ * Returns all active stages for the account (both global and project-specific)
+ * @param {number} projectOdooRecordId - The odoo_record_id of the project
+ * @param {number} accountId - The account ID
+ * @returns {Array} Array of stage objects with id, odoo_record_id, name, sequence, fold
+ */
+function getTaskStagesForProject(projectOdooRecordId, accountId) {
+    var stages = [];
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function (tx) {
+            // Get all active stages for this account
+            // Note: is_global flag indicates if stage is available to all projects (1) or specific projects (0)
+            // We fetch all active stages regardless of is_global flag to ensure all applicable stages are shown
+            var result = tx.executeSql(
+                'SELECT id, odoo_record_id, name, sequence, fold, description, is_global \
+                 FROM project_task_type_app \
+                 WHERE account_id = ? AND active = 1 \
+                 ORDER BY sequence ASC, name COLLATE NOCASE ASC',
+                [accountId]
+            );
+            
+            console.log("Found " + result.rows.length + " stages for account " + accountId);
+            
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                console.log("  Stage: " + row.name + " (seq: " + row.sequence + ", global: " + row.is_global + ")");
+                stages.push({
+                    id: row.id,
+                    odoo_record_id: row.odoo_record_id,
+                    name: row.name,
+                    sequence: row.sequence,
+                    fold: row.fold,
+                    description: row.description || "",
+                    is_global: row.is_global
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getTaskStagesForProject failed:", e);
+    }
+    
+    return stages;
+}
+
+/**
+ * Updates the stage of a task
+ * @param {number} taskId - The local ID of the task
+ * @param {number} stageOdooRecordId - The odoo_record_id of the new stage
+ * @param {number} accountId - The account ID
+ * @returns {Object} Success/error result
+ */
+function updateTaskStage(taskId, stageOdooRecordId, accountId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var timestamp = Utils.getFormattedTimestampUTC();
+        
+        db.transaction(function (tx) {
+            // Verify the task exists and belongs to the account
+            var taskCheck = tx.executeSql(
+                'SELECT id FROM project_task_app WHERE id = ? AND account_id = ?',
+                [taskId, accountId]
+            );
+            
+            if (taskCheck.rows.length === 0) {
+                throw "Task not found or does not belong to this account";
+            }
+            
+            // Verify the stage exists and belongs to the account
+            var stageCheck = tx.executeSql(
+                'SELECT id FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ?',
+                [stageOdooRecordId, accountId]
+            );
+            
+            if (stageCheck.rows.length === 0) {
+                throw "Stage not found or does not belong to this account";
+            }
+            
+            // Update the task's stage
+            tx.executeSql(
+                'UPDATE project_task_app SET state = ?, last_modified = ?, status = ? WHERE id = ?',
+                [stageOdooRecordId, timestamp, "updated", taskId]
+            );
+        });
+        
+        return { success: true };
+    } catch (e) {
+        console.error("updateTaskStage failed:", e);
+        return { success: false, error: e.message || e };
+    }
+}
