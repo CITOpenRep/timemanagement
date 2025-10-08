@@ -1949,26 +1949,42 @@ function getAllTaskAssignees(accountId) {
 function getTaskStagesForProject(projectOdooRecordId, accountId) {
     var stages = [];
     
+    console.log("🔍 getTaskStagesForProject called with projectOdooRecordId:", projectOdooRecordId, "accountId:", accountId);
+    
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         
         db.transaction(function (tx) {
-            // Get all active stages for this account
-            // Note: is_global flag indicates if stage is available to all projects (1) or specific projects (0)
-            // We fetch all active stages regardless of is_global flag to ensure all applicable stages are shown
+            // Get all active PROJECT stages for this account
+            // Filter out personal stages which have empty is_global
+            // Personal stages have is_global stored as '[]' (empty array from Odoo)
+            // Project stages either:
+            //   1. Have is_global = 1 (available to all projects)
+            //   2. Have is_global containing project IDs like "3,4,5" (specific to certain projects)
+            // Personal user stages have is_global = NULL, empty string, or '[]' and should be excluded
             var result = tx.executeSql(
                 'SELECT id, odoo_record_id, name, sequence, fold, description, is_global \
                  FROM project_task_type_app \
                  WHERE account_id = ? AND active = 1 \
+                 AND (is_global IS NOT NULL AND is_global != "" AND is_global != "[]") \
                  ORDER BY sequence ASC, name COLLATE NOCASE ASC',
                 [accountId]
             );
             
-            console.log("Found " + result.rows.length + " stages for account " + accountId);
+            console.log("🔍 getTaskStagesForProject: Found " + result.rows.length + " PROJECT stages for account " + accountId + " (personal stages filtered out)");
+            
+            if (result.rows.length === 0) {
+                console.warn("⚠️ No PROJECT task stages found for account " + accountId + ". This might indicate:");
+                console.warn("   1. No project stages synced from Odoo yet (only personal stages exist)");
+                console.warn("   2. All project stages are marked as inactive");
+                console.warn("   3. Account ID mismatch");
+            }
             
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                console.log("  Stage: " + row.name + " (seq: " + row.sequence + ", global: " + row.is_global + ")");
+                var isGlobalValue = row.is_global;
+                var isGlobalType = typeof isGlobalValue;
+                console.log("  📌 Stage " + (i + 1) + ": '" + row.name + "' (odoo_record_id: " + row.odoo_record_id + ", seq: " + row.sequence + ", is_global: '" + isGlobalValue + "' [" + isGlobalType + "], fold: " + row.fold + ")");
                 stages.push({
                     id: row.id,
                     odoo_record_id: row.odoo_record_id,
