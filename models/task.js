@@ -82,26 +82,28 @@ function saveOrUpdateTask(data) {
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
                     account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority = ?, description = ?, user_id = ?, sub_project_id = ?, \
-                    start_date = ?, end_date = ?, deadline = ?, last_modified = ?, status = ? WHERE id = ?',
+                    start_date = ?, end_date = ?, deadline = ?, state = ?, last_modified = ?, status = ? WHERE id = ?',
                               [
                                   data.accountId, data.name, finalProjectId,
                                   resolvedParentId, data.plannedHours, data.priority,
                                   data.description, userIdValue, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
+                                  data.stageOdooRecordId || null,
                                   timestamp, data.status, data.record_id
                               ]
                               );
                               
             } else {
                 // INSERT
-                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, last_modified, status) \
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
                                   data.deadline, data.priority, data.plannedHours,
                                   data.description, userIdValue,
-                                  data.subProjectId, timestamp, data.status
+                                  data.subProjectId, data.stageOdooRecordId || null,
+                                  timestamp, data.status
                               ]
                               );
                               
