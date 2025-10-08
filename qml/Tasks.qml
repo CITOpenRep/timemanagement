@@ -552,6 +552,7 @@ Page {
         // Current Stage Display Row
         Row {
             id: currentStageRow
+            visible: recordid !== 0
             anchors.top: myRow9.bottom
             anchors.left: parent.left
             anchors.right: parent.right
