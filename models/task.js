@@ -82,26 +82,28 @@ function saveOrUpdateTask(data) {
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
                     account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority = ?, description = ?, user_id = ?, sub_project_id = ?, \
-                    start_date = ?, end_date = ?, deadline = ?, last_modified = ?, status = ? WHERE id = ?',
+                    start_date = ?, end_date = ?, deadline = ?, state = ?, last_modified = ?, status = ? WHERE id = ?',
                               [
                                   data.accountId, data.name, finalProjectId,
                                   resolvedParentId, data.plannedHours, data.priority,
                                   data.description, userIdValue, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
+                                  data.stageOdooRecordId || null,
                                   timestamp, data.status, data.record_id
                               ]
                               );
                               
             } else {
                 // INSERT
-                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, last_modified, status) \
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, last_modified, status) \
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
                                   data.deadline, data.priority, data.plannedHours,
                                   data.description, userIdValue,
-                                  data.subProjectId, timestamp, data.status
+                                  data.subProjectId, data.stageOdooRecordId || null,
+                                  timestamp, data.status
                               ]
                               );
                               
@@ -1937,4 +1939,178 @@ function getAllTaskAssignees(accountId) {
     }
     
     return assignees;
+}
+
+/**
+ * Gets all task stages (types) for a specific project and account
+ * Returns all active stages for the account (both global and project-specific)
+ * @param {number} projectOdooRecordId - The odoo_record_id of the project
+ * @param {number} accountId - The account ID
+ * @returns {Array} Array of stage objects with id, odoo_record_id, name, sequence, fold
+ */
+function getTaskStagesForProject(projectOdooRecordId, accountId) {
+    var stages = [];
+    
+    console.log("🔍 getTaskStagesForProject called with projectOdooRecordId:", projectOdooRecordId, "accountId:", accountId);
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function (tx) {
+            // Get all active PROJECT stages for this account
+            // Filter out personal stages which have empty is_global
+            // Personal stages have is_global stored as '[]' (empty array from Odoo)
+            // Project stages either:
+            //   1. Have is_global = 1 (available to all projects)
+            //   2. Have is_global containing project IDs like "3,4,5" (specific to certain projects)
+            // Personal user stages have is_global = NULL, empty string, or '[]' and should be excluded
+            var result = tx.executeSql(
+                'SELECT id, odoo_record_id, name, sequence, fold, description, is_global \
+                 FROM project_task_type_app \
+                 WHERE account_id = ? AND active = 1 \
+                 AND (is_global IS NOT NULL AND is_global != "" AND is_global != "[]") \
+                 ORDER BY sequence ASC, name COLLATE NOCASE ASC',
+                [accountId]
+            );
+            
+            console.log("🔍 getTaskStagesForProject: Found " + result.rows.length + " PROJECT stages for account " + accountId + " (before project filter)");
+            
+            // Filter stages to show only:
+            // 1. Global stages (is_global = 1 or is_global = "1" - available to ALL projects)
+            // 2. Stages specific to this project (is_global contains the projectOdooRecordId)
+            // 
+            // IMPORTANT: In Odoo's project.task.type model:
+            // - If project_ids field is EMPTY (False/null), the stage is available to ALL projects
+            // - If project_ids contains specific IDs, the stage is only available to those projects
+            // - The personal_stage_type_ids are different and have is_global = '[]'
+            //
+            // However, when syncing from Odoo:
+            // - Empty project_ids might come as NULL, empty string, or the number 1
+            // - Specific project_ids come as comma-separated string like "3,4,5"
+            // - We already filtered out personal stages (is_global = '[]')
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                var isGlobalValue = row.is_global;
+                var isGlobalType = typeof isGlobalValue;
+                
+                // Skip the "Internal" stage - it should not be shown to users
+                if (row.name === "Internal") {
+                    console.log("  ⊗ Stage 'Internal' is HIDDEN (excluded by filter)");
+                    continue;
+                }
+                
+                // Convert to string for comparison
+                var isGlobalStr = String(isGlobalValue);
+                
+                // Check if this stage is available for this project
+                var isAvailable = false;
+                
+                // Check if it's a global stage (available to all projects)
+                // Global stages have is_global = 1 (number) or "1" (string) or might be empty/NULL
+                // Since we're checking stages that passed the SQL filter (is_global IS NOT NULL AND != "" AND != "[]")
+                // If is_global = 1, it's definitely global
+                if (isGlobalValue === 1 || isGlobalStr === "1") {
+                    // Global stage - available to all projects
+                    isAvailable = true;
+                    console.log("  ✓ Stage '" + row.name + "' is GLOBAL (is_global: " + isGlobalValue + " [" + isGlobalType + "])");
+                } else if (isGlobalStr.indexOf(",") !== -1) {
+                    // Project-specific stage - check if this project is in the comma-separated list
+                    var projectIds = isGlobalStr.split(",");
+                    var projectIdStr = String(projectOdooRecordId);
+                    
+                    for (var j = 0; j < projectIds.length; j++) {
+                        if (projectIds[j].trim() === projectIdStr) {
+                            isAvailable = true;
+                            break;
+                        }
+                    }
+                    
+                    if (isAvailable) {
+                        console.log("  ✓ Stage '" + row.name + "' is available for project " + projectOdooRecordId + " (is_global: '" + isGlobalValue + "' contains project ID)");
+                    } else {
+                        console.log("  ✗ Stage '" + row.name + "' NOT available for project " + projectOdooRecordId + " (is_global: '" + isGlobalValue + "' does not contain project ID)");
+                    }
+                } else {
+                    // Could be a single project ID (no comma) - check if it matches
+                    if (isGlobalStr === String(projectOdooRecordId)) {
+                        isAvailable = true;
+                        console.log("  ✓ Stage '" + row.name + "' is available ONLY for project " + projectOdooRecordId + " (is_global: '" + isGlobalValue + "')");
+                    } else {
+                        // This stage is for a different single project
+                        console.log("  ✗ Stage '" + row.name + "' is for a DIFFERENT project (is_global: '" + isGlobalValue + "', need: " + projectOdooRecordId + ")");
+                    }
+                }
+                
+                if (isAvailable) {
+                    stages.push({
+                        id: row.id,
+                        odoo_record_id: row.odoo_record_id,
+                        name: row.name,
+                        sequence: row.sequence,
+                        fold: row.fold,
+                        description: row.description || "",
+                        is_global: row.is_global
+                    });
+                }
+            }
+            
+            console.log("🔍 getTaskStagesForProject: " + stages.length + " stages available for project " + projectOdooRecordId);
+            
+            if (stages.length === 0) {
+                console.warn("⚠️ No stages available for project " + projectOdooRecordId + " in account " + accountId);
+                console.warn("   This might indicate the project has no assigned stages in Odoo");
+            }
+        });
+    } catch (e) {
+        console.error("getTaskStagesForProject failed:", e);
+    }
+    
+    return stages;
+}
+
+/**
+ * Updates the stage of a task
+ * @param {number} taskId - The local ID of the task
+ * @param {number} stageOdooRecordId - The odoo_record_id of the new stage
+ * @param {number} accountId - The account ID
+ * @returns {Object} Success/error result
+ */
+function updateTaskStage(taskId, stageOdooRecordId, accountId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var timestamp = Utils.getFormattedTimestampUTC();
+        
+        db.transaction(function (tx) {
+            // Verify the task exists and belongs to the account
+            var taskCheck = tx.executeSql(
+                'SELECT id FROM project_task_app WHERE id = ? AND account_id = ?',
+                [taskId, accountId]
+            );
+            
+            if (taskCheck.rows.length === 0) {
+                throw "Task not found or does not belong to this account";
+            }
+            
+            // Verify the stage exists and belongs to the account
+            var stageCheck = tx.executeSql(
+                'SELECT id FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ?',
+                [stageOdooRecordId, accountId]
+            );
+            
+            if (stageCheck.rows.length === 0) {
+                throw "Stage not found or does not belong to this account";
+            }
+            
+            // Update the task's stage
+            tx.executeSql(
+                'UPDATE project_task_app SET state = ?, last_modified = ?, status = ? WHERE id = ?',
+                [stageOdooRecordId, timestamp, "updated", taskId]
+            );
+        });
+        
+        return { success: true };
+    } catch (e) {
+        console.error("updateTaskStage failed:", e);
+        return { success: false, error: e.message || e };
+    }
 }

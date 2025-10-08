@@ -84,6 +84,7 @@ Page {
     property var textkey: ""
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
+    property int selectedStageOdooRecordId: -1 // For storing selected stage during task creation
 
     // Properties for prefilled data when creating task from project
     property var prefilledAccountId: -1
@@ -180,6 +181,11 @@ Page {
                 status: "updated"
             };
 
+            // Add stage if selected (for creation mode)
+            if (recordid === 0 && selectedStageOdooRecordId > 0) {
+                saveData.stageOdooRecordId = selectedStageOdooRecordId;
+            }
+
             // Add multiple assignees if enabled
             if (workItem.enableMultipleAssignees && ids.multiple_assignees) {
                 saveData.multipleAssignees = ids.multiple_assignees;
@@ -229,6 +235,68 @@ Page {
         height: units.gu(80)
     }
 
+    Component {
+        id: taskStageSelector
+        TaskStageSelector {
+            onStageSelected: {
+                handleStageChange(stageOdooRecordId, stageName);
+            }
+        }
+    }
+
+    function handleStageChange(stageOdooRecordId, stageName) {
+        if (!currentTask || !currentTask.id) {
+            notifPopup.open("Error", "Task data not available", "error");
+            return;
+        }
+
+        var result = Task.updateTaskStage(currentTask.id, stageOdooRecordId, currentTask.account_id);
+        
+        if (result.success) {
+            // Update the current task's stage
+            currentTask.state = stageOdooRecordId;
+            
+            // Reload the task to reflect changes
+            loadTask();
+            
+            notifPopup.open("Success", "Task stage changed to: " + stageName, "success");
+        } else {
+            notifPopup.open("Error", "Failed to change stage: " + (result.error || "Unknown error"), "error");
+        }
+    }
+
+    function loadStagesForProject(projectOdooRecordId, accountId) {
+        console.log("Loading stages for project:", projectOdooRecordId, "account:", accountId);
+        
+        if (projectOdooRecordId <= 0 || accountId <= 0) {
+            stageListModel.clear();
+            stageComboBox.currentIndex = -1;
+            return;
+        }
+        
+        var stages = Task.getTaskStagesForProject(projectOdooRecordId, accountId);
+        stageListModel.clear();
+        
+        for (var i = 0; i < stages.length; i++) {
+            stageListModel.append({
+                odoo_record_id: stages[i].odoo_record_id,
+                name: stages[i].name,
+                sequence: stages[i].sequence,
+                fold: stages[i].fold
+            });
+        }
+        
+        // Select first stage by default if available
+        if (stageListModel.count > 0) {
+            stageComboBox.currentIndex = 0;
+        } else {
+            stageComboBox.currentIndex = -1;
+            selectedStageOdooRecordId = -1;
+        }
+        
+        console.log("Loaded", stageListModel.count, "stages for project");
+    }
+
     Flickable {
         id: tasksDetailsPageFlickable
         anchors.topMargin: units.gu(6)
@@ -259,6 +327,20 @@ Page {
                     showSubTaskSelector: false
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(10)
+                    
+                    // Monitor project and account changes to reload stages
+                    onStateChanged: {
+                        if (recordid === 0) { // Only in creation mode
+                            // Reload stages when account or project is selected
+                            if (newState === "AccountSelected" || newState === "ProjectSelected" || newState === "SubprojectSelected") {
+                                var ids = workItem.getIds();
+                                if (ids.project_id > 0 && ids.account_id > 0) {
+                                    console.log("WorkItemSelector state changed:", newState, "- Reloading stages");
+                                    loadStagesForProject(ids.project_id, ids.account_id);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -380,9 +462,62 @@ Page {
             }
         }
 
+        // Stage Selector Row (for creation mode only)
+        Row {
+            id: stageRow
+            anchors.top: priorityRow.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            height: units.gu(6)
+            spacing: units.gu(2)
+            topPadding: units.gu(1)
+            visible: recordid === 0 // Only show when creating new task
+
+            TSLabel {
+                text: "Initial Stage"
+                width: parent.width * 0.25
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            ComboBox {
+                id: stageComboBox
+                width: parent.width * 0.65
+                height: units.gu(5)
+                anchors.verticalCenter: parent.verticalCenter
+                enabled: !isReadOnly
+                displayText: currentIndex >= 0 ? model.get(currentIndex).name : "Select Stage"
+                
+                model: ListModel {
+                    id: stageListModel
+                }
+                
+                delegate: ItemDelegate {
+                    width: stageComboBox.width
+                    contentItem: Text {
+                        text: model.name
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                        font: stageComboBox.font
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    highlighted: stageComboBox.highlightedIndex === index
+                }
+                
+                onCurrentIndexChanged: {
+                    if (currentIndex >= 0) {
+                        var stage = stageListModel.get(currentIndex);
+                        taskCreate.selectedStageOdooRecordId = stage.odoo_record_id;
+                        console.log("Selected stage:", stage.name, "with odoo_record_id:", stage.odoo_record_id);
+                    }
+                }
+            }
+        }
+
         Row {
             id: myRow9
-            anchors.top: priorityRow.bottom
+            anchors.top: (recordid === 0) ? stageRow.bottom : priorityRow.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             topPadding: units.gu(3)
@@ -414,16 +549,56 @@ Page {
             }
         }
 
+        // Current Stage Display Row
         Row {
-            id: myRow82
+            id: currentStageRow
+            visible: recordid !== 0
             anchors.top: myRow9.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
+            topPadding: units.gu(1)
+            
+            TSLabel {
+                text: "Current Stage:"
+                width: parent.width * 0.25
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            
+            Label {
+                text: currentTask && currentTask.state ? Task.getTaskStageName(currentTask.state) : "Not set"
+                width: parent.width * 0.75
+                font.pixelSize: units.gu(2)
+                font.bold: true
+                color: {
+                    if (!currentTask || !currentTask.state) {
+                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
+                    }
+                    var stageName = Task.getTaskStageName(currentTask.state).toLowerCase();
+                    if (stageName === "completed" || stageName === "finished" || stageName === "closed" || 
+                        stageName === "verified" || stageName === "done") {
+                        return "green";
+                    }
+                    return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black";
+                }
+                anchors.verticalCenter: parent.verticalCenter
+                wrapMode: Text.WordWrap
+            }
+        }
+
+        Row {
+            id: myRow82
+            anchors.top: currentStageRow.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(1)
+            
             TSButton {
                 visible: recordid !== 0
-                width: parent.width / 2
+                width: (parent.width - units.gu(1)) / 2
                 text: "Create Activity"
                 onClicked: {
                     let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
@@ -436,6 +611,26 @@ Page {
                     } else {
                         notifPopup.open("Failed", "Unable to create activity", "error");
                     }
+                }
+            }
+            
+            TSButton {
+                visible: recordid !== 0
+                width: (parent.width - units.gu(1)) / 2
+                text: "Change Stage"
+                onClicked: {
+                    if (!currentTask || !currentTask.id) {
+                        notifPopup.open("Error", "Task data not available", "error");
+                        return;
+                    }
+                    
+                    // Open the stage selector dialog with parameters
+                    var dialog = PopupUtils.open(taskStageSelector, taskCreate, {
+                        taskId: currentTask.id,
+                        projectOdooRecordId: currentTask.project_id,
+                        accountId: currentTask.account_id,
+                        currentStageOdooRecordId: currentTask.state || -1
+                    });
                 }
             }
         }
