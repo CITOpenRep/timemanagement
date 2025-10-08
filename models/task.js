@@ -1991,6 +1991,12 @@ function getTaskStagesForProject(projectOdooRecordId, accountId) {
                 var isGlobalValue = row.is_global;
                 var isGlobalType = typeof isGlobalValue;
                 
+                // Skip the "Internal" stage - it should not be shown to users
+                if (row.name === "Internal") {
+                    console.log("  ⊗ Stage 'Internal' is HIDDEN (excluded by filter)");
+                    continue;
+                }
+                
                 // Convert to string for comparison
                 var isGlobalStr = String(isGlobalValue);
                 
