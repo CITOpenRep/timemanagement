@@ -168,14 +168,14 @@ Dialog {
                                 width: parent.width
                             }
                             
-                            Label {
-                                text: model.description || "No description"
-                                font.pixelSize: units.gu(1.4)
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#999" : "#666"
-                                wrapMode: Text.WordWrap
-                                width: parent.width
-                                visible: model.description !== ""
-                            }
+                            // Label {
+                            //     text: model.description || "No description"
+                            //     font.pixelSize: units.gu(1.4)
+                            //     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#999" : "#666"
+                            //     wrapMode: Text.WordWrap
+                            //     width: parent.width
+                            //     visible: model.description !== ""
+                            // }
                             
                             Label {
                                 text: model.fold === 1 ? "(Folded/Closed Stage)" : ""
