@@ -87,16 +87,57 @@ Page {
         var accountId = myTasksList.selectedAccountId;
         if (typeof accountId === "undefined" || accountId === null)
             accountId = -1;
+        
+        // CRITICAL FIX: MyTasks doesn't support "All Accounts" (-1)
+        // Force to default account if -1
+        if (accountId < 0) {
+            accountId = Account.getDefaultAccountId();
+            myTasksList.selectedAccountId = accountId;
+            console.log("⚠️ MyTasks: Forced account from -1 to default account:", accountId);
+        }
 
         currentAccountId = accountId;
 
+        console.log("🔍 MyTasks: updateCurrentUser called with accountId:", accountId);
+
         if (accountId >= 0) {
             currentUserOdooId = Account.getCurrentUserOdooId(accountId);
-            console.log("MyTasks: Current user odoo_record_id for account", accountId, "is", currentUserOdooId);
+            console.log("✅ MyTasks: Current user odoo_record_id for account", accountId, "is", currentUserOdooId);
+            
+            if (currentUserOdooId && currentUserOdooId > 0) {
+                console.log("✅ MyTasks: Setting up assignee filter with user ID:", currentUserOdooId);
+                
+                // DIAGNOSTIC: Check if any tasks have this assignee
+                var allTasks = Task.getTasksForAccount(accountId);
+                var matchingTasks = 0;
+                for (var i = 0; i < allTasks.length; i++) {
+                    var task = allTasks[i];
+                    if (task.user_id) {
+                        var taskUserIds = task.user_id.toString().split(',').map(function(id) {
+                            return parseInt(id.trim());
+                        });
+                        if (taskUserIds.indexOf(currentUserOdooId) >= 0) {
+                            matchingTasks++;
+                        }
+                    }
+                }
+                console.log("🔎 DIAGNOSTIC: Found", matchingTasks, "tasks out of", allTasks.length, "total tasks assigned to user", currentUserOdooId);
+                
+                if (matchingTasks === 0 && allTasks.length > 0) {
+                    console.warn("⚠️ WARNING: No tasks found for current user! This might indicate a user ID mismatch.");
+                    console.warn("⚠️ User ID we're looking for:", currentUserOdooId);
+                    console.warn("⚠️ Sample task user_ids from first few tasks:");
+                    for (var j = 0; j < Math.min(3, allTasks.length); j++) {
+                        console.warn("   Task '" + allTasks[j].name + "' has user_id:", allTasks[j].user_id);
+                    }
+                }
+            } else {
+                console.warn("⚠️ MyTasks: getCurrentUserOdooId returned invalid ID:", currentUserOdooId);
+            }
         } else {
             // For "All Accounts", we'll need to get users from all accounts
             currentUserOdooId = -1;
-            console.log("MyTasks: All accounts selected, will filter by all current users");
+            console.log("ℹ️ MyTasks: All accounts selected, will filter by all current users");
         }
     }
 
@@ -127,6 +168,7 @@ Page {
         currentFilter: myTasksPage.currentFilter
 
         onFilterSelected: {
+            console.log("🔔 MyTasks: Filter selected -", filterKey);
             myTasksPage.currentFilter = filterKey;
             
             // Update current user before applying filter
@@ -134,17 +176,25 @@ Page {
             
             // Set up assignee filtering for current user
             if (currentUserOdooId > 0) {
+                console.log("✅ MyTasks: Applying assignee filter with user ID:", currentUserOdooId);
                 myTasksList.filterByAssignees = true;
                 myTasksList.selectedAssigneeIds = [currentUserOdooId];
+                console.log("✅ MyTasks: TaskList.filterByAssignees =", myTasksList.filterByAssignees);
+                console.log("✅ MyTasks: TaskList.selectedAssigneeIds =", JSON.stringify(myTasksList.selectedAssigneeIds));
             } else if (currentAccountId >= 0) {
                 // For specific account, filter by that account's current user
                 var userOdooId = Account.getCurrentUserOdooId(currentAccountId);
+                console.log("🔍 MyTasks: Fallback - Got userOdooId:", userOdooId);
                 if (userOdooId > 0) {
+                    console.log("✅ MyTasks: Applying assignee filter with fallback user ID:", userOdooId);
                     myTasksList.filterByAssignees = true;
                     myTasksList.selectedAssigneeIds = [userOdooId];
                 }
+            } else {
+                console.warn("⚠️ MyTasks: No valid user ID found for filtering!");
             }
             
+            console.log("📋 MyTasks: About to apply filter:", filterKey);
             myTasksList.applyFilter(filterKey);
         }
 
@@ -300,6 +350,12 @@ Page {
             } catch (e) {
                 idNum = -1;
             }
+            
+            // CRITICAL FIX: If "All Accounts" selected, use default account instead
+            if (idNum < 0) {
+                idNum = Account.getDefaultAccountId();
+                console.log("⚠️ MyTasks: Account changed to 'All Accounts', forcing to default account:", idNum);
+            }
 
             myTasksList.selectedAccountId = idNum;
             
@@ -337,6 +393,13 @@ Page {
                 var maybe = Number(accountId);
                 acctNum = isNaN(maybe) ? -1 : maybe;
             }
+            
+            // CRITICAL FIX: If "All Accounts" selected, use default account instead
+            if (acctNum < 0) {
+                acctNum = Account.getDefaultAccountId();
+                console.log("⚠️ MyTasks: GlobalAccountChanged to 'All Accounts', forcing to default account:", acctNum);
+            }
+            
             myTasksList.selectedAccountId = acctNum;
 
             // Update current user for the new account
@@ -393,6 +456,8 @@ Page {
 
     Component.onCompleted: {
         // Determine initial account selection from accountFilter
+        // CRITICAL: MyTasks MUST have a specific account selected, not "All Accounts" (-1)
+        // because we need to know which user is logged in to that account
         try {
             var initialAccountNum = -1;
             if (typeof accountFilter !== "undefined" && accountFilter !== null) {
@@ -414,14 +479,26 @@ Page {
             } else {
                 initialAccountNum = -1;
             }
+            
+            // CRITICAL FIX: If "All Accounts" (-1) is selected, default to the default account
+            // because MyTasks requires knowing the logged-in user
+            if (initialAccountNum < 0) {
+                initialAccountNum = Account.getDefaultAccountId();
+                console.log("⚠️ MyTasks: 'All Accounts' not supported, defaulting to account:", initialAccountNum);
+            }
 
             console.log("MyTasks initial account selection (numeric):", initialAccountNum);
             myTasksList.selectedAccountId = initialAccountNum;
         } catch (e) {
             console.error("MyTasks: error determining initial account:", e);
-            myTasksList.selectedAccountId = -1;
+            // Fallback to default account instead of -1
+            var fallbackAccountId = Account.getDefaultAccountId();
+            console.log("⚠️ MyTasks: Error occurred, falling back to default account:", fallbackAccountId);
+            myTasksList.selectedAccountId = fallbackAccountId >= 0 ? fallbackAccountId : 0;
         }
 
+        console.log("🚀 MyTasks: Component.onCompleted - Initial setup");
+        
         // Get current user and set up filtering
         updateCurrentUser();
         
@@ -429,17 +506,25 @@ Page {
         if (currentUserOdooId > 0) {
             myTasksList.filterByAssignees = true;
             myTasksList.selectedAssigneeIds = [currentUserOdooId];
-            console.log("MyTasks: Filtering by current user:", currentUserOdooId);
+            console.log("✅ MyTasks: Component.onCompleted - Filtering by current user:", currentUserOdooId);
+            console.log("✅ MyTasks: Component.onCompleted - TaskList.filterByAssignees =", myTasksList.filterByAssignees);
+            console.log("✅ MyTasks: Component.onCompleted - TaskList.selectedAssigneeIds =", JSON.stringify(myTasksList.selectedAssigneeIds));
         } else if (currentAccountId >= 0) {
             var userOdooId = Account.getCurrentUserOdooId(currentAccountId);
+            console.log("🔍 MyTasks: Component.onCompleted - Fallback userOdooId:", userOdooId);
             if (userOdooId > 0) {
                 myTasksList.filterByAssignees = true;
                 myTasksList.selectedAssigneeIds = [userOdooId];
-                console.log("MyTasks: Filtering by current user:", userOdooId);
+                console.log("✅ MyTasks: Component.onCompleted - Filtering by current user (fallback):", userOdooId);
+            } else {
+                console.warn("⚠️ MyTasks: Component.onCompleted - No valid user ID found!");
             }
+        } else {
+            console.warn("⚠️ MyTasks: Component.onCompleted - currentAccountId is invalid:", currentAccountId);
         }
         
         // Apply initial filter
+        console.log("📋 MyTasks: Component.onCompleted - Applying initial filter:", currentFilter);
         myTasksList.applyFilter(currentFilter);
     }
 }
