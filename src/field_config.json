@@ -24,6 +24,7 @@
         "date_deadline": "deadline",
         "planned_hours": "initial_planned_hours",
         "stage_id":"state",
+        "personal_stage_id": "personal_stage",
         "priority": "priority",
         "description": "description",
         "write_date": "last_modified",

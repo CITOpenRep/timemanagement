@@ -82,27 +82,29 @@ function saveOrUpdateTask(data) {
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
                     account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority = ?, description = ?, user_id = ?, sub_project_id = ?, \
-                    start_date = ?, end_date = ?, deadline = ?, state = ?, last_modified = ?, status = ? WHERE id = ?',
+                    start_date = ?, end_date = ?, deadline = ?, state = ?, personal_stage = ?, last_modified = ?, status = ? WHERE id = ?',
                               [
                                   data.accountId, data.name, finalProjectId,
                                   resolvedParentId, data.plannedHours, data.priority,
                                   data.description, userIdValue, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
                                   data.stageOdooRecordId || null,
+                                  data.personalStageOdooRecordId || null,
                                   timestamp, data.status, data.record_id
                               ]
                               );
                               
             } else {
                 // INSERT
-                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, last_modified, status) \
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, personal_stage, last_modified, status) \
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
                                   data.deadline, data.priority, data.plannedHours,
                                   data.description, userIdValue,
                                   data.subProjectId, data.stageOdooRecordId || null,
+                                  data.personalStageOdooRecordId || null,
                                   timestamp, data.status
                               ]
                               );
@@ -804,6 +806,7 @@ function getTaskDetails(task_id) {
                     initial_planned_hours: row.initial_planned_hours || 0,  // Ensure it's not null/undefined
                     priority :row.priority,
                     state: row.state || "",
+                    personal_stage: row.personal_stage || null,
                     description: row.description || "",
                     last_modified: row.last_modified,
                     user_id: row.user_id,
@@ -2111,6 +2114,96 @@ function updateTaskStage(taskId, stageOdooRecordId, accountId) {
         return { success: true };
     } catch (e) {
         console.error("updateTaskStage failed:", e);
+        return { success: false, error: e.message || e };
+    }
+}
+
+/**
+ * Gets personal stages for a specific user
+ * Personal stages are identified by is_global = '[]' (empty array)
+ * @param {number} userId - The odoo_record_id of the user from res_users_app
+ * @param {number} accountId - The account ID
+ * @returns {Array} Array of personal stage objects
+ */
+function getPersonalStagesForUser(userId, accountId) {
+    var personalStages = [];
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function (tx) {
+            var result = tx.executeSql(
+                'SELECT odoo_record_id, name, sequence, fold ' +
+                'FROM project_task_type_app ' +
+                'WHERE account_id = ? AND is_global = ? ' +
+                'ORDER BY sequence, name',
+                [accountId, '[]']  // Empty array indicates personal stage
+            );
+            
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                personalStages.push({
+                    odoo_record_id: row.odoo_record_id,
+                    name: row.name,
+                    sequence: row.sequence,
+                    fold: row.fold
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getPersonalStagesForUser failed:", e);
+    }
+    
+    return personalStages;
+}
+
+/**
+ * Updates the personal stage of a task
+ * Personal stage is independent from regular stage
+ * @param {number} taskId - The local ID of the task
+ * @param {number} personalStageOdooRecordId - The odoo_record_id of the new personal stage (can be null to clear)
+ * @param {number} accountId - The account ID
+ * @returns {Object} Success/error result
+ */
+function updateTaskPersonalStage(taskId, personalStageOdooRecordId, accountId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var timestamp = Utils.getFormattedTimestampUTC();
+        
+        db.transaction(function (tx) {
+            // Verify the task exists and belongs to the account
+            var taskCheck = tx.executeSql(
+                'SELECT id FROM project_task_app WHERE id = ? AND account_id = ?',
+                [taskId, accountId]
+            );
+            
+            if (taskCheck.rows.length === 0) {
+                throw "Task not found or does not belong to this account";
+            }
+            
+            // If personalStageOdooRecordId is provided, verify it exists and is a personal stage
+            if (personalStageOdooRecordId !== null && personalStageOdooRecordId !== undefined) {
+                var stageCheck = tx.executeSql(
+                    'SELECT odoo_record_id FROM project_task_type_app ' +
+                    'WHERE odoo_record_id = ? AND account_id = ? AND is_global = ?',
+                    [personalStageOdooRecordId, accountId, '[]']
+                );
+                
+                if (stageCheck.rows.length === 0) {
+                    throw "Personal stage not found or does not belong to this account";
+                }
+            }
+            
+            // Update the task's personal stage
+            tx.executeSql(
+                'UPDATE project_task_app SET personal_stage = ?, last_modified = ?, status = ? WHERE id = ?',
+                [personalStageOdooRecordId, timestamp, "updated", taskId]
+            );
+        });
+        
+        return { success: true };
+    } catch (e) {
+        console.error("updateTaskPersonalStage failed:", e);
         return { success: false, error: e.message || e };
     }
 }
