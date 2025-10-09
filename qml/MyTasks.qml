@@ -76,29 +76,15 @@ Page {
 
     // Properties for current user filtering
     property int currentUserOdooId: -1
-    property int currentAccountId: -1
+    property int defaultAccountId: Account.getDefaultAccountId()
 
-    // Use variant so we can hold number or string temporarily, but we will always set numeric values
-    property variant selectedAccountId: -1
-    property variant defaultAccountId: Account.getDefaultAccountId()
-
-    // Function to get current user's odoo_record_id for the selected account
+    // Function to get current user's odoo_record_id for the DEFAULT account
+    // MyTasks ALWAYS uses the default account set in Settings page
     function updateCurrentUser() {
-        var accountId = myTasksList.selectedAccountId;
-        if (typeof accountId === "undefined" || accountId === null)
-            accountId = -1;
+        // ALWAYS use the default account from Settings
+        var accountId = Account.getDefaultAccountId();
         
-        // CRITICAL FIX: MyTasks doesn't support "All Accounts" (-1)
-        // Force to default account if -1
-        if (accountId < 0) {
-            accountId = Account.getDefaultAccountId();
-            myTasksList.selectedAccountId = accountId;
-            console.log("⚠️ MyTasks: Forced account from -1 to default account:", accountId);
-        }
-
-        currentAccountId = accountId;
-
-        console.log("🔍 MyTasks: updateCurrentUser called with accountId:", accountId);
+        console.log("🔍 MyTasks: Using DEFAULT account from Settings:", accountId);
 
         if (accountId >= 0) {
             currentUserOdooId = Account.getCurrentUserOdooId(accountId);
@@ -234,8 +220,9 @@ Page {
             anchors.fill: parent
             clip: true
 
-            filterByAccount: true
-            selectedAccountId: -1
+            // MyTasks does NOT filter by account selection
+            // It ALWAYS uses the default account set in Settings
+            filterByAccount: false
             
             // Enable assignee filtering to show only current user's tasks
             filterByAssignees: true
@@ -320,61 +307,9 @@ Page {
             // Update navigation tracking
             Global.setLastVisitedPage("MyTasks");
 
-            if (currentSearchQuery) {
-                // Reapply search if there was one
-                updateCurrentUser();
-                myTasksList.searchTasks(currentSearchQuery);
-            } else {
-                // Reapply current filter
-                updateCurrentUser();
-                myTasksList.applyFilter(currentFilter);
-            }
-        }
-    }
-
-    // Listen for account selector changes
-    Connections {
-        target: accountFilter
-        onAccountChanged: function (accountId, accountName) {
-            console.log("MyTasks: Account filter changed to:", accountName, "ID:", accountId);
-            
-            // Normalize id to number, fallback to -1
-            var idNum = -1;
-            try {
-                if (typeof accountId !== "undefined" && accountId !== null) {
-                    var maybeNum = Number(accountId);
-                    idNum = isNaN(maybeNum) ? -1 : maybeNum;
-                } else {
-                    idNum = -1;
-                }
-            } catch (e) {
-                idNum = -1;
-            }
-            
-            // CRITICAL FIX: If "All Accounts" selected, use default account instead
-            if (idNum < 0) {
-                idNum = Account.getDefaultAccountId();
-                console.log("⚠️ MyTasks: Account changed to 'All Accounts', forcing to default account:", idNum);
-            }
-
-            myTasksList.selectedAccountId = idNum;
-            
-            // Update current user for the new account
+            // Refresh user data and filters when page becomes visible
             updateCurrentUser();
             
-            // Set up assignee filtering for current user
-            if (currentUserOdooId > 0) {
-                myTasksList.filterByAssignees = true;
-                myTasksList.selectedAssigneeIds = [currentUserOdooId];
-            } else if (idNum >= 0) {
-                var userOdooId = Account.getCurrentUserOdooId(idNum);
-                if (userOdooId > 0) {
-                    myTasksList.filterByAssignees = true;
-                    myTasksList.selectedAssigneeIds = [userOdooId];
-                }
-            }
-
-            // Reapply current filter/search
             if (currentSearchQuery) {
                 myTasksList.applySearch(currentSearchQuery);
             } else {
@@ -383,148 +318,31 @@ Page {
         }
     }
 
-    Connections {
-        target: mainView
-        onGlobalAccountChanged: function (accountId, accountName) {
-            console.log("MyTasks: GlobalAccountChanged →", accountId, accountName);
-            
-            var acctNum = -1;
-            if (typeof accountId !== "undefined" && accountId !== null) {
-                var maybe = Number(accountId);
-                acctNum = isNaN(maybe) ? -1 : maybe;
-            }
-            
-            // CRITICAL FIX: If "All Accounts" selected, use default account instead
-            if (acctNum < 0) {
-                acctNum = Account.getDefaultAccountId();
-                console.log("⚠️ MyTasks: GlobalAccountChanged to 'All Accounts', forcing to default account:", acctNum);
-            }
-            
-            myTasksList.selectedAccountId = acctNum;
-
-            // Update current user for the new account
-            updateCurrentUser();
-            
-            // Set up assignee filtering for current user
-            if (currentUserOdooId > 0) {
-                myTasksList.filterByAssignees = true;
-                myTasksList.selectedAssigneeIds = [currentUserOdooId];
-            } else if (acctNum >= 0) {
-                var userOdooId = Account.getCurrentUserOdooId(acctNum);
-                if (userOdooId > 0) {
-                    myTasksList.filterByAssignees = true;
-                    myTasksList.selectedAssigneeIds = [userOdooId];
-                }
-            }
-
-            if (currentSearchQuery) {
-                myTasksList.applySearch(currentSearchQuery);
-            } else {
-                myTasksList.applyFilter(currentFilter);
-            }
-        }
-        onAccountDataRefreshRequested: function (accountId) {
-            var acctNum = -1;
-            if (typeof accountId !== "undefined" && accountId !== null) {
-                var maybe2 = Number(accountId);
-                acctNum = isNaN(maybe2) ? -1 : maybe2;
-            }
-            myTasksList.selectedAccountId = acctNum;
-
-            // Update current user
-            updateCurrentUser();
-            
-            // Set up assignee filtering for current user
-            if (currentUserOdooId > 0) {
-                myTasksList.filterByAssignees = true;
-                myTasksList.selectedAssigneeIds = [currentUserOdooId];
-            } else if (acctNum >= 0) {
-                var userOdooId = Account.getCurrentUserOdooId(acctNum);
-                if (userOdooId > 0) {
-                    myTasksList.filterByAssignees = true;
-                    myTasksList.selectedAssigneeIds = [userOdooId];
-                }
-            }
-
-            if (currentSearchQuery) {
-                myTasksList.applySearch(currentSearchQuery);
-            } else {
-                myTasksList.applyFilter(currentFilter);
-            }
-        }
-    }
+    // MyTasks IGNORES account selector changes
+    // It ALWAYS uses the default account from Settings page
+    // If user wants to see different account's tasks, they should:
+    // 1. Go to Settings page
+    // 2. Set that account as Default
+    // 3. Return to MyTasks
 
     Component.onCompleted: {
-        // Determine initial account selection from accountFilter
-        // CRITICAL: MyTasks MUST have a specific account selected, not "All Accounts" (-1)
-        // because we need to know which user is logged in to that account
-        try {
-            var initialAccountNum = -1;
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    var maybe = Number(accountFilter.selectedAccountId);
-                    initialAccountNum = isNaN(maybe) ? -1 : maybe;
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    var maybe2 = Number(accountFilter.currentAccountId);
-                    initialAccountNum = isNaN(maybe2) ? -1 : maybe2;
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    initialAccountNum = -1;
-                } else {
-                    initialAccountNum = -1;
-                }
-            } else if (typeof Account.getSelectedAccountId === "function") {
-                var acct = Account.getSelectedAccountId();
-                var acctNum = Number(acct);
-                initialAccountNum = (acct !== null && typeof acct !== "undefined" && !isNaN(acctNum)) ? acctNum : -1;
-            } else {
-                initialAccountNum = -1;
-            }
-            
-            // CRITICAL FIX: If "All Accounts" (-1) is selected, default to the default account
-            // because MyTasks requires knowing the logged-in user
-            if (initialAccountNum < 0) {
-                initialAccountNum = Account.getDefaultAccountId();
-                console.log("⚠️ MyTasks: 'All Accounts' not supported, defaulting to account:", initialAccountNum);
-            }
-
-            console.log("MyTasks initial account selection (numeric):", initialAccountNum);
-            myTasksList.selectedAccountId = initialAccountNum;
-        } catch (e) {
-            console.error("MyTasks: error determining initial account:", e);
-            // Fallback to default account instead of -1
-            var fallbackAccountId = Account.getDefaultAccountId();
-            console.log("⚠️ MyTasks: Error occurred, falling back to default account:", fallbackAccountId);
-            myTasksList.selectedAccountId = fallbackAccountId >= 0 ? fallbackAccountId : 0;
-        }
-
         console.log("🚀 MyTasks: Component.onCompleted - Initial setup");
+        console.log("📌 MyTasks: Using DEFAULT account from Settings");
         
-        // Get current user and set up filtering
+        // Get current user from DEFAULT account and set up filtering
         updateCurrentUser();
         
         // Set up assignee filtering for current user
         if (currentUserOdooId > 0) {
             myTasksList.filterByAssignees = true;
             myTasksList.selectedAssigneeIds = [currentUserOdooId];
-            console.log("✅ MyTasks: Component.onCompleted - Filtering by current user:", currentUserOdooId);
-            console.log("✅ MyTasks: Component.onCompleted - TaskList.filterByAssignees =", myTasksList.filterByAssignees);
-            console.log("✅ MyTasks: Component.onCompleted - TaskList.selectedAssigneeIds =", JSON.stringify(myTasksList.selectedAssigneeIds));
-        } else if (currentAccountId >= 0) {
-            var userOdooId = Account.getCurrentUserOdooId(currentAccountId);
-            console.log("🔍 MyTasks: Component.onCompleted - Fallback userOdooId:", userOdooId);
-            if (userOdooId > 0) {
-                myTasksList.filterByAssignees = true;
-                myTasksList.selectedAssigneeIds = [userOdooId];
-                console.log("✅ MyTasks: Component.onCompleted - Filtering by current user (fallback):", userOdooId);
-            } else {
-                console.warn("⚠️ MyTasks: Component.onCompleted - No valid user ID found!");
-            }
+            console.log("✅ MyTasks: Filtering by current user:", currentUserOdooId, "from default account:", defaultAccountId);
         } else {
-            console.warn("⚠️ MyTasks: Component.onCompleted - currentAccountId is invalid:", currentAccountId);
+            console.warn("⚠️ MyTasks: No valid user ID found for default account:", defaultAccountId);
         }
         
         // Apply initial filter
-        console.log("📋 MyTasks: Component.onCompleted - Applying initial filter:", currentFilter);
+        console.log("📋 MyTasks: Applying initial filter:", currentFilter);
         myTasksList.applyFilter(currentFilter);
     }
 }
