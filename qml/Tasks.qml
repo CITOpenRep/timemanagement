@@ -347,14 +347,41 @@ Page {
                     
                     // Monitor project and account changes to reload stages
                     onStateChanged: {
+                        console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        
                         if (recordid === 0) { // Only in creation mode
                             // Reload stages when account or project is selected
-                            if (newState === "AccountSelected" || newState === "ProjectSelected" || newState === "SubprojectSelected") {
+                            if (newState === "ProjectSelected") {
+                                // Use getIds() to get the most current IDs
                                 var ids = workItem.getIds();
-                                if (ids.project_id > 0 && ids.account_id > 0) {
-                                    console.log("WorkItemSelector state changed:", newState, "- Reloading stages");
-                                    loadStagesForProject(ids.project_id, ids.account_id);
+                                var projectId = data.id;
+                                var accountId = ids.account_id;
+                                
+                                console.log("📋 ProjectSelected - projectId:", projectId, "accountId:", accountId, "(from getIds)");
+                                
+                                if (projectId > 0 && accountId > 0) {
+                                    console.log("✅ Loading stages for project:", projectId, "account:", accountId);
+                                    loadStagesForProject(projectId, accountId);
+                                } else {
+                                    console.log("❌ Cannot load stages - invalid IDs (projectId:", projectId, "accountId:", accountId, ")");
                                 }
+                            } else if (newState === "SubprojectSelected") {
+                                // For subproject, we still use the main project to get stages
+                                var ids2 = workItem.getIds();
+                                console.log("📋 SubprojectSelected - project_id:", ids2.project_id, "account_id:", ids2.account_id);
+                                
+                                if (ids2.project_id > 0 && ids2.account_id > 0) {
+                                    console.log("✅ Loading stages for subproject's parent project:", ids2.project_id, "account:", ids2.account_id);
+                                    loadStagesForProject(ids2.project_id, ids2.account_id);
+                                } else {
+                                    console.log("❌ Cannot load stages - invalid IDs for subproject");
+                                }
+                            } else if (newState === "AccountSelected") {
+                                // When account changes, clear the stage list
+                                console.log("🗑️ Account changed - clearing stages");
+                                stageListModel.clear();
+                                stageComboBox.currentIndex = -1;
+                                selectedStageOdooRecordId = -1;
                             }
                         }
                     }
