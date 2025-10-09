@@ -181,9 +181,21 @@ Page {
                 status: "updated"
             };
 
-            // Add stage if selected (for creation mode)
-            if (recordid === 0 && selectedStageOdooRecordId > 0) {
-                saveData.stageOdooRecordId = selectedStageOdooRecordId;
+            // Add stage for creation mode - use selected stage or fallback to first stage
+            if (recordid === 0) {
+                var stageToAssign = selectedStageOdooRecordId;
+                
+                // Fallback to first stage if no stage selected
+                if (stageToAssign <= 0 && stageListModel.count > 0) {
+                    var firstStage = stageListModel.get(0);
+                    stageToAssign = firstStage.odoo_record_id;
+                    console.log("Using fallback stage:", firstStage.name, "with odoo_record_id:", stageToAssign);
+                }
+                
+                if (stageToAssign > 0) {
+                    saveData.stageOdooRecordId = stageToAssign;
+                    console.log("Saving task with stage:", stageToAssign);
+                }
             }
 
             // Add multiple assignees if enabled
@@ -271,6 +283,7 @@ Page {
         if (projectOdooRecordId <= 0 || accountId <= 0) {
             stageListModel.clear();
             stageComboBox.currentIndex = -1;
+            selectedStageOdooRecordId = -1;
             return;
         }
         
@@ -286,12 +299,16 @@ Page {
             });
         }
         
-        // Select first stage by default if available
+        // Automatically select first stage as default (user can change it)
         if (stageListModel.count > 0) {
             stageComboBox.currentIndex = 0;
+            var firstStage = stageListModel.get(0);
+            selectedStageOdooRecordId = firstStage.odoo_record_id;
+            console.log("Auto-selected first stage as default:", firstStage.name, "with odoo_record_id:", firstStage.odoo_record_id);
         } else {
             stageComboBox.currentIndex = -1;
             selectedStageOdooRecordId = -1;
+            console.warn("No stages available for project", projectOdooRecordId);
         }
         
         console.log("Loaded", stageListModel.count, "stages for project");
@@ -462,7 +479,7 @@ Page {
             }
         }
 
-        // Stage Selector Row (for creation mode only)
+        // Stage Selector Row (for creation mode only) - Auto-assigns first stage as fallback
         Row {
             id: stageRow
             anchors.top: priorityRow.bottom
@@ -509,7 +526,7 @@ Page {
                     if (currentIndex >= 0) {
                         var stage = stageListModel.get(currentIndex);
                         taskCreate.selectedStageOdooRecordId = stage.odoo_record_id;
-                        console.log("Selected stage:", stage.name, "with odoo_record_id:", stage.odoo_record_id);
+                        console.log("User selected stage:", stage.name, "with odoo_record_id:", stage.odoo_record_id);
                     }
                 }
             }
