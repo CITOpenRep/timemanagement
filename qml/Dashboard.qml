@@ -170,7 +170,7 @@ Page {
             },
             Action {
                 iconName: "view-list-symbolic"
-                text: "Tasks"
+                text: "All Tasks"
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
                     page = 3;
