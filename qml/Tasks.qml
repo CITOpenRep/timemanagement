@@ -948,6 +948,12 @@ Page {
                 } else if (workItem.applyDeferredSelection) {
                     workItem.applyDeferredSelection(prefilledAccountId, mainProjectId, subProjectId);
                 }
+                
+                // Load stages for the prefilled project
+                if (mainProjectId > 0 && prefilledAccountId > 0) {
+                    console.log("🎯 Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId);
+                    loadStagesForProject(mainProjectId, prefilledAccountId);
+                }
             }
         }
     //  console.log("currentTask loaded:", JSON.stringify(currentTask));
