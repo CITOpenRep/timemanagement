@@ -38,7 +38,7 @@ import "components"
 
 Page {
     id: task
-    title: "Tasks"
+    title: "All Tasks"
 
     header: PageHeader {
         id: taskheader

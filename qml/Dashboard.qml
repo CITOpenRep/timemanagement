@@ -168,9 +168,18 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             },
+             Action {
+                iconName: "view-list-symbolic"
+                text: "My Tasks"
+                onTriggered: {
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("MyTasks.qml"));
+                    page = 3;
+                    apLayout.setCurrentPage(page);
+                }
+            },
             Action {
                 iconName: "view-list-symbolic"
-                text: "Tasks"
+                text: "All Tasks"
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
                     page = 3;

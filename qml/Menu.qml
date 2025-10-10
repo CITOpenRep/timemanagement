@@ -198,7 +198,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "Tasks"
+                            text: "All Tasks"
                         }
                     }
                 }

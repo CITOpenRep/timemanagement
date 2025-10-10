@@ -181,9 +181,21 @@ Page {
                 status: "updated"
             };
 
-            // Add stage if selected (for creation mode)
-            if (recordid === 0 && selectedStageOdooRecordId > 0) {
-                saveData.stageOdooRecordId = selectedStageOdooRecordId;
+            // Add stage for creation mode - use selected stage or fallback to first stage
+            if (recordid === 0) {
+                var stageToAssign = selectedStageOdooRecordId;
+                
+                // Fallback to first stage if no stage selected
+                if (stageToAssign <= 0 && stageListModel.count > 0) {
+                    var firstStage = stageListModel.get(0);
+                    stageToAssign = firstStage.odoo_record_id;
+                    console.log("Using fallback stage:", firstStage.name, "with odoo_record_id:", stageToAssign);
+                }
+                
+                if (stageToAssign > 0) {
+                    saveData.stageOdooRecordId = stageToAssign;
+                    console.log("Saving task with stage:", stageToAssign);
+                }
             }
 
             // Add multiple assignees if enabled
@@ -244,6 +256,15 @@ Page {
         }
     }
 
+    Component {
+        id: personalStageSelector
+        PersonalStageSelector {
+            onPersonalStageSelected: {
+                handlePersonalStageChange(personalStageOdooRecordId, personalStageName);
+            }
+        }
+    }
+
     function handleStageChange(stageOdooRecordId, stageName) {
         if (!currentTask || !currentTask.id) {
             notifPopup.open("Error", "Task data not available", "error");
@@ -265,12 +286,37 @@ Page {
         }
     }
 
+    function handlePersonalStageChange(personalStageOdooRecordId, personalStageName) {
+        if (!currentTask || !currentTask.id) {
+            notifPopup.open("Error", "Task data not available", "error");
+            return;
+        }
+
+        var result = Task.updateTaskPersonalStage(currentTask.id, personalStageOdooRecordId, currentTask.account_id);
+        
+        if (result.success) {
+            // Update the current task's personal stage
+            currentTask.personal_stage = personalStageOdooRecordId;
+            
+            // Reload the task to reflect changes
+            loadTask();
+            
+            var message = personalStageOdooRecordId === null ? 
+                "Personal stage cleared" : 
+                "Personal stage changed to: " + personalStageName;
+            notifPopup.open("Success", message, "success");
+        } else {
+            notifPopup.open("Error", "Failed to change personal stage: " + (result.error || "Unknown error"), "error");
+        }
+    }
+
     function loadStagesForProject(projectOdooRecordId, accountId) {
         console.log("Loading stages for project:", projectOdooRecordId, "account:", accountId);
         
         if (projectOdooRecordId <= 0 || accountId <= 0) {
             stageListModel.clear();
             stageComboBox.currentIndex = -1;
+            selectedStageOdooRecordId = -1;
             return;
         }
         
@@ -286,12 +332,16 @@ Page {
             });
         }
         
-        // Select first stage by default if available
+        // Automatically select first stage as default (user can change it)
         if (stageListModel.count > 0) {
             stageComboBox.currentIndex = 0;
+            var firstStage = stageListModel.get(0);
+            selectedStageOdooRecordId = firstStage.odoo_record_id;
+            console.log("Auto-selected first stage as default:", firstStage.name, "with odoo_record_id:", firstStage.odoo_record_id);
         } else {
             stageComboBox.currentIndex = -1;
             selectedStageOdooRecordId = -1;
+            console.warn("No stages available for project", projectOdooRecordId);
         }
         
         console.log("Loaded", stageListModel.count, "stages for project");
@@ -330,14 +380,41 @@ Page {
                     
                     // Monitor project and account changes to reload stages
                     onStateChanged: {
+                        console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        
                         if (recordid === 0) { // Only in creation mode
                             // Reload stages when account or project is selected
-                            if (newState === "AccountSelected" || newState === "ProjectSelected" || newState === "SubprojectSelected") {
+                            if (newState === "ProjectSelected") {
+                                // Use getIds() to get the most current IDs
                                 var ids = workItem.getIds();
-                                if (ids.project_id > 0 && ids.account_id > 0) {
-                                    console.log("WorkItemSelector state changed:", newState, "- Reloading stages");
-                                    loadStagesForProject(ids.project_id, ids.account_id);
+                                var projectId = data.id;
+                                var accountId = ids.account_id;
+                                
+                                console.log("📋 ProjectSelected - projectId:", projectId, "accountId:", accountId, "(from getIds)");
+                                
+                                if (projectId > 0 && accountId > 0) {
+                                    console.log("✅ Loading stages for project:", projectId, "account:", accountId);
+                                    loadStagesForProject(projectId, accountId);
+                                } else {
+                                    console.log("❌ Cannot load stages - invalid IDs (projectId:", projectId, "accountId:", accountId, ")");
                                 }
+                            } else if (newState === "SubprojectSelected") {
+                                // For subproject, we still use the main project to get stages
+                                var ids2 = workItem.getIds();
+                                console.log("📋 SubprojectSelected - project_id:", ids2.project_id, "account_id:", ids2.account_id);
+                                
+                                if (ids2.project_id > 0 && ids2.account_id > 0) {
+                                    console.log("✅ Loading stages for subproject's parent project:", ids2.project_id, "account:", ids2.account_id);
+                                    loadStagesForProject(ids2.project_id, ids2.account_id);
+                                } else {
+                                    console.log("❌ Cannot load stages - invalid IDs for subproject");
+                                }
+                            } else if (newState === "AccountSelected") {
+                                // When account changes, clear the stage list
+                                console.log("🗑️ Account changed - clearing stages");
+                                stageListModel.clear();
+                                stageComboBox.currentIndex = -1;
+                                selectedStageOdooRecordId = -1;
                             }
                         }
                     }
@@ -462,7 +539,7 @@ Page {
             }
         }
 
-        // Stage Selector Row (for creation mode only)
+        // Stage Selector Row (for creation mode only) - Auto-assigns first stage as fallback
         Row {
             id: stageRow
             anchors.top: priorityRow.bottom
@@ -509,7 +586,7 @@ Page {
                     if (currentIndex >= 0) {
                         var stage = stageListModel.get(currentIndex);
                         taskCreate.selectedStageOdooRecordId = stage.odoo_record_id;
-                        console.log("Selected stage:", stage.name, "with odoo_record_id:", stage.odoo_record_id);
+                        console.log("User selected stage:", stage.name, "with odoo_record_id:", stage.odoo_record_id);
                     }
                 }
             }
@@ -588,8 +665,46 @@ Page {
         }
 
         Row {
-            id: myRow82
+            id: currentPersonalStageRow
+            visible: recordid !== 0
             anchors.top: currentStageRow.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            topPadding: units.gu(1)
+            
+            TSLabel {
+                text: "Personal Stage:"
+                width: parent.width * 0.25
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            
+            Label {
+                text: {
+                    if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
+                        return "(Not set)";
+                    }
+                    return Task.getTaskStageName(currentTask.personal_stage);
+                }
+                width: parent.width * 0.75
+                font.pixelSize: units.gu(2)
+                font.bold: currentTask && currentTask.personal_stage && currentTask.personal_stage !== -1
+                font.italic: !currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1
+                color: {
+                    if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
+                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
+                    }
+                    return LomiriColors.blue;
+                }
+                anchors.verticalCenter: parent.verticalCenter
+                wrapMode: Text.WordWrap
+            }
+        }
+
+        Row {
+            id: myRow82
+            anchors.top: currentPersonalStageRow.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
@@ -636,8 +751,46 @@ Page {
         }
 
         Row {
-            id: plannedh_row
+            id: myRow83
             anchors.top: myRow82.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(1)
+            topPadding: units.gu(1)
+            
+            TSButton {
+                visible: recordid !== 0
+                width: parent.width
+                text: "Change Personal Stage"
+                fgColor: LomiriColors.blue
+                onClicked: {
+                    if (!currentTask || !currentTask.id) {
+                        notifPopup.open("Error", "Task data not available", "error");
+                        return;
+                    }
+                    
+                    var userId = Accounts.getCurrentUserOdooId(currentTask.account_id);
+                    if (userId <= 0) {
+                        notifPopup.open("Error", "Unable to determine current user", "error");
+                        return;
+                    }
+                    
+                    // Open the personal stage selector dialog with parameters
+                    var dialog = PopupUtils.open(personalStageSelector, taskCreate, {
+                        taskId: currentTask.id,
+                        accountId: currentTask.account_id,
+                        userId: userId,
+                        currentPersonalStageOdooRecordId: currentTask.personal_stage || -1
+                    });
+                }
+            }
+        }
+
+        Row {
+            id: plannedh_row
+            anchors.top: myRow83.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
@@ -903,6 +1056,12 @@ Page {
                     workItem.deferredLoadExistingRecordSet(prefilledAccountId, mainProjectId, subProjectId, -1, -1, -1);
                 } else if (workItem.applyDeferredSelection) {
                     workItem.applyDeferredSelection(prefilledAccountId, mainProjectId, subProjectId);
+                }
+                
+                // Load stages for the prefilled project
+                if (mainProjectId > 0 && prefilledAccountId > 0) {
+                    console.log("🎯 Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId);
+                    loadStagesForProject(mainProjectId, prefilledAccountId);
                 }
             }
         }

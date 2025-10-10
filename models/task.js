@@ -82,27 +82,29 @@ function saveOrUpdateTask(data) {
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
                     account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority = ?, description = ?, user_id = ?, sub_project_id = ?, \
-                    start_date = ?, end_date = ?, deadline = ?, state = ?, last_modified = ?, status = ? WHERE id = ?',
+                    start_date = ?, end_date = ?, deadline = ?, state = ?, personal_stage = ?, last_modified = ?, status = ? WHERE id = ?',
                               [
                                   data.accountId, data.name, finalProjectId,
                                   resolvedParentId, data.plannedHours, data.priority,
                                   data.description, userIdValue, data.subProjectId,
                                   data.startDate, data.endDate, data.deadline,
                                   data.stageOdooRecordId || null,
+                                  data.personalStageOdooRecordId || null,
                                   timestamp, data.status, data.record_id
                               ]
                               );
                               
             } else {
                 // INSERT
-                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, last_modified, status) \
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, personal_stage, last_modified, status) \
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
                                   data.deadline, data.priority, data.plannedHours,
                                   data.description, userIdValue,
                                   data.subProjectId, data.stageOdooRecordId || null,
+                                  data.personalStageOdooRecordId || null,
                                   timestamp, data.status
                               ]
                               );
@@ -703,6 +705,7 @@ function getTasksForAccount(accountId) {
                     initial_planned_hours: row.initial_planned_hours,
                     priority: row.priority,
                     state: row.state,
+                    personal_stage: row.personal_stage,  // Include personal_stage field
                     description: row.description,
                     last_modified: row.last_modified,
                     user_id: row.user_id,
@@ -804,6 +807,7 @@ function getTaskDetails(task_id) {
                     initial_planned_hours: row.initial_planned_hours || 0,  // Ensure it's not null/undefined
                     priority :row.priority,
                     state: row.state || "",
+                    personal_stage: row.personal_stage || null,
                     description: row.description || "",
                     last_modified: row.last_modified,
                     user_id: row.user_id,
@@ -2113,4 +2117,218 @@ function updateTaskStage(taskId, stageOdooRecordId, accountId) {
         console.error("updateTaskStage failed:", e);
         return { success: false, error: e.message || e };
     }
+}
+
+/**
+ * Gets personal stages for a specific user
+ * Personal stages are identified by is_global = '[]' (empty array)
+ * @param {number} userId - The odoo_record_id of the user from res_users_app
+ * @param {number} accountId - The account ID
+ * @returns {Array} Array of personal stage objects
+ */
+function getPersonalStagesForUser(userId, accountId) {
+    var personalStages = [];
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function (tx) {
+            // Personal stages are identified by user_id = current user
+            // NOT by is_global = '[]' (which includes shared stages like "Merge")
+            var result = tx.executeSql(
+                'SELECT odoo_record_id, name, sequence, fold, user_id ' +
+                'FROM project_task_type_app ' +
+                'WHERE account_id = ? AND user_id = ? ' +
+                'ORDER BY sequence, name',
+                [accountId, userId]
+            );
+            
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                personalStages.push({
+                    odoo_record_id: row.odoo_record_id,
+                    name: row.name,
+                    sequence: row.sequence,
+                    fold: row.fold
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getPersonalStagesForUser failed:", e);
+    }
+    
+    return personalStages;
+}
+
+/**
+ * Updates the personal stage of a task
+ * Personal stage is independent from regular stage
+ * @param {number} taskId - The local ID of the task
+ * @param {number} personalStageOdooRecordId - The odoo_record_id of the new personal stage (can be null to clear)
+ * @param {number} accountId - The account ID
+ * @returns {Object} Success/error result
+ */
+function updateTaskPersonalStage(taskId, personalStageOdooRecordId, accountId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var timestamp = Utils.getFormattedTimestampUTC();
+        
+        db.transaction(function (tx) {
+            // Verify the task exists and belongs to the account
+            var taskCheck = tx.executeSql(
+                'SELECT id FROM project_task_app WHERE id = ? AND account_id = ?',
+                [taskId, accountId]
+            );
+            
+            if (taskCheck.rows.length === 0) {
+                throw "Task not found or does not belong to this account";
+            }
+            
+            // If personalStageOdooRecordId is provided, verify it exists and is a personal stage
+            if (personalStageOdooRecordId !== null && personalStageOdooRecordId !== undefined) {
+                var stageCheck = tx.executeSql(
+                    'SELECT odoo_record_id FROM project_task_type_app ' +
+                    'WHERE odoo_record_id = ? AND account_id = ? AND is_global = ?',
+                    [personalStageOdooRecordId, accountId, '[]']
+                );
+                
+                if (stageCheck.rows.length === 0) {
+                    throw "Personal stage not found or does not belong to this account";
+                }
+            }
+            
+            // Update the task's personal stage
+            tx.executeSql(
+                'UPDATE project_task_app SET personal_stage = ?, last_modified = ?, status = ? WHERE id = ?',
+                [personalStageOdooRecordId, timestamp, "updated", taskId]
+            );
+        });
+        
+        return { success: true };
+    } catch (e) {
+        console.error("updateTaskPersonalStage failed:", e);
+        return { success: false, error: e.message || e };
+    }
+}
+
+/**
+ * Gets tasks filtered by personal stage with hierarchy support
+ * @param {number} personalStageOdooRecordId - The odoo_record_id of the personal stage (0 for "No Stage", null for "All")
+ * @param {Array<number>} assigneeIds - Array of user IDs to filter by assignees
+ * @param {number} accountId - The account ID (or -1 for all accounts)
+ * @returns {Array} List of tasks matching the personal stage and assignee filter
+ */
+function getTasksByPersonalStage(personalStageOdooRecordId, assigneeIds, accountId) {
+    var allTasks;
+    
+    // Get base tasks
+    if (accountId !== undefined && accountId >= 0) {
+        allTasks = getTasksForAccount(accountId);
+    } else {
+        allTasks = getAllTasks();
+    }
+    
+    var filteredTasks = [];
+    var includedTaskIds = new Map();
+    
+    // First pass: identify tasks that match BOTH the personal stage AND assignee criteria
+    var matchCount = 0;
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        var matchesStage = false;
+        var matchesAssignee = false;
+        
+        // Check personal stage match
+        if (personalStageOdooRecordId === null) {
+            // "All" - show all tasks
+            matchesStage = true;
+        } else if (personalStageOdooRecordId === 0) {
+            // "No Stage" - show tasks without personal stage
+            matchesStage = !task.personal_stage || task.personal_stage === 0;
+        } else {
+            // Specific stage - show tasks with matching personal stage
+            // Convert both to integers for comparison to handle type mismatches
+            var taskStage = parseInt(task.personal_stage);
+            var filterStage = parseInt(personalStageOdooRecordId);
+            matchesStage = (taskStage === filterStage);
+        }
+        
+        // Check assignee match
+        if (assigneeIds && assigneeIds.length > 0) {
+            if (task.user_id) {
+                var taskAssigneeIds = parseAssigneeIds(task.user_id);
+                for (var j = 0; j < assigneeIds.length; j++) {
+                    if (taskAssigneeIds.indexOf(assigneeIds[j]) !== -1) {
+                        matchesAssignee = true;
+                        break;
+                    }
+                }
+            }
+        } else {
+            // No assignee filter specified, include all
+            matchesAssignee = true;
+        }
+        
+        // Task must match BOTH criteria (or have no assignee filter)
+        if (matchesStage && matchesAssignee) {
+            var compositeKey = task.odoo_record_id + '_' + task.account_id;
+            includedTaskIds.set(compositeKey, task);
+            matchCount++;
+        }
+    }
+    
+    // Second pass: include parent tasks if they have children that match
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        
+        var hasIncludedChildren = false;
+        for (var j = 0; j < allTasks.length; j++) {
+            var potentialChild = allTasks[j];
+            var childKey = potentialChild.odoo_record_id + '_' + potentialChild.account_id;
+            if (potentialChild.parent_id === task.odoo_record_id && 
+                potentialChild.account_id === task.account_id && 
+                includedTaskIds.has(childKey)) {
+                hasIncludedChildren = true;
+                break;
+            }
+        }
+        
+        if (hasIncludedChildren) {
+            var compositeKey = task.odoo_record_id + '_' + task.account_id;
+            includedTaskIds.set(compositeKey, task);
+        }
+    }
+    
+    // Third pass: include parent chain for included tasks
+    var toProcess = Array.from(includedTaskIds.values());
+    for (var i = 0; i < toProcess.length; i++) {
+        var task = toProcess[i];
+        
+        if (task && task.parent_id && task.parent_id > 0) {
+            for (var j = 0; j < allTasks.length; j++) {
+                var parentCandidate = allTasks[j];
+                if (parentCandidate.odoo_record_id === task.parent_id && 
+                    parentCandidate.account_id === task.account_id) {
+                    
+                    var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
+                    if (!includedTaskIds.has(parentKey)) {
+                        includedTaskIds.set(parentKey, parentCandidate);
+                        toProcess.push(parentCandidate);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Build the filtered tasks list
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        var taskKey = task.odoo_record_id + '_' + task.account_id;
+        if (includedTaskIds.has(taskKey)) {
+            filteredTasks.push(task);
+        }
+    }
+    
+    return filteredTasks;
 }
