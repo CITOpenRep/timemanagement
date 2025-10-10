@@ -12,28 +12,39 @@ Rectangle {
     //  anchors.leftMargin: units.gu(1)
     //  anchors.rightMargin: units.gu(1)
 
-    // Exposed properties for external customization
-    property string label1: "Today"
-    property string label2: "Next Week"
-    property string label3: "Next Month"
-    property string label4: "Later"
-    property string label5: "OverDue"
-    property string label6: "All"
-    property string label7: "Done"
+    // Dynamic filter model - array of {label, filterKey} objects
+    property var filterModel: []
+    
+    // Legacy properties for backwards compatibility (deprecated)
+    property string label1: ""
+    property string label2: ""
+    property string label3: ""
+    property string label4: ""
+    property string label5: ""
+    property string label6: ""
+    property string label7: ""
 
-    property string filter1: "today"
-    property string filter2: "next_week"
-    property string filter3: "next_month"
-    property string filter4: "later"
-    property string filter5: "overdue"
-    property string filter6: "all"
-    property string filter7: "done"
+    property string filter1: ""
+    property string filter2: ""
+    property string filter3: ""
+    property string filter4: ""
+    property string filter5: ""
+    property string filter6: ""
+    property string filter7: ""
 
     property bool showSearchBox: true
-    property string currentFilter: filter1  // Track currently selected filter
+    property string currentFilter: ""  // Track currently selected filter
 
     signal filterSelected(string filterKey)
     signal customSearch(string query)
+    
+    // Function to set filters dynamically
+    function setFilters(filters) {
+        filterModel = filters;
+        if (filters.length > 0) {
+            currentFilter = filters[0].filterKey;
+        }
+    }
 
     // Add function to toggle search visibility
     function toggleSearchVisibility() {
@@ -117,187 +128,36 @@ Rectangle {
                 spacing: 0 // Remove spacing between elements
                 anchors.verticalCenter: parent.verticalCenter // Center vertically
                 anchors.left: parent.left
-                // anchors.leftMargin: units.gu(1)
 
-                Button {
-                    text: topFilterBar.label1
-                    visible: (topFilterBar.label1) ? true : false
-                    enabled: (topFilterBar.label1) ? true : false
-                    height: units.gu(6) // Adjusted height
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        font.bold: parent.isHighlighted
-                        //  font.underline: parent.isHighlighted
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter1;
-                        topFilterBar.filterSelected(topFilterBar.filter1);
-                    }
-                }
-
-                Button {
-                    text: topFilterBar.label2
-                    visible: (topFilterBar.label2) ? true : false
-                    enabled: (topFilterBar.label2) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        font.bold: parent.isHighlighted
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter2;
-                        topFilterBar.filterSelected(topFilterBar.filter2);
-                    }
-                }
-
-                Button {
-                    text: topFilterBar.label3
-                    visible: (topFilterBar.label3) ? true : false
-                    enabled: (topFilterBar.label3) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        font.bold: parent.isHighlighted
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter3;
-                        topFilterBar.filterSelected(topFilterBar.filter3);
-                    }
-                }
-
-                Button {
-                    text: topFilterBar.label4
-                    visible: (topFilterBar.label4) ? true : false
-                    enabled: (topFilterBar.label4) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        // text.format: Text.PlainText
-                        font.bold: parent.isHighlighted
-                        //  font.pixelSize: units.gu(1.8)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter4;
-                        topFilterBar.filterSelected(topFilterBar.filter4);
-                    }
-                }
-
-                Button {
-                    text: topFilterBar.label5
-                    visible: (topFilterBar.label5) ? true : false
-                    enabled: (topFilterBar.label5) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter5
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        // text.format: Text.PlainText
-                        font.bold: parent.isHighlighted
-                        //  font.pixelSize: units.gu(1.8)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter5;
-                        topFilterBar.filterSelected(topFilterBar.filter5);
-                    }
-                }
-
-                Button {
-                    text: topFilterBar.label6
-                    visible: (topFilterBar.label6) ? true : false
-                    enabled: (topFilterBar.label6) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter6
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        // text.format: Text.PlainText
-                        font.bold: parent.isHighlighted
-                        //  font.pixelSize: units.gu(1.8)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter6;
-                        topFilterBar.filterSelected(topFilterBar.filter6);
-                    }
-                }
-
-                Button {
-                    text: topFilterBar.label7
-                    visible: (topFilterBar.label7) ? true : false
-                    enabled: (topFilterBar.label7) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12)
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter7
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        font.bold: parent.isHighlighted
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter7;
-                        topFilterBar.filterSelected(topFilterBar.filter7);
+                // Dynamic buttons using Repeater
+                Repeater {
+                    model: topFilterBar.filterModel.length > 0 ? topFilterBar.filterModel : []
+                    
+                    Button {
+                        text: modelData.label
+                        height: units.gu(6)
+                        width: units.gu(12)
+                        property bool isHighlighted: topFilterBar.currentFilter === modelData.filterKey
+                        
+                        background: Rectangle {
+                            color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
+                            border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
+                            border.width: 1
+                        }
+                        
+                        contentItem: Text {
+                            text: parent.text
+                            color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
+                            font.bold: parent.isHighlighted
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+                        
+                        onClicked: {
+                            topFilterBar.currentFilter = modelData.filterKey;
+                            topFilterBar.filterSelected(modelData.filterKey);
+                        }
                     }
                 }
             }

@@ -180,40 +180,22 @@ property var currentPersonalStageId: null  // null = "All", 0 = "No Stage", >0 =
                 return;
             }
 
-            // Update labels with stage names
-            myTaskListHeader.label1 = personalStages.length > 0 ? personalStages[0].name : "";
-            myTaskListHeader.label2 = personalStages.length > 1 ? personalStages[1].name : "";
-            myTaskListHeader.label3 = personalStages.length > 2 ? personalStages[2].name : "";
-            myTaskListHeader.label4 = personalStages.length > 3 ? personalStages[3].name : "";
-            myTaskListHeader.label5 = personalStages.length > 4 ? personalStages[4].name : "";
-            myTaskListHeader.label6 = personalStages.length > 5 ? personalStages[5].name : "";
-            myTaskListHeader.label7 = personalStages.length > 6 ? personalStages[6].name : "";
-
-            console.log("📝 ListHeader labels set:");
-            console.log("   label1:", myTaskListHeader.label1);
-            console.log("   label2:", myTaskListHeader.label2);
-            console.log("   label3:", myTaskListHeader.label3);
-
-            // Update filter keys with stage IDs (converted to strings for the filter system)
-            myTaskListHeader.filter1 = personalStages.length > 0 ? String(personalStages[0].odoo_record_id) : "";
-            myTaskListHeader.filter2 = personalStages.length > 1 ? String(personalStages[1].odoo_record_id) : "";
-            myTaskListHeader.filter3 = personalStages.length > 2 ? String(personalStages[2].odoo_record_id) : "";
-            myTaskListHeader.filter4 = personalStages.length > 3 ? String(personalStages[3].odoo_record_id) : "";
-            myTaskListHeader.filter5 = personalStages.length > 4 ? String(personalStages[4].odoo_record_id) : "";
-            myTaskListHeader.filter6 = personalStages.length > 5 ? String(personalStages[5].odoo_record_id) : "";
-            myTaskListHeader.filter7 = personalStages.length > 6 ? String(personalStages[6].odoo_record_id) : "";
-
-            console.log("🔑 ListHeader filter IDs set:");
-            console.log("   filter1:", myTaskListHeader.filter1, "(" + myTaskListHeader.label1 + ")");
-            console.log("   filter2:", myTaskListHeader.filter2, "(" + myTaskListHeader.label2 + ")");
-            console.log("   filter3:", myTaskListHeader.filter3, "(" + myTaskListHeader.label3 + ")");
-
-            // Set current filter to first stage
-            if (personalStages.length > 0)
-            {
-                myTaskListHeader.currentFilter = myTaskListHeader.filter1;
-                console.log("✅ ListHeader currentFilter set to:", myTaskListHeader.currentFilter);
+            // Build dynamic filter model for all stages
+            var filterModel = [];
+            for (var i = 0; i < personalStages.length; i++) {
+                var stage = personalStages[i];
+                filterModel.push({
+                    label: stage.name,
+                    filterKey: String(stage.odoo_record_id)
+                });
+                console.log("   Filter", (i + 1) + ":", stage.name, "→", stage.odoo_record_id);
             }
+
+            // Set the filter model on the ListHeader
+            myTaskListHeader.setFilters(filterModel);
+            
+            console.log("✅ ListHeader configured with", filterModel.length, "dynamic filters");
+            console.log("   All stages will be displayed:", filterModel.map(f => f.label).join(", "));
         }
 
         // Function to get current user's odoo_record_id for the DEFAULT account
@@ -278,22 +260,8 @@ ListHeader {
     anchors.left: parent.left
     anchors.right: parent.right
 
-    // Labels and filters will be dynamically set by updateListHeaderWithStages()
-    label1: ""
-    label2: ""
-    label3: ""
-    label4: ""
-    label5: ""
-    label6: ""
-    label7: ""
-
-    filter1: ""
-    filter2: ""
-    filter3: ""
-    filter4: ""
-    filter5: ""
-    filter6: ""
-    filter7: ""
+    // Dynamic filter model will be set by updateListHeaderWithStages()
+    filterModel: []
 
     showSearchBox: false
     currentFilter: ""
