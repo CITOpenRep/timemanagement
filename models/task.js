@@ -705,6 +705,7 @@ function getTasksForAccount(accountId) {
                     initial_planned_hours: row.initial_planned_hours,
                     priority: row.priority,
                     state: row.state,
+                    personal_stage: row.personal_stage,  // Include personal_stage field
                     description: row.description,
                     last_modified: row.last_modified,
                     user_id: row.user_id,
@@ -2239,6 +2240,7 @@ function getTasksByPersonalStage(personalStageOdooRecordId, assigneeIds, account
     console.log("🔍 getTasksByPersonalStage: Filtering by stage:", personalStageOdooRecordId, "assignees:", JSON.stringify(assigneeIds));
     
     // First pass: identify tasks that match BOTH the personal stage AND assignee criteria
+    var matchCount = 0;
     for (var i = 0; i < allTasks.length; i++) {
         var task = allTasks[i];
         var matchesStage = false;
@@ -2253,7 +2255,14 @@ function getTasksByPersonalStage(personalStageOdooRecordId, assigneeIds, account
             matchesStage = !task.personal_stage || task.personal_stage === 0;
         } else {
             // Specific stage - show tasks with matching personal stage
-            matchesStage = task.personal_stage === personalStageOdooRecordId;
+            // Convert both to integers for comparison to handle type mismatches
+            var taskStage = parseInt(task.personal_stage);
+            var filterStage = parseInt(personalStageOdooRecordId);
+            matchesStage = (taskStage === filterStage);
+            
+            if (i < 5) { // Debug first 5 tasks
+                console.log("🔍 Task '" + task.name + "' personal_stage:", task.personal_stage, "(type:", typeof task.personal_stage + "), comparing to:", personalStageOdooRecordId, "(type:", typeof personalStageOdooRecordId + "), match:", matchesStage);
+            }
         }
         
         // Check assignee match
@@ -2276,9 +2285,13 @@ function getTasksByPersonalStage(personalStageOdooRecordId, assigneeIds, account
         if (matchesStage && matchesAssignee) {
             var compositeKey = task.odoo_record_id + '_' + task.account_id;
             includedTaskIds.set(compositeKey, task);
-            console.log("✅ Task '" + task.name + "' matches stage AND assignee");
+            matchCount++;
+            if (matchCount <= 5) { // Log first 5 matches
+                console.log("✅ Task '" + task.name + "' matches stage (" + task.personal_stage + ") AND assignee");
+            }
         }
     }
+    console.log("🔍 getTasksByPersonalStage: Found", matchCount, "tasks matching stage and assignee (before hierarchy)");
     
     // Second pass: include parent tasks if they have children that match
     for (var i = 0; i < allTasks.length; i++) {
