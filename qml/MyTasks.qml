@@ -5,7 +5,24 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software w            if (currentUserOdooId > 0) {
+                console.log("✅ MyTasks: Applying personal stage filter:", stageId, "for user:", currentUserOdooId, "account:", defaultAccountId);
+                console.log("✅ MyTasks: Filter params - stageId:", stageId, "assigneeIds:", JSON.stringify([currentUserOdooId]), "accountId:", defaultAccountId);
+                
+                // Get tasks by personal stage
+                var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], defaultAccountId);
+                console.log("📋 MyTasks: Found", stageTasks.length, "tasks for personal stage");
+                
+                // Log first few tasks for debugging
+                for (var i = 0; i < Math.min(3, stageTasks.length); i++) {
+                    console.log("   Task", i + 1 + ":", stageTasks[i].name, "- Assignees:", stageTasks[i].user_id);
+                }
+                
+                // Update the task list directly
+                myTasksList.updateDisplayedTasks(stageTasks);
+            } else {
+                console.warn("⚠️ MyTasks: No valid user ID found for filtering!");
+            }iction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -71,12 +88,101 @@ Page {
     }
 
     // Properties for filter and search state
-    property string currentFilter: "today"
+    property var personalStages: []
+    property var currentPersonalStageId: null  // null = "All", 0 = "No Stage", >0 = specific stage
     property string currentSearchQuery: ""
 
     // Properties for current user filtering
     property int currentUserOdooId: -1
     property int defaultAccountId: Account.getDefaultAccountId()
+
+    // Function to load personal stages for the current user
+    function loadPersonalStages() {
+        console.log("🔄 MyTasks: Loading personal stages for user", currentUserOdooId, "account", defaultAccountId);
+        
+        if (currentUserOdooId <= 0 || defaultAccountId < 0) {
+            console.warn("⚠️ MyTasks: Cannot load personal stages - invalid user or account");
+            console.warn("   currentUserOdooId:", currentUserOdooId);
+            console.warn("   defaultAccountId:", defaultAccountId);
+            personalStages = [];
+            return;
+        }
+        
+        var stages = Task.getPersonalStagesForUser(currentUserOdooId, defaultAccountId);
+        console.log("✅ MyTasks: Loaded", stages.length, "personal stages");
+        
+        if (stages.length === 0) {
+            console.warn("⚠️ MyTasks: No personal stages found!");
+            console.warn("   This could mean:");
+            console.warn("   1. The user_id field in project_task_type_app is not populated");
+            console.warn("   2. You need to sync from Odoo to populate the field");
+            console.warn("   3. The user has no personal stages in Odoo");
+        }
+        
+        // Add "All" option at the beginning
+        var allStages = [{
+            odoo_record_id: null,
+            name: "All",
+            sequence: -1
+        }];
+        
+        // Add loaded stages
+        for (var i = 0; i < stages.length; i++) {
+            console.log("   Adding stage:", stages[i].name, "(ID:", stages[i].odoo_record_id + ")");
+            allStages.push(stages[i]);
+        }
+        
+        personalStages = allStages;
+        console.log("📋 MyTasks: Total stages (including 'All'):", personalStages.length);
+        
+        // Update the ListHeader with dynamic labels
+        updateListHeaderWithStages();
+        
+        // Set initial filter to first stage (or "All")
+        if (personalStages.length > 0) {
+            currentPersonalStageId = personalStages[0].odoo_record_id;
+            console.log("📌 MyTasks: Set initial filter to:", personalStages[0].name);
+        }
+    }
+    
+    // Function to update ListHeader with personal stage names
+    function updateListHeaderWithStages() {
+        console.log("🎨 MyTasks: Updating ListHeader with", personalStages.length, "stages");
+        
+        if (personalStages.length === 0) {
+            console.warn("⚠️ MyTasks: No stages to display in ListHeader");
+            return;
+        }
+        
+        // Update labels with stage names
+        myTaskListHeader.label1 = personalStages.length > 0 ? personalStages[0].name : "";
+        myTaskListHeader.label2 = personalStages.length > 1 ? personalStages[1].name : "";
+        myTaskListHeader.label3 = personalStages.length > 2 ? personalStages[2].name : "";
+        myTaskListHeader.label4 = personalStages.length > 3 ? personalStages[3].name : "";
+        myTaskListHeader.label5 = personalStages.length > 4 ? personalStages[4].name : "";
+        myTaskListHeader.label6 = personalStages.length > 5 ? personalStages[5].name : "";
+        myTaskListHeader.label7 = personalStages.length > 6 ? personalStages[6].name : "";
+        
+        console.log("📝 ListHeader labels set:");
+        console.log("   label1:", myTaskListHeader.label1);
+        console.log("   label2:", myTaskListHeader.label2);
+        console.log("   label3:", myTaskListHeader.label3);
+        
+        // Update filter keys with stage IDs (converted to strings for the filter system)
+        myTaskListHeader.filter1 = personalStages.length > 0 ? String(personalStages[0].odoo_record_id) : "";
+        myTaskListHeader.filter2 = personalStages.length > 1 ? String(personalStages[1].odoo_record_id) : "";
+        myTaskListHeader.filter3 = personalStages.length > 2 ? String(personalStages[2].odoo_record_id) : "";
+        myTaskListHeader.filter4 = personalStages.length > 3 ? String(personalStages[3].odoo_record_id) : "";
+        myTaskListHeader.filter5 = personalStages.length > 4 ? String(personalStages[4].odoo_record_id) : "";
+        myTaskListHeader.filter6 = personalStages.length > 5 ? String(personalStages[5].odoo_record_id) : "";
+        myTaskListHeader.filter7 = personalStages.length > 6 ? String(personalStages[6].odoo_record_id) : "";
+        
+        // Set current filter to first stage
+        if (personalStages.length > 0) {
+            myTaskListHeader.currentFilter = myTaskListHeader.filter1;
+            console.log("✅ ListHeader currentFilter set to:", myTaskListHeader.currentFilter);
+        }
+    }
 
     // Function to get current user's odoo_record_id for the DEFAULT account
     // MyTasks ALWAYS uses the default account set in Settings page
@@ -134,54 +240,55 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
 
-        label1: "Today"
-        label2: "This Week"
-        label3: "This Month"
-        label4: "Later"
-        label5: "Done"
-        label6: "All"
+        // Labels and filters will be dynamically set by updateListHeaderWithStages()
+        label1: ""
+        label2: ""
+        label3: ""
+        label4: ""
+        label5: ""
+        label6: ""
         label7: ""
 
-        filter1: "today"
-        filter2: "this_week"
-        filter3: "this_month"
-        filter4: "later"
-        filter5: "done"
-        filter6: "all"
+        filter1: ""
+        filter2: ""
+        filter3: ""
+        filter4: ""
+        filter5: ""
+        filter6: ""
         filter7: ""
 
         showSearchBox: false
-        currentFilter: myTasksPage.currentFilter
+        currentFilter: ""
 
         onFilterSelected: {
-            console.log("🔔 MyTasks: Filter selected -", filterKey);
-            myTasksPage.currentFilter = filterKey;
+            console.log("🔔 MyTasks: Personal Stage filter selected -", filterKey);
+            
+            // Parse filterKey to get personal stage ID
+            // filterKey is string: "null" for All, "0" for No Stage, or actual stage ID
+            var stageId;
+            if (filterKey === "null") {
+                stageId = null;  // Show all tasks
+            } else {
+                stageId = parseInt(filterKey);
+            }
+            
+            myTasksPage.currentPersonalStageId = stageId;
             
             // Update current user before applying filter
             updateCurrentUser();
             
-            // Set up assignee filtering for current user
             if (currentUserOdooId > 0) {
-                console.log("✅ MyTasks: Applying assignee filter with user ID:", currentUserOdooId);
-                myTasksList.filterByAssignees = true;
-                myTasksList.selectedAssigneeIds = [currentUserOdooId];
-                console.log("✅ MyTasks: TaskList.filterByAssignees =", myTasksList.filterByAssignees);
-                console.log("✅ MyTasks: TaskList.selectedAssigneeIds =", JSON.stringify(myTasksList.selectedAssigneeIds));
-            } else if (currentAccountId >= 0) {
-                // For specific account, filter by that account's current user
-                var userOdooId = Account.getCurrentUserOdooId(currentAccountId);
-                console.log("🔍 MyTasks: Fallback - Got userOdooId:", userOdooId);
-                if (userOdooId > 0) {
-                    console.log("✅ MyTasks: Applying assignee filter with fallback user ID:", userOdooId);
-                    myTasksList.filterByAssignees = true;
-                    myTasksList.selectedAssigneeIds = [userOdooId];
-                }
+                console.log("✅ MyTasks: Applying personal stage filter:", stageId, "for user:", currentUserOdooId);
+                
+                // Get tasks by personal stage
+                var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], defaultAccountId);
+                console.log("� MyTasks: Found", stageTasks.length, "tasks for personal stage");
+                
+                // Update the task list directly
+                myTasksList.updateDisplayedTasks(stageTasks);
             } else {
                 console.warn("⚠️ MyTasks: No valid user ID found for filtering!");
             }
-            
-            console.log("📋 MyTasks: About to apply filter:", filterKey);
-            myTasksList.applyFilter(filterKey);
         }
 
         onCustomSearch: {
@@ -190,20 +297,22 @@ Page {
             // Update current user before applying search
             updateCurrentUser();
             
-            // Set up assignee filtering for current user
             if (currentUserOdooId > 0) {
-                myTasksList.filterByAssignees = true;
-                myTasksList.selectedAssigneeIds = [currentUserOdooId];
-            } else if (currentAccountId >= 0) {
-                // For specific account, filter by that account's current user
-                var userOdooId = Account.getCurrentUserOdooId(currentAccountId);
-                if (userOdooId > 0) {
-                    myTasksList.filterByAssignees = true;
-                    myTasksList.selectedAssigneeIds = [userOdooId];
+                // For search, show all tasks (personal stage = null) that match search
+                var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], defaultAccountId);
+                
+                // Apply search filter
+                if (query && query.trim() !== "") {
+                    var searchLower = query.toLowerCase();
+                    stageTasks = stageTasks.filter(function(task) {
+                        return (task.name && task.name.toLowerCase().indexOf(searchLower) >= 0) ||
+                               (task.description && task.description.toLowerCase().indexOf(searchLower) >= 0);
+                    });
                 }
+                
+                console.log("🔍 MyTasks: Search found", stageTasks.length, "tasks");
+                myTasksList.updateDisplayedTasks(stageTasks);
             }
-            
-            myTasksList.applySearch(query);
         }
     }
 
@@ -307,13 +416,14 @@ Page {
             // Update navigation tracking
             Global.setLastVisitedPage("MyTasks");
 
-            // Refresh user data and filters when page becomes visible
+            // Refresh user data and personal stages when page becomes visible
             updateCurrentUser();
+            loadPersonalStages();
             
-            if (currentSearchQuery) {
-                myTasksList.applySearch(currentSearchQuery);
-            } else {
-                myTasksList.applyFilter(currentFilter);
+            // Apply current personal stage filter
+            if (currentUserOdooId > 0) {
+                var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId);
+                myTasksList.updateDisplayedTasks(stageTasks);
             }
         }
     }
@@ -329,20 +439,22 @@ Page {
         console.log("🚀 MyTasks: Component.onCompleted - Initial setup");
         console.log("📌 MyTasks: Using DEFAULT account from Settings");
         
-        // Get current user from DEFAULT account and set up filtering
+        // Get current user from DEFAULT account
         updateCurrentUser();
         
-        // Set up assignee filtering for current user
+        // Load personal stages for the current user
         if (currentUserOdooId > 0) {
-            myTasksList.filterByAssignees = true;
-            myTasksList.selectedAssigneeIds = [currentUserOdooId];
-            console.log("✅ MyTasks: Filtering by current user:", currentUserOdooId, "from default account:", defaultAccountId);
+            console.log("✅ MyTasks: Loading personal stages for user:", currentUserOdooId, "from default account:", defaultAccountId);
+            loadPersonalStages();
+            
+            // Apply initial personal stage filter (first stage which is "All")
+            if (personalStages.length > 0) {
+                console.log("📋 MyTasks: Applying initial personal stage filter");
+                var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId);
+                myTasksList.updateDisplayedTasks(stageTasks);
+            }
         } else {
             console.warn("⚠️ MyTasks: No valid user ID found for default account:", defaultAccountId);
         }
-        
-        // Apply initial filter
-        console.log("📋 MyTasks: Applying initial filter:", currentFilter);
-        myTasksList.applyFilter(currentFilter);
     }
 }

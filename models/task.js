@@ -2128,20 +2128,27 @@ function updateTaskStage(taskId, stageOdooRecordId, accountId) {
 function getPersonalStagesForUser(userId, accountId) {
     var personalStages = [];
     
+    console.log("🔍 getPersonalStagesForUser: Looking for stages with user_id =", userId, "and account_id =", accountId);
+    
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         
         db.transaction(function (tx) {
+            // Personal stages are identified by user_id = current user
+            // NOT by is_global = '[]' (which includes shared stages like "Merge")
             var result = tx.executeSql(
-                'SELECT odoo_record_id, name, sequence, fold ' +
+                'SELECT odoo_record_id, name, sequence, fold, user_id ' +
                 'FROM project_task_type_app ' +
-                'WHERE account_id = ? AND is_global = ? ' +
+                'WHERE account_id = ? AND user_id = ? ' +
                 'ORDER BY sequence, name',
-                [accountId, '[]']  // Empty array indicates personal stage
+                [accountId, userId]
             );
+            
+            console.log("🔍 getPersonalStagesForUser: Found", result.rows.length, "personal stages");
             
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
+                console.log("   Stage", i + 1 + ":", row.name, "(ID:", row.odoo_record_id + ", user_id:", row.user_id + ")");
                 personalStages.push({
                     odoo_record_id: row.odoo_record_id,
                     name: row.name,
@@ -2206,4 +2213,126 @@ function updateTaskPersonalStage(taskId, personalStageOdooRecordId, accountId) {
         console.error("updateTaskPersonalStage failed:", e);
         return { success: false, error: e.message || e };
     }
+}
+
+/**
+ * Gets tasks filtered by personal stage with hierarchy support
+ * @param {number} personalStageOdooRecordId - The odoo_record_id of the personal stage (0 for "No Stage", null for "All")
+ * @param {Array<number>} assigneeIds - Array of user IDs to filter by assignees
+ * @param {number} accountId - The account ID (or -1 for all accounts)
+ * @returns {Array} List of tasks matching the personal stage and assignee filter
+ */
+function getTasksByPersonalStage(personalStageOdooRecordId, assigneeIds, accountId) {
+    var allTasks;
+    
+    // Get base tasks
+    if (accountId !== undefined && accountId >= 0) {
+        allTasks = getTasksForAccount(accountId);
+    } else {
+        allTasks = getAllTasks();
+    }
+    
+    var filteredTasks = [];
+    var includedTaskIds = new Map();
+    
+    console.log("🔍 getTasksByPersonalStage: Starting with", allTasks.length, "tasks");
+    console.log("🔍 getTasksByPersonalStage: Filtering by stage:", personalStageOdooRecordId, "assignees:", JSON.stringify(assigneeIds));
+    
+    // First pass: identify tasks that match BOTH the personal stage AND assignee criteria
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        var matchesStage = false;
+        var matchesAssignee = false;
+        
+        // Check personal stage match
+        if (personalStageOdooRecordId === null) {
+            // "All" - show all tasks
+            matchesStage = true;
+        } else if (personalStageOdooRecordId === 0) {
+            // "No Stage" - show tasks without personal stage
+            matchesStage = !task.personal_stage || task.personal_stage === 0;
+        } else {
+            // Specific stage - show tasks with matching personal stage
+            matchesStage = task.personal_stage === personalStageOdooRecordId;
+        }
+        
+        // Check assignee match
+        if (assigneeIds && assigneeIds.length > 0) {
+            if (task.user_id) {
+                var taskAssigneeIds = parseAssigneeIds(task.user_id);
+                for (var j = 0; j < assigneeIds.length; j++) {
+                    if (taskAssigneeIds.indexOf(assigneeIds[j]) !== -1) {
+                        matchesAssignee = true;
+                        break;
+                    }
+                }
+            }
+        } else {
+            // No assignee filter specified, include all
+            matchesAssignee = true;
+        }
+        
+        // Task must match BOTH criteria (or have no assignee filter)
+        if (matchesStage && matchesAssignee) {
+            var compositeKey = task.odoo_record_id + '_' + task.account_id;
+            includedTaskIds.set(compositeKey, task);
+            console.log("✅ Task '" + task.name + "' matches stage AND assignee");
+        }
+    }
+    
+    // Second pass: include parent tasks if they have children that match
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        
+        var hasIncludedChildren = false;
+        for (var j = 0; j < allTasks.length; j++) {
+            var potentialChild = allTasks[j];
+            var childKey = potentialChild.odoo_record_id + '_' + potentialChild.account_id;
+            if (potentialChild.parent_id === task.odoo_record_id && 
+                potentialChild.account_id === task.account_id && 
+                includedTaskIds.has(childKey)) {
+                hasIncludedChildren = true;
+                break;
+            }
+        }
+        
+        if (hasIncludedChildren) {
+            var compositeKey = task.odoo_record_id + '_' + task.account_id;
+            includedTaskIds.set(compositeKey, task);
+        }
+    }
+    
+    // Third pass: include parent chain for included tasks
+    var toProcess = Array.from(includedTaskIds.values());
+    for (var i = 0; i < toProcess.length; i++) {
+        var task = toProcess[i];
+        
+        if (task && task.parent_id && task.parent_id > 0) {
+            for (var j = 0; j < allTasks.length; j++) {
+                var parentCandidate = allTasks[j];
+                if (parentCandidate.odoo_record_id === task.parent_id && 
+                    parentCandidate.account_id === task.account_id) {
+                    
+                    var parentKey = parentCandidate.odoo_record_id + '_' + parentCandidate.account_id;
+                    if (!includedTaskIds.has(parentKey)) {
+                        includedTaskIds.set(parentKey, parentCandidate);
+                        toProcess.push(parentCandidate);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Build the filtered tasks list
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        var taskKey = task.odoo_record_id + '_' + task.account_id;
+        if (includedTaskIds.has(taskKey)) {
+            filteredTasks.push(task);
+        }
+    }
+    
+    console.log("🔍 getTasksByPersonalStage: Final result:", filteredTasks.length, "tasks");
+    return filteredTasks;
 }

@@ -117,7 +117,8 @@
         "create_date": "create_date",
         "write_date": "write_date",
         "__last_update": "__last_update",
-        "project_ids": "is_global"
+        "project_ids": "is_global",
+        "user_id": "user_id"
       },
 
       "project.project.stage": {
