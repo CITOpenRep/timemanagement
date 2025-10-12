@@ -42,6 +42,7 @@ Item {
 
     // ----------- Internal state -----------
     property list<ContentItem> _importItems
+    property bool _busy: false
 
     // Fallback ListModel
     ListModel { id: internalModel }
@@ -85,10 +86,10 @@ Item {
         // ----------- List of attachments -----------
         Rectangle {
             Layout.fillWidth: true
-             Layout.fillHeight: true
+            Layout.fillHeight: true
             color: "transparent"
-            // Safe fallback if theme is unavailable
             border.color: "#00000022"
+            border.width: 1
             radius: units.gu(0.5)
 
             ListView {
@@ -98,7 +99,7 @@ Item {
                 clip: true
                 spacing: units.gu(0.5)
 
-                // For ListModel, delegate directly sees roles: name, url, mimetype, size, created, _raw
+                // Roles expected: name, url, mimetype, size, created, account_id, odoo_record_id, _raw
                 delegate: Rectangle {
                     width: listView.width
                     height: Math.max(units.gu(5), nameLabel.implicitHeight + units.gu(2))
@@ -106,25 +107,33 @@ Item {
                     color: "transparent"
                     border.color: "#00000022"
 
-                    // Local convenience (guard against undefined)
-                    property string _name:    typeof name     !== "undefined" && name     ? name     : (typeof url !== "undefined" && url ? url : "Unnamed")
-                    property string _url:     typeof url      !== "undefined" && url      ? url      : ""
-                    property string _mimetype:typeof mimetype !== "undefined" && mimetype ? mimetype : ""
-                    property var    _size:    typeof size     !== "undefined"             ? size     : 0
-                    property string _created: typeof created  !== "undefined" && created  ? created  : ""
-                    property var    rawData:     typeof _raw     !== "undefined"             ? _raw     : null
+                    // Guarded convenience values
+                    property string _name:     (typeof name     !== "undefined" && name)     ? name     : ((typeof url !== "undefined" && url) ? url : "Unnamed")
+                    property string _url:      (typeof url      !== "undefined" && url)      ? url      : ""
+                    property string _mimetype: (typeof mimetype !== "undefined" && mimetype) ? mimetype : ""
+                    property var    _size:     (typeof size     !== "undefined")             ? size     : 0
+                    property string _created:  (typeof created  !== "undefined" && created)  ? created  : ""
+                    property int    _accId:    (typeof account_id      !== "undefined") ? account_id      : attachmentManager.account_id
+                    property int    _odooId:   (typeof odoo_record_id  !== "undefined") ? odoo_record_id  : 0
+                    property var    rawData:   (typeof _raw            !== "undefined") ? _raw            : null
 
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            attachmentManager.itemClicked({
+                            var rec = {
                                 name: _name,
                                 url: _url,
                                 mimetype: _mimetype,
                                 size: _size,
                                 created: _created,
+                                account_id: _accId,
+                                odoo_record_id: _odooId,
                                 _raw: rawData
-                            })
+                            };
+                            // emit for custom handlers
+                            attachmentManager.itemClicked(rec);
+                            // default behavior: download and open
+                            attachmentManager._downloadAndOpen(rec);
                         }
                     }
 
@@ -133,7 +142,6 @@ Item {
                         anchors.margins: units.gu(1)
                         spacing: units.gu(1)
 
-                        // tiny icon via mime group
                         Rectangle {
                             width: units.gu(3); height: units.gu(3); radius: units.gu(0.5)
                             color: _chipColor(_mimetype)
@@ -154,7 +162,7 @@ Item {
 
                             Label {
                                 text: _metaLine(_mimetype, _size, _created)
-                                color: "#808080" // safe fallback instead of theme.palette.normal.backgroundTextDisabled
+                                color: "#808080"
                                 font.pixelSize: units.gu(1.5)
                                 elide: Label.ElideRight
                                 maximumLineCount: 1
@@ -162,6 +170,18 @@ Item {
                             }
                         }
                     }
+                }
+            }
+
+            // Busy overlay (optional)
+            Rectangle {
+                anchors.fill: parent
+                color: "#00000022"
+                visible: attachmentManager._busy
+                BusyIndicator {
+                    anchors.centerIn: parent
+                    running: parent.visible
+                    visible: running
                 }
             }
         }
@@ -239,7 +259,6 @@ Item {
         onStateChanged: {
             if (!attachmentManager.activeTransfer) return;
 
-            // Keep your original gate (you used 'Charged')
             if (attachmentManager.activeTransfer.state === ContentTransfer.Charged) {
                 _importItems = attachmentManager.activeTransfer.items || [];
                 console.log("ImportItems count:", _importItems.length);
@@ -264,7 +283,7 @@ Item {
                                 attachmentManager.uploadFailed();
                                 return;
                             }
-                            // Success path is signaled by backend_bridge events below
+                            // Success path signaled via backend_bridge events
                         });
                     });
                 }
@@ -284,7 +303,6 @@ Item {
             if (data.payload === true) {
                 _notify("Attachment has been processed", 2000);
                 attachmentManager.uploadCompleted();
-                // Parent may refresh the 'model' now (list of attachments)
             } else {
                 _notify("Failed to upload", 2000);
                 attachmentManager.uploadFailed();
@@ -295,7 +313,6 @@ Item {
 
     // ----------- Public list API (internal model only) -----------
     function setAttachments(items) {
-        console.log("Setting attachments of " + items.length)
         if (!_usingInternalModel) {
             console.warn("[AttachmentManager] setAttachments ignored: external model is bound.");
             return;
@@ -338,14 +355,15 @@ Item {
 
     function _normalizeItem(obj) {
         if (!obj) obj = {};
-        console.log(obj.name)
         return {
-            id:        obj.id        !== undefined ? obj.id        : obj.attachment_id,
-            name:      obj.name      !== undefined ? obj.name      : (obj.filename || obj.title || ""),
-            url:       obj.url       !== undefined ? obj.url       : (obj.fileUrl || ""),
-            mimetype:  obj.mimetype  !== undefined ? obj.mimetype  : (obj.mime || "application/octet-stream"),
-            size:      obj.size      !== undefined ? obj.size      : (obj.bytes || 0),
-            created:   obj.created   !== undefined ? obj.created   : (obj.created_at || obj.date || ""),
+            id:              obj.id              !== undefined ? obj.id              : obj.attachment_id,
+            name:            obj.name            !== undefined ? obj.name            : (obj.filename || obj.title || ""),
+            url:             obj.url             !== undefined ? obj.url             : (obj.fileUrl || ""),
+            mimetype:        obj.mimetype        !== undefined ? obj.mimetype        : (obj.mime || "application/octet-stream"),
+            size:            obj.size            !== undefined ? obj.size            : (obj.bytes || 0),
+            created:         obj.created         !== undefined ? obj.created         : (obj.created_at || obj.date || ""),
+            account_id:      obj.account_id      !== undefined ? obj.account_id      : attachmentManager.account_id,
+            odoo_record_id:  obj.odoo_record_id  !== undefined ? obj.odoo_record_id  : 0,
             _raw: obj
         };
     }
@@ -376,5 +394,69 @@ Item {
         if (mime.indexOf("text/")  === 0) return "#FFC107";
         if (mime.indexOf("application/pdf") === 0) return "#F44336";
         return "#607D8B";
+    }
+
+    // ---- NEW: on-click download + open using your Python APIs ----
+    function _downloadAndOpen(rec) {
+        if (!rec) return;
+
+        if (rec.odoo_record_id <= 0) {
+            // If there’s no Odoo id but we have a file/url, try to open directly
+            if (rec.url && rec.url.toString().length) {
+                var maybeUrl = rec.url.toString();
+                if (maybeUrl.indexOf("file://") !== 0 && maybeUrl.indexOf("http") !== 0)
+                    maybeUrl = "file://" + maybeUrl;
+                Qt.openUrlExternally(maybeUrl);
+                return;
+            }
+            _notify("Attachment missing identifiers", 2500);
+            return;
+        }
+
+        _busy = true;
+        python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+            if (!path) {
+                _busy = false;
+                _notify("DB not found.", 2500);
+                return;
+            }
+
+            // (path, account_id, odoo_record_id)
+            python.call("backend.attachment_ondemand_download",
+                        [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id],
+                        function (res) {
+                _busy = false;
+
+                if (!res) {
+                    _notify("No response from ondemand_download", 2500);
+                    return;
+                }
+
+                if (res.type === "binary" && res.data) {
+                    // res.data is base64 (decode=False on Python side)
+                    var fname = (res.name && res.name.length) ? res.name :
+                                (rec.name && rec.name.length ? rec.name : "attachment");
+                    var mime = res.mimetype || rec.mimetype || "application/octet-stream";
+
+                    python.call("backend.ensure_export_file_from_base64",
+                                [fname, res.data, mime],
+                                function (resultPath) {
+                        if (!resultPath || !resultPath.length) {
+                            _notify("Failed to prepare file", 2500);
+                            return;
+                        }
+                        var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
+                        Qt.openUrlExternally(fileUrl);
+                    });
+
+                } else if (res.type === "url" && res.url) {
+                    // Open using system browser/viewer
+                    Qt.openUrlExternally(res.url);
+
+                } else {
+                    _notify("Attachment has no usable data", 2500);
+                }
+            });
+        });
     }
 }

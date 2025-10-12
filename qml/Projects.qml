@@ -585,44 +585,57 @@ Page {
             height: units.gu(50)
             width: parent.width
             anchors.margins: units.gu(0.1)
-            AttachmentViewer {
+            AttachmentManager {
                 id: attachments_widget
-                visible: (Accounts.getAccountName(project.account_id) === "LOCAL ACCOUNT") ? false : true // We should not show the attachment feature for local account : TODO
-                anchors.fill: parent
-                onRefresh: {
-                    if (recordid !== 0) {
-                        if (!loadProjectData(recordid)) {
-                            notifPopup.open("Failed", "Error during attachment refresh", "error");
-                        }
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            //color:"red"
-            id: attachmentuploadRow
-            anchors.top: attachmentRow.bottom
-            anchors.bottom: parent.bottom
-            width: parent.width
-            //height: units.gu(30)
-            anchors.margins: units.gu(0.1)
-            AttachmentUploader {
-                id: attachmentsupload_widget
-                visible: (Accounts.getAccountName(project.account_id) === "LOCAL ACCOUNT") ? false : true // We should not show the attachment feature for local account : TODO
-                anchors.fill: parent
+               anchors.fill: parent
+                // Provide context for upload:
+                resource_type: "project.project"   // keep as-is if that's your default
                 resource_id: project.odoo_record_id
                 account_id: project.account_id
-                onProcessed: {
-                    console.log("Uploaded the attchment lets do a refresh");
-                    if (recordid !== 0) {
-                        if (!loadProjectData(recordid)) {
-                            notifPopup.open("Failed", "Error during attachment refresh", "error");
-                        }
-                    }
+
+                // Optional: plug your own list model, else it uses an internal one
+                // model: myAttachmentsModel
+
+                // Optional notifier (e.g., your infobar object with .open(msg, ms))
+                notifier: infobar
+
+                onUploadCompleted: {
+                    // Refresh your attachment list from backend (if you have a fetch)
+                    // Or push the newly uploaded entry when backend tells you which one
+                }
+
+                onItemClicked: function(rec) {
+                    // Open viewer / download / preview…
+                    console.log("Clicked attachment:", rec ? rec.name : rec);
                 }
             }
+
         }
+
+        // Rectangle {
+        //     //color:"red"
+        //     id: attachmentuploadRow
+        //     anchors.top: attachmentRow.bottom
+        //     anchors.bottom: parent.bottom
+        //     width: parent.width
+        //     //height: units.gu(30)
+        //     anchors.margins: units.gu(0.1)
+        //     AttachmentUploader {
+        //         id: attachmentsupload_widget
+        //         visible: (Accounts.getAccountName(project.account_id) === "LOCAL ACCOUNT") ? false : true // We should not show the attachment feature for local account : TODO
+        //         anchors.fill: parent
+        //         resource_id: project.odoo_record_id
+        //         account_id: project.account_id
+        //         onProcessed: {
+        //             console.log("Uploaded the attchment lets do a refresh");
+        //             if (recordid !== 0) {
+        //                 if (!loadProjectData(recordid)) {
+        //                     notifPopup.open("Failed", "Error during attachment refresh", "error");
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     ColorPicker {
