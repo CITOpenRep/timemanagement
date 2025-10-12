@@ -131,13 +131,13 @@ Item {
         anchors.margins: units.gu(1)
         spacing: units.gu(1)
 
-        Loader {
+        /*Loader {
             id: iconLoader
             width: units.gu(8)
             height: units.gu(8)
             anchors.horizontalCenter: parent.horizontalCenter
             sourceComponent: mimetype && mimetype.startsWith("image/") ? imageIcon : fileIcon
-        }
+        }*/
         Text {
             text: name
             //   color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
@@ -149,13 +149,13 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
         }
-        Button {
+        /*Button {
             text: "Download"
             enabled: !!datas && !!mimetype
             visible: true
             anchors.horizontalCenter: parent.horizontalCenter
             onClicked: saveViaContentHub()
-        }
+        }*/
     }
 
     Component {
