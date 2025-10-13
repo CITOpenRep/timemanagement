@@ -1,26 +1,26 @@
 /*
- * MIT License
- *
- * Copyright (c) 2025 CIT-Services
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+* MIT License
+*
+* Copyright (c) 2025 CIT-Services
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
 
 import QtQuick 2.9
 import QtQuick.Controls 2.2
@@ -79,54 +79,53 @@ property var currentPersonalStageId: null  // null = "All", 0 = "No Stage", >0 =
         property int currentUserOdooId: -1
             property int defaultAccountId: Account.getDefaultAccountId()
 
-    // Function to load personal stages for the current user
-    function loadPersonalStages()
-    {
-        if (currentUserOdooId <= 0 || defaultAccountId < 0)
+            // Function to load personal stages for the current user
+            function loadPersonalStages()
+            {
+                if (currentUserOdooId <= 0 || defaultAccountId < 0)
+                {
+                    personalStages = [];
+                    return;
+                }
+
+            var stages = Task.getPersonalStagesForUser(currentUserOdooId, defaultAccountId);
+
+            // Start with loaded stages
+            var allStages = [];
+            for (var i = 0; i < stages.length; i++) {
+                allStages.push(stages[i]);
+            }
+
+            // Add "All" option at the end
+            allStages.push({
+                odoo_record_id: null,
+                name: "All",
+                sequence: 9999
+            });
+
+            personalStages = allStages;            // Update the ListHeader with dynamic labels (preserves current filter)
+            updateListHeaderWithStages();
+
+            // Only set initial filter on first load (when currentPersonalStageId is undefined)
+            if (currentPersonalStageId === undefined && personalStages.length > 0)
+            {
+                currentPersonalStageId = personalStages[0].odoo_record_id;
+            }
+        }
+
+        // Function to update ListHeader with personal stage names
+        function updateListHeaderWithStages()
         {
-            personalStages = [];
-            return;
-        }
+            if (personalStages.length === 0)
+            {
+                return;
+            }
 
-        var stages = Task.getPersonalStagesForUser(currentUserOdooId, defaultAccountId);
-
-        // Add "All" option at the beginning
-        var allStages = [{
-            odoo_record_id: null,
-            name: "All",
-            sequence: -1
-        }];
-
-        // Add loaded stages
-        for (var i = 0; i < stages.length; i++) {
-            allStages.push(stages[i]);
-        }
-
-        personalStages = allStages;
-
-        // Update the ListHeader with dynamic labels (preserves current filter)
-        updateListHeaderWithStages();
-
-        // Only set initial filter on first load (when currentPersonalStageId is undefined)
-        if (currentPersonalStageId === undefined && personalStages.length > 0)
-        {
-            currentPersonalStageId = personalStages[0].odoo_record_id;
-        }
-    }
-
-    // Function to update ListHeader with personal stage names
-    function updateListHeaderWithStages()
-    {
-        if (personalStages.length === 0)
-        {
-            return;
-        }
-
-        // Build dynamic filter model for all stages
-        var filterModel = [];
-        for (var i = 0; i < personalStages.length; i++) {
-            var stage = personalStages[i];
-            filterModel.push({
+            // Build dynamic filter model for all stages
+            var filterModel = [];
+            for (var i = 0; i < personalStages.length; i++) {
+                var stage = personalStages[i];
+                filterModel.push({
                 label: stage.name,
                 filterKey: String(stage.odoo_record_id)
             });
@@ -134,29 +133,30 @@ property var currentPersonalStageId: null  // null = "All", 0 = "No Stage", >0 =
 
         // Update the filter model without resetting the current filter
         myTaskListHeader.filterModel = filterModel;
-        
+
         // Only set currentFilter if it hasn't been set yet or if the current stage is valid
-        if (currentPersonalStageId !== null && currentPersonalStageId !== undefined) {
+        if (currentPersonalStageId !== null && currentPersonalStageId !== undefined)
+        {
             myTaskListHeader.currentFilter = String(currentPersonalStageId);
         } else if (myTaskListHeader.currentFilter === "" && filterModel.length > 0) {
-            myTaskListHeader.currentFilter = filterModel[0].filterKey;
-        }
+        myTaskListHeader.currentFilter = filterModel[0].filterKey;
     }
+}
 
-    // Function to get current user's odoo_record_id for the DEFAULT account
-    // MyTasks ALWAYS uses the default account set in Settings page
-    function updateCurrentUser()
+// Function to get current user's odoo_record_id for the DEFAULT account
+// MyTasks ALWAYS uses the default account set in Settings page
+function updateCurrentUser()
+{
+    // ALWAYS use the default account from Settings
+    var accountId = Account.getDefaultAccountId();
+
+    if (accountId >= 0)
     {
-        // ALWAYS use the default account from Settings
-        var accountId = Account.getDefaultAccountId();
-
-        if (accountId >= 0)
-        {
-            currentUserOdooId = Account.getCurrentUserOdooId(accountId);
-        } else {
-            currentUserOdooId = -1;
-        }
-    }
+        currentUserOdooId = Account.getCurrentUserOdooId(accountId);
+    } else {
+    currentUserOdooId = -1;
+}
+}
 
 // Add the ListHeader component
 ListHeader {
@@ -179,48 +179,48 @@ ListHeader {
         {
             stageId = null;  // Show all tasks
         } else {
-            stageId = parseInt(filterKey);
-        }
-
-        myTasksPage.currentPersonalStageId = stageId;
-
-        // Update current user before applying filter
-        updateCurrentUser();
-
-        if (currentUserOdooId > 0)
-        {
-            // Get tasks by personal stage
-            var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], defaultAccountId);
-
-            // Update the task list directly
-            myTasksList.updateDisplayedTasks(stageTasks);
-        }
+        stageId = parseInt(filterKey);
     }
 
-    onCustomSearch: {
-        myTasksPage.currentSearchQuery = query;
+    myTasksPage.currentPersonalStageId = stageId;
 
-        // Update current user before applying search
-        updateCurrentUser();
+    // Update current user before applying filter
+    updateCurrentUser();
 
-        if (currentUserOdooId > 0)
-        {
-            // For search, show all tasks (personal stage = null) that match search
-            var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], defaultAccountId);
+    if (currentUserOdooId > 0)
+    {
+        // Get tasks by personal stage
+        var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], defaultAccountId);
 
-            // Apply search filter
-            if (query && query.trim() !== "")
-            {
-                var searchLower = query.toLowerCase();
-                stageTasks = stageTasks.filter(function(task) {
-                    return (task.name && task.name.toLowerCase().indexOf(searchLower) >= 0) ||
-                           (task.description && task.description.toLowerCase().indexOf(searchLower) >= 0);
-                });
-            }
-
-            myTasksList.updateDisplayedTasks(stageTasks);
-        }
+        // Update the task list directly
+        myTasksList.updateDisplayedTasks(stageTasks);
     }
+}
+
+onCustomSearch: {
+    myTasksPage.currentSearchQuery = query;
+
+    // Update current user before applying search
+    updateCurrentUser();
+
+    if (currentUserOdooId > 0)
+    {
+        // For search, show all tasks (personal stage = null) that match search
+        var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], defaultAccountId);
+
+        // Apply search filter
+        if (query && query.trim() !== "")
+        {
+            var searchLower = query.toLowerCase();
+            stageTasks = stageTasks.filter(function(task) {
+            return (task.name && task.name.toLowerCase().indexOf(searchLower) >= 0) ||
+            (task.description && task.description.toLowerCase().indexOf(searchLower) >= 0);
+        });
+    }
+
+    myTasksList.updateDisplayedTasks(stageTasks);
+}
+}
 }
 
 LomiriShape {
@@ -344,28 +344,28 @@ onVisibleChanged: {
     }
 }
 
-    // MyTasks IGNORES account selector changes
-    // It ALWAYS uses the default account from Settings page
-    // If user wants to see different account's tasks, they should:
-    // 1. Go to Settings page
-    // 2. Set that account as Default
-    // 3. Return to MyTasks
+// MyTasks IGNORES account selector changes
+// It ALWAYS uses the default account from Settings page
+// If user wants to see different account's tasks, they should:
+// 1. Go to Settings page
+// 2. Set that account as Default
+// 3. Return to MyTasks
 
-    Component.onCompleted: {
-        // Get current user from DEFAULT account
-        updateCurrentUser();
+Component.onCompleted: {
+    // Get current user from DEFAULT account
+    updateCurrentUser();
 
-        // Load personal stages for the current user
-        if (currentUserOdooId > 0)
+    // Load personal stages for the current user
+    if (currentUserOdooId > 0)
+    {
+        loadPersonalStages();
+
+        // Apply initial personal stage filter (first stage which is "All")
+        if (personalStages.length > 0)
         {
-            loadPersonalStages();
-
-            // Apply initial personal stage filter (first stage which is "All")
-            if (personalStages.length > 0)
-            {
-                var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId);
-                myTasksList.updateDisplayedTasks(stageTasks);
-            }
+            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId);
+            myTasksList.updateDisplayedTasks(stageTasks);
         }
     }
+}
 }
