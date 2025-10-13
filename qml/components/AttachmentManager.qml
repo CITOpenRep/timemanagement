@@ -376,7 +376,6 @@ Item {
     function _metaLine(mime, sz, createdStr) {
         var parts = [];
         if (mime) parts.push(mime);
-        if (typeof sz === "number") parts.push(_fmtSize(sz));
         if (createdStr) parts.push(createdStr);
         return parts.join(" • ");
     }
