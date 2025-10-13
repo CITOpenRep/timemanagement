@@ -28,7 +28,9 @@ import "../../models/utils.js" as Utils
 import "../../models/timesheet.js" as Timesheet
 import "../../models/timer_service.js" as TimerService
 import "../../models/task.js" as Task
+import "../../models/accounts.js" as Account
 import Lomiri.Components 1.3
+import Lomiri.Components.Popups 1.3
 import QtQuick.Layouts 1.1
 
 ListItem {
@@ -54,12 +56,15 @@ ListItem {
     property bool timer_on: false
     property bool timer_paused: false
     property bool starInteractionActive: false
+    property bool isMyTasksContext: false // Set to true when used in MyTasks page
+    property int accountId: -1 // Account ID for the task
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
     signal viewRequested(int localId)
     signal timesheetRequested(int localId)
     signal taskUpdated(int localId)
+    signal taskStageChanged(int localId) // Emitted when personal stage changes in MyTasks
 
     NotificationPopup {
         id: notifPopup
@@ -75,6 +80,15 @@ ListItem {
 
         onDateRangeSelected: {
             updateTaskDateRange(startDate, endDate);
+        }
+    }
+
+    Component {
+        id: personalStageSelector
+        PersonalStageSelector {
+            onPersonalStageSelected: {
+                taskCard.handlePersonalStageChange(personalStageOdooRecordId, personalStageName);
+            }
         }
     }
 
@@ -186,6 +200,32 @@ ListItem {
             TimerService.stop();
     }
 
+    function handlePersonalStageChange(personalStageOdooRecordId, personalStageName) {
+        if (localId <= 0 || accountId < 0) {
+            notifPopup.open("Error", "Task data not available", "error");
+            return;
+        }
+
+        var result = Task.updateTaskPersonalStage(localId, personalStageOdooRecordId, accountId);
+        
+        if (result.success) {
+            var message = personalStageOdooRecordId === null ? 
+                "Personal stage cleared" : 
+                "Personal stage changed to: " + personalStageName;
+            notifPopup.open("Success", message, "success");
+            
+            // In MyTasks context, emit signal to remove task from current list
+            // In other contexts, emit the update signal
+            if (isMyTasksContext) {
+                taskStageChanged(localId);
+            } else {
+                taskUpdated(localId);
+            }
+        } else {
+            notifPopup.open("Error", "Failed to change personal stage: " + (result.error || "Unknown error"), "error");
+        }
+    }
+
     trailingActions: ListItemActions {
         actions: [
             Action {
@@ -225,8 +265,25 @@ ListItem {
             Action {
                 iconName: "reload"
                 onTriggered: {
-                    // Open date range selector popup
-                    dateRangeSelector.open();
+                    // In MyTasks context: show personal stage selector
+                    // In Tasks/All Tasks context: show date range selector
+                    if (isMyTasksContext) {
+                        // Get current task details to pass to dialog
+                        var taskDetails = Task.getTaskDetails(localId);
+                        if (taskDetails && taskDetails.id) {
+                            var currentUserOdooId = Account.getCurrentUserOdooId(accountId);
+                            PopupUtils.open(personalStageSelector, taskCard, {
+                                taskId: localId,
+                                accountId: accountId,
+                                userId: currentUserOdooId,
+                                currentPersonalStageOdooRecordId: taskDetails.personal_stage || -1
+                            });
+                        } else {
+                            notifPopup.open("Error", "Unable to load task details", "error");
+                        }
+                    } else {
+                        dateRangeSelector.open();
+                    }
                 }
             }
         ]

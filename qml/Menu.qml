@@ -177,6 +177,37 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             }
+                     ListItem {
+                height: units.gu(6)
+                Rectangle {
+                    color: "transparent"
+                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.leftMargin: units.gu(3)
+
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: units.gu(2)
+
+                        Icon {
+                            width: units.gu(2.5)
+                            height: units.gu(2.5)
+                            name: "scope-manager"
+                        }
+
+                        Label {
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignLeft
+                            text: "My Tasks"
+                        }
+                    }
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("MyTasks.qml"));
+                    page = 3;
+                    apLayout.setCurrentPage(page);
+                }
+            }
             ListItem {
                 height: units.gu(6)
                 Rectangle {
