@@ -104,11 +104,11 @@ property var currentPersonalStageId: null  // null = "All", 0 = "No Stage", >0 =
 
         personalStages = allStages;
 
-        // Update the ListHeader with dynamic labels
+        // Update the ListHeader with dynamic labels (preserves current filter)
         updateListHeaderWithStages();
 
-        // Set initial filter to first stage (or "All")
-        if (personalStages.length > 0)
+        // Only set initial filter on first load (when currentPersonalStageId is undefined)
+        if (currentPersonalStageId === undefined && personalStages.length > 0)
         {
             currentPersonalStageId = personalStages[0].odoo_record_id;
         }
@@ -132,8 +132,15 @@ property var currentPersonalStageId: null  // null = "All", 0 = "No Stage", >0 =
             });
         }
 
-        // Set the filter model on the ListHeader
-        myTaskListHeader.setFilters(filterModel);
+        // Update the filter model without resetting the current filter
+        myTaskListHeader.filterModel = filterModel;
+        
+        // Only set currentFilter if it hasn't been set yet or if the current stage is valid
+        if (currentPersonalStageId !== null && currentPersonalStageId !== undefined) {
+            myTaskListHeader.currentFilter = String(currentPersonalStageId);
+        } else if (myTaskListHeader.currentFilter === "" && filterModel.length > 0) {
+            myTaskListHeader.currentFilter = filterModel[0].filterKey;
+        }
     }
 
     // Function to get current user's odoo_record_id for the DEFAULT account
