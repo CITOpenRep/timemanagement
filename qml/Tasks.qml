@@ -645,7 +645,7 @@ Page {
             
             Label {
                 text: currentTask && currentTask.state ? Task.getTaskStageName(currentTask.state) : "Not set"
-                width: parent.width * 0.75
+                width: parent.width * 0.3
                 font.pixelSize: units.gu(2)
                 font.bold: true
                 color: {
@@ -662,49 +662,70 @@ Page {
                 anchors.verticalCenter: parent.verticalCenter
                 wrapMode: Text.WordWrap
             }
+
+    TSButton {
+                visible: recordid !== 0
+                width: (parent.width - units.gu(1)) / 3
+                text: "Change Stage"
+                onClicked: {
+                    if (!currentTask || !currentTask.id) {
+                        notifPopup.open("Error", "Task data not available", "error");
+                        return;
+                    }
+                    
+                    // Open the stage selector dialog with parameters
+                    var dialog = PopupUtils.open(taskStageSelector, taskCreate, {
+                        taskId: currentTask.id,
+                        projectOdooRecordId: currentTask.project_id,
+                        accountId: currentTask.account_id,
+                        currentStageOdooRecordId: currentTask.state || -1
+                    });
+                }
+            }
+
         }
 
-        Row {
-            id: currentPersonalStageRow
-            visible: recordid !== 0
-            anchors.top: currentStageRow.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            topPadding: units.gu(1)
+        // Row {
+        //     id: currentPersonalStageRow
+        //     visible: recordid !== 0
+        //     anchors.top: currentStageRow.bottom
+        //     anchors.left: parent.left
+        //     anchors.right: parent.right
+        //     anchors.leftMargin: units.gu(1)
+        //     anchors.rightMargin: units.gu(1)
+        //     topPadding: units.gu(1)
             
-            TSLabel {
-                text: "Personal Stage:"
-                width: parent.width * 0.25
-                anchors.verticalCenter: parent.verticalCenter
-            }
+        //     TSLabel {
+        //         text: "Personal Stage:"
+        //         width: parent.width * 0.25
+        //         anchors.verticalCenter: parent.verticalCenter
+        //     }
             
-            Label {
-                text: {
-                    if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
-                        return "(Not set)";
-                    }
-                    return Task.getTaskStageName(currentTask.personal_stage);
-                }
-                width: parent.width * 0.75
-                font.pixelSize: units.gu(2)
-                font.bold: currentTask && currentTask.personal_stage && currentTask.personal_stage !== -1
-                font.italic: !currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1
-                color: {
-                    if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
-                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
-                    }
-                    return LomiriColors.blue;
-                }
-                anchors.verticalCenter: parent.verticalCenter
-                wrapMode: Text.WordWrap
-            }
-        }
+        //     Label {
+        //         text: {
+        //             if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
+        //                 return "(Not set)";
+        //             }
+        //             return Task.getTaskStageName(currentTask.personal_stage);
+        //         }
+        //         width: parent.width * 0.75
+        //         font.pixelSize: units.gu(2)
+        //         font.bold: currentTask && currentTask.personal_stage && currentTask.personal_stage !== -1
+        //         font.italic: !currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1
+        //         color: {
+        //             if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
+        //                 return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
+        //             }
+        //             return LomiriColors.blue;
+        //         }
+        //         anchors.verticalCenter: parent.verticalCenter
+        //         wrapMode: Text.WordWrap
+        //     }
+        // }
 
         Row {
             id: myRow82
-            anchors.top: currentPersonalStageRow.bottom
+            anchors.top: currentStageRow.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
@@ -729,68 +750,50 @@ Page {
                 }
             }
             
-            TSButton {
-                visible: recordid !== 0
-                width: (parent.width - units.gu(1)) / 2
-                text: "Change Stage"
-                onClicked: {
-                    if (!currentTask || !currentTask.id) {
-                        notifPopup.open("Error", "Task data not available", "error");
-                        return;
-                    }
-                    
-                    // Open the stage selector dialog with parameters
-                    var dialog = PopupUtils.open(taskStageSelector, taskCreate, {
-                        taskId: currentTask.id,
-                        projectOdooRecordId: currentTask.project_id,
-                        accountId: currentTask.account_id,
-                        currentStageOdooRecordId: currentTask.state || -1
-                    });
-                }
-            }
+        
         }
 
-        Row {
-            id: myRow83
-            anchors.top: myRow82.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(1)
-            topPadding: units.gu(1)
+        // Row {
+        //     id: myRow83
+        //     anchors.top: myRow82.bottom
+        //     anchors.left: parent.left
+        //     anchors.right: parent.right
+        //     anchors.leftMargin: units.gu(1)
+        //     anchors.rightMargin: units.gu(1)
+        //     spacing: units.gu(1)
+        //     topPadding: units.gu(1)
             
-            TSButton {
-                visible: recordid !== 0
-                width: parent.width
-                text: "Change Personal Stage"
-                fgColor: LomiriColors.blue
-                onClicked: {
-                    if (!currentTask || !currentTask.id) {
-                        notifPopup.open("Error", "Task data not available", "error");
-                        return;
-                    }
+        //     TSButton {
+        //         visible: recordid !== 0
+        //         width: parent.width
+        //         text: "Change Personal Stage"
+        //         fgColor: LomiriColors.blue
+        //         onClicked: {
+        //             if (!currentTask || !currentTask.id) {
+        //                 notifPopup.open("Error", "Task data not available", "error");
+        //                 return;
+        //             }
                     
-                    var userId = Accounts.getCurrentUserOdooId(currentTask.account_id);
-                    if (userId <= 0) {
-                        notifPopup.open("Error", "Unable to determine current user", "error");
-                        return;
-                    }
+        //             var userId = Accounts.getCurrentUserOdooId(currentTask.account_id);
+        //             if (userId <= 0) {
+        //                 notifPopup.open("Error", "Unable to determine current user", "error");
+        //                 return;
+        //             }
                     
-                    // Open the personal stage selector dialog with parameters
-                    var dialog = PopupUtils.open(personalStageSelector, taskCreate, {
-                        taskId: currentTask.id,
-                        accountId: currentTask.account_id,
-                        userId: userId,
-                        currentPersonalStageOdooRecordId: currentTask.personal_stage || -1
-                    });
-                }
-            }
-        }
+        //             // Open the personal stage selector dialog with parameters
+        //             var dialog = PopupUtils.open(personalStageSelector, taskCreate, {
+        //                 taskId: currentTask.id,
+        //                 accountId: currentTask.account_id,
+        //                 userId: userId,
+        //                 currentPersonalStageOdooRecordId: currentTask.personal_stage || -1
+        //             });
+        //         }
+        //     }
+        // }
 
         Row {
             id: plannedh_row
-            anchors.top: myRow83.bottom
+            anchors.top: myRow82.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
