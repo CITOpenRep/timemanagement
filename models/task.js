@@ -208,11 +208,16 @@ function getAttachmentsForTask(odooRecordId) {
     var attachmentList = [];
 
     try {
-        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
 
         db.transaction(function (tx) {
             var query = `
-                SELECT name, mimetype, account_id,odoo_record_id
+                SELECT name, mimetype, account_id, odoo_record_id
                 FROM ir_attachment_app
                 WHERE res_model = 'project.task' AND res_id = ?
                 ORDER BY name COLLATE NOCASE ASC
@@ -221,11 +226,20 @@ function getAttachmentsForTask(odooRecordId) {
             var result = tx.executeSql(query, [odooRecordId]);
 
             for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+
+                // Keep SQL same — only extend object shape for AttachmentManager
                 attachmentList.push({
-                    name: result.rows.item(i).name,
-                    mimetype: result.rows.item(i).mimetype,
-                    account_id:result.rows.item(i).account_id,
-                    odoo_record_id:result.rows.item(i).odoo_record_id,
+                    id: i, // optional internal ID
+                    name: row.name,
+                    mimetype: row.mimetype,
+                    account_id: row.account_id,
+                    odoo_record_id: row.odoo_record_id,
+
+                    // extras for UI consistency; safe defaults
+                    url: "",        // no file path in DB — blank placeholder
+                    size: 0,        // unknown
+                    created: ""     // optional date if available later
                 });
             }
         });
@@ -235,6 +249,7 @@ function getAttachmentsForTask(odooRecordId) {
 
     return attachmentList;
 }
+
 
 /**
  * Gets the assignees for a specific task

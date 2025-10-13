@@ -929,42 +929,34 @@ Page {
                 }
             }
         }
+
+
         Rectangle {
-            //color:"yellow"
             id: attachmentRow
             anchors.top: deadlineRow.bottom
-            //anchors.top: attachmentuploadRow.bottom
             height: units.gu(50)
             width: parent.width
             anchors.margins: units.gu(0.1)
-            AttachmentViewer {
+            AttachmentManager {
                 id: attachments_widget
-                anchors.fill: parent
-                onRefresh: {
-                    loadTask(); //reload task , May be we can have a special functiont to reload attachment as well.
-                }
-            }
-        }
-
-        Rectangle {
-            //color:"red"
-            id: attachmentuploadRow
-            anchors.top: attachmentRow.bottom
-            anchors.bottom: parent.bottom
-            width: parent.width
-            //height: units.gu(30)
-            anchors.margins: units.gu(0.1)
-            AttachmentUploader {
-                id: attachmentsupload_widget
-                resource_type: "project.task"
-                anchors.fill: parent
+               anchors.fill: parent
+                // Provide context for upload:
+                resource_type: "project.task"   // keep as-is if that's your default
                 resource_id: currentTask.odoo_record_id
                 account_id: currentTask.account_id
-                onProcessed: {
-                    console.log("Uploaded the attchment lets do a refresh");
-                    loadTask();
+                notifier: infobar
+
+                onUploadCompleted: {
+                    //kinda refresh
+                    attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
+                }
+
+                onItemClicked: function(rec) {
+                    // Open viewer / download / preview…
+                    console.log("Clicked attachment:", rec ? rec.name : rec);
                 }
             }
+
         }
     }
 
