@@ -657,7 +657,7 @@ Page {
                         stageName === "verified" || stageName === "done") {
                         return "green";
                     }
-                    return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black";
+                    return  LomiriColors.orange;
                 }
                 anchors.verticalCenter: parent.verticalCenter
                 wrapMode: Text.WordWrap
