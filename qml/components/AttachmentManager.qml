@@ -206,19 +206,17 @@ Item {
         onError: console.log("python error: " + traceback);
     }
 
-    // ----------- Use Dekko-style ContentPickerDialog (import) -----------
-    // NOTE: Ensure ContentPickerDialog.qml is in the same directory or importable path.
+    // ----------- IMPORT dialog (ContentPickerDialog) -----------
     Component {
         id: contentPickerComponent
 
         ContentPickerDialog {
             id: dlg
-            isExport: false   // we are IMPORTING from device/apps
+            isExport: false   // importing from device/apps
 
             onFilesImported: function(files) {
                 if (!files || !files.length) return;
 
-                // Make the TransferHint show progress/state, if useful
                 attachmentManager.activeTransfer = dlg.activeTransfer;
                 attachmentManager.uploadStarted();
 
@@ -241,41 +239,63 @@ Item {
                                             attachmentManager.uploadFailed();
                                             return;
                                         }
-                                        // Success path signaled via backend_bridge events
+                                        // Success via backend_bridge
                                     });
                     });
                 }
             }
 
-            // Optional: hook when dialog fully completes/auto-closes
-            onComplete: {
-                // no-op; picker closes itself inside ContentPickerDialog
-            }
+            onComplete: { /* dialog auto-closes itself */ }
+        }
+    }
+
+    // ----------- EXPORT dialog (Open with…) -----------
+    Component {
+        id: contentExporterComponent
+
+        ContentPickerDialog {
+            id: exportDlg
+            isExport: true    // exporting a local file to another app
+            // fileUrl will be assigned when we open this dialog
         }
     }
 
     function openContentPicker() {
         try {
-            PopupUtils.open(contentPickerComponent);  // instantiate dialog lazily
-            console.log("[AttachmentManager] ContentPickerDialog opened");
+            PopupUtils.open(contentPickerComponent);
+            console.log("[AttachmentManager] ContentPickerDialog (import) opened");
         } catch (e) {
-            console.error("[AttachmentManager] Failed to open ContentPickerDialog:", e);
+            console.error("[AttachmentManager] Failed to open import dialog:", e);
         }
     }
 
-    // ----------- Wiring: (kept) listen to activeTransfer for CHARGED -----------
+    // Helper to open a local file via the export dialog
+    function openFileWithDialog(fileUrl) {
+        try {
+            var url = (fileUrl && fileUrl.indexOf("file://") === 0) ? fileUrl : "file://" + fileUrl;
+            var inst = PopupUtils.open(contentExporterComponent);
+            if (inst) {
+                inst.fileUrl = url; // pass file to dialog
+                console.log("[AttachmentManager] ContentPickerDialog (export) opened for", url);
+            } else {
+                console.warn("[AttachmentManager] Export dialog instance missing; falling back to Qt.openUrlExternally");
+                Qt.openUrlExternally(url);
+            }
+        } catch (e) {
+            console.error("[AttachmentManager] openFileWithDialog error:", e);
+            Qt.openUrlExternally(fileUrl);
+        }
+    }
+
+    // ----------- Wiring: listen to activeTransfer (optional) -----------
     Connections {
         target: attachmentManager.activeTransfer
-
         onStateChanged: {
             if (!attachmentManager.activeTransfer) return;
-
             if (attachmentManager.activeTransfer.state === ContentTransfer.Charged) {
                 _importItems = attachmentManager.activeTransfer.items || [];
                 console.log("ImportItems count:", _importItems.length);
-
-                // NOTE: We already upload in onFilesImported().
-                // Keeping this block is harmless if you later move uploads here.
+                // Uploads already handled in onFilesImported()
             }
         }
     }
@@ -385,12 +405,18 @@ Item {
     function _downloadAndOpen(rec) {
         if (!rec) return;
 
+        // If there's no Odoo id but we already have a file/url, open it
         if (rec.odoo_record_id <= 0) {
             if (rec.url && rec.url.toString().length) {
-                var maybeUrl = rec.url.toString();
-                if (maybeUrl.indexOf("file://") !== 0 && maybeUrl.indexOf("http") !== 0)
-                    maybeUrl = "file://" + maybeUrl;
-                Qt.openUrlExternally(maybeUrl);
+                var u = rec.url.toString();
+                // Use export dialog for local files; external browser for http(s)
+                if (u.indexOf("http://") === 0 || u.indexOf("https://") === 0) {
+                    Qt.openUrlExternally(u);
+                } else {
+                    // ensure file://
+                    if (u.indexOf("file://") !== 0) u = "file://" + u;
+                    openFileWithDialog(u);
+                }
                 return;
             }
             _notify("Attachment missing identifiers", 2500);
@@ -428,11 +454,15 @@ Item {
                                                     return;
                                                 }
                                                 var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
-                                                Qt.openUrlExternally(fileUrl);
+
+                                                // Open via export dialog so user can choose an app
+                                                openFileWithDialog(fileUrl);
                                             });
 
                             } else if (res.type === "url" && res.url) {
+                                // Remote URL: open directly (or implement download-then-open if desired)
                                 Qt.openUrlExternally(res.url);
+
                             } else {
                                 _notify("Attachment has no usable data", 2500);
                             }
