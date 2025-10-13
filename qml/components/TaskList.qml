@@ -55,6 +55,9 @@ Item {
     property bool filterByAssignees: false
     property var selectedAssigneeIds: []
 
+    // Property to indicate if we're in MyTasks context
+    property bool isMyTasksContext: false
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
@@ -560,7 +563,8 @@ Item {
                     projectName: model.project
                     colorPallet: model.color_pallet
                     stage: model.stage
-                    //accountId:model.account_id
+                    accountId: model.account_id
+                    isMyTasksContext: taskNavigator.isMyTasksContext
 
                     onEditRequested: id => {
                         taskEditRequested(local_id);

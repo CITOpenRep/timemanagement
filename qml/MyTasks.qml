@@ -237,6 +237,9 @@ LomiriShape {
         filterByAssignees: true
         selectedAssigneeIds: []
 
+        // Set context flag so TaskDetailsCard knows we're in MyTasks
+        isMyTasksContext: true
+
         onTaskEditRequested: {
             apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
             "recordid": recordId,
