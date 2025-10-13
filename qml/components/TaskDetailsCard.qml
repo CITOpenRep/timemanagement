@@ -64,6 +64,7 @@ ListItem {
     signal viewRequested(int localId)
     signal timesheetRequested(int localId)
     signal taskUpdated(int localId)
+    signal taskStageChanged(int localId) // Emitted when personal stage changes in MyTasks
 
     NotificationPopup {
         id: notifPopup
@@ -208,13 +209,18 @@ ListItem {
         var result = Task.updateTaskPersonalStage(localId, personalStageOdooRecordId, accountId);
         
         if (result.success) {
-            // Emit signal to notify parent that task was updated
-            taskUpdated(localId);
-            
             var message = personalStageOdooRecordId === null ? 
                 "Personal stage cleared" : 
                 "Personal stage changed to: " + personalStageName;
             notifPopup.open("Success", message, "success");
+            
+            // In MyTasks context, emit signal to remove task from current list
+            // In other contexts, emit the update signal
+            if (isMyTasksContext) {
+                taskStageChanged(localId);
+            } else {
+                taskUpdated(localId);
+            }
         } else {
             notifPopup.open("Error", "Failed to change personal stage: " + (result.error || "Unknown error"), "error");
         }
