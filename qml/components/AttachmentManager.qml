@@ -79,7 +79,7 @@ Item {
             Button {
                 id: uploadBtn
                 text: "Upload"
-                onClicked: _openPicker(uploadBtn)
+                onClicked: openContentPicker()
             }
         }
 
@@ -196,7 +196,7 @@ Item {
         }
     }
 
-    // ----------- Python backend (unchanged API) -----------
+    // ----------- Python backend -----------
     Python {
         id: python
         Component.onCompleted: {
@@ -206,66 +206,24 @@ Item {
         onError: console.log("python error: " + traceback);
     }
 
-    // ----------- Picker popover (embedded) -----------
+    // ----------- Use Dekko-style ContentPickerDialog (import) -----------
+    // NOTE: Ensure ContentPickerDialog.qml is in the same directory or importable path.
     Component {
-        id: pickerPopoverComponent
+        id: contentPickerComponent
 
-        Popover {
-            id: pickerPopover
-            contentWidth: units.gu(35)
-            contentHeight: col.implicitHeight + units.gu(2)
+        ContentPickerDialog {
+            id: dlg
+            isExport: false   // we are IMPORTING from device/apps
 
-            Column {
-                id: col
-                anchors.fill: parent
-                anchors.margins: units.gu(1)
-                spacing: units.gu(1)
+            onFilesImported: function(files) {
+                if (!files || !files.length) return;
 
-                Label {
-                    text: "Upload from Device"
-                    font.bold: true
-                    wrapMode: Text.WordWrap
-                }
+                // Make the TransferHint show progress/state, if useful
+                attachmentManager.activeTransfer = dlg.activeTransfer;
+                attachmentManager.uploadStarted();
 
-                ContentPeerPicker {
-                    id: picker
-                    headerText: "Upload from Device"
-                    contentType: ContentType.All
-                    handler: ContentHandler.Source
-
-                    onPeerSelected: {
-                        try {
-                            peer.selectionType = ContentTransfer.Single;
-                            attachmentManager.activeTransfer = peer.request();
-                            attachmentManager.uploadStarted();
-                            PopupUtils.close(pickerPopover);
-                        } catch (e) {
-                            _notify("Failed to start transfer: " + e, 3000);
-                        }
-                    }
-
-                    onCancelPressed: {
-                        PopupUtils.close(pickerPopover);
-                    }
-                }
-            }
-        }
-    }
-
-    // ----------- Wiring: handle transfer -> call Python APIs (unchanged) -----------
-    Connections {
-        target: attachmentManager.activeTransfer
-
-        onStateChanged: {
-            if (!attachmentManager.activeTransfer) return;
-
-            if (attachmentManager.activeTransfer.state === ContentTransfer.Charged) {
-                _importItems = attachmentManager.activeTransfer.items || [];
-                console.log("ImportItems count:", _importItems.length);
-
-                for (var i = 0; i < _importItems.length; i++) {
-                    var item = _importItems[i];
-                    var filePath = (item.url || "").toString().replace(/^file:\/\//, "");
+                for (var i = 0; i < files.length; i++) {
+                    var filePath = (files[i].url || "").toString().replace(/^file:\/\//, "");
 
                     python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                         if (!path) {
@@ -277,21 +235,52 @@ Item {
                                     [path, attachmentManager.account_id, filePath,
                                      attachmentManager.resource_type, attachmentManager.resource_id],
                                     function (res) {
-                            if (!res) {
-                                console.warn("No response from attachment_upload");
-                                _notify("Failed to upload", 2000);
-                                attachmentManager.uploadFailed();
-                                return;
-                            }
-                            // Success path signaled via backend_bridge events
-                        });
+                                        if (!res) {
+                                            console.warn("No response from attachment_upload");
+                                            _notify("Failed to upload", 2000);
+                                            attachmentManager.uploadFailed();
+                                            return;
+                                        }
+                                        // Success path signaled via backend_bridge events
+                                    });
                     });
                 }
+            }
+
+            // Optional: hook when dialog fully completes/auto-closes
+            onComplete: {
+                // no-op; picker closes itself inside ContentPickerDialog
             }
         }
     }
 
-    // ----------- Handle backend_bridge events (unchanged semantics) -----------
+    function openContentPicker() {
+        try {
+            PopupUtils.open(contentPickerComponent);  // instantiate dialog lazily
+            console.log("[AttachmentManager] ContentPickerDialog opened");
+        } catch (e) {
+            console.error("[AttachmentManager] Failed to open ContentPickerDialog:", e);
+        }
+    }
+
+    // ----------- Wiring: (kept) listen to activeTransfer for CHARGED -----------
+    Connections {
+        target: attachmentManager.activeTransfer
+
+        onStateChanged: {
+            if (!attachmentManager.activeTransfer) return;
+
+            if (attachmentManager.activeTransfer.state === ContentTransfer.Charged) {
+                _importItems = attachmentManager.activeTransfer.items || [];
+                console.log("ImportItems count:", _importItems.length);
+
+                // NOTE: We already upload in onFilesImported().
+                // Keeping this block is harmless if you later move uploads here.
+            }
+        }
+    }
+
+    // ----------- Handle backend_bridge events -----------
     function _handleSyncEvent(data) {
         if (!data || !data.event) return;
 
@@ -341,10 +330,6 @@ Item {
     }
 
     // ----------- Helpers -----------
-    function _openPicker(anchor) {
-        PopupUtils.open(pickerPopoverComponent, anchor || uploadBtn, PopupUtils.Top);
-    }
-
     function _notify(msg, ms) {
         if (notifier && notifier.open) {
             notifier.open(msg, ms || 2000);
@@ -396,12 +381,11 @@ Item {
         return "#607D8B";
     }
 
-    // ---- NEW: on-click download + open using your Python APIs ----
+    // ---- on-click download + open using your Python APIs ----
     function _downloadAndOpen(rec) {
         if (!rec) return;
 
         if (rec.odoo_record_id <= 0) {
-            // If there’s no Odoo id but we have a file/url, try to open directly
             if (rec.url && rec.url.toString().length) {
                 var maybeUrl = rec.url.toString();
                 if (maybeUrl.indexOf("file://") !== 0 && maybeUrl.indexOf("http") !== 0)
@@ -421,42 +405,38 @@ Item {
                 return;
             }
 
-            // (path, account_id, odoo_record_id)
             python.call("backend.attachment_ondemand_download",
                         [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id],
                         function (res) {
-                _busy = false;
+                            _busy = false;
 
-                if (!res) {
-                    _notify("No response from ondemand_download", 2500);
-                    return;
-                }
+                            if (!res) {
+                                _notify("No response from ondemand_download", 2500);
+                                return;
+                            }
 
-                if (res.type === "binary" && res.data) {
-                    // res.data is base64 (decode=False on Python side)
-                    var fname = (res.name && res.name.length) ? res.name :
-                                (rec.name && rec.name.length ? rec.name : "attachment");
-                    var mime = res.mimetype || rec.mimetype || "application/octet-stream";
+                            if (res.type === "binary" && res.data) {
+                                var fname = (res.name && res.name.length) ? res.name :
+                                            (rec.name && rec.name.length ? rec.name : "attachment");
+                                var mime = res.mimetype || rec.mimetype || "application/octet-stream";
 
-                    python.call("backend.ensure_export_file_from_base64",
-                                [fname, res.data, mime],
-                                function (resultPath) {
-                        if (!resultPath || !resultPath.length) {
-                            _notify("Failed to prepare file", 2500);
-                            return;
-                        }
-                        var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
-                        Qt.openUrlExternally(fileUrl);
-                    });
+                                python.call("backend.ensure_export_file_from_base64",
+                                            [fname, res.data, mime],
+                                            function (resultPath) {
+                                                if (!resultPath || !resultPath.length) {
+                                                    _notify("Failed to prepare file", 2500);
+                                                    return;
+                                                }
+                                                var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
+                                                Qt.openUrlExternally(fileUrl);
+                                            });
 
-                } else if (res.type === "url" && res.url) {
-                    // Open using system browser/viewer
-                    Qt.openUrlExternally(res.url);
-
-                } else {
-                    _notify("Attachment has no usable data", 2500);
-                }
-            });
+                            } else if (res.type === "url" && res.url) {
+                                Qt.openUrlExternally(res.url);
+                            } else {
+                                _notify("Attachment has no usable data", 2500);
+                            }
+                        });
         });
     }
 }
