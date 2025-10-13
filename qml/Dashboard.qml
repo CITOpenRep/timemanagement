@@ -272,7 +272,8 @@ Page {
         menuModel: [
             { label: "Task" },
             { label: "Timesheet" },
-            { label: "Activity" }
+            { label: "Activity" },
+            { label: "Switch Account" }
         ]
         onMenuItemSelected: {
             if (index === 0) {
@@ -296,6 +297,9 @@ Page {
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
                     "isReadOnly": false
                 });
+            }
+            if (index === 3) {
+                 accountPicker.open(0)
             }
         }
     }
