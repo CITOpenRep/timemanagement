@@ -66,6 +66,19 @@ Page {
             onTriggered: {
                 myTaskListHeader.toggleSearchVisibility();
             }
+        },
+        Action {
+            iconName: showFoldedTasks ? "close" : "filters"
+            text: showFoldedTasks ? "Hide Closed" : "Show Closed"
+            onTriggered: {
+                showFoldedTasks = !showFoldedTasks;
+                // Refresh the task list with the new filter
+                if (currentUserOdooId > 0)
+                {
+                    var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
+                    myTasksList.updateDisplayedTasks(stageTasks);
+                }
+            }
         }
     ]
 }
@@ -74,88 +87,89 @@ Page {
 property var personalStages: []
 property var currentPersonalStageId: null  // null = "All", 0 = "No Stage", >0 = specific stage
     property string currentSearchQuery: ""
+        property bool showFoldedTasks: false  // Toggle for showing closed/folded tasks
 
-        // Properties for current user filtering
-        property int currentUserOdooId: -1
-            property int defaultAccountId: Account.getDefaultAccountId()
+            // Properties for current user filtering
+            property int currentUserOdooId: -1
+                property int defaultAccountId: Account.getDefaultAccountId()
 
-            // Function to load personal stages for the current user
-            function loadPersonalStages()
-            {
-                if (currentUserOdooId <= 0 || defaultAccountId < 0)
+                // Function to load personal stages for the current user
+                function loadPersonalStages()
                 {
-                    personalStages = [];
+                    if (currentUserOdooId <= 0 || defaultAccountId < 0)
+                    {
+                        personalStages = [];
+                        return;
+                    }
+
+                    var stages = Task.getPersonalStagesForUser(currentUserOdooId, defaultAccountId);
+
+                    // Start with loaded stages
+                    var allStages = [];
+                    for (var i = 0; i < stages.length; i++) {
+                        allStages.push(stages[i]);
+                    }
+
+                    // Add "All" option at the end
+                    allStages.push({
+                    odoo_record_id: null,
+                    name: "All",
+                    sequence: 9999
+                });
+
+                personalStages = allStages;            // Update the ListHeader with dynamic labels (preserves current filter)
+                updateListHeaderWithStages();
+
+                // Only set initial filter on first load (when currentPersonalStageId is undefined)
+                if (currentPersonalStageId === undefined && personalStages.length > 0)
+                {
+                    currentPersonalStageId = personalStages[0].odoo_record_id;
+                }
+            }
+
+            // Function to update ListHeader with personal stage names
+            function updateListHeaderWithStages()
+            {
+                if (personalStages.length === 0)
+                {
                     return;
                 }
 
-            var stages = Task.getPersonalStagesForUser(currentUserOdooId, defaultAccountId);
-
-            // Start with loaded stages
-            var allStages = [];
-            for (var i = 0; i < stages.length; i++) {
-                allStages.push(stages[i]);
+                // Build dynamic filter model for all stages
+                var filterModel = [];
+                for (var i = 0; i < personalStages.length; i++) {
+                    var stage = personalStages[i];
+                    filterModel.push({
+                    label: stage.name,
+                    filterKey: String(stage.odoo_record_id)
+                });
             }
 
-            // Add "All" option at the end
-            allStages.push({
-                odoo_record_id: null,
-                name: "All",
-                sequence: 9999
-            });
+            // Update the filter model without resetting the current filter
+            myTaskListHeader.filterModel = filterModel;
 
-            personalStages = allStages;            // Update the ListHeader with dynamic labels (preserves current filter)
-            updateListHeaderWithStages();
-
-            // Only set initial filter on first load (when currentPersonalStageId is undefined)
-            if (currentPersonalStageId === undefined && personalStages.length > 0)
+            // Only set currentFilter if it hasn't been set yet or if the current stage is valid
+            if (currentPersonalStageId !== null && currentPersonalStageId !== undefined)
             {
-                currentPersonalStageId = personalStages[0].odoo_record_id;
-            }
+                myTaskListHeader.currentFilter = String(currentPersonalStageId);
+            } else if (myTaskListHeader.currentFilter === "" && filterModel.length > 0) {
+            myTaskListHeader.currentFilter = filterModel[0].filterKey;
         }
-
-        // Function to update ListHeader with personal stage names
-        function updateListHeaderWithStages()
-        {
-            if (personalStages.length === 0)
-            {
-                return;
-            }
-
-            // Build dynamic filter model for all stages
-            var filterModel = [];
-            for (var i = 0; i < personalStages.length; i++) {
-                var stage = personalStages[i];
-                filterModel.push({
-                label: stage.name,
-                filterKey: String(stage.odoo_record_id)
-            });
-        }
-
-        // Update the filter model without resetting the current filter
-        myTaskListHeader.filterModel = filterModel;
-
-        // Only set currentFilter if it hasn't been set yet or if the current stage is valid
-        if (currentPersonalStageId !== null && currentPersonalStageId !== undefined)
-        {
-            myTaskListHeader.currentFilter = String(currentPersonalStageId);
-        } else if (myTaskListHeader.currentFilter === "" && filterModel.length > 0) {
-        myTaskListHeader.currentFilter = filterModel[0].filterKey;
     }
-}
 
-// Function to get current user's odoo_record_id for the DEFAULT account
-// MyTasks ALWAYS uses the default account set in Settings page
-function updateCurrentUser()
-{
-    // ALWAYS use the default account from Settings
-    var accountId = Account.getDefaultAccountId();
-
-    if (accountId >= 0)
+    // Function to get current user's odoo_record_id for the DEFAULT account
+    // MyTasks ALWAYS uses the default account set in Settings page
+    function updateCurrentUser()
     {
-        currentUserOdooId = Account.getCurrentUserOdooId(accountId);
-    } else {
-    currentUserOdooId = -1;
-}
+        // ALWAYS use the default account from Settings
+        var accountId = Account.getDefaultAccountId();
+
+        if (accountId >= 0)
+        {
+            currentUserOdooId = Account.getCurrentUserOdooId(accountId);
+        } else {
+        currentUserOdooId = -1;
+    }
 }
 
 // Add the ListHeader component
@@ -189,8 +203,8 @@ ListHeader {
 
     if (currentUserOdooId > 0)
     {
-        // Get tasks by personal stage
-        var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], defaultAccountId);
+        // Get tasks by personal stage, respecting folded task filter
+        var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
 
         // Update the task list directly
         myTasksList.updateDisplayedTasks(stageTasks);
@@ -205,8 +219,8 @@ onCustomSearch: {
 
     if (currentUserOdooId > 0)
     {
-        // For search, show all tasks (personal stage = null) that match search
-        var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], defaultAccountId);
+        // For search, show all tasks (personal stage = null) that match search, respecting folded task filter
+        var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], defaultAccountId, showFoldedTasks);
 
         // Apply search filter
         if (query && query.trim() !== "")
@@ -223,8 +237,42 @@ onCustomSearch: {
 }
 }
 
-LomiriShape {
+// Visual indicator when showing folded tasks
+Rectangle {
+    id: foldedTasksIndicator
+    visible: showFoldedTasks
     anchors.top: myTaskListHeader.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    height: units.gu(4)
+    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d5016" : "#dff0d8"
+    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4caf50" : "#5cb85c"
+    border.width: 1
+
+    Row {
+        anchors.centerIn: parent
+        spacing: units.gu(1)
+
+        Icon {
+            name: "info"
+            width: units.gu(2)
+            height: units.gu(2)
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4caf50" : "#3c763d"
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        Text {
+            text: "Showing closed/completed tasks"
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4caf50" : "#3c763d"
+            font.pixelSize: units.gu(1.5)
+            font.bold: true
+            anchors.verticalCenter: parent.verticalCenter
+        }
+    }
+}
+
+LomiriShape {
+    anchors.top: showFoldedTasks ? foldedTasksIndicator.bottom : myTaskListHeader.bottom
     anchors.bottom: parent.bottom
     anchors.left: parent.left
     anchors.right: parent.right
@@ -338,7 +386,7 @@ onVisibleChanged: {
         // Apply current personal stage filter
         if (currentUserOdooId > 0)
         {
-            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId);
+            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
             myTasksList.updateDisplayedTasks(stageTasks);
         }
     }
@@ -363,7 +411,7 @@ Component.onCompleted: {
         // Apply initial personal stage filter (first stage which is "All")
         if (personalStages.length > 0)
         {
-            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId);
+            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
             myTasksList.updateDisplayedTasks(stageTasks);
         }
     }
