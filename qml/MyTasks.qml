@@ -85,7 +85,7 @@ Page {
 
 // Properties for filter and search state
 property var personalStages: []
-property var currentPersonalStageId: null  // null = "All", 0 = "No Stage", >0 = specific stage
+property var currentPersonalStageId: undefined  // undefined = not initialized, null = "All", 0 = "No Stage", >0 = specific stage
     property string currentSearchQuery: ""
         property bool showFoldedTasks: false  // Toggle for showing closed/folded tasks
 
@@ -117,13 +117,21 @@ property var currentPersonalStageId: null  // null = "All", 0 = "No Stage", >0 =
                     sequence: 9999
                 });
 
-                personalStages = allStages;            // Update the ListHeader with dynamic labels (preserves current filter)
+                personalStages = allStages;
+                
+                // console.log("loadPersonalStages: personalStages.length =", personalStages.length);
+                // for (var i = 0; i < personalStages.length; i++) {
+                //     console.log("  Stage", i, ":", personalStages[i].name, "ID:", personalStages[i].odoo_record_id);
+                // }
+                
+                // Update the ListHeader with dynamic labels (preserves current filter)
                 updateListHeaderWithStages();
 
                 // Only set initial filter on first load (when currentPersonalStageId is undefined)
                 if (currentPersonalStageId === undefined && personalStages.length > 0)
                 {
                     currentPersonalStageId = personalStages[0].odoo_record_id;
+                 //   console.log("loadPersonalStages: Initial currentPersonalStageId set to", currentPersonalStageId, "(first stage)");
                 }
             }
 
@@ -186,6 +194,8 @@ ListHeader {
     currentFilter: ""
 
     onFilterSelected: {
+        console.log("onFilterSelected triggered: filterKey =", filterKey);
+        
         // Parse filterKey to get personal stage ID
         // filterKey is string: "null" for All, "0" for No Stage, or actual stage ID
         var stageId;
@@ -196,6 +206,7 @@ ListHeader {
         stageId = parseInt(filterKey);
     }
 
+    console.log("onFilterSelected: stageId =", stageId);
     myTasksPage.currentPersonalStageId = stageId;
 
     // Update current user before applying filter
@@ -205,6 +216,7 @@ ListHeader {
     {
         // Get tasks by personal stage, respecting folded task filter
         var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
+        console.log("onFilterSelected: stageTasks.length =", stageTasks.length);
 
         // Update the task list directly
         myTasksList.updateDisplayedTasks(stageTasks);
@@ -408,10 +420,13 @@ Component.onCompleted: {
     {
         loadPersonalStages();
 
-        // Apply initial personal stage filter (first stage which is "All")
-        if (personalStages.length > 0)
+        // Apply initial personal stage filter (first stage in the list)
+        // Note: "All" is now at the end, so first stage is a specific personal stage
+        if (personalStages.length > 0 && currentPersonalStageId !== undefined)
         {
+            console.log("MyTasks initial load: currentPersonalStageId =", currentPersonalStageId);
             var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
+            console.log("MyTasks initial load: stageTasks.length =", stageTasks.length);
             myTasksList.updateDisplayedTasks(stageTasks);
         }
     }
