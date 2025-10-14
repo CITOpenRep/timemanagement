@@ -212,6 +212,13 @@ Page {
                     page = 6;
                     apLayout.setCurrentPage(page);
                 }
+            },
+            Action {
+                iconName: "view-on"
+                text: "Switch Accounts"
+                onTriggered: {
+                    accountPicker.open(0)
+                }
             }
         ]
     }
@@ -272,8 +279,7 @@ Page {
         menuModel: [
             { label: "Task" },
             { label: "Timesheet" },
-            { label: "Activity" },
-            { label: "Switch Account" }
+            { label: "Activity" }
         ]
         onMenuItemSelected: {
             if (index === 0) {
@@ -297,9 +303,6 @@ Page {
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
                     "isReadOnly": false
                 });
-            }
-            if (index === 3) {
-                 accountPicker.open(0)
             }
         }
     }
