@@ -4,7 +4,7 @@ import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import Lomiri.Content 1.3
 
-Item {
+Rectangle {
     id: pickerPopup
     width: 0; height: 0
 

@@ -82,7 +82,6 @@ MainView {
         }
     }
 
-    property bool accountFilterVisible: false
 
     // Account Filter
     AccountFilter {
@@ -91,13 +90,9 @@ MainView {
         anchors.left: parent.left
         anchors.right: parent.right
         z: 1000
-        visible: accountFilterVisible
+        visible: false
 
         onAccountChanged: {
-            console.log("🔄 ACCOUNT CHANGE DETECTED:");
-            console.log("   Previous Account ID:", currentAccountId);
-            console.log("   New Account ID:", accountId);
-            console.log("   New Account Name:", accountName);
 
             currentAccountId = accountId;
             currentAccountName = accountName;
@@ -109,6 +104,20 @@ MainView {
             dashboard_page.instanceSelected(accountId, accountName);
         }
     }
+
+    AccountSelectorDialog {
+        id: accountPicker
+        titleText: "Switch account"
+        restrictToLocalOnly: false
+
+        onAccepted: function(id, name) {
+            // persist selection, refresh views, trigger sync, etc.
+            console.log("Account chosen:", id, name)
+        }
+        onCanceled: console.log("Account selection canceled")
+    }
+
+
 
     // Global notification popup
     NotificationPopup {
