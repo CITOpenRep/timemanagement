@@ -49,7 +49,7 @@ Item {
     property int projectAccountId: -1
 
     property bool filterByAccount: false
-    property int selectedAccountId: -1
+    property int selectedAccountId: accountPicker.selectedAccountId
 
     // Properties for assignee filtering
     property bool filterByAssignees: false
@@ -62,6 +62,16 @@ Item {
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
     signal taskTimesheetRequested(int localId)
+
+    Connections
+    {
+        target: accountPicker
+
+        onAccepted: function(id, name) {
+           selectedAccountId=id
+           refresh()
+        }
+    }
 
     Connections {
         target: globalTimerWidget
@@ -348,7 +358,8 @@ Item {
 
     function clearAccountFilter() {
         filterByAccount = false;
-        selectedAccountId = -1;
+        selectedAccountId = accountPicker.selectedAccountId
+
 
         refreshWithFilter();
     }
@@ -468,7 +479,7 @@ Item {
         childrenMap = {};
         childrenMapReady = false;
 
-        var allTasks = Task.getAllTasks(); // import tasks.js as Task
+        var allTasks = Task.getAllTasksForAccount(accountPicker.selectedAccountId); // import tasks.js as Task
 
         if (allTasks.length === 0) {
             childrenMapReady = true;

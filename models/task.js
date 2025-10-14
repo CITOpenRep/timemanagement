@@ -870,6 +870,85 @@ function getTaskDetails(task_id) {
 }
 
 /**
+ * Retrieves all non-deleted tasks for the given account from `project_task_app`,
+ * inherits color from related projects/subprojects, and adds total spent hours.
+ *
+ * @param {Number} accountId - The account ID to filter tasks by.
+ * @returns {Array<Object>} A list of task objects with color and spentHours.
+ */
+function getAllTasksForAccount(accountId) {
+    var taskList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        var projectColorMap = {};
+
+        db.transaction(function (tx) {
+            // Step 1: Build color map for projects of this account
+            var projectQuery = `
+                SELECT odoo_record_id, color_pallet
+                FROM project_project_app
+                WHERE account_id = ?
+            `;
+            var projectResult = tx.executeSql(projectQuery, [accountId]);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            // Step 2: Fetch all non-deleted tasks for this account
+            var taskQuery = `
+                SELECT *
+                FROM project_task_app
+                WHERE (status IS NULL OR status != 'deleted')
+                  AND account_id = ?
+                ORDER BY end_date ASC
+            `;
+            var taskResult = tx.executeSql(taskQuery, [accountId]);
+
+            for (var i = 0; i < taskResult.rows.length; i++) {
+                var row = taskResult.rows.item(i);
+                var task = DBCommon.rowToObject(row);
+
+                // --- Inherit project/subproject color ---
+                var inheritedColor = 0;
+                if (task.sub_project_id) {
+                    inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                }
+                if (!inheritedColor && task.project_id) {
+                    inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                }
+                task.color_pallet = inheritedColor;
+
+                // --- Calculate total spent hours ---
+                var timeQuery = `
+                    SELECT SUM(unit_amount) AS total_hours
+                    FROM account_analytic_line_app
+                    WHERE task_id = ? AND account_id = ?
+                `;
+                var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, accountId]);
+                task.spent_hours =
+                    (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null)
+                        ? timeResult.rows.item(0).total_hours
+                        : 0;
+
+                taskList.push(task);
+            }
+        });
+    } catch (e) {
+        console.error("getAllTasks failed:", e);
+    }
+
+    return taskList;
+}
+
+
+/**
  * Retrieves all non-deleted tasks from the `project_task_app` table,
  * and adds inherited color and total hours spent from timesheet entries.
  *

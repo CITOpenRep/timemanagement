@@ -83,8 +83,8 @@ MainView {
     }
 
 
-    // --- Fullscreen Image Viewer Overlay ---
-    //GOKUL, This can be moved as a component ?
+    // --- Fullscreen Image Previewer, Mainly used by attachment manager ---
+    //GOKUL, This can be moved as a component ? Later
     Rectangle {
         id: imagePreviewer
         anchors.fill: parent

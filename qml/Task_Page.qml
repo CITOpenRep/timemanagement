@@ -586,35 +586,7 @@ Page {
     Component.onCompleted: {
         // Determine initial account selection from accountFilter (try common property names),
         // fall back to numeric -1 (All accounts) if none found. This ensures initial list is filtered.
-        try {
-            var initialAccountNum = -1;
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    var maybe = Number(accountFilter.selectedAccountId);
-                    initialAccountNum = isNaN(maybe) ? -1 : maybe;
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    var maybe2 = Number(accountFilter.currentAccountId);
-                    initialAccountNum = isNaN(maybe2) ? -1 : maybe2;
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    // index mapping may not equate to account id — default to -1 unless you map index -> id
-                    initialAccountNum = -1;
-                } else {
-                    initialAccountNum = -1;
-                }
-            } else if (typeof Account.getSelectedAccountId === "function") {
-                var acct = Account.getSelectedAccountId();
-                var acctNum = Number(acct);
-                initialAccountNum = (acct !== null && typeof acct !== "undefined" && !isNaN(acctNum)) ? acctNum : -1;
-            } else {
-                initialAccountNum = -1;
-            }
-
-            console.log("Task_Page initial account selection (numeric):", initialAccountNum);
-            tasklist.selectedAccountId = initialAccountNum;
-        } catch (e) {
-            console.error("Task_Page: error determining initial account:", e);
-            tasklist.selectedAccountId = -1;
-        }
+        tasklist.selectedAccountId = accountPicker.selectedAccountId;
 
         // Load assignees for the assignee filter
         loadAssignees();

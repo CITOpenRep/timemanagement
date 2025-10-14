@@ -18,7 +18,7 @@ Item {
     property string titleText: "Select account"
     property bool restrictToLocalOnly: false
     /** Persist last accepted choice (set when user presses OK) */
-    property int selectedAccountId: -1
+    property int selectedAccountId: Accounts.getDefaultAccountId()
     property string selectedAccountName: ""
 
     signal accepted(int accountId, string accountName)
