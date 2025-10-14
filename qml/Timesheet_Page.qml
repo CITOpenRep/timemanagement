@@ -44,8 +44,8 @@ Page {
     // SEPARATED CONCERNS:
     // 1. selectedAccountId - ONLY for filtering/viewing data (from account selector)
     // 2. defaultAccountId - ONLY for creating new records (from default account setting)
-    property string selectedAccountId: "-1" // Start with "All accounts" for filtering
-    property string defaultAccountId: Account.getDefaultAccountId() // For creating records
+    property string selectedAccountId: accountPicker.selectedAccountId // Start with "All accounts" for filtering
+    property string defaultAccountId: accountPicker.selectedAccountId // For creating records
 
     header: PageHeader {
         id: timesheetsheader
@@ -322,32 +322,8 @@ Page {
     // Update default account when it changes in settings
     Component.onCompleted: {
         // Initialize default account
-        defaultAccountId = Account.getDefaultAccountId();
-
-        // Try to read the account selector's current selection and use it as initial filter.
-        // This will preserve color behavior and run initial filtered fetch.
-        try {
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                // try common property names — prefer explicit ID property if present
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    selectedAccountId = String(accountFilter.selectedAccountId);
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    selectedAccountId = String(accountFilter.currentAccountId);
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    // fallback: if only index is available, keep "-1" or map index -> id here if you have mapping
-                    selectedAccountId = String(accountFilter.currentIndex);
-                } else {
-                    selectedAccountId = "-1";
-                }
-            } else {
-                // if accountFilter component not available at this time, fallback to "-1"
-                selectedAccountId = "-1";
-            }
-        } catch (e) {
-            console.error("Error reading accountFilter initial selection:", e);
-            selectedAccountId = "-1";
-        }
-
-        console.log("Initial selectedAccountId on load:", selectedAccountId);
+        defaultAccountId = accountPicker.selectedAccountId
+        selectedAccountId=accountPicker.selectedAccountId
     }
+
 }

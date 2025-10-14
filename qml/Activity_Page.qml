@@ -92,7 +92,7 @@ Page {
     property string projectName: ""
 
     property bool filterByAccount: false
-    property int selectedAccountId: -1
+    property int selectedAccountId: accountPicker.selectedAccountId
 
     // Properties for assignee filtering
     property bool filterByAssignees: false
