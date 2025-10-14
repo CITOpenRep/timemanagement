@@ -455,7 +455,7 @@ ListItem {
                                                             Text {
                                                                 id: projectTitleText
                                                                 text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
-                                                                color: hasChildren ? AppConst.Colors.Orange: (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"))
+                                                                color: hasChildren ? AppConst.Colors.Orange: (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                                                                 font.pixelSize: units.gu(2)
 
                                                                 wrapMode: Text.WordWrap
@@ -599,7 +599,7 @@ ListItem {
                                                     Text {
                                                         text: (childCount > 0 ? " [+" + childCount + "] Tasks" : "")
                                                         visible: childCount > 0
-                                                        color: hasChildren ? AppConst.Colors.Orange: (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"))
+                                                        color: hasChildren ? AppConst.Colors.Orange: (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                                                         font.pixelSize: units.gu(1.5)
                                                         //  horizontalAlignment: Text.AlignRight
                                                         width: parent.width
