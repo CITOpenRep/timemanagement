@@ -1,26 +1,26 @@
 /*
- * MIT License
- *
- * Copyright (c) 2025 CIT-Services
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+* MIT License
+*
+* Copyright (c) 2025 CIT-Services
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
@@ -93,21 +93,25 @@ Page {
     property var prefilledParentProjectId: -1
     property string prefilledProjectName: ""
 
-    property var currentTask: {}
+    property var currentTask: { }
 
-    function switchToEditMode() {
+    function switchToEditMode()
+    {
         // Simply change the current page to edit mode
-        if (recordid !== 0) {
+        if (recordid !== 0)
+        {
             isReadOnly = false;
         }
     }
 
-    function validateHoursInput(text) {
+    function validateHoursInput(text)
+    {
         // Allow formats like: 1, 1.5, 1:30, 01:30
-        var timeRegex = /^(\d{1,3}):([0-5]\d)$/; // HH:MM or H:MM format
+        var timeRegex = /^(\d {1, 3}):([0-5]\d)$/; // HH:MM or H:MM format
         var decimalRegex = /^\d+(\.\d+)?$/; // Decimal format like 1.5
 
-        if (timeRegex.test(text)) {
+        if (timeRegex.test(text))
+        {
             var match = text.match(timeRegex);
             var hours = parseInt(match[1]);
             var minutes = parseInt(match[2]);
@@ -119,12 +123,14 @@ Page {
         return false;
     }
 
-    function formatHoursDisplay(text) {
+    function formatHoursDisplay(text)
+    {
         // Convert various input formats to HH:MM display format
-        var timeRegex = /^(\d{1,3}):([0-5]\d)$/;
+        var timeRegex = /^(\d {1, 3}):([0-5]\d)$/;
         var decimalRegex = /^\d+(\.\d+)?$/;
 
-        if (timeRegex.test(text)) {
+        if (timeRegex.test(text))
+        {
             // Already in HH:MM format, just pad if needed
             var match = text.match(timeRegex);
             var hours = parseInt(match[1]);
@@ -137,33 +143,39 @@ Page {
         return text;
     }
 
-    function save_task_data() {
+    function save_task_data()
+    {
         const ids = workItem.getIds();
 
         // Check for assignees - either single or multiple
         var hasAssignees = false;
-        if (workItem.enableMultipleAssignees) {
+        if (workItem.enableMultipleAssignees)
+        {
             hasAssignees = ids.multiple_assignees && ids.multiple_assignees.length > 0;
         } else {
             hasAssignees = ids.assignee_id !== null;
         }
 
-        if (!hasAssignees) {
+        if (!hasAssignees)
+        {
             notifPopup.open("Error", "Please select at least one assignee", "error");
             return;
         }
-        if (!ids.project_id) {
+        if (!ids.project_id)
+        {
             notifPopup.open("Error", "Please select the project", "error");
             return;
         }
 
         // Validate hours input before saving
-        if (hours_input.text !== "" && !validateHoursInput(hours_input.text)) {
+        if (hours_input.text !== "" && !validateHoursInput(hours_input.text))
+        {
             notifPopup.open("Error", "Please enter valid hours (e.g., 1.5, 2:30, or 8:00)", "error");
             return;
         }
 
-        if (name_text.text != "") {
+        if (name_text.text != "")
+        {
             const saveData = {
                 accountId: ids.account_id < 0 ? 0 : ids.account_id,
                 name: name_text.text,
@@ -182,38 +194,45 @@ Page {
             };
 
             // Add stage for creation mode - use selected stage or fallback to first stage
-            if (recordid === 0) {
+            if (recordid === 0)
+            {
                 var stageToAssign = selectedStageOdooRecordId;
-                
+
                 // Fallback to first stage if no stage selected
-                if (stageToAssign <= 0 && stageListModel.count > 0) {
+                if (stageToAssign <= 0 && stageListModel.count > 0)
+                {
                     var firstStage = stageListModel.get(0);
                     stageToAssign = firstStage.odoo_record_id;
                     console.log("Using fallback stage:", firstStage.name, "with odoo_record_id:", stageToAssign);
                 }
-                
-                if (stageToAssign > 0) {
+
+                if (stageToAssign > 0)
+                {
                     saveData.stageOdooRecordId = stageToAssign;
                     console.log("Saving task with stage:", stageToAssign);
                 }
             }
 
             // Add multiple assignees if enabled
-            if (workItem.enableMultipleAssignees && ids.multiple_assignees) {
+            if (workItem.enableMultipleAssignees && ids.multiple_assignees)
+            {
                 saveData.multipleAssignees = ids.multiple_assignees;
             }
 
             const result = Task.saveOrUpdateTask(saveData);
-            if (!result.success) {
+            if (!result.success)
+            {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
                 // Format the hours display after successful save
-                if (hours_input.text !== "") {
+                if (hours_input.text !== "")
+                {
                     hours_input.text = formatHoursDisplay(hours_input.text);
                 }
                 // Reload the task data to reflect changes
-                if (recordid !== 0) {
+                if (recordid !== 0)
+                {
                     currentTask = Task.getTaskDetails(recordid);
                 }
                 // No navigation - stay on the same page like Timesheet.qml
@@ -223,17 +242,20 @@ Page {
             notifPopup.open("Error", "Please add a Name to the task", "error");
         }
 
-    //  isReadOnly = true; // Switch back to read-only mode after saving
+        //  isReadOnly = true; // Switch back to read-only mode after saving
     }
 
-    function incdecHrs(value) {
+    function incdecHrs(value)
+    {
         var currentText = hours_input.text || "0:00";
         var currentFloat = Utils.convertDurationToFloat(currentText);
 
-        if (value === 1) {
+        if (value === 1)
+        {
             currentFloat += 1.0;
         } else {
-            if (currentFloat >= 1.0) {
+            if (currentFloat >= 1.0)
+            {
                 currentFloat -= 1.0;
             }
         }
@@ -265,75 +287,84 @@ Page {
         }
     }
 
-    function handleStageChange(stageOdooRecordId, stageName) {
-        if (!currentTask || !currentTask.id) {
+    function handleStageChange(stageOdooRecordId, stageName)
+    {
+        if (!currentTask || !currentTask.id)
+        {
             notifPopup.open("Error", "Task data not available", "error");
             return;
         }
 
         var result = Task.updateTaskStage(currentTask.id, stageOdooRecordId, currentTask.account_id);
-        
-        if (result.success) {
+
+        if (result.success)
+        {
             // Update the current task's stage
             currentTask.state = stageOdooRecordId;
-            
+
             // Reload the task to reflect changes
             loadTask();
-            
+
             notifPopup.open("Success", "Task stage changed to: " + stageName, "success");
         } else {
             notifPopup.open("Error", "Failed to change stage: " + (result.error || "Unknown error"), "error");
         }
     }
 
-    function handlePersonalStageChange(personalStageOdooRecordId, personalStageName) {
-        if (!currentTask || !currentTask.id) {
+    function handlePersonalStageChange(personalStageOdooRecordId, personalStageName)
+    {
+        if (!currentTask || !currentTask.id)
+        {
             notifPopup.open("Error", "Task data not available", "error");
             return;
         }
 
         var result = Task.updateTaskPersonalStage(currentTask.id, personalStageOdooRecordId, currentTask.account_id);
-        
-        if (result.success) {
+
+        if (result.success)
+        {
             // Update the current task's personal stage
             currentTask.personal_stage = personalStageOdooRecordId;
-            
+
             // Reload the task to reflect changes
             loadTask();
-            
-            var message = personalStageOdooRecordId === null ? 
-                "Personal stage cleared" : 
-                "Personal stage changed to: " + personalStageName;
+
+            var message = personalStageOdooRecordId === null ?
+                        "Personal stage cleared" :
+                        "Personal stage changed to: " + personalStageName;
             notifPopup.open("Success", message, "success");
         } else {
             notifPopup.open("Error", "Failed to change personal stage: " + (result.error || "Unknown error"), "error");
         }
     }
 
-    function loadStagesForProject(projectOdooRecordId, accountId) {
+    function loadStagesForProject(projectOdooRecordId, accountId)
+    {
         console.log("Loading stages for project:", projectOdooRecordId, "account:", accountId);
-        
-        if (projectOdooRecordId <= 0 || accountId <= 0) {
+
+        if (projectOdooRecordId <= 0 || accountId <= 0)
+        {
             stageListModel.clear();
             stageComboBox.currentIndex = -1;
             selectedStageOdooRecordId = -1;
             return;
         }
-        
+
         var stages = Task.getTaskStagesForProject(projectOdooRecordId, accountId);
         stageListModel.clear();
-        
+
         for (var i = 0; i < stages.length; i++) {
             stageListModel.append({
-                odoo_record_id: stages[i].odoo_record_id,
-                name: stages[i].name,
-                sequence: stages[i].sequence,
-                fold: stages[i].fold
-            });
+                                      odoo_record_id: stages[i].odoo_record_id,
+                                      name: stages[i].name,
+                                      sequence: stages[i].sequence,
+                                      fold: stages[i].fold
+                                  });
         }
-        
+
         // Automatically select first stage as default (user can change it)
-        if (stageListModel.count > 0) {
+        if (stageListModel.count > 0)
+        {
             stageComboBox.currentIndex = 0;
             var firstStage = stageListModel.get(0);
             selectedStageOdooRecordId = firstStage.odoo_record_id;
@@ -343,7 +374,7 @@ Page {
             selectedStageOdooRecordId = -1;
             console.warn("No stages available for project", projectOdooRecordId);
         }
-        
+
         console.log("Loaded", stageListModel.count, "stages for project");
     }
 
@@ -377,22 +408,24 @@ Page {
                     showSubTaskSelector: false
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(10)
-                    
+
                     // Monitor project and account changes to reload stages
                     onStateChanged: {
                         console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
-                        
+
                         if (recordid === 0) { // Only in creation mode
                             // Reload stages when account or project is selected
-                            if (newState === "ProjectSelected") {
+                            if (newState === "ProjectSelected")
+                            {
                                 // Use getIds() to get the most current IDs
                                 var ids = workItem.getIds();
                                 var projectId = data.id;
                                 var accountId = ids.account_id;
-                                
+
                                 console.log("📋 ProjectSelected - projectId:", projectId, "accountId:", accountId, "(from getIds)");
-                                
-                                if (projectId > 0 && accountId > 0) {
+
+                                if (projectId > 0 && accountId > 0)
+                                {
                                     console.log("✅ Loading stages for project:", projectId, "account:", accountId);
                                     loadStagesForProject(projectId, accountId);
                                 } else {
@@ -402,8 +435,9 @@ Page {
                                 // For subproject, we still use the main project to get stages
                                 var ids2 = workItem.getIds();
                                 console.log("📋 SubprojectSelected - project_id:", ids2.project_id, "account_id:", ids2.account_id);
-                                
-                                if (ids2.project_id > 0 && ids2.account_id > 0) {
+
+                                if (ids2.project_id > 0 && ids2.account_id > 0)
+                                {
                                     console.log("✅ Loading stages for subproject's parent project:", ids2.project_id, "account:", ids2.account_id);
                                     loadStagesForProject(ids2.project_id, ids2.account_id);
                                 } else {
@@ -457,7 +491,7 @@ Page {
                         color: "transparent"
                         radius: units.gu(0.5)
                         border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                        border.color: parent.activeFocus ? LomiriColors.orange: (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
                         // z: -1
                     }
                 }
@@ -565,11 +599,11 @@ Page {
                 anchors.verticalCenter: parent.verticalCenter
                 enabled: !isReadOnly
                 displayText: currentIndex >= 0 ? model.get(currentIndex).name : "Select Stage"
-                
+
                 model: ListModel {
                     id: stageListModel
                 }
-                
+
                 delegate: ItemDelegate {
                     width: stageComboBox.width
                     contentItem: Text {
@@ -581,9 +615,10 @@ Page {
                     }
                     highlighted: stageComboBox.highlightedIndex === index
                 }
-                
+
                 onCurrentIndexChanged: {
-                    if (currentIndex >= 0) {
+                    if (currentIndex >= 0)
+                    {
                         var stage = stageListModel.get(currentIndex);
                         taskCreate.selectedStageOdooRecordId = stage.odoo_record_id;
                         console.log("User selected stage:", stage.name, "with odoo_record_id:", stage.odoo_record_id);
@@ -618,8 +653,8 @@ Page {
                             //set the data to a global Slore and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
-                            });
+                                                             isReadOnly: isReadOnly
+                                                         });
                         }
                     }
                 }
@@ -636,161 +671,176 @@ Page {
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
             topPadding: units.gu(1)
-            
-            TSLabel {
-                text: "Current Stage:"
-                width: parent.width * 0.25
-                anchors.verticalCenter: parent.verticalCenter
+            spacing: units.gu(2)
+
+
+            TSButton {
+                visible: recordid !== 0
+                width: (parent.width - units.gu(1)) / 2
+                text: "Change Stage"
+                onClicked: {
+                    if (!currentTask || !currentTask.id)
+                    {
+                        notifPopup.open("Error", "Task data not available", "error");
+                        return;
+                    }
+
+                    // Open the stage selector dialog with parameters
+                    var dialog = PopupUtils.open(taskStageSelector, taskCreate, {
+                                                     taskId: currentTask.id,
+                                                     projectOdooRecordId: currentTask.project_id,
+                                                     accountId: currentTask.account_id,
+                                                     currentStageOdooRecordId: currentTask.state || -1
+                                                 });
+                }
             }
-            
+
+            // TSLabel {
+            //     text: "Current Stage:"
+            //     width: parent.width * 0.25
+            //     anchors.verticalCenter: parent.verticalCenter
+            //     anchors.leftMargin: units.gu(3)
+
+            // }
+
             Label {
                 text: currentTask && currentTask.state ? Task.getTaskStageName(currentTask.state) : "Not set"
-                width: parent.width * 0.75
+                width: parent.width * 0.2
                 font.pixelSize: units.gu(2)
+                //    anchors.leftMargin: units.gu(-2)
                 font.bold: true
                 color: {
-                    if (!currentTask || !currentTask.state) {
+                    if (!currentTask || !currentTask.state)
+                    {
                         return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
                     }
                     var stageName = Task.getTaskStageName(currentTask.state).toLowerCase();
-                    if (stageName === "completed" || stageName === "finished" || stageName === "closed" || 
-                        stageName === "verified" || stageName === "done") {
+                    if (stageName === "completed" || stageName === "finished" || stageName === "closed" ||
+                            stageName === "verified" || stageName === "done") {
                         return "green";
                     }
-                    return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black";
+                    return LomiriColors.orange;
                 }
                 anchors.verticalCenter: parent.verticalCenter
+
                 wrapMode: Text.WordWrap
             }
+
+
+
         }
 
+        // Row {
+        //     id: currentPersonalStageRow
+        //     visible: recordid !== 0
+        //     anchors.top: currentStageRow.bottom
+        //     anchors.left: parent.left
+        //     anchors.right: parent.right
+        //     anchors.leftMargin: units.gu(1)
+        //     anchors.rightMargin: units.gu(1)
+        //     topPadding: units.gu(1)
+
+        //     TSLabel {
+        //         text: "Personal Stage:"
+        //         width: parent.width * 0.25
+        //         anchors.verticalCenter: parent.verticalCenter
+        //     }
+
+        //     Label {
+        //         text: {
+        //             if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
+        //                 return "(Not set)";
+        //             }
+        //             return Task.getTaskStageName(currentTask.personal_stage);
+        //         }
+        //         width: parent.width * 0.75
+        //         font.pixelSize: units.gu(2)
+        //         font.bold: currentTask && currentTask.personal_stage && currentTask.personal_stage !== -1
+        //         font.italic: !currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1
+        //         color: {
+        //             if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
+        //                 return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
+        //             }
+        //             return LomiriColors.blue;
+        //         }
+        //         anchors.verticalCenter: parent.verticalCenter
+        //         wrapMode: Text.WordWrap
+        //     }
+        // }
+
         Row {
-            id: currentPersonalStageRow
-            visible: recordid !== 0
+            id: myRow82
             anchors.top: currentStageRow.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            topPadding: units.gu(1)
-            
-            TSLabel {
-                text: "Personal Stage:"
-                width: parent.width * 0.25
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            
-            Label {
-                text: {
-                    if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
-                        return "(Not set)";
-                    }
-                    return Task.getTaskStageName(currentTask.personal_stage);
-                }
-                width: parent.width * 0.75
-                font.pixelSize: units.gu(2)
-                font.bold: currentTask && currentTask.personal_stage && currentTask.personal_stage !== -1
-                font.italic: !currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1
-                color: {
-                    if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
-                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
-                    }
-                    return LomiriColors.blue;
-                }
-                anchors.verticalCenter: parent.verticalCenter
-                wrapMode: Text.WordWrap
-            }
-        }
-
-        Row {
-            id: myRow82
-            anchors.top: currentPersonalStageRow.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
+            anchors.topMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
             spacing: units.gu(1)
-            
+
             TSButton {
                 visible: recordid !== 0
                 width: (parent.width - units.gu(1)) / 2
                 text: "Create Activity"
                 onClicked: {
                     let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
-                    if (result.success) {
+                    if (result.success)
+                    {
                         apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Activities.qml"), {
-                            "recordid": result.record_id,
-                            "accountid": currentTask.account_id,
-                            "isReadOnly": false
-                        });
+                                                         "recordid": result.record_id,
+                                                         "accountid": currentTask.account_id,
+                                                         "isReadOnly": false
+                                                     });
                     } else {
                         notifPopup.open("Failed", "Unable to create activity", "error");
                     }
                 }
             }
-            
-            TSButton {
-                visible: recordid !== 0
-                width: (parent.width - units.gu(1)) / 2
-                text: "Change Stage"
-                onClicked: {
-                    if (!currentTask || !currentTask.id) {
-                        notifPopup.open("Error", "Task data not available", "error");
-                        return;
-                    }
-                    
-                    // Open the stage selector dialog with parameters
-                    var dialog = PopupUtils.open(taskStageSelector, taskCreate, {
-                        taskId: currentTask.id,
-                        projectOdooRecordId: currentTask.project_id,
-                        accountId: currentTask.account_id,
-                        currentStageOdooRecordId: currentTask.state || -1
-                    });
-                }
-            }
+
+
         }
 
-        Row {
-            id: myRow83
-            anchors.top: myRow82.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(1)
-            topPadding: units.gu(1)
-            
-            TSButton {
-                visible: recordid !== 0
-                width: parent.width
-                text: "Change Personal Stage"
-                fgColor: LomiriColors.blue
-                onClicked: {
-                    if (!currentTask || !currentTask.id) {
-                        notifPopup.open("Error", "Task data not available", "error");
-                        return;
-                    }
-                    
-                    var userId = Accounts.getCurrentUserOdooId(currentTask.account_id);
-                    if (userId <= 0) {
-                        notifPopup.open("Error", "Unable to determine current user", "error");
-                        return;
-                    }
-                    
-                    // Open the personal stage selector dialog with parameters
-                    var dialog = PopupUtils.open(personalStageSelector, taskCreate, {
-                        taskId: currentTask.id,
-                        accountId: currentTask.account_id,
-                        userId: userId,
-                        currentPersonalStageOdooRecordId: currentTask.personal_stage || -1
-                    });
-                }
-            }
-        }
+        // Row {
+        //     id: myRow83
+        //     anchors.top: myRow82.bottom
+        //     anchors.left: parent.left
+        //     anchors.right: parent.right
+        //     anchors.leftMargin: units.gu(1)
+        //     anchors.rightMargin: units.gu(1)
+        //     spacing: units.gu(1)
+        //     topPadding: units.gu(1)
+
+        //     TSButton {
+        //         visible: recordid !== 0
+        //         width: parent.width
+        //         text: "Change Personal Stage"
+        //         fgColor: LomiriColors.blue
+        //         onClicked: {
+        //             if (!currentTask || !currentTask.id) {
+        //                 notifPopup.open("Error", "Task data not available", "error");
+        //                 return;
+        //             }
+
+        //             var userId = Accounts.getCurrentUserOdooId(currentTask.account_id);
+        //             if (userId <= 0) {
+        //                 notifPopup.open("Error", "Unable to determine current user", "error");
+        //                 return;
+        //             }
+
+        //             // Open the personal stage selector dialog with parameters
+        //             var dialog = PopupUtils.open(personalStageSelector, taskCreate, {
+        //                 taskId: currentTask.id,
+        //                 accountId: currentTask.account_id,
+        //                 userId: userId,
+        //                 currentPersonalStageOdooRecordId: currentTask.personal_stage || -1
+        //             });
+        //         }
+        //     }
+        // }
 
         Row {
             id: plannedh_row
-            anchors.top: myRow83.bottom
+            anchors.top: myRow82.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
@@ -816,7 +866,7 @@ Page {
 
                 // Input validation
                 validator: RegExpValidator {
-                    regExp: /^(\d{1,3}(:\d{2})?|\d+(\.\d+)?)$/
+                    regExp: /^(\d {1, 3}(:\d {2})?|\d+(\.\d+)?)$/
                 }
 
                 Rectangle {
@@ -824,17 +874,19 @@ Page {
                     color: "transparent"
                     radius: units.gu(0.5)
                     border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                    border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                    border.color: parent.activeFocus ? LomiriColors.orange: (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
                 }
 
                 onFocusChanged: {
-                    if (!focus && text !== "" && validateHoursInput(text)) {
+                    if (!focus && text !== "" && validateHoursInput(text))
+                    {
                         text = formatHoursDisplay(text);
                     }
                 }
 
                 Keys.onReturnPressed: {
-                    if (text !== "" && validateHoursInput(text)) {
+                    if (text !== "" && validateHoursInput(text))
+                    {
                         text = formatHoursDisplay(text);
                     }
                     focus = false;
@@ -929,35 +981,29 @@ Page {
                 }
             }
         }
-
-
         Rectangle {
+            //color:"yellow"
             id: attachmentRow
             anchors.top: deadlineRow.bottom
+            //anchors.top: attachmentuploadRow.bottom
             height: units.gu(50)
             width: parent.width
             anchors.margins: units.gu(0.1)
             AttachmentManager {
                 id: attachments_widget
-               anchors.fill: parent
-                // Provide context for upload:
-                resource_type: "project.task"   // keep as-is if that's your default
-                resource_id: currentTask.odoo_record_id
-                account_id: currentTask.account_id
-                notifier: infobar
-
+                anchors.fill: parent
                 onUploadCompleted: {
                     //kinda refresh
-                    attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
+                     attachments_widget.setAttachments(currentTask.getAttachmentsForProject(project.odoo_record_id));
                 }
 
                 onItemClicked: function(rec) {
-                    // Open viewer / download / preview…
+                    // Open viewer / download / preview
                     console.log("Clicked attachment:", rec ? rec.name : rec);
                 }
             }
-
         }
+
     }
 
     CustomDatePicker {
@@ -969,7 +1015,8 @@ Page {
         }
     }
 
-    function loadTask() {
+    function loadTask()
+    {
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
             currentTask = Task.getTaskDetails(recordid);
@@ -981,11 +1028,13 @@ Page {
 
             // Handle assignee_id - extract first ID if comma-separated (for single assignee mode)
             let assignee_id = -1;
-            if (currentTask.user_id !== undefined && currentTask.user_id !== null && currentTask.user_id !== "") {
+            if (currentTask.user_id !== undefined && currentTask.user_id !== null && currentTask.user_id !== "")
+            {
                 let userIdStr = currentTask.user_id.toString();
-                if (userIdStr.indexOf(',') >= 0) {
+                if (userIdStr.indexOf(', ') >= 0)
+                {
                     // Multiple assignees stored as comma-separated - take the first one for single assignee mode
-                    let firstId = parseInt(userIdStr.split(',')[0].trim());
+                    let firstId = parseInt(userIdStr.split(', ')[0].trim());
                     assignee_id = isNaN(firstId) ? -1 : firstId;
                 } else {
                     // Single assignee
@@ -1000,14 +1049,16 @@ Page {
             description_text.setContent(currentTask.description || "");
 
             // Handle planned hours more carefully
-            if (currentTask.initial_planned_hours !== undefined && currentTask.initial_planned_hours !== null && currentTask.initial_planned_hours > 0) {
+            if (currentTask.initial_planned_hours !== undefined && currentTask.initial_planned_hours !== null && currentTask.initial_planned_hours > 0)
+            {
                 hours_input.text = Utils.convertDecimalHoursToHHMM(parseFloat(currentTask.initial_planned_hours));
             } else {
                 hours_input.text = "01:00";  // Default value
             }
 
             // Set date range more carefully to preserve original dates
-            if (currentTask.start_date && currentTask.end_date) {
+            if (currentTask.start_date && currentTask.end_date)
+            {
                 date_range_widget.setDateRange(currentTask.start_date, currentTask.end_date);
             } else if (currentTask.start_date) {
                 date_range_widget.setDateRange(currentTask.start_date, null);
@@ -1017,7 +1068,8 @@ Page {
             // If no dates are set, don't call setDateRange to avoid defaulting to today
 
             // Set deadline
-            if (currentTask.deadline) {
+            if (currentTask.deadline)
+            {
                 deadline_text.text = currentTask.deadline;
             } else {
                 deadline_text.text = "Not set";
@@ -1027,7 +1079,8 @@ Page {
             priority = Math.max(0, Math.min(3, parseInt(currentTask.priority || "0")));
 
             // Load multiple assignees if enabled
-            if (workItem.enableMultipleAssignees) {
+            if (workItem.enableMultipleAssignees)
+            {
                 var existingAssignees = Task.getTaskAssignees(recordid, instanceId);
                 workItem.setMultipleAssignees(existingAssignees);
             }
@@ -1039,25 +1092,28 @@ Page {
             deadline_text.text = "Not set";
 
             // Handle prefilled data when creating task from project
-            if (prefilledAccountId !== -1) {
+            if (prefilledAccountId !== -1)
+            {
                 var mainProjectId = prefilledProjectId !== -1 ? prefilledProjectId : prefilledParentProjectId;
                 var subProjectId = prefilledSubProjectId !== -1 ? prefilledSubProjectId : -1;
 
                 // Set prefilled account, project, and subproject data
-                if (workItem.deferredLoadExistingRecordSet) {
+                if (workItem.deferredLoadExistingRecordSet)
+                {
                     workItem.deferredLoadExistingRecordSet(prefilledAccountId, mainProjectId, subProjectId, -1, -1, -1);
                 } else if (workItem.applyDeferredSelection) {
                     workItem.applyDeferredSelection(prefilledAccountId, mainProjectId, subProjectId);
                 }
-                
+
                 // Load stages for the prefilled project
-                if (mainProjectId > 0 && prefilledAccountId > 0) {
+                if (mainProjectId > 0 && prefilledAccountId > 0)
+                {
                     console.log("🎯 Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId);
                     loadStagesForProject(mainProjectId, prefilledAccountId);
                 }
             }
         }
-    //  console.log("currentTask loaded:", JSON.stringify(currentTask));
+        //  console.log("currentTask loaded:", JSON.stringify(currentTask));
     }
 
     Component.onCompleted: {
@@ -1065,11 +1121,13 @@ Page {
     }
 
     onVisibleChanged: {
-        if (visible) {
+        if (visible)
+        {
             // Update navigation tracking when Tasks detail page becomes visible
             Global.setLastVisitedPage("Tasks");
-            
-            if (Global.description_temporary_holder !== "") {
+
+            if (Global.description_temporary_holder !== "")
+            {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";

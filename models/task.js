@@ -50,6 +50,32 @@ function formatAssigneeIds(assignees) {
     }).join(',');
 }
 
+// Check if a user is assigned to a task
+function isUserAssignedToTask(taskLocalId, userOdooId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var isAssigned = false;
+        
+        db.transaction(function(tx) {
+            var result = tx.executeSql(
+                'SELECT user_id FROM project_task_app WHERE id = ?',
+                [taskLocalId]
+            );
+            
+            if (result.rows.length > 0) {
+                var userIdField = result.rows.item(0).user_id;
+                var assigneeIds = parseAssigneeIds(userIdField);
+                isAssigned = assigneeIds.indexOf(userOdooId) !== -1;
+            }
+        });
+        
+        return isAssigned;
+    } catch (e) {
+        console.error("isUserAssignedToTask failed:", e);
+        return false;
+    }
+}
+
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -2231,9 +2257,15 @@ function updateTaskPersonalStage(taskId, personalStageOdooRecordId, accountId) {
  * @param {number} personalStageOdooRecordId - The odoo_record_id of the personal stage (0 for "No Stage", null for "All")
  * @param {Array<number>} assigneeIds - Array of user IDs to filter by assignees
  * @param {number} accountId - The account ID (or -1 for all accounts)
+ * @param {boolean} includeFoldedTasks - If false (default), exclude tasks with folded stages (fold=1)
  * @returns {Array} List of tasks matching the personal stage and assignee filter
  */
-function getTasksByPersonalStage(personalStageOdooRecordId, assigneeIds, accountId) {
+function getTasksByPersonalStage(personalStageOdooRecordId, assigneeIds, accountId, includeFoldedTasks) {
+    // Default to hiding folded tasks
+    if (includeFoldedTasks === undefined) {
+        includeFoldedTasks = false;
+    }
+    
     var allTasks;
     
     // Get base tasks
@@ -2286,6 +2318,12 @@ function getTasksByPersonalStage(personalStageOdooRecordId, assigneeIds, account
         
         // Task must match BOTH criteria (or have no assignee filter)
         if (matchesStage && matchesAssignee) {
+            // Filter out folded tasks unless includeFoldedTasks is true
+            if (!includeFoldedTasks && task.state && isTaskStageFolded(task.state)) {
+                // Skip this task - it's in a folded stage and we don't want to show it
+                continue;
+            }
+            
             var compositeKey = task.odoo_record_id + '_' + task.account_id;
             includedTaskIds.set(compositeKey, task);
             matchCount++;

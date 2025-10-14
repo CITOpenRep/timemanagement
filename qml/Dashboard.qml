@@ -169,7 +169,7 @@ Page {
                 }
             },
              Action {
-                iconName: "view-list-symbolic"
+                iconName: "scope-manager"
                 text: "My Tasks"
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("MyTasks.qml"));
