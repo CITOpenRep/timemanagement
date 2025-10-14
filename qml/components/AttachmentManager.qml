@@ -400,7 +400,50 @@ Item {
         return "#607D8B";
     }
 
-    // ---- on-click download + open using your Python APIs ----
+    //  FileSmart(fileUrl, mime) – avoids Gallery duplicates for images
+    function openFileSmart(fileUrl, mime) {
+        var url = (fileUrl && fileUrl.indexOf("file://") === 0) ? fileUrl : "file://" + fileUrl;
+        var m = mime || "";
+
+        // For images, open directly (no ContentHub export → no copies in Pictures)
+        if (m.indexOf("image/") === 0) {
+            console.log("Showing in builtin image viewer")
+            _showImageInApp(url);
+            return;
+        }
+
+        // For everything else, keep your existing "Open with…" flow
+        try {
+            var inst = PopupUtils.open(contentExporterComponent);
+            if (inst) {
+                inst.fileUrl = url;
+                console.log("[AttachmentManager] Export dialog opened for", url);
+            } else {
+                console.warn("[AttachmentManager] Export dialog missing; fallback to external open");
+                Qt.openUrlExternally(url);
+            }
+        } catch (e) {
+            console.error("[AttachmentManager] openFileSmart/export error:", e);
+            Qt.openUrlExternally(url);
+        }
+    }
+
+    function _showImageInApp(fileUrl) {
+        try {
+            var url = (fileUrl && fileUrl.indexOf("file://") === 0)
+                ? fileUrl
+                : "file://" + fileUrl;
+
+            imagePreviewer.imageSource = url;
+            imagePreviewer.visible = true;
+        } catch (e) {
+            console.error("[AttachmentManager] _showImageInApp error:", e);
+        }
+    }
+
+
+
+
     function _downloadAndOpen(rec) {
         if (!rec) return;
 
@@ -408,13 +451,12 @@ Item {
         if (rec.odoo_record_id <= 0) {
             if (rec.url && rec.url.toString().length) {
                 var u = rec.url.toString();
-                // Use export dialog for local files; external browser for http(s)
                 if (u.indexOf("http://") === 0 || u.indexOf("https://") === 0) {
                     Qt.openUrlExternally(u);
                 } else {
-                    // ensure file://
                     if (u.indexOf("file://") !== 0) u = "file://" + u;
-                    openFileWithDialog(u);
+                    // PASS MIME so images bypass ContentHub
+                    openFileSmart(u, rec.mimetype || "application/octet-stream");
                 }
                 return;
             }
@@ -422,50 +464,64 @@ Item {
             return;
         }
 
-        _busy = true;
-        python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
-            if (!path) {
-                _busy = false;
-                _notify("DB not found.", 2500);
+        var fname = (rec.name && rec.name.length) ? rec.name : "attachment";
+        var mime  = rec.mimetype || "application/octet-stream";
+
+        python.call("backend.get_existing_attachment_path", [fname, mime], function (existingPath) {
+            if (existingPath && existingPath.length) {
+                // Open the existing file right away
+                console.log("We already have the local copy of this file, Lets open!!!!");
+                var fileUrl = existingPath.indexOf("file://") === 0 ? existingPath : "file://" + existingPath;
+                openFileSmart(fileUrl, mime);   // <<< use smart opener here
                 return;
             }
+            console.log("Unable to find locally !!!");
 
-            python.call("backend.attachment_ondemand_download",
-                        [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id],
-                        function (res) {
-                            _busy = false;
+            // ---- Not present locally: proceed with on-demand download as before ----
+            _busy = true;
 
-                            if (!res) {
-                                _notify("No response from ondemand_download", 2500);
-                                return;
-                            }
+            python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                if (!path) {
+                    _busy = false;
+                    _notify("DB not found.", 2500);
+                    return;
+                }
 
-                            if (res.type === "binary" && res.data) {
-                                var fname = (res.name && res.name.length) ? res.name :
-                                            (rec.name && rec.name.length ? rec.name : "attachment");
-                                var mime = res.mimetype || rec.mimetype || "application/octet-stream";
+                python.call("backend.attachment_ondemand_download",
+                            [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id],
+                            function (res) {
+                                _busy = false;
 
-                                python.call("backend.ensure_export_file_from_base64",
-                                            [fname, res.data, mime],
-                                            function (resultPath) {
-                                                if (!resultPath || !resultPath.length) {
-                                                    _notify("Failed to prepare file", 2500);
-                                                    return;
-                                                }
-                                                var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
+                                if (!res) {
+                                    _notify("No response from ondemand_download", 2500);
+                                    return;
+                                }
 
-                                                // Open via export dialog so user can choose an app
-                                                openFileWithDialog(fileUrl);
-                                            });
+                                if (res.type === "binary" && res.data) {
+                                    var dlName = (res.name && res.name.length) ? res.name : fname;
+                                    var dlMime = res.mimetype || mime;
 
-                            } else if (res.type === "url" && res.url) {
-                                // Remote URL: open directly (or implement download-then-open if desired)
-                                Qt.openUrlExternally(res.url);
+                                    python.call("backend.ensure_export_file_from_base64",
+                                                [dlName, res.data, dlMime],
+                                                function (resultPath) {
+                                                    if (!resultPath || !resultPath.length) {
+                                                        _notify("Failed to prepare file", 2500);
+                                                        return;
+                                                    }
+                                                    var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
+                                                    openFileSmart(fileUrl, dlMime);  // <<< smart open
+                                                });
 
-                            } else {
-                                _notify("Attachment has no usable data", 2500);
-                            }
-                        });
+                                } else if (res.type === "url" && res.url) {
+                                    Qt.openUrlExternally(res.url);
+
+                                } else {
+                                    _notify("Attachment has no usable data", 2500);
+                                }
+                            });
+            });
         });
     }
+
+
 }
