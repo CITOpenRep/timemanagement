@@ -31,7 +31,25 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.7.1) </h3>
+      <h3>Change History : (Version 1.1.8) </h3>
+
+            <h4>17-10-2025 : Version 1.1.8</h4>
+
+<h5>New Features</h5>
+<ul>
+  <li>Intoducing My Tasks component. In My Tasks, only the Task assigned to the User will be shown. In case of Multiple instances, in My Tasks the Tasks are displayed from the Account Selected as Default from the Settings Page.</li>
+  <li> Introducing Personal Stages . In My Tasks the ListHeader Filter Tabs are Personal Stages for the logged In User, which are dynamically fetched from Odoo.</li>
+<li> Introducing the Task Stage Manipulation from the Device. The Task Stages can be changed from the Task Detailed View. </li>
+<li> Introdcuing the Personal Stage Manipulation From the Device. The Personal Stages can be Changed using the leading action button on Task List View in My Tasks.</li>
+
+
+
+</ul>
+
+<h5>Fixes and Improvements</h5>
+<ul>
+  <li>Fixed the issue of Tasks getting assigned to None Stage, while creating Tasks from Device. Now the User has option to select the Task Stage while creating a Task, if not selected the Task will be assigned to the First Stage by Default.</li>
+</ul>
 
       <h4>06-10-2025 : Version 1.1.7.1</h4>
 
@@ -54,7 +72,7 @@
 <h5>Fixes and Improvements</h5>
 <ul>
   <li>Fixed Duplicate Activity Creation issue and added a feedback mechanism to save or discard unsaved changes.</li>
-  <li>Fixed button layout arrangement in the Project List View.</li>
+  <li>Fixed button layout arrangement in the Project Detailed View.</li>
   <li>Reduced progress bar height in the Task List View.</li>
   <li>Fix for Extra long Account Name in Project Detail card.</li>
 </ul>
