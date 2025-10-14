@@ -50,6 +50,32 @@ function formatAssigneeIds(assignees) {
     }).join(',');
 }
 
+// Check if a user is assigned to a task
+function isUserAssignedToTask(taskLocalId, userOdooId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var isAssigned = false;
+        
+        db.transaction(function(tx) {
+            var result = tx.executeSql(
+                'SELECT user_id FROM project_task_app WHERE id = ?',
+                [taskLocalId]
+            );
+            
+            if (result.rows.length > 0) {
+                var userIdField = result.rows.item(0).user_id;
+                var assigneeIds = parseAssigneeIds(userIdField);
+                isAssigned = assigneeIds.indexOf(userOdooId) !== -1;
+            }
+        });
+        
+        return isAssigned;
+    } catch (e) {
+        console.error("isUserAssignedToTask failed:", e);
+        return false;
+    }
+}
+
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
