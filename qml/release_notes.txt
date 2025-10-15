@@ -31,9 +31,12 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.8) </h3>
+      <h3>Change History : </h3>
 
             <h4>17-10-2025 : Version 1.1.8</h4>
+
+              <p><em>Note: Please Use the Reset Task Stage Button from the Settings Page, Before Using this Update. Ignore this Step if you are adding a Fresh DB Instance. Reset Task Stages Buttons can be found by clicking the "Reset" action button on the Page header. </em></p>
+      
 
 <h5>New Features</h5>
 <ul>
