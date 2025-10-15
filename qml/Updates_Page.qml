@@ -56,20 +56,19 @@ Page {
         }
 
         trailingActionBar.actions: [
-            Action {
-                // iconName: "account"
-                // text: "Account"
-                // onTriggered: {
-                //     accountFilterVisible = !accountFilterVisible
-                // }
-            }
+            // iconName: "account"
+            // text: "Account"
+            // onTriggered: {
+            //     accountFilterVisible = !accountFilterVisible
+            // }
+            Action {}
         ]
     }
 
     // React to global account changes (numeric normalization)
     Connections {
         target: mainView
-        onAccountDataRefreshRequested: function(accountId) {
+        onAccountDataRefreshRequested: function (accountId) {
             var acctNum = -1;
             try {
                 if (typeof accountId !== "undefined" && accountId !== null) {
@@ -85,7 +84,7 @@ Page {
             selectedAccountId = acctNum;
             fetchupdates();
         }
-        onGlobalAccountChanged: function(accountId, accountName) {
+        onGlobalAccountChanged: function (accountId, accountName) {
             var acctNum = -1;
             try {
                 if (typeof accountId !== "undefined" && accountId !== null) {
@@ -106,7 +105,7 @@ Page {
     // Also listen to accountFilter so the page initializes and updates from the selector's current selection
     Connections {
         target: accountFilter
-        onAccountChanged: function(accountId, accountName) {
+        onAccountChanged: function (accountId, accountName) {
             var acctNum = -1;
             try {
                 if (typeof accountId !== "undefined" && accountId !== null) {

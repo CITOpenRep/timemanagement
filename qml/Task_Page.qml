@@ -439,16 +439,16 @@ Page {
             // Check if we're coming from a task-related page
             var previousPage = Global.getLastVisitedPage();
             var shouldPreserve = Global.shouldPreserveAssigneeFilter("Task_Page", previousPage);
-            
+
             console.log("Task_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
-            
+
             if (shouldPreserve) {
                 // Restore assignee filter from global state when returning from Tasks detail page
                 restoreAssigneeFilterState();
-                
+
                 // Update the AssigneeFilterMenu to reflect current state
                 assigneeFilterMenu.selectedAssigneeIds = task.selectedAssigneeIds;
-                
+
                 console.log("Task_Page: Restored assignee filter - enabled:", task.filterByAssignees);
             } else {
                 // Clear filter when coming from non-task pages (Dashboard, Home, etc.)
@@ -458,15 +458,14 @@ Page {
                 tasklist.selectedAssigneeIds = [];
                 assigneeFilterMenu.selectedAssigneeIds = [];
                 Global.clearAssigneeFilter();
-                
+
                 console.log("Task_Page: Cleared assignee filter (coming from non-task page)");
             }
 
             // Update navigation tracking
             Global.setLastVisitedPage("Task_Page");
 
-            if (filterByProject) {
-            } else {
+            if (filterByProject) {} else {
                 if (currentSearchQuery) {
                     // Reapply search if there was one
                     tasklist.searchTasks(currentSearchQuery);

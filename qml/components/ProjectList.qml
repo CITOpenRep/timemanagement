@@ -89,13 +89,12 @@ Item {
     id: projectList
     anchors.fill: parent
 
-    Connections
-    {
+    Connections {
         target: accountPicker
 
-        onAccepted: function(id, name) {
-            console.log("Projects getting updated for Account chosen:", id, name)
-            currentAccountId=id
+        onAccepted: function (id, name) {
+            console.log("Projects getting updated for Account chosen:", id, name);
+            currentAccountId = id;
             navigationStackModel.clear();
             currentParentId = -1;
 
@@ -108,7 +107,6 @@ Item {
             searchQuery = "";
 
             populateProjectChildrenMap();
-
         }
     }
 
@@ -166,7 +164,7 @@ Item {
     function refresh() {
         navigationStackModel.clear();
         currentParentId = -1;
-        currentAccountId = accountPicker.selectedAccountId
+        currentAccountId = accountPicker.selectedAccountId;
 
         // Reset to default "Open" filter
         stageFilter.enabled = true;
@@ -593,15 +591,15 @@ Item {
             visible: showSearchBox
             height: units.gu(5)
             width: parent.width
-               anchors.rightMargin: units.gu(4) // Space for clear button
+            anchors.rightMargin: units.gu(4) // Space for clear button
             placeholderText: "Search projects..."
             //   color: "#333333"
             selectByMouse: true
             onAccepted: performSearch(text)
             onTextChanged: {
                 searchQuery = text;
-              //  Debounced search - only search after user stops typing
-               searchTimer.restart();
+                //  Debounced search - only search after user stops typing
+                searchTimer.restart();
             }
 
             Rectangle {
@@ -616,7 +614,7 @@ Item {
 
                 Button {
                     id: clearSearchButton
-                    z : 10
+                    z: 10
                     visible: searchField.text.length > 0
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
@@ -626,7 +624,6 @@ Item {
                     text: "×"
                     onClicked: {
                         clearSearch();
-                     
                     }
                 }
             }

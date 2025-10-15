@@ -108,7 +108,7 @@ Page {
         id: saveDiscardDialog
         onSaveRequested: {
             saveActivityData();
-           // navigateBack(); // Do not navigate back immediately after save - stay on the page so if user wants to continue editing, they can or if there are validation errors they can correct them
+            // navigateBack(); // Do not navigate back immediately after save - stay on the page so if user wants to continue editing, they can or if there are validation errors they can correct them
         }
         onDiscardRequested: {
             // Delete the unsaved activity
@@ -568,7 +568,7 @@ Page {
         if (visible) {
             // Update navigation tracking when Activities detail page becomes visible
             Global.setLastVisitedPage("Activities");
-            
+
             // Reset the navigation tracking flag when page becomes visible
             navigatingToReadMore = false;
 

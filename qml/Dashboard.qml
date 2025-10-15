@@ -80,10 +80,11 @@ Page {
         if (visible) {
             // Update navigation tracking when Dashboard becomes visible
             Global.setLastVisitedPage("Dashboard");
-            
+
             // Prefer the selected account from the account selector (NOT the default account)
             var selected = getSelectedAccountFromFilter();
-            if (typeof projectchart !== "undefined") projectchart.refreshForAccount(selected);
+            if (typeof projectchart !== "undefined")
+                projectchart.refreshForAccount(selected);
             // Also refresh other dashboard data
             refreshData();
         }
@@ -139,7 +140,7 @@ Page {
                 iconName: "account"
                 text: "Switch Accounts"
                 onTriggered: {
-                    accountPicker.open(0)
+                    accountPicker.open(0);
                 }
             },
             Action {
@@ -176,7 +177,7 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             },
-             Action {
+            Action {
                 iconName: "scope-manager"
                 text: "My Tasks"
                 onTriggered: {
@@ -221,7 +222,6 @@ Page {
                     apLayout.setCurrentPage(page);
                 }
             }
-            
         ]
     }
 
@@ -264,7 +264,7 @@ Page {
     }
 
     function refreshData() {
-      //  console.log("🔄 Refreshing Dashboard data...");
+        //  console.log("🔄 Refreshing Dashboard data...");
         get_project_chart_data();
         get_task_chart_data();
         // Refresh project chart using the account selector's selection (not default account)
@@ -279,9 +279,15 @@ Page {
         anchors.fill: parent
         z: 9999
         menuModel: [
-            { label: "Task" },
-            { label: "Timesheet" },
-            { label: "Activity" }
+            {
+                label: "Task"
+            },
+            {
+                label: "Timesheet"
+            },
+            {
+                label: "Activity"
+            }
         ]
         onMenuItemSelected: {
             if (index === 0) {
@@ -370,7 +376,7 @@ Page {
 
             Connections {
                 target: accountFilter
-                onAccountChanged: function(accountId, accountName) {
+                onAccountChanged: function (accountId, accountName) {
                     var acctNum = -1;
                     try {
                         if (typeof accountId !== "undefined" && accountId !== null) {
@@ -389,7 +395,7 @@ Page {
 
             Connections {
                 target: mainView
-                onAccountDataRefreshRequested: function(accountId) {
+                onAccountDataRefreshRequested: function (accountId) {
                     var acctNum = -1;
                     try {
                         if (typeof accountId !== "undefined" && accountId !== null) {
@@ -404,7 +410,7 @@ Page {
                     console.log("Dashboard: mainView.AccountDataRefreshRequested ->", acctNum);
                     projectchart.refreshForAccount(acctNum);
                 }
-                onGlobalAccountChanged: function(accountId, accountName) {
+                onGlobalAccountChanged: function (accountId, accountName) {
                     var acctNum = -1;
                     try {
                         if (typeof accountId !== "undefined" && accountId !== null) {
@@ -431,7 +437,6 @@ Page {
                     projectchart.refreshForAccount(-1);
                 }
             }
-
         } // end Column
 
         onFlickEnded: {
@@ -455,7 +460,7 @@ Page {
         }
     }
 
-     Icon {
+    Icon {
         visible: !isMultiColumn
         width: units.gu(5)
         height: units.gu(4)
@@ -508,10 +513,10 @@ Page {
 
     Connections {
         target: mainView
-        onAccountDataRefreshRequested: function(accountId) {
+        onAccountDataRefreshRequested: function (accountId) {
             refreshData();
         }
-        onGlobalAccountChanged: function(accountId, accountName) {
+        onGlobalAccountChanged: function (accountId, accountName) {
             refreshData();
         }
     }

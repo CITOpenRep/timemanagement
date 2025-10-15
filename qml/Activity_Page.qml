@@ -578,13 +578,13 @@ Page {
             // Check if we're coming from an activity-related page
             var previousPage = Global.getLastVisitedPage();
             var shouldPreserve = Global.shouldPreserveAssigneeFilter("Activity_Page", previousPage);
-            
+
             console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
-            
+
             if (shouldPreserve) {
                 // Restore assignee filter from global state when returning from Activities detail page
                 restoreAssigneeFilterState();
-                
+
                 console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
             } else {
                 // Clear filter when coming from non-activity pages (Dashboard, Tasks, etc.)
@@ -592,7 +592,7 @@ Page {
                 activity.selectedAssigneeIds = [];
                 assigneeFilterMenu.selectedAssigneeIds = [];
                 Global.clearAssigneeFilter();
-                
+
                 console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
             }
 

@@ -63,13 +63,12 @@ Item {
     signal taskDeleteRequested(int recordId)
     signal taskTimesheetRequested(int localId)
 
-    Connections
-    {
+    Connections {
         target: accountPicker
 
-        onAccepted: function(id, name) {
-           selectedAccountId=id
-           refresh()
+        onAccepted: function (id, name) {
+            selectedAccountId = id;
+            refresh();
         }
     }
 
@@ -358,8 +357,7 @@ Item {
 
     function clearAccountFilter() {
         filterByAccount = false;
-        selectedAccountId = accountPicker.selectedAccountId
-
+        selectedAccountId = accountPicker.selectedAccountId;
 
         refreshWithFilter();
     }
@@ -368,7 +366,8 @@ Item {
     function removeTaskFromList(localId) {
         // Find the task in the current parent's children
         var currentModel = childrenMap[currentParentId];
-        if (!currentModel) return;
+        if (!currentModel)
+            return;
 
         // childrenMap contains ListModel objects, not arrays
         // Use ListModel.count and ListModel.get() to iterate

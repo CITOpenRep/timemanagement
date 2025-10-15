@@ -30,7 +30,7 @@ import "../../models/task.js" as Task
 
 /**
  * TaskStageSelector - A popup dialog for selecting and changing task stages
- * 
+ *
  * Usage:
  *   Component {
  *       id: stageSelector
@@ -41,7 +41,7 @@ import "../../models/task.js" as Task
  *           }
  *       }
  *   }
- *   
+ *
  *   // Open the dialog with parameters
  *   PopupUtils.open(stageSelector, parentPage, {
  *       taskId: taskLocalId,
@@ -53,22 +53,22 @@ import "../../models/task.js" as Task
 Dialog {
     id: stageSelectorDialog
     title: "Change Task Stage"
-    
+
     property int taskId: -1
     property int projectOdooRecordId: -1
     property int accountId: -1
     property int currentStageOdooRecordId: -1
     property var availableStages: []
-    
+
     signal stageSelected(int stageOdooRecordId, string stageName)
-    
+
     /**
      * Loads available stages for this project and account
      */
     function loadStages() {
         // Load available stages for this project and account
         availableStages = Task.getTaskStagesForProject(projectOdooRecordId, accountId);
-        
+
         // Update the stage list model
         stageListModel.clear();
         for (var i = 0; i < availableStages.length; i++) {
@@ -82,19 +82,19 @@ Dialog {
             });
         }
     }
-    
+
     Component.onCompleted: {
         loadStages();
     }
-    
+
     ListModel {
         id: stageListModel
     }
-    
+
     Column {
         spacing: units.gu(2)
         width: parent.width
-        
+
         // Current Stage Label
         Label {
             id: currentStageLabel
@@ -107,13 +107,13 @@ Dialog {
             font.pixelSize: units.gu(2)
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
         }
-        
+
         Label {
             text: "Select New Stage:"
             font.pixelSize: units.gu(1.8)
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555"
         }
-        
+
         // Stage List
         Rectangle {
             width: parent.width
@@ -122,30 +122,29 @@ Dialog {
             border.width: units.gu(0.1)
             radius: units.gu(0.5)
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "#fafafa"
-            
+
             ListView {
                 id: stageListView
                 anchors.fill: parent
                 anchors.margins: units.gu(1)
                 clip: true
                 spacing: units.gu(1)
-                
+
                 model: stageListModel
-                
+
                 delegate: Rectangle {
                     width: stageListView.width
                     height: units.gu(6)
                     radius: units.gu(0.5)
                     border.color: model.isCurrent ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd")
                     border.width: model.isCurrent ? units.gu(0.3) : units.gu(0.1)
-                    color: stageMouseArea.pressed ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#e8e8e8") : 
-                           (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#fff")
-                    
+                    color: stageMouseArea.pressed ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#e8e8e8") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#fff")
+
                     Row {
                         anchors.fill: parent
                         anchors.margins: units.gu(1)
                         spacing: units.gu(1)
-                        
+
                         // Current stage indicator
                         Rectangle {
                             width: units.gu(0.5)
@@ -153,21 +152,20 @@ Dialog {
                             color: model.isCurrent ? LomiriColors.orange : "transparent"
                             radius: units.gu(0.25)
                         }
-                        
+
                         Column {
                             width: parent.width - units.gu(1.5)
                             spacing: units.gu(0.3)
-                            
+
                             Label {
                                 text: model.name
                                 font.pixelSize: units.gu(2)
                                 font.bold: model.isCurrent
-                                color: model.isCurrent ? LomiriColors.orange : 
-                                       (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
+                                color: model.isCurrent ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                                 wrapMode: Text.WordWrap
                                 width: parent.width
                             }
-                            
+
                             // Label {
                             //     text: model.description || "No description"
                             //     font.pixelSize: units.gu(1.4)
@@ -176,7 +174,7 @@ Dialog {
                             //     width: parent.width
                             //     visible: model.description !== ""
                             // }
-                            
+
                             Label {
                                 text: model.fold === 1 ? "(Folded/Closed Stage)" : ""
                                 font.pixelSize: units.gu(1.3)
@@ -186,7 +184,7 @@ Dialog {
                             }
                         }
                     }
-                    
+
                     MouseArea {
                         id: stageMouseArea
                         anchors.fill: parent
@@ -199,7 +197,7 @@ Dialog {
                         }
                     }
                 }
-                
+
                 // Empty state message
                 Label {
                     anchors.centerIn: parent
@@ -209,7 +207,7 @@ Dialog {
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666"
                 }
             }
-            
+
             // Scrollbar indicator
             Rectangle {
                 visible: stageListView.contentHeight > stageListView.height
@@ -220,7 +218,7 @@ Dialog {
                 width: units.gu(0.5)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
                 radius: units.gu(0.25)
-                
+
                 Rectangle {
                     width: parent.width
                     height: (stageListView.height / stageListView.contentHeight) * parent.height
@@ -231,7 +229,7 @@ Dialog {
             }
         }
     }
-    
+
     Button {
         text: "Cancel"
         onClicked: PopupUtils.close(stageSelectorDialog)

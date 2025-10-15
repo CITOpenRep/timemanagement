@@ -196,7 +196,7 @@ Item {
                     id: clearSearchButton
                     width: units.gu(3.5)
                     height: parent.height
-               
+
                     color: clearMouseArea.pressed ? theme.palette.selected.background : "transparent"
                     radius: units.gu(0.5)
                     border.color: clearMouseArea.containsMouse ? theme.palette.normal.base : "transparent"
@@ -214,7 +214,7 @@ Item {
                         id: clearMouseArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        
+
                         onClicked: {
                             searchField.text = "";
                             searchField.focus = false;

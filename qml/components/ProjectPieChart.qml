@@ -151,7 +151,9 @@ Item {
             otherTotal += data[i].spentHours;
         }
 
-        var total = topProjects.reduce(function(sum, p) { return sum + p.spentHours; }, 0) + otherTotal;
+        var total = topProjects.reduce(function (sum, p) {
+            return sum + p.spentHours;
+        }, 0) + otherTotal;
 
         // 🎨 Vibrant color palette
         var colors = ["#F94144", "#F3722C", "#F8961E", "#F9844A", "#F9C74F", "#90BE6D", "#43AA8B", "#577590", "#277DA1", "#8E44AD"];
@@ -219,7 +221,7 @@ Item {
     // Re-fetch when the account selector changes
     Connections {
         target: accountFilter
-        onAccountChanged: function(accountId, accountName) {
+        onAccountChanged: function (accountId, accountName) {
             refreshForAccount(accountId);
         }
     }
@@ -227,10 +229,10 @@ Item {
     // Also respond to global account change / refresh events
     Connections {
         target: mainView
-        onAccountDataRefreshRequested: function(accountId) {
+        onAccountDataRefreshRequested: function (accountId) {
             refreshForAccount(accountId);
         }
-        onGlobalAccountChanged: function(accountId, accountName) {
+        onGlobalAccountChanged: function (accountId, accountName) {
             refreshForAccount(accountId);
         }
     }

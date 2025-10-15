@@ -35,9 +35,9 @@ Item {
     property var activeTransfer: null
 
     /** Signals */
-    signal uploadStarted()
-    signal uploadCompleted()
-    signal uploadFailed()
+    signal uploadStarted
+    signal uploadCompleted
+    signal uploadFailed
     signal itemClicked(var item)
 
     // ----------- Internal state -----------
@@ -45,12 +45,15 @@ Item {
     property bool _busy: false
 
     // Fallback ListModel
-    ListModel { id: internalModel }
+    ListModel {
+        id: internalModel
+    }
 
     readonly property bool _usingInternalModel: listView.model === internalModel
 
     Component.onCompleted: {
-        if (!listView.model) listView.model = internalModel;
+        if (!listView.model)
+            listView.model = internalModel;
         if (typeof backend_bridge !== "undefined" && backend_bridge.messageReceived) {
             backend_bridge.messageReceived.connect(_handleSyncEvent);
         }
@@ -74,7 +77,9 @@ Item {
                 Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
             }
 
-            Item { Layout.fillWidth: true } // spacer
+            Item {
+                Layout.fillWidth: true
+            } // spacer
 
             Button {
                 id: uploadBtn
@@ -108,14 +113,14 @@ Item {
                     border.color: "#00000022"
 
                     // Guarded convenience values
-                    property string _name:     (typeof name     !== "undefined" && name)     ? name     : ((typeof url !== "undefined" && url) ? url : "Unnamed")
-                    property string _url:      (typeof url      !== "undefined" && url)      ? url      : ""
+                    property string _name: (typeof name !== "undefined" && name) ? name : ((typeof url !== "undefined" && url) ? url : "Unnamed")
+                    property string _url: (typeof url !== "undefined" && url) ? url : ""
                     property string _mimetype: (typeof mimetype !== "undefined" && mimetype) ? mimetype : ""
-                    property var    _size:     (typeof size     !== "undefined")             ? size     : 0
-                    property string _created:  (typeof created  !== "undefined" && created)  ? created  : ""
-                    property int    _accId:    (typeof account_id      !== "undefined") ? account_id      : attachmentManager.account_id
-                    property int    _odooId:   (typeof odoo_record_id  !== "undefined") ? odoo_record_id  : 0
-                    property var    rawData:   (typeof _raw            !== "undefined") ? _raw            : null
+                    property var _size: (typeof size !== "undefined") ? size : 0
+                    property string _created: (typeof created !== "undefined" && created) ? created : ""
+                    property int _accId: (typeof account_id !== "undefined") ? account_id : attachmentManager.account_id
+                    property int _odooId: (typeof odoo_record_id !== "undefined") ? odoo_record_id : 0
+                    property var rawData: (typeof _raw !== "undefined") ? _raw : null
 
                     MouseArea {
                         anchors.fill: parent
@@ -143,7 +148,9 @@ Item {
                         spacing: units.gu(1)
 
                         Rectangle {
-                            width: units.gu(3); height: units.gu(3); radius: units.gu(0.5)
+                            width: units.gu(3)
+                            height: units.gu(3)
+                            radius: units.gu(0.5)
                             color: _chipColor(_mimetype)
                             Layout.alignment: Qt.AlignVCenter
                         }
@@ -201,9 +208,11 @@ Item {
         id: python
         Component.onCompleted: {
             addImportPath(Qt.resolvedUrl("../src/"));
-            importModule("backend", function () { console.log("backend imported"); });
+            importModule("backend", function () {
+                console.log("backend imported");
+            });
         }
-        onError: console.log("python error: " + traceback);
+        onError: console.log("python error: " + traceback)
     }
 
     // ----------- IMPORT dialog (ContentPickerDialog) -----------
@@ -214,8 +223,9 @@ Item {
             id: dlg
             isExport: false   // importing from device/apps
 
-            onFilesImported: function(files) {
-                if (!files || !files.length) return;
+            onFilesImported: function (files) {
+                if (!files || !files.length)
+                    return;
 
                 attachmentManager.activeTransfer = dlg.activeTransfer;
                 attachmentManager.uploadStarted();
@@ -229,23 +239,20 @@ Item {
                             attachmentManager.uploadFailed();
                             return;
                         }
-                        python.call("backend.attachment_upload",
-                                    [path, attachmentManager.account_id, filePath,
-                                     attachmentManager.resource_type, attachmentManager.resource_id],
-                                    function (res) {
-                                        if (!res) {
-                                            console.warn("No response from attachment_upload");
-                                            _notify("Failed to upload", 2000);
-                                            attachmentManager.uploadFailed();
-                                            return;
-                                        }
-                                        // Success via backend_bridge
-                                    });
+                        python.call("backend.attachment_upload", [path, attachmentManager.account_id, filePath, attachmentManager.resource_type, attachmentManager.resource_id], function (res) {
+                            if (!res) {
+                                console.warn("No response from attachment_upload");
+                                _notify("Failed to upload", 2000);
+                                attachmentManager.uploadFailed();
+                                return;
+                            }
+                        // Success via backend_bridge
+                        });
                     });
                 }
             }
 
-            onComplete: { /* dialog auto-closes itself */ }
+            onComplete: /* dialog auto-closes itself */ {}
         }
     }
 
@@ -291,7 +298,8 @@ Item {
     Connections {
         target: attachmentManager.activeTransfer
         onStateChanged: {
-            if (!attachmentManager.activeTransfer) return;
+            if (!attachmentManager.activeTransfer)
+                return;
             if (attachmentManager.activeTransfer.state === ContentTransfer.Charged) {
                 _importItems = attachmentManager.activeTransfer.items || [];
                 console.log("ImportItems count:", _importItems.length);
@@ -302,7 +310,8 @@ Item {
 
     // ----------- Handle backend_bridge events -----------
     function _handleSyncEvent(data) {
-        if (!data || !data.event) return;
+        if (!data || !data.event)
+            return;
 
         switch (data.event) {
         case "ondemand_upload_message":
@@ -327,7 +336,8 @@ Item {
             return;
         }
         internalModel.clear();
-        if (!items || !items.length) return;
+        if (!items || !items.length)
+            return;
         for (var i = 0; i < items.length; i++) {
             internalModel.append(_normalizeItem(items[i]));
         }
@@ -359,44 +369,58 @@ Item {
     }
 
     function _normalizeItem(obj) {
-        if (!obj) obj = {};
+        if (!obj)
+            obj = {};
         return {
-            id:              obj.id              !== undefined ? obj.id              : obj.attachment_id,
-            name:            obj.name            !== undefined ? obj.name            : (obj.filename || obj.title || ""),
-            url:             obj.url             !== undefined ? obj.url             : (obj.fileUrl || ""),
-            mimetype:        obj.mimetype        !== undefined ? obj.mimetype        : (obj.mime || "application/octet-stream"),
-            size:            obj.size            !== undefined ? obj.size            : (obj.bytes || 0),
-            created:         obj.created         !== undefined ? obj.created         : (obj.created_at || obj.date || ""),
-            account_id:      obj.account_id      !== undefined ? obj.account_id      : attachmentManager.account_id,
-            odoo_record_id:  obj.odoo_record_id  !== undefined ? obj.odoo_record_id  : 0,
+            id: obj.id !== undefined ? obj.id : obj.attachment_id,
+            name: obj.name !== undefined ? obj.name : (obj.filename || obj.title || ""),
+            url: obj.url !== undefined ? obj.url : (obj.fileUrl || ""),
+            mimetype: obj.mimetype !== undefined ? obj.mimetype : (obj.mime || "application/octet-stream"),
+            size: obj.size !== undefined ? obj.size : (obj.bytes || 0),
+            created: obj.created !== undefined ? obj.created : (obj.created_at || obj.date || ""),
+            account_id: obj.account_id !== undefined ? obj.account_id : attachmentManager.account_id,
+            odoo_record_id: obj.odoo_record_id !== undefined ? obj.odoo_record_id : 0,
             _raw: obj
         };
     }
 
     function _metaLine(mime, sz, createdStr) {
         var parts = [];
-        if (mime) parts.push(mime);
-        if (createdStr) parts.push(createdStr);
+        if (mime)
+            parts.push(mime);
+        if (createdStr)
+            parts.push(createdStr);
         return parts.join(" • ");
     }
 
     function _fmtSize(bytes) {
-        if (typeof bytes !== "number") return bytes;
+        if (typeof bytes !== "number")
+            return bytes;
         var thresh = 1024.0;
-        if (bytes < thresh) return bytes + " B";
-        var units = ["KB","MB","GB","TB"];
+        if (bytes < thresh)
+            return bytes + " B";
+        var units = ["KB", "MB", "GB", "TB"];
         var u = -1;
-        do { bytes /= thresh; ++u; } while (bytes >= thresh && u < units.length-1);
+        do {
+            bytes /= thresh;
+            ++u;
+        } while (bytes >= thresh && u < units.length - 1)
         return bytes.toFixed(1) + " " + units[u];
     }
 
     function _chipColor(mime) {
-        if (!mime) return "#607D8B";
-        if (mime.indexOf("image/") === 0) return "#4CAF50";
-        if (mime.indexOf("video/") === 0) return "#9C27B0";
-        if (mime.indexOf("audio/") === 0) return "#03A9F4";
-        if (mime.indexOf("text/")  === 0) return "#FFC107";
-        if (mime.indexOf("application/pdf") === 0) return "#F44336";
+        if (!mime)
+            return "#607D8B";
+        if (mime.indexOf("image/") === 0)
+            return "#4CAF50";
+        if (mime.indexOf("video/") === 0)
+            return "#9C27B0";
+        if (mime.indexOf("audio/") === 0)
+            return "#03A9F4";
+        if (mime.indexOf("text/") === 0)
+            return "#FFC107";
+        if (mime.indexOf("application/pdf") === 0)
+            return "#F44336";
         return "#607D8B";
     }
 
@@ -407,7 +431,7 @@ Item {
 
         // For images, open directly (no ContentHub export → no copies in Pictures)
         if (m.indexOf("image/") === 0) {
-            console.log("Showing in builtin image viewer")
+            console.log("Showing in builtin image viewer");
             _showImageInApp(url);
             return;
         }
@@ -430,9 +454,7 @@ Item {
 
     function _showImageInApp(fileUrl) {
         try {
-            var url = (fileUrl && fileUrl.indexOf("file://") === 0)
-                ? fileUrl
-                : "file://" + fileUrl;
+            var url = (fileUrl && fileUrl.indexOf("file://") === 0) ? fileUrl : "file://" + fileUrl;
 
             imagePreviewer.imageSource = url;
             imagePreviewer.visible = true;
@@ -441,11 +463,9 @@ Item {
         }
     }
 
-
-
-
     function _downloadAndOpen(rec) {
-        if (!rec) return;
+        if (!rec)
+            return;
 
         // If there's no Odoo id but we already have a file/url, open it
         if (rec.odoo_record_id <= 0) {
@@ -454,7 +474,8 @@ Item {
                 if (u.indexOf("http://") === 0 || u.indexOf("https://") === 0) {
                     Qt.openUrlExternally(u);
                 } else {
-                    if (u.indexOf("file://") !== 0) u = "file://" + u;
+                    if (u.indexOf("file://") !== 0)
+                        u = "file://" + u;
                     // PASS MIME so images bypass ContentHub
                     openFileSmart(u, rec.mimetype || "application/octet-stream");
                 }
@@ -465,7 +486,7 @@ Item {
         }
 
         var fname = (rec.name && rec.name.length) ? rec.name : "attachment";
-        var mime  = rec.mimetype || "application/octet-stream";
+        var mime = rec.mimetype || "application/octet-stream";
 
         python.call("backend.get_existing_attachment_path", [fname, mime], function (existingPath) {
             if (existingPath && existingPath.length) {
@@ -487,41 +508,33 @@ Item {
                     return;
                 }
 
-                python.call("backend.attachment_ondemand_download",
-                            [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id],
-                            function (res) {
-                                _busy = false;
+                python.call("backend.attachment_ondemand_download", [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id], function (res) {
+                    _busy = false;
 
-                                if (!res) {
-                                    _notify("No response from ondemand_download", 2500);
-                                    return;
-                                }
+                    if (!res) {
+                        _notify("No response from ondemand_download", 2500);
+                        return;
+                    }
 
-                                if (res.type === "binary" && res.data) {
-                                    var dlName = (res.name && res.name.length) ? res.name : fname;
-                                    var dlMime = res.mimetype || mime;
+                    if (res.type === "binary" && res.data) {
+                        var dlName = (res.name && res.name.length) ? res.name : fname;
+                        var dlMime = res.mimetype || mime;
 
-                                    python.call("backend.ensure_export_file_from_base64",
-                                                [dlName, res.data, dlMime],
-                                                function (resultPath) {
-                                                    if (!resultPath || !resultPath.length) {
-                                                        _notify("Failed to prepare file", 2500);
-                                                        return;
-                                                    }
-                                                    var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
-                                                    openFileSmart(fileUrl, dlMime);  // <<< smart open
-                                                });
-
-                                } else if (res.type === "url" && res.url) {
-                                    Qt.openUrlExternally(res.url);
-
-                                } else {
-                                    _notify("Attachment has no usable data", 2500);
-                                }
-                            });
+                        python.call("backend.ensure_export_file_from_base64", [dlName, res.data, dlMime], function (resultPath) {
+                            if (!resultPath || !resultPath.length) {
+                                _notify("Failed to prepare file", 2500);
+                                return;
+                            }
+                            var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
+                            openFileSmart(fileUrl, dlMime);  // <<< smart open
+                        });
+                    } else if (res.type === "url" && res.url) {
+                        Qt.openUrlExternally(res.url);
+                    } else {
+                        _notify("Attachment has no usable data", 2500);
+                    }
+                });
             });
         });
     }
-
-
 }

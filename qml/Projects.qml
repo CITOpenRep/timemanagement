@@ -585,7 +585,7 @@ Page {
             anchors.margins: units.gu(0.1)
             AttachmentManager {
                 id: attachments_widget
-               anchors.fill: parent
+                anchors.fill: parent
                 // Provide context for upload:
                 resource_type: "project.project"   // keep as-is if that's your default
                 resource_id: project.odoo_record_id
@@ -594,10 +594,10 @@ Page {
 
                 onUploadCompleted: {
                     //kinda refresh
-                     attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id));
+                    attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id));
                 }
 
-                onItemClicked: function(rec) {
+                onItemClicked: function (rec) {
                     // Open viewer / download / preview…
                     console.log("Clicked attachment:", rec ? rec.name : rec);
                 }

@@ -4,7 +4,7 @@ import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.0 as Popups
 import Lomiri.Content 1.3
 
-Popups.PopupBase  {
+Popups.PopupBase {
     id: picker
     z: 100
 
@@ -12,7 +12,7 @@ Popups.PopupBase  {
     property bool isExport: true                  // true = open file with another app; false = import/pick file(s)
     property string fileUrl: ""                   // local path or file:// url for export
     property var activeTransfer
-    signal complete()
+    signal complete
     signal filesImported(var files)
 
     // --- Simple type resolver (no singleton) ---
@@ -25,20 +25,54 @@ Popups.PopupBase  {
             return ContentType.All;
         ext = ext.substring(lastDot + 1);
         switch (ext) {
-        case "png": case "jpg": case "jpeg": case "bmp": case "gif":
-        case "webp": case "heic": case "heif": case "tif": case "tiff":
+        case "png":
+        case "jpg":
+        case "jpeg":
+        case "bmp":
+        case "gif":
+        case "webp":
+        case "heic":
+        case "heif":
+        case "tif":
+        case "tiff":
             return ContentType.Pictures;
-        case "mp3": case "ogg": case "wav": case "m4a": case "opus": case "flac":
+        case "mp3":
+        case "ogg":
+        case "wav":
+        case "m4a":
+        case "opus":
+        case "flac":
             return ContentType.Music;
-        case "avi": case "mpeg": case "mp4": case "mkv": case "mov": case "wmv": case "webm":
+        case "avi":
+        case "mpeg":
+        case "mp4":
+        case "mkv":
+        case "mov":
+        case "wmv":
+        case "webm":
             return ContentType.Videos;
-        case "txt": case "doc": case "docx": case "xls": case "xlsx": case "ppt":
-        case "pptx": case "pdf": case "odt": case "ods": case "odp": case "csv":
-        case "html": case "rtf": case "md":
+        case "txt":
+        case "doc":
+        case "docx":
+        case "xls":
+        case "xlsx":
+        case "ppt":
+        case "pptx":
+        case "pdf":
+        case "odt":
+        case "ods":
+        case "odp":
+        case "csv":
+        case "html":
+        case "rtf":
+        case "md":
             return ContentType.Documents;
-        case "vcard": case "vcf":
+        case "vcard":
+        case "vcf":
             return ContentType.Contacts;
-        case "epub": case "mobi": case "azw3":
+        case "epub":
+        case "mobi":
+        case "azw3":
             return ContentType.EBooks;
         default:
             return ContentType.All;
@@ -68,8 +102,10 @@ Popups.PopupBase  {
 
     // Try to auto-select Gallery when dialog becomes visible (exporting images)
     onVisibleChanged: {
-        if (!visible) return;
-        if (!_isImageExport()) return;
+        if (!visible)
+            return;
+        if (!_isImageExport())
+            return;
 
         // Defer until peers list is populated
         Qt.callLater(function () {
@@ -87,7 +123,7 @@ Popups.PopupBase  {
                     }
                 }
             }
-            // No gallery found -> fall back to normal picker UI
+        // No gallery found -> fall back to normal picker UI
         });
     }
 
@@ -104,7 +140,7 @@ Popups.PopupBase  {
             anchors.fill: parent
             visible: true
             contentType: isExport ? picker.resolveType(fileUrl) : ContentType.All
-            handler:     isExport ? ContentHandler.Destination  : ContentHandler.Source
+            handler: isExport ? ContentHandler.Destination : ContentHandler.Source
 
             onPeerSelected: {
                 // normal manual selection
@@ -122,14 +158,16 @@ Popups.PopupBase  {
     Connections {
         id: stateChangeConnection
         onStateChanged: {
-            if (!picker.activeTransfer) return;
+            if (!picker.activeTransfer)
+                return;
 
             if (isExport && picker.activeTransfer.state === ContentTransfer.InProgress) {
                 // Export: inject our local file, then charge + close
-                picker.activeTransfer.items = [transferComponent.createObject(picker, { "url": fileUrl })];
+                picker.activeTransfer.items = [transferComponent.createObject(picker, {
+                        "url": fileUrl
+                    })];
                 picker.activeTransfer.state = ContentTransfer.Charged;
                 closeTimer.start();
-
             } else if (!isExport && picker.activeTransfer.state === ContentTransfer.Charged) {
                 // Import: deliver selected items, then close
                 picker.filesImported(picker.activeTransfer.items);
@@ -148,5 +186,8 @@ Popups.PopupBase  {
         }
     }
 
-    Component { id: transferComponent; ContentItem {} }
+    Component {
+        id: transferComponent
+        ContentItem {}
+    }
 }

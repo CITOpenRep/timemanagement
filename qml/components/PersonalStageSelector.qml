@@ -31,10 +31,10 @@ import "../../models/accounts.js" as Account
 
 /**
  * PersonalStageSelector - A popup dialog for selecting and changing personal task stages
- * 
+ *
  * Personal stages are user-specific and independent from project stages.
  * They are identified by is_global = '[]' in the database.
- * 
+ *
  * Usage:
  *   Component {
  *       id: personalStageSelector
@@ -45,7 +45,7 @@ import "../../models/accounts.js" as Account
  *           }
  *       }
  *   }
- *   
+ *
  *   // Open the dialog with parameters
  *   PopupUtils.open(personalStageSelector, parentPage, {
  *       taskId: taskLocalId,
@@ -57,27 +57,27 @@ import "../../models/accounts.js" as Account
 Dialog {
     id: personalStageSelectorDialog
     title: "Change Personal Stage"
-    
+
     property int taskId: -1
     property int accountId: -1
     property int userId: -1
     property int currentPersonalStageOdooRecordId: -1
     property var availablePersonalStages: []
-    
+
     signal personalStageSelected(int personalStageOdooRecordId, string personalStageName)
-    
+
     /**
      * Loads available personal stages for this user and account
      */
     function loadPersonalStages() {
         // Load personal stages for this user
         availablePersonalStages = Task.getPersonalStagesForUser(userId, accountId);
-        
+
         console.log("PersonalStageSelector: loaded", availablePersonalStages.length, "personal stages for userId:", userId);
-        
+
         // Update the stage list model
         personalStageListModel.clear();
-        
+
         // Add "Clear Personal Stage" option
         personalStageListModel.append({
             odoo_record_id: -1,
@@ -86,7 +86,7 @@ Dialog {
             fold: 0,
             isCurrent: currentPersonalStageOdooRecordId === null || currentPersonalStageOdooRecordId === undefined || currentPersonalStageOdooRecordId === -1
         });
-        
+
         // Add available personal stages
         for (var i = 0; i < availablePersonalStages.length; i++) {
             personalStageListModel.append({
@@ -98,19 +98,19 @@ Dialog {
             });
         }
     }
-    
+
     Component.onCompleted: {
         loadPersonalStages();
     }
-    
+
     ListModel {
         id: personalStageListModel
     }
-    
+
     Column {
         spacing: units.gu(2)
         width: parent.width
-        
+
         // Current Personal Stage Label
         Label {
             id: currentPersonalStageLabel
@@ -126,13 +126,13 @@ Dialog {
             font.pixelSize: units.gu(2)
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
         }
-        
+
         Label {
             text: "Select Personal Stage:"
             font.pixelSize: units.gu(1.8)
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555"
         }
-        
+
         Label {
             text: "Personal stages are separate from project stages and help you track your own workflow."
             font.pixelSize: units.gu(1.4)
@@ -141,7 +141,7 @@ Dialog {
             width: parent.width
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#999" : "#666"
         }
-        
+
         // Personal Stage List
         Rectangle {
             width: parent.width
@@ -150,30 +150,29 @@ Dialog {
             border.width: units.gu(0.1)
             radius: units.gu(0.5)
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "#fafafa"
-            
+
             ListView {
                 id: personalStageListView
                 anchors.fill: parent
                 anchors.margins: units.gu(1)
                 clip: true
                 spacing: units.gu(1)
-                
+
                 model: personalStageListModel
-                
+
                 delegate: Rectangle {
                     width: personalStageListView.width
                     height: units.gu(6)
                     radius: units.gu(0.5)
                     border.color: model.isCurrent ? LomiriColors.blue : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd")
                     border.width: model.isCurrent ? units.gu(0.3) : units.gu(0.1)
-                    color: personalStageMouseArea.pressed ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#e8e8e8") : 
-                           (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#fff")
-                    
+                    color: personalStageMouseArea.pressed ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#e8e8e8") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#fff")
+
                     Row {
                         anchors.fill: parent
                         anchors.margins: units.gu(1)
                         spacing: units.gu(1)
-                        
+
                         // Current stage indicator
                         Rectangle {
                             width: units.gu(0.5)
@@ -181,22 +180,21 @@ Dialog {
                             color: model.isCurrent ? LomiriColors.blue : "transparent"
                             radius: units.gu(0.25)
                         }
-                        
+
                         Column {
                             width: parent.width - units.gu(1.5)
                             spacing: units.gu(0.3)
-                            
+
                             Label {
                                 text: model.name
                                 font.pixelSize: units.gu(2)
                                 font.bold: model.isCurrent
                                 font.italic: model.odoo_record_id === -1
-                                color: model.isCurrent ? LomiriColors.blue : 
-                                       (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
+                                color: model.isCurrent ? LomiriColors.blue : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                                 wrapMode: Text.WordWrap
                                 width: parent.width
                             }
-                            
+
                             Label {
                                 text: model.fold === 1 ? "(Folded/Closed Stage)" : ""
                                 font.pixelSize: units.gu(1.3)
@@ -206,7 +204,7 @@ Dialog {
                             }
                         }
                     }
-                    
+
                     MouseArea {
                         id: personalStageMouseArea
                         anchors.fill: parent
@@ -221,7 +219,7 @@ Dialog {
                         }
                     }
                 }
-                
+
                 // Empty state message
                 Label {
                     anchors.centerIn: parent
@@ -232,7 +230,7 @@ Dialog {
                     horizontalAlignment: Text.AlignHCenter
                 }
             }
-            
+
             // Scrollbar indicator
             Rectangle {
                 visible: personalStageListView.contentHeight > personalStageListView.height
@@ -243,7 +241,7 @@ Dialog {
                 width: units.gu(0.5)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
                 radius: units.gu(0.25)
-                
+
                 Rectangle {
                     width: parent.width
                     height: (personalStageListView.height / personalStageListView.contentHeight) * parent.height
@@ -254,7 +252,7 @@ Dialog {
             }
         }
     }
-    
+
     Button {
         text: "Cancel"
         onClicked: PopupUtils.close(personalStageSelectorDialog)

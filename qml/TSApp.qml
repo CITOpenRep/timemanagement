@@ -81,7 +81,6 @@ MainView {
         }
     }
 
-
     // --- Fullscreen Image Previewer, Mainly used by attachment manager ---
     //GOKUL, This can be moved as a component ? Later
     Rectangle {
@@ -120,7 +119,6 @@ MainView {
         }
     }
 
-
     // Account Filter , Remove this , not needed, use AccountSelectorDialog
     AccountFilter {
         id: accountFilter
@@ -131,7 +129,6 @@ MainView {
         visible: false
 
         onAccountChanged: {
-
             currentAccountId = accountId;
             currentAccountName = accountName;
 
@@ -148,22 +145,20 @@ MainView {
         titleText: "Switch account"
         restrictToLocalOnly: false
 
-        onAccepted: function(id, name) {
+        onAccepted: function (id, name) {
             // persist selection, refresh views, trigger sync, etc.
-            console.log("Account chosen:", id, name)
-            
+            console.log("Account chosen:", id, name);
+
             // Update mainView's current account
             currentAccountId = id;
             currentAccountName = name;
-            
+
             // Emit signals to notify other components
             globalAccountChanged(id, name);
             accountDataRefreshRequested(id);
         }
         onCanceled: console.log("Account selection canceled")
     }
-
-
 
     // Global notification popup
     NotificationPopup {

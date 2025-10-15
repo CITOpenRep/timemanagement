@@ -105,11 +105,8 @@ Page {
         if (visible) {
             // Update navigation tracking when Project_Page becomes visible
             Global.setLastVisitedPage("Project_Page");
-            
+
             projectlist.refresh();
         }
     }
-
-
-
 }

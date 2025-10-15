@@ -54,7 +54,7 @@ Item {
         }
 
         onJavaScriptConsoleMessage: {
-            console.log("WebView Console:", message)
+            console.log("WebView Console:", message);
         }
 
         // Enable JavaScript
@@ -257,4 +257,3 @@ Item {
         }
     }
 }
-   
