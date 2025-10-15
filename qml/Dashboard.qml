@@ -125,7 +125,7 @@ Page {
         visible: true
 
         trailingActionBar.visible: isMultiColumn ? false : true
-        trailingActionBar.numberOfSlots: 3
+        trailingActionBar.numberOfSlots: 4
 
         trailingActionBar.actions: [
             // Action {
@@ -134,6 +134,14 @@ Page {
             //         accountFilterVisible = !accountFilterVisible
             //     }
             // },
+
+            Action {
+                iconName: "account"
+                text: "Switch Accounts"
+                onTriggered: {
+                    accountPicker.open(0)
+                }
+            },
             Action {
                 iconName: "help"
                 text: "About"
@@ -212,14 +220,8 @@ Page {
                     page = 6;
                     apLayout.setCurrentPage(page);
                 }
-            },
-            Action {
-                iconName: "view-on"
-                text: "Switch Accounts"
-                onTriggered: {
-                    accountPicker.open(0)
-                }
             }
+            
         ]
     }
 
