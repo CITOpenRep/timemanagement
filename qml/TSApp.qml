@@ -151,6 +151,14 @@ MainView {
         onAccepted: function(id, name) {
             // persist selection, refresh views, trigger sync, etc.
             console.log("Account chosen:", id, name)
+            
+            // Update mainView's current account
+            currentAccountId = id;
+            currentAccountName = name;
+            
+            // Emit signals to notify other components
+            globalAccountChanged(id, name);
+            accountDataRefreshRequested(id);
         }
         onCanceled: console.log("Account selection canceled")
     }

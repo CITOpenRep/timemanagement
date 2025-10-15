@@ -75,7 +75,8 @@ Page {
                 // Refresh the task list with the new filter
                 if (currentUserOdooId > 0)
                 {
-                    var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
+                    var effectiveAccountId = getEffectiveAccountId();
+                    var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
                     myTasksList.updateDisplayedTasks(stageTasks);
                 }
             }
@@ -83,28 +84,37 @@ Page {
     ]
 }
 
-// Properties for filter and search state
-property var personalStages: []
-property var currentPersonalStageId: undefined  // undefined = not initialized, null = "All", 0 = "No Stage", >0 = specific stage
+    // Properties for filter and search state
+    property var personalStages: []
+    property var currentPersonalStageId: undefined  // undefined = not initialized, null = "All", 0 = "No Stage", >0 = specific stage
     property string currentSearchQuery: ""
-        property bool showFoldedTasks: false  // Toggle for showing closed/folded tasks
+    property bool showFoldedTasks: false  // Toggle for showing closed/folded tasks
 
-            // Properties for current user filtering
-            property int currentUserOdooId: -1
-                property int defaultAccountId: Account.getDefaultAccountId()
+    // Properties for current user filtering
+    property int currentUserOdooId: -1
+    property int selectedAccountId: -1  // Tracks the currently selected account, -1 means use default
 
-                // Function to load personal stages for the current user
-                function loadPersonalStages()
-                {
-                    if (currentUserOdooId <= 0 || defaultAccountId < 0)
-                    {
-                        personalStages = [];
-                        return;
-                    }
+    // Function to get the effective account ID (handles -1 for "All Accounts")
+    function getEffectiveAccountId() {
+        if (selectedAccountId === -1 || selectedAccountId < 0) {
+            var defaultId = Account.getDefaultAccountId();
+            console.log("MyTasks: selectedAccountId is", selectedAccountId, "- falling back to default account:", defaultId);
+            return defaultId;
+        }
+        return selectedAccountId;
+    }
 
-                    var stages = Task.getPersonalStagesForUser(currentUserOdooId, defaultAccountId);
+    // Function to load personal stages for the current user
+    function loadPersonalStages()
+    {
+        var effectiveAccountId = getEffectiveAccountId();
+        if (currentUserOdooId <= 0 || effectiveAccountId < 0)
+        {
+            personalStages = [];
+            return;
+        }
 
-                    // Start with loaded stages
+        var stages = Task.getPersonalStagesForUser(currentUserOdooId, effectiveAccountId);                    // Start with loaded stages
                     var allStages = [];
                     for (var i = 0; i < stages.length; i++) {
                         allStages.push(stages[i]);
@@ -165,20 +175,53 @@ property var currentPersonalStageId: undefined  // undefined = not initialized, 
         }
     }
 
-    // Function to get current user's odoo_record_id for the DEFAULT account
-    // MyTasks ALWAYS uses the default account set in Settings page
+    // Function to get current user's odoo_record_id for the selected account
     function updateCurrentUser()
     {
-        // ALWAYS use the default account from Settings
-        var accountId = Account.getDefaultAccountId();
-
-        if (accountId >= 0)
+        var effectiveAccountId = getEffectiveAccountId();
+        if (effectiveAccountId >= 0)
         {
-            currentUserOdooId = Account.getCurrentUserOdooId(accountId);
+            currentUserOdooId = Account.getCurrentUserOdooId(effectiveAccountId);
         } else {
-        currentUserOdooId = -1;
+            currentUserOdooId = -1;
+        }
     }
-}
+
+    // Function to handle account selection changes
+    function handleAccountChange(accountId)
+    {
+        console.log("MyTasks: Account changed to", accountId);
+        
+        // Normalize account ID to number
+        var idNum = -1;
+        try {
+            if (typeof accountId !== "undefined" && accountId !== null) {
+                var maybeNum = Number(accountId);
+                idNum = isNaN(maybeNum) ? -1 : maybeNum;
+            }
+        } catch (e) {
+            idNum = -1;
+        }
+        
+        selectedAccountId = idNum;
+        
+        // Reset the personal stage selection
+        currentPersonalStageId = undefined;
+        
+        // Update current user for the new account
+        updateCurrentUser();
+        
+        // Reload personal stages for the new account
+        loadPersonalStages();
+        
+        // Refresh the task list with the first personal stage
+        if (currentUserOdooId > 0 && personalStages.length > 0 && currentPersonalStageId !== undefined)
+        {
+            var effectiveAccountId = getEffectiveAccountId();
+            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
+            myTasksList.updateDisplayedTasks(stageTasks);
+        }
+    }
 
 // Add the ListHeader component
 ListHeader {
@@ -212,13 +255,12 @@ ListHeader {
     // Update current user before applying filter
     updateCurrentUser();
 
-    if (currentUserOdooId > 0)
-    {
-        // Get tasks by personal stage, respecting folded task filter
-        var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
-        console.log("onFilterSelected: stageTasks.length =", stageTasks.length);
-
-        // Update the task list directly
+            if (currentUserOdooId > 0)
+            {
+                // Get tasks by personal stage, respecting folded task filter
+                var effectiveAccountId = getEffectiveAccountId();
+                var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
+                console.log("onFilterSelected: stageTasks.length =", stageTasks.length);        // Update the task list directly
         myTasksList.updateDisplayedTasks(stageTasks);
     }
 }
@@ -229,12 +271,11 @@ onCustomSearch: {
     // Update current user before applying search
     updateCurrentUser();
 
-    if (currentUserOdooId > 0)
-    {
-        // For search, show all tasks (personal stage = null) that match search, respecting folded task filter
-        var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], defaultAccountId, showFoldedTasks);
-
-        // Apply search filter
+            if (currentUserOdooId > 0)
+            {
+                // For search, show all tasks (personal stage = null) that match search, respecting folded task filter
+                var effectiveAccountId = getEffectiveAccountId();
+                var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], effectiveAccountId, showFoldedTasks);        // Apply search filter
         if (query && query.trim() !== "")
         {
             var searchLower = query.toLowerCase();
@@ -385,11 +426,52 @@ onMenuItemSelected: {
 }
 }
 
+// Connection to handle account selection changes from AccountFilter
+Connections {
+    target: typeof accountFilter !== 'undefined' ? accountFilter : null
+    
+    function onAccountChanged(accountId, accountName) {
+       // console.log("🔄 MyTasks: Account changed via AccountFilter to:", accountId, accountName);
+        handleAccountChange(accountId);
+    }
+}
+
+// Also listen to TSApp signals for when MyTasks is already visible
+Connections {
+    target: typeof mainView !== 'undefined' ? mainView : null
+    
+    function onAccountDataRefreshRequested(accountId) {
+       // console.log("🔄 MyTasks: Refreshing data for account:", accountId);
+        if (myTasksPage.visible && accountId >= 0) {
+            handleAccountChange(accountId);
+        }
+    }
+    
+    function onGlobalAccountChanged(accountId, accountName) {
+      //  console.log("🔄 MyTasks: Global account changed to:", accountId, accountName);
+        if (myTasksPage.visible && accountId >= 0) {
+            handleAccountChange(accountId);
+        }
+    }
+}
+
 onVisibleChanged: {
     if (visible)
     {
         // Update navigation tracking
         Global.setLastVisitedPage("MyTasks");
+
+        // Sync with mainView's current account (primary source of truth)
+        if (typeof mainView !== 'undefined' && mainView !== null) {
+            if (typeof mainView.currentAccountId !== 'undefined') {
+                var acctId = mainView.currentAccountId;
+                if (acctId !== selectedAccountId && acctId >= -1) {
+                    console.log("MyTasks: Syncing with mainView.currentAccountId on visible:", acctId);
+                    handleAccountChange(acctId);
+                    return; // handleAccountChange will refresh everything
+                }
+            }
+        }
 
         // Refresh user data and personal stages when page becomes visible
         updateCurrentUser();
@@ -398,21 +480,39 @@ onVisibleChanged: {
         // Apply current personal stage filter
         if (currentUserOdooId > 0)
         {
-            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
+            var effectiveAccountId = getEffectiveAccountId();
+            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
             myTasksList.updateDisplayedTasks(stageTasks);
         }
     }
 }
 
-// MyTasks IGNORES account selector changes
-// It ALWAYS uses the default account from Settings page
-// If user wants to see different account's tasks, they should:
-// 1. Go to Settings page
-// 2. Set that account as Default
-// 3. Return to MyTasks
-
 Component.onCompleted: {
-    // Get current user from DEFAULT account
+    // Sync with mainView's current account (this persists across page loads)
+    if (typeof mainView !== 'undefined' && mainView !== null) {
+        if (typeof mainView.currentAccountId !== 'undefined') {
+            selectedAccountId = mainView.currentAccountId;
+            console.log("MyTasks: Initialized with mainView.currentAccountId:", selectedAccountId);
+        }
+    }
+    
+    // Fallback: try accountFilter
+    if (selectedAccountId === -1) {
+        if (typeof accountFilter !== 'undefined' && accountFilter !== null) {
+            if (typeof accountFilter.selectedAccountId !== 'undefined') {
+                selectedAccountId = accountFilter.selectedAccountId;
+                console.log("MyTasks: Using accountFilter.selectedAccountId:", selectedAccountId);
+            }
+        }
+    }
+    
+    // Final fallback: use default account
+    if (selectedAccountId === -1) {
+        selectedAccountId = Account.getDefaultAccountId();
+        console.log("MyTasks: No account selection found, using default account:", selectedAccountId);
+    }
+
+    // Get current user from selected account
     updateCurrentUser();
 
     // Load personal stages for the current user
@@ -425,7 +525,8 @@ Component.onCompleted: {
         if (personalStages.length > 0 && currentPersonalStageId !== undefined)
         {
             console.log("MyTasks initial load: currentPersonalStageId =", currentPersonalStageId);
-            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], defaultAccountId, showFoldedTasks);
+            var effectiveAccountId = getEffectiveAccountId();
+            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
             console.log("MyTasks initial load: stageTasks.length =", stageTasks.length);
             myTasksList.updateDisplayedTasks(stageTasks);
         }
