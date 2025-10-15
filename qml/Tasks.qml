@@ -707,6 +707,7 @@ Page {
                             return    "#f97316";
                         }
                         verticalAlignment: Text.AlignVCenter
+                          horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WordWrap
                     }
 

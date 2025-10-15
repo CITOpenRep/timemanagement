@@ -41,13 +41,15 @@
   <li> Introducing Personal Stages . In My Tasks the ListHeader Filter Tabs are Personal Stages for the logged In User, which are dynamically fetched from Odoo.</li>
 <li> Introducing the Task Stage Manipulation from the Device. The Task Stages can be changed from the Task Detailed View. </li>
 <li> Introdcuing the Personal Stage Manipulation From the Device. The Personal Stages can be Changed using the leading action button on Task List View in My Tasks.</li>
-
+<li> Introducing Instance Filter </li>
 
 
 </ul>
 
 <h5>Fixes and Improvements</h5>
 <ul>
+<li> Enhancement in Content Hub for Attachments. </li>
+<li> Fixes in Button Layout in Tasks. </li>
   <li>Fixed the issue of Tasks getting assigned to None Stage, while creating Tasks from Device. Now the User has option to select the Task Stage while creating a Task, if not selected the Task will be assigned to the First Stage by Default.</li>
 </ul>
 
