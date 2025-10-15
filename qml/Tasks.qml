@@ -104,29 +104,27 @@ Page {
                                                                                 }
                                                                             }
 
-                                                                            function validateHoursInput(text)
-                                                                            {
-                                                                                // Allow formats like: 1, 1.5, 1:30, 01:30
-                                                                                var timeRegex = /^(\d {1, 3}):([0-5]\d)$/; // HH:MM or H:MM format
-                                                                                var decimalRegex = /^\d+(\.\d+)?$/; // Decimal format like 1.5
+                            function validateHoursInput(text)
+                            {
+                                // Allow formats like: 1, 1.5, 1:30, 01:30
+                                var timeRegex = /^(\d{1,3}):([0-5]\d)$/; // HH:MM or H:MM format
+                                var decimalRegex = /^\d+(\.\d+)?$/; // Decimal format like 1.5
 
-                                                                                if (timeRegex.test(text))
-                                                                                {
-                                                                                    var match = text.match(timeRegex);
-                                                                                    var hours = parseInt(match[1]);
-                                                                                    var minutes = parseInt(match[2]);
-                                                                                    return hours >= 0 && hours <= 999 && minutes >= 0 && minutes <= 59;
-                                                                                } else if (decimalRegex.test(text)) {
-                                                                                var value = parseFloat(text);
-                                                                                return value >= 0 && value <= 999;
-                                                                            }
-                                                                            return false;
-                                                                        }
-
-                                                                        function formatHoursDisplay(text)
+                                if (timeRegex.test(text))
+                                {
+                                    var match = text.match(timeRegex);
+                                    var hours = parseInt(match[1]);
+                                    var minutes = parseInt(match[2]);
+                                    return hours >= 0 && hours <= 999 && minutes >= 0 && minutes <= 59;
+                                } else if (decimalRegex.test(text)) {
+                                var value = parseFloat(text);
+                                return value >= 0 && value <= 999;
+                            }
+                            return false;
+                        }                                                                        function formatHoursDisplay(text)
                                                                         {
                                                                             // Convert various input formats to HH:MM display format
-                                                                            var timeRegex = /^(\d {1, 3}):([0-5]\d)$/;
+                                                                            var timeRegex = /^(\d{1,3}):([0-5]\d)$/;
                                                                             var decimalRegex = /^\d+(\.\d+)?$/;
 
                                                                             if (timeRegex.test(text))
@@ -704,22 +702,22 @@ Page {
                                 stageName === "verified" || stageName === "done") {
                                 return "green";
                             }
-                            return    "#f97316";
+                            return "#f97316";
                         }
                         verticalAlignment: Text.AlignVCenter
-                          horizontalAlignment: Text.AlignHCenter
+                        horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WordWrap
                     }
 
                     TSButton {
                         visible: recordid !== 0
-                     bgColor: "#f3f4f6"
-                fgColor: "#1f2937"
-                hoverColor: '#d1d5db'
-                borderColor: "#d1d5db"
-                fontBold: true
-                iconName: "filters"
-                iconColor: "#1f2937"
+                        bgColor: "#f3f4f6"
+                        fgColor: "#1f2937"
+                        hoverColor: '#d1d5db'
+                        borderColor: "#d1d5db"
+                        fontBold: true
+                        iconName: "filters"
+                        iconColor: "#1f2937"
                         width: (parent.width - (2 * parent.columnSpacing)) / 3
                         height: units.gu(6)
                         text: "Change"
@@ -765,7 +763,7 @@ Page {
                         let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
                         if (result.success)
                         {
-                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Activities.qml"), {
+                            apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Activities.qml"), {
                             "recordid": result.record_id,
                             "accountid": currentTask.account_id,
                             "isReadOnly": false
@@ -777,249 +775,249 @@ Page {
         }
 
 
-}
-
-// Row {
-//     id: currentPersonalStageRow
-//     visible: recordid !== 0
-//     anchors.top: currentStageRow.bottom
-//     anchors.left: parent.left
-//     anchors.right: parent.right
-//     anchors.leftMargin: units.gu(1)
-//     anchors.rightMargin: units.gu(1)
-//     topPadding: units.gu(1)
-
-//     TSLabel {
-//         text: "Personal Stage:"
-//         width: parent.width * 0.25
-//         anchors.verticalCenter: parent.verticalCenter
-//     }
-
-//     Label {
-//         text: {
-//             if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
-//                 return "(Not set)";
-//             }
-//             return Task.getTaskStageName(currentTask.personal_stage);
-//         }
-//         width: parent.width * 0.75
-//         font.pixelSize: units.gu(2)
-//         font.bold: currentTask && currentTask.personal_stage && currentTask.personal_stage !== -1
-//         font.italic: !currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1
-//         color: {
-//             if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
-//                 return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
-//             }
-//             return LomiriColors.blue;
-//         }
-//         anchors.verticalCenter: parent.verticalCenter
-//         wrapMode: Text.WordWrap
-//     }
-// }
-
-
-// Row {
-//     id: myRow83
-//     anchors.top: myRow82.bottom
-//     anchors.left: parent.left
-//     anchors.right: parent.right
-//     anchors.leftMargin: units.gu(1)
-//     anchors.rightMargin: units.gu(1)
-//     spacing: units.gu(1)
-//     topPadding: units.gu(1)
-
-//     TSButton {
-//         visible: recordid !== 0
-//         width: parent.width
-//         text: "Change Personal Stage"
-//         fgColor: LomiriColors.blue
-//         onClicked: {
-//             if (!currentTask || !currentTask.id) {
-//                 notifPopup.open("Error", "Task data not available", "error");
-//                 return;
-//             }
-
-//             var userId = Accounts.getCurrentUserOdooId(currentTask.account_id);
-//             if (userId <= 0) {
-//                 notifPopup.open("Error", "Unable to determine current user", "error");
-//                 return;
-//             }
-
-//             // Open the personal stage selector dialog with parameters
-//             var dialog = PopupUtils.open(personalStageSelector, taskCreate, {
-//                 taskId: currentTask.id,
-//                 accountId: currentTask.account_id,
-//                 userId: userId,
-//                 currentPersonalStageOdooRecordId: currentTask.personal_stage || -1
-//             });
-//         }
-//     }
-// }
-
-Row {
-    id: plannedh_row
-    anchors.top: currentStageRow.bottom
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.leftMargin: units.gu(1)
-    anchors.rightMargin: units.gu(1)
-    spacing: units.gu(2)
-    topPadding: units.gu(1)
-
-    TSLabel {
-        id: hours_label
-        text: "Planned Hours"
-        width: parent.width * 0.25
-        anchors.verticalCenter: parent.verticalCenter
     }
 
-    TextField {
-        id: hours_input
-        readOnly: isReadOnly
-        width: parent.width * 0.3
-        height: units.gu(5)
-        anchors.verticalCenter: parent.verticalCenter
-        text: "01:00"
-        placeholderText: "e.g., 2:30 or 1.5"
+    // Row {
+    //     id: currentPersonalStageRow
+    //     visible: recordid !== 0
+    //     anchors.top: currentStageRow.bottom
+    //     anchors.left: parent.left
+    //     anchors.right: parent.right
+    //     anchors.leftMargin: units.gu(1)
+    //     anchors.rightMargin: units.gu(1)
+    //     topPadding: units.gu(1)
 
-        // Input validation
-        validator: RegExpValidator {
-            regExp: /^(\d {1, 3}(:\d {2})?|\d+(\.\d+)?)$/
+    //     TSLabel {
+    //         text: "Personal Stage:"
+    //         width: parent.width * 0.25
+    //         anchors.verticalCenter: parent.verticalCenter
+    //     }
+
+    //     Label {
+    //         text: {
+    //             if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
+    //                 return "(Not set)";
+    //             }
+    //             return Task.getTaskStageName(currentTask.personal_stage);
+    //         }
+    //         width: parent.width * 0.75
+    //         font.pixelSize: units.gu(2)
+    //         font.bold: currentTask && currentTask.personal_stage && currentTask.personal_stage !== -1
+    //         font.italic: !currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1
+    //         color: {
+    //             if (!currentTask || !currentTask.personal_stage || currentTask.personal_stage === -1) {
+    //                 return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
+    //             }
+    //             return LomiriColors.blue;
+    //         }
+    //         anchors.verticalCenter: parent.verticalCenter
+    //         wrapMode: Text.WordWrap
+    //     }
+    // }
+
+
+    // Row {
+    //     id: myRow83
+    //     anchors.top: myRow82.bottom
+    //     anchors.left: parent.left
+    //     anchors.right: parent.right
+    //     anchors.leftMargin: units.gu(1)
+    //     anchors.rightMargin: units.gu(1)
+    //     spacing: units.gu(1)
+    //     topPadding: units.gu(1)
+
+    //     TSButton {
+    //         visible: recordid !== 0
+    //         width: parent.width
+    //         text: "Change Personal Stage"
+    //         fgColor: LomiriColors.blue
+    //         onClicked: {
+    //             if (!currentTask || !currentTask.id) {
+    //                 notifPopup.open("Error", "Task data not available", "error");
+    //                 return;
+    //             }
+
+    //             var userId = Accounts.getCurrentUserOdooId(currentTask.account_id);
+    //             if (userId <= 0) {
+    //                 notifPopup.open("Error", "Unable to determine current user", "error");
+    //                 return;
+    //             }
+
+    //             // Open the personal stage selector dialog with parameters
+    //             var dialog = PopupUtils.open(personalStageSelector, taskCreate, {
+    //                 taskId: currentTask.id,
+    //                 accountId: currentTask.account_id,
+    //                 userId: userId,
+    //                 currentPersonalStageOdooRecordId: currentTask.personal_stage || -1
+    //             });
+    //         }
+    //     }
+    // }
+
+    Row {
+        id: plannedh_row
+        anchors.top: currentStageRow.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: units.gu(1)
+        anchors.rightMargin: units.gu(1)
+        spacing: units.gu(2)
+        topPadding: units.gu(1)
+
+        TSLabel {
+            id: hours_label
+            text: "Planned Hours"
+            width: parent.width * 0.25
+            anchors.verticalCenter: parent.verticalCenter
         }
 
-        Rectangle {
-            anchors.fill: parent
-            color: "transparent"
-            radius: units.gu(0.5)
-            border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-            border.color: parent.activeFocus ? LomiriColors.orange: (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-        }
+        TextField {
+            id: hours_input
+            readOnly: isReadOnly
+            width: parent.width * 0.3
+            height: units.gu(5)
+            anchors.verticalCenter: parent.verticalCenter
+            text: "01:00"
+            placeholderText: "e.g., 2:30 or 1.5"
 
-        onFocusChanged: {
-            if (!focus && text !== "" && validateHoursInput(text))
-            {
-                text = formatHoursDisplay(text);
+            // Input validation
+            validator: RegExpValidator {
+                regExp: /^(\d{1,3}(:\d{2})?|\d+(\.\d+)?)$/
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                radius: units.gu(0.5)
+                border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                border.color: parent.activeFocus ? LomiriColors.orange: (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+            }
+
+            onFocusChanged: {
+                if (!focus && text !== "" && validateHoursInput(text))
+                {
+                    text = formatHoursDisplay(text);
+                }
+            }
+
+            Keys.onReturnPressed: {
+                if (text !== "" && validateHoursInput(text))
+                {
+                    text = formatHoursDisplay(text);
+                }
+                focus = false;
             }
         }
 
-        Keys.onReturnPressed: {
-            if (text !== "" && validateHoursInput(text))
-            {
-                text = formatHoursDisplay(text);
+        Row {
+            spacing: units.gu(1)
+            width: parent.width * 0.3
+            anchors.verticalCenter: parent.verticalCenter
+
+            visible: !isReadOnly
+
+            TSButton {
+                text: "-"
+                enabled: !isReadOnly
+                fontSize: units.gu(2.5)
+                width: units.gu(4.5)
+                height: units.gu(4.5)
+                onClicked: {
+                    incdecHrs(-1);
+                }
             }
-            focus = false;
+
+            TSButton {
+                text: "+"
+                enabled: !isReadOnly
+                fontSize: units.gu(2.5)
+                width: units.gu(4.5)
+                height: units.gu(4.5)
+                onClicked: {
+                    incdecHrs(1);
+                }
+            }
         }
     }
 
     Row {
-        spacing: units.gu(1)
-        width: parent.width * 0.3
-        anchors.verticalCenter: parent.verticalCenter
-
-        visible: !isReadOnly
-
-        TSButton {
-            text: "-"
-            enabled: !isReadOnly
-            fontSize: units.gu(2.5)
-            width: units.gu(4.5)
-            height: units.gu(4.5)
-            onClicked: {
-                incdecHrs(-1);
-            }
-        }
-
-        TSButton {
-            text: "+"
-            enabled: !isReadOnly
-            fontSize: units.gu(2.5)
-            width: units.gu(4.5)
-            height: units.gu(4.5)
-            onClicked: {
-                incdecHrs(1);
+        id: myRow6
+        anchors.top: plannedh_row.bottom
+        anchors.left: parent.left
+        topPadding: units.gu(1)
+        height: units.gu(30)
+        Column {
+            leftPadding: units.gu(1)
+            DateRangeSelector {
+                id: date_range_widget
+                readOnly: isReadOnly
+                width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(35) : tasksDetailsPageFlickable.width - units.gu(30)
+                height: units.gu(4)
+                anchors.centerIn: parent.centerIn
             }
         }
     }
-}
 
-Row {
-    id: myRow6
-    anchors.top: plannedh_row.bottom
-    anchors.left: parent.left
-    topPadding: units.gu(1)
-    height: units.gu(30)
-    Column {
-        leftPadding: units.gu(1)
-        DateRangeSelector {
-            id: date_range_widget
-            readOnly: isReadOnly
-            width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(35) : tasksDetailsPageFlickable.width - units.gu(30)
-            height: units.gu(4)
-            anchors.centerIn: parent.centerIn
-        }
-    }
-}
+    Row {
+        id: deadlineRow
+        anchors.top: myRow6.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: units.gu(1)
+        anchors.rightMargin: units.gu(1)
+        spacing: units.gu(2)
+        topPadding: units.gu(1)
 
-Row {
-    id: deadlineRow
-    anchors.top: myRow6.bottom
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.leftMargin: units.gu(1)
-    anchors.rightMargin: units.gu(1)
-    spacing: units.gu(2)
-    topPadding: units.gu(1)
-
-    TSLabel {
-        id: deadline_label
-        text: "Deadline"
-        width: parent.width * 0.3
-        anchors.verticalCenter: parent.verticalCenter
-    }
-
-    TSLabel {
-        id: deadline_text
-        text: "Not set"
-        enabled: !isReadOnly
-        width: parent.width * 0.4
-        fontBold: true
-        anchors.verticalCenter: parent.verticalCenter
-    }
-
-    TSButton {
-        text: "Select"
-        objectName: "button_deadline"
-        enabled: !isReadOnly
-        width: parent.width * 0.2
-        height: units.gu(5)
-        anchors.verticalCenter: parent.verticalCenter
-
-        onClicked: {
-            deadlinePicker.open();
-        }
-    }
-}
-Rectangle {
-    //color:"yellow"
-    id: attachmentRow
-    anchors.top: deadlineRow.bottom
-    //anchors.top: attachmentuploadRow.bottom
-    height: units.gu(50)
-    width: parent.width
-    anchors.margins: units.gu(0.1)
-    AttachmentManager {
-        id: attachments_widget
-        anchors.fill: parent
-        onUploadCompleted: {
-            //kinda refresh
-            attachments_widget.setAttachments(currentTask.getAttachmentsForProject(project.odoo_record_id));
+        TSLabel {
+            id: deadline_label
+            text: "Deadline"
+            width: parent.width * 0.3
+            anchors.verticalCenter: parent.verticalCenter
         }
 
-        onItemClicked: function(rec) {
-        // Open viewer / download / preview
-        console.log("Clicked attachment:", rec ? rec.name : rec);
+        TSLabel {
+            id: deadline_text
+            text: "Not set"
+            enabled: !isReadOnly
+            width: parent.width * 0.4
+            fontBold: true
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        TSButton {
+            text: "Select"
+            objectName: "button_deadline"
+            enabled: !isReadOnly
+            width: parent.width * 0.2
+            height: units.gu(5)
+            anchors.verticalCenter: parent.verticalCenter
+
+            onClicked: {
+                deadlinePicker.open();
+            }
+        }
     }
-}
+    Rectangle {
+        //color:"yellow"
+        id: attachmentRow
+        anchors.top: deadlineRow.bottom
+        //anchors.top: attachmentuploadRow.bottom
+        height: units.gu(50)
+        width: parent.width
+        anchors.margins: units.gu(0.1)
+        AttachmentManager {
+            id: attachments_widget
+            anchors.fill: parent
+            onUploadCompleted: {
+                //kinda refresh
+                attachments_widget.setAttachments(currentTask.getAttachmentsForProject(project.odoo_record_id));
+            }
+
+            onItemClicked: function(rec) {
+            // Open viewer / download / preview
+            console.log("Clicked attachment:", rec ? rec.name : rec);
+        }
+    }
 }
 
 }
