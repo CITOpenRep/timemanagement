@@ -37,7 +37,6 @@ This is the Main View of the Application.
 It contains the AdaptivePageLayout which is used to switch between different layouts based on the screen size
 
 */
-
 MainView {
     id: mainView
 

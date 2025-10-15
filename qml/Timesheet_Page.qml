@@ -36,7 +36,7 @@ import "../models/timer_service.js" as TimerService
 
 Page {
     id: timesheets
-    title: "Timesheets"
+    title:  i18n.dtr("ubtms","Timesheets")
 
     property string currentFilter: "all"
     property bool workpersonaSwitchState: true
