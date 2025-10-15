@@ -599,8 +599,6 @@ function markProjectUpdateAsDeleted(updateId) {
  * @returns {Array<Object>} - A list of objects with `project_id`, `name`, and `spentHours`.
  */
 function getProjectSpentHoursList(is_work_state, accountId) {
-    console.log("🔍 getProjectSpentHoursList called with is_work_state =", is_work_state, "accountId =", accountId);
-
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var resultList = [];
     var projectSpentMap = {};

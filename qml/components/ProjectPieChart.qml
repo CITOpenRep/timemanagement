@@ -34,7 +34,7 @@ Item {
     height: parent.height
 
     // account used to fetch data; numeric -1 indicates "all accounts"
-    property int selectedAccountId: -1
+    property int selectedAccountId: accountPicker.selectedAccountId
 
     // Custom styled title overlay
     Text {
@@ -193,79 +193,28 @@ Item {
 
     // Fetch-and-load helper using the new project API signature
     function refreshForAccount(accountId) {
-        var acctNum = -1;
-        try {
-            if (typeof accountId !== "undefined" && accountId !== null) {
-                var maybe = Number(accountId);
-                acctNum = isNaN(maybe) ? -1 : maybe;
-            } else {
-                acctNum = -1;
-            }
-        } catch (e) {
-            acctNum = -1;
-        }
-
-        selectedAccountId = acctNum;
 
         // call project API with account param
         try {
-            var data = Project.getProjectSpentHoursList(true, selectedAccountId);
+            var data = Project.getProjectSpentHoursList(true, accountId);
             // data should be an array; load chart
             load(data || []);
         } catch (e) {
-            console.error("ProjectPieChart: error fetching project spent hours:", e);
+            console.error("ProjectPieChart: error fetching project spent hours: BAD", e);
             load([]);
         }
     }
 
+    Component.onCompleted: {
+        refreshForAccount(accountPicker.selectedAccountId);
+    }
+
     // Re-fetch when the account selector changes
     Connections {
-        target: accountFilter
-        onAccountChanged: function (accountId, accountName) {
+        target: accountPicker
+        onAccepted: function (accountId, accountName) {
+            console.log("---------------------------> Hoi");
             refreshForAccount(accountId);
-        }
-    }
-
-    // Also respond to global account change / refresh events
-    Connections {
-        target: mainView
-        onAccountDataRefreshRequested: function (accountId) {
-            refreshForAccount(accountId);
-        }
-        onGlobalAccountChanged: function (accountId, accountName) {
-            refreshForAccount(accountId);
-        }
-    }
-
-    Component.onCompleted: {
-        // Probe for initial account selection and refresh
-        try {
-            var initial = -1;
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    var maybe = Number(accountFilter.selectedAccountId);
-                    initial = isNaN(maybe) ? -1 : maybe;
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    var maybe2 = Number(accountFilter.currentAccountId);
-                    initial = isNaN(maybe2) ? -1 : maybe2;
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    // mapping index -> id would be required; use -1 to be safe
-                    initial = -1;
-                } else {
-                    initial = -1;
-                }
-            } else if (typeof Account !== "undefined" && typeof Account.getSelectedAccountId === "function") {
-                var acct = Account.getSelectedAccountId();
-                var maybe3 = Number(acct);
-                initial = (acct !== null && typeof acct !== "undefined" && !isNaN(maybe3)) ? maybe3 : -1;
-            } else {
-                initial = -1;
-            }
-
-            refreshForAccount(initial);
-        } catch (e) {
-            console.error("ProjectPieChart: error determining initial account:", e);
-            refreshForAccount(-1);
         }
     }
 }

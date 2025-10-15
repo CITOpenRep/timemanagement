@@ -119,27 +119,6 @@ MainView {
         }
     }
 
-    // Account Filter , Remove this , not needed, use AccountSelectorDialog
-    AccountFilter {
-        id: accountFilter
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        z: 1000
-        visible: false
-
-        onAccountChanged: {
-            currentAccountId = accountId;
-            currentAccountName = accountName;
-
-            globalAccountChanged(accountId, accountName);
-
-            accountDataRefreshRequested(accountId);
-            accountFilterVisible = false;
-            dashboard_page.instanceSelected(accountId, accountName);
-        }
-    }
-
     AccountSelectorDialog {
         id: accountPicker
         titleText: "Switch account"
@@ -153,9 +132,9 @@ MainView {
             currentAccountId = id;
             currentAccountName = name;
 
-            // Emit signals to notify other components
-            globalAccountChanged(id, name);
-            accountDataRefreshRequested(id);
+        // Emit signals to notify other components
+        //globalAccountChanged(id, name);
+        //accountDataRefreshRequested(id);
         }
         onCanceled: console.log("Account selection canceled")
     }
@@ -175,7 +154,7 @@ MainView {
 
     AdaptivePageLayout {
         id: apLayout
-        anchors.top: accountFilter.bottom
+        anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom

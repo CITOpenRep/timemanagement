@@ -80,27 +80,8 @@ Page {
             //     }
             // }
 
+
         ]
-    }
-
-    // Listen to AccountFilter component changes (for filtering only)
-    Connections {
-        target: accountFilter // Make sure this targets your AccountFilter component
-        onAccountChanged: function (accountId, accountName) {
-            console.log("Account filter changed to:", accountName, "ID:", accountId);
-            selectedAccountId = accountId; // Update filter selection
-            fetch_timesheets_list(); // Refresh with new filter
-        }
-    }
-
-    // Listen for default account changes (for creation only)
-    Connections {
-        target: mainView
-        onDefaultAccountChanged: function (accountId) {
-            console.log("Default account changed to:", accountId);
-            defaultAccountId = accountId; // Update default for creation
-        // Don't refresh list here - this is only for creation, not filtering
-        }
     }
 
     Connections {

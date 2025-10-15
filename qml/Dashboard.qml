@@ -45,44 +45,13 @@ Page {
     property bool isMultiColumn: apLayout.columns > 1
     property var page: 0
 
-    // Helper: probe accountFilter or Account model for the currently selected account id.
-    // Returns numeric account id, or -1 for "All accounts" or on error.
-    function getSelectedAccountFromFilter() {
-        try {
-            // Prefer the accountFilter component if present
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    var maybe = Number(accountFilter.selectedAccountId);
-                    return isNaN(maybe) ? -1 : maybe;
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    var maybe2 = Number(accountFilter.currentAccountId);
-                    return isNaN(maybe2) ? -1 : maybe2;
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    // If the selector only exposes index we'd need a mapping index->id.
-                    // Fallback to -1 to be safe.
-                    return -1;
-                }
-            }
-
-            // Fallback: Accounts model helper if available
-            if (typeof Account !== "undefined" && typeof Account.getSelectedAccountId === "function") {
-                var acct = Account.getSelectedAccountId();
-                var maybe3 = Number(acct);
-                return (acct !== null && typeof acct !== "undefined" && !isNaN(maybe3)) ? maybe3 : -1;
-            }
-        } catch (e) {
-            console.error("getSelectedAccountFromFilter error:", e);
-        }
-        return -1;
-    }
-
     onVisibleChanged: {
         if (visible) {
             // Update navigation tracking when Dashboard becomes visible
             Global.setLastVisitedPage("Dashboard");
 
             // Prefer the selected account from the account selector (NOT the default account)
-            var selected = getSelectedAccountFromFilter();
+            var selected = accountPicker.selectedAccountId;
             if (typeof projectchart !== "undefined")
                 projectchart.refreshForAccount(selected);
             // Also refresh other dashboard data
@@ -234,7 +203,8 @@ Page {
     property variant task_data: []
 
     function get_project_chart_data() {
-        project_data = Model.get_projects_spent_hours();
+        var account = accountPicker.selectedAccountId;
+        project_data = Model.get_projects_spent_hours(account);
         var count = 0;
         var timeval;
         for (var key in project_data) {
@@ -249,7 +219,8 @@ Page {
     }
 
     function get_task_chart_data() {
-        task_data = Model.get_tasks_spent_hours();
+        var account = accountPicker.selectedAccountId;
+        task_data = Model.get_tasks_spent_hours(account);
         var count = 0;
         var timeval;
         for (var key in task_data) {
@@ -269,7 +240,7 @@ Page {
         get_task_chart_data();
         // Refresh project chart using the account selector's selection (not default account)
         if (typeof projectchart !== 'undefined') {
-            var selected = getSelectedAccountFromFilter();
+            var selected = accountPicker.selectedAccountId;
             projectchart.refreshForAccount(selected);
         }
     }
@@ -374,64 +345,9 @@ Page {
                 anchors.horizontalCenter: parent.horizontalCenter
             }
 
-            Connections {
-                target: accountFilter
-                onAccountChanged: function (accountId, accountName) {
-                    var acctNum = -1;
-                    try {
-                        if (typeof accountId !== "undefined" && accountId !== null) {
-                            var maybe = Number(accountId);
-                            acctNum = isNaN(maybe) ? -1 : maybe;
-                        } else {
-                            acctNum = -1;
-                        }
-                    } catch (e) {
-                        acctNum = -1;
-                    }
-                    console.log("Dashboard: accountFilter changed ->", acctNum, accountName);
-                    projectchart.refreshForAccount(acctNum);
-                }
-            }
-
-            Connections {
-                target: mainView
-                onAccountDataRefreshRequested: function (accountId) {
-                    var acctNum = -1;
-                    try {
-                        if (typeof accountId !== "undefined" && accountId !== null) {
-                            var maybe = Number(accountId);
-                            acctNum = isNaN(maybe) ? -1 : maybe;
-                        } else {
-                            acctNum = -1;
-                        }
-                    } catch (e) {
-                        acctNum = -1;
-                    }
-                    console.log("Dashboard: mainView.AccountDataRefreshRequested ->", acctNum);
-                    projectchart.refreshForAccount(acctNum);
-                }
-                onGlobalAccountChanged: function (accountId, accountName) {
-                    var acctNum = -1;
-                    try {
-                        if (typeof accountId !== "undefined" && accountId !== null) {
-                            var maybe = Number(accountId);
-                            acctNum = isNaN(maybe) ? -1 : maybe;
-                        } else {
-                            acctNum = -1;
-                        }
-                    } catch (e) {
-                        acctNum = -1;
-                    }
-                    console.log("Dashboard: mainView.GlobalAccountChanged ->", acctNum, accountName);
-                    projectchart.refreshForAccount(acctNum);
-                }
-            }
-
             Component.onCompleted: {
                 try {
-                    var initial = getSelectedAccountFromFilter();
-                    console.log("Dashboard: initial account for project chart ->", initial);
-                    projectchart.refreshForAccount(initial);
+                    projectchart.refreshForAccount(accountPicker.selectedAccountId);
                 } catch (e) {
                     console.error("Dashboard: error determining initial account for project chart:", e);
                     projectchart.refreshForAccount(-1);
@@ -512,11 +428,8 @@ Page {
     }
 
     Connections {
-        target: mainView
-        onAccountDataRefreshRequested: function (accountId) {
-            refreshData();
-        }
-        onGlobalAccountChanged: function (accountId, accountName) {
+        target: accountPicker
+        onAccepted: function (accountId, accountName) {
             refreshData();
         }
     }
