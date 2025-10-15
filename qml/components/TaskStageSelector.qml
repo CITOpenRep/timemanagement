@@ -52,7 +52,7 @@ import "../../models/task.js" as Task
  */
 Dialog {
     id: stageSelectorDialog
-    title: "Change Task Stage"
+    title: i18n.dtr("ubtms", "Change Task Stage")
 
     property int taskId: -1
     property int projectOdooRecordId: -1

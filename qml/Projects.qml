@@ -40,7 +40,7 @@ import "components"
 
 Page {
     id: projectCreate
-    title: "Project"
+    title: i18n.dtr("ubtms", "Project")
     header: PageHeader {
         id: header
         title: projectCreate.title

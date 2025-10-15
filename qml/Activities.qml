@@ -15,7 +15,7 @@ import "components"
 
 Page {
     id: activityDetailsPage
-    title: "Activity"
+    title: i18n.dtr("ubtms", "Activity")
     property var recordid: 0
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)

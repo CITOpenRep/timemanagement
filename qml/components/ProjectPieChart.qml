@@ -39,7 +39,7 @@ Item {
     // Custom styled title overlay
     Text {
         id: chartTitle
-        text: "Most Time-Consuming Projects"
+        text: i18n.dtr("ubtms", "Most Time-Consuming Projects")
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         font.pixelSize: units.gu(2)
@@ -134,10 +134,10 @@ Item {
         legendModel.clear();
 
         if (!data || data.length === 0) {
-            chartTitle.text = "Most Time-Consuming Projects(No Data)";
+            chartTitle.text = i18n.dtr("ubtms", "Most Time-Consuming Projects(No Data)");
             return;
         }
-        chartTitle.text = "Most Time-Consuming Projects";
+        chartTitle.text = i18n.dtr("ubtms", "Most Time-Consuming Projects");
 
         data.sort(function (a, b) {
             return b.spentHours - a.spentHours;
@@ -213,7 +213,6 @@ Item {
     Connections {
         target: accountPicker
         onAccepted: function (accountId, accountName) {
-            console.log("---------------------------> Hoi");
             refreshForAccount(accountId);
         }
     }

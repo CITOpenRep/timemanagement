@@ -33,7 +33,7 @@ import "components"
 
 Page {
     id: settings
-    title: "Settings"
+    title: i18n.dtr("ubtms", "Settings")
     header: PageHeader {
         id: pageHeader
         StyleHints {

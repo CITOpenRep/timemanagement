@@ -37,7 +37,7 @@ import "components"
 
 Page {
     id: activity
-    title: "Activities"
+    title: i18n.dtr("ubtms", "Activities")
     header: PageHeader {
         id: taskheader
         title: filterByProject ? "Activities - " + projectName : activity.title

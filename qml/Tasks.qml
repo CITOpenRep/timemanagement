@@ -42,7 +42,7 @@ import "components"
 
 Page {
     id: taskCreate
-    title: "Task"
+    title: i18n.dtr("ubtms", "Task")
     header: PageHeader {
         title: taskCreate.title
         StyleHints {

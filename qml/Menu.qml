@@ -33,7 +33,7 @@ import "../models/accounts.js" as Account
 
 Page {
     id: listpage
-    title: "Menu"
+    title: i18n.dtr("ubtms", "Menu")
     property bool isMultiColumn: apLayout.columns > 1
     anchors.fill: parent
     header: PageHeader {

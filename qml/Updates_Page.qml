@@ -35,7 +35,7 @@ import "../models/timer_service.js" as TimerService
 
 Page {
     id: updates
-    title: "Project Updates"
+    title: i18n.dtr("ubtms", "Project Updates")
 
     // Properties for filtering by project
     property bool filterByProject: false

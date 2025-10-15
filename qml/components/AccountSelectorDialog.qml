@@ -56,7 +56,7 @@ Item {
                 width: parent.width
 
                 Label {
-                    text: "Choose an account to use"
+                    text:  i18n.dtr("ubtms", "Choose an account to use")
                     color: theme.palette.normal.backgroundText
                     wrapMode: Text.WordWrap
                 }

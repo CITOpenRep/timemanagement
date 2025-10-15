@@ -40,7 +40,7 @@ import "components"
 
 Page {
     id: mainPage
-    title: "Time Manager - Time Management Dashboard"
+    title: i18n.dtr("ubtms", "Time Manager - Time Management Dashboard")
     anchors.fill: parent
     property bool isMultiColumn: apLayout.columns > 1
     property var page: 0
@@ -91,7 +91,7 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        title: "Time Management"
+        title: i18n.dtr("ubtms", "Time Management")
         visible: true
 
         trailingActionBar.visible: isMultiColumn ? false : true
@@ -107,14 +107,14 @@ Page {
 
             Action {
                 iconName: "account"
-                text: "Switch Accounts"
+                text: i18n.dtr("ubtms", "Switch Accounts")
                 onTriggered: {
                     accountPicker.open(0);
                 }
             },
             Action {
                 iconName: "help"
-                text: "About"
+                text: i18n.dtr("ubtms", "About")
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Aboutus.qml"));
                     page = 7;
@@ -130,7 +130,7 @@ Page {
             },
             Action {
                 iconName: "clock"
-                text: "Timesheet"
+                text: i18n.dtr("ubtms", "Timesheet")
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
                     page = 7;
@@ -139,7 +139,7 @@ Page {
             },
             Action {
                 iconName: "calendar"
-                text: "Activities"
+                text: i18n.dtr("ubtms", "Activities")
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
                     page = 2;
@@ -148,7 +148,7 @@ Page {
             },
             Action {
                 iconName: "scope-manager"
-                text: "My Tasks"
+                text: i18n.dtr("ubtms", "My Tasks")
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("MyTasks.qml"));
                     page = 3;
@@ -157,7 +157,7 @@ Page {
             },
             Action {
                 iconName: "view-list-symbolic"
-                text: "All Tasks"
+                text: i18n.dtr("ubtms", "All Tasks")
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
                     page = 3;
@@ -166,7 +166,7 @@ Page {
             },
             Action {
                 iconName: "folder-symbolic"
-                text: "Projects"
+                text: i18n.dtr("ubtms", "Projects")
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"));
                     page = 4;
@@ -175,7 +175,7 @@ Page {
             },
             Action {
                 iconName: "history"
-                text: "Project Updates"
+                text: i18n.dtr("ubtms", "Project Updates")
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
                     page = 5;
@@ -184,7 +184,7 @@ Page {
             },
             Action {
                 iconName: "settings"
-                text: "Settings"
+                text: i18n.dtr("ubtms", "Settings")
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Settings_Page.qml"));
                     page = 6;
@@ -251,13 +251,13 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: "Task"
+                label: i18n.dtr("ubtms", "Task")
             },
             {
-                label: "Timesheet"
+                label: i18n.dtr("ubtms", "Timesheet")
             },
             {
-                label: "Activity"
+                label: i18n.dtr("ubtms", "Activity")
             }
         ]
         onMenuItemSelected: {

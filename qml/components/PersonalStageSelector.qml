@@ -56,7 +56,7 @@ import "../../models/accounts.js" as Account
  */
 Dialog {
     id: personalStageSelectorDialog
-    title: "Change Personal Stage"
+    title: i18n.dtr("ubtms", "Change Personal Stage")
 
     property int taskId: -1
     property int accountId: -1

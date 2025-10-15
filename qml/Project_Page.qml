@@ -39,7 +39,7 @@ import "components"
 
 Page {
     id: project
-    title: "Projects"
+    title: i18n.dtr("ubtms", "Projects")
     header: PageHeader {
         id: projectheader
         StyleHints {

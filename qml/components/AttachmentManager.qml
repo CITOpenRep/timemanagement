@@ -29,7 +29,7 @@ Item {
     property var notifier: null
 
     /** Title shown above the list */
-    property string title: "Attachments"
+    property string title: i18n.dtr("ubtms", "Attachments")
 
     /** Read-only: live transfer (for hint) */
     property var activeTransfer: null
@@ -83,7 +83,7 @@ Item {
 
             Button {
                 id: uploadBtn
-                text: "Upload"
+                text: i18n.dtr("ubtms", "Upload")
                 onClicked: openContentPicker()
             }
         }

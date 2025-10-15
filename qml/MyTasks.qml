@@ -38,7 +38,7 @@ import "components"
 
 Page {
     id: myTasksPage
-    title: "My Tasks"
+    title: i18n.dtr("ubtms", "My Tasks")
 
     header: PageHeader {
         id: myTasksHeader

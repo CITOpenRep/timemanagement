@@ -51,7 +51,7 @@ Item {
 
         Dialog {
             id: popupDialog
-            title: "Add Description to Timesheet"
+            title: i18n.dtr("ubtms", "Add Description to Timesheet")
 
             // Dark mode friendly styling
             StyleHints {

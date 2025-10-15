@@ -4,7 +4,7 @@ xgettext \
   --from-code=UTF-8 \
   --language=JavaScript \
   --keyword=i18n.tr:1 \
-  --package-name="your-app" \
+  --package-name="ubtms" \
   --add-comments=TRANSLATORS: \
   --output=ubtms.pot\
   $(find ../qml -name "*.qml" -print)
@@ -15,4 +15,4 @@ cd ..
 msginit --locale=nl --input=ubtms.pot --output=nl.po
 
 # On later updates (after you re-run xgettext):
-msgmerge --update ubtms_nl.po ubtms.pot
+msgmerge --update nl.po ubtms.pot

@@ -126,7 +126,7 @@ Item {
             }
 
             Text {
-                text: "URGENT"
+                text: i18n.dtr("ubtms", "URGENT")
                 font.bold: true
                 font.pixelSize: units.gu(2)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
@@ -136,7 +136,7 @@ Item {
             }
 
             Text {
-                text: "NOT URGENT"
+                text: i18n.dtr("ubtms", "NOT URGENT")
                 font.bold: true
                 font.pixelSize: units.gu(2)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
@@ -160,7 +160,7 @@ Item {
                     color: "transparent"
 
                     Text {
-                        text: "IMPORTANT"
+                        text: i18n.dtr("ubtms", "IMPORTANT")
                         font.bold: true
                         font.pixelSize: units.gu(2)
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
@@ -177,7 +177,7 @@ Item {
                     color: "transparent"
 
                     Text {
-                        text: "NOT IMPORTANT"
+                        text: i18n.dtr("ubtms", "NOT IMPORTANT")
                         font.bold: true
                         font.pixelSize: units.gu(2)
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
@@ -239,7 +239,7 @@ Item {
                         }
 
                         Text {
-                            text: "Do First"
+                            text: i18n.dtr("ubtms", "Do First")
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -296,7 +296,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         Text {
-                            text: "Do Next"
+                            text: i18n.dtr("ubtms", "Do Next")
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -354,7 +354,7 @@ Item {
                         }
 
                         Text {
-                            text: "Do Later"
+                            text: i18n.dtr("ubtms", "Do Later")
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -411,7 +411,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         Text {
-                            text: "Don't do"
+                            text: i18n.dtr("ubtms", "Don't do")
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"

@@ -65,7 +65,7 @@ Rectangle {
                 }
 
                 Label {
-                    text: "Account:"
+                    text: i18n.dtr("ubtms", "Account:")
                     font.pixelSize: units.gu(1.8)
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                 }

@@ -25,7 +25,7 @@ Item {
 
         Dialog {
             id: accountDialog
-            title: "Account Selection"
+            title: i18n.dtr("ubtms", "Account Selection")
             width: parent.width * 0.9
             height: parent.height * 0.8
 
