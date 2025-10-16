@@ -237,7 +237,7 @@ function getOpenProjectStages() {
     return openStages;
 }
 
-
+//TODO : Add account id also to get project attachments, Corner case project record id can be same for multiple accounts
 function getAttachmentsForProject(odooRecordId) {
     var attachmentList = [];
 
