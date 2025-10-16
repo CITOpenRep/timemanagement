@@ -85,6 +85,7 @@ Page {
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
     property int selectedStageOdooRecordId: -1 // For storing selected stage during task creation
+    property var selectedPersonalStageOdooRecordId: null // For storing selected personal stage (null = no stage, >0 = stage ID)
 
     // Properties for prefilled data when creating task from project
     property var prefilledAccountId: -1
@@ -180,21 +181,38 @@ Page {
                 status: "updated"
             };
 
-            // Add stage for creation mode - use selected stage or fallback to first stage
-            if (recordid === 0) {
-                var stageToAssign = selectedStageOdooRecordId;
+            // Add stage for BOTH creation and edit modes
+            var stageToAssign = selectedStageOdooRecordId;
 
-                // Fallback to first stage if no stage selected
-                if (stageToAssign <= 0 && stageListModel.count > 0) {
-                    var firstStage = stageListModel.get(0);
-                    stageToAssign = firstStage.odoo_record_id;
-                    console.log("Using fallback stage:", firstStage.name, "with odoo_record_id:", stageToAssign);
-                }
+            // For creation mode: fallback to first stage if no stage selected
+            if (recordid === 0 && stageToAssign <= 0 && stageListModel.count > 0) {
+                var firstStage = stageListModel.get(0);
+                stageToAssign = firstStage.odoo_record_id;
+                console.log("Using fallback stage:", firstStage.name, "with odoo_record_id:", stageToAssign);
+            }
 
-                if (stageToAssign > 0) {
-                    saveData.stageOdooRecordId = stageToAssign;
-                    console.log("Saving task with stage:", stageToAssign);
+            // Include stage in saveData (for both creation and edit)
+            if (stageToAssign > 0) {
+                saveData.stageOdooRecordId = stageToAssign;
+                console.log("Saving task with stage:", stageToAssign, "mode:", recordid === 0 ? "create" : "edit");
+            } else if (recordid !== 0) {
+                // For edit mode with no valid stage, preserve the existing stage (don't reset to null)
+                console.log("Edit mode: No stage change, preserving existing stage");
+            }
+
+            // Include personal stage in saveData (for both creation and edit)
+            if (selectedPersonalStageOdooRecordId !== undefined && selectedPersonalStageOdooRecordId !== null) {
+                if (selectedPersonalStageOdooRecordId > 0) {
+                    saveData.personalStageOdooRecordId = selectedPersonalStageOdooRecordId;
+                    console.log("Saving task with personal stage:", selectedPersonalStageOdooRecordId, "mode:", recordid === 0 ? "create" : "edit");
+                } else {
+                    // Explicitly set null for "No Stage" (0 or negative values)
+                    saveData.personalStageOdooRecordId = null;
+                    console.log("Saving task with no personal stage (null)");
                 }
+            } else if (recordid !== 0) {
+                // For edit mode with undefined personal stage, preserve existing (don't include in saveData)
+                console.log("Edit mode: No personal stage change, preserving existing personal stage");
             }
 
             // Add multiple assignees if enabled
@@ -296,6 +314,9 @@ Page {
         if (result.success) {
             // Update the current task's personal stage
             currentTask.personal_stage = personalStageOdooRecordId;
+            
+            // Update the property to preserve it during next save
+            selectedPersonalStageOdooRecordId = personalStageOdooRecordId;
 
             // Reload the task to reflect changes
             loadTask();
@@ -377,7 +398,7 @@ Page {
 
                     // Monitor project and account changes to reload stages
                     onStateChanged: {
-                        console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                       // console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
 
                         if (recordid === 0) {
                             // Only in creation mode
@@ -1042,6 +1063,24 @@ Page {
 
             // Set task priority (0-3) - convert from string to numeric for UI
             priority = Math.max(0, Math.min(3, parseInt(currentTask.priority || "0")));
+
+            // Set the current task's stage (IMPORTANT: preserves stage during edit)
+            if (currentTask.state !== undefined && currentTask.state !== null) {
+                selectedStageOdooRecordId = currentTask.state;
+                console.log("Loaded task stage:", selectedStageOdooRecordId);
+            } else {
+                selectedStageOdooRecordId = -1;
+                console.log("Task has no stage set");
+            }
+
+            // Set the current task's personal stage (IMPORTANT: preserves personal stage during edit)
+            if (currentTask.personal_stage !== undefined && currentTask.personal_stage !== null) {
+                selectedPersonalStageOdooRecordId = currentTask.personal_stage;
+                console.log("Loaded task personal stage:", selectedPersonalStageOdooRecordId);
+            } else {
+                selectedPersonalStageOdooRecordId = null;
+                console.log("Task has no personal stage set");
+            }
 
             // Load multiple assignees if enabled
             if (workItem.enableMultipleAssignees) {
