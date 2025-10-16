@@ -230,7 +230,14 @@ function isTaskStageFolded(stageId) {
 }
 
 
-function getAttachmentsForTask(odooRecordId) {
+/**
+ * Retrieves all attachments for a given task and account.
+ *
+ * @param {int} accountId - Account ID to filter by.
+ * @param {int} odooRecordId - Odoo record ID of the task.
+ * @returns {Array<Object>} A list of attachment objects.
+ */
+function getAttachmentsForTask(odooRecordId,accountId) {
     var attachmentList = [];
 
     try {
@@ -245,36 +252,36 @@ function getAttachmentsForTask(odooRecordId) {
             var query = `
                 SELECT name, mimetype, account_id, odoo_record_id
                 FROM ir_attachment_app
-                WHERE res_model = 'project.task' AND res_id = ?
+                WHERE res_model = 'project.task'
+                  AND res_id = ?
+                  AND account_id = ?
                 ORDER BY name COLLATE NOCASE ASC
             `;
 
-            var result = tx.executeSql(query, [odooRecordId]);
+            var result = tx.executeSql(query, [odooRecordId, accountId]);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
 
-                // Keep SQL same — only extend object shape for AttachmentManager
                 attachmentList.push({
-                    id: i, // optional internal ID
+                    id: i,
                     name: row.name,
                     mimetype: row.mimetype,
                     account_id: row.account_id,
                     odoo_record_id: row.odoo_record_id,
-
-                    // extras for UI consistency; safe defaults
-                    url: "",        // no file path in DB — blank placeholder
-                    size: 0,        // unknown
-                    created: ""     // optional date if available later
+                    url: "",    // no file path stored locally
+                    size: 0,    // placeholder
+                    created: "" // optional field
                 });
             }
         });
     } catch (e) {
-        console.error("getAttachmentsForTask failed:", e);
+        DBCommon.logException("getAttachmentsForTask", e);
     }
 
     return attachmentList;
 }
+
 
 
 /**

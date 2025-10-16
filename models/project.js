@@ -236,9 +236,16 @@ function getOpenProjectStages() {
     }
     return openStages;
 }
-
-//TODO : Add account id also to get project attachments, Corner case project record id can be same for multiple accounts
-function getAttachmentsForProject(odooRecordId) {
+/**
+ * Retrieves all attachments for a given project and account.
+ *
+ * Handles corner case: project record IDs can be same across multiple accounts.
+ *
+ * @param {int} accountId - Account ID to filter attachments.
+ * @param {int} odooRecordId - Odoo record ID of the project.
+ * @returns {Array<Object>} A list of attachment objects.
+ */
+function getAttachmentsForProject(odooRecordId,accountId) {
     var attachmentList = [];
 
     try {
@@ -253,36 +260,36 @@ function getAttachmentsForProject(odooRecordId) {
             var query = `
                 SELECT name, mimetype, account_id, odoo_record_id
                 FROM ir_attachment_app
-                WHERE res_model = 'project.project' AND res_id = ?
+                WHERE res_model = 'project.project'
+                  AND res_id = ?
+                  AND account_id = ?
                 ORDER BY name COLLATE NOCASE ASC
             `;
 
-            var result = tx.executeSql(query, [odooRecordId]);
+            var result = tx.executeSql(query, [odooRecordId, accountId]);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
 
-                // Keep SQL same — only extend object shape for AttachmentManager
                 attachmentList.push({
-                    id: i, // optional internal ID
+                    id: i,
                     name: row.name,
                     mimetype: row.mimetype,
                     account_id: row.account_id,
                     odoo_record_id: row.odoo_record_id,
-
-                    // these are extra for UI consistency; safe defaults
-                    url: "",        // no file path in DB — blank placeholder
-                    size: 0,        // unknown
-                    created: ""     // optional date if available later
+                    url: "",        // placeholder for file path if added later
+                    size: 0,        // unknown at this stage
+                    created: ""     // optional, to be filled if available later
                 });
             }
         });
     } catch (e) {
-        console.error("getAttachmentsForProject failed:", e);
+        DBCommon.logException("getAttachmentsForProject", e);
     }
 
     return attachmentList;
 }
+
 
 function getFromCache(recordId) {
     var data = null;

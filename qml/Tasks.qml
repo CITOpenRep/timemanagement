@@ -314,7 +314,7 @@ Page {
         if (result.success) {
             // Update the current task's personal stage
             currentTask.personal_stage = personalStageOdooRecordId;
-            
+
             // Update the property to preserve it during next save
             selectedPersonalStageOdooRecordId = personalStageOdooRecordId;
 
@@ -398,7 +398,7 @@ Page {
 
                     // Monitor project and account changes to reload stages
                     onStateChanged: {
-                       // console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        // console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
 
                         if (recordid === 0) {
                             // Only in creation mode
@@ -985,9 +985,14 @@ Page {
             AttachmentManager {
                 id: attachments_widget
                 anchors.fill: parent
+                resource_type: "project.task"   // keep as-is if that's your default
+                resource_id: currentTask.odoo_record_id
+                account_id: currentTask.account_id
+                notifier: infobar
+
                 onUploadCompleted: {
                     //kinda refresh
-                    attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
+                    attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id, currentTask.account_id));
                 }
 
                 onItemClicked: function (rec) {
@@ -1088,7 +1093,7 @@ Page {
                 workItem.setMultipleAssignees(existingAssignees);
             }
 
-            attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
+            attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id, currentTask.account_id));
         } else {
             // We are creating a new task
             workItem.loadAccounts();

@@ -14,6 +14,7 @@ Popups.PopupBase {
     property var activeTransfer
     signal complete
     signal filesImported(var files)
+    property var host
 
     // --- Simple type resolver (no singleton) ---
     function resolveType(fileUrl) {

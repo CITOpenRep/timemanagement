@@ -151,7 +151,7 @@ Page {
             project_color_label.color = colorpicker.getColorByIndex(projectColor);
             date_range_widget.setDateRange(project.planned_start_date || "", project.planned_end_date || "");
             hours_text.text = project.allocated_hours !== undefined && project.allocated_hours !== null ? String(project.allocated_hours) : "01:00";
-            attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id));
+            attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id, project.account_id));
             return true;
         }
         return false;
@@ -594,7 +594,7 @@ Page {
 
                 onUploadCompleted: {
                     //kinda refresh
-                    attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id));
+                    attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id, project.account_id));
                 }
 
                 onItemClicked: function (rec) {

@@ -222,28 +222,29 @@ Item {
         ContentPickerDialog {
             id: dlg
             isExport: false   // importing from device/apps
-
             onFilesImported: function (files) {
                 if (!files || !files.length)
                     return;
 
-                attachmentManager.activeTransfer = dlg.activeTransfer;
-                attachmentManager.uploadStarted();
+                if (host) {
+                    host.activeTransfer = dlg.activeTransfer;
+                    host.uploadStarted();
+                }
 
                 for (var i = 0; i < files.length; i++) {
                     var filePath = (files[i].url || "").toString().replace(/^file:\/\//, "");
 
                     python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                         if (!path) {
-                            _notify("Failed to upload", 2000);
-                            attachmentManager.uploadFailed();
+                            host ? host._notify("Failed to upload", 2000) : console.log("[AttachmentManager] Failed to upload");
+                            host && host.uploadFailed();
                             return;
                         }
                         python.call("backend.attachment_upload", [path, attachmentManager.account_id, filePath, attachmentManager.resource_type, attachmentManager.resource_id], function (res) {
                             if (!res) {
                                 console.warn("No response from attachment_upload");
-                                _notify("Failed to upload", 2000);
-                                attachmentManager.uploadFailed();
+                                host ? host._notify("Failed to upload", 2000) : console.log("[AttachmentManager] Failed to upload");
+                                host && host.uploadFailed();
                                 return;
                             }
                         // Success via backend_bridge
@@ -280,7 +281,9 @@ Item {
     function openFileWithDialog(fileUrl) {
         try {
             var url = (fileUrl && fileUrl.indexOf("file://") === 0) ? fileUrl : "file://" + fileUrl;
-            var inst = PopupUtils.open(contentExporterComponent);
+            var inst = PopupUtils.open(contentExporterComponent, {
+                host: attachmentManager
+            });
             if (inst) {
                 inst.fileUrl = url; // pass file to dialog
                 console.log("[AttachmentManager] ContentPickerDialog (export) opened for", url);
@@ -315,14 +318,14 @@ Item {
 
         switch (data.event) {
         case "ondemand_upload_message":
-            _notify(data.payload, 2000);
+            attachmentManager._notify(data.payload, 2000);
             break;
         case "ondemand_upload_completed":
             if (data.payload === true) {
-                _notify("Attachment has been processed", 2000);
+                attachmentManager._notify("Attachment has been processed", 2000);
                 attachmentManager.uploadCompleted();
             } else {
-                _notify("Failed to upload", 2000);
+                attachmentManager._notify("Failed to upload", 2000);
                 attachmentManager.uploadFailed();
             }
             break;
@@ -482,7 +485,7 @@ Item {
                 }
                 return;
             }
-            _notify("Attachment missing identifiers", 2500);
+            attachmentManager._notify("Attachment missing identifiers", 2500);
             return;
         }
 
@@ -505,7 +508,7 @@ Item {
             python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                 if (!path) {
                     _busy = false;
-                    _notify("DB not found.", 2500);
+                    attachmentManager._notify("DB not found.", 2500);
                     return;
                 }
 
@@ -513,7 +516,7 @@ Item {
                     _busy = false;
 
                     if (!res) {
-                        _notify("No response from ondemand_download", 2500);
+                        attachmentManager._notify("No response from ondemand_download", 2500);
                         return;
                     }
 
@@ -523,7 +526,7 @@ Item {
 
                         python.call("backend.ensure_export_file_from_base64", [dlName, res.data, dlMime], function (resultPath) {
                             if (!resultPath || !resultPath.length) {
-                                _notify("Failed to prepare file", 2500);
+                                attachmentManager._notify("Failed to prepare file", 2500);
                                 return;
                             }
                             var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
@@ -532,7 +535,7 @@ Item {
                     } else if (res.type === "url" && res.url) {
                         Qt.openUrlExternally(res.url);
                     } else {
-                        _notify("Attachment has no usable data", 2500);
+                        attachmentManager._notify("Attachment has no usable data", 2500);
                     }
                 });
             });
