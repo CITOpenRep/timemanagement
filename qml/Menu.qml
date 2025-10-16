@@ -75,7 +75,8 @@ Page {
                     //     mainView.saveThemePreference(newTheme);
                     // }
                 }
-            }, Action {
+            },
+            Action {
                 iconName: "account"
                 text: i18n.dtr("ubtms", "Switch Accounts")
                 onTriggered: {

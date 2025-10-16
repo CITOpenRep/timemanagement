@@ -91,7 +91,7 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        title: i18n.dtr("ubtms", "Time Management")
+        title: i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]"
         visible: true
 
         trailingActionBar.visible: isMultiColumn ? false : true
@@ -431,6 +431,7 @@ Page {
         target: accountPicker
         onAccepted: function (accountId, accountName) {
             refreshData();
+            header.title = i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]";
         }
     }
 
