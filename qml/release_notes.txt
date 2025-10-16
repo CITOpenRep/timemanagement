@@ -33,28 +33,69 @@
 
       <h3>Change History : </h3>
 
-            <h4>17-10-2025 : Version 1.1.8</h4>
+          <h4>17-10-2025 : Version 1.1.8</h4>
 
-              <p><em>Note: Please Use the Reset Task Stage Button from the Settings Page, Before Using this Update. Ignore this Step if you are adding a Fresh DB Instance. Reset Task Stages Buttons can be found by clicking the "Reset" action button on the Page header. </em></p>
-      
+  <p>
+    <em>
+      <strong>Note:</strong> Before using this update, please click the 
+      <strong>Reset Task Stage</strong> button from the <strong>Settings Page</strong>. 
+      This step is needed only for existing databases. 
+      If you are setting up a new database, you can skip this step. 
+      To reset, go to <strong>Settings → Page Header → Reset Action Button</strong>.
+    </em>
+  </p>
 
-<h5>New Features</h5>
-<ul>
-  <li>Intoducing My Tasks component. In My Tasks, only the Task assigned to the User will be shown. In case of Multiple instances, in My Tasks the Tasks are displayed from the Account Selected as Default from the Settings Page.</li>
-  <li> Introducing Personal Stages . In My Tasks the ListHeader Filter Tabs are Personal Stages for the logged In User, which are dynamically fetched from Odoo.</li>
-<li> Introducing the Task Stage Manipulation from the Device. The Task Stages can be changed from the Task Detailed View. </li>
-<li> Introdcuing the Personal Stage Manipulation From the Device. The Personal Stages can be Changed using the leading action button on Task List View in My Tasks.</li>
-<li> Introducing Instance Filter </li>
+  <h5>New Features</h5>
+  <ul>
+    <li>
+      <strong>My Tasks Component:</strong>  
+      Added a <em>My Tasks</em> view that shows only the tasks assigned to the logged-in user.  
+      In case of multiple instances, tasks are shown from the <strong>Default Account</strong> selected in Settings 
+      or from the <strong>Instance Filter</strong>.
+    </li>
 
+    <li>
+      <strong>Personal Stages:</strong>  
+      The <em>My Tasks</em> view now shows <strong>Personal Stages</strong> from Odoo as filter tabs, 
+      based on the logged-in user.
+    </li>
 
-</ul>
+    <li>
+      <strong>Task Stage Update from Device:</strong>  
+      You can now change the <strong>Task Stage</strong> directly from the <em>Task Detail View</em>.
+    </li>
 
-<h5>Fixes and Improvements</h5>
-<ul>
-<li> Enhancement in Content Hub for Attachments. </li>
-<li> Fixes in Button Layout in Tasks. </li>
-  <li>Fixed the issue of Tasks getting assigned to None Stage, while creating Tasks from Device. Now the User has option to select the Task Stage while creating a Task, if not selected the Task will be assigned to the First Stage by Default.</li>
-</ul>
+    <li>
+      <strong>Personal Stage Update from Device:</strong>  
+      You can now change your <strong>Personal Stages</strong> using the 
+      <strong>Leading Action Button</strong> on the <em>Task List View</em> in <em>My Tasks</em>.
+    </li>
+
+    <li>
+      <strong>Instance Filter:</strong>  
+      Added a new <strong>Instance Filter</strong> to help you switch between different accounts easily.
+    </li>
+  </ul>
+
+  <h5>Fixes and Improvements</h5>
+  <ul>
+    <li>
+      <strong>Attachment Downloads:</strong>  
+      Files downloaded from Odoo are now saved directly to the device’s local storage.
+    </li>
+
+    <li>
+      <strong>Task Button Layout:</strong>  
+      Fixed alignment issues with task buttons for a cleaner look.
+    </li>
+
+    <li>
+      <strong>Task Creation Stage Fix:</strong>  
+      Fixed an issue where tasks were created without a stage.  
+      You can now select a stage while creating a task.  
+      If no stage is selected, the task will be added to the first stage by default.
+    </li>
+  </ul>
 
       <h4>06-10-2025 : Version 1.1.7.1</h4>
 
