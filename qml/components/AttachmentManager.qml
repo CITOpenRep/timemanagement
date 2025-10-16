@@ -339,6 +339,7 @@ Item {
         if (!items || !items.length)
             return;
         for (var i = 0; i < items.length; i++) {
+            //Do a duplicate name check to ensure the double entries doesnot present : TODO . GK
             internalModel.append(_normalizeItem(items[i]));
         }
     }
