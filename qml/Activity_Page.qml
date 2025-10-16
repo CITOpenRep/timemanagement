@@ -105,14 +105,14 @@ Page {
         height: units.gu(80)
     }
 
-    //      Connections {
-    //     target: accountPicker
+    Connections {
+        target: accountPicker
 
-    //     onAccepted: function (id, name) {
-    //         selectedAccountId = id;
-    //         refresh();
-    //     }
-    // }
+        onAccepted: function (id, name) {
+            console.log("Activity_Page: Account picker selection changed to", id, name);
+            handleAccountChange(id);
+        }
+    }
 
     function handleAccountChange(accountId) {
         console.log("Activity_Page: Account changed to", accountId);
@@ -126,6 +126,12 @@ Page {
             }
         } catch (e) {
             idNum = -1;
+        }
+
+        // If -1, use default account instead (like MyTasks and other pages)
+        if (idNum === -1) {
+            idNum = Accounts.getDefaultAccountId();
+            console.log("Activity_Page: Account ID was -1, using default account:", idNum);
         }
 
         selectedAccountId = idNum;
@@ -716,12 +722,21 @@ Page {
         }
     }
     Component.onCompleted: {
-        // Sync with mainView's current account (this persists across page loads)
-        if (typeof mainView !== 'undefined' && mainView !== null) {
-            if (typeof mainView.currentAccountId !== 'undefined') {
-                selectedAccountId = mainView.currentAccountId;
-                filterByAccount = (selectedAccountId >= 0);
-                //  console.log("Activity_Page: Initialized with mainView.currentAccountId:", selectedAccountId);
+        // Primary source: accountPicker (direct initialization like Timesheet_Page and Projects)
+        if (typeof accountPicker !== 'undefined' && accountPicker !== null) {
+            selectedAccountId = accountPicker.selectedAccountId;
+            filterByAccount = (selectedAccountId >= 0);
+            console.log("Activity_Page: Initialized with accountPicker.selectedAccountId:", selectedAccountId);
+        }
+
+        // Fallback: try mainView
+        if (selectedAccountId === -1) {
+            if (typeof mainView !== 'undefined' && mainView !== null) {
+                if (typeof mainView.currentAccountId !== 'undefined') {
+                    selectedAccountId = mainView.currentAccountId;
+                    filterByAccount = (selectedAccountId >= 0);
+                    console.log("Activity_Page: Using mainView.currentAccountId:", selectedAccountId);
+                }
             }
         }
 
@@ -736,10 +751,11 @@ Page {
             }
         }
 
-        // Final fallback: default to -1 (all accounts)
+        // Final fallback: use default account (like MyTasks does)
         if (selectedAccountId === -1) {
-            filterByAccount = false;
-            console.log("Activity_Page: No account selection found, showing all accounts");
+            selectedAccountId = Accounts.getDefaultAccountId();
+            filterByAccount = (selectedAccountId >= 0);
+            console.log("Activity_Page: No account selection found, using default account:", selectedAccountId);
         }
 
         // Load assignees for the assignee filter
