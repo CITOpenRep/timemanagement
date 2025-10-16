@@ -1,4 +1,4 @@
-#Scan all the texts
+#Scan all the texts (Not needed, We have integrated with build system)
 cd po
 xgettext \
   --from-code=UTF-8 \
@@ -11,7 +11,7 @@ xgettext \
 
 cd ..
 
-# First time for a lang:
+# First time for a lang: Refer https://gitlab.com/dekkan/dekko/-/tree/master/i18n?ref_type=heads for the filename
 msginit --locale=nl --input=ubtms.pot --output=nl.po
 
 # On later updates (after you re-run xgettext):
