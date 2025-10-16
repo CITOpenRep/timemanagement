@@ -75,6 +75,12 @@ Page {
                     //     mainView.saveThemePreference(newTheme);
                     // }
                 }
+            }, Action {
+                iconName: "account"
+                text: i18n.dtr("ubtms", "Switch Accounts")
+                onTriggered: {
+                    accountPicker.open(0);
+                }
             }
         ]
     }
