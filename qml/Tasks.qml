@@ -966,7 +966,7 @@ Page {
                 anchors.fill: parent
                 onUploadCompleted: {
                     //kinda refresh
-                    attachments_widget.setAttachments(currentTask.getAttachmentsForProject(currentTask.odoo_record_id));
+                    attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id));
                 }
 
                 onItemClicked: function (rec) {
