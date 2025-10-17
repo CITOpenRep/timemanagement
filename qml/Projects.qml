@@ -40,7 +40,7 @@ import "components"
 
 Page {
     id: projectCreate
-    title: "Project"
+    title: i18n.dtr("ubtms", "Project")
     header: PageHeader {
         id: header
         title: projectCreate.title
@@ -151,7 +151,7 @@ Page {
             project_color_label.color = colorpicker.getColorByIndex(projectColor);
             date_range_widget.setDateRange(project.planned_start_date || "", project.planned_end_date || "");
             hours_text.text = project.allocated_hours !== undefined && project.allocated_hours !== null ? String(project.allocated_hours) : "01:00";
-            attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id));
+            attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id, project.account_id));
             return true;
         }
         return false;
@@ -578,48 +578,28 @@ Page {
         }
 
         Rectangle {
-            //color:"yellow"
             id: attachmentRow
             anchors.top: myRow6.bottom
-            //anchors.top: attachmentuploadRow.bottom
             height: units.gu(50)
             width: parent.width
             anchors.margins: units.gu(0.1)
-            AttachmentViewer {
+            AttachmentManager {
                 id: attachments_widget
-                visible: (Accounts.getAccountName(project.account_id) === "LOCAL ACCOUNT") ? false : true // We should not show the attachment feature for local account : TODO
                 anchors.fill: parent
-                onRefresh: {
-                    if (recordid !== 0) {
-                        if (!loadProjectData(recordid)) {
-                            notifPopup.open("Failed", "Error during attachment refresh", "error");
-                        }
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            //color:"red"
-            id: attachmentuploadRow
-            anchors.top: attachmentRow.bottom
-            anchors.bottom: parent.bottom
-            width: parent.width
-            //height: units.gu(30)
-            anchors.margins: units.gu(0.1)
-            AttachmentUploader {
-                id: attachmentsupload_widget
-                visible: (Accounts.getAccountName(project.account_id) === "LOCAL ACCOUNT") ? false : true // We should not show the attachment feature for local account : TODO
-                anchors.fill: parent
+                // Provide context for upload:
+                resource_type: "project.project"   // keep as-is if that's your default
                 resource_id: project.odoo_record_id
                 account_id: project.account_id
-                onProcessed: {
-                    console.log("Uploaded the attchment lets do a refresh");
-                    if (recordid !== 0) {
-                        if (!loadProjectData(recordid)) {
-                            notifPopup.open("Failed", "Error during attachment refresh", "error");
-                        }
-                    }
+                notifier: infobar
+
+                onUploadCompleted: {
+                    //kinda refresh
+                    attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id, project.account_id));
+                }
+
+                onItemClicked: function (rec) {
+                    // Open viewer / download / preview…
+                    console.log("Clicked attachment:", rec ? rec.name : rec);
                 }
             }
         }

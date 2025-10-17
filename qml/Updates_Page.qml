@@ -35,16 +35,16 @@ import "../models/timer_service.js" as TimerService
 
 Page {
     id: updates
-    title: "Project Updates"
+    title: i18n.dtr("ubtms", "Project Updates")
 
     // Properties for filtering by project
     property bool filterByProject: false
     property string projectOdooRecordId: ""
-    property int projectAccountId: -1
+    property int projectAccountId: accountPicker.selectedAccountId
     property string projectName: ""
 
     // Use numeric -1 as default (All accounts). Do NOT initialize from default account (that's for creation only).
-    property int selectedAccountId: -1
+    property int selectedAccountId: accountPicker.selectedAccountId
 
     header: PageHeader {
         id: updatesheader
@@ -56,20 +56,19 @@ Page {
         }
 
         trailingActionBar.actions: [
-            Action {
-                // iconName: "account"
-                // text: "Account"
-                // onTriggered: {
-                //     accountFilterVisible = !accountFilterVisible
-                // }
-            }
+            // iconName: "account"
+            // text: "Account"
+            // onTriggered: {
+            //     accountFilterVisible = !accountFilterVisible
+            // }
+            Action {}
         ]
     }
 
     // React to global account changes (numeric normalization)
     Connections {
         target: mainView
-        onAccountDataRefreshRequested: function(accountId) {
+        onAccountDataRefreshRequested: function (accountId) {
             var acctNum = -1;
             try {
                 if (typeof accountId !== "undefined" && accountId !== null) {
@@ -85,7 +84,7 @@ Page {
             selectedAccountId = acctNum;
             fetchupdates();
         }
-        onGlobalAccountChanged: function(accountId, accountName) {
+        onGlobalAccountChanged: function (accountId, accountName) {
             var acctNum = -1;
             try {
                 if (typeof accountId !== "undefined" && accountId !== null) {
@@ -105,21 +104,9 @@ Page {
 
     // Also listen to accountFilter so the page initializes and updates from the selector's current selection
     Connections {
-        target: accountFilter
-        onAccountChanged: function(accountId, accountName) {
-            var acctNum = -1;
-            try {
-                if (typeof accountId !== "undefined" && accountId !== null) {
-                    var maybe = Number(accountId);
-                    acctNum = isNaN(maybe) ? -1 : maybe;
-                } else {
-                    acctNum = -1;
-                }
-            } catch (e) {
-                acctNum = -1;
-            }
-            console.log("Updates_Page: accountFilter changed ->", acctNum, accountName);
-            selectedAccountId = acctNum;
+        target: accountPicker
+        onAccepted: function (accountId, accountName) {
+            selectedAccountId = accountId;
             fetchupdates();
         }
     }
@@ -214,37 +201,7 @@ Page {
     }
 
     Component.onCompleted: {
-        // Determine initial account selection from accountFilter (try common property names),
-        // fall back to numeric -1 (All accounts) if none found. This ensures initial list is filtered.
-        try {
-            var initialAccountNum = -1;
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    var maybe = Number(accountFilter.selectedAccountId);
-                    initialAccountNum = isNaN(maybe) ? -1 : maybe;
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    var maybe2 = Number(accountFilter.currentAccountId);
-                    initialAccountNum = isNaN(maybe2) ? -1 : maybe2;
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    // If only index is exposed, mapping index->id is required — default to -1 to be safe
-                    initialAccountNum = -1;
-                } else {
-                    initialAccountNum = -1;
-                }
-            } else if (typeof Account.getSelectedAccountId === "function") {
-                var acct = Account.getSelectedAccountId();
-                var acctNum = Number(acct);
-                initialAccountNum = (acct !== null && typeof acct !== "undefined" && !isNaN(acctNum)) ? acctNum : -1;
-            } else {
-                initialAccountNum = -1;
-            }
-
-            console.log("Updates_Page initial account selection (numeric):", initialAccountNum);
-            selectedAccountId = initialAccountNum;
-        } catch (e) {
-            console.error("Updates_Page: error determining initial account:", e);
-            selectedAccountId = -1;
-        }
+        selectedAccountId = accountPicker.selectedAccountId;
 
         // Load initial updates list filtered by the account selector
         fetchupdates();

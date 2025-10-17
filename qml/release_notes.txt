@@ -31,7 +31,34 @@
          through seamless integration with Odoo.
       </p>
 
-      <h3>Change History : (Version 1.1.7.1) </h3>
+      <h3>Change History : </h3>
+
+          <h4>17-10-2025 : Version 1.1.8</h4>
+
+<p><strong>Note:</strong></p>
+<p>
+  Before using this update, click <strong>Reset Task Stage</strong> on the <strong>Settings</strong> page.<br>
+  This is required only for existing databases. New databases can skip this step.<br>
+  To reset: <strong>Settings → Page Header → Reset Action Button</strong>.
+</p>
+
+<h4>New Features</h4>
+<ul>
+  <li><strong>My Tasks:</strong> View tasks assigned to you. If multiple instances exist, tasks are shown from your <strong>Default Account</strong> or selected <strong>Instance Filter</strong>.</li>
+  <li><strong>Personal Stages:</strong> Filter tasks by your <strong>Personal Stages</strong> from Odoo.</li>
+  <li><strong>Task Stage Update:</strong> Change task stages directly from the <em>Task Detail View</em>.</li>
+  <li><strong>Personal Stage Update:</strong> Update your <strong>Personal Stages</strong> using the <em>Leading Action Button</em> in <em>My Tasks</em> view.</li>
+  <li><strong>Instance Filter:</strong> Easily switch between different accounts with the new <strong>Instance Filter</strong>. (Note: "All" Filter will be implememnted in Next release.)</li>
+</ul>
+
+<h4>Improvements & Fixes</h4>
+<ul>
+  <li><strong>Attachment Downloads:</strong> Files from Odoo now download directly to your device’s local storage.</li>
+  <li><strong>Task Button Layout:</strong> Fixed button alignment for a better interface.</li>
+  <li><strong>Task Creation Stage:</strong> Resolved an issue where tasks were created without a stage. </li>
+  <li> Users can now select a stage when creating a task.</li>
+   <li>Updated the App Icon.</li>
+</ul>
 
       <h4>06-10-2025 : Version 1.1.7.1</h4>
 
@@ -54,7 +81,7 @@
 <h5>Fixes and Improvements</h5>
 <ul>
   <li>Fixed Duplicate Activity Creation issue and added a feedback mechanism to save or discard unsaved changes.</li>
-  <li>Fixed button layout arrangement in the Project List View.</li>
+  <li>Fixed button layout arrangement in the Project Detailed View.</li>
   <li>Reduced progress bar height in the Task List View.</li>
   <li>Fix for Extra long Account Name in Project Detail card.</li>
 </ul>

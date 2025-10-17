@@ -239,29 +239,48 @@ def _safe_ext_for(mime):
     ext = mimetypes.guess_extension(mime or "")
     return ext or ""
 
-def ensure_export_file_from_base64(suggested_name, b64_data, mime):
+# --- ADD BELOW EXISTING HELPERS ---
+
+def _export_path_for(suggested_name, mime):
     """
-    Creates a temp file from base64 data inside app sandbox and returns its absolute path.
+    Build the canonical output path we use for exported attachments.
+    Keeps name normalization and mime-based extension logic in one place.
     """
+    base = _app_data_dir() / "ubtms" / "tmp"
+    base.mkdir(parents=True, exist_ok=True)
+
+    name = (suggested_name or "attachment").strip().replace("/", "_")
+    root, ext = os.path.splitext(name)
+    if not ext:
+        ext = _safe_ext_for(mime)
+    return base / f"{root}{ext}"
+
+def get_existing_attachment_path(suggested_name, mime):
+    """
+    Return absolute file path (str) if an attachment is already present on disk,
+    else None.
+    """
+    out = _export_path_for(suggested_name, mime)
+    return str(out) if out.exists() and out.is_file() else None
+
+def is_already_downloaded(suggested_name, mime):
     try:
-        base = _app_data_dir() / "ubtms" / "tmp"
-        base.mkdir(parents=True, exist_ok=True)
+        out = _export_path_for(suggested_name, mime)
+        return is_file_present(out)
+    except Exception as e:
+        log.exception("is_already_downloaded error: %s", e)
+        return False
 
-        # normalize filename + extension
-        name = (suggested_name or "attachment").strip().replace("/", "_")
-        root, ext = os.path.splitext(name)
-        if not ext:
-            ext = _safe_ext_for(mime)
-        out = base / f"{root}{ext}"
-
-        # write bytes
+def ensure_export_file_from_base64(suggested_name, b64_data, mime):
+    try:
+        out = _export_path_for(suggested_name, mime)
         with open(out, "wb") as f:
             f.write(base64.b64decode(b64_data))
-
         return str(out)
     except Exception as e:
         print("ensure_export_file_from_base64 error:", e)
         return None
+
 
 def attachment_ondemand_download(settings_db,account_id, remote_record_id):
     accounts = get_all_accounts(settings_db)

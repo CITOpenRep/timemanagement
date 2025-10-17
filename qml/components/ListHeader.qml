@@ -12,28 +12,113 @@ Rectangle {
     //  anchors.leftMargin: units.gu(1)
     //  anchors.rightMargin: units.gu(1)
 
-    // Exposed properties for external customization
-    property string label1: "Today"
-    property string label2: "Next Week"
-    property string label3: "Next Month"
-    property string label4: "Later"
-    property string label5: "OverDue"
-    property string label6: "All"
-    property string label7: "Done"
+    // Dynamic filter model - array of {label, filterKey} objects
+    property var filterModel: []
 
-    property string filter1: "today"
-    property string filter2: "next_week"
-    property string filter3: "next_month"
-    property string filter4: "later"
-    property string filter5: "overdue"
-    property string filter6: "all"
-    property string filter7: "done"
+    // Legacy properties for backwards compatibility (deprecated)
+    property string label1: ""
+    property string label2: ""
+    property string label3: ""
+    property string label4: ""
+    property string label5: ""
+    property string label6: ""
+    property string label7: ""
+
+    property string filter1: ""
+    property string filter2: ""
+    property string filter3: ""
+    property string filter4: ""
+    property string filter5: ""
+    property string filter6: ""
+    property string filter7: ""
 
     property bool showSearchBox: true
-    property string currentFilter: filter1  // Track currently selected filter
+    property string currentFilter: ""  // Track currently selected filter
 
     signal filterSelected(string filterKey)
     signal customSearch(string query)
+
+    // Backward compatibility: Build filterModel from legacy properties
+    Component.onCompleted: {
+        buildFilterModelFromLegacyProperties();
+    }
+
+    // Watch for changes to legacy properties
+    onLabel1Changed: Qt.callLater(buildFilterModelFromLegacyProperties)
+    onLabel2Changed: Qt.callLater(buildFilterModelFromLegacyProperties)
+    onLabel3Changed: Qt.callLater(buildFilterModelFromLegacyProperties)
+    onLabel4Changed: Qt.callLater(buildFilterModelFromLegacyProperties)
+    onLabel5Changed: Qt.callLater(buildFilterModelFromLegacyProperties)
+    onLabel6Changed: Qt.callLater(buildFilterModelFromLegacyProperties)
+    onLabel7Changed: Qt.callLater(buildFilterModelFromLegacyProperties)
+
+    function buildFilterModelFromLegacyProperties() {
+        // Only build from legacy properties if filterModel is empty or not explicitly set
+        // This allows new API to take precedence
+        if (filterModel.length > 0) {
+            return; // New API is being used, don't override
+        }
+
+        var newModel = [];
+
+        if (label1 !== "" && filter1 !== "") {
+            newModel.push({
+                label: label1,
+                filterKey: filter1
+            });
+        }
+        if (label2 !== "" && filter2 !== "") {
+            newModel.push({
+                label: label2,
+                filterKey: filter2
+            });
+        }
+        if (label3 !== "" && filter3 !== "") {
+            newModel.push({
+                label: label3,
+                filterKey: filter3
+            });
+        }
+        if (label4 !== "" && filter4 !== "") {
+            newModel.push({
+                label: label4,
+                filterKey: filter4
+            });
+        }
+        if (label5 !== "" && filter5 !== "") {
+            newModel.push({
+                label: label5,
+                filterKey: filter5
+            });
+        }
+        if (label6 !== "" && filter6 !== "") {
+            newModel.push({
+                label: label6,
+                filterKey: filter6
+            });
+        }
+        if (label7 !== "" && filter7 !== "") {
+            newModel.push({
+                label: label7,
+                filterKey: filter7
+            });
+        }
+
+        if (newModel.length > 0) {
+            filterModel = newModel;
+            if (currentFilter === "" && newModel.length > 0) {
+                currentFilter = newModel[0].filterKey;
+            }
+        }
+    }
+
+    // Function to set filters dynamically
+    function setFilters(filters) {
+        filterModel = filters;
+        if (filters.length > 0) {
+            currentFilter = filters[0].filterKey;
+        }
+    }
 
     // Add function to toggle search visibility
     function toggleSearchVisibility() {
@@ -117,187 +202,36 @@ Rectangle {
                 spacing: 0 // Remove spacing between elements
                 anchors.verticalCenter: parent.verticalCenter // Center vertically
                 anchors.left: parent.left
-                // anchors.leftMargin: units.gu(1)
 
-                Button {
-                    text: topFilterBar.label1
-                    visible: (topFilterBar.label1) ? true : false
-                    enabled: (topFilterBar.label1) ? true : false
-                    height: units.gu(6) // Adjusted height
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter1
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        font.bold: parent.isHighlighted
-                        //  font.underline: parent.isHighlighted
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter1;
-                        topFilterBar.filterSelected(topFilterBar.filter1);
-                    }
-                }
+                // Dynamic buttons using Repeater
+                Repeater {
+                    model: topFilterBar.filterModel.length > 0 ? topFilterBar.filterModel : []
 
-                Button {
-                    text: topFilterBar.label2
-                    visible: (topFilterBar.label2) ? true : false
-                    enabled: (topFilterBar.label2) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter2
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        font.bold: parent.isHighlighted
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter2;
-                        topFilterBar.filterSelected(topFilterBar.filter2);
-                    }
-                }
+                    Button {
+                        text: modelData.label
+                        height: units.gu(6)
+                        width: units.gu(12)
+                        property bool isHighlighted: topFilterBar.currentFilter === modelData.filterKey
 
-                Button {
-                    text: topFilterBar.label3
-                    visible: (topFilterBar.label3) ? true : false
-                    enabled: (topFilterBar.label3) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter3
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        font.bold: parent.isHighlighted
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter3;
-                        topFilterBar.filterSelected(topFilterBar.filter3);
-                    }
-                }
+                        background: Rectangle {
+                            color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
+                            border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
+                            border.width: 1
+                        }
 
-                Button {
-                    text: topFilterBar.label4
-                    visible: (topFilterBar.label4) ? true : false
-                    enabled: (topFilterBar.label4) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter4
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        // text.format: Text.PlainText
-                        font.bold: parent.isHighlighted
-                        //  font.pixelSize: units.gu(1.8)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter4;
-                        topFilterBar.filterSelected(topFilterBar.filter4);
-                    }
-                }
+                        contentItem: Text {
+                            text: parent.text
+                            color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
+                            font.bold: parent.isHighlighted
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
 
-                Button {
-                    text: topFilterBar.label5
-                    visible: (topFilterBar.label5) ? true : false
-                    enabled: (topFilterBar.label5) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter5
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        // text.format: Text.PlainText
-                        font.bold: parent.isHighlighted
-                        //  font.pixelSize: units.gu(1.8)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter5;
-                        topFilterBar.filterSelected(topFilterBar.filter5);
-                    }
-                }
-
-                Button {
-                    text: topFilterBar.label6
-                    visible: (topFilterBar.label6) ? true : false
-                    enabled: (topFilterBar.label6) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12) // Increased width
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter6
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        // text.format: Text.PlainText
-                        font.bold: parent.isHighlighted
-                        //  font.pixelSize: units.gu(1.8)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter6;
-                        topFilterBar.filterSelected(topFilterBar.filter6);
-                    }
-                }
-
-                Button {
-                    text: topFilterBar.label7
-                    visible: (topFilterBar.label7) ? true : false
-                    enabled: (topFilterBar.label7) ? true : false
-                    height: units.gu(6)
-                    width: units.gu(12)
-                    property bool isHighlighted: topFilterBar.currentFilter === topFilterBar.filter7
-                    background: Rectangle {
-                        color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                        border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                        font.bold: parent.isHighlighted
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onClicked: {
-                        topFilterBar.currentFilter = topFilterBar.filter7;
-                        topFilterBar.filterSelected(topFilterBar.filter7);
+                        onClicked: {
+                            topFilterBar.currentFilter = modelData.filterKey;
+                            topFilterBar.filterSelected(modelData.filterKey);
+                        }
                     }
                 }
             }

@@ -1,8 +1,11 @@
 .pragma library
 
+.import "accounts.js" as Account
 
 var description_temporary_holder=""
 var description_context=""
+
+var current_account_id=Account.getDefaultAccountId()
 
 // Global assignee filter state
 var assigneeFilterEnabled = false

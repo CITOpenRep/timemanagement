@@ -37,7 +37,6 @@ This is the Main View of the Application.
 It contains the AdaptivePageLayout which is used to switch between different layouts based on the screen size
 
 */
-
 MainView {
     id: mainView
 
@@ -82,32 +81,62 @@ MainView {
         }
     }
 
-    property bool accountFilterVisible: false
+    // --- Fullscreen Image Previewer, Mainly used by attachment manager ---
+    //GOKUL, This can be moved as a component ? Later
+    Rectangle {
+        id: imagePreviewer
+        anchors.fill: parent
+        color: "#444"
+        visible: false
+        z: 999   // ensure it's above all other elements
+        focus: true
 
-    // Account Filter
-    AccountFilter {
-        id: accountFilter
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        z: 1000
-        visible: accountFilterVisible
+        property url imageSource: ""
 
-        onAccountChanged: {
-            console.log("🔄 ACCOUNT CHANGE DETECTED:");
-            console.log("   Previous Account ID:", currentAccountId);
-            console.log("   New Account ID:", accountId);
-            console.log("   New Account Name:", accountName);
-
-            currentAccountId = accountId;
-            currentAccountName = accountName;
-
-            globalAccountChanged(accountId, accountName);
-
-            accountDataRefreshRequested(accountId);
-            accountFilterVisible = false;
-            dashboard_page.instanceSelected(accountId, accountName);
+        Image {
+            id: overlayImage
+            anchors.centerIn: parent
+            width: parent.width
+            height: parent.height
+            fillMode: Image.PreserveAspectFit
+            asynchronous: true
+            smooth: true
+            source: imagePreviewer.imageSource
         }
+
+        Button {
+            id: closeBtn
+            text: "\u2715"
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: units.gu(1)
+            onClicked: imagePreviewer.visible = false
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: imagePreviewer.visible = false
+        }
+    }
+
+    AccountSelectorDialog {
+        id: accountPicker
+        titleText: "Switch account"
+        restrictToLocalOnly: false
+
+        onAccepted: function (id, name) {
+            // persist selection, refresh views, trigger sync, etc.
+            console.log("Account chosen:", id, name);
+
+            // Update mainView's current account
+            currentAccountId = id;
+            currentAccountName = name;
+
+        // Emit signals to notify other components
+        //globalAccountChanged(id, name);
+        //accountDataRefreshRequested(id);
+        }
+        onCanceled: console.log("Account selection canceled")
     }
 
     // Global notification popup
@@ -125,7 +154,7 @@ MainView {
 
     AdaptivePageLayout {
         id: apLayout
-        anchors.top: accountFilter.bottom
+        anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom

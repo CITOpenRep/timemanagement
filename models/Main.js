@@ -1,3 +1,4 @@
+.import "database.js" as DBCommon
 .import QtQuick.LocalStorage 2.7 as Sql
 
 /* Name: get_quadrant_current_week
@@ -73,8 +74,8 @@ function get_quadrant_current_month() {
 * return format {<project name>: <spent hours>}
 */
 
-function get_projects_spent_hours() {
-    var spent_hours = get_spent_hours({ 'group_by': 'project_id' });
+function get_projects_spent_hours(account) {
+    var spent_hours = get_spent_hours({ 'group_by': 'project_id' },account);
     var project_details = {};
     for (var fetch = 0; fetch < spent_hours.length; fetch++) {
         var project = get_project_name(spent_hours[fetch].project_id)
@@ -89,8 +90,8 @@ function get_projects_spent_hours() {
 * return format {<task name>: <spent hours>}
 */
 
-function get_tasks_spent_hours() {
-    var spent_hours = get_spent_hours({ 'group_by': 'task_id' });
+function get_tasks_spent_hours(account) {
+    var spent_hours = get_spent_hours({ 'group_by': 'task_id' },account);
     var task_details = {};
     for (var fetch = 0; fetch < spent_hours.length; fetch++) {
         var task = get_task_name(spent_hours[fetch].task_id)
@@ -135,34 +136,64 @@ function get_task_name(task_id) {
     return task_name;
 }
 
-/* Name: get_spent_hours
-* This function will return spent hours based on given parameters
-* group_by -> given column will be used for group by against spent hours
-* dateFilter -> given date will be used for finding spent hours after this date
-* return format Array[query result]
-*/
+/**
+ * Returns spent hours from the local database for the given account.
+ *
+ * @param {Object} [options={}] - Optional parameters.
+ * @param {string|false} [options.group_by=false] - Column name to group results by (e.g., 'project_id').
+ * @param {string|false} [options.dateFilter=false] - ISO date string (YYYY-MM-DD) to filter records after this date.
+ * @param {number} account_id - Account ID to filter spent hours for.
+ * @returns {Array<Object>} List of spent-hour objects.
+ */
+function get_spent_hours({ group_by = false, dateFilter = false } = {}, account_id) {
+    var spentList = [];
 
-function get_spent_hours({ group_by = false, dateFilter = false } = {}) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var query_string = `select * from account_analytic_line_app`;
-    if (group_by) {
-        query_string = `select ${group_by}, sum(unit_amount) as total from account_analytic_line_app`;
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            var params = [account_id];
+            var query = "";
+
+            // Base query
+            if (group_by) {
+                query = `SELECT ${group_by}, SUM(unit_amount) AS total
+                         FROM account_analytic_line_app
+                         WHERE account_id = ?`;
+            } else {
+                query = `SELECT *
+                         FROM account_analytic_line_app
+                         WHERE account_id = ?`;
+            }
+
+            // Optional date filter
+            if (dateFilter) {
+                query += ` AND record_date >= ?`;
+                params.push(dateFilter);
+            }
+
+            // Optional group_by
+            if (group_by) {
+                query += ` GROUP BY ${group_by}`;
+            }
+
+            var result = tx.executeSql(query, params);
+            for (var i = 0; i < result.rows.length; i++) {
+                spentList.push(DBCommon.rowToObject(result.rows.item(i)));
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("get_spent_hours", e);
     }
-    if (dateFilter) {
-        query_string += ` where record_date >= '${dateFilter}'`;
-    }
-    if (group_by) {
-        query_string += ` group by ${group_by}`;
-    }
-    var result = [];
-    db.transaction(function (tx) {
-        var fetched_details = tx.executeSql(query_string);
-        for (var fetch = 0; fetch < fetched_details.rows.length; fetch++) {
-            result.push(fetched_details.rows.item(fetch));
-        }
-    });
-    return result;
+
+    return spentList;
 }
+
 
 /* Name: getMondayOfCurrentWeek
 * This function will return first day of week

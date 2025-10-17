@@ -32,7 +32,7 @@ import "../models/constants.js" as AppConst
 
 Page {
     id: aboutPage
-    title: "About"
+    title: i18n.dtr("ubtms", "About")
     anchors.fill: parent
     property string releaseNotesHtml: ""
 

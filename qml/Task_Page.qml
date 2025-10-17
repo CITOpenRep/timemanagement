@@ -38,7 +38,7 @@ import "components"
 
 Page {
     id: task
-    title: "Tasks"
+    title: i18n.dtr("ubtms", "All Tasks")
 
     header: PageHeader {
         id: taskheader
@@ -439,16 +439,16 @@ Page {
             // Check if we're coming from a task-related page
             var previousPage = Global.getLastVisitedPage();
             var shouldPreserve = Global.shouldPreserveAssigneeFilter("Task_Page", previousPage);
-            
+
             console.log("Task_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
-            
+
             if (shouldPreserve) {
                 // Restore assignee filter from global state when returning from Tasks detail page
                 restoreAssigneeFilterState();
-                
+
                 // Update the AssigneeFilterMenu to reflect current state
                 assigneeFilterMenu.selectedAssigneeIds = task.selectedAssigneeIds;
-                
+
                 console.log("Task_Page: Restored assignee filter - enabled:", task.filterByAssignees);
             } else {
                 // Clear filter when coming from non-task pages (Dashboard, Home, etc.)
@@ -458,15 +458,14 @@ Page {
                 tasklist.selectedAssigneeIds = [];
                 assigneeFilterMenu.selectedAssigneeIds = [];
                 Global.clearAssigneeFilter();
-                
+
                 console.log("Task_Page: Cleared assignee filter (coming from non-task page)");
             }
 
             // Update navigation tracking
             Global.setLastVisitedPage("Task_Page");
 
-            if (filterByProject) {
-            } else {
+            if (filterByProject) {} else {
                 if (currentSearchQuery) {
                     // Reapply search if there was one
                     tasklist.searchTasks(currentSearchQuery);
@@ -478,143 +477,10 @@ Page {
         }
     }
 
-    // Listen for account selector changes directly (so filter updates immediately)
-    Connections {
-        target: accountFilter
-        onAccountChanged: function (accountId, accountName) {
-            console.log("Task_Page: Account filter changed to:", accountName, "ID:", accountId);
-            // Normalize id to number, fallback to -1
-            var idNum = -1;
-            try {
-                if (typeof accountId !== "undefined" && accountId !== null) {
-                    var maybeNum = Number(accountId);
-                    idNum = isNaN(maybeNum) ? -1 : maybeNum;
-                } else {
-                    idNum = -1;
-                }
-            } catch (e) {
-                idNum = -1;
-            }
-
-            tasklist.selectedAccountId = idNum;
-
-            // Reload assignees for the new account
-            loadAssignees();
-
-            // Clear assignee filter when account changes
-            if (filterByAssignees) {
-                selectedAssigneeIds = [];
-                filterByAssignees = false;
-                assigneeFilterMenu.selectedAssigneeIds = [];
-            }
-
-            // Reapply current filter/search depending on project mode
-            if (filterByProject) {
-                if (currentSearchQuery) {
-                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
-                } else {
-                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
-                }
-            } else {
-                if (currentSearchQuery) {
-                    tasklist.applySearch(currentSearchQuery);
-                } else {
-                    tasklist.applyFilter(currentFilter);
-                }
-            }
-        }
-    }
-
-    Connections {
-        target: mainView
-        onGlobalAccountChanged: function (accountId, accountName) {
-            console.log("Task_Page: GlobalAccountChanged →", accountId, accountName);
-            var acctNum = -1;
-            if (typeof accountId !== "undefined" && accountId !== null) {
-                var maybe = Number(accountId);
-                acctNum = isNaN(maybe) ? -1 : maybe;
-            }
-            tasklist.selectedAccountId = acctNum;
-
-            // Reload assignees for the new account
-            loadAssignees();
-
-            // Don't clear assignee filter when account changes - preserve user selections
-            // The filtering logic will handle account-aware filtering automatically
-
-            if (filterByProject) {
-                if (currentSearchQuery) {
-                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
-                } else {
-                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
-                }
-            } else {
-                if (currentSearchQuery) {
-                    tasklist.applySearch(currentSearchQuery);
-                } else {
-                    tasklist.applyFilter(currentFilter);
-                }
-            }
-        }
-        onAccountDataRefreshRequested: function (accountId) {
-            var acctNum = -1;
-            if (typeof accountId !== "undefined" && accountId !== null) {
-                var maybe2 = Number(accountId);
-                acctNum = isNaN(maybe2) ? -1 : maybe2;
-            }
-            tasklist.selectedAccountId = acctNum;
-
-            // Reload assignees for the current account
-            loadAssignees();
-
-            if (filterByProject) {
-                if (currentSearchQuery) {
-                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
-                } else {
-                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
-                }
-            } else {
-                if (currentSearchQuery) {
-                    tasklist.applySearch(currentSearchQuery);
-                } else {
-                    tasklist.applyFilter(currentFilter);
-                }
-            }
-        }
-    }
-
     Component.onCompleted: {
         // Determine initial account selection from accountFilter (try common property names),
         // fall back to numeric -1 (All accounts) if none found. This ensures initial list is filtered.
-        try {
-            var initialAccountNum = -1;
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    var maybe = Number(accountFilter.selectedAccountId);
-                    initialAccountNum = isNaN(maybe) ? -1 : maybe;
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    var maybe2 = Number(accountFilter.currentAccountId);
-                    initialAccountNum = isNaN(maybe2) ? -1 : maybe2;
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    // index mapping may not equate to account id — default to -1 unless you map index -> id
-                    initialAccountNum = -1;
-                } else {
-                    initialAccountNum = -1;
-                }
-            } else if (typeof Account.getSelectedAccountId === "function") {
-                var acct = Account.getSelectedAccountId();
-                var acctNum = Number(acct);
-                initialAccountNum = (acct !== null && typeof acct !== "undefined" && !isNaN(acctNum)) ? acctNum : -1;
-            } else {
-                initialAccountNum = -1;
-            }
-
-            console.log("Task_Page initial account selection (numeric):", initialAccountNum);
-            tasklist.selectedAccountId = initialAccountNum;
-        } catch (e) {
-            console.error("Task_Page: error determining initial account:", e);
-            tasklist.selectedAccountId = -1;
-        }
+        tasklist.selectedAccountId = accountPicker.selectedAccountId;
 
         // Load assignees for the assignee filter
         loadAssignees();

@@ -52,7 +52,7 @@ Item {
             title: dialogWrapper.titleText
             modal: true
             // width: units.gu(40)
-          //   height: units.gu(40)
+            //   height: units.gu(40)
 
             property date selectedStartDate: new Date(currentStartDate || Utils.getToday())
             property date selectedEndDate: new Date(currentEndDate || Utils.getTomorrow())
@@ -164,7 +164,7 @@ Item {
 
                         TSButton {
                             text: Qt.formatDate(selectedStartDate, "dd-MM-yyyy")
-                             bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
+                            bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                             width: parent.width - units.gu(13)
                             onClicked: {
                                 PickerPanel.openDatePicker(rangeDialog, "selectedStartDate", "Years|Months|Days");
@@ -186,7 +186,7 @@ Item {
 
                         TSButton {
                             text: Qt.formatDate(selectedEndDate, "dd-MM-yyyy")
-                             bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
+                            bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                             width: parent.width - units.gu(13)
                             onClicked: {
                                 PickerPanel.openDatePicker(rangeDialog, "selectedEndDate", "Years|Months|Days");

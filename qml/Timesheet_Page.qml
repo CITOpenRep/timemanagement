@@ -36,16 +36,16 @@ import "../models/timer_service.js" as TimerService
 
 Page {
     id: timesheets
-    title: "Timesheets"
+    title: i18n.dtr("ubtms", "Timesheets")
 
     property string currentFilter: "all"
     property bool workpersonaSwitchState: true
-    
+
     // SEPARATED CONCERNS:
     // 1. selectedAccountId - ONLY for filtering/viewing data (from account selector)
     // 2. defaultAccountId - ONLY for creating new records (from default account setting)
-    property string selectedAccountId: "-1" // Start with "All accounts" for filtering
-    property string defaultAccountId: Account.getDefaultAccountId() // For creating records
+    property string selectedAccountId: accountPicker.selectedAccountId // Start with "All accounts" for filtering
+    property string defaultAccountId: accountPicker.selectedAccountId // For creating records
 
     header: PageHeader {
         id: timesheetsheader
@@ -62,10 +62,7 @@ Page {
                 text: "New"
                 onTriggered: {
                     // Use DEFAULT account for creating new timesheets (not the filter selection)
-                    const result = Model.createTimesheet(
-                        defaultAccountId,
-                        Account.getCurrentUserOdooId(defaultAccountId)
-                    )
+                    const result = Model.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
                     if (result.success) {
                         apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                             "recordid": result.id,
@@ -82,27 +79,9 @@ Page {
             //         accountFilterVisible = !accountFilterVisible
             //     }
             // }
+
+
         ]
-    }
-
-    // Listen to AccountFilter component changes (for filtering only)
-    Connections {
-        target: accountFilter // Make sure this targets your AccountFilter component
-        onAccountChanged: function(accountId, accountName) {
-            console.log("Account filter changed to:", accountName, "ID:", accountId);
-            selectedAccountId = accountId; // Update filter selection
-            fetch_timesheets_list(); // Refresh with new filter
-        }
-    }
-
-    // Listen for default account changes (for creation only)
-    Connections {
-        target: mainView
-        onDefaultAccountChanged: function(accountId) {
-            console.log("Default account changed to:", accountId);
-            defaultAccountId = accountId; // Update default for creation
-            // Don't refresh list here - this is only for creation, not filtering
-        }
     }
 
     Connections {
@@ -124,7 +103,7 @@ Page {
     // Keep account-data-refresh handler but accept permissive signal signature
     Connections {
         target: mainView
-        onAccountDataRefreshRequested: function(accountId) {
+        onAccountDataRefreshRequested: function (accountId) {
             // If accountId isn't passed by signal, accountId will be undefined -> refresh if our filter is "-1" or always refresh
             if (typeof accountId === "undefined" || accountId === null) {
                 fetch_timesheets_list();
@@ -294,17 +273,14 @@ Page {
         onMenuItemSelected: {
             if (index === 0) {
                 // Use DEFAULT account for creating new timesheets (not the filter selection)
-                const result = Model.createTimesheet(
-                    defaultAccountId,
-                    Account.getCurrentUserOdooId(defaultAccountId)
-                )
+                const result = Model.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
                 if (result.success) {
                     apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
-                    })
+                    });
                 } else {
-                    notifPopup.open("Error", result.message, "error")
+                    notifPopup.open("Error", result.message, "error");
                 }
             }
         }
@@ -314,7 +290,7 @@ Page {
         if (visible) {
             // Update navigation tracking when Timesheet_Page becomes visible
             Global.setLastVisitedPage("Timesheet_Page");
-            
+
             fetch_timesheets_list();
         }
     }
@@ -322,32 +298,7 @@ Page {
     // Update default account when it changes in settings
     Component.onCompleted: {
         // Initialize default account
-        defaultAccountId = Account.getDefaultAccountId();
-
-        // Try to read the account selector's current selection and use it as initial filter.
-        // This will preserve color behavior and run initial filtered fetch.
-        try {
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                // try common property names — prefer explicit ID property if present
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    selectedAccountId = String(accountFilter.selectedAccountId);
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    selectedAccountId = String(accountFilter.currentAccountId);
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    // fallback: if only index is available, keep "-1" or map index -> id here if you have mapping
-                    selectedAccountId = String(accountFilter.currentIndex);
-                } else {
-                    selectedAccountId = "-1";
-                }
-            } else {
-                // if accountFilter component not available at this time, fallback to "-1"
-                selectedAccountId = "-1";
-            }
-        } catch (e) {
-            console.error("Error reading accountFilter initial selection:", e);
-            selectedAccountId = "-1";
-        }
-
-        console.log("Initial selectedAccountId on load:", selectedAccountId);
+        defaultAccountId = accountPicker.selectedAccountId;
+        selectedAccountId = accountPicker.selectedAccountId;
     }
 }

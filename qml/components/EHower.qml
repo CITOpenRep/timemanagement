@@ -36,8 +36,7 @@ Item {
     width: parent.width
     height: parent.height
     signal quadrantClicked(int quadrant)
-    property int selectedAccountId: Accounts.getDefaultAccountId()
-
+    property int selectedAccountId: accountPicker.selectedAccountId
     property string quadrant1Hours: "0"
     property string quadrant2Hours: "0"
     property string quadrant3Hours: "0"
@@ -52,47 +51,48 @@ Item {
     }
 
     // TODO: Move it to Utils
-   function getQuadrantHoursFromAllInstances(accountId) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    var quadrantHours = { 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0 };
+    function getQuadrantHoursFromAllInstances(accountId) {
+        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var quadrantHours = {
+            1: 0.0,
+            2: 0.0,
+            3: 0.0,
+            4: 0.0
+        };
 
-    try {
-        db.transaction(function (tx) {
-            var rs;
-            
-            if (accountId === -1) {
-                // Get data from ALL accounts
-                rs = tx.executeSql(
-                    "SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app GROUP BY quadrant_id"
-                );
-            } else {
-                // Get data for specific account
-                rs = tx.executeSql(
-                    "SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app WHERE account_id = ? GROUP BY quadrant_id",
-                    [accountId]
-                );
-            }
+        try {
+            db.transaction(function (tx) {
+                var rs;
 
-            for (var i = 0; i < rs.rows.length; i++) {
-                var qid = rs.rows.item(i).quadrant_id;
-                var total = rs.rows.item(i).total;
-                if (qid === null || qid < 1 || qid > 4) qid = 1;
-                if (qid >= 1 && qid <= 4 && total !== null) {
-                    quadrantHours[qid] += parseFloat(total);
+                if (accountId === -1) {
+                    // Get data from ALL accounts
+                    rs = tx.executeSql("SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app GROUP BY quadrant_id");
+                } else {
+                    // Get data for specific account
+                    rs = tx.executeSql("SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app WHERE account_id = ? GROUP BY quadrant_id", [accountId]);
                 }
-            }
-        });
-    } catch (err) {
-        console.error("ERROR during quadrant aggregation:", err);
-    }
 
-    return {
-        1: Math.round(quadrantHours[1]).toString(),
-        2: Math.round(quadrantHours[2]).toString(),
-        3: Math.round(quadrantHours[3]).toString(),
-        4: Math.round(quadrantHours[4]).toString()
-    };
-}
+                for (var i = 0; i < rs.rows.length; i++) {
+                    var qid = rs.rows.item(i).quadrant_id;
+                    var total = rs.rows.item(i).total;
+                    if (qid === null || qid < 1 || qid > 4)
+                        qid = 1;
+                    if (qid >= 1 && qid <= 4 && total !== null) {
+                        quadrantHours[qid] += parseFloat(total);
+                    }
+                }
+            });
+        } catch (err) {
+            console.error("ERROR during quadrant aggregation:", err);
+        }
+
+        return {
+            1: Math.round(quadrantHours[1]).toString(),
+            2: Math.round(quadrantHours[2]).toString(),
+            3: Math.round(quadrantHours[3]).toString(),
+            4: Math.round(quadrantHours[4]).toString()
+        };
+    }
 
     Text {
         id: headlabel
@@ -126,7 +126,7 @@ Item {
             }
 
             Text {
-                text: "URGENT"
+                text: i18n.dtr("ubtms", "URGENT")
                 font.bold: true
                 font.pixelSize: units.gu(2)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
@@ -136,7 +136,7 @@ Item {
             }
 
             Text {
-                text: "NOT URGENT"
+                text: i18n.dtr("ubtms", "NOT URGENT")
                 font.bold: true
                 font.pixelSize: units.gu(2)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
@@ -160,7 +160,7 @@ Item {
                     color: "transparent"
 
                     Text {
-                        text: "IMPORTANT"
+                        text: i18n.dtr("ubtms", "IMPORTANT")
                         font.bold: true
                         font.pixelSize: units.gu(2)
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
@@ -177,7 +177,7 @@ Item {
                     color: "transparent"
 
                     Text {
-                        text: "NOT IMPORTANT"
+                        text: i18n.dtr("ubtms", "NOT IMPORTANT")
                         font.bold: true
                         font.pixelSize: units.gu(2)
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#333"
@@ -239,7 +239,7 @@ Item {
                         }
 
                         Text {
-                            text: "Do First"
+                            text: i18n.dtr("ubtms", "Do First")
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -296,7 +296,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         Text {
-                            text: "Do Next"
+                            text: i18n.dtr("ubtms", "Do Next")
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -354,7 +354,7 @@ Item {
                         }
 
                         Text {
-                            text: "Do Later"
+                            text: i18n.dtr("ubtms", "Do Later")
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -411,7 +411,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         Text {
-                            text: "Don't do"
+                            text: i18n.dtr("ubtms", "Don't do")
                             font.bold: true
                             font.pixelSize: units.gu(1.5)
                             color: "white"
@@ -434,16 +434,11 @@ Item {
     }
 
     Connections {
-        target: mainView
-        onGlobalAccountChanged: function(accountId, accountName) {
-            console.log("EHover: GlobalAccountChanged →", accountId, accountName)
-            ehoverMatrix.selectedAccountId = accountId
-            refreshQuadrants()
-        }
-        onAccountDataRefreshRequested: function(accountId) {
-            console.log("EHover: AccountDataRefreshRequested →", accountId)
-            ehoverMatrix.selectedAccountId = accountId
-            refreshQuadrants()
+        target: accountPicker
+
+        onAccepted: function (id, name) {
+            ehoverMatrix.selectedAccountId = id;
+            refreshQuadrants();
         }
     }
 
@@ -461,5 +456,4 @@ Item {
         quadrant3Hours = result[3] + "H";
         quadrant4Hours = result[4] + "H";
     }
-
 }

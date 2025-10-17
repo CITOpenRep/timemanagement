@@ -451,3 +451,221 @@ function cleanText(str) {
         // Trim extra whitespace
         .trim();
 }
+
+/**
+ * Verifies and reports on personal stage data in the local database.
+ * Checks if personal_stage column exists and provides statistics.
+ * Also shows sample data to help diagnose sync issues.
+ * 
+ * @returns {Object} - Status object with:
+ *   - success: boolean indicating if check completed
+ *   - message: detailed status message
+ *   - tasksUpdated: number (0 for diagnostic)
+ *   - stagesProcessed: number (0 for diagnostic)
+ */
+function migratePersonalStageData() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var results = {
+            success: false,
+            message: "",
+            tasksUpdated: 0,
+            stagesProcessed: 0
+        };
+
+        // Step 1: Check if personal_stage column exists
+        var columnExists = false;
+        db.readTransaction(function(tx) {
+            var rs = tx.executeSql("SELECT COUNT(*) as count FROM pragma_table_info('project_task_app') WHERE name='personal_stage'");
+            if (rs.rows.length > 0 && rs.rows.item(0).count > 0) {
+                columnExists = true;
+            }
+        });
+
+        if (!columnExists) {
+            results.message = "❌ Error: personal_stage column does not exist in database. Please sync from Odoo first.";
+            return results;
+        }
+
+        // Step 2: Get statistics about tasks and personal stages
+        var stats = {
+            total_tasks: 0,
+            tasks_with_stage: 0,
+            tasks_without_stage: 0,
+            personal_stages_count: 0,
+            sample_tasks: [],
+            sample_stages: []
+        };
+
+        db.readTransaction(function(tx) {
+            // Count total tasks, tasks with stages, tasks without stages
+            var rs = tx.executeSql(
+                "SELECT COUNT(*) as total, " +
+                "COUNT(CASE WHEN personal_stage IS NOT NULL AND personal_stage != '' THEN 1 END) as with_stage, " +
+                "COUNT(CASE WHEN personal_stage IS NULL OR personal_stage = '' THEN 1 END) as without_stage " +
+                "FROM project_task_app"
+            );
+            if (rs.rows.length > 0) {
+                var row = rs.rows.item(0);
+                stats.total_tasks = row.total;
+                stats.tasks_with_stage = row.with_stage;
+                stats.tasks_without_stage = row.without_stage;
+            }
+
+            // Get sample tasks (first 3)
+            var rs_sample = tx.executeSql(
+                "SELECT id, name, personal_stage, user_id, state FROM project_task_app LIMIT 3"
+            );
+            for (var i = 0; i < rs_sample.rows.length; i++) {
+                stats.sample_tasks.push(rs_sample.rows.item(i));
+            }
+
+            // Count personal stages (stages with user_id)
+            var rs2 = tx.executeSql(
+                "SELECT COUNT(*) as count FROM project_task_type_app WHERE user_id IS NOT NULL AND user_id != ''"
+            );
+            if (rs2.rows.length > 0) {
+                stats.personal_stages_count = rs2.rows.item(0).count;
+            }
+
+            // Get sample personal stages (first 3)
+            var rs_stages = tx.executeSql(
+                "SELECT id, name, user_id, odoo_record_id FROM project_task_type_app WHERE user_id IS NOT NULL LIMIT 3"
+            );
+            for (var i = 0; i < rs_stages.rows.length; i++) {
+                stats.sample_stages.push(rs_stages.rows.item(i));
+            }
+        });
+
+        // Step 3: Build informative message
+        var message = "📊 Personal Stage Status:\n\n";
+        message += "Total tasks: " + stats.total_tasks + "\n";
+        message += "Tasks with personal stage: " + stats.tasks_with_stage + "\n";
+        message += "Tasks without personal stage: " + stats.tasks_without_stage + "\n";
+        message += "Personal stages available: " + stats.personal_stages_count + "\n\n";
+
+        // Show sample task data
+        if (stats.sample_tasks.length > 0) {
+            message += "📋 Sample Task Data:\n";
+            for (var i = 0; i < stats.sample_tasks.length; i++) {
+                var task = stats.sample_tasks[i];
+                message += "Task: " + (task.name || "Unnamed") + "\n";
+                message += "  personal_stage: " + (task.personal_stage || "NULL") + "\n";
+                message += "  state: " + (task.state || "NULL") + "\n";
+                message += "  user_id: " + (task.user_id || "NULL") + "\n\n";
+            }
+        }
+
+        // Show sample stage data
+        if (stats.sample_stages.length > 0) {
+            message += "🏷️ Sample Personal Stage Data:\n";
+            for (var i = 0; i < stats.sample_stages.length; i++) {
+                var stage = stats.sample_stages[i];
+                message += "Stage: " + (stage.name || "Unnamed") + "\n";
+                message += "  odoo_record_id: " + (stage.odoo_record_id || "NULL") + "\n";
+                message += "  user_id: " + (stage.user_id || "NULL") + "\n\n";
+            }
+        }
+
+        if (stats.personal_stages_count === 0) {
+            message += "⚠️ No personal stages found. Personal stages need to have a user assigned in Odoo.\n\n";
+            message += "To use personal stages:\n";
+            message += "1. In Odoo, go to Project > Configuration > Stages\n";
+            message += "2. Create or edit stages and assign them to specific users\n";
+            message += "3. Sync again from this app";
+        } else if (stats.tasks_with_stage === 0) {
+            message += "⚠️ No tasks have personal stages assigned yet.\n\n";
+            message += "This means the 'personal_stage' field is not being synced.\n";
+            message += "Check that:\n";
+            message += "1. Tasks in Odoo have 'personal_stage_type_id' field set\n";
+            message += "2. The field mapping in field_config.json includes:\n";
+            message += "   \"personal_stage_type_id\": \"personal_stage\"\n";
+            message += "3. Re-sync from Odoo after verifying";
+        } else if (stats.tasks_with_stage === stats.total_tasks) {
+            message += "✅ All tasks have personal stages assigned!";
+        } else {
+            message += "✅ Personal stages are working correctly!\n";
+            message += Math.round((stats.tasks_with_stage / stats.total_tasks) * 100) + "% of tasks have personal stages.";
+        }
+
+        results.success = true;
+        results.message = message;
+        return results;
+
+    } catch (error) {
+        console.error("Error in personal stage diagnostics:", error);
+        return {
+            success: false,
+            message: "❌ Error checking personal stage data: " + error.message,
+            tasksUpdated: 0,
+            stagesProcessed: 0
+        };
+    }
+}
+
+/**
+ * Forces re-sync of tasks by resetting their last_modified timestamp.
+ * This will cause the sync logic to fetch fresh data from Odoo server.
+ * 
+ * @param {boolean} onlyWithoutStages - If true, only reset tasks without personal_stage
+ * @returns {Object} - Status object with:
+ *   - success: boolean indicating if reset completed
+ *   - message: detailed status message
+ *   - tasksUpdated: number of tasks that had their timestamp reset
+ */
+function forceTaskResync(onlyWithoutStages) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var tasksUpdated = 0;
+        
+        db.transaction(function(tx) {
+            var condition = onlyWithoutStages 
+                ? "WHERE personal_stage IS NULL OR personal_stage = ''"
+                : "";
+            
+            // First, count how many tasks will be affected
+            var countSql = "SELECT COUNT(*) as count FROM project_task_app " + condition;
+            var rs = tx.executeSql(countSql);
+            if (rs.rows.length > 0) {
+                tasksUpdated = rs.rows.item(0).count;
+            }
+            
+            // Reset the last_modified timestamp to force re-sync
+            // Set it to a very old date (epoch start) so sync will definitely update it
+            var updateSql = "UPDATE project_task_app SET last_modified = '1970-01-01 00:00:00' " + condition;
+            tx.executeSql(updateSql);
+        });
+        
+        var message = "";
+        if (tasksUpdated === 0) {
+            if (onlyWithoutStages) {
+                message = "✓ No tasks need updating - all tasks already have personal stages!";
+            } else {
+                message = "⚠️ No tasks found in database.";
+            }
+        } else {
+            message = "✓ Successfully reset " + tasksUpdated + " task(s).\n\n";
+            message += "Next steps:\n";
+            message += "1. Go to your connected account settings\n";
+            message += "2. Click 'Sync Now' to fetch fresh data from Odoo\n";
+            message += "3. The personal_stage field will be updated if set in Odoo\n\n";
+            message += "Note: This will update ALL task fields, not just personal stages.";
+        }
+        
+        return {
+            success: true,
+            message: message,
+            tasksUpdated: tasksUpdated,
+            stagesProcessed: 0
+        };
+        
+    } catch (error) {
+        console.error("Error forcing task resync:", error);
+        return {
+            success: false,
+            message: "❌ Error resetting task timestamps: " + error.message,
+            tasksUpdated: 0,
+            stagesProcessed: 0
+        };
+    }
+}

@@ -37,7 +37,7 @@ import "components"
 
 Page {
     id: activity
-    title: "Activities"
+    title: i18n.dtr("ubtms", "Activities")
     header: PageHeader {
         id: taskheader
         title: filterByProject ? "Activities - " + projectName : activity.title
@@ -92,7 +92,7 @@ Page {
     property string projectName: ""
 
     property bool filterByAccount: false
-    property int selectedAccountId: -1
+    property int selectedAccountId: accountPicker.selectedAccountId
 
     // Properties for assignee filtering
     property bool filterByAssignees: false
@@ -103,6 +103,45 @@ Page {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
+    }
+
+    Connections {
+        target: accountPicker
+
+        onAccepted: function (id, name) {
+            console.log("Activity_Page: Account picker selection changed to", id, name);
+            handleAccountChange(id);
+        }
+    }
+
+    function handleAccountChange(accountId) {
+        console.log("Activity_Page: Account changed to", accountId);
+
+        // Normalize account ID to number
+        var idNum = -1;
+        try {
+            if (typeof accountId !== "undefined" && accountId !== null) {
+                var maybeNum = Number(accountId);
+                idNum = isNaN(maybeNum) ? -1 : maybeNum;
+            }
+        } catch (e) {
+            idNum = -1;
+        }
+
+        // If -1, use default account instead (like MyTasks and other pages)
+        if (idNum === -1) {
+            idNum = Accounts.getDefaultAccountId();
+            console.log("Activity_Page: Account ID was -1, using default account:", idNum);
+        }
+
+        selectedAccountId = idNum;
+        filterByAccount = (idNum >= 0);
+
+        // Reload assignees for the new account
+        loadAssignees();
+
+        // Refresh the activity list
+        get_activity_list();
     }
 
     function shouldIncludeItem(item) {
@@ -575,16 +614,28 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            // Sync with mainView's current account (primary source of truth)
+            if (typeof mainView !== 'undefined' && mainView !== null) {
+                if (typeof mainView.currentAccountId !== 'undefined') {
+                    var acctId = mainView.currentAccountId;
+                    if (acctId !== selectedAccountId && acctId >= -1) {
+                        console.log("Activity_Page: Syncing with mainView.currentAccountId on visible:", acctId);
+                        handleAccountChange(acctId);
+                        return; // handleAccountChange will refresh everything
+                    }
+                }
+            }
+
             // Check if we're coming from an activity-related page
             var previousPage = Global.getLastVisitedPage();
             var shouldPreserve = Global.shouldPreserveAssigneeFilter("Activity_Page", previousPage);
-            
+
             console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
-            
+
             if (shouldPreserve) {
                 // Restore assignee filter from global state when returning from Activities detail page
                 restoreAssigneeFilterState();
-                
+
                 console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
             } else {
                 // Clear filter when coming from non-activity pages (Dashboard, Tasks, etc.)
@@ -592,7 +643,7 @@ Page {
                 activity.selectedAssigneeIds = [];
                 assigneeFilterMenu.selectedAssigneeIds = [];
                 Global.clearAssigneeFilter();
-                
+
                 console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
             }
 
@@ -644,29 +695,71 @@ Page {
 
     Connections {
         target: mainView
+
         onAccountDataRefreshRequested: function (accountId) {
-            // Only reload assignees, don't force account filtering
-            loadAssignees();
-
-            // Refresh the activity list to show updated data
-            get_activity_list();
+            console.log("Activity_Page: Account data refresh requested for:", accountId);
+            if (activity.visible && accountId >= -1) {
+                handleAccountChange(accountId);
+            }
         }
-        onGlobalAccountChanged: function (accountId, accountName) {
-            // Only reload assignees, don't force account filtering
-            loadAssignees();
 
-            // Refresh the activity list to show updated data
-            get_activity_list();
+        onGlobalAccountChanged: function (accountId, accountName) {
+            console.log("Activity_Page: Global account changed to:", accountId, accountName);
+            if (activity.visible && accountId >= -1) {
+                handleAccountChange(accountId);
+            }
         }
     }
 
+    Connections {
+        target: typeof accountFilter !== 'undefined' ? accountFilter : null
+
+        function onAccountChanged(accountId, accountName) {
+            console.log("Activity_Page: Account changed via AccountFilter to:", accountId, accountName);
+            if (activity.visible) {
+                handleAccountChange(accountId);
+            }
+        }
+    }
     Component.onCompleted: {
+        // Primary source: accountPicker (direct initialization like Timesheet_Page and Projects)
+        if (typeof accountPicker !== 'undefined' && accountPicker !== null) {
+            selectedAccountId = accountPicker.selectedAccountId;
+            filterByAccount = (selectedAccountId >= 0);
+            console.log("Activity_Page: Initialized with accountPicker.selectedAccountId:", selectedAccountId);
+        }
+
+        // Fallback: try mainView
+        if (selectedAccountId === -1) {
+            if (typeof mainView !== 'undefined' && mainView !== null) {
+                if (typeof mainView.currentAccountId !== 'undefined') {
+                    selectedAccountId = mainView.currentAccountId;
+                    filterByAccount = (selectedAccountId >= 0);
+                    console.log("Activity_Page: Using mainView.currentAccountId:", selectedAccountId);
+                }
+            }
+        }
+
+        // Fallback: try accountFilter
+        if (selectedAccountId === -1) {
+            if (typeof accountFilter !== 'undefined' && accountFilter !== null) {
+                if (typeof accountFilter.selectedAccountId !== 'undefined') {
+                    selectedAccountId = accountFilter.selectedAccountId;
+                    filterByAccount = (selectedAccountId >= 0);
+                    console.log("Activity_Page: Using accountFilter.selectedAccountId:", selectedAccountId);
+                }
+            }
+        }
+
+        // Final fallback: use default account (like MyTasks does)
+        if (selectedAccountId === -1) {
+            selectedAccountId = Accounts.getDefaultAccountId();
+            filterByAccount = (selectedAccountId >= 0);
+            console.log("Activity_Page: No account selection found, using default account:", selectedAccountId);
+        }
+
         // Load assignees for the assignee filter
         loadAssignees();
-
-        // Don't automatically restore global assignee filter on page load
-        // The filter should only be restored when user explicitly uses filter tabs or search
-        // This allows the page to show unfiltered results when navigating back from other pages
 
         // Initialize with no assignee filter by default
         activity.filterByAssignees = false;

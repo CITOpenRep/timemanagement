@@ -49,16 +49,28 @@ Item {
     property int projectAccountId: -1
 
     property bool filterByAccount: false
-    property int selectedAccountId: -1
+    property int selectedAccountId: accountPicker.selectedAccountId
 
     // Properties for assignee filtering
     property bool filterByAssignees: false
     property var selectedAssigneeIds: []
 
+    // Property to indicate if we're in MyTasks context
+    property bool isMyTasksContext: false
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
     signal taskTimesheetRequested(int localId)
+
+    Connections {
+        target: accountPicker
+
+        onAccepted: function (id, name) {
+            selectedAccountId = id;
+            refresh();
+        }
+    }
 
     Connections {
         target: globalTimerWidget
@@ -345,9 +357,33 @@ Item {
 
     function clearAccountFilter() {
         filterByAccount = false;
-        selectedAccountId = -1;
+        selectedAccountId = accountPicker.selectedAccountId;
 
         refreshWithFilter();
+    }
+
+    // Function to remove a task from the displayed list
+    function removeTaskFromList(localId) {
+        // Find the task in the current parent's children
+        var currentModel = childrenMap[currentParentId];
+        if (!currentModel)
+            return;
+
+        // childrenMap contains ListModel objects, not arrays
+        // Use ListModel.count and ListModel.get() to iterate
+        var indexToRemove = -1;
+        for (var i = 0; i < currentModel.count; i++) {
+            var item = currentModel.get(i);
+            if (item.local_id === localId) {
+                indexToRemove = i;
+                break;
+            }
+        }
+
+        if (indexToRemove >= 0) {
+            // Remove from the ListModel using its API
+            currentModel.remove(indexToRemove);
+        }
     }
 
     // New function to update displayed tasks with filtered data
@@ -442,7 +478,7 @@ Item {
         childrenMap = {};
         childrenMapReady = false;
 
-        var allTasks = Task.getAllTasks(); // import tasks.js as Task
+        var allTasks = Task.getAllTasksForAccount(accountPicker.selectedAccountId); // import tasks.js as Task
 
         if (allTasks.length === 0) {
             childrenMapReady = true;
@@ -560,7 +596,8 @@ Item {
                     projectName: model.project
                     colorPallet: model.color_pallet
                     stage: model.stage
-                    //accountId:model.account_id
+                    accountId: model.account_id
+                    isMyTasksContext: taskNavigator.isMyTasksContext
 
                     onEditRequested: id => {
                         taskEditRequested(local_id);
@@ -573,6 +610,10 @@ Item {
                     }
                     onTimesheetRequested: localId => {
                         taskTimesheetRequested(localId);
+                    }
+                    onTaskStageChanged: localId => {
+                        // Remove the task from the current list display
+                        removeTaskFromList(localId);
                     }
 
                     // MouseArea for task interaction - navigation for parent tasks, view for regular tasks

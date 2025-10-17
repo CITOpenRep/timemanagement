@@ -39,7 +39,7 @@ import "components"
 
 Page {
     id: project
-    title: "Projects"
+    title: i18n.dtr("ubtms", "Projects")
     header: PageHeader {
         id: projectheader
         StyleHints {
@@ -67,12 +67,6 @@ Page {
                     projectlist.toggleSearchVisibility();
                 }
             }
-            // Action {
-            //     iconName: "account"
-            //     onTriggered: {
-            //         accountFilterVisible = !accountFilterVisible;
-            //     }
-            // }
         ]
     }
 
@@ -84,11 +78,6 @@ Page {
         ProjectList {
             id: projectlist
             anchors.fill: parent
-
-            // keep filterByAccount true, but DON'T initialize selectedAccountId from default account
-            filterByAccount: true
-            // initialize to numeric -1 (All accounts); we will set it on Component.onCompleted
-            selectedAccountId: -1
 
             onProjectSelected: {
                 //  console.log("Viewing Project");
@@ -116,107 +105,8 @@ Page {
         if (visible) {
             // Update navigation tracking when Project_Page becomes visible
             Global.setLastVisitedPage("Project_Page");
-            
+
             projectlist.refresh();
         }
-    }
-
-    // When the global account changes, normalize to numeric and refresh
-    Connections {
-        target: mainView
-
-        onAccountDataRefreshRequested: function (accountId) {
-            var acctNum = -1;
-            try {
-                if (typeof accountId !== "undefined" && accountId !== null) {
-                    var maybe = Number(accountId);
-                    acctNum = isNaN(maybe) ? -1 : maybe;
-                } else {
-                    acctNum = -1;
-                }
-            } catch (e) {
-                acctNum = -1;
-            }
-
-            projectlist.selectedAccountId = acctNum;
-            projectlist.refresh();
-        }
-
-        onGlobalAccountChanged: function (accountId, accountName) {
-            var acctNum = -1;
-            try {
-                if (typeof accountId !== "undefined" && accountId !== null) {
-                    var maybe = Number(accountId);
-                    acctNum = isNaN(maybe) ? -1 : maybe;
-                } else {
-                    acctNum = -1;
-                }
-            } catch (e) {
-                acctNum = -1;
-            }
-
-            projectlist.selectedAccountId = acctNum;
-            projectlist.refresh();
-        }
-    }
-
-    // Listen to accountFilter directly so page initializes and updates from the selector's current selection
-    Connections {
-        target: accountFilter
-        onAccountChanged: function (accountId, accountName) {
-            console.log("Project_Page: Account filter changed to:", accountName, "ID:", accountId);
-            var acctNum = -1;
-            try {
-                if (typeof accountId !== "undefined" && accountId !== null) {
-                    var maybe = Number(accountId);
-                    acctNum = isNaN(maybe) ? -1 : maybe;
-                } else {
-                    acctNum = -1;
-                }
-            } catch (e) {
-                acctNum = -1;
-            }
-
-            projectlist.selectedAccountId = acctNum;
-            projectlist.refresh();
-        }
-    }
-
-    Component.onCompleted: {
-        // Determine initial account selection from accountFilter (try common property names),
-        // fall back to numeric -1 (All accounts) if none found. This ensures initial list is filtered.
-        try {
-            var initialAccountNum = -1;
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    var maybe = Number(accountFilter.selectedAccountId);
-                    initialAccountNum = isNaN(maybe) ? -1 : maybe;
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    var maybe2 = Number(accountFilter.currentAccountId);
-                    initialAccountNum = isNaN(maybe2) ? -1 : maybe2;
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    // If accountFilter only exposes index, mapping index -> id is required.
-                    // Default to -1 to avoid accidental assignment of an invalid id.
-                    initialAccountNum = -1;
-                } else {
-                    initialAccountNum = -1;
-                }
-            } else if (typeof Account.getSelectedAccountId === "function") {
-                var acct = Account.getSelectedAccountId();
-                var acctNum = Number(acct);
-                initialAccountNum = (acct !== null && typeof acct !== "undefined" && !isNaN(acctNum)) ? acctNum : -1;
-            } else {
-                initialAccountNum = -1;
-            }
-
-            console.log("Project_Page initial account selection (numeric):", initialAccountNum);
-            projectlist.selectedAccountId = initialAccountNum;
-        } catch (e) {
-            console.error("Project_Page: error determining initial account:", e);
-            projectlist.selectedAccountId = -1;
-        }
-
-        // initial refresh
-        projectlist.refresh();
     }
 }

@@ -10,7 +10,7 @@ Rectangle {
     height: accountFilterVisible ? panelHeight + panelMargin * 2 : 0
     color: "transparent"
     border.width: 0
-    z: 1000   
+    z: 1000
 
     property int selectedAccountId: -1
     property string selectedAccountName: ""
@@ -29,11 +29,20 @@ Rectangle {
         z: accountFilter.z + 1
         clip: true
 
-        y: accountFilterVisible ? 0 : - (panelHeight + panelMargin)
-        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.InOutQuad } }
+        y: accountFilterVisible ? 0 : -(panelHeight + panelMargin)
+        Behavior on y {
+            NumberAnimation {
+                duration: 260
+                easing.type: Easing.InOutQuad
+            }
+        }
 
         opacity: accountFilterVisible ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 180 } }
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 180
+            }
+        }
 
         Rectangle {
             anchors.fill: parent
@@ -56,7 +65,7 @@ Rectangle {
                 }
 
                 Label {
-                    text: "Account:"
+                    text: i18n.dtr("ubtms", "Account:")
                     font.pixelSize: units.gu(1.8)
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                 }
@@ -117,21 +126,21 @@ Rectangle {
                 Label {
                     text: selectedAccountName ? "✓ " + selectedAccountName : "No account selected"
                     font.pixelSize: units.gu(1.5)
-                    color: selectedAccountName
-                        ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#2E7D32")
-                        : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#FF6B6B" : "#D32F2F")
+                    color: selectedAccountName ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#2E7D32") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#FF6B6B" : "#D32F2F")
                 }
             }
         }
     }
 
-    ListModel { id: accountModel }
+    ListModel {
+        id: accountModel
+    }
 
     Component.onCompleted: loadAccounts()
 
     function loadAccounts() {
         accountModel.clear();
-        
+
         // Add "All" option first
         accountModel.append({
             id: -1,
@@ -162,5 +171,7 @@ Rectangle {
         accountChanged(-1, "All Accounts");
     }
 
-    function refreshAccounts() { loadAccounts(); }
+    function refreshAccounts() {
+        loadAccounts();
+    }
 }

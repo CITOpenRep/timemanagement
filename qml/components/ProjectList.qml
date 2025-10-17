@@ -89,11 +89,29 @@ Item {
     id: projectList
     anchors.fill: parent
 
-    property bool filterByAccount: false
-    property int selectedAccountId: -1
+    Connections {
+        target: accountPicker
+
+        onAccepted: function (id, name) {
+            console.log("Projects getting updated for Account chosen:", id, name);
+            currentAccountId = id;
+            navigationStackModel.clear();
+            currentParentId = -1;
+
+            // Reset to default "Open" filter
+            stageFilter.enabled = true;
+            stageFilter.odoo_record_id = -2;
+            stageFilter.name = "Open";
+
+            // Clear search
+            searchQuery = "";
+
+            populateProjectChildrenMap();
+        }
+    }
 
     property int currentParentId: -1
-    property int currentAccountId: -1
+    property int currentAccountId: accountPicker.selectedAccountId
     property ListModel navigationStackModel: ListModel {}
     property var childrenMap: ({})
     property bool childrenMapReady: false
@@ -146,7 +164,7 @@ Item {
     function refresh() {
         navigationStackModel.clear();
         currentParentId = -1;
-        currentAccountId = -1;
+        currentAccountId = accountPicker.selectedAccountId;
 
         // Reset to default "Open" filter
         stageFilter.enabled = true;
@@ -189,12 +207,12 @@ Item {
 
         var allProjects;
 
-        if (filterByAccount && selectedAccountId >= 0) {
-            allProjects = Project.getProjectsForAccount(selectedAccountId);
-            console.log("Loading projects from default account", selectedAccountId + ":", allProjects.length, "projects");
+        if (currentAccountId >= 0) {
+            allProjects = Project.getProjectsForAccount(currentAccountId);
+            console.log("Loading projects from default account", currentAccountId + ":", allProjects.length, "projects");
         } else {
             allProjects = Project.getAllProjects();
-            console.log("Loading projects from ALL accounts:", allProjects.length, "projects");
+            console.log("Loading projects from all accounts:", allProjects.length, "projects");
         }
 
         if (allProjects.length === 0) {
@@ -283,7 +301,7 @@ Item {
         }
 
         childrenMapReady = true;
-        console.log("Project children map populated for account filter:", selectedAccountId);
+        console.log("Project children map populated for account filter:", currentAccountId);
     }
 
     function getCurrentModel() {
@@ -573,15 +591,15 @@ Item {
             visible: showSearchBox
             height: units.gu(5)
             width: parent.width
-               anchors.rightMargin: units.gu(4) // Space for clear button
+            anchors.rightMargin: units.gu(4) // Space for clear button
             placeholderText: "Search projects..."
             //   color: "#333333"
             selectByMouse: true
             onAccepted: performSearch(text)
             onTextChanged: {
                 searchQuery = text;
-              //  Debounced search - only search after user stops typing
-               searchTimer.restart();
+                //  Debounced search - only search after user stops typing
+                searchTimer.restart();
             }
 
             Rectangle {
@@ -596,7 +614,7 @@ Item {
 
                 Button {
                     id: clearSearchButton
-                    z : 10
+                    z: 10
                     visible: searchField.text.length > 0
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
@@ -606,7 +624,6 @@ Item {
                     text: "×"
                     onClicked: {
                         clearSearch();
-                     
                     }
                 }
             }

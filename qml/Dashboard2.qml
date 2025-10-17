@@ -29,7 +29,7 @@ import "../models/Main.js" as Model
 
 Page {
     id: dashboard
-    title: "Charts"
+    title: i18n.dtr("ubtms", "Charts")
     header: PageHeader {
         title: dashboard.title
         StyleHints {

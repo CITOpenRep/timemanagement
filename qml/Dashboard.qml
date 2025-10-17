@@ -40,50 +40,20 @@ import "components"
 
 Page {
     id: mainPage
-    title: "Time Manager - Time Management Dashboard"
+    title: i18n.dtr("ubtms", "Time Manager - Time Management Dashboard")
     anchors.fill: parent
     property bool isMultiColumn: apLayout.columns > 1
     property var page: 0
-
-    // Helper: probe accountFilter or Account model for the currently selected account id.
-    // Returns numeric account id, or -1 for "All accounts" or on error.
-    function getSelectedAccountFromFilter() {
-        try {
-            // Prefer the accountFilter component if present
-            if (typeof accountFilter !== "undefined" && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== "undefined" && accountFilter.selectedAccountId !== null) {
-                    var maybe = Number(accountFilter.selectedAccountId);
-                    return isNaN(maybe) ? -1 : maybe;
-                } else if (typeof accountFilter.currentAccountId !== "undefined" && accountFilter.currentAccountId !== null) {
-                    var maybe2 = Number(accountFilter.currentAccountId);
-                    return isNaN(maybe2) ? -1 : maybe2;
-                } else if (typeof accountFilter.currentIndex !== "undefined" && accountFilter.currentIndex >= 0) {
-                    // If the selector only exposes index we'd need a mapping index->id.
-                    // Fallback to -1 to be safe.
-                    return -1;
-                }
-            }
-
-            // Fallback: Accounts model helper if available
-            if (typeof Account !== "undefined" && typeof Account.getSelectedAccountId === "function") {
-                var acct = Account.getSelectedAccountId();
-                var maybe3 = Number(acct);
-                return (acct !== null && typeof acct !== "undefined" && !isNaN(maybe3)) ? maybe3 : -1;
-            }
-        } catch (e) {
-            console.error("getSelectedAccountFromFilter error:", e);
-        }
-        return -1;
-    }
 
     onVisibleChanged: {
         if (visible) {
             // Update navigation tracking when Dashboard becomes visible
             Global.setLastVisitedPage("Dashboard");
-            
+
             // Prefer the selected account from the account selector (NOT the default account)
-            var selected = getSelectedAccountFromFilter();
-            if (typeof projectchart !== "undefined") projectchart.refreshForAccount(selected);
+            var selected = accountPicker.selectedAccountId;
+            if (typeof projectchart !== "undefined")
+                projectchart.refreshForAccount(selected);
             // Also refresh other dashboard data
             refreshData();
         }
@@ -121,11 +91,11 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        title: "Time Management"
+        title: i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]"
         visible: true
 
         trailingActionBar.visible: isMultiColumn ? false : true
-        trailingActionBar.numberOfSlots: 3
+        trailingActionBar.numberOfSlots: 4
 
         trailingActionBar.actions: [
             // Action {
@@ -134,9 +104,17 @@ Page {
             //         accountFilterVisible = !accountFilterVisible
             //     }
             // },
+
+            Action {
+                iconName: "account"
+                text: i18n.dtr("ubtms", "Switch Accounts")
+                onTriggered: {
+                    accountPicker.open(0);
+                }
+            },
             Action {
                 iconName: "help"
-                text: "About"
+                text: i18n.dtr("ubtms", "About")
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Aboutus.qml"));
                     page = 7;
@@ -152,7 +130,7 @@ Page {
             },
             Action {
                 iconName: "clock"
-                text: "Timesheet"
+                text: i18n.dtr("ubtms", "Timesheet")
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
                     page = 7;
@@ -161,7 +139,7 @@ Page {
             },
             Action {
                 iconName: "calendar"
-                text: "Activities"
+                text: i18n.dtr("ubtms", "Activities")
                 onTriggered: {
                     apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
                     page = 2;
@@ -169,8 +147,17 @@ Page {
                 }
             },
             Action {
+                iconName: "scope-manager"
+                text: i18n.dtr("ubtms", "My Tasks")
+                onTriggered: {
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("MyTasks.qml"));
+                    page = 3;
+                    apLayout.setCurrentPage(page);
+                }
+            },
+            Action {
                 iconName: "view-list-symbolic"
-                text: "Tasks"
+                text: i18n.dtr("ubtms", "All Tasks")
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
                     page = 3;
@@ -179,7 +166,7 @@ Page {
             },
             Action {
                 iconName: "folder-symbolic"
-                text: "Projects"
+                text: i18n.dtr("ubtms", "Projects")
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"));
                     page = 4;
@@ -188,7 +175,7 @@ Page {
             },
             Action {
                 iconName: "history"
-                text: "Project Updates"
+                text: i18n.dtr("ubtms", "Project Updates")
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
                     page = 5;
@@ -197,7 +184,7 @@ Page {
             },
             Action {
                 iconName: "settings"
-                text: "Settings"
+                text: i18n.dtr("ubtms", "Settings")
                 onTriggered: {
                     apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Settings_Page.qml"));
                     page = 6;
@@ -216,7 +203,8 @@ Page {
     property variant task_data: []
 
     function get_project_chart_data() {
-        project_data = Model.get_projects_spent_hours();
+        var account = accountPicker.selectedAccountId;
+        project_data = Model.get_projects_spent_hours(account);
         var count = 0;
         var timeval;
         for (var key in project_data) {
@@ -231,7 +219,8 @@ Page {
     }
 
     function get_task_chart_data() {
-        task_data = Model.get_tasks_spent_hours();
+        var account = accountPicker.selectedAccountId;
+        task_data = Model.get_tasks_spent_hours(account);
         var count = 0;
         var timeval;
         for (var key in task_data) {
@@ -246,12 +235,12 @@ Page {
     }
 
     function refreshData() {
-      //  console.log("🔄 Refreshing Dashboard data...");
+        //  console.log("🔄 Refreshing Dashboard data...");
         get_project_chart_data();
         get_task_chart_data();
         // Refresh project chart using the account selector's selection (not default account)
         if (typeof projectchart !== 'undefined') {
-            var selected = getSelectedAccountFromFilter();
+            var selected = accountPicker.selectedAccountId;
             projectchart.refreshForAccount(selected);
         }
     }
@@ -261,9 +250,15 @@ Page {
         anchors.fill: parent
         z: 9999
         menuModel: [
-            { label: "Task" },
-            { label: "Timesheet" },
-            { label: "Activity" }
+            {
+                label: i18n.dtr("ubtms", "Task")
+            },
+            {
+                label: i18n.dtr("ubtms", "Timesheet")
+            },
+            {
+                label: i18n.dtr("ubtms", "Activity")
+            }
         ]
         onMenuItemSelected: {
             if (index === 0) {
@@ -350,70 +345,14 @@ Page {
                 anchors.horizontalCenter: parent.horizontalCenter
             }
 
-            Connections {
-                target: accountFilter
-                onAccountChanged: function(accountId, accountName) {
-                    var acctNum = -1;
-                    try {
-                        if (typeof accountId !== "undefined" && accountId !== null) {
-                            var maybe = Number(accountId);
-                            acctNum = isNaN(maybe) ? -1 : maybe;
-                        } else {
-                            acctNum = -1;
-                        }
-                    } catch (e) {
-                        acctNum = -1;
-                    }
-                    console.log("Dashboard: accountFilter changed ->", acctNum, accountName);
-                    projectchart.refreshForAccount(acctNum);
-                }
-            }
-
-            Connections {
-                target: mainView
-                onAccountDataRefreshRequested: function(accountId) {
-                    var acctNum = -1;
-                    try {
-                        if (typeof accountId !== "undefined" && accountId !== null) {
-                            var maybe = Number(accountId);
-                            acctNum = isNaN(maybe) ? -1 : maybe;
-                        } else {
-                            acctNum = -1;
-                        }
-                    } catch (e) {
-                        acctNum = -1;
-                    }
-                    console.log("Dashboard: mainView.AccountDataRefreshRequested ->", acctNum);
-                    projectchart.refreshForAccount(acctNum);
-                }
-                onGlobalAccountChanged: function(accountId, accountName) {
-                    var acctNum = -1;
-                    try {
-                        if (typeof accountId !== "undefined" && accountId !== null) {
-                            var maybe = Number(accountId);
-                            acctNum = isNaN(maybe) ? -1 : maybe;
-                        } else {
-                            acctNum = -1;
-                        }
-                    } catch (e) {
-                        acctNum = -1;
-                    }
-                    console.log("Dashboard: mainView.GlobalAccountChanged ->", acctNum, accountName);
-                    projectchart.refreshForAccount(acctNum);
-                }
-            }
-
             Component.onCompleted: {
                 try {
-                    var initial = getSelectedAccountFromFilter();
-                    console.log("Dashboard: initial account for project chart ->", initial);
-                    projectchart.refreshForAccount(initial);
+                    projectchart.refreshForAccount(accountPicker.selectedAccountId);
                 } catch (e) {
                     console.error("Dashboard: error determining initial account for project chart:", e);
                     projectchart.refreshForAccount(-1);
                 }
             }
-
         } // end Column
 
         onFlickEnded: {
@@ -437,7 +376,7 @@ Page {
         }
     }
 
-     Icon {
+    Icon {
         visible: !isMultiColumn
         width: units.gu(5)
         height: units.gu(4)
@@ -489,12 +428,10 @@ Page {
     }
 
     Connections {
-        target: mainView
-        onAccountDataRefreshRequested: function(accountId) {
+        target: accountPicker
+        onAccepted: function (accountId, accountName) {
             refreshData();
-        }
-        onGlobalAccountChanged: function(accountId, accountName) {
-            refreshData();
+            header.title = i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]";
         }
     }
 

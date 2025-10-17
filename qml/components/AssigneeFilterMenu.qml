@@ -153,7 +153,7 @@ Item {
                     }
 
                     Text {
-                        text: "Filter by Assignees"
+                        text: i18n.dtr("ubtms", "Filter by Assignees")
                         font.bold: true
                         font.pixelSize: units.gu(2.2)
                         color: theme.palette.normal.backgroundText
@@ -180,7 +180,7 @@ Item {
                     id: searchField
                     width: parent.width - clearSearchButton.width - parent.spacing
                     height: parent.height
-                    placeholderText: "Search assignees..."
+                    placeholderText: i18n.dtr("ubtms", "Search assignees...")
 
                     onAccepted: {
                         filterModel.update(); // Handle enter key press
@@ -196,7 +196,7 @@ Item {
                     id: clearSearchButton
                     width: units.gu(3.5)
                     height: parent.height
-               
+
                     color: clearMouseArea.pressed ? theme.palette.selected.background : "transparent"
                     radius: units.gu(0.5)
                     border.color: clearMouseArea.containsMouse ? theme.palette.normal.base : "transparent"
@@ -214,7 +214,7 @@ Item {
                         id: clearMouseArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        
+
                         onClicked: {
                             searchField.text = "";
                             searchField.focus = false;
@@ -403,7 +403,7 @@ Item {
 
                     // Apply Filter Button
                     TSButton {
-                        text: "Apply Filter"
+                        text: i18n.dtr("ubtms", "Apply Filter")
                         enabled: selectedAssigneeIds.length > 0
                         width: units.gu(15)
                         height: units.gu(4)
@@ -422,7 +422,7 @@ Item {
 
                     // Clear Filter Button
                     TSButton {
-                        text: "Clear Filter"
+                        text: i18n.dtr("ubtms", "Clear Filter")
                         enabled: selectedAssigneeIds.length > 0
                         width: units.gu(15)
                         height: units.gu(4)

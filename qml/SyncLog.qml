@@ -4,7 +4,7 @@ import "../models/accounts.js" as Accounts
 
 Page {
     id: syncLogPage
-    title: "Sync Log"
+    title: i18n.dtr("ubtms", "Sync Log")
     property var syncLogs: []
     property var recordid: -1
 
