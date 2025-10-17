@@ -162,6 +162,7 @@ Item {
                             Label {
                                 id: nameLabel
                                 text: _name
+                                  color: '#1d1c1c'
                                 elide: Label.ElideRight
                                 maximumLineCount: 1
                                 Layout.fillWidth: true
