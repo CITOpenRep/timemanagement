@@ -45,7 +45,7 @@ Item {
 
         Dialog {
             id: confirmDialog
-            title: "Unsaved Changes"
+            title: i18n.dtr("ubtms", "Unsaved Changes")
 
             Text {
                 id: messageText

@@ -40,7 +40,7 @@ Item {
 
         Dialog {
             id: timeDialog
-            title: "Select Hours"
+            title: i18n.dtr("ubtms", "Select Hours")
 
             property int selectedHour: popupWrapper.initialHour
             property int selectedMinute: popupWrapper.initialMinute

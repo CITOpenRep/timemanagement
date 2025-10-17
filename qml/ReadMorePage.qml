@@ -116,7 +116,7 @@ Page {
             }
         }
     }
-    
+
     // Handle page visibility changes to ensure content is saved
     onVisibleChanged: {
         if (!visible && !isReadOnly) {
@@ -130,7 +130,7 @@ Page {
             }
         }
     }
-    
+
     Component.onCompleted: {
         // Ensure the editors are properly initialized with the current content
         if (!useRichText && simpleEditor) {

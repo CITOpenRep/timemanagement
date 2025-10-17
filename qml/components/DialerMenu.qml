@@ -50,7 +50,7 @@ Item {
         radius: width / 2
         anchors.bottom: parent.bottom
         anchors.right: parent.right
-        anchors.margins: 24
+        anchors.margins: units.gu(2)
         iconName: "open-menu-symbolic"
 
         z: 10

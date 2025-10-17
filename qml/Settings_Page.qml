@@ -1,26 +1,26 @@
 /*
- * MIT License
- *
- * Copyright (c) 2025 CIT-Services
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+* MIT License
+*
+* Copyright (c) 2025 CIT-Services
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
@@ -33,7 +33,7 @@ import "components"
 
 Page {
     id: settings
-    title: "Settings"
+    title: i18n.dtr("ubtms", "Settings")
     header: PageHeader {
         id: pageHeader
         StyleHints {
@@ -49,6 +49,12 @@ Page {
                 iconName: "add"
                 onTriggered: {
                     apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Account_Page.qml'));
+                }
+            },
+            Action {
+                iconName: "revert"
+                onTriggered: {
+                    toggleVisibleMigrationSection();
                 }
             }
         ]
@@ -93,6 +99,8 @@ Page {
     property int syncingAccountId: -1
     property var lastSyncStatuses: ({})
 
+    property bool visibleMigrationSection: false
+
     // Simplified timeout timer - only resets local state, GlobalTimerWidget handles its own timeout
     Timer {
         id: syncTimeoutTimer
@@ -108,6 +116,10 @@ Page {
                 console.log("🕐 Settings page: Local sync state timed out for account:", timeoutAccountId);
             }
         }
+    }
+
+    function toggleVisibleMigrationSection() {
+        visibleMigrationSection = !visibleMigrationSection;
     }
 
     // Sync completion checker - polls for sync status updates but doesn't interfere with GlobalTimerWidget
@@ -441,6 +453,167 @@ Page {
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    // Data Migration Section
+                    Rectangle {
+                        visible: visibleMigrationSection
+                        width: parent.width
+                        height: migrationSection.height + units.gu(2)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
+                        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
+                        border.width: 1
+                        radius: units.gu(1)
+
+                        Column {
+                            id: migrationSection
+                            width: parent.width - units.gu(2)
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.top: parent.top
+                            anchors.topMargin: units.gu(1)
+                            spacing: units.gu(1)
+
+                            // Header
+                            Text {
+                                text: "Personal Stages Diagnostics"
+                                font.pixelSize: units.gu(2.5)
+                                font.bold: true
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+
+                            Text {
+                                text: "Check personal stage data status and configuration"
+                                font.pixelSize: units.gu(1.5)
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                wrapMode: Text.WordWrap
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            // Diagnostic Button
+                            TSButton {
+                                id: migrateButton
+                                width: units.gu(30)
+                                height: units.gu(5)
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Check Personal Stage Status"
+                                fontSize: units.gu(1.8)
+                                onClicked: {
+                                    var result = Utils.migratePersonalStageData();
+                                    if (result.success) {
+                                        migrationStatusText.text = "✓ " + result.message;
+                                        migrationStatusText.color = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#2E7D32";
+                                    } else {
+                                        migrationStatusText.text = "✗ " + result.message;
+                                        migrationStatusText.color = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f44336" : "#c62828";
+                                    }
+                                    migrationStatusText.visible = true;
+                                    resyncStatusText.visible = false;
+                                }
+                            }
+
+                            // Status Text
+                            Text {
+                                id: migrationStatusText
+                                visible: false
+                                text: ""
+                                font.pixelSize: units.gu(1.5)
+                                wrapMode: Text.WordWrap
+                                width: parent.width - units.gu(2)
+                                horizontalAlignment: Text.AlignHCenter
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+
+                            // Divider
+                            Rectangle {
+                                width: parent.width - units.gu(4)
+                                height: 1
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+
+                            // Force Resync Section
+                            Text {
+                                text: "Force Task Re-sync"
+                                font.pixelSize: units.gu(2)
+                                font.bold: true
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+
+                            Text {
+                                text: "Reset task timestamps to force fresh sync from Odoo"
+                                font.pixelSize: units.gu(1.5)
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                wrapMode: Text.WordWrap
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            Row {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: units.gu(2)
+
+                                // Reset Tasks Without Stages
+                                TSButton {
+                                    id: resyncWithoutStagesButton
+                                    width: units.gu(21)
+                                    height: units.gu(5)
+                                    text: "Reset Tasks Without Stages"
+                                    fontSize: units.gu(1.5)
+                                    bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#FF9800" : "#F57C00"
+                                    onClicked: {
+                                        var result = Utils.forceTaskResync(true);
+                                        if (result.success) {
+                                            resyncStatusText.text = "✓ " + result.message;
+                                            resyncStatusText.color = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#2E7D32";
+                                        } else {
+                                            resyncStatusText.text = "✗ " + result.message;
+                                            resyncStatusText.color = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f44336" : "#c62828";
+                                        }
+                                        resyncStatusText.visible = true;
+                                        migrationStatusText.visible = false;
+                                    }
+                                }
+
+                                // Reset All Tasks
+                                TSButton {
+                                    id: resyncAllButton
+                                    width: units.gu(21)
+                                    height: units.gu(5)
+                                    text: "Reset All Tasks"
+                                    fontSize: units.gu(1.5)
+                                    bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f44336" : "#c62828"
+                                    onClicked: {
+                                        var result = Utils.forceTaskResync(false);
+                                        if (result.success) {
+                                            resyncStatusText.text = "✓ " + result.message;
+                                            resyncStatusText.color = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#2E7D32";
+                                        } else {
+                                            resyncStatusText.text = "✗ " + result.message;
+                                            resyncStatusText.color = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f44336" : "#c62828";
+                                        }
+                                        resyncStatusText.visible = true;
+                                        migrationStatusText.visible = false;
+                                    }
+                                }
+                            }
+
+                            // Resync Status Text
+                            Text {
+                                id: resyncStatusText
+                                visible: false
+                                text: ""
+                                font.pixelSize: units.gu(1.5)
+                                wrapMode: Text.WordWrap
+                                width: parent.width - units.gu(2)
+                                horizontalAlignment: Text.AlignHCenter
+                                anchors.horizontalCenter: parent.horizontalCenter
                             }
                         }
                     }

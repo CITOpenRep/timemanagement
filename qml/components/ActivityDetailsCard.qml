@@ -67,19 +67,19 @@ ListItem {
             return {
                 color: "#F44336"  // Red
                 ,
-                text: "OVERDUE"
+                text: i18n.dtr("ubtms", "OVERDUE")
             };
         } else if (isActivityDueToday()) {
             return {
                 color: "#FF9800"  // Orange
                 ,
-                text: "TODAY"
+                text: i18n.dtr("ubtms", "TODAY")
             };
         } else {
             return {
                 color: "#2196F3"  // Blue
                 ,
-                text: "PLANNED"
+                text: i18n.dtr("ubtms", "PLANNED")
             };
         }
     }
@@ -341,7 +341,7 @@ ListItem {
     // Date Selector for changing activity date
     CustomDatePicker {
         id: dateSelector
-        titleText: "Reschedule Activity Date"
+        titleText: i18n.dtr("ubtms", "Reschedule Activity Date")
         mode: "next"
         currentDate: root.due_date // Pass the current activity's due date
         onDateSelected: function (selectedDate) {

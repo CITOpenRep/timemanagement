@@ -43,6 +43,7 @@ Item {
 
     // Signals
     signal saved(string description, string status)
+    signal finalized(bool success, string message)
     signal cancelled
 
     Component {
@@ -50,7 +51,7 @@ Item {
 
         Dialog {
             id: popupDialog
-            title: "Add Description to Timesheet"
+            title: i18n.dtr("ubtms", "Add Description to Timesheet")
 
             // Dark mode friendly styling
             StyleHints {
@@ -145,10 +146,12 @@ Item {
                     var result = updateTimesheetDescription(description, "updated");
                     if (result.success) {
                         popupWrapper.saved(description, "updated");
+                        popupWrapper.finalized(true, "Timesheet is now ready to be synced to Odoo");
                         PopupUtils.close(popupDialog);
                     } else {
                         console.error("Failed to finalize timesheet:", result.error);
-                        // Could show an error notification here
+                        popupWrapper.finalized(false, result.error || "Both Project and Task must be selected before syncing");
+                        // Don't close popup on error to allow user to fix issues
                     }
                 }
             }
@@ -196,7 +199,7 @@ Item {
 
             // Convert date from display format (M/d/yyyy) to ISO format (yyyy-MM-dd) for sync compatibility
             var isoDate = Utils.convertToISODate(currentDetails.record_date);
-            
+
             // Update the timesheet with new description
             var timesheet_data = {
                 'id': popupWrapper.timesheetId,
@@ -206,7 +209,7 @@ Item {
                 'task': currentDetails.task_id,
                 'subprojectId': currentDetails.sub_project_id,
                 'subTask': currentDetails.sub_task_id,
-                'description': description || currentDetails.name,
+                'description': description,
                 'unit_amount': Utils.convertHHMMtoDecimalHours(popupWrapper.elapsedTime),
                 'quadrant': currentDetails.quadrant_id || 1,
                 'status': status,

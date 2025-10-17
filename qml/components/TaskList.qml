@@ -49,12 +49,28 @@ Item {
     property int projectAccountId: -1
 
     property bool filterByAccount: false
-    property int selectedAccountId: -1
+    property int selectedAccountId: accountPicker.selectedAccountId
+
+    // Properties for assignee filtering
+    property bool filterByAssignees: false
+    property var selectedAssigneeIds: []
+
+    // Property to indicate if we're in MyTasks context
+    property bool isMyTasksContext: false
 
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
     signal taskTimesheetRequested(int localId)
+
+    Connections {
+        target: accountPicker
+
+        onAccepted: function (id, name) {
+            selectedAccountId = id;
+            refresh();
+        }
+    }
 
     Connections {
         target: globalTimerWidget
@@ -85,6 +101,14 @@ Item {
         projectOdooRecordId = projectOdooId;
         projectAccountId = projectAccountId;
         var projectTasks = getTasksForProject(projectOdooId, projectAccountId);
+
+        // Apply assignee filtering if enabled (with hierarchy support)
+        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+            console.log("TaskList applyProjectFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees:", JSON.stringify(selectedAssigneeIds));
+            projectTasks = applyAssigneeFilterWithHierarchy(projectTasks, selectedAssigneeIds);
+            console.log("TaskList applyProjectFilter: Final filtered tasks count:", projectTasks.length);
+        }
+
         updateDisplayedTasks(projectTasks);
     }
 
@@ -115,6 +139,13 @@ Item {
             if (projectTasksMap[taskKey]) {
                 filteredProjectTasks.push(filteredTask);
             }
+        }
+
+        // Apply assignee filtering if enabled (with hierarchy support)
+        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+            console.log("TaskList applyProjectAndTimeFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
+            filteredProjectTasks = applyAssigneeFilterWithHierarchy(filteredProjectTasks, selectedAssigneeIds);
+            console.log("TaskList applyProjectAndTimeFilter: Final filtered tasks count:", filteredProjectTasks.length);
         }
 
         updateDisplayedTasks(filteredProjectTasks);
@@ -149,6 +180,13 @@ Item {
             }
         }
 
+        // Apply assignee filtering if enabled (with hierarchy support)
+        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+            console.log("TaskList applyProjectAndSearchFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
+            searchedProjectTasks = applyAssigneeFilterWithHierarchy(searchedProjectTasks, selectedAssigneeIds);
+            console.log("TaskList applyProjectAndSearchFilter: Final filtered tasks count:", searchedProjectTasks.length);
+        }
+
         updateDisplayedTasks(searchedProjectTasks);
     }
 
@@ -157,11 +195,141 @@ Item {
         return Task.getTasksForProject(projectOdooId, accountId);
     }
 
+    // Helper function to parse comma-separated user IDs
+    function parseUserIds(userIdValue) {
+        var userIds = [];
+        if (userIdValue) {
+            if (typeof userIdValue === 'string' && userIdValue.indexOf(',') >= 0) {
+                // Handle comma-separated IDs like "9,13" or "13,11"
+                var userIdParts = userIdValue.split(',');
+                for (var i = 0; i < userIdParts.length; i++) {
+                    var parsedId = parseInt(userIdParts[i].trim());
+                    if (!isNaN(parsedId)) {
+                        userIds.push(parsedId);
+                    }
+                }
+            } else {
+                // Single ID (number or string)
+                var parsedId = parseInt(userIdValue);
+                if (!isNaN(parsedId)) {
+                    userIds.push(parsedId);
+                }
+            }
+        }
+        return userIds;
+    }
+
+    // Helper function to apply assignee filter with hierarchy preservation
+    function applyAssigneeFilterWithHierarchy(tasks, selectedAssigneeIds) {
+        var matchingTaskIds = new Set();
+        var taskById = {};
+        var tasksByParent = {};
+
+        // Create lookup maps
+        for (var i = 0; i < tasks.length; i++) {
+            var task = tasks[i];
+            var compositeId = task.odoo_record_id + "_" + task.account_id;
+            taskById[compositeId] = task;
+
+            var parentId = (task.parent_id === null || task.parent_id === 0) ? -1 : task.parent_id;
+            var parentCompositeId = parentId + "_" + task.account_id;
+
+            if (!tasksByParent[parentCompositeId]) {
+                tasksByParent[parentCompositeId] = [];
+            }
+            tasksByParent[parentCompositeId].push(task);
+        }
+
+        // First pass: Find tasks that directly match the assignee filter
+        for (var i = 0; i < tasks.length; i++) {
+            var task = tasks[i];
+            var matchesSelectedAssignee = false;
+
+            for (var j = 0; j < selectedAssigneeIds.length; j++) {
+                var selectedId = selectedAssigneeIds[j];
+
+                // Handle both simple ID (old format) and composite format
+                if (typeof selectedId === 'object' && selectedId !== null) {
+                    // New format: {user_id: X, account_id: Y}
+                    var taskUserIds = parseUserIds(task.user_id);
+                    var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
+                    var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
+                    var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
+
+                    if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
+                        matchesSelectedAssignee = true;
+                        break;
+                    }
+                } else {
+                    // Legacy format: just user_id (for backward compatibility)
+                    var taskUserIds = parseUserIds(task.user_id);
+                    var selectedUserId = selectedId ? parseInt(selectedId) : null;
+
+                    if (taskUserIds.length > 0 && selectedUserId !== null && taskUserIds.indexOf(selectedUserId) >= 0) {
+                        matchesSelectedAssignee = true;
+                        break;
+                    }
+                }
+            }
+
+            if (matchesSelectedAssignee) {
+                var compositeId = task.odoo_record_id + "_" + task.account_id;
+                matchingTaskIds.add(compositeId);
+                console.log("TaskList: Direct match found for task:", task.name, "ID:", compositeId);
+            }
+        }
+
+        // Second pass: Include parent tasks for matched tasks to maintain hierarchy
+        var toProcess = Array.from(matchingTaskIds);
+        for (var i = 0; i < toProcess.length; i++) {
+            var compositeId = toProcess[i];
+            var task = taskById[compositeId];
+
+            if (task && task.parent_id && task.parent_id !== 0) {
+                var parentCompositeId = task.parent_id + "_" + task.account_id;
+                var parentTask = taskById[parentCompositeId];
+
+                if (parentTask && !matchingTaskIds.has(parentCompositeId)) {
+                    matchingTaskIds.add(parentCompositeId);
+                    toProcess.push(parentCompositeId); // Continue up the hierarchy
+                    console.log("TaskList: Adding parent task for hierarchy:", parentTask.name, "ID:", parentCompositeId);
+                }
+            }
+        }
+
+        // Build final filtered tasks list
+        var filteredTasks = [];
+        for (var i = 0; i < tasks.length; i++) {
+            var task = tasks[i];
+            var compositeId = task.odoo_record_id + "_" + task.account_id;
+
+            if (matchingTaskIds.has(compositeId)) {
+                filteredTasks.push(task);
+            }
+        }
+
+        console.log("TaskList: Hierarchical filter result - matched tasks:", matchingTaskIds.size, "final count:", filteredTasks.length);
+        return filteredTasks;
+    }
 
     function refreshWithFilter() {
-        
-        if (filterByAccount && selectedAccountId >= 0) {
 
+        // Restore from global state if assignee filter is enabled but IDs are missing
+        if (filterByAssignees && selectedAssigneeIds.length === 0)
+        // Try to restore from global state - we need to access the Global object from TaskList
+        // Since TaskList doesn't import Global, we'll let Task_Page handle this restoration
+
+        {}
+
+        if (filterByAssignees && selectedAssigneeIds.length > 0) {
+            // Filter by assignees with hierarchical support
+            var assigneeTasks;
+            var accountParam = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1;
+
+            assigneeTasks = Task.getTasksByAssigneesHierarchical(selectedAssigneeIds, accountParam, currentFilter, currentSearchQuery);
+
+            updateDisplayedTasks(assigneeTasks);
+        } else if (filterByAccount && selectedAccountId >= 0) {
             var accountTasks;
             if (currentFilter === "all" && !currentSearchQuery) {
                 accountTasks = Task.getTasksForAccount(selectedAccountId);
@@ -170,40 +338,53 @@ Item {
             }
             updateDisplayedTasks(accountTasks);
         } else if (currentFilter === "all" && !currentSearchQuery) {
-            populateTaskChildrenMap(); 
+            populateTaskChildrenMap();
         } else if (currentFilter && currentFilter !== "" || currentSearchQuery) {
             var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
             updateDisplayedTasks(filteredTasks);
         } else {
             populateTaskChildrenMap();
         }
-
     }
 
     function applyAccountFilter(accountId) {
-        console.log("🔍 TaskList.applyAccountFilter called with accountId:", accountId);
-        
         filterByAccount = (accountId >= 0);
         selectedAccountId = accountId;
-        filterByProject = false; 
+        filterByProject = false;
 
-        
         refreshWithFilter();
-
     }
 
     function clearAccountFilter() {
-        
         filterByAccount = false;
-        selectedAccountId = -1;
-        
+        selectedAccountId = accountPicker.selectedAccountId;
 
-        
         refreshWithFilter();
-        
-
     }
 
+    // Function to remove a task from the displayed list
+    function removeTaskFromList(localId) {
+        // Find the task in the current parent's children
+        var currentModel = childrenMap[currentParentId];
+        if (!currentModel)
+            return;
+
+        // childrenMap contains ListModel objects, not arrays
+        // Use ListModel.count and ListModel.get() to iterate
+        var indexToRemove = -1;
+        for (var i = 0; i < currentModel.count; i++) {
+            var item = currentModel.get(i);
+            if (item.local_id === localId) {
+                indexToRemove = i;
+                break;
+            }
+        }
+
+        if (indexToRemove >= 0) {
+            // Remove from the ListModel using its API
+            currentModel.remove(indexToRemove);
+        }
+    }
 
     // New function to update displayed tasks with filtered data
     function updateDisplayedTasks(tasks) {
@@ -297,7 +478,7 @@ Item {
         childrenMap = {};
         childrenMapReady = false;
 
-        var allTasks = Task.getAllTasks(); // import tasks.js as Task
+        var allTasks = Task.getAllTasksForAccount(accountPicker.selectedAccountId); // import tasks.js as Task
 
         if (allTasks.length === 0) {
             childrenMapReady = true;
@@ -415,7 +596,8 @@ Item {
                     projectName: model.project
                     colorPallet: model.color_pallet
                     stage: model.stage
-                    //accountId:model.account_id
+                    accountId: model.account_id
+                    isMyTasksContext: taskNavigator.isMyTasksContext
 
                     onEditRequested: id => {
                         taskEditRequested(local_id);
@@ -428,6 +610,10 @@ Item {
                     }
                     onTimesheetRequested: localId => {
                         taskTimesheetRequested(localId);
+                    }
+                    onTaskStageChanged: localId => {
+                        // Remove the task from the current list display
+                        removeTaskFromList(localId);
                     }
 
                     // MouseArea for task interaction - navigation for parent tasks, view for regular tasks

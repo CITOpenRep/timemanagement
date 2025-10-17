@@ -33,7 +33,7 @@ import "../models/accounts.js" as Account
 
 Page {
     id: listpage
-    title: "Menu"
+    title: i18n.dtr("ubtms", "Menu")
     property bool isMultiColumn: apLayout.columns > 1
     anchors.fill: parent
     header: PageHeader {
@@ -74,6 +74,13 @@ Page {
                     // if (typeof mainView !== 'undefined' && mainView.saveThemePreference) {
                     //     mainView.saveThemePreference(newTheme);
                     // }
+                }
+            },
+            Action {
+                iconName: "account"
+                text: i18n.dtr("ubtms", "Switch Accounts")
+                onTriggered: {
+                    accountPicker.open(0);
                 }
             }
         ]
@@ -192,13 +199,44 @@ Page {
                         Icon {
                             width: units.gu(2.5)
                             height: units.gu(2.5)
+                            name: "scope-manager"
+                        }
+
+                        Label {
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignLeft
+                            text: "My Tasks"
+                        }
+                    }
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("MyTasks.qml"));
+                    page = 3;
+                    apLayout.setCurrentPage(page);
+                }
+            }
+            ListItem {
+                height: units.gu(6)
+                Rectangle {
+                    color: "transparent"
+                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.leftMargin: units.gu(3)
+
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: units.gu(2)
+
+                        Icon {
+                            width: units.gu(2.5)
+                            height: units.gu(2.5)
                             name: "view-list-symbolic"
                         }
 
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "Tasks"
+                            text: "All Tasks"
                         }
                     }
                 }

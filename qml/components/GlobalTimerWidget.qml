@@ -468,6 +468,9 @@ Rectangle {
         }
     }
 
+    // Property for notification function
+    property var showNotification: null
+
     // Description popup for when timer is stopped
     TimeSheetDescriptionPopup {
         id: descriptionPopup
@@ -476,6 +479,18 @@ Rectangle {
             console.log("Timesheet description saved:", description, "Status:", status);
             // Stop the timer after saving
             TimerService.stop();
+        }
+
+        onFinalized: function (success, message) {
+            console.log("Timesheet finalized:", success, "Message:", message);
+            // Show notification if function is available
+            if (globalTimer.showNotification) {
+                if (success) {
+                    globalTimer.showNotification("Success", message, "success");
+                } else {
+                    globalTimer.showNotification("Update needed", message, "error");
+                }
+            }
         }
 
         onCancelled: {

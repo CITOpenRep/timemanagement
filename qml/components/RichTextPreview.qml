@@ -4,7 +4,7 @@ import Lomiri.Components 1.3
 Rectangle {
     id: root
     property alias text: previewText.text
-    property string title: "Description"
+    property string title: i18n.dtr("ubtms", "Description")
     property bool is_read_only: true
     property bool useRichText: true
 

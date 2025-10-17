@@ -236,40 +236,60 @@ function getOpenProjectStages() {
     }
     return openStages;
 }
-
-
-
-function getAttachmentsForProject(odooRecordId) {
+/**
+ * Retrieves all attachments for a given project and account.
+ *
+ * Handles corner case: project record IDs can be same across multiple accounts.
+ *
+ * @param {int} accountId - Account ID to filter attachments.
+ * @param {int} odooRecordId - Odoo record ID of the project.
+ * @returns {Array<Object>} A list of attachment objects.
+ */
+function getAttachmentsForProject(odooRecordId,accountId) {
     var attachmentList = [];
 
     try {
-        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
 
         db.transaction(function (tx) {
             var query = `
-                SELECT name, mimetype, account_id,odoo_record_id
+                SELECT name, mimetype, account_id, odoo_record_id
                 FROM ir_attachment_app
-                WHERE res_model = 'project.project' AND res_id = ?
+                WHERE res_model = 'project.project'
+                  AND res_id = ?
+                  AND account_id = ?
                 ORDER BY name COLLATE NOCASE ASC
             `;
 
-            var result = tx.executeSql(query, [odooRecordId]);
+            var result = tx.executeSql(query, [odooRecordId, accountId]);
 
             for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+
                 attachmentList.push({
-                    name: result.rows.item(i).name,
-                    mimetype: result.rows.item(i).mimetype,
-                    account_id:result.rows.item(i).account_id,
-                    odoo_record_id:result.rows.item(i).odoo_record_id,
+                    id: i,
+                    name: row.name,
+                    mimetype: row.mimetype,
+                    account_id: row.account_id,
+                    odoo_record_id: row.odoo_record_id,
+                    url: "",        // placeholder for file path if added later
+                    size: 0,        // unknown at this stage
+                    created: ""     // optional, to be filled if available later
                 });
             }
         });
     } catch (e) {
-        console.error("getAttachmentsForProject failed:", e);
+        DBCommon.logException("getAttachmentsForProject", e);
     }
 
     return attachmentList;
 }
+
 
 function getFromCache(recordId) {
     var data = null;
@@ -586,8 +606,6 @@ function markProjectUpdateAsDeleted(updateId) {
  * @returns {Array<Object>} - A list of objects with `project_id`, `name`, and `spentHours`.
  */
 function getProjectSpentHoursList(is_work_state, accountId) {
-    console.log("🔍 getProjectSpentHoursList called with is_work_state =", is_work_state, "accountId =", accountId);
-
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var resultList = [];
     var projectSpentMap = {};

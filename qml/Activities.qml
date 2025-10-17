@@ -15,7 +15,7 @@ import "components"
 
 Page {
     id: activityDetailsPage
-    title: "Activity"
+    title: i18n.dtr("ubtms", "Activity")
     property var recordid: 0
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
@@ -108,7 +108,7 @@ Page {
         id: saveDiscardDialog
         onSaveRequested: {
             saveActivityData();
-           // navigateBack(); // Do not navigate back immediately after save - stay on the page so if user wants to continue editing, they can or if there are validation errors they can correct them
+            // navigateBack(); // Do not navigate back immediately after save - stay on the page so if user wants to continue editing, they can or if there are validation errors they can correct them
         }
         onDiscardRequested: {
             // Delete the unsaved activity
@@ -566,6 +566,9 @@ Page {
         console.log("🔍 Activities.qml: Visibility changed to:", visible, "- recordid:", recordid);
 
         if (visible) {
+            // Update navigation tracking when Activities detail page becomes visible
+            Global.setLastVisitedPage("Activities");
+
             // Reset the navigation tracking flag when page becomes visible
             navigatingToReadMore = false;
 

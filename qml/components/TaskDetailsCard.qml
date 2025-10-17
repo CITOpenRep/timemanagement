@@ -1,26 +1,26 @@
 /*
- * MIT License
- *
- * Copyright (c) 2025 CIT-Services
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+* MIT License
+*
+* Copyright (c) 2025 CIT-Services
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
 import QtQuick 2.12
 import QtQuick.Controls 2.2
 import "../../models/constants.js" as AppConst
@@ -28,7 +28,9 @@ import "../../models/utils.js" as Utils
 import "../../models/timesheet.js" as Timesheet
 import "../../models/timer_service.js" as TimerService
 import "../../models/task.js" as Task
+import "../../models/accounts.js" as Account
 import Lomiri.Components 1.3
+import Lomiri.Components.Popups 1.3
 import QtQuick.Layouts 1.1
 
 ListItem {
@@ -54,12 +56,15 @@ ListItem {
     property bool timer_on: false
     property bool timer_paused: false
     property bool starInteractionActive: false
+    property bool isMyTasksContext: false // Set to true when used in MyTasks page
+    property int accountId: -1 // Account ID for the task
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
     signal viewRequested(int localId)
     signal timesheetRequested(int localId)
     signal taskUpdated(int localId)
+    signal taskStageChanged(int localId) // Emitted when personal stage changes in MyTasks
 
     NotificationPopup {
         id: notifPopup
@@ -75,6 +80,15 @@ ListItem {
 
         onDateRangeSelected: {
             updateTaskDateRange(startDate, endDate);
+        }
+    }
+
+    Component {
+        id: personalStageSelector
+        PersonalStageSelector {
+            onPersonalStageSelected: {
+                taskCard.handlePersonalStageChange(personalStageOdooRecordId, personalStageName);
+            }
         }
     }
 
@@ -186,6 +200,30 @@ ListItem {
             TimerService.stop();
     }
 
+    function handlePersonalStageChange(personalStageOdooRecordId, personalStageName) {
+        if (localId <= 0 || accountId < 0) {
+            notifPopup.open("Error", "Task data not available", "error");
+            return;
+        }
+
+        var result = Task.updateTaskPersonalStage(localId, personalStageOdooRecordId, accountId);
+
+        if (result.success) {
+            var message = personalStageOdooRecordId === null ? "Personal stage cleared" : "Personal stage changed to: " + personalStageName;
+            notifPopup.open("Success", message, "success");
+
+            // In MyTasks context, emit signal to remove task from current list
+            // In other contexts, emit the update signal
+            if (isMyTasksContext) {
+                taskStageChanged(localId);
+            } else {
+                taskUpdated(localId);
+            }
+        } else {
+            notifPopup.open("Error", "Failed to change personal stage: " + (result.error || "Unknown error"), "error");
+        }
+    }
+
     trailingActions: ListItemActions {
         actions: [
             Action {
@@ -225,8 +263,34 @@ ListItem {
             Action {
                 iconName: "reload"
                 onTriggered: {
-                    // Open date range selector popup
-                    dateRangeSelector.open();
+                    // In MyTasks context: show personal stage selector
+                    // In Tasks/All Tasks context: show date range selector
+                    if (isMyTasksContext) {
+                        // Get current task details to pass to dialog
+                        var taskDetails = Task.getTaskDetails(localId);
+                        if (taskDetails && taskDetails.id) {
+                            var currentUserOdooId = Account.getCurrentUserOdooId(accountId);
+
+                            // Check if the current user is assigned to this task
+                            var isAssigned = Task.isUserAssignedToTask(localId, currentUserOdooId);
+
+                            if (!isAssigned) {
+                                notifPopup.open("Not Allowed", "You cannot change the personal stage of this task because you are not assigned to it. " + "This task is displayed only because you are assigned to one of its subtasks.", "warning");
+                                return;
+                            }
+
+                            PopupUtils.open(personalStageSelector, taskCard, {
+                                taskId: localId,
+                                accountId: accountId,
+                                userId: currentUserOdooId,
+                                currentPersonalStageOdooRecordId: taskDetails.personal_stage || -1
+                            });
+                        } else {
+                            notifPopup.open("Error", "Unable to load task details", "error");
+                        }
+                    } else {
+                        dateRangeSelector.open();
+                    }
                 }
             }
         ]
@@ -360,16 +424,40 @@ ListItem {
                         height: parent.height - units.gu(2)
                         spacing: units.gu(0.2)
 
-                        Text {
-                            id: projectTitleText
-                            text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
-                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                            font.pixelSize: units.gu(2)
-
-                            wrapMode: Text.WordWrap
-                            maximumLineCount: 2
-                            clip: true
+                        Row {
+                            spacing: units.gu(1)
                             width: parent.width - units.gu(2)
+
+                            Text {
+                                id: projectTitleText
+                                text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
+                                color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
+                                font.pixelSize: units.gu(2)
+
+                                wrapMode: Text.WordWrap
+                                maximumLineCount: 2
+                                clip: true
+                                width: parent.width - (notAssignedIndicator.visible ? notAssignedIndicator.width + units.gu(1) : 0)
+                            }
+
+                            // Indicator showing when user is not assigned to this task
+                            Rectangle {
+                                id: notAssignedIndicator
+                                visible: isMyTasksContext && accountId >= 0 && localId > 0 && !Task.isUserAssignedToTask(localId, Account.getCurrentUserOdooId(accountId))
+                                width: visible ? units.gu(3) : 0
+                                height: units.gu(2)
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#e0e0e0"
+                                radius: units.gu(0.5)
+                                anchors.verticalCenter: projectTitleText.verticalCenter
+
+                                Icon {
+                                    name: "lock"
+                                    width: units.gu(1.5)
+                                    height: units.gu(1.5)
+                                    anchors.centerIn: parent
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666"
+                                }
+                            }
                         }
 
                         Text {

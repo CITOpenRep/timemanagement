@@ -20,7 +20,7 @@ Item {
 
         Dialog {
             id: colorDialog
-            title: "Select Color"
+            title: i18n.dtr("ubtms", "Select Color")
             modal: true
             focus: true
             anchors.centerIn: parent

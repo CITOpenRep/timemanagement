@@ -32,11 +32,12 @@ import "../models/task.js" as Task
 import "../models/activity.js" as Activity
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Accounts
+import "../models/global.js" as Global
 import "components"
 
 Page {
     id: activity
-    title: "Activities"
+    title: i18n.dtr("ubtms", "Activities")
     header: PageHeader {
         id: taskheader
         title: filterByProject ? "Activities - " + projectName : activity.title
@@ -64,11 +65,21 @@ Page {
                 }
             },
             Action {
-                iconName: "account"
+                iconName: "filters"
+                text: "Filter by Assignees"
                 onTriggered: {
-                    accountFilterVisible = !accountFilterVisible;
+                    assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
                 }
             }
+            // Action {
+            //     iconName: "account"
+            //     text: "Filter by Account"
+            //     onTriggered: {
+            //         accountFilter.expanded = !accountFilter.expanded;
+            //     }
+            // }
+
+
         ]
     }
 
@@ -80,13 +91,57 @@ Page {
     property int projectAccountId: -1
     property string projectName: ""
 
-    property bool filterByAccount: true
-    property int selectedAccountId: Accounts.getDefaultAccountId()
+    property bool filterByAccount: false
+    property int selectedAccountId: accountPicker.selectedAccountId
+
+    // Properties for assignee filtering
+    property bool filterByAssignees: false
+    property var selectedAssigneeIds: []
+    property var availableAssignees: []
 
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
+    }
+
+    Connections {
+        target: accountPicker
+
+        onAccepted: function (id, name) {
+            console.log("Activity_Page: Account picker selection changed to", id, name);
+            handleAccountChange(id);
+        }
+    }
+
+    function handleAccountChange(accountId) {
+        console.log("Activity_Page: Account changed to", accountId);
+
+        // Normalize account ID to number
+        var idNum = -1;
+        try {
+            if (typeof accountId !== "undefined" && accountId !== null) {
+                var maybeNum = Number(accountId);
+                idNum = isNaN(maybeNum) ? -1 : maybeNum;
+            }
+        } catch (e) {
+            idNum = -1;
+        }
+
+        // If -1, use default account instead (like MyTasks and other pages)
+        if (idNum === -1) {
+            idNum = Accounts.getDefaultAccountId();
+            console.log("Activity_Page: Account ID was -1, using default account:", idNum);
+        }
+
+        selectedAccountId = idNum;
+        filterByAccount = (idNum >= 0);
+
+        // Reload assignees for the new account
+        loadAssignees();
+
+        // Refresh the activity list
+        get_activity_list();
     }
 
     function shouldIncludeItem(item) {
@@ -137,11 +192,49 @@ Page {
             } else {
                 // Normal account-based filtering
                 if (currentFilter && currentFilter !== "" || currentSearchQuery) {
-                    allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, currentAccountId);
+                    // Pass currentAccountId only if filterByAccount is true and selectedAccountId >= 0
+                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                    allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
                 } else {
-                    allActivities = Activity.getActivitiesForAccount(currentAccountId);
+                    if (filterByAccount && currentAccountId >= 0) {
+                        allActivities = Activity.getActivitiesForAccount(currentAccountId);
+                    } else {
+                        allActivities = Activity.getAllActivities();
+                    }
                 }
-                console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId);
+                console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId >= 0 ? currentAccountId : "all");
+            }
+
+            // Apply assignee filtering if enabled
+            var menuSelectedIds = assigneeFilterMenu.selectedAssigneeIds || [];
+            if (filterByAssignees && menuSelectedIds && menuSelectedIds.length > 0) {
+                var assigneeFilteredActivities = [];
+                for (let i = 0; i < allActivities.length; i++) {
+                    var item = allActivities[i];
+                    // Check if the activity matches any selected assignee (considering both user_id and account_id)
+                    var matchesSelectedAssignee = false;
+                    for (let j = 0; j < menuSelectedIds.length; j++) {
+                        var selectedId = menuSelectedIds[j];
+                        // Handle both simple ID (old format) and composite format
+                        if (typeof selectedId === 'object') {
+                            // New format: {user_id: X, account_id: Y}
+                            if (item.user_id && item.account_id && parseInt(item.user_id) === selectedId.user_id && parseInt(item.account_id) === selectedId.account_id) {
+                                matchesSelectedAssignee = true;
+                                break;
+                            }
+                        } else {
+                            // Legacy format: just user_id (for backward compatibility)
+                            if (item.user_id && parseInt(item.user_id) === parseInt(selectedId)) {
+                                matchesSelectedAssignee = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (matchesSelectedAssignee) {
+                        assigneeFilteredActivities.push(item);
+                    }
+                }
+                allActivities = assigneeFilteredActivities;
             }
 
             var filteredActivities = [];
@@ -201,7 +294,7 @@ Page {
     function applyAccountFilter(accountId) {
         console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
 
-        filterByAccount = (accountId >= 0);
+        filterByAccount = true;
         selectedAccountId = accountId;
 
         get_activity_list();
@@ -214,6 +307,87 @@ Page {
         selectedAccountId = -1;
 
         get_activity_list();
+    }
+
+    // Function to load available assignees for the current account
+    function loadAssignees() {
+        try {
+            var currentAccountId = selectedAccountId;
+            if (typeof currentAccountId === "undefined" || currentAccountId === null)
+                currentAccountId = -1;
+
+            // When filtering by project, use the project's account for assignee loading
+            if (filterByProject && projectAccountId >= 0) {
+                // Use the project's account to load assignees
+                var rawAssignees = Accounts.getUsers(projectAccountId);
+
+                // Filter and format assignees like MultiAssigneeSelector does
+                var filteredAssignees = [];
+                for (var i = 0; i < rawAssignees.length; i++) {
+                    var assignee = rawAssignees[i];
+                    var id = (projectAccountId === 0) ? assignee.id : assignee.odoo_record_id;
+                    if (id > 0) {
+                        // Skip invalid/placeholder entries
+                        filteredAssignees.push({
+                            id: id,
+                            odoo_record_id: id,
+                            name: assignee.name,
+                            account_name: assignee.account_name || "",
+                            account_id: projectAccountId
+                        });
+                    }
+                }
+
+                availableAssignees = filteredAssignees;
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+            } else if (filterByAccount && currentAccountId >= 0) {
+                // Use the same method as MultiAssigneeSelector for specific account
+                var rawAssignees = Accounts.getUsers(currentAccountId);
+
+                // Filter and format assignees like MultiAssigneeSelector does
+                var filteredAssignees = [];
+                for (var i = 0; i < rawAssignees.length; i++) {
+                    var assignee = rawAssignees[i];
+                    var id = (currentAccountId === 0) ? assignee.id : assignee.odoo_record_id;
+                    if (id > 0) {
+                        // Skip invalid/placeholder entries
+                        filteredAssignees.push({
+                            id: id,
+                            odoo_record_id: id,
+                            name: assignee.name,
+                            account_name: assignee.account_name || "",
+                            account_id: currentAccountId
+                        });
+                    }
+                }
+
+                availableAssignees = filteredAssignees;
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+            } else {
+                // For "All Accounts" (-1), load assignees from all accounts that have activities
+                availableAssignees = Activity.getAllActivityAssignees(-1); // -1 means all accounts
+                assigneeFilterMenu.assigneeModel = availableAssignees;
+            }
+        } catch (e) {
+            console.error("Error loading assignees:", e);
+            availableAssignees = [];
+            assigneeFilterMenu.assigneeModel = [];
+        }
+    }
+
+    // Function to restore assignee filter state from global storage
+    function restoreAssigneeFilterState() {
+        var globalFilter = Global.getAssigneeFilter();
+
+        if (globalFilter.enabled && globalFilter.assigneeIds.length > 0) {
+            activity.filterByAssignees = true;
+            activity.selectedAssigneeIds = globalFilter.assigneeIds;
+            assigneeFilterMenu.selectedAssigneeIds = globalFilter.assigneeIds;
+        } else if (!globalFilter.enabled) {
+            activity.filterByAssignees = false;
+            activity.selectedAssigneeIds = [];
+            assigneeFilterMenu.selectedAssigneeIds = [];
+        }
     }
 
     /*
@@ -346,10 +520,18 @@ Page {
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
+
+            // Restore assignee filter state from global storage
+            restoreAssigneeFilterState();
+
             get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
+
+            // Restore assignee filter state from global storage
+            restoreAssigneeFilterState();
+
             get_activity_list();
         }
     }
@@ -432,21 +614,158 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            // Sync with mainView's current account (primary source of truth)
+            if (typeof mainView !== 'undefined' && mainView !== null) {
+                if (typeof mainView.currentAccountId !== 'undefined') {
+                    var acctId = mainView.currentAccountId;
+                    if (acctId !== selectedAccountId && acctId >= -1) {
+                        console.log("Activity_Page: Syncing with mainView.currentAccountId on visible:", acctId);
+                        handleAccountChange(acctId);
+                        return; // handleAccountChange will refresh everything
+                    }
+                }
+            }
+
+            // Check if we're coming from an activity-related page
+            var previousPage = Global.getLastVisitedPage();
+            var shouldPreserve = Global.shouldPreserveAssigneeFilter("Activity_Page", previousPage);
+
+            console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
+
+            if (shouldPreserve) {
+                // Restore assignee filter from global state when returning from Activities detail page
+                restoreAssigneeFilterState();
+
+                console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
+            } else {
+                // Clear filter when coming from non-activity pages (Dashboard, Tasks, etc.)
+                activity.filterByAssignees = false;
+                activity.selectedAssigneeIds = [];
+                assigneeFilterMenu.selectedAssigneeIds = [];
+                Global.clearAssigneeFilter();
+
+                console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
+            }
+
+            // Update navigation tracking
+            Global.setLastVisitedPage("Activity_Page");
+
             get_activity_list();
         }
     }
 
-    Connections {
-        target: mainView
-        onAccountDataRefreshRequested: function (accountId) {
-            applyAccountFilter(accountId);
+    // Assignee Filter Menu
+    AssigneeFilterMenu {
+        id: assigneeFilterMenu
+        anchors.fill: parent
+        z: 10
+
+        onFilterApplied: function (assigneeIds) {
+            // Read directly from AssigneeFilterMenu to avoid timing issues
+            var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
+            console.log("Activity_Page: Assignee filter applied - Reading directly from AssigneeFilterMenu");
+            console.log("   Passed parameter:", JSON.stringify(assigneeIds));
+            console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
+
+            selectedAssigneeIds = actualSelectedIds;
+            filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
+
+            // Save to global state for persistence across navigation
+            Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
+            console.log("Activity_Page: Assignee filter saved to global state - enabled:", filterByAssignees);
+
+            get_activity_list();
         }
-        onGlobalAccountChanged: function (accountId, accountName) {
-            applyAccountFilter(accountId);
+
+        onFilterCleared: function () {
+            console.log("Activity_Page: Assignee filter cleared");
+            selectedAssigneeIds = [];
+            filterByAssignees = false;
+
+            // Clear global state
+            Global.clearAssigneeFilter();
+            console.log("Activity_Page: Assignee filter cleared from global state");
+
+            get_activity_list();
         }
     }
 
+    // Account Filter component removed to prevent interference with PageHeader clicks
+    // Account filtering is now handled through global mainView connections
+
+    Connections {
+        target: mainView
+
+        onAccountDataRefreshRequested: function (accountId) {
+            console.log("Activity_Page: Account data refresh requested for:", accountId);
+            if (activity.visible && accountId >= -1) {
+                handleAccountChange(accountId);
+            }
+        }
+
+        onGlobalAccountChanged: function (accountId, accountName) {
+            console.log("Activity_Page: Global account changed to:", accountId, accountName);
+            if (activity.visible && accountId >= -1) {
+                handleAccountChange(accountId);
+            }
+        }
+    }
+
+    Connections {
+        target: typeof accountFilter !== 'undefined' ? accountFilter : null
+
+        function onAccountChanged(accountId, accountName) {
+            console.log("Activity_Page: Account changed via AccountFilter to:", accountId, accountName);
+            if (activity.visible) {
+                handleAccountChange(accountId);
+            }
+        }
+    }
     Component.onCompleted: {
+        // Primary source: accountPicker (direct initialization like Timesheet_Page and Projects)
+        if (typeof accountPicker !== 'undefined' && accountPicker !== null) {
+            selectedAccountId = accountPicker.selectedAccountId;
+            filterByAccount = (selectedAccountId >= 0);
+            console.log("Activity_Page: Initialized with accountPicker.selectedAccountId:", selectedAccountId);
+        }
+
+        // Fallback: try mainView
+        if (selectedAccountId === -1) {
+            if (typeof mainView !== 'undefined' && mainView !== null) {
+                if (typeof mainView.currentAccountId !== 'undefined') {
+                    selectedAccountId = mainView.currentAccountId;
+                    filterByAccount = (selectedAccountId >= 0);
+                    console.log("Activity_Page: Using mainView.currentAccountId:", selectedAccountId);
+                }
+            }
+        }
+
+        // Fallback: try accountFilter
+        if (selectedAccountId === -1) {
+            if (typeof accountFilter !== 'undefined' && accountFilter !== null) {
+                if (typeof accountFilter.selectedAccountId !== 'undefined') {
+                    selectedAccountId = accountFilter.selectedAccountId;
+                    filterByAccount = (selectedAccountId >= 0);
+                    console.log("Activity_Page: Using accountFilter.selectedAccountId:", selectedAccountId);
+                }
+            }
+        }
+
+        // Final fallback: use default account (like MyTasks does)
+        if (selectedAccountId === -1) {
+            selectedAccountId = Accounts.getDefaultAccountId();
+            filterByAccount = (selectedAccountId >= 0);
+            console.log("Activity_Page: No account selection found, using default account:", selectedAccountId);
+        }
+
+        // Load assignees for the assignee filter
+        loadAssignees();
+
+        // Initialize with no assignee filter by default
+        activity.filterByAssignees = false;
+        activity.selectedAssigneeIds = [];
+        assigneeFilterMenu.selectedAssigneeIds = [];
+
         get_activity_list();
     }
 }

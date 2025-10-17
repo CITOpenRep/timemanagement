@@ -31,7 +31,7 @@ Item {
 
         Dialog {
             id: createUpdateDialog
-            title: "New Project Update"
+            title: i18n.dtr("ubtms", "New Project Update")
             modal: true
 
             Column {
@@ -43,7 +43,7 @@ Item {
                 TextField {
                     id: titleField
                     width: parent.width
-                    placeholderText: "Update Title"
+                    placeholderText: i18n.dtr("ubtms", "Update Title")
                 }
 
                 // Status Selector (direct keys displayed)
@@ -58,7 +58,7 @@ Item {
                     width: parent.width
                     spacing: units.gu(1)
                     Label {
-                        text: "Progress:"
+                        text: i18n.dtr("ubtms", "Progress:")
                     }
                     Slider {
                         id: progressSlider
@@ -77,7 +77,7 @@ Item {
                     id: descriptionField
                     width: parent.width
                     height: units.gu(8)
-                    placeholderText: "Write your update description..."
+                    placeholderText: i18n.dtr("ubtms", "Write your update description...")
                     wrapMode: TextEdit.Wrap
                 }
 
@@ -86,7 +86,7 @@ Item {
                     width: parent.width
                     spacing: units.gu(2)
                     Button {
-                        text: "Cancel"
+                        text: i18n.dtr("ubtms", "Cancel")
                         onClicked: PopupUtils.close(createUpdateDialog)
                     }
                     Button {

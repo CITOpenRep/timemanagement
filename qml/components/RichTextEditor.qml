@@ -77,9 +77,9 @@ Item {
                 request.action = WebEngineView.IgnoreRequest;
             }
 
-            onJavaScriptConsoleMessage: {
-                console.log("WebView Console:", message);
-            }
+        onJavaScriptConsoleMessage: {
+            console.log("WebView Console:", message);
+        }
 
             // Enable JavaScript
             settings.javascriptEnabled: true

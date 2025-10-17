@@ -33,7 +33,7 @@ import "components"
 
 Page {
     id: createAccountPage
-    title: "Create Account"
+    title: i18n.dtr("ubtms", "Create Account")
 
     property bool isTextInputVisible: false
     property bool isTextMenuVisible: false

@@ -280,7 +280,7 @@ ListItem {
                             }
 
                             Text {
-                                text: accountName !== "" ? accountName : "Local"
+                                text: Utils.truncateText(accountName !== "" ? accountName : "Local", 20)
                                 font.pixelSize: units.gu(1.6)
                                 wrapMode: Text.Wrap
                                 maximumLineCount: 2
@@ -318,7 +318,7 @@ ListItem {
                             Text {
 
                                 text: Project.getProjectStageName(stage)
-                                color: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? "green" : ( theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
+                                color: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
                                 font.pixelSize: units.gu(1.75)
                                 font.bold: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? true : false
                             }

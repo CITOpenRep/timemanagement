@@ -29,7 +29,7 @@ import "../models/Main.js" as Model
 
 Page {
     id: dashboard2
-    title: "Task"
+    title: i18n.dtr("ubtms", "Task")
     header: PageHeader {
         title: dashboard2.title
     }
@@ -42,7 +42,7 @@ Page {
 
         ChartView {
             id: chart4
-            title: "Taskwise Time Spent"
+            title: i18n.dtr("ubtms", "Taskwise Time Spent")
             anchors.fill: parent
             theme: ChartView.ChartThemeHighContrast
             legend.alignment: Qt.AlignBottom

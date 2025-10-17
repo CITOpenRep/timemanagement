@@ -40,7 +40,7 @@ import "components"
 
 Page {
     id: timeSheet
-    title: "Timesheet"
+    title: i18n.dtr("ubtms", "Timesheet")
     header: PageHeader {
         id: tsHeader
         StyleHints {
