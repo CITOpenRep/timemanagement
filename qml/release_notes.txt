@@ -48,7 +48,7 @@
   <li><strong>Personal Stages:</strong> Filter tasks by your <strong>Personal Stages</strong> from Odoo.</li>
   <li><strong>Task Stage Update:</strong> Change task stages directly from the <em>Task Detail View</em>.</li>
   <li><strong>Personal Stage Update:</strong> Update your <strong>Personal Stages</strong> using the <em>Leading Action Button</em> in <em>My Tasks</em> view.</li>
-  <li><strong>Instance Filter:</strong> Easily switch between different accounts with the new <strong>Instance Filter</strong>.</li>
+  <li><strong>Instance Filter:</strong> Easily switch between different accounts with the new <strong>Instance Filter</strong>. (Note: "All" Filter will be implememnted in Next release.)</li>
 </ul>
 
 <h4>Improvements & Fixes</h4>
@@ -57,6 +57,7 @@
   <li><strong>Task Button Layout:</strong> Fixed button alignment for a better interface.</li>
   <li><strong>Task Creation Stage:</strong> Resolved an issue where tasks were created without a stage. </li>
   <li> Users can now select a stage when creating a task.</li>
+   <li>Updated the App Icon.</li>
 </ul>
 
       <h4>06-10-2025 : Version 1.1.7.1</h4>
