@@ -834,6 +834,10 @@
                 console.log('setContent called with:', content);
                 
                 if (content !== lastContent) {
+                    // Save current cursor position before updating content
+                    var selection = quill.getSelection();
+                    var cursorPosition = selection ? selection.index : 0;
+                    
                     if (content.trim() === '') {
                         // Empty content
                         quill.setText('');
@@ -864,6 +868,21 @@
                             quill.setText('');
                         }
                     }
+                    
+                    // Restore cursor position after setting content
+                    // Make sure cursor position is within bounds
+                    var contentLength = quill.getLength();
+                    if (cursorPosition > contentLength) {
+                        cursorPosition = contentLength - 1;
+                    }
+                    if (cursorPosition < 0) {
+                        cursorPosition = 0;
+                    }
+                    
+                    // Restore cursor position with a slight delay to ensure content is rendered
+                    setTimeout(function() {
+                        quill.setSelection(cursorPosition, 0);
+                    }, 10);
                     
                     lastContent = content;
                     console.log('Content set, new innerHTML:', quill.root.innerHTML);

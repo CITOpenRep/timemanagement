@@ -21,6 +21,7 @@ Item {
     // Private properties
     property bool _isLoaded: false
     property string _pendingText: ""
+    property bool _internalUpdate: false  // Flag to prevent feedback loop
 
     // Odoo-style wrapper
     Rectangle {
@@ -205,9 +206,26 @@ Item {
         }
     }
 
+    // Function to force sync current content (useful before page navigation)
+    function syncContent() {
+        if (_isLoaded && !readOnly) {
+            getText(function (content) {
+                if (content !== richTextEditor.text) {
+                    _internalUpdate = true;  // Set flag before updating
+                    richTextEditor.text = content;
+                    richTextEditor.contentChanged(content);
+                    _internalUpdate = false;  // Reset flag after updating
+                }
+            });
+        }
+    }
+
     // Watch for property changes
     onTextChanged: {
-        setText(text);
+        // Only call setText if this is an external update, not from our timer
+        if (!_internalUpdate) {
+            setText(text);
+        }
     }
 
     onReadOnlyChanged: {
@@ -221,22 +239,24 @@ Item {
         }
     }
 
-    // Periodic content sync (alternative approach for text changes)
-    // Timer {
-    //     id: contentSyncTimer
-    //     interval: 500 // Check every 500ms
-    //     running: _isLoaded && !readOnly
-    //     repeat: true
+    // Periodic content sync - ENABLED for autosave functionality
+    Timer {
+        id: contentSyncTimer
+        interval: 500 // Check every 500ms
+        running: _isLoaded && !readOnly
+        repeat: true
 
-    //     onTriggered: {
-    //         getText(function (content) {
-    //             if (content !== richTextEditor.text) {
-    //                 richTextEditor.text = content;
-    //                 richTextEditor.contentChanged(content);
-    //             }
-    //         });
-    //     }
-    // }
+        onTriggered: {
+            getText(function (content) {
+                if (content !== richTextEditor.text) {
+                    _internalUpdate = true;  // Set flag before updating
+                    richTextEditor.text = content;
+                    richTextEditor.contentChanged(content);
+                    _internalUpdate = false;  // Reset flag after updating
+                }
+            });
+        }
+    }
 
     // Loading indicator
     ActivityIndicator {
