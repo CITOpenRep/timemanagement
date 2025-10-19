@@ -432,6 +432,26 @@ function initializeDatabase() {
       ]
     );
 
+    DBCommon.createOrUpdateTable("attachment_download_app",
+        "CREATE TABLE IF NOT EXISTS attachment_download_app (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "account_id INTEGER NOT NULL," +
+            "record_id INTEGER NOT NULL," +      // odoo_record_id or unique local id
+            "file_name TEXT," +
+            "downloaded INTEGER DEFAULT 0," +    // 0 = not downloaded, 1 = downloaded
+            "UNIQUE (record_id, account_id)" +
+        ")",
+        [
+            "id INTEGER",
+            "account_id INTEGER",
+            "record_id INTEGER",
+            "file_name TEXT",
+            "downloaded INTEGER"
+        ]
+    );
+
+
+
     // Form drafts table for auto-save and crash recovery
     DBCommon.createOrUpdateTable("form_drafts",
         'CREATE TABLE IF NOT EXISTS form_drafts (' +
