@@ -33,6 +33,16 @@
 
       <h3>Change History : </h3>
 
+      <h4> 19-10-2025 : Version 1.1.8.1 </h4>
+
+      <h4>Bug Fixes and Enhancement</h4>
+<ul>
+<li>Added Text Consistency between WebView and TextArea for Rich Text Preview. Now text edited in Rich Text editor will be maintained even if you press back button. Do submit the form view , if you have made any changes. </li>
+<li>Improved UI and added few more options in Rich Text Editor.</li>
+</ul>
+
+
+
           <h4>17-10-2025 : Version 1.1.8</h4>
 
 <p><strong>Note:</strong></p>
