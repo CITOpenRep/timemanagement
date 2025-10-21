@@ -36,15 +36,15 @@ Page {
         }
 
         trailingActionBar.actions: [
-            Action {
-                iconName: "close"
-                text: "Cancel"
-                onTriggered: {
-                    // Clear temporary holder and go back
-                    Global.description_temporary_holder = "";
-                    pageStack.removePages(createUpdatePage);
-                }
-            },
+            // Action {
+            //     iconName: "close"
+            //     text: "Cancel"
+            //     onTriggered: {
+            //         // Clear temporary holder and go back
+            //         Global.description_temporary_holder = "";
+            //         pageStack.removePages(createUpdatePage);
+            //     }
+            // },
             Action {
                 iconName: "tick"
                 text: "Create"
@@ -165,7 +165,7 @@ Page {
                     radius: units.gu(0.5)
                     border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
                     border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                    z: -1
+                  //  z: -1
                 }
             }
 
