@@ -110,12 +110,12 @@ Page {
         Column {
             id: contentColumn
             width: parent.width
-            spacing: units.gu(2)
+            spacing: units.gu(1)
             anchors.margins: units.gu(2)
             anchors.left: parent.left
             anchors.right: parent.right
             topPadding: units.gu(2)
-            leftPadding: units.gu(2)
+            leftPadding: units.gu(1)
             rightPadding: units.gu(2)
 
             // Update Title
@@ -126,7 +126,7 @@ Page {
 
             TextField {
                 id: titleField
-                width: parent.width - units.gu(4)
+                width: parent.width - units.gu(2)
                 placeholderText: i18n.dtr("ubtms", "Enter update title...")
 
                 Rectangle {
@@ -149,7 +149,7 @@ Page {
 
             ComboBox {
                 id: statusSelector
-                width: parent.width - units.gu(4)
+                width: parent.width - units.gu(2)
                 model: createUpdatePage.projectUpdateStatus
                 currentIndex: 0
             }
@@ -163,7 +163,7 @@ Page {
             }
 
             RowLayout {
-                width: parent.width - units.gu(4)
+                width: parent.width - units.gu(2)
                 spacing: units.gu(2)
 
                 Slider {
@@ -191,7 +191,7 @@ Page {
 
             RichTextPreview {
                 id: descriptionField
-                width: parent.width - units.gu(4)
+                width: parent.width - units.gu(1)
                 height: units.gu(20)
                 title: ""  // No title since we have a label above
                 is_read_only: false

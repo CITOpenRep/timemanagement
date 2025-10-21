@@ -7,6 +7,8 @@
  * Please use CreateUpdatePage.qml instead for proper page navigation support.
  */
 
+ // This component is deprecated , CreateUpdatePage.qml is Used instead.
+
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components.Popups 1.3
