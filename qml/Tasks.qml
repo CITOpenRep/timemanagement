@@ -155,7 +155,11 @@ Page {
         id: saveDiscardDialog
         onSaveRequested: {
             console.log("💾 SaveDiscardDialog: Saving task...");
-            save_task_data();
+            var success = save_task_data(true); // true = skip automatic navigation
+            // Only navigate back if save was successful
+            if (success) {
+                Qt.callLater(navigateBack);
+            }
         }
         onDiscardRequested: {
             console.log("🗑️ SaveDiscardDialog: Discarding changes...");
@@ -305,7 +309,7 @@ Page {
         return text;
     }
 
-    function save_task_data() {
+    function save_task_data(skipNavigation) {
         const ids = workItem.getIds();
 
         // Check for assignees - either single or multiple
@@ -318,17 +322,17 @@ Page {
 
         if (!hasAssignees) {
             notifPopup.open("Error", "Please select at least one assignee", "error");
-            return;
+            return false;
         }
         if (!ids.project_id) {
             notifPopup.open("Error", "Please select the project", "error");
-            return;
+            return false;
         }
 
         // Validate hours input before saving
         if (hours_input.text !== "" && !validateHoursInput(hours_input.text)) {
             notifPopup.open("Error", "Please enter valid hours (e.g., 1.5, 2:30, or 8:00)", "error");
-            return;
+            return false;
         }
 
         if (name_text.text != "") {
@@ -391,6 +395,7 @@ Page {
             const result = Task.saveOrUpdateTask(saveData);
             if (!result.success) {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
+                return false;
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
                 
@@ -402,11 +407,16 @@ Page {
                     hours_input.text = formatHoursDisplay(hours_input.text);
                 }
                 
-                // Navigate back to list view after successful save
-                navigateBack();
+                // Navigate back to list view after successful save (unless skipNavigation is true)
+                if (!skipNavigation) {
+                    navigateBack();
+                }
+                
+                return true;
             }
         } else {
             notifPopup.open("Error", "Please add a Name to the task", "error");
+            return false;
         }
 
     //  isReadOnly = true; // Switch back to read-only mode after saving

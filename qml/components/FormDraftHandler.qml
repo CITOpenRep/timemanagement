@@ -104,6 +104,11 @@ Item {
      */
     property bool _initialized: false
     
+    /**
+     * Internal flag to prevent saving draft on destruction after explicit save/discard
+     */
+    property bool _preventAutoSave: false
+    
     // Make this invisible - it's just for logic
     visible: false
     width: 0
@@ -139,11 +144,11 @@ Item {
     Timer {
         id: autoSaveTimer
         interval: root.autoSaveInterval
-        running: root.enabled && root._initialized && root.hasUnsavedChanges
+        running: root.enabled && root._initialized && root.hasUnsavedChanges && !root._preventAutoSave
         repeat: true
         
         onTriggered: {
-            if (root.hasUnsavedChanges) {
+            if (root.hasUnsavedChanges && !root._preventAutoSave) {
                 console.log("🔄 Auto-saving draft for " + root.draftType + "...");
                 root.saveDraft();
             }
@@ -210,7 +215,7 @@ Item {
      * @param value - New value
      */
     function markFieldChanged(fieldName, value) {
-        if (!enabled || !_initialized) return;
+        if (!enabled || !_initialized || _preventAutoSave) return;
         
         // Update current form data
         currentFormData[fieldName] = value;
@@ -260,29 +265,35 @@ Item {
     function clearDraft() {
         if (!enabled) return;
         
-        console.log("🗑️ Clearing draft for " + draftType);
+        console.log("🗑️ Clearing draft for " + draftType + " (recordId: " + recordId + ", accountId: " + accountId + ", pageId: " + pageIdentifier + ")");
         
         // Delete from database if exists
         if (currentDraftId) {
             var result = DraftManager.deleteDraft(currentDraftId);
             if (result.success) {
-                console.log("✅ Draft cleared successfully");
+                console.log("✅ Draft #" + currentDraftId + " cleared successfully");
             }
         }
         
-        // Also delete by criteria (in case currentDraftId is not set)
-        DraftManager.deleteDrafts({
+        // Also delete by criteria (in case currentDraftId is not set or multiple drafts exist)
+        console.log("🔍 Searching for additional drafts to clean up...");
+        var deleteAllResult = DraftManager.deleteDrafts({
             draftType: draftType,
             recordId: recordId,
             accountId: accountId,
             pageIdentifier: pageIdentifier
         });
         
+        if (deleteAllResult.deletedCount > 0) {
+            console.log("🧹 Cleaned up " + deleteAllResult.deletedCount + " additional draft(s)");
+        }
+        
         // Reset state
         currentDraftId = null;
         hasUnsavedChanges = false;
         changedFields = [];
         currentFormData = JSON.parse(JSON.stringify(originalData)); // Reset to original
+        _preventAutoSave = true; // Prevent auto-save on destruction
         
         draftCleared();
     }
@@ -358,9 +369,12 @@ Item {
     
     Component.onDestruction: {
         // Save draft one last time before component is destroyed
-        if (enabled && _initialized && hasUnsavedChanges) {
+        // But NOT if we just cleared the draft (after save or discard)
+        if (enabled && _initialized && hasUnsavedChanges && !_preventAutoSave) {
             console.log("💾 Saving draft before page destruction...");
             saveDraft();
+        } else if (_preventAutoSave) {
+            console.log("⏭️ Skipping auto-save on destruction (draft was cleared)");
         }
     }
 }

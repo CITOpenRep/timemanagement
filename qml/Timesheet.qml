@@ -92,7 +92,7 @@ Page {
         ]
     }
 
-    function save_timesheet() {
+    function save_timesheet(skipNavigation) {
         let time = time_sheet_widget.elapsedTime;
 
         const currentStatus = getCurrentTimesheetStatus();
@@ -111,17 +111,17 @@ Page {
 
         if (!user) {
             notifPopup.open("Error", "Unable to find the user, cannot save", "error");
-            return;
+            return false;
         }
 
         if (ids.project_id === null) {
             notifPopup.open("Error", "You need to select a project to save timesheet", "error");
-            return;
+            return false;
         }
 
         if (ids.task_id === null) {
             notifPopup.open("Error", "You need to select a task to save timesheet", "error");
-            return;
+            return false;
         }
 
         let correctTaskId;
@@ -155,6 +155,7 @@ Page {
         const result = Model.saveTimesheet(timesheet_data);
         if (!result.success) {
             notifPopup.open("Error", "Unable to Save the Timesheet: " + result.error, "error");
+            return false;
         } else {
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
             
@@ -163,8 +164,12 @@ Page {
             
             time_sheet_widget.elapsedTime = time;
             
-            // Navigate back to list view after successful save
-            navigateBack();
+            // Navigate back to list view after successful save (unless skipNavigation is true)
+            if (!skipNavigation) {
+                navigateBack();
+            }
+            
+            return true;
         }
     }
 
@@ -225,7 +230,11 @@ Page {
         
         onSaveRequested: {
             console.log("💾 SaveDiscardDialog: Saving timesheet...");
-            save_timesheet();
+            var success = save_timesheet(true); // true = skip automatic navigation
+            // Only navigate back if save was successful
+            if (success) {
+                Qt.callLater(navigateBack);
+            }
         }
         
         onDiscardRequested: {
