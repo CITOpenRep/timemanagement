@@ -91,11 +91,21 @@ Page {
     }
 
     // Monitor visibility to reload content from Global when returning from ReadMorePage
+    property bool isInitialLoad: true
+    
     onVisibleChanged: {
         if (visible) {
-            // Check if content was updated in ReadMorePage
+            // Skip loading on initial visibility (let Component.onCompleted handle it)
+            if (isInitialLoad) {
+                isInitialLoad = false;
+                contentUpdateTimer.start();
+                return;
+            }
+            
+            // Check if content was updated in ReadMorePage (only when returning to page)
             if (Global.description_temporary_holder !== "" && 
                 Global.description_temporary_holder !== lastKnownContent) {
+                console.log("CreateUpdatePage - Loading content from ReadMorePage");
                 descriptionField.setContent(Global.description_temporary_holder);
                 lastKnownContent = Global.description_temporary_holder;
             }
@@ -232,5 +242,18 @@ Page {
                 }
             }
         }
+    }
+
+    Component.onCompleted: {
+        // Clear any previous description content when page loads
+        console.log("CreateUpdatePage - Component.onCompleted - Clearing description field");
+        Global.description_temporary_holder = "";
+        lastKnownContent = "";
+        descriptionField.setContent("");
+        
+        // Reset form fields
+        titleField.text = "";
+        statusSelector.currentIndex = 0;
+        progressSlider.value = 0;
     }
 }
