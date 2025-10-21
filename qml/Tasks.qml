@@ -51,6 +51,17 @@ Page {
             dividerColor: LomiriColors.slate
         }
 
+        // Custom back button with unsaved changes check
+        leadingActionBar.actions: [
+            Action {
+                iconName: "back"
+                text: "Back"
+                onTriggered: {
+                    handleBackNavigation();
+                }
+            }
+        ]
+
         trailingActionBar.actions: [
             Action {
                 iconSource: "images/save.svg"
@@ -103,6 +114,17 @@ Page {
 
     property var currentTask: {}
 
+    // Track if we're navigating to ReadMorePage to avoid showing save dialog
+    property bool navigatingToReadMore: false
+
+    // Handle hardware back button presses
+    Keys.onReleased: {
+        if (event.key === Qt.Key_Back || event.key === Qt.Key_Escape) {
+            event.accepted = true;
+            handleBackNavigation();
+        }
+    }
+
     // ==================== DRAFT HANDLER ====================
     FormDraftHandler {
         id: draftHandler
@@ -120,7 +142,8 @@ Page {
         }
         
         onUnsavedChangesWarning: {
-            PopupUtils.open(unsavedChangesDialog);
+            // This signal is now handled by the back button logic
+            console.log("⚠️ Unsaved changes detected");
         }
         
         onDraftSaved: {
@@ -128,41 +151,77 @@ Page {
         }
     }
 
-    Component {
-        id: unsavedChangesDialog
-        Dialog {
-            id: dialogue
-            title: "⚠️ Unsaved Changes"
-            text: "You have unsaved changes. What would you like to do?\n\n" + 
-                  draftHandler.getChangesSummary()
-            
-            Button {
-                text: "💾 Save Draft & Leave"
-                color: LomiriColors.green
-                onClicked: {
-                    draftHandler.saveAndLeave();
-                    PopupUtils.close(dialogue);
-                    pageStack.pop();
-                }
-            }
-            
-            Button {
-                text: "🗑️ Discard Changes"
-                color: LomiriColors.red
-                onClicked: {
-                    draftHandler.discardAndLeave();
-                    PopupUtils.close(dialogue);
-                    pageStack.pop();
-                }
-            }
-            
-            Button {
-                text: "Cancel"
-                onClicked: {
-                    PopupUtils.close(dialogue);
-                }
-            }
+    SaveDiscardDialog {
+        id: saveDiscardDialog
+        onSaveRequested: {
+            console.log("💾 SaveDiscardDialog: Saving task...");
+            save_task_data();
         }
+        onDiscardRequested: {
+            console.log("🗑️ SaveDiscardDialog: Discarding changes...");
+            draftHandler.clearDraft();
+            Qt.callLater(navigateBack);
+        }
+        onCancelled: {
+            console.log("❌ User cancelled navigation - staying on page");
+        }
+    }
+
+    function handleBackNavigation() {
+        // Check if we're navigating to ReadMore page
+        if (navigatingToReadMore) {
+            navigateBack();
+            return;
+        }
+        
+        // Check if we have unsaved changes
+        if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+            console.log("⚠️ Unsaved changes detected on back navigation");
+            saveDiscardDialog.open();
+            return;
+        }
+        
+        // No unsaved changes, navigate back normally
+        navigateBack();
+    }
+
+    function navigateBack() {
+        console.log("🔙 Attempting to navigate back...");
+        
+        // Method 1: AdaptivePageLayout (primary method for this app)
+        try {
+            if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
+                console.log("✅ Navigating via apLayout.removePages()");
+                apLayout.removePages(taskCreate);
+                return;
+            }
+        } catch (e) {
+            console.error("❌ apLayout navigation error:", e);
+        }
+        
+        // Method 2: Standard pageStack
+        try {
+            if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
+                console.log("✅ Navigating via pageStack.pop()");
+                pageStack.pop();
+                return;
+            }
+        } catch (e) {
+            console.error("❌ Navigation error with pageStack:", e);
+        }
+
+        // Method 3: Parent pop
+        try {
+            if (parent && parent.pop) {
+                console.log("✅ Navigating via parent.pop()");
+                parent.pop();
+                return;
+            }
+        } catch (e) {
+            console.error("❌ Parent navigation error:", e);
+        }
+        
+        console.warn("⚠️ No navigation method found!");
     }
 
     function restoreFormFromDraft(draftData) {
@@ -342,12 +401,9 @@ Page {
                 if (hours_input.text !== "") {
                     hours_input.text = formatHoursDisplay(hours_input.text);
                 }
-                // Reload the task data to reflect changes
-                if (recordid !== 0) {
-                    currentTask = Task.getTaskDetails(recordid);
-                }
-                // No navigation - stay on the same page like Timesheet.qml
-                // User can use back button to return to list page
+                
+                // Navigate back to list view after successful save
+                navigateBack();
             }
         } else {
             notifPopup.open("Error", "Please add a Name to the task", "error");

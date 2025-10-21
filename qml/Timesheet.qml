@@ -41,6 +41,15 @@ import "components"
 Page {
     id: timeSheet
     title: i18n.dtr("ubtms", "Timesheet")
+    
+    // Handle hardware back button
+    Keys.onReleased: {
+        if (event.key === Qt.Key_Escape || event.key === Qt.Key_Back) {
+            handleBackNavigation();
+            event.accepted = true;
+        }
+    }
+    
     header: PageHeader {
         id: tsHeader
         StyleHints {
@@ -51,6 +60,17 @@ Page {
         }
 
         title: timeSheet.title + (draftHandler.hasUnsavedChanges ? " •" : "")
+
+        // Custom back button with unsaved changes check
+        leadingActionBar.actions: [
+            Action {
+                iconName: "back"
+                text: "Back"
+                onTriggered: {
+                    handleBackNavigation();
+                }
+            }
+        ]
 
         trailingActionBar.actions: [
             Action {
@@ -142,6 +162,9 @@ Page {
             draftHandler.clearDraft();
             
             time_sheet_widget.elapsedTime = time;
+            
+            // Navigate back to list view after successful save
+            navigateBack();
         }
     }
 
@@ -196,42 +219,77 @@ Page {
         }
     }
 
-    Component {
+    // Save/Discard dialog for back navigation
+    SaveDiscardDialog {
         id: unsavedChangesDialog
-        Dialog {
-            id: dialogue
-            title: "⚠️ Unsaved Changes"
-            text: "You have unsaved changes. What would you like to do?\n\n" + 
-                  draftHandler.getChangesSummary()
-            
-            Button {
-                text: "💾 Save Draft & Leave"
-                color: LomiriColors.green
-                onClicked: {
-                    draftHandler.saveAndLeave();
-                    PopupUtils.close(dialogue);
-                    pageStack.pop();
-                }
-            }
-            
-            Button {
-                text: "🗑️ Discard Changes"
-                color: LomiriColors.red
-                onClicked: {
-                    draftHandler.discardAndLeave();
-                    PopupUtils.close(dialogue);
-                    pageStack.pop();
-                }
-            }
-            
-            Button {
-                text: "Cancel"
-                onClicked: {
-                    PopupUtils.close(dialogue);
-                }
-            }
+        
+        onSaveRequested: {
+            console.log("💾 SaveDiscardDialog: Saving timesheet...");
+            save_timesheet();
+        }
+        
+        onDiscardRequested: {
+            console.log("🗑️ SaveDiscardDialog: Discarding changes...");
+            draftHandler.clearDraft();
+            Qt.callLater(navigateBack);
+        }
+        
+        onCancelled: {
+            console.log("❌ User cancelled navigation");
         }
     }
+
+    // Handle back navigation with unsaved changes check
+    function handleBackNavigation() {
+        if (draftHandler.hasUnsavedChanges) {
+            unsavedChangesDialog.open("timesheet");
+        } else {
+            navigateBack();
+        }
+    }
+
+    // Helper function to navigate back
+    function navigateBack() {
+        console.log("🔙 Attempting to navigate back...");
+        
+        // Method 1: AdaptivePageLayout (primary method for this app)
+        try {
+            if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
+                console.log("✅ Navigating via apLayout.removePages()");
+                apLayout.removePages(timeSheet);
+                return;
+            }
+        } catch (e) {
+            console.error("❌ apLayout navigation error:", e);
+        }
+        
+        // Method 2: Standard pageStack
+        try {
+            if (pageStack && typeof pageStack.pop === 'function') {
+                console.log("✅ Navigating via pageStack.pop()");
+                pageStack.pop();
+                return;
+            }
+        } catch (e) {
+            console.error("❌ Navigation error with pageStack:", e);
+        }
+        
+        // Method 3: Parent pop
+        try {
+            if (parent && typeof parent.pop === 'function') {
+                console.log("✅ Navigating via parent.pop()");
+                parent.pop();
+                return;
+            }
+        } catch (e) {
+            console.error("❌ Parent navigation error:", e);
+        }
+        
+        console.warn("⚠️ No navigation method found!");
+    }
+
+    // Track navigation to ReadMore page
+    property bool navigatingToReadMore: false
 
     function restoreFormFromDraft(draftData) {
         console.log("🔄 Restoring timesheet from draft data...");
