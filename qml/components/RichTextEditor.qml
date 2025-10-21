@@ -8,9 +8,11 @@ Item {
     // Public properties
     property string text: ""
     property bool readOnly: false
-    property int fontSize: 16
-    property string placeholder: "Start typing..."
+    property int fontSize: 13
+    property string placeholder: "Write something amazing..."
     property bool darkMode: theme.name === "Ubuntu.Components.Themes.SuruDark"
+    property color borderColor: "#dee2e6"
+    property color focusColor: "#714B67"
 
     // Signals
     signal contentChanged(string newText)
@@ -19,49 +21,71 @@ Item {
     // Private properties
     property bool _isLoaded: false
     property string _pendingText: ""
+    property bool _internalUpdate: false  // Flag to prevent feedback loop
 
-    WebEngineView {
-        id: webView
+    // Odoo-style wrapper
+    Rectangle {
+        id: editorWrapper
         anchors.fill: parent
+        color: darkMode ? "#2d2d2d" : "#ffffff"
+        border.width: 1
+        border.color: darkMode ? "#495057" : borderColor
+        radius: 4
 
-        // Set a default zoom factor to make content larger on high-DPI screens (Please uncomment while building on a real device.)
-        zoomFactor: 2.52
+        // Add subtle shadow effect
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -1
+            color: "transparent"
+            border.width: 1
+            border.color: parent.border.color
+            radius: parent.radius
+            opacity: 0.1
+            z: -1
+        }
 
-        // Load the Quill.js HTML file
-        url: Qt.resolvedUrl("quill-editor.html") + "?" + (readOnly ? "readonly=true" : "readonly=false") + "&darkMode=" + darkMode
+        WebEngineView {
+            id: webView
+            anchors.fill: parent
+           anchors.margins: units.gu(-1.5)
 
-        // Handle page load completion
-        onLoadingChanged: {
-            if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
-                _isLoaded = true;
-                contentLoaded();
+            // Set a default zoom factor to make content larger on high-DPI screens (Please uncomment while building on a real device.)
+            zoomFactor: 2.52
 
-                // Set initial content if there was pending text
-                if (_pendingText !== "") {
-                    setText(_pendingText);
-                    _pendingText = "";
+            // Load the Quill.js HTML file
+            url: Qt.resolvedUrl("quill-editor.html") + "?" + (readOnly ? "readonly=true" : "readonly=false") + "&darkMode=" + darkMode
+
+            // Handle page load completion
+            onLoadingChanged: {
+                if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
+                    _isLoaded = true;
+                    contentLoaded();
+
+                    // Set initial content if there was pending text
+                    if (_pendingText !== "") {
+                        setText(_pendingText);
+                        _pendingText = "";
+                    }
+
+                    // Set read-only mode
+                    setReadOnly(readOnly);
                 }
-
-                // Set read-only mode
-                setReadOnly(readOnly);
             }
-        }
 
-        // Handle JavaScript messages from the web page
-        onNewViewRequested: {
-            // Handle any navigation requests if needed
-            request.action = WebEngineView.IgnoreRequest;
-        }
+            // Handle JavaScript messages from the web page
+            onNewViewRequested: {
+                // Handle any navigation requests if needed
+                request.action = WebEngineView.IgnoreRequest;
+            }
 
         onJavaScriptConsoleMessage: {
             console.log("WebView Console:", message);
         }
 
-        // Enable JavaScript
-        settings.javascriptEnabled: true
-    }
-
-    // Function to clean Qt HTML and convert it to standard HTML
+            // Enable JavaScript
+            settings.javascriptEnabled: true
+        }
+    }    // Function to clean Qt HTML and convert it to standard HTML
     function cleanQtHtml(qtHtml) {
         if (!qtHtml || qtHtml.trim() === "") {
             return "";
@@ -182,9 +206,26 @@ Item {
         }
     }
 
+    // Function to force sync current content (useful before page navigation)
+    function syncContent() {
+        if (_isLoaded && !readOnly) {
+            getText(function (content) {
+                if (content !== richTextEditor.text) {
+                    _internalUpdate = true;  // Set flag before updating
+                    richTextEditor.text = content;
+                    richTextEditor.contentChanged(content);
+                    _internalUpdate = false;  // Reset flag after updating
+                }
+            });
+        }
+    }
+
     // Watch for property changes
     onTextChanged: {
-        setText(text);
+        // Only call setText if this is an external update, not from our timer
+        if (!_internalUpdate) {
+            setText(text);
+        }
     }
 
     onReadOnlyChanged: {
@@ -198,22 +239,24 @@ Item {
         }
     }
 
-    // Periodic content sync (alternative approach for text changes)
-    // Timer {
-    //     id: contentSyncTimer
-    //     interval: 500 // Check every 500ms
-    //     running: _isLoaded && !readOnly
-    //     repeat: true
+    // Periodic content sync - ENABLED for autosave functionality
+    Timer {
+        id: contentSyncTimer
+        interval: 500 // Check every 500ms
+        running: _isLoaded && !readOnly
+        repeat: true
 
-    //     onTriggered: {
-    //         getText(function (content) {
-    //             if (content !== richTextEditor.text) {
-    //                 richTextEditor.text = content;
-    //                 richTextEditor.contentChanged(content);
-    //             }
-    //         });
-    //     }
-    // }
+        onTriggered: {
+            getText(function (content) {
+                if (content !== richTextEditor.text) {
+                    _internalUpdate = true;  // Set flag before updating
+                    richTextEditor.text = content;
+                    richTextEditor.contentChanged(content);
+                    _internalUpdate = false;  // Reset flag after updating
+                }
+            });
+        }
+    }
 
     // Loading indicator
     ActivityIndicator {
