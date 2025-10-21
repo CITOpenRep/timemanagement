@@ -98,7 +98,7 @@ Page {
 
         Button {
             id: saveButton
-            visible: !isReadOnly
+            visible: false
             text: "Save"
             anchors.horizontalCenter: parent.horizontalCenter
             onClicked: {
@@ -122,6 +122,9 @@ Page {
         if (!visible && !isReadOnly) {
             // Page is being hidden, ensure we save the current content
             if (useRichText && editor) {
+                // Force immediate sync before page closes
+                editor.syncContent();
+                // Also get content as backup
                 editor.getText(function (content) {
                     Global.description_temporary_holder = content;
                 });
@@ -140,5 +143,16 @@ Page {
         }
         //console.log("Got full data")
         //console.log(Global.description_temporary_holder)
+    }
+
+    Component.onDestruction: {
+        // Save content when page is destroyed
+        if (!isReadOnly) {
+            if (useRichText && editor) {
+                editor.syncContent();
+            } else if (!useRichText && simpleEditor) {
+                Global.description_temporary_holder = simpleEditor.text;
+            }
+        }
     }
 }

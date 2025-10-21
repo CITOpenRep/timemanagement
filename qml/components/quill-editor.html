@@ -8,166 +8,372 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <style>
-        /* CSS Variables for theming */
+        /* Odoo-inspired CSS Variables for theming */
         :root {
-            --bg-primary: #f5f5f5;
-            --bg-secondary: white;
-            --text-primary: #333;
-            --text-secondary: #666;
-            --text-placeholder: #999;
-            --border-color: #ccc;
-            --border-color-focus: #007bff;
-            --shadow: 0 2px 4px rgba(0,0,0,0.1);
-            --toolbar-bg: white;
-            --editor-bg: white;
+            /* Odoo brand colors */
+            --odoo-primary: #f97316;
+            --odoo-secondary: #b8a1b2;
+            --odoo-accent: #9ab3b4;
+            --odoo-success: #28a745;
+            --odoo-warning: #ffc107;
+            --odoo-danger: #dc3545;
+            
+            /* Light theme colors */
+            --bg-primary: #f0f0f0;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f9f9f9;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-muted: #868e96;
+            --text-placeholder: #adb5bd;
+            --border-color: #dee2e6;
+            --border-color-light: #e9ecef;
+            --border-color-focus: var(--odoo-primary);
+            --shadow-sm: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+            --shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+            --toolbar-bg: #ffffff;
+            --toolbar-border: #dee2e6;
+            --editor-bg: #ffffff;
+            --hover-bg: #f8f9fa;
+            --active-bg: #e9ecef;
         }
 
         /* Dark mode variables */
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-primary: #2c2c2c;
-                --bg-secondary: #3c3c3c;
-                --text-primary: #e6e6e6;
-                --text-secondary: #b3b3b3;
-                --text-placeholder: #666;
-                --border-color: #555;
-                --border-color-focus: #4db8ff;
-                --shadow: 0 2px 4px rgba(0,0,0,0.3);
-                --toolbar-bg: #3c3c3c;
-                --editor-bg: #3c3c3c;
+                --bg-primary: #1a1a1a;
+                --bg-secondary: #2d2d2d;
+                --bg-tertiary: #343434;
+                --text-primary: #ffffff;
+                --text-secondary: #d1d1d1;
+                --text-muted: #adb5bd;
+                --text-placeholder: #6c757d;
+                --border-color: #495057;
+                --border-color-light: #343a40;
+                --border-color-focus: #875A7B;
+                --shadow-sm: 0 0.125rem 0.25rem rgba(0,0,0,0.3);
+                --shadow: 0 0.5rem 1rem rgba(0,0,0,0.4);
+                --toolbar-bg: #2d2d2d;
+                --toolbar-border: #495057;
+                --editor-bg: #2d2d2d;
+                --hover-bg: #343a40;
+                --active-bg: #495057;
             }
         }
 
         /* Manual dark mode class for when system preference isn't available */
         .dark-mode {
-            --bg-primary: #2c2c2c;
-            --bg-secondary: #3c3c3c;
-            --text-primary: #e6e6e6;
-            --text-secondary: #d3d0d0;
-            --text-placeholder: #666;
-            --border-color: #555;
-            --border-color-focus: #4db8ff;
-            --shadow: 0 2px 4px rgba(0,0,0,0.3);
-            --toolbar-bg: #3c3c3c;
-            --editor-bg: #3c3c3c;
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #343434;
+            --text-primary: #ffffff;
+            --text-secondary: #d1d1d1;
+            --text-muted: #adb5bd;
+            --text-placeholder: #6c757d;
+            --border-color: #495057;
+            --border-color-light: #343a40;
+            --border-color-focus: #875A7B;
+            --shadow-sm: 0 0.125rem 0.25rem rgba(0,0,0,0.3);
+            --shadow: 0 0.5rem 1rem rgba(0,0,0,0.4);
+            --toolbar-bg: #2d2d2d;
+            --toolbar-border: #495057;
+            --editor-bg: #2d2d2d;
+            --hover-bg: #343a40;
+            --active-bg: #495057;
         }
 
         body {
             margin: 0;
-            padding: 10px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            padding: 0;
+            font-family: 'Lucida Grande', Helvetica, Verdana, Arial, sans-serif;
+            font-size: 13px;
             background-color: var(--bg-primary);
             color: var(--text-primary);
+            line-height: 1.4;
         }
 
         #editor-container {
-            height: calc(100vh - 20px);
+            height: 100vh;
             background-color: var(--bg-secondary);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
         }
 
         .ql-toolbar {
-            border-top: 1px solid var(--border-color);
-            border-left: 1px solid var(--border-color);
-            border-right: 1px solid var(--border-color);
-            border-radius: 8px 8px 0 0;
+            border: none;
+            border-bottom: 1px solid var(--toolbar-border);
             background-color: var(--toolbar-bg);
+            padding: 8px 12px;
+            border-radius: 4px 4px 0 0;
+            flex-shrink: 0;
         }
 
         .ql-container {
-            border-bottom: 1px solid var(--border-color);
-            border-left: 1px solid var(--border-color);
-            border-right: 1px solid var(--border-color);
-            border-radius: 0 0 8px 8px;
-            height: calc(100% - 42px);
+            border: none;
+            flex: 1;
             background-color: var(--editor-bg);
+            border-radius: 0 0 4px 4px;
         }
 
         .ql-editor {
-            font-size: 16px;
-            line-height: 1.6;
+            font-size: 13px;
+            line-height: 1.5;
             color: var(--text-primary);
+            font-family: 'Lucida Grande', Helvetica, Verdana, Arial, sans-serif;
+            padding: 12px 16px;
         }
 
         .ql-editor.ql-blank::before {
             font-style: italic;
             color: var(--text-placeholder);
+            font-size: 13px;
         }
 
-        /* Dark mode toolbar styling */
-        @media (prefers-color-scheme: dark) {
-            .ql-toolbar .ql-stroke {
-                stroke: var(--text-primary);
-            }
-            
-            .ql-toolbar .ql-fill {
-                fill: var(--text-primary);
-            }
-            
-            .ql-toolbar .ql-picker-label {
-                color: var(--text-primary);
-            }
-            
-            .ql-toolbar button:hover,
-            .ql-toolbar button:focus {
-                background-color: rgba(255, 255, 255, 0.1);
-            }
-            
-            .ql-toolbar .ql-active {
-                background-color: rgba(255, 255, 255, 0.2);
-            }
-            
-            .ql-dropdown {
-                background-color: var(--bg-secondary);
-                border: 1px solid var(--border-color);
-            }
-            
-            .ql-picker-options {
-                background-color: var(--bg-secondary);
-                border: 1px solid var(--border-color);
-            }
-            
-            .ql-picker-item:hover {
-                background-color: rgba(255, 255, 255, 0.1);
-            }
+        /* Odoo-style toolbar styling */
+        .ql-toolbar .ql-formats {
+            margin-right: 12px;
         }
 
-        /* Manual dark mode class styling */
-        .dark-mode .ql-toolbar .ql-stroke {
+        .ql-toolbar .ql-formats:last-child {
+            margin-right: 0;
+        }
+
+        .ql-toolbar button {
+            width: 28px;
+            height: 28px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            margin: 0 1px;
+            padding: 3px 5px;
+            background: transparent;
+            transition: all 0.15s ease;
+        }
+
+        .ql-toolbar button:hover {
+            background-color: var(--hover-bg);
+            border-color: var(--border-color-light);
+        }
+
+        .ql-toolbar button.ql-active {
+            background-color: var(--odoo-primary);
+            color: white;
+            border-color: var(--odoo-primary);
+        }
+
+        .ql-toolbar .ql-stroke {
+            stroke: var(--text-secondary);
+            transition: stroke 0.15s ease;
+        }
+
+        .ql-toolbar .ql-fill {
+            fill: var(--text-secondary);
+            transition: fill 0.15s ease;
+        }
+
+        .ql-toolbar button:hover .ql-stroke {
             stroke: var(--text-primary);
         }
-        
-        .dark-mode .ql-toolbar .ql-fill {
+
+        .ql-toolbar button:hover .ql-fill {
             fill: var(--text-primary);
         }
-        
-        .dark-mode .ql-toolbar .ql-picker-label {
+
+        .ql-toolbar button.ql-active .ql-stroke {
+            stroke: white;
+        }
+
+        .ql-toolbar button.ql-active .ql-fill {
+            fill: white;
+        }
+
+        .ql-toolbar .ql-picker {
+            color: var(--text-secondary);
+        }
+
+        .ql-toolbar .ql-picker-label {
+            border: 1px solid transparent;
+            border-radius: 3px;
+            padding: 3px 5px;
+            transition: all 0.15s ease;
+        }
+
+        .ql-toolbar .ql-picker-label:hover {
+            background-color: var(--hover-bg);
+            border-color: var(--border-color-light);
             color: var(--text-primary);
         }
-        
-        .dark-mode .ql-toolbar button:hover,
-        .dark-mode .ql-toolbar button:focus {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        .dark-mode .ql-toolbar .ql-active {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        
-        .dark-mode .ql-dropdown {
+
+        .ql-picker-options {
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: var(--shadow);
+            padding: 4px 0;
         }
-        
-        .dark-mode .ql-picker-options {
+
+        .ql-picker-item {
+            padding: 6px 12px;
+            color: var(--text-primary);
+            transition: background-color 0.15s ease;
+        }
+
+        .ql-picker-item:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .ql-picker-item.ql-selected {
+            background-color: var(--odoo-primary);
+            color: white;
+        }
+
+        /* Separator lines between toolbar groups */
+        .ql-toolbar .ql-formats:not(:first-child)::before {
+            content: '';
+            display: inline-block;
+            width: 1px;
+            height: 20px;
+            background-color: var(--border-color-light);
+            margin: 0 6px 0 -6px;
+            vertical-align: middle;
+        }
+
+        /* Focus styles */
+        .ql-editor:focus {
+            outline: none;
+        }
+
+        .ql-container.ql-focused {
+            box-shadow: 0 0 0 2px rgba(113, 75, 103, 0.25);
+        }
+
+        /* Dark mode adjustments */
+        @media (prefers-color-scheme: dark) {
+            .ql-toolbar button.ql-active {
+                background-color: var(--odoo-secondary);
+                border-color: var(--odoo-secondary);
+            }
+
+            .ql-picker-item.ql-selected {
+                background-color: var(--odoo-secondary);
+            }
+
+            .ql-container.ql-focused {
+                box-shadow: 0 0 0 2px rgba(135, 90, 123, 0.4);
+            }
+        }
+
+        .dark-mode .ql-toolbar button.ql-active {
+            background-color: var(--odoo-secondary);
+            border-color: var(--odoo-secondary);
+        }
+
+        .dark-mode .ql-picker-item.ql-selected {
+            background-color: var(--odoo-secondary);
+        }
+
+        .dark-mode .ql-container.ql-focused {
+            box-shadow: 0 0 0 2px rgba(135, 90, 123, 0.4);
+        }
+
+        /* Additional Odoo-style enhancements */
+        .ql-snow .ql-tooltip {
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: var(--shadow);
+            color: var(--text-primary);
         }
-        
-        .dark-mode .ql-picker-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+
+        .ql-snow .ql-tooltip::before {
+            color: var(--text-secondary);
         }
+
+        .ql-snow .ql-tooltip input[type=text] {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color-light);
+            color: var(--text-primary);
+            border-radius: 3px;
+            padding: 6px 8px;
+        }
+
+        .ql-snow .ql-tooltip input[type=text]:focus {
+            border-color: var(--odoo-primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(113, 75, 103, 0.25);
+        }
+
+        .ql-snow .ql-tooltip a.ql-action::after {
+            color: var(--odoo-primary);
+        }
+
+        .ql-snow .ql-tooltip a.ql-remove::before {
+            color: var(--odoo-danger);
+        }
+
+        /* Custom scrollbar for better aesthetics */
+        .ql-editor::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .ql-editor::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        .ql-editor::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .ql-editor::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Better list styling */
+        .ql-editor ol,
+        .ql-editor ul {
+            padding-left: 1.5em;
+        }
+
+        .ql-editor li {
+            margin-bottom: 0.25em;
+        }
+
+        /* Better blockquote styling */
+        .ql-editor blockquote {
+            border-left: 4px solid var(--odoo-primary);
+            padding-left: 16px;
+            margin-left: 0;
+            margin-right: 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* Better code block styling */
+        .ql-editor pre.ql-syntax {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color-light);
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        /* Link styling */
+        .ql-editor a {
+            color: var(--odoo-primary);
+            text-decoration: none;
+        }
+
+        .ql-editor a:hover {
+            text-decoration: underline;
+        }
+
+        /* Native copy/paste enabled - bubble toolbar removed for system context menu */
     </style>
 </head>
 <body>
@@ -199,23 +405,39 @@
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
         }
 
-        // Initialize Quill editor
+        // Initialize Quill editor with Odoo-inspired toolbar and bubble selection toolbar
         var quill = new Quill('#editor-container', {
             theme: 'snow',
-            placeholder: 'Start typing...',
+            placeholder: 'Compose your message...',
             modules: {
                 toolbar: [
-                    [{ 'header': [1, 2, 3, false] }],
-                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'font': [] }],
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    ['bold', 'italic', 'underline'],
                     [{ 'color': [] }, { 'background': [] }],
+                    [{ 'script': 'sub'}, { 'script': 'super' }],
                     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                     [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'direction': 'rtl' }],
                     [{ 'align': [] }],
-                    ['link', 'blockquote', 'code-block'],
+                    ['link'],
+                    ['blockquote', 'code-block'],
                     ['clean']
                 ]
             }
         });
+
+        // ============================================================================
+        // NATIVE COPY/PASTE ENABLED
+        // ============================================================================
+        // The bubble toolbar has been removed to allow native system context menu
+        // Right-click or long-press on selected text to access:
+        // - Cut (Ctrl+X / Cmd+X)
+        // - Copy (Ctrl+C / Cmd+C)  
+        // - Paste (Ctrl+V / Cmd+V)
+        // - Select All (Ctrl+A / Cmd+A)
+        // This provides better integration with the system and avoids UI conflicts
+        // ============================================================================
 
         // Global variables to store content and read-only state
         var isReadOnly = false;
@@ -228,6 +450,10 @@
                 console.log('setContent called with:', content);
                 
                 if (content !== lastContent) {
+                    // Save current cursor position before updating content
+                    var selection = quill.getSelection();
+                    var cursorPosition = selection ? selection.index : 0;
+                    
                     if (content.trim() === '') {
                         // Empty content
                         quill.setText('');
@@ -258,6 +484,21 @@
                             quill.setText('');
                         }
                     }
+                    
+                    // Restore cursor position after setting content
+                    // Make sure cursor position is within bounds
+                    var contentLength = quill.getLength();
+                    if (cursorPosition > contentLength) {
+                        cursorPosition = contentLength - 1;
+                    }
+                    if (cursorPosition < 0) {
+                        cursorPosition = 0;
+                    }
+                    
+                    // Restore cursor position with a slight delay to ensure content is rendered
+                    setTimeout(function() {
+                        quill.setSelection(cursorPosition, 0);
+                    }, 10);
                     
                     lastContent = content;
                     console.log('Content set, new innerHTML:', quill.root.innerHTML);
