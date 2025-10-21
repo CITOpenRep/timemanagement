@@ -19,10 +19,7 @@ Page {
     property int projectId: -1
     property int accountId: -1
     property string lastKnownContent: ""
-    property var onUpdateCreatedCallback: null  // Callback function for handling update creation
-
-    // Signal to notify when update is created (for backward compatibility)
-    signal updateCreated(var updateData)
+    property bool isInitialLoad: true
 
     // Status list
     property var projectUpdateStatus: ["on_track", "at_risk", "off_track", "on_hold"]
@@ -36,21 +33,11 @@ Page {
         }
 
         trailingActionBar.actions: [
-            // Action {
-            //     iconName: "close"
-            //     text: "Cancel"
-            //     onTriggered: {
-            //         // Clear temporary holder and go back
-            //         Global.description_temporary_holder = "";
-            //         pageStack.removePages(createUpdatePage);
-            //     }
-            // },
             Action {
                 iconName: "tick"
                 text: "Create"
                 onTriggered: {
                     if (titleField.text.trim() === "" || statusSelector.currentIndex < 0) {
-                        console.warn("Missing required fields for project update");
                         return;
                     }
 
@@ -64,22 +51,9 @@ Page {
                         user_id: Accounts.getCurrentUserOdooId(createUpdatePage.accountId)
                     };
                     
-                    console.log("CreateUpdatePage - Update data prepared:", JSON.stringify(updateData));
-                    
-                    // Try global callback first (preferred method)
+                    // Call global callback
                     if (Global.createUpdateCallback && typeof Global.createUpdateCallback === "function") {
-                        console.log("CreateUpdatePage - Calling Global callback");
                         Global.createUpdateCallback(updateData);
-                    } 
-                    // Fallback to property callback
-                    else if (onUpdateCreatedCallback && typeof onUpdateCreatedCallback === "function") {
-                        console.log("CreateUpdatePage - Calling property callback");
-                        onUpdateCreatedCallback(updateData);
-                    } 
-                    // Fallback to signal emission
-                    else {
-                        console.log("CreateUpdatePage - Emitting signal (no callback found)");
-                        updateCreated(updateData);
                     }
                     
                     // Clear temporary holder and go back
@@ -91,8 +65,6 @@ Page {
     }
 
     // Monitor visibility to reload content from Global when returning from ReadMorePage
-    property bool isInitialLoad: true
-    
     onVisibleChanged: {
         if (visible) {
             // Skip loading on initial visibility (let Component.onCompleted handle it)
@@ -102,14 +74,12 @@ Page {
                 return;
             }
             
-            // Check if content was updated in ReadMorePage (only when returning to page)
+            // Check if content was updated in ReadMorePage
             if (Global.description_temporary_holder !== "" && 
                 Global.description_temporary_holder !== lastKnownContent) {
-                console.log("CreateUpdatePage - Loading content from ReadMorePage");
                 descriptionField.setContent(Global.description_temporary_holder);
                 lastKnownContent = Global.description_temporary_holder;
             }
-            // Start monitoring for content changes
             contentUpdateTimer.start();
         } else {
             contentUpdateTimer.stop();
@@ -228,16 +198,12 @@ Page {
                 useRichText: true
                 
                 onClicked: {
-                    // Store current content in Global temporary holder
                     Global.description_temporary_holder = descriptionField.getFormattedText();
                     
-                    // Navigate to ReadMorePage using apLayout
                     if (typeof apLayout !== "undefined" && apLayout) {
                         apLayout.addPageToNextColumn(createUpdatePage, Qt.resolvedUrl("../ReadMorePage.qml"), {
                             isReadOnly: false
                         });
-                    } else {
-                        console.warn("apLayout not available - cannot open ReadMorePage");
                     }
                 }
             }
@@ -245,13 +211,10 @@ Page {
     }
 
     Component.onCompleted: {
-        // Clear any previous description content when page loads
-        console.log("CreateUpdatePage - Component.onCompleted - Clearing description field");
+        // Clear form fields when page loads
         Global.description_temporary_holder = "";
         lastKnownContent = "";
         descriptionField.setContent("");
-        
-        // Reset form fields
         titleField.text = "";
         statusSelector.currentIndex = 0;
         progressSlider.value = 0;

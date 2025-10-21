@@ -432,19 +432,14 @@ Page {
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     
-                    console.log("Opening CreateUpdatePage for project:", project.odoo_record_id, "account:", project.account_id);
-                    
                     // Store callback in Global for CreateUpdatePage to access
                     Global.createUpdateCallback = function(updateData) {
-                        console.log("Global callback triggered with data:", JSON.stringify(updateData));
                         let result = Project.createUpdateSnapShot(updateData);
-                        console.log("createUpdateSnapShot result:", JSON.stringify(result));
                         if (result['is_success'] === false) {
                             notifPopup.open("Failed", result['message'], "error");
                         } else {
                             notifPopup.open("Saved", "Project update has been saved", "success");
                         }
-                        // Clear the callback after use
                         Global.createUpdateCallback = null;
                     };
                     
