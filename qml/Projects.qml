@@ -163,20 +163,6 @@ Page {
         height: units.gu(80)
     }
 
-    CreateUpdateDialog {
-        id: updates_dialog
-        width: units.gu(80)
-        height: units.gu(80)
-        onUpdateCreated: {
-            let result = Project.createUpdateSnapShot(updateData);
-            if (result['is_success'] === false) {
-                notifPopup.open("Failed", result['message'], "error");
-            } else {
-                notifPopup.open("Saved", "Project updated has been saved", "success");
-            }
-        }
-    }
-
     Flickable {
         id: projectDetailsPageFlickable
         anchors.topMargin: units.gu(6)
@@ -445,7 +431,28 @@ Page {
                 text: "Create"
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
-                    updates_dialog.open(project.account_id, project.odoo_record_id);
+                    
+                    console.log("Opening CreateUpdatePage for project:", project.odoo_record_id, "account:", project.account_id);
+                    
+                    // Store callback in Global for CreateUpdatePage to access
+                    Global.createUpdateCallback = function(updateData) {
+                        console.log("Global callback triggered with data:", JSON.stringify(updateData));
+                        let result = Project.createUpdateSnapShot(updateData);
+                        console.log("createUpdateSnapShot result:", JSON.stringify(result));
+                        if (result['is_success'] === false) {
+                            notifPopup.open("Failed", result['message'], "error");
+                        } else {
+                            notifPopup.open("Saved", "Project update has been saved", "success");
+                        }
+                        // Clear the callback after use
+                        Global.createUpdateCallback = null;
+                    };
+                    
+                    // Open CreateUpdatePage
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("components/CreateUpdatePage.qml"), {
+                        "projectId": project.odoo_record_id,
+                        "accountId": project.account_id
+                    });
                 }
             }
 

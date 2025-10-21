@@ -2,6 +2,9 @@
  * MIT License
  *
  * Copyright (c) 2025 CIT-Services
+ * 
+ * DEPRECATED: This Dialog-based component has been replaced by CreateUpdatePage.qml
+ * Please use CreateUpdatePage.qml instead for proper page navigation support.
  */
 
 import QtQuick 2.7
@@ -10,6 +13,8 @@ import Lomiri.Components.Popups 1.3
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.3
 import "../../models/accounts.js" as Accounts
+import "../../models/global.js" as Global
+import "../components" as Components
 
 Item {
     id: popupWrapper
@@ -19,6 +24,7 @@ Item {
     // Properties
     property int projectId: -1  // Passed in when calling open()
     property int accountId: -1
+    property var parentPage: null  // Reference to parent page for navigation
 
     // Signals
     signal updateCreated(var updateData)
@@ -33,6 +39,39 @@ Item {
             id: createUpdateDialog
             title: i18n.dtr("ubtms", "New Project Update")
             modal: true
+
+            property string lastKnownContent: ""
+
+            // Monitor visibility to reload content from Global when returning
+            onVisibleChanged: {
+                if (visible) {
+                    // Check if content was updated in ReadMorePage
+                    if (Global.description_temporary_holder !== "" && 
+                        Global.description_temporary_holder !== lastKnownContent) {
+                        descriptionField.setContent(Global.description_temporary_holder);
+                        lastKnownContent = Global.description_temporary_holder;
+                    }
+                    // Start monitoring for content changes
+                    contentUpdateTimer.start();
+                } else {
+                    contentUpdateTimer.stop();
+                }
+            }
+
+            // Timer to periodically check for content updates from ReadMorePage
+            Timer {
+                id: contentUpdateTimer
+                interval: 500  // Check every 500ms
+                repeat: true
+                running: false
+                onTriggered: {
+                    if (Global.description_temporary_holder !== "" && 
+                        Global.description_temporary_holder !== createUpdateDialog.lastKnownContent) {
+                        descriptionField.setContent(Global.description_temporary_holder);
+                        createUpdateDialog.lastKnownContent = Global.description_temporary_holder;
+                    }
+                }
+            }
 
             Column {
                 width: parent.width
@@ -73,12 +112,28 @@ Item {
                 }
 
                 // Description
-                TextArea {
+                RichTextPreview {
                     id: descriptionField
                     width: parent.width
-                    height: units.gu(8)
-                    placeholderText: i18n.dtr("ubtms", "Write your update description...")
-                    wrapMode: TextEdit.Wrap
+                    height: units.gu(20)
+                    title: i18n.dtr("ubtms", "Description")
+                    is_read_only: false
+                    useRichText: true
+                    
+                    onClicked: {
+                        // Store current content in Global temporary holder
+                        Global.description_temporary_holder = descriptionField.getFormattedText();
+                        
+                        // Access apLayout (global AdaptivePageLayout) and add ReadMorePage
+                        // apLayout is the global ID from TSApp.qml
+                        if (typeof apLayout !== "undefined" && apLayout) {
+                            apLayout.addPageToNextColumn(popupWrapper.parentPage || createUpdateDialog, Qt.resolvedUrl("../ReadMorePage.qml"), {
+                                isReadOnly: false
+                            });
+                        } else {
+                            console.warn("apLayout not available - cannot open ReadMorePage");
+                        }
+                    }
                 }
 
                 // Buttons
@@ -103,7 +158,7 @@ Item {
                                 name: titleField.text.trim(),
                                 project_status: popupWrapper.projectUpdateStatus[statusSelector.currentIndex],
                                 progress: Math.round(progressSlider.value),
-                                description: descriptionField.text.trim(),
+                                description: descriptionField.getFormattedText(),
                                 account_id: popupWrapper.accountId,
                                 user_id: Accounts.getCurrentUserOdooId(popupWrapper.accountId)
                             };
@@ -117,9 +172,14 @@ Item {
     }
 
     // Function to open dialog and set project ID
-    function open(accountIdArg, projectIdArg) {
+    function open(accountIdArg, projectIdArg, parentPageArg) {
         projectId = projectIdArg;
         accountId = accountIdArg;
+        parentPage = parentPageArg || null;
+        
+        // Clear the Global temporary holder for fresh start
+        Global.description_temporary_holder = "";
+        
         PopupUtils.open(dialogComponent);
     }
 }
