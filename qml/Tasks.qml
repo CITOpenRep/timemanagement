@@ -44,7 +44,7 @@ Page {
     id: taskCreate
     title: i18n.dtr("ubtms", "Task")
     header: PageHeader {
-        title: taskCreate.title
+        title: taskCreate.title + (draftHandler.hasUnsavedChanges ? " •" : "")
         StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
@@ -79,6 +79,13 @@ Page {
     property int selectedparentId: 0
     property int selectedTaskId: 0
     property int priority: 0
+    
+    onPriorityChanged: {
+        if (draftHandler.enabled && draftHandler._initialized) {
+            draftHandler.markFieldChanged("priority", priority);
+        }
+    }
+    
     property int subProjectId: 0
     property var prevtask: ""
     property var textkey: ""
@@ -95,6 +102,108 @@ Page {
     property string prefilledProjectName: ""
 
     property var currentTask: {}
+
+    // ==================== DRAFT HANDLER ====================
+    FormDraftHandler {
+        id: draftHandler
+        draftType: "task"
+        recordId: taskCreate.recordid
+        accountId: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
+        enabled: !isReadOnly
+        autoSaveInterval: 30000
+        
+        onDraftLoaded: {
+            restoreFormFromDraft(draftData);
+            notifPopup.open("📂 Draft Restored", 
+                "Unsaved changes restored: " + getChangesSummary(), 
+                "info");
+        }
+        
+        onUnsavedChangesWarning: {
+            PopupUtils.open(unsavedChangesDialog);
+        }
+        
+        onDraftSaved: {
+            console.log("💾 Draft saved successfully (ID: " + draftId + ")");
+        }
+    }
+
+    Component {
+        id: unsavedChangesDialog
+        Dialog {
+            id: dialogue
+            title: "⚠️ Unsaved Changes"
+            text: "You have unsaved changes. What would you like to do?\n\n" + 
+                  draftHandler.getChangesSummary()
+            
+            Button {
+                text: "💾 Save Draft & Leave"
+                color: LomiriColors.green
+                onClicked: {
+                    draftHandler.saveAndLeave();
+                    PopupUtils.close(dialogue);
+                    pageStack.pop();
+                }
+            }
+            
+            Button {
+                text: "🗑️ Discard Changes"
+                color: LomiriColors.red
+                onClicked: {
+                    draftHandler.discardAndLeave();
+                    PopupUtils.close(dialogue);
+                    pageStack.pop();
+                }
+            }
+            
+            Button {
+                text: "Cancel"
+                onClicked: {
+                    PopupUtils.close(dialogue);
+                }
+            }
+        }
+    }
+
+    function restoreFormFromDraft(draftData) {
+        console.log("🔄 Restoring form from draft data...");
+        
+        if (draftData.name) name_text.text = draftData.name;
+        if (draftData.description) description_text.setContent(draftData.description);
+        if (draftData.plannedHours) hours_input.text = draftData.plannedHours;
+        if (draftData.priority !== undefined) priority = draftData.priority;
+        
+        if (draftData.startDate || draftData.endDate) {
+            date_range_widget.setDateRange(
+                draftData.startDate || "", 
+                draftData.endDate || ""
+            );
+        }
+        
+        if (draftData.deadline) {
+            deadline_text.text = draftData.deadline;
+        }
+        
+        // Note: Project/assignee selection is handled by WorkItemSelector 
+        // and can't be easily restored here due to its complex state management
+    }
+    
+    function getCurrentFormData() {
+        const ids = workItem.getIds();
+        return {
+            name: name_text.text,
+            description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            plannedHours: hours_input.text,
+            priority: priority,
+            startDate: date_range_widget.formattedStartDate ? date_range_widget.formattedStartDate() : "",
+            endDate: date_range_widget.formattedEndDate ? date_range_widget.formattedEndDate() : "",
+            deadline: deadline_text.text,
+            projectId: ids.project_id,
+            assigneeId: ids.assignee_id,
+            selectedStageOdooRecordId: selectedStageOdooRecordId,
+            selectedPersonalStageOdooRecordId: selectedPersonalStageOdooRecordId
+        };
+    }
 
     function switchToEditMode() {
         // Simply change the current page to edit mode
@@ -225,6 +334,10 @@ Page {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
+                
+                // Clear draft after successful save
+                draftHandler.clearDraft();
+                
                 // Format the hours display after successful save
                 if (hours_input.text !== "") {
                     hours_input.text = formatHoursDisplay(hours_input.text);
@@ -469,6 +582,12 @@ Page {
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
                     text: ""
+                    
+                    onTextChanged: {
+                        if (draftHandler.enabled) {
+                            draftHandler.markFieldChanged("name", text);
+                        }
+                    }
 
                     Rectangle {
                         //  visible: !isReadOnly
@@ -858,6 +977,12 @@ Page {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "01:00"
                 placeholderText: "e.g., 2:30 or 1.5"
+                
+                onTextChanged: {
+                    if (draftHandler.enabled) {
+                        draftHandler.markFieldChanged("plannedHours", text);
+                    }
+                }
 
                 // Input validation
                 validator: RegExpValidator {
@@ -931,6 +1056,13 @@ Page {
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(35) : tasksDetailsPageFlickable.width - units.gu(30)
                     height: units.gu(4)
                     anchors.centerIn: parent.centerIn
+                    
+                    onRangeChanged: {
+                        if (draftHandler.enabled && draftHandler._initialized) {
+                            draftHandler.markFieldChanged("startDate", formattedStartDate());
+                            draftHandler.markFieldChanged("endDate", formattedEndDate());
+                        }
+                    }
                 }
             }
         }
@@ -1009,6 +1141,11 @@ Page {
 
         onDateSelected: {
             deadline_text.text = Qt.formatDate(new Date(date), "yyyy-MM-dd");
+            
+            // Track deadline change for draft
+            if (draftHandler.enabled) {
+                draftHandler.markFieldChanged("deadline", deadline_text.text);
+            }
         }
     }
 
@@ -1119,6 +1256,12 @@ Page {
             }
         }
     //  console.log("currentTask loaded:", JSON.stringify(currentTask));
+    
+        // Initialize draft handler AFTER all form fields are populated
+        if (!isReadOnly) {
+            var originalTaskData = getCurrentFormData();
+            draftHandler.initialize(originalTaskData);
+        }
     }
 
     Component.onCompleted: {
@@ -1134,6 +1277,11 @@ Page {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
+                
+                // Track description change for draft
+                if (draftHandler.enabled) {
+                    draftHandler.markFieldChanged("description", description_text.getFormattedText());
+                }
             }
         } else {
             Global.description_temporary_holder = "";

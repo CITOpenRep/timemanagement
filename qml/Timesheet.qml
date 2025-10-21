@@ -50,7 +50,7 @@ Page {
             dividerColor: LomiriColors.slate
         }
 
-        title: timeSheet.title
+        title: timeSheet.title + (draftHandler.hasUnsavedChanges ? " •" : "")
 
         trailingActionBar.actions: [
             Action {
@@ -137,6 +137,10 @@ Page {
             notifPopup.open("Error", "Unable to Save the Timesheet: " + result.error, "error");
         } else {
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
+            
+            // Clear draft after successful save
+            draftHandler.clearDraft();
+            
             time_sheet_widget.elapsedTime = time;
         }
     }
@@ -166,6 +170,89 @@ Page {
     property var recordid: 0 //0 means creation mode
     property bool isReadOnly: false // Can be overridden when page is opened
     property var currentTimesheet: {}
+
+    // ==================== DRAFT HANDLER ====================
+    FormDraftHandler {
+        id: draftHandler
+        draftType: "timesheet"
+        recordId: timeSheet.recordid
+        accountId: (currentTimesheet && currentTimesheet.account_id) ? currentTimesheet.account_id : 0
+        enabled: !isReadOnly
+        autoSaveInterval: 30000
+        
+        onDraftLoaded: {
+            restoreFormFromDraft(draftData);
+            notifPopup.open("📂 Draft Restored", 
+                "Unsaved changes restored: " + getChangesSummary(), 
+                "info");
+        }
+        
+        onUnsavedChangesWarning: {
+            PopupUtils.open(unsavedChangesDialog);
+        }
+        
+        onDraftSaved: {
+            console.log("💾 Timesheet draft saved successfully (ID: " + draftId + ")");
+        }
+    }
+
+    Component {
+        id: unsavedChangesDialog
+        Dialog {
+            id: dialogue
+            title: "⚠️ Unsaved Changes"
+            text: "You have unsaved changes. What would you like to do?\n\n" + 
+                  draftHandler.getChangesSummary()
+            
+            Button {
+                text: "💾 Save Draft & Leave"
+                color: LomiriColors.green
+                onClicked: {
+                    draftHandler.saveAndLeave();
+                    PopupUtils.close(dialogue);
+                    pageStack.pop();
+                }
+            }
+            
+            Button {
+                text: "🗑️ Discard Changes"
+                color: LomiriColors.red
+                onClicked: {
+                    draftHandler.discardAndLeave();
+                    PopupUtils.close(dialogue);
+                    pageStack.pop();
+                }
+            }
+            
+            Button {
+                text: "Cancel"
+                onClicked: {
+                    PopupUtils.close(dialogue);
+                }
+            }
+        }
+    }
+
+    function restoreFormFromDraft(draftData) {
+        console.log("🔄 Restoring timesheet from draft data...");
+        
+        if (draftData.description) description_text.setContent(draftData.description);
+        if (draftData.date) date_widget.setDate(draftData.date);
+        if (draftData.quadrant !== undefined) priorityGrid.currentIndex = draftData.quadrant;
+        if (draftData.elapsedTime) time_sheet_widget.elapsedTime = draftData.elapsedTime;
+    }
+    
+    function getCurrentFormData() {
+        const ids = workItem.getIds();
+        return {
+            description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            date: date_widget.formattedDate ? date_widget.formattedDate() : "",
+            quadrant: priorityGrid.currentIndex,
+            elapsedTime: time_sheet_widget.elapsedTime,
+            projectId: ids.project_id,
+            taskId: ids.task_id
+        };
+    }
 
     NotificationPopup {
         id: notifPopup
@@ -252,6 +339,12 @@ Page {
                 width: parent.width - units.gu(2)
 
                 property int currentIndex: 0
+                
+                onCurrentIndexChanged: {
+                    if (draftHandler.enabled && draftHandler._initialized) {
+                        draftHandler.markFieldChanged("quadrant", currentIndex);
+                    }
+                }
 
                 RadioButton {
                     id: priority1
@@ -373,6 +466,12 @@ Page {
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(5)
                     anchors.centerIn: parent.centerIn
+                    
+                    onDateChanged: {
+                        if (draftHandler.enabled && draftHandler._initialized) {
+                            draftHandler.markFieldChanged("date", formattedDate());
+                        }
+                    }
                 }
             }
         }
@@ -458,6 +557,12 @@ Page {
                 workItem.loadAccounts();
                 console.log("New timesheet - loading accounts for creation mode");
             }
+            
+            // Initialize draft handler AFTER all form fields are populated
+            if (!isReadOnly) {
+                var originalTimesheetData = getCurrentFormData();
+                draftHandler.initialize(originalTimesheetData);
+            }
         }
     }
 
@@ -467,6 +572,11 @@ Page {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
+                
+                // Track description change for draft
+                if (draftHandler.enabled) {
+                    draftHandler.markFieldChanged("description", description_text.getFormattedText());
+                }
             }
         }
         // Don't clear Global.description_temporary_holder when page becomes invisible

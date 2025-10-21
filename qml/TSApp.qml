@@ -28,6 +28,7 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
 import QtQuick.LocalStorage 2.7 as Sql
 import "../models/dbinit.js" as DbInit
+import "../models/draft_manager.js" as DraftManager
 import "components"
 import "."
 
@@ -485,11 +486,49 @@ MainView {
 
         // Load and apply saved theme preference
         loadAndApplyTheme();
+        
+        // Check for unsaved drafts from previous session (crash recovery)
+        checkForUnsavedDrafts();
 
         Qt.callLater(function () {
             apLayout.setFirstScreen(); // Delay page setup until after DB init
 
         });
+    }
+    
+    // Function to check for unsaved drafts on app startup (crash recovery)
+    function checkForUnsavedDrafts() {
+        try {
+            var drafts = DraftManager.getAllDrafts(-1);  // Get all drafts for all accounts
+            
+            if (drafts.length > 0) {
+                console.log("📂 Found " + drafts.length + " unsaved draft(s) from previous session");
+                
+                // Show notification about unsaved drafts
+                notifPopup.open(
+                    "📂 Unsaved Drafts Found",
+                    "You have " + drafts.length + " unsaved draft(s) from a previous session. " +
+                    "Open the forms to restore your work.",
+                    "info"
+                );
+                
+                // Optional: Log draft details for debugging
+                for (var i = 0; i < drafts.length; i++) {
+                    var draft = drafts[i];
+                    console.log("  - Draft #" + draft.id + ": " + draft.draftType + 
+                               " (Updated: " + draft.updatedAt + ", Changes: " + 
+                               draft.changedFields.length + ")");
+                }
+            } else {
+                console.log("✅ No unsaved drafts found");
+            }
+            
+            // Cleanup old drafts (older than 7 days)
+            DraftManager.cleanupOldDrafts(7);
+            
+        } catch (e) {
+            console.error("❌ Error checking for unsaved drafts:", e.toString());
+        }
     }
 
     // Function to load saved theme preference and apply it
