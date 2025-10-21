@@ -232,8 +232,11 @@ Item {
      * @returns Success status
      */
     function saveDraft() {
-        if (!enabled || !_initialized) {
-            return { success: false, error: "Not initialized" };
+        if (!enabled || !_initialized || _preventAutoSave) {
+            if (_preventAutoSave) {
+                console.log("🚫 Prevented draft save after explicit save/discard");
+            }
+            return { success: false, error: "Not initialized or prevented" };
         }
         
         if (!hasUnsavedChanges) {
@@ -267,6 +270,12 @@ Item {
         
         console.log("🗑️ Clearing draft for " + draftType + " (recordId: " + recordId + ", accountId: " + accountId + ", pageId: " + pageIdentifier + ")");
         
+        // CRITICAL: Stop the timer IMMEDIATELY to prevent any pending auto-saves
+        autoSaveTimer.stop();
+        
+        // Set flag FIRST to prevent any race conditions
+        _preventAutoSave = true;
+        
         // Delete from database if exists
         if (currentDraftId) {
             var result = DraftManager.deleteDraft(currentDraftId);
@@ -293,7 +302,6 @@ Item {
         hasUnsavedChanges = false;
         changedFields = [];
         currentFormData = JSON.parse(JSON.stringify(originalData)); // Reset to original
-        _preventAutoSave = true; // Prevent auto-save on destruction
         
         draftCleared();
     }
