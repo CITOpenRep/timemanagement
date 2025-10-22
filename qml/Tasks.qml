@@ -132,7 +132,7 @@ Page {
         recordId: taskCreate.recordid
         accountId: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
         enabled: !isReadOnly
-        autoSaveInterval: 30000
+        autoSaveInterval: 3000
         
         onDraftLoaded: {
             restoreFormFromDraft(draftData);
@@ -272,6 +272,11 @@ Page {
         // Simply change the current page to edit mode
         if (recordid !== 0) {
             isReadOnly = false;
+            
+            // Initialize draft handler when switching from read-only to edit mode
+            // This ensures drafts are loaded if they exist
+            var originalTaskData = getCurrentFormData();
+            draftHandler.initialize(originalTaskData);
         }
     }
 

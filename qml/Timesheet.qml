@@ -189,6 +189,11 @@ Page {
     function switchToEditMode() {
         if (recordid !== 0) {
             isReadOnly = false;
+            
+            // Initialize draft handler when switching from read-only to edit mode
+            // This ensures drafts are loaded if they exist
+            var originalTimesheetData = getCurrentFormData();
+            draftHandler.initialize(originalTimesheetData);
         }
     }
 
