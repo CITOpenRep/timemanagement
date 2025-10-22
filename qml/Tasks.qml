@@ -104,6 +104,19 @@ Page {
     property real expandedHeight: units.gu(60)
     property int selectedStageOdooRecordId: -1 // For storing selected stage during task creation
     property var selectedPersonalStageOdooRecordId: null // For storing selected personal stage (null = no stage, >0 = stage ID)
+    
+    // Track stage changes for draft management
+    onSelectedStageOdooRecordIdChanged: {
+        if (draftHandler.enabled && draftHandler._initialized) {
+            draftHandler.markFieldChanged("selectedStageOdooRecordId", selectedStageOdooRecordId);
+        }
+    }
+    
+    onSelectedPersonalStageOdooRecordIdChanged: {
+        if (draftHandler.enabled && draftHandler._initialized) {
+            draftHandler.markFieldChanged("selectedPersonalStageOdooRecordId", selectedPersonalStageOdooRecordId);
+        }
+    }
 
     // Properties for prefilled data when creating task from project
     property var prefilledAccountId: -1
@@ -584,6 +597,13 @@ Page {
                     onStateChanged: {
                         // console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
 
+                        // Track changes for draft management (for all modes)
+                        if (draftHandler.enabled && draftHandler._initialized) {
+                            var idsForDraft = workItem.getIds();
+                            draftHandler.markFieldChanged("projectId", idsForDraft.project_id);
+                            draftHandler.markFieldChanged("assigneeId", idsForDraft.assignee_id);
+                        }
+
                         if (recordid === 0) {
                             // Only in creation mode
                             // Reload stages when account or project is selected
@@ -829,6 +849,13 @@ Page {
                             apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly
                             });
+                        }
+                        
+                        // Track inline text changes for draft management
+                        onTextChanged: {
+                            if (draftHandler.enabled && draftHandler._initialized) {
+                                draftHandler.markFieldChanged("description", getFormattedText());
+                            }
                         }
                     }
                 }
