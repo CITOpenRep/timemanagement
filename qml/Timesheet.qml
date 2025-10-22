@@ -213,14 +213,6 @@ Page {
         enabled: !isReadOnly
         autoSaveInterval: 3000
         
-        Component.onCompleted: {
-            console.log("🔧 Timesheet DraftHandler created - enabled:", enabled, "recordId:", recordId, "accountId:", accountId, "isReadOnly:", isReadOnly);
-        }
-        
-        onEnabledChanged: {
-            console.log("🔧 DraftHandler enabled changed to:", enabled, "isReadOnly:", isReadOnly);
-        }
-        
         onDraftLoaded: {
             restoreFormFromDraft(draftData);
             notifPopup.open("📂 Draft Restored", 
@@ -317,7 +309,7 @@ Page {
         console.log("🔄 Restoring timesheet from draft data...");
         
         if (draftData.description) description_text.setContent(draftData.description);
-        if (draftData.date) date_widget.setDate(draftData.date);
+        if (draftData.date) date_widget.setSelectedDate(draftData.date);
         if (draftData.quadrant !== undefined) priorityGrid.currentIndex = draftData.quadrant;
         if (draftData.elapsedTime) time_sheet_widget.elapsedTime = draftData.elapsedTime;
     }
@@ -428,10 +420,8 @@ Page {
                 property int currentIndex: 0
                 
                 onCurrentIndexChanged: {
-                    console.log("📝 Quadrant changed to:", currentIndex, "enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
                     if (draftHandler.enabled && draftHandler._initialized) {
                         draftHandler.markFieldChanged("quadrant", currentIndex);
-                        console.log("✅ Tracked quadrant change");
                     }
                 }
 
@@ -564,10 +554,8 @@ Page {
                     anchors.centerIn: parent.centerIn
                     
                     onDateChanged: {
-                        console.log("📅 Date changed, enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
                         if (draftHandler.enabled && draftHandler._initialized) {
                             draftHandler.markFieldChanged("date", formattedDate());
-                            console.log("✅ Tracked date change to:", formattedDate());
                         }
                     }
                 }
@@ -610,10 +598,8 @@ Page {
                         
                         // Track inline text changes for draft management
                         onTextChanged: {
-                            console.log("📝 Description text changed (inline), enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
                             if (draftHandler.enabled && draftHandler._initialized) {
                                 draftHandler.markFieldChanged("description", getFormattedText());
-                                console.log("✅ Tracked description change");
                             }
                         }
                     }
@@ -666,13 +652,9 @@ Page {
             }
             
             // Initialize draft handler AFTER all form fields are populated
-            console.log("🔍 Timesheet Component.onCompleted - isReadOnly:", isReadOnly, "draftHandler.enabled:", draftHandler.enabled);
             if (!isReadOnly) {
                 var originalTimesheetData = getCurrentFormData();
-                console.log("🎯 Calling draftHandler.initialize() with data:", JSON.stringify(originalTimesheetData));
                 draftHandler.initialize(originalTimesheetData);
-            } else {
-                console.log("⚠️ Skipping draft initialization - form is read-only");
             }
         }
     }
