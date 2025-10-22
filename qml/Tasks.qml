@@ -145,7 +145,7 @@ Page {
         recordId: taskCreate.recordid
         accountId: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
         enabled: !isReadOnly
-        autoSaveInterval: 3000
+        autoSaveInterval: 300000 // 5 minutes
         
         onDraftLoaded: {
             restoreFormFromDraft(draftData);

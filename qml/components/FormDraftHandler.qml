@@ -67,7 +67,7 @@ Item {
     /**
      * Auto-save interval in milliseconds (default: 30 seconds)
      */
-    property int autoSaveInterval: 30000
+    property int autoSaveInterval: 300000
     
     /**
      * Whether there are unsaved changes
