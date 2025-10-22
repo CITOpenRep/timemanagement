@@ -46,9 +46,10 @@ Item {
         onTimeSelected: {
             let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
 
-            elapsedTime = timeStr;  // for example, update a field
+            elapsedTime = timeStr;  // Update UI field
             timeDisplay.text = elapsedTime;
-            TimeSheet.updateTimesheetWithDuration(timesheetId, timeDisplay.text);
+            // NOTE: Time is NOT saved to database here - it will be saved when user clicks "Save" on the form
+            // This allows draft management to work properly and enables "Discard" to revert changes
         }
     }
 

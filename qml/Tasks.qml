@@ -176,7 +176,8 @@ Page {
         }
         onDiscardRequested: {
             console.log("🗑️ SaveDiscardDialog: Discarding changes...");
-            draftHandler.clearDraft();
+            restoreFormToOriginal();  // Restore form to original values
+            draftHandler.clearDraft(); // Clear the draft from database
             Qt.callLater(navigateBack);
         }
         onCancelled: {
@@ -262,6 +263,27 @@ Page {
         
         // Note: Project/assignee selection is handled by WorkItemSelector 
         // and can't be easily restored here due to its complex state management
+    }
+    
+    function restoreFormToOriginal() {
+        console.log("🔄 Restoring form to original values...");
+        
+        var originalData = draftHandler.originalData;
+        if (originalData.name !== undefined) name_text.text = originalData.name;
+        if (originalData.description !== undefined) description_text.setContent(originalData.description);
+        if (originalData.plannedHours !== undefined) hours_input.text = originalData.plannedHours;
+        if (originalData.priority !== undefined) priority = originalData.priority;
+        
+        if (originalData.startDate !== undefined || originalData.endDate !== undefined) {
+            date_range_widget.setDateRange(
+                originalData.startDate || "", 
+                originalData.endDate || ""
+            );
+        }
+        
+        if (originalData.deadline !== undefined) {
+            deadline_text.text = originalData.deadline;
+        }
     }
     
     function getCurrentFormData() {

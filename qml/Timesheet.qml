@@ -146,7 +146,7 @@ Page {
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
-            'status': "draft"
+            'status': "draft"  // WORKFLOW status (not submitted yet), NOT form draft status
         };
         if (recordid && recordid !== 0) {
             timesheet_data.id = recordid;
@@ -159,7 +159,7 @@ Page {
         } else {
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
             
-            // Clear draft after successful save
+            // Clear form draft (unsaved changes) after successful database save
             draftHandler.clearDraft();
             
             time_sheet_widget.elapsedTime = time;
@@ -244,7 +244,8 @@ Page {
         
         onDiscardRequested: {
             console.log("🗑️ SaveDiscardDialog: Discarding changes...");
-            draftHandler.clearDraft();
+            restoreFormToOriginal();  // Restore form to original values
+            draftHandler.clearDraft(); // Clear the draft from database
             Qt.callLater(navigateBack);
         }
         
@@ -312,6 +313,16 @@ Page {
         if (draftData.date) date_widget.setSelectedDate(draftData.date);
         if (draftData.quadrant !== undefined) priorityGrid.currentIndex = draftData.quadrant;
         if (draftData.elapsedTime) time_sheet_widget.elapsedTime = draftData.elapsedTime;
+    }
+    
+    function restoreFormToOriginal() {
+        console.log("🔄 Restoring form to original values...");
+        
+        var originalData = draftHandler.originalData;
+        if (originalData.description !== undefined) description_text.setContent(originalData.description);
+        if (originalData.date) date_widget.setSelectedDate(originalData.date);
+        if (originalData.quadrant !== undefined) priorityGrid.currentIndex = originalData.quadrant;
+        if (originalData.elapsedTime !== undefined) time_sheet_widget.elapsedTime = originalData.elapsedTime;
     }
     
     function getCurrentFormData() {
