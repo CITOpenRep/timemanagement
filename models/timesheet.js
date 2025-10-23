@@ -122,7 +122,8 @@ function fetchTimesheetsByStatus(status, accountId) {
                     task: taskName,
                     user: userName,
                     timer_type: row.timer_type || 'manual',
-                    color_pallet: parseInt(inheritedColor) || 0
+                    color_pallet: parseInt(inheritedColor) || 0,
+                    has_draft: row.has_draft || 0
                 });
             }
         });
@@ -237,7 +238,8 @@ function fetchTimesheetsForAllAccounts(status) {
                     task: taskName,
                     user: userName,
                     timer_type: row.timer_type || 'manual',
-                    color_pallet: parseInt(inheritedColor) || 0
+                    color_pallet: parseInt(inheritedColor) || 0,
+                    has_draft: row.has_draft || 0
                 });
             }
         });
@@ -456,7 +458,8 @@ function getTimeSheetDetails(record_id, accountId) {
                     'quadrant_id': row.quadrant_id,
                     'record_date': Utils.formatDate(new Date(row.record_date)),
                     'timer_type': row.timer_type || 'manual',
-                    'user_id': row.user_id
+                    'user_id': row.user_id,
+                    'has_draft': row.has_draft || 0
                 };
                 
                 console.log("getTimeSheetDetails: Returning timesheet_detail:", JSON.stringify(timesheet_detail));
