@@ -108,7 +108,7 @@ function saveOrUpdateTask(data) {
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
                     account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority = ?, description = ?, user_id = ?, sub_project_id = ?, \
-                    start_date = ?, end_date = ?, deadline = ?, state = ?, personal_stage = ?, last_modified = ?, status = ? WHERE id = ?',
+                    start_date = ?, end_date = ?, deadline = ?, state = ?, personal_stage = ?, last_modified = ?, status = ?, has_draft = 0 WHERE id = ?',
                               [
                                   data.accountId, data.name, finalProjectId,
                                   resolvedParentId, data.plannedHours, data.priority,
@@ -122,8 +122,8 @@ function saveOrUpdateTask(data) {
                               
             } else {
                 // INSERT
-                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, personal_stage, last_modified, status) \
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, personal_stage, last_modified, status, has_draft) \
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
                               [
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,

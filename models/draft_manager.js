@@ -135,6 +135,24 @@ function saveDraft(params) {
                 result.draftId = insertResult.insertId;
                 console.log("💾 Created draft #" + result.draftId + " for " + draftType + " (" + changedFields.length + " changes)");
             }
+            
+            // Set has_draft flag on parent record (if not a new record)
+            if (recordId && recordId > 0) {
+                var tableName = null;
+                if (draftType === "task") {
+                    tableName = "project_task_app";
+                } else if (draftType === "timesheet") {
+                    tableName = "account_analytic_line_app";
+                }
+                
+                if (tableName) {
+                    tx.executeSql(
+                        "UPDATE " + tableName + " SET has_draft = 1 WHERE id = ?",
+                        [recordId]
+                    );
+                    console.log("✅ Set has_draft=1 for " + draftType + " #" + recordId);
+                }
+            }
         });
         
         result.success = true;
@@ -258,7 +276,38 @@ function deleteDraft(draftId) {
         );
         
         db.transaction(function(tx) {
+            // Get draft info before deleting
+            var draftInfo = tx.executeSql(
+                "SELECT draft_type, record_id FROM form_drafts WHERE id = ?",
+                [draftId]
+            );
+            
+            // Delete the draft
             tx.executeSql("DELETE FROM form_drafts WHERE id = ?", [draftId]);
+            
+            // Clear has_draft flag on parent record
+            if (draftInfo.rows.length > 0) {
+                var row = draftInfo.rows.item(0);
+                var recordId = row.record_id;
+                var draftType = row.draft_type;
+                
+                if (recordId && recordId > 0) {
+                    var tableName = null;
+                    if (draftType === "task") {
+                        tableName = "project_task_app";
+                    } else if (draftType === "timesheet") {
+                        tableName = "account_analytic_line_app";
+                    }
+                    
+                    if (tableName) {
+                        tx.executeSql(
+                            "UPDATE " + tableName + " SET has_draft = 0 WHERE id = ?",
+                            [recordId]
+                        );
+                        console.log("✅ Cleared has_draft=0 for " + draftType + " #" + recordId);
+                    }
+                }
+            }
         });
         
         result.success = true;
@@ -323,8 +372,62 @@ function deleteDrafts(params) {
                 queryParams.push(params.pageIdentifier);
             }
             
+            // First, get the drafts we're about to delete so we can clear their has_draft flags
+            var selectQuery = "SELECT draft_type, record_id FROM form_drafts WHERE 1=1";
+            var selectParams = [];
+            
+            if (params.draftType) {
+                selectQuery += " AND draft_type = ?";
+                selectParams.push(params.draftType);
+            }
+            
+            if (params.recordId !== undefined && params.recordId !== null) {
+                selectQuery += " AND record_id = ?";
+                selectParams.push(params.recordId);
+            }
+            
+            if (params.accountId !== undefined) {
+                selectQuery += " AND account_id = ?";
+                selectParams.push(params.accountId);
+            }
+            
+            if (params.pageIdentifier) {
+                selectQuery += " AND page_identifier = ?";
+                selectParams.push(params.pageIdentifier);
+            }
+            
+            var draftsToDelete = tx.executeSql(selectQuery, selectParams);
+            
+            // Clear has_draft flags for affected records
+            for (var i = 0; i < draftsToDelete.rows.length; i++) {
+                var draft = draftsToDelete.rows.item(i);
+                var recordId = draft.record_id;
+                var draftType = draft.draft_type;
+                
+                if (recordId && recordId > 0) {
+                    var tableName = null;
+                    if (draftType === "task") {
+                        tableName = "project_task_app";
+                    } else if (draftType === "timesheet") {
+                        tableName = "account_analytic_line_app";
+                    }
+                    
+                    if (tableName) {
+                        tx.executeSql(
+                            "UPDATE " + tableName + " SET has_draft = 0 WHERE id = ?",
+                            [recordId]
+                        );
+                    }
+                }
+            }
+            
+            // Now delete the drafts
             var deleteResult = tx.executeSql(query, queryParams);
             result.deletedCount = deleteResult.rowsAffected;
+            
+            if (result.deletedCount > 0) {
+                console.log("✅ Cleared has_draft=0 for " + result.deletedCount + " record(s)");
+            }
         });
         
         result.success = true;
@@ -554,3 +657,95 @@ function getChangesSummary(changedFields) {
     
     return changedFields.length + " fields changed: " + changedFields.join(", ");
 }
+
+/**
+ * Synchronizes has_draft flags for all records that have drafts
+ * This is a migration/maintenance function to ensure consistency
+ * @returns {Object} {success: boolean, updatedCount: number, message: string}
+ */
+function syncHasDraftFlags() {
+    var result = {
+        success: false,
+        updatedCount: 0,
+        message: ""
+    };
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        
+        db.transaction(function(tx) {
+            // Get all drafts with record IDs
+            var drafts = tx.executeSql(
+                "SELECT DISTINCT draft_type, record_id FROM form_drafts WHERE record_id IS NOT NULL AND record_id > 0"
+            );
+            
+            console.log("🔄 Syncing has_draft flags for " + drafts.rows.length + " records...");
+            
+            // Set has_draft=1 for all records that have drafts
+            for (var i = 0; i < drafts.rows.length; i++) {
+                var draft = drafts.rows.item(i);
+                var recordId = draft.record_id;
+                var draftType = draft.draft_type;
+                
+                var tableName = null;
+                if (draftType === "task") {
+                    tableName = "project_task_app";
+                } else if (draftType === "timesheet") {
+                    tableName = "account_analytic_line_app";
+                }
+                
+                if (tableName) {
+                    tx.executeSql(
+                        "UPDATE " + tableName + " SET has_draft = 1 WHERE id = ?",
+                        [recordId]
+                    );
+                    result.updatedCount++;
+                }
+            }
+            
+            // Clear has_draft=0 for records that don't have drafts
+            // (This handles cases where drafts were deleted but flag wasn't cleared)
+            
+            // For tasks
+            var taskIds = tx.executeSql(
+                "SELECT id FROM project_task_app WHERE has_draft = 1 AND id NOT IN (SELECT record_id FROM form_drafts WHERE draft_type = 'task' AND record_id IS NOT NULL)"
+            );
+            for (var j = 0; j < taskIds.rows.length; j++) {
+                tx.executeSql(
+                    "UPDATE project_task_app SET has_draft = 0 WHERE id = ?",
+                    [taskIds.rows.item(j).id]
+                );
+                result.updatedCount++;
+            }
+            
+            // For timesheets
+            var timesheetIds = tx.executeSql(
+                "SELECT id FROM account_analytic_line_app WHERE has_draft = 1 AND id NOT IN (SELECT record_id FROM form_drafts WHERE draft_type = 'timesheet' AND record_id IS NOT NULL)"
+            );
+            for (var k = 0; k < timesheetIds.rows.length; k++) {
+                tx.executeSql(
+                    "UPDATE account_analytic_line_app SET has_draft = 0 WHERE id = ?",
+                    [timesheetIds.rows.item(k).id]
+                );
+                result.updatedCount++;
+            }
+        });
+        
+        result.success = true;
+        result.message = "Synchronized " + result.updatedCount + " has_draft flag(s)";
+        console.log("✅ " + result.message);
+        
+    } catch (e) {
+        result.message = e.toString();
+        console.error("❌ Error syncing has_draft flags:", result.message);
+        DBCommon.logException("syncHasDraftFlags", e);
+    }
+    
+    return result;
+}
+

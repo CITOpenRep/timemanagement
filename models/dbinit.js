@@ -153,12 +153,13 @@ function initializeDatabase() {
             last_modified datetime,\
             user_id INTEGER,\
             status TEXT DEFAULT "",\
+            has_draft INTEGER DEFAULT 0,\
             odoo_record_id INTEGER,\
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'name TEXT', 'account_id INTEGER', 'project_id INTEGER', 'sub_project_id INTEGER', 'parent_id INTEGER',
                                   'start_date date', 'end_date date', 'deadline date', 'initial_planned_hours FLOAT', 'priority TEXT', 'state INTEGER',
-                                  'personal_stage INTEGER', 'description TEXT', 'last_modified datetime', 'user_id INTEGER', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
+                                  'personal_stage INTEGER', 'description TEXT', 'last_modified datetime', 'user_id INTEGER', 'status TEXT DEFAULT ""', 'has_draft INTEGER DEFAULT 0', 'odoo_record_id INTEGER']
                                  );
 
     DBCommon.createOrUpdateTable("account_analytic_line_app",
@@ -177,12 +178,13 @@ function initializeDatabase() {
             user_id INTEGER,\
             status TEXT DEFAULT "",\
             timer_type TEXT DEFAULT "manual",\
+            has_draft INTEGER DEFAULT 0,\
             odoo_record_id INTEGER,\
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'project_id INTEGER', 'sub_project_id INTEGER', 'task_id INTEGER',
                                   'sub_task_id INTEGER', 'name TEXT', 'unit_amount FLOAT', 'last_modified datetime', 'quadrant_id INTEGER',
-                                  'record_date datetime','user_id INTEGER' ,'status TEXT DEFAULT ""', 'timer_type TEXT DEFAULT "manual"', 'odoo_record_id INTEGER']
+                                  'record_date datetime','user_id INTEGER' ,'status TEXT DEFAULT ""', 'timer_type TEXT DEFAULT "manual"', 'has_draft INTEGER DEFAULT 0', 'odoo_record_id INTEGER']
                                  );
 
     DBCommon.createOrUpdateTable("mail_activity_type_app",
@@ -462,6 +464,7 @@ function initializeDatabase() {
     );
 
     purgeCache();
+    syncDraftFlags();
 }
 
 function purgeCache() {
@@ -478,6 +481,95 @@ function purgeCache() {
         console.log("Cache purged at startup");
     } catch (e) {
         console.error("purgeCache failed:", e);
+    }
+}
+
+function syncDraftFlags() {
+    try {
+        // Import draft_manager here to avoid circular dependencies
+        var DraftManager = Qt.createQmlObject(
+            'import QtQuick 2.7; import "../models/draft_manager.js" as DM; QtObject { function sync() { return DM.syncHasDraftFlags(); } }',
+            null,
+            "DraftManagerLoader"
+        );
+        
+        if (DraftManager) {
+            var result = DraftManager.sync();
+            if (result && result.success) {
+                console.log("✅ Draft flags synchronized at startup:", result.message);
+            }
+        }
+    } catch (e) {
+        // Fallback: Direct implementation if import fails
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync(
+                DBCommon.NAME,
+                DBCommon.VERSION,
+                DBCommon.DISPLAY_NAME,
+                DBCommon.SIZE
+            );
+            
+            var updatedCount = 0;
+            
+            db.transaction(function(tx) {
+                // Get all drafts with record IDs
+                var drafts = tx.executeSql(
+                    "SELECT DISTINCT draft_type, record_id FROM form_drafts WHERE record_id IS NOT NULL AND record_id > 0"
+                );
+                
+                console.log("🔄 Syncing has_draft flags for " + drafts.rows.length + " records...");
+                
+                // Set has_draft=1 for all records that have drafts
+                for (var i = 0; i < drafts.rows.length; i++) {
+                    var draft = drafts.rows.item(i);
+                    var recordId = draft.record_id;
+                    var draftType = draft.draft_type;
+                    
+                    var tableName = null;
+                    if (draftType === "task") {
+                        tableName = "project_task_app";
+                    } else if (draftType === "timesheet") {
+                        tableName = "account_analytic_line_app";
+                    }
+                    
+                    if (tableName) {
+                        tx.executeSql(
+                            "UPDATE " + tableName + " SET has_draft = 1 WHERE id = ?",
+                            [recordId]
+                        );
+                        updatedCount++;
+                    }
+                }
+                
+                // Clear has_draft=0 for tasks that don't have drafts
+                var taskIds = tx.executeSql(
+                    "SELECT id FROM project_task_app WHERE has_draft = 1 AND id NOT IN (SELECT record_id FROM form_drafts WHERE draft_type = 'task' AND record_id IS NOT NULL)"
+                );
+                for (var j = 0; j < taskIds.rows.length; j++) {
+                    tx.executeSql(
+                        "UPDATE project_task_app SET has_draft = 0 WHERE id = ?",
+                        [taskIds.rows.item(j).id]
+                    );
+                    updatedCount++;
+                }
+                
+                // Clear has_draft=0 for timesheets that don't have drafts
+                var timesheetIds = tx.executeSql(
+                    "SELECT id FROM account_analytic_line_app WHERE has_draft = 1 AND id NOT IN (SELECT record_id FROM form_drafts WHERE draft_type = 'timesheet' AND record_id IS NOT NULL)"
+                );
+                for (var k = 0; k < timesheetIds.rows.length; k++) {
+                    tx.executeSql(
+                        "UPDATE account_analytic_line_app SET has_draft = 0 WHERE id = ?",
+                        [timesheetIds.rows.item(k).id]
+                    );
+                    updatedCount++;
+                }
+            });
+            
+            console.log("✅ Synchronized " + updatedCount + " has_draft flag(s) at startup");
+        } catch (syncError) {
+            console.error("❌ Error syncing draft flags:", syncError);
+        }
     }
 }
 

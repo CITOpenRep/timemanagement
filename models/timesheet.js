@@ -520,7 +520,8 @@ function saveTimesheet(data) {
                           last_modified = ?,
                           status = ?,
                           timer_type = ?,
-                          user_id = ?
+                          user_id = ?,
+                          has_draft = 0
                           WHERE id = ?`,
                           [
                               data.instance_id || null,
@@ -569,8 +570,8 @@ function createTimesheet(instance_id,userid) {
         db.transaction(function (tx) {
             tx.executeSql(`INSERT INTO account_analytic_line_app
                           (account_id, record_date, project_id, task_id, name, sub_project_id,
-                          sub_task_id, quadrant_id, unit_amount, last_modified, status, timer_type, user_id)
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                          sub_task_id, quadrant_id, unit_amount, last_modified, status, timer_type, user_id, has_draft)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
                           [
                               instance_id,               // account_id
                               Utils.getToday(),      // record_date, fallback to today
