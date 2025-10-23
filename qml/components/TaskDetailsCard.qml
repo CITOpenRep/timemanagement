@@ -58,6 +58,7 @@ ListItem {
     property bool starInteractionActive: false
     property bool isMyTasksContext: false // Set to true when used in MyTasks page
     property int accountId: -1 // Account ID for the task
+    property bool hasDraft: false // Indicates if this task has unsaved draft changes
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -430,7 +431,7 @@ ListItem {
 
                             Text {
                                 id: projectTitleText
-                                text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
+                                text: ((taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task") + (hasDraft ? " •" : ""))
                                 color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                                 font.pixelSize: units.gu(2)
 

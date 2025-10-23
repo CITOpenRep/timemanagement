@@ -201,7 +201,8 @@ Page {
                 // preserve timer behavior (normalize comparison to string to be safe)
                 'activetimer': (currentFilter === "active") && (String(TimerService.getActiveTimesheetId()) === String(t.id)),
                 // IMPORTANT: keep the same key name that your delegate expects
-                'color_pallet': (typeof t.color_pallet !== "undefined" ? t.color_pallet : "")
+                'color_pallet': (typeof t.color_pallet !== "undefined" ? t.color_pallet : ""),
+                'has_draft': t.has_draft || 0
             });
         }
 
@@ -231,6 +232,7 @@ Page {
             status: model.status
             timer_on: model.activetimer
             colorPallet: model.color_pallet
+            hasDraft: model.has_draft === 1
 
             onEditRequested: {
                 apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {

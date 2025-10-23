@@ -47,6 +47,7 @@ ListItem {
     property bool timer_on: false
     property bool timer_paused: false
     property int colorPallet: 0
+    property bool hasDraft: false // Indicates if this timesheet has unsaved draft changes
 
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
@@ -235,7 +236,7 @@ ListItem {
                 spacing: units.gu(0.5)
 
                 Text {
-                    text: (typeof name === "string" && name.trim() !== "") ? Utils.truncateText(name, 30) : "No Description"
+                    text: ((typeof name === "string" && name.trim() !== "") ? Utils.truncateText(name, 30) : "No Description") + (hasDraft ? " •" : "")
                     textFormat: Text.PlainText
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
