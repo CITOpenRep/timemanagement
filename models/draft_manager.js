@@ -659,6 +659,87 @@ function getChangesSummary(changedFields) {
 }
 
 /**
+ * Gets a summary of drafts grouped by type with human-readable labels
+ * @param {number} accountId - Account ID (-1 for all accounts)
+ * @returns {Object} Summary object with counts and formatted message
+ */
+function getDraftsSummary(accountId) {
+    var summary = {
+        total: 0,
+        byType: {},
+        formattedMessage: "",
+        detailedList: []
+    };
+    
+    try {
+        var drafts = getAllDrafts(accountId);
+        summary.total = drafts.length;
+        
+        if (drafts.length === 0) {
+            summary.formattedMessage = "No unsaved drafts";
+            return summary;
+        }
+        
+        // Count drafts by type
+        var typeCounts = {};
+        var typeLabels = {
+            "task": "Task",
+            "timesheet": "Timesheet",
+            "project": "Project",
+            "activity": "Activity"
+        };
+        
+        for (var i = 0; i < drafts.length; i++) {
+            var draft = drafts[i];
+            var draftType = draft.draftType;
+            
+            if (!typeCounts[draftType]) {
+                typeCounts[draftType] = 0;
+            }
+            typeCounts[draftType]++;
+            
+            // Add to detailed list
+            var label = typeLabels[draftType] || draftType;
+            var recordInfo = draft.isNewRecord ? "New" : "#" + draft.recordId;
+            summary.detailedList.push({
+                type: draftType,
+                label: label,
+                recordId: draft.recordId,
+                isNewRecord: draft.isNewRecord,
+                recordInfo: recordInfo,
+                changedFields: draft.changedFields,
+                updatedAt: draft.updatedAt
+            });
+        }
+        
+        summary.byType = typeCounts;
+        
+        // Create formatted message
+        var parts = [];
+        for (var type in typeCounts) {
+            var label = typeLabels[type] || type;
+            var count = typeCounts[type];
+            parts.push(count + " " + label + (count > 1 ? "s" : ""));
+        }
+        
+        if (parts.length === 1) {
+            summary.formattedMessage = parts[0];
+        } else if (parts.length === 2) {
+            summary.formattedMessage = parts[0] + " and " + parts[1];
+        } else {
+            var last = parts.pop();
+            summary.formattedMessage = parts.join(", ") + ", and " + last;
+        }
+        
+    } catch (e) {
+        console.error("❌ Error getting drafts summary:", e.toString());
+        summary.formattedMessage = "Error loading drafts";
+    }
+    
+    return summary;
+}
+
+/**
  * Synchronizes has_draft flags for all records that have drafts
  * This is a migration/maintenance function to ensure consistency
  * @returns {Object} {success: boolean, updatedCount: number, message: string}

@@ -260,6 +260,15 @@ Item {
         if (result.success && result.draftId) {
             currentDraftId = result.draftId;
             draftSaved(result.draftId);
+            
+            // Trigger menu refresh to update draft badges
+            if (typeof mainView !== 'undefined' && mainView.refreshAppData) {
+                Qt.callLater(function() {
+                    if (mainView.menu_page && typeof mainView.menu_page.updateDraftCounts === 'function') {
+                        mainView.menu_page.updateDraftCounts();
+                    }
+                });
+            }
         }
         
         return result;
@@ -308,6 +317,15 @@ Item {
         currentFormData = JSON.parse(JSON.stringify(originalData)); // Reset to original
         
         draftCleared();
+        
+        // Trigger menu refresh to update draft badges
+        if (typeof mainView !== 'undefined' && mainView.refreshAppData) {
+            Qt.callLater(function() {
+                if (mainView.menu_page && typeof mainView.menu_page.updateDraftCounts === 'function') {
+                    mainView.menu_page.updateDraftCounts();
+                }
+            });
+        }
     }
     
     /**

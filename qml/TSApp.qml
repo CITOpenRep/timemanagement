@@ -448,7 +448,8 @@ MainView {
         if (project_page && project_page.projectlist && typeof project_page.projectlist.refresh === 'function') {
             project_page.projectlist.refresh();
         }
-
+        
+     
         // Force UI layout refresh
         Qt.callLater(function () {
             forceAllPagesUIRefresh();
@@ -499,25 +500,29 @@ MainView {
     // Function to check for unsaved drafts on app startup (crash recovery)
     function checkForUnsavedDrafts() {
         try {
-            var drafts = DraftManager.getAllDrafts(-1);  // Get all drafts for all accounts
+            var summary = DraftManager.getDraftsSummary(-1);  // Get summary for all accounts
             
-            if (drafts.length > 0) {
-                console.log("📂 Found " + drafts.length + " unsaved draft(s) from previous session");
+            if (summary.total > 0) {
+                console.log("📂 Found " + summary.total + " unsaved draft(s) from previous session");
+                console.log("📋 Summary: " + summary.formattedMessage);
                 
-                // Show notification about unsaved drafts
+                // Show detailed notification about unsaved drafts
+                var message = "You have unsaved work from a previous session:\n\n" + 
+                             formatDraftsMessage(summary) + 
+                             "\n\nOpen the respective forms to restore your changes.";
+                
                 notifPopup.open(
                     "📂 Unsaved Drafts Found",
-                    "You have " + drafts.length + " unsaved draft(s) from a previous session. " +
-                    "Open the forms to restore your work.",
+                    message,
                     "info"
                 );
                 
                 // Optional: Log draft details for debugging
-                for (var i = 0; i < drafts.length; i++) {
-                    var draft = drafts[i];
-                    console.log("  - Draft #" + draft.id + ": " + draft.draftType + 
-                               " (Updated: " + draft.updatedAt + ", Changes: " + 
-                               draft.changedFields.length + ")");
+                for (var i = 0; i < summary.detailedList.length; i++) {
+                    var draft = summary.detailedList[i];
+                    console.log("  - " + draft.label + " " + draft.recordInfo + 
+                               " (" + draft.changedFields.length + " changes, " +
+                               "Updated: " + draft.updatedAt + ")");
                 }
             } else {
                 console.log("✅ No unsaved drafts found");
@@ -529,6 +534,45 @@ MainView {
         } catch (e) {
             console.error("❌ Error checking for unsaved drafts:", e.toString());
         }
+    }
+    
+    // Helper function to format drafts message with icons and grouping
+    function formatDraftsMessage(summary) {
+        if (!summary || !summary.byType) {
+            return "Loading drafts...";
+        }
+        
+        var message = "";
+        var typeIcons = {
+            "timesheet": "⏱️",
+            "task": "🗒",
+            "project": "📁",
+            "activity": "📝"
+        };
+        
+        var typeLabels = {
+            "timesheet": "Timesheet",
+            "task": "Task",
+            "project": "Project",
+            "activity": "Activity"
+        };
+        
+        var typeOrder = ["timesheet", "task", "project", "activity"];
+        
+        for (var i = 0; i < typeOrder.length; i++) {
+            var type = typeOrder[i];
+            if (!summary.byType[type]) continue;
+            
+            var count = summary.byType[type];
+            var icon = typeIcons[type] || "•";
+            var label = typeLabels[type] || type;
+            
+            message += icon + " " + count + " " + label;
+            if (count > 1) message += "s";
+            message += ",\t";
+        }
+        
+        return message;
     }
 
     // Function to load saved theme preference and apply it
