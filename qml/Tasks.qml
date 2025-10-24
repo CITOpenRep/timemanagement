@@ -107,14 +107,30 @@ Page {
     
     // Track stage changes for draft management
     onSelectedStageOdooRecordIdChanged: {
+        console.log("🎯 Stage changed to:", selectedStageOdooRecordId);
+        if (isRestoringFromDraft) {
+            console.log("⏭️ Stage tracking skipped - restoring from draft");
+            return;
+        }
         if (draftHandler.enabled && draftHandler._initialized) {
             draftHandler.markFieldChanged("selectedStageOdooRecordId", selectedStageOdooRecordId);
+            console.log("📝 Tracked stage change - hasUnsavedChanges:", draftHandler.hasUnsavedChanges);
+        } else {
+            console.log("⏸️ Stage tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
         }
     }
     
     onSelectedPersonalStageOdooRecordIdChanged: {
+        console.log("🎯 Personal stage changed to:", selectedPersonalStageOdooRecordId);
+        if (isRestoringFromDraft) {
+            console.log("⏭️ Personal stage tracking skipped - restoring from draft");
+            return;
+        }
         if (draftHandler.enabled && draftHandler._initialized) {
             draftHandler.markFieldChanged("selectedPersonalStageOdooRecordId", selectedPersonalStageOdooRecordId);
+            console.log("📝 Tracked personal stage change - hasUnsavedChanges:", draftHandler.hasUnsavedChanges);
+        } else {
+            console.log("⏸️ Personal stage tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
         }
     }
 
@@ -129,6 +145,12 @@ Page {
 
     // Track if we're navigating to ReadMorePage to avoid showing save dialog
     property bool navigatingToReadMore: false
+    
+    // Track if form is fully initialized (to defer draft restoration)
+    property bool formFullyInitialized: false
+    
+    // Flag to suppress change tracking during draft restoration
+    property bool isRestoringFromDraft: false
 
     // Handle hardware back button presses
     Keys.onReleased: {
@@ -148,10 +170,24 @@ Page {
         autoSaveInterval: 300000 // 5 minutes
         
         onDraftLoaded: {
-            restoreFormFromDraft(draftData);
-            notifPopup.open("📂 Draft Restored", 
-                "Unsaved changes restored: " + getChangesSummary(), 
-                "info");
+            // Only restore if form is fully initialized
+            if (formFullyInitialized) {
+                restoreFormFromDraft(draftData);
+                notifPopup.open("📂 Draft Restored", 
+                    "Unsaved changes restored: " + getChangesSummary(), 
+                    "info");
+            } else {
+                // Defer restoration until form is ready
+                console.log("⏳ Deferring draft restoration until form is fully initialized...");
+                Qt.callLater(function() {
+                    if (formFullyInitialized) {
+                        restoreFormFromDraft(draftData);
+                        notifPopup.open("📂 Draft Restored", 
+                            "Unsaved changes restored: " + getChangesSummary(), 
+                            "info");
+                    }
+                });
+            }
         }
         
         onUnsavedChangesWarning: {
@@ -245,6 +281,9 @@ Page {
     function restoreFormFromDraft(draftData) {
         console.log("🔄 Restoring form from draft data...");
         
+        // Set flag to suppress tracking during restoration
+        isRestoringFromDraft = true;
+        
         if (draftData.name) name_text.text = draftData.name;
         if (draftData.description) description_text.setContent(draftData.description);
         if (draftData.plannedHours) hours_input.text = draftData.plannedHours;
@@ -261,8 +300,122 @@ Page {
             deadline_text.text = draftData.deadline;
         }
         
-        // Note: Project/assignee selection is handled by WorkItemSelector 
-        // and can't be easily restored here due to its complex state management
+        // Restore WorkItemSelector selections
+        // Helper function to convert null/undefined to -1 for WorkItemSelector
+        // WorkItemSelector expects -1 for "not selected", but stores null in drafts
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (draftData.accountId !== undefined || draftData.projectId !== undefined) {
+            console.log("📋 Restoring WorkItemSelector from draft...");
+            
+            var accountId = normalizeIdForRestore(draftData.accountId);
+            var projectId = normalizeIdForRestore(draftData.projectId);
+            var subprojectId = normalizeIdForRestore(draftData.subprojectId);
+            var taskId = normalizeIdForRestore(draftData.taskId);
+            var subtaskId = normalizeIdForRestore(draftData.subtaskId);
+            var assigneeId = normalizeIdForRestore(draftData.assigneeId);
+            
+            console.log("📋 Draft IDs - account:", accountId, "project:", projectId, "subproject:", subprojectId, "task:", taskId, "assignee:", assigneeId);
+            
+            // Only restore if we have valid IDs (at least account or project)
+            if (accountId > 0 || projectId > 0) {
+                // Use deferred loading to restore all selections
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, assigneeId);
+                
+                // If using multiple assignees, restore them after deferred loading completes
+                if (workItem.enableMultipleAssignees && draftData.multipleAssignees) {
+                    Qt.callLater(function() {
+                        workItem.setMultipleAssignees(draftData.multipleAssignees);
+                    });
+                }
+                
+                // Reload stages if project was selected, then restore the stage from draft
+                if (projectId > 0 && accountId > 0) {
+                    // Save the stage values from draft before loading
+                    var savedStageId = draftData.selectedStageOdooRecordId;
+                    var savedPersonalStageId = draftData.selectedPersonalStageOdooRecordId;
+                    
+                    Qt.callLater(function() {
+                        loadStagesForProject(projectId, accountId);
+                        
+                        // Restore the stage from draft AFTER stages are loaded
+                        // Use another Qt.callLater to ensure stages are fully loaded
+                        Qt.callLater(function() {
+                            if (savedStageId !== undefined && savedStageId !== null) {
+                                console.log("🔄 Restoring draft stage:", savedStageId, "after stage loading");
+                                selectedStageOdooRecordId = savedStageId;
+                                
+                                // Also update the combobox selection
+                                for (var i = 0; i < stageListModel.count; i++) {
+                                    if (stageListModel.get(i).odoo_record_id === savedStageId) {
+                                        stageComboBox.currentIndex = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (savedPersonalStageId !== undefined) {
+                                console.log("🔄 Restoring draft personal stage:", savedPersonalStageId, "after stage loading");
+                                selectedPersonalStageOdooRecordId = savedPersonalStageId;
+                            }
+                            
+                            // Clear the restoration flag after stage restoration is complete
+                            Qt.callLater(function() {
+                                isRestoringFromDraft = false;
+                                console.log("✅ Draft restoration complete - tracking re-enabled");
+                            });
+                        });
+                    });
+                } else {
+                    // No project selected, restore stages directly
+                    if (draftData.selectedStageOdooRecordId !== undefined) {
+                        selectedStageOdooRecordId = draftData.selectedStageOdooRecordId;
+                    }
+                    if (draftData.selectedPersonalStageOdooRecordId !== undefined) {
+                        selectedPersonalStageOdooRecordId = draftData.selectedPersonalStageOdooRecordId;
+                    }
+                    
+                    // Clear the restoration flag
+                    Qt.callLater(function() {
+                        isRestoringFromDraft = false;
+                        console.log("✅ Draft restoration complete (no project) - tracking re-enabled");
+                    });
+                }
+            } else {
+                console.log("⚠️ Draft has no valid account/project IDs - skipping WorkItemSelector restoration");
+                
+                // Still restore stage selections even if no project
+                if (draftData.selectedStageOdooRecordId !== undefined) {
+                    selectedStageOdooRecordId = draftData.selectedStageOdooRecordId;
+                }
+                if (draftData.selectedPersonalStageOdooRecordId !== undefined) {
+                    selectedPersonalStageOdooRecordId = draftData.selectedPersonalStageOdooRecordId;
+                }
+                
+                // Clear the restoration flag
+                Qt.callLater(function() {
+                    isRestoringFromDraft = false;
+                    console.log("✅ Draft restoration complete (no valid IDs) - tracking re-enabled");
+                });
+            }
+        } else {
+            // No WorkItemSelector data, but restore stages if present
+            if (draftData.selectedStageOdooRecordId !== undefined) {
+                selectedStageOdooRecordId = draftData.selectedStageOdooRecordId;
+            }
+            if (draftData.selectedPersonalStageOdooRecordId !== undefined) {
+                selectedPersonalStageOdooRecordId = draftData.selectedPersonalStageOdooRecordId;
+            }
+            
+            // Clear the restoration flag
+            Qt.callLater(function() {
+                isRestoringFromDraft = false;
+                console.log("✅ Draft restoration complete (no WorkItemSelector) - tracking re-enabled");
+            });
+        }
     }
     
     function restoreFormToOriginal() {
@@ -284,11 +437,49 @@ Page {
         if (originalData.deadline !== undefined) {
             deadline_text.text = originalData.deadline;
         }
+        
+        // Restore WorkItemSelector to original selections
+        // Helper function to convert null/undefined to -1 for WorkItemSelector
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (originalData.accountId !== undefined || originalData.projectId !== undefined) {
+            var accountId = normalizeIdForRestore(originalData.accountId);
+            var projectId = normalizeIdForRestore(originalData.projectId);
+            var subprojectId = normalizeIdForRestore(originalData.subprojectId);
+            var taskId = normalizeIdForRestore(originalData.taskId);
+            var subtaskId = normalizeIdForRestore(originalData.subtaskId);
+            var assigneeId = normalizeIdForRestore(originalData.assigneeId);
+            
+            if (accountId > 0 || projectId > 0) {
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, assigneeId);
+                
+                if (workItem.enableMultipleAssignees && originalData.multipleAssignees) {
+                    Qt.callLater(function() {
+                        workItem.setMultipleAssignees(originalData.multipleAssignees);
+                    });
+                }
+            }
+        }
+        
+        // Restore stage selections
+        if (originalData.selectedStageOdooRecordId !== undefined) {
+            selectedStageOdooRecordId = originalData.selectedStageOdooRecordId;
+        }
+        if (originalData.selectedPersonalStageOdooRecordId !== undefined) {
+            selectedPersonalStageOdooRecordId = originalData.selectedPersonalStageOdooRecordId;
+        }
     }
     
     function getCurrentFormData() {
         const ids = workItem.getIds();
-        return {
+        
+        // NOTE: WorkItemSelector.getIds() returns null for "not selected" (not -1)
+        // We keep null values as-is for consistency with WorkItemSelector
+        var formData = {
             name: name_text.text,
             description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             plannedHours: hours_input.text,
@@ -296,11 +487,24 @@ Page {
             startDate: date_range_widget.formattedStartDate ? date_range_widget.formattedStartDate() : "",
             endDate: date_range_widget.formattedEndDate ? date_range_widget.formattedEndDate() : "",
             deadline: deadline_text.text,
-            projectId: ids.project_id,
-            assigneeId: ids.assignee_id,
+            accountId: ids.account_id,        // null or number
+            projectId: ids.project_id,         // null or number
+            subprojectId: ids.subproject_id,   // null or number
+            taskId: ids.task_id,               // null or number
+            subtaskId: ids.subtask_id,         // null or number
             selectedStageOdooRecordId: selectedStageOdooRecordId,
             selectedPersonalStageOdooRecordId: selectedPersonalStageOdooRecordId
         };
+        
+        // Include assignee data based on mode
+        if (workItem.enableMultipleAssignees) {
+            formData.multipleAssignees = ids.multiple_assignees || [];
+            formData.assigneeIds = ids.assignee_ids || [];
+        } else {
+            formData.assigneeId = ids.assignee_id;  // null or number
+        }
+        
+        return formData;
     }
 
     function switchToEditMode() {
@@ -617,13 +821,64 @@ Page {
 
                     // Monitor project and account changes to reload stages
                     onStateChanged: {
-                        // console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
 
                         // Track changes for draft management (for all modes)
                         if (draftHandler.enabled && draftHandler._initialized) {
+                            // Get current IDs - but note that component.selectedId may not be updated yet
+                            // So we need to get the REAL current state by querying the properties
                             var idsForDraft = workItem.getIds();
-                            draftHandler.markFieldChanged("projectId", idsForDraft.project_id);
-                            draftHandler.markFieldChanged("assigneeId", idsForDraft.assignee_id);
+                            
+                            // Update the specific field that just changed based on the state
+                            // This ensures we track the actual change even if getIds() hasn't updated yet
+                            var changedId = data.id || null;
+                            
+                            console.log("📝 Tracking WorkItemSelector changes:", JSON.stringify({
+                                state: newState,
+                                changedId: changedId,
+                                currentIds: {
+                                    account: idsForDraft.account_id,
+                                    project: idsForDraft.project_id,
+                                    subproject: idsForDraft.subproject_id,
+                                    task: idsForDraft.task_id,
+                                    subtask: idsForDraft.subtask_id,
+                                    assignee: idsForDraft.assignee_id
+                                }
+                            }));
+                            
+                            // Track the field that actually changed
+                            if (newState === "AccountSelected") {
+                                console.log("✅ Tracking accountId:", changedId);
+                                draftHandler.markFieldChanged("accountId", changedId);
+                            } else if (newState === "ProjectSelected") {
+                                console.log("✅ Tracking projectId:", changedId);
+                                draftHandler.markFieldChanged("projectId", changedId);
+                            } else if (newState === "SubprojectSelected") {
+                                console.log("✅ Tracking subprojectId:", changedId);
+                                draftHandler.markFieldChanged("subprojectId", changedId);
+                            } else if (newState === "TaskSelected") {
+                                console.log("✅ Tracking taskId (Parent Task):", changedId);
+                                draftHandler.markFieldChanged("taskId", changedId);
+                            } else if (newState === "SubtaskSelected") {
+                                console.log("✅ Tracking subtaskId:", changedId);
+                                draftHandler.markFieldChanged("subtaskId", changedId);
+                            } else if (newState === "AssigneeSelected") {
+                                // For assignees, also check if using multi-assignee mode
+                                if (workItem.enableMultipleAssignees) {
+                                    console.log("✅ Tracking multipleAssignees:", idsForDraft.assignee_ids);
+                                    draftHandler.markFieldChanged("multipleAssignees", idsForDraft.multiple_assignees);
+                                    draftHandler.markFieldChanged("assigneeIds", idsForDraft.assignee_ids);
+                                } else {
+                                    console.log("✅ Tracking assigneeId:", changedId);
+                                    draftHandler.markFieldChanged("assigneeId", changedId);
+                                }
+                            } else {
+                                console.warn("⚠️ Unknown state - not tracking:", newState);
+                            }
+                            
+                            console.log("📊 Draft status - hasUnsavedChanges:", draftHandler.hasUnsavedChanges, "changedFields:", draftHandler.changedFields.length);
+                        } else {
+                            console.log("⏸️ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
                         }
 
                         if (recordid === 0) {
@@ -1238,8 +1493,8 @@ Page {
                 id: attachments_widget
                 anchors.fill: parent
                 resource_type: "project.task"   // keep as-is if that's your default
-                resource_id: currentTask.odoo_record_id
-                account_id: currentTask.account_id
+                resource_id: (currentTask && currentTask.odoo_record_id) ? currentTask.odoo_record_id : 0
+                account_id: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
                 notifier: infobar
 
                 onUploadCompleted: {
@@ -1377,6 +1632,9 @@ Page {
         }
     //  console.log("currentTask loaded:", JSON.stringify(currentTask));
     
+        // Mark form as fully initialized
+        formFullyInitialized = true;
+        
         // Initialize draft handler AFTER all form fields are populated
         if (!isReadOnly) {
             var originalTaskData = getCurrentFormData();

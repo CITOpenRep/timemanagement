@@ -218,13 +218,17 @@ Item {
         if (!enabled || !_initialized || _preventAutoSave) return;
         
         // Update current form data
+        var oldValue = currentFormData[fieldName];
         currentFormData[fieldName] = value;
         
         // Recalculate changed fields
         changedFields = DraftManager.getChangedFields(currentFormData, originalData);
         hasUnsavedChanges = changedFields.length > 0;
         
-        // console.log("✏️ Field changed: " + fieldName + " (" + changedFields.length + " total changes)");
+        // Log meaningful changes (not just every call)
+        if (oldValue !== value) {
+            console.log("✏️ Field changed: " + fieldName + " (" + oldValue + " → " + value + ") - Total changes: " + changedFields.length);
+        }
     }
     
     /**
