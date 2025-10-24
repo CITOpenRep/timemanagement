@@ -431,7 +431,7 @@ ListItem {
 
                             Text {
                                 id: projectTitleText
-                                text: ((taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task") + (hasDraft ? " •" : ""))
+                                text: ((taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task"))
                                 color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                                 font.pixelSize: units.gu(2)
 
@@ -601,7 +601,7 @@ ListItem {
                     anchors.right: parent.right
                     anchors.rightMargin: units.gu(2)
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: units.gu(0.4)
+                    spacing: units.gu(0.5)
                     width: parent.width
 
                                             Rectangle {
