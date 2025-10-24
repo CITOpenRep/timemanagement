@@ -14,6 +14,9 @@ Page {
     property string textkey: ""
     property string text: ""
     property bool isReadOnly: true
+    
+    // Reference to parent form's draft handler (for tracking changes)
+    property var parentDraftHandler: null
 
     header: PageHeader {
         id: header
@@ -65,6 +68,11 @@ Page {
 
             onContentChanged: {
                 Global.description_temporary_holder = newText;
+                
+                // Track changes in parent form's draft handler
+                if (parentDraftHandler && !isReadOnly) {
+                    parentDraftHandler.markFieldChanged("description", newText);
+                }
             }
 
             onContentLoaded: {
@@ -92,6 +100,11 @@ Page {
             onTextChanged: {
                 if (!readOnly) {
                     Global.description_temporary_holder = simpleEditor.text;
+                    
+                    // Track changes in parent form's draft handler
+                    if (parentDraftHandler) {
+                        parentDraftHandler.markFieldChanged("description", simpleEditor.text);
+                    }
                 }
             }
         }
@@ -127,9 +140,21 @@ Page {
                 // Also get content as backup
                 editor.getText(function (content) {
                     Global.description_temporary_holder = content;
+                    // Save draft when leaving ReadMore page
+                    if (parentDraftHandler) {
+                        console.log("💾 ReadMore: Saving draft before page hides");
+                        parentDraftHandler.markFieldChanged("description", content);
+                        parentDraftHandler.saveDraft();
+                    }
                 });
             } else if (!useRichText && simpleEditor) {
                 Global.description_temporary_holder = simpleEditor.text;
+                // Save draft when leaving ReadMore page
+                if (parentDraftHandler) {
+                    console.log("💾 ReadMore: Saving draft before page hides");
+                    parentDraftHandler.markFieldChanged("description", simpleEditor.text);
+                    parentDraftHandler.saveDraft();
+                }
             }
         }
     }
@@ -152,6 +177,13 @@ Page {
                 editor.syncContent();
             } else if (!useRichText && simpleEditor) {
                 Global.description_temporary_holder = simpleEditor.text;
+            }
+            
+            // Save draft one last time before page is destroyed
+            if (parentDraftHandler) {
+                console.log("💾 ReadMore: Saving draft on page destruction");
+                parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
+                parentDraftHandler.saveDraft();
             }
         }
     }

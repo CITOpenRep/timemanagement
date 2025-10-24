@@ -1124,7 +1124,8 @@ Page {
                             //set the data to a global Slore and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
+                                isReadOnly: isReadOnly,
+                                parentDraftHandler: draftHandler // Pass draft handler reference
                             });
                         }
                         

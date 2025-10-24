@@ -693,7 +693,8 @@ Page {
                             Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
-                                useRichText: false
+                                useRichText: false,
+                                parentDraftHandler: draftHandler // Pass draft handler reference
                             });
                         }
                         
