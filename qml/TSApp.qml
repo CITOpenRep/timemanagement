@@ -503,29 +503,11 @@ MainView {
             var summary = DraftManager.getDraftsSummary(-1);  // Get summary for all accounts
             
             if (summary.total > 0) {
-                console.log("📂 Found " + summary.total + " unsaved draft(s) from previous session");
-                console.log("📋 Summary: " + summary.formattedMessage);
-                
-                // Show detailed notification about unsaved drafts
                 var message = "You have unsaved work from a previous session:\n\n" + 
                              formatDraftsMessage(summary) + 
                              "\n\nOpen the respective forms to restore your changes.";
                 
-                notifPopup.open(
-                    "📂 Unsaved Drafts Found",
-                    message,
-                    "info"
-                );
-                
-                // Optional: Log draft details for debugging
-                for (var i = 0; i < summary.detailedList.length; i++) {
-                    var draft = summary.detailedList[i];
-                    console.log("  - " + draft.label + " " + draft.recordInfo + 
-                               " (" + draft.changedFields.length + " changes, " +
-                               "Updated: " + draft.updatedAt + ")");
-                }
-            } else {
-                console.log("✅ No unsaved drafts found");
+                notifPopup.open("📂 Unsaved Drafts Found", message, "info");
             }
             
             // Cleanup old drafts (older than 7 days)

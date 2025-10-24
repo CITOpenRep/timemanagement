@@ -100,10 +100,8 @@ Page {
         if (currentStatus === "updated") {
             const savedTime = Model.getTimesheetUnitAmount(recordid);
             time = Utils.convertDecimalHoursToHHMM(savedTime);
-            console.log("Using finalized time from database:", time);
         } else if (recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
             time = TimerService.stop();
-            console.log("Timer stopped during save, final time:", time);
         }
 
         const ids = workItem.getIds();
@@ -234,7 +232,6 @@ Page {
         id: unsavedChangesDialog
         
         onSaveRequested: {
-            console.log("💾 SaveDiscardDialog: Saving timesheet...");
             var success = save_timesheet(true); // true = skip automatic navigation
             // Only navigate back if save was successful
             if (success) {
@@ -243,14 +240,13 @@ Page {
         }
         
         onDiscardRequested: {
-            console.log("🗑️ SaveDiscardDialog: Discarding changes...");
             restoreFormToOriginal();  // Restore form to original values
             draftHandler.clearDraft(); // Clear the draft from database
             Qt.callLater(navigateBack);
         }
         
         onCancelled: {
-            console.log("❌ User cancelled navigation");
+            // User cancelled navigation
         }
     }
 
@@ -265,57 +261,41 @@ Page {
 
     // Helper function to navigate back
     function navigateBack() {
-        console.log("🔙 Attempting to navigate back...");
-        
         // Method 1: AdaptivePageLayout (primary method for this app)
         try {
             if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
-                console.log("✅ Navigating via apLayout.removePages()");
                 apLayout.removePages(timeSheet);
                 return;
             }
-        } catch (e) {
-            console.error("❌ apLayout navigation error:", e);
-        }
+        } catch (e) {}
         
         // Method 2: Standard pageStack
         try {
             if (pageStack && typeof pageStack.pop === 'function') {
-                console.log("✅ Navigating via pageStack.pop()");
                 pageStack.pop();
                 return;
             }
-        } catch (e) {
-            console.error("❌ Navigation error with pageStack:", e);
-        }
+        } catch (e) {}
         
         // Method 3: Parent pop
         try {
             if (parent && typeof parent.pop === 'function') {
-                console.log("✅ Navigating via parent.pop()");
                 parent.pop();
                 return;
             }
-        } catch (e) {
-            console.error("❌ Parent navigation error:", e);
-        }
-        
-        console.warn("⚠️ No navigation method found!");
+        } catch (e) {}
     }
 
     // Track navigation to ReadMore page
     property bool navigatingToReadMore: false
 
     function restoreFormFromDraft(draftData) {
-        console.log("🔄 Restoring timesheet from draft data...");
-        
         if (draftData.description) description_text.setContent(draftData.description);
         if (draftData.date) date_widget.setSelectedDate(draftData.date);
         if (draftData.quadrant !== undefined) priorityGrid.currentIndex = draftData.quadrant;
         if (draftData.elapsedTime) time_sheet_widget.elapsedTime = draftData.elapsedTime;
         
         // Restore WorkItemSelector selections
-        // Helper function to convert null/undefined to -1 for WorkItemSelector
         function normalizeIdForRestore(value) {
             if (value === null || value === undefined) return -1;
             var num = parseInt(value);
@@ -323,28 +303,19 @@ Page {
         }
         
         if (draftData.accountId !== undefined || draftData.projectId !== undefined) {
-            console.log("📋 Restoring WorkItemSelector from draft...");
-            
             var accountId = normalizeIdForRestore(draftData.accountId);
             var projectId = normalizeIdForRestore(draftData.projectId);
             var subprojectId = normalizeIdForRestore(draftData.subprojectId);
             var taskId = normalizeIdForRestore(draftData.taskId);
             var subtaskId = normalizeIdForRestore(draftData.subtaskId);
             
-            console.log("📋 Draft IDs - account:", accountId, "project:", projectId, "subproject:", subprojectId, "task:", taskId, "subtask:", subtaskId);
-            
-            // Only restore if we have valid IDs (at least account or project)
             if (accountId > 0 || projectId > 0) {
                 workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, -1);
-            } else {
-                console.log("⚠️ Draft has no valid account/project IDs - skipping WorkItemSelector restoration");
             }
         }
     }
     
     function restoreFormToOriginal() {
-        console.log("🔄 Restoring form to original values...");
-        
         var originalData = draftHandler.originalData;
         if (originalData.description !== undefined) description_text.setContent(originalData.description);
         if (originalData.date) date_widget.setSelectedDate(originalData.date);
@@ -748,9 +719,7 @@ Page {
                     time_sheet_widget.autoMode = (currentTimesheet.timer_type === "automatic");
                 }
             } else {
-                //  console.log("NO recordid - calling loadAccounts()");
                 workItem.loadAccounts();
-                console.log("New timesheet - loading accounts for creation mode");
             }
             
             // Initialize draft handler AFTER all form fields are populated

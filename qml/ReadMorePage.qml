@@ -142,7 +142,6 @@ Page {
                     Global.description_temporary_holder = content;
                     // Save draft when leaving ReadMore page
                     if (parentDraftHandler) {
-                        console.log("💾 ReadMore: Saving draft before page hides");
                         parentDraftHandler.markFieldChanged("description", content);
                         parentDraftHandler.saveDraft();
                     }
@@ -151,7 +150,6 @@ Page {
                 Global.description_temporary_holder = simpleEditor.text;
                 // Save draft when leaving ReadMore page
                 if (parentDraftHandler) {
-                    console.log("💾 ReadMore: Saving draft before page hides");
                     parentDraftHandler.markFieldChanged("description", simpleEditor.text);
                     parentDraftHandler.saveDraft();
                 }
@@ -166,8 +164,6 @@ Page {
         } else if (useRichText && editor) {
             editor.text = Global.description_temporary_holder;
         }
-        //console.log("Got full data")
-        //console.log(Global.description_temporary_holder)
     }
 
     Component.onDestruction: {
@@ -181,7 +177,6 @@ Page {
             
             // Save draft one last time before page is destroyed
             if (parentDraftHandler) {
-                console.log("💾 ReadMore: Saving draft on page destruction");
                 parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
                 parentDraftHandler.saveDraft();
             }

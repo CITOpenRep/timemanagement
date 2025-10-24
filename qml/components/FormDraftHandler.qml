@@ -149,7 +149,6 @@ Item {
         
         onTriggered: {
             if (root.hasUnsavedChanges && !root._preventAutoSave) {
-                console.log("🔄 Auto-saving draft for " + root.draftType + "...");
                 root.saveDraft();
             }
         }
@@ -163,12 +162,7 @@ Item {
      * @param originalDataObj - Original form data as object
      */
     function initialize(originalDataObj) {
-        if (!enabled) {
-            console.log("📝 Draft handler disabled for " + draftType);
-            return;
-        }
-        
-        console.log("🚀 Initializing draft handler for " + draftType);
+        if (!enabled) return;
         
         originalData = originalDataObj || {};
         currentFormData = JSON.parse(JSON.stringify(originalData)); // Deep copy
@@ -194,8 +188,6 @@ Item {
         });
         
         if (result.success && result.draft) {
-            console.log("📂 Found existing draft for " + draftType);
-            
             currentDraftId = result.draft.id;
             currentFormData = result.draft.formData;
             changedFields = result.draft.changedFields;
@@ -203,8 +195,6 @@ Item {
             
             // Emit signal to restore form UI
             draftLoaded(result.draft.formData, changedFields);
-        } else {
-            console.log("📭 No existing draft for " + draftType);
         }
     }
     
@@ -218,17 +208,11 @@ Item {
         if (!enabled || !_initialized || _preventAutoSave) return;
         
         // Update current form data
-        var oldValue = currentFormData[fieldName];
         currentFormData[fieldName] = value;
         
         // Recalculate changed fields
         changedFields = DraftManager.getChangedFields(currentFormData, originalData);
         hasUnsavedChanges = changedFields.length > 0;
-        
-        // Log meaningful changes (not just every call)
-        if (oldValue !== value) {
-            console.log("✏️ Field changed: " + fieldName + " (" + oldValue + " → " + value + ") - Total changes: " + changedFields.length);
-        }
     }
     
     /**
@@ -237,14 +221,10 @@ Item {
      */
     function saveDraft() {
         if (!enabled || !_initialized || _preventAutoSave) {
-            if (_preventAutoSave) {
-                console.log("🚫 Prevented draft save after explicit save/discard");
-            }
             return { success: false, error: "Not initialized or prevented" };
         }
         
         if (!hasUnsavedChanges) {
-            console.log("📝 No changes to save");
             return { success: true, hasChanges: false };
         }
         
@@ -262,12 +242,9 @@ Item {
             draftSaved(result.draftId);
             
             // Trigger menu refresh to update draft badges
-            if (typeof mainView !== 'undefined' && mainView.refreshAppData) {
-                Qt.callLater(function() {
-                    if (mainView.menu_page && typeof mainView.menu_page.updateDraftCounts === 'function') {
-                        mainView.menu_page.updateDraftCounts();
-                    }
-                });
+            if (typeof mainView !== 'undefined' && mainView.menu_page && 
+                typeof mainView.menu_page.updateDraftCounts === 'function') {
+                Qt.callLater(mainView.menu_page.updateDraftCounts);
             }
         }
         
@@ -281,50 +258,35 @@ Item {
     function clearDraft() {
         if (!enabled) return;
         
-        console.log("🗑️ Clearing draft for " + draftType + " (recordId: " + recordId + ", accountId: " + accountId + ", pageId: " + pageIdentifier + ")");
-        
-        // CRITICAL: Stop the timer IMMEDIATELY to prevent any pending auto-saves
+        // Stop the timer IMMEDIATELY to prevent any pending auto-saves
         autoSaveTimer.stop();
-        
-        // Set flag FIRST to prevent any race conditions
         _preventAutoSave = true;
         
         // Delete from database if exists
         if (currentDraftId) {
-            var result = DraftManager.deleteDraft(currentDraftId);
-            if (result.success) {
-                console.log("✅ Draft #" + currentDraftId + " cleared successfully");
-            }
+            DraftManager.deleteDraft(currentDraftId);
         }
         
-        // Also delete by criteria (in case currentDraftId is not set or multiple drafts exist)
-        console.log("🔍 Searching for additional drafts to clean up...");
-        var deleteAllResult = DraftManager.deleteDrafts({
+        // Also delete by criteria (in case currentDraftId is not set)
+        DraftManager.deleteDrafts({
             draftType: draftType,
             recordId: recordId,
             accountId: accountId,
             pageIdentifier: pageIdentifier
         });
         
-        if (deleteAllResult.deletedCount > 0) {
-            console.log("🧹 Cleaned up " + deleteAllResult.deletedCount + " additional draft(s)");
-        }
-        
         // Reset state
         currentDraftId = null;
         hasUnsavedChanges = false;
         changedFields = [];
-        currentFormData = JSON.parse(JSON.stringify(originalData)); // Reset to original
+        currentFormData = JSON.parse(JSON.stringify(originalData));
         
         draftCleared();
         
         // Trigger menu refresh to update draft badges
-        if (typeof mainView !== 'undefined' && mainView.refreshAppData) {
-            Qt.callLater(function() {
-                if (mainView.menu_page && typeof mainView.menu_page.updateDraftCounts === 'function') {
-                    mainView.menu_page.updateDraftCounts();
-                }
-            });
+        if (typeof mainView !== 'undefined' && mainView.menu_page && 
+            typeof mainView.menu_page.updateDraftCounts === 'function') {
+            Qt.callLater(mainView.menu_page.updateDraftCounts);
         }
     }
     
@@ -337,7 +299,6 @@ Item {
         if (!enabled || !_initialized) return true;
         
         if (hasUnsavedChanges) {
-            console.log("⚠️ Unsaved changes detected when trying to leave page");
             unsavedChangesWarning();
             return false;
         }
@@ -379,7 +340,6 @@ Item {
         originalData = JSON.parse(JSON.stringify(currentFormData));
         hasUnsavedChanges = false;
         changedFields = [];
-        console.log("✅ Original data updated, no unsaved changes");
     }
     
     /**
@@ -392,7 +352,6 @@ Item {
         hasUnsavedChanges = false;
         changedFields = [];
         _initialized = false;
-        console.log("🔄 Draft handler reset");
     }
     
     // ==================== CLEANUP ====================
@@ -401,10 +360,7 @@ Item {
         // Save draft one last time before component is destroyed
         // But NOT if we just cleared the draft (after save or discard)
         if (enabled && _initialized && hasUnsavedChanges && !_preventAutoSave) {
-            console.log("💾 Saving draft before page destruction...");
             saveDraft();
-        } else if (_preventAutoSave) {
-            console.log("⏭️ Skipping auto-save on destruction (draft was cleared)");
         }
     }
 }
