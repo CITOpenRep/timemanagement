@@ -313,6 +313,33 @@ Page {
         if (draftData.date) date_widget.setSelectedDate(draftData.date);
         if (draftData.quadrant !== undefined) priorityGrid.currentIndex = draftData.quadrant;
         if (draftData.elapsedTime) time_sheet_widget.elapsedTime = draftData.elapsedTime;
+        
+        // Restore WorkItemSelector selections
+        // Helper function to convert null/undefined to -1 for WorkItemSelector
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (draftData.accountId !== undefined || draftData.projectId !== undefined) {
+            console.log("📋 Restoring WorkItemSelector from draft...");
+            
+            var accountId = normalizeIdForRestore(draftData.accountId);
+            var projectId = normalizeIdForRestore(draftData.projectId);
+            var subprojectId = normalizeIdForRestore(draftData.subprojectId);
+            var taskId = normalizeIdForRestore(draftData.taskId);
+            var subtaskId = normalizeIdForRestore(draftData.subtaskId);
+            
+            console.log("📋 Draft IDs - account:", accountId, "project:", projectId, "subproject:", subprojectId, "task:", taskId, "subtask:", subtaskId);
+            
+            // Only restore if we have valid IDs (at least account or project)
+            if (accountId > 0 || projectId > 0) {
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, -1);
+            } else {
+                console.log("⚠️ Draft has no valid account/project IDs - skipping WorkItemSelector restoration");
+            }
+        }
     }
     
     function restoreFormToOriginal() {
@@ -323,17 +350,41 @@ Page {
         if (originalData.date) date_widget.setSelectedDate(originalData.date);
         if (originalData.quadrant !== undefined) priorityGrid.currentIndex = originalData.quadrant;
         if (originalData.elapsedTime !== undefined) time_sheet_widget.elapsedTime = originalData.elapsedTime;
+        
+        // Restore WorkItemSelector to original selections
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (originalData.accountId !== undefined || originalData.projectId !== undefined) {
+            var accountId = normalizeIdForRestore(originalData.accountId);
+            var projectId = normalizeIdForRestore(originalData.projectId);
+            var subprojectId = normalizeIdForRestore(originalData.subprojectId);
+            var taskId = normalizeIdForRestore(originalData.taskId);
+            var subtaskId = normalizeIdForRestore(originalData.subtaskId);
+            
+            if (accountId > 0 || projectId > 0) {
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, -1);
+            }
+        }
     }
     
     function getCurrentFormData() {
         const ids = workItem.getIds();
+        // NOTE: WorkItemSelector.getIds() returns null for "not selected" (not -1)
+        // We keep null values as-is for consistency with WorkItemSelector
         return {
             description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             date: date_widget.formattedDate ? date_widget.formattedDate() : "",
             quadrant: priorityGrid.currentIndex,
             elapsedTime: time_sheet_widget.elapsedTime,
-            projectId: ids.project_id,
-            taskId: ids.task_id
+            accountId: ids.account_id,        // null or number
+            projectId: ids.project_id,         // null or number
+            subprojectId: ids.subproject_id,   // null or number
+            taskId: ids.task_id,               // null or number
+            subtaskId: ids.subtask_id          // null or number
         };
     }
 
@@ -374,11 +425,50 @@ Page {
                     
                     // Track changes for draft management
                     onStateChanged: {
+                        console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        
                         if (draftHandler.enabled && draftHandler._initialized) {
-                            var ids = workItem.getIds();
-                            draftHandler.markFieldChanged("projectId", ids.project_id);
-                            draftHandler.markFieldChanged("taskId", ids.task_id);
-                            console.log("📝 WorkItemSelector changed - tracking for draft");
+                            // Get current IDs for reference
+                            var idsForDraft = workItem.getIds();
+                            
+                            // Extract the actual changed ID from the state change signal
+                            var changedId = data.id || null;
+                            
+                            console.log("📝 Tracking WorkItemSelector changes:", JSON.stringify({
+                                state: newState,
+                                changedId: changedId,
+                                currentIds: {
+                                    account: idsForDraft.account_id,
+                                    project: idsForDraft.project_id,
+                                    subproject: idsForDraft.subproject_id,
+                                    task: idsForDraft.task_id,
+                                    subtask: idsForDraft.subtask_id
+                                }
+                            }));
+                            
+                            // Track the field that actually changed
+                            if (newState === "AccountSelected") {
+                                console.log("✅ Tracking accountId:", changedId);
+                                draftHandler.markFieldChanged("accountId", changedId);
+                            } else if (newState === "ProjectSelected") {
+                                console.log("✅ Tracking projectId:", changedId);
+                                draftHandler.markFieldChanged("projectId", changedId);
+                            } else if (newState === "SubprojectSelected") {
+                                console.log("✅ Tracking subprojectId:", changedId);
+                                draftHandler.markFieldChanged("subprojectId", changedId);
+                            } else if (newState === "TaskSelected") {
+                                console.log("✅ Tracking taskId:", changedId);
+                                draftHandler.markFieldChanged("taskId", changedId);
+                            } else if (newState === "SubtaskSelected") {
+                                console.log("✅ Tracking subtaskId:", changedId);
+                                draftHandler.markFieldChanged("subtaskId", changedId);
+                            } else {
+                                console.warn("⚠️ Unknown state - not tracking:", newState);
+                            }
+                            
+                            console.log("� Draft status - hasUnsavedChanges:", draftHandler.hasUnsavedChanges, "changedFields:", draftHandler.changedFields.length);
+                        } else {
+                            console.log("⏸️ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
                         }
                     }
                 }
