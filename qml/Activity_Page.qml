@@ -608,7 +608,7 @@ Page {
             anchors.centerIn: parent
             font.pixelSize: units.gu(2)
             visible: activityListModel.count === 0
-            text: 'No Activities Available'
+            text: i18n.dtr("ubtms","No Activities Available")
         }
     }
 
