@@ -451,38 +451,6 @@ function initializeDatabase() {
     );
 
 
-
-    // Form drafts table for auto-save and crash recovery
-    DBCommon.createOrUpdateTable("form_drafts",
-        'CREATE TABLE IF NOT EXISTS form_drafts (' +
-        'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-        'draft_type TEXT NOT NULL, ' +
-        'record_id INTEGER, ' +
-        'account_id INTEGER, ' +
-        'draft_data TEXT NOT NULL, ' +
-        'original_data TEXT, ' +
-        'created_at TEXT NOT NULL, ' +
-        'updated_at TEXT NOT NULL, ' +
-        'field_changes TEXT, ' +
-        'is_new_record INTEGER DEFAULT 0, ' +
-        'page_identifier TEXT, ' +
-        'UNIQUE(draft_type, record_id, account_id, page_identifier)' +
-        ')',
-        [
-            'id INTEGER',
-            'draft_type TEXT',
-            'record_id INTEGER',
-            'account_id INTEGER',
-            'draft_data TEXT',
-            'original_data TEXT',
-            'created_at TEXT',
-            'updated_at TEXT',
-            'field_changes TEXT',
-            'is_new_record INTEGER',
-            'page_identifier TEXT'
-        ]
-    );
-
     purgeCache();
     syncDraftFlags();
 }
