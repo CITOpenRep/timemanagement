@@ -108,7 +108,7 @@ function saveOrUpdateTask(data) {
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
                     account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority = ?, description = ?, user_id = ?, sub_project_id = ?, \
-                    start_date = ?, end_date = ?, deadline = ?, state = ?, personal_stage = ?, last_modified = ?, status = ? WHERE id = ?',
+                    start_date = ?, end_date = ?, deadline = ?, state = ?, personal_stage = ?, last_modified = ?, status = ?, has_draft = 0 WHERE id = ?',
                               [
                                   data.accountId, data.name, finalProjectId,
                                   resolvedParentId, data.plannedHours, data.priority,
@@ -122,8 +122,8 @@ function saveOrUpdateTask(data) {
                               
             } else {
                 // INSERT
-                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, personal_stage, last_modified, status) \
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, priority, initial_planned_hours, description, user_id, sub_project_id, state, personal_stage, last_modified, status, has_draft) \
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
                               [
                                   data.accountId, data.name, finalProjectId,
                                    resolvedParentId, data.startDate, data.endDate,
@@ -758,7 +758,8 @@ function getTasksForAccount(accountId) {
                     last_modified: row.last_modified,
                     user_id: row.user_id,
                     status: row.status,
-                    odoo_record_id: row.odoo_record_id
+                    odoo_record_id: row.odoo_record_id,
+                    has_draft: row.has_draft || 0
                 };
 
                 // Inherit color from sub_project or project
@@ -860,7 +861,8 @@ function getTaskDetails(task_id) {
                     last_modified: row.last_modified,
                     user_id: row.user_id,
                     status: row.status || "",
-                    odoo_record_id: row.odoo_record_id
+                    odoo_record_id: row.odoo_record_id,
+                    has_draft: row.has_draft || 0
                 };
 
               //  console.log("getTaskDetails enriched task:", JSON.stringify(task_detail));
@@ -1904,7 +1906,8 @@ function getTasksForProject(projectOdooRecordId, accountId) {
                     state,
                     priority,
                     last_modified,
-                    status
+                    status,
+                    has_draft
                 FROM project_task_app 
                 WHERE project_id = ? 
                 AND account_id = ? 
@@ -1958,7 +1961,8 @@ function getTasksForProject(projectOdooRecordId, accountId) {
                     last_modified: row.last_modified,
                     status: row.status,
                     color_pallet: inheritedColor,
-                    spent_hours: spentHours
+                    spent_hours: spentHours,
+                    has_draft: row.has_draft || 0
                 };
 
                 taskList.push(task);

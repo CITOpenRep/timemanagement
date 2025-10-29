@@ -47,6 +47,7 @@ ListItem {
     property bool timer_on: false
     property bool timer_paused: false
     property int colorPallet: 0
+    property bool hasDraft: false // Indicates if this timesheet has unsaved draft changes
 
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
@@ -223,25 +224,30 @@ ListItem {
             }
         }
 
+
         Row {
             anchors.left: indicator.right
             anchors.right: parent.right
             anchors.leftMargin: units.gu(0.5)
             anchors.verticalCenter: parent.verticalCenter
             spacing: units.gu(1)
+
+            
             // Left Column
             Column {
                 width: parent.width * 0.6  // Reduced from 0.65 to account for color bar and indicator
                 spacing: units.gu(0.5)
+                
 
                 Text {
-                    text: (typeof name === "string" && name.trim() !== "") ? Utils.truncateText(name, 30) : "No Description"
+                    text: ((typeof name === "string" && name.trim() !== "") ? Utils.truncateText(name, 30) : "No Description")
                     textFormat: Text.PlainText
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
                     width: parent.width
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
+                
 
                 Text {
                     text: (project ? Utils.truncateText(project, 30) : "No Project")
@@ -268,6 +274,28 @@ ListItem {
                 width: parent.width * 0.3  // Increased from 0.25 to account for layout changes
                 spacing: units.gu(0.5)
                 anchors.verticalCenter: parent.verticalCenter
+
+                        Rectangle {
+    id: draftIndicator
+    visible: hasDraft
+    width: draftLabel.width + units.gu(1.2)
+    height: units.gu(2)
+    radius: height / 2
+    color: "#FFF3E0"
+    border.color: "#FF9800"
+    border.width: units.gu(0.15)
+anchors.right: parent.right
+
+    
+    Text {
+        id: draftLabel
+        text: "DRAFT"
+        font.pixelSize: units.gu(1.1)
+        font.bold: true
+        color: "#F57C00"
+        anchors.centerIn: parent
+    }
+}
 
                 Text {
                     text: spentHours + " H"

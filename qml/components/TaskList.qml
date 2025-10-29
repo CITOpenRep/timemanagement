@@ -418,7 +418,7 @@ Item {
             }
 
             var projectName = Project.getProjectName(projectIdToUse, row.account_id);
-
+            
             var item = {
                 id_val: odooId,
                 local_id: row.id,
@@ -437,7 +437,8 @@ Item {
                 hasChildren: false,
                 stage: row.state || -1,
                 color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
-                last_modified: row.last_modified || ""
+                last_modified: row.last_modified || "",
+                has_draft: row.has_draft === 1
             };
 
             if (!tempMap[parentOdooId])
@@ -513,7 +514,8 @@ Item {
                 hasChildren: false,
                 stage: row.state || -1,
                 color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
-                last_modified: row.last_modified || ""
+                last_modified: row.last_modified || "",
+                has_draft: row.has_draft === 1
             };
 
             if (!tempMap[parentOdooId])
@@ -598,6 +600,7 @@ Item {
                     stage: model.stage
                     accountId: model.account_id
                     isMyTasksContext: taskNavigator.isMyTasksContext
+                    hasDraft: model.has_draft || false
 
                     onEditRequested: id => {
                         taskEditRequested(local_id);

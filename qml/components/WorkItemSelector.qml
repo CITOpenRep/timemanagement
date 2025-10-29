@@ -177,7 +177,8 @@ Rectangle {
                 selectedSubProjectId = project_component.selectedId;
                 transitionTo("ProjectSelected", payload);
             }
-        } else if (selectorType === "Task") {
+        } else if (selectorType === "Task" || selectorType === taskLabelText) {
+            // Match both "Task" and custom taskLabelText (e.g., "Parent Task")
             selectedTaskId = id;
             transitionTo("TaskSelected", payload);
         } else if (selectorType === "Subtask") {

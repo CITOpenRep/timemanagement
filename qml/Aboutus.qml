@@ -48,7 +48,7 @@ Page {
     }
 
     header: PageHeader {
-        title: "About"
+        title: i18n.dtr("ubtms", "About")
         StyleHints {
             foregroundColor: "white"
 
@@ -72,18 +72,18 @@ Page {
             width: flick.width
             spacing: units.gu(1)
             Label {
-                text: "Time Management App - Beta"
+                text: i18n.dtr("ubtms", "Time Management App - Beta")
                 font.bold: true
                 font.pixelSize: units.gu(2.5)
             }
 
             Label {
-                text: "Version: " + AppConst.version
+                text: i18n.dtr("ubtms", "Version: ") + AppConst.version
                 font.pixelSize: units.gu(2)
             }
 
             Label {
-                text: "Release Notes:"
+                text: i18n.dtr("ubtms", "Release Notes: ")
                 font.bold: true
                 font.pixelSize: units.gu(2.2)
             }

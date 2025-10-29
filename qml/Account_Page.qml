@@ -61,7 +61,8 @@ Page {
             Action {
                 iconSource: "images/save.svg"
                 visible: !isReadOnly
-                text: "Save"
+                text: i18n.dtr("ubtms","Save")
+                
                 onTriggered: {
                     handleAccountSave();
                 }
@@ -69,7 +70,7 @@ Page {
             Action {
                 iconName: "edit"
                 visible: isReadOnly
-                text: "Edit"
+                text: i18n.dtr("ubtms","Edit")
                 onTriggered: {
                     switchToEditMode();
                 }

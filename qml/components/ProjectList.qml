@@ -596,11 +596,12 @@ Item {
             //   color: "#333333"
             selectByMouse: true
             onAccepted: performSearch(text)
-            onTextChanged: {
-                searchQuery = text;
-                //  Debounced search - only search after user stops typing
-                searchTimer.restart();
-            }
+            //Todo: Later Experiment with Debouncing search , solve performance issues causing the crash 
+            // onTextChanged: {
+            //     searchQuery = text;
+            //     //  Debounced search - only search after user stops typing
+            //     searchTimer.restart();
+            // }
 
             Rectangle {
 

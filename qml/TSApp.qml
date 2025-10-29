@@ -28,6 +28,7 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
 import QtQuick.LocalStorage 2.7 as Sql
 import "../models/dbinit.js" as DbInit
+import "../models/draft_manager.js" as DraftManager
 import "components"
 import "."
 
@@ -417,7 +418,8 @@ MainView {
         if (project_page && project_page.projectlist && typeof project_page.projectlist.refresh === 'function') {
             project_page.projectlist.refresh();
         }
-
+        
+     
         // Force UI layout refresh
         Qt.callLater(function () {
             forceAllPagesUIRefresh();
@@ -455,11 +457,74 @@ MainView {
 
         // Load and apply saved theme preference
         loadAndApplyTheme();
+        
+        // Check for unsaved drafts from previous session (crash recovery)
+        checkForUnsavedDrafts();
 
         Qt.callLater(function () {
             apLayout.setFirstScreen(); // Delay page setup until after DB init
 
         });
+    }
+    
+    // Function to check for unsaved drafts on app startup (crash recovery)
+    function checkForUnsavedDrafts() {
+        try {
+            var summary = DraftManager.getDraftsSummary(-1);  // Get summary for all accounts
+            
+            if (summary.total > 0) {
+                var message = "You have unsaved work from a previous session:\n\n" + 
+                             formatDraftsMessage(summary) + 
+                             "\n\nOpen the respective forms to restore your changes.";
+                
+                notifPopup.open("📂 Unsaved Drafts Found", message, "info");
+            }
+            
+            // Cleanup old drafts (older than 7 days)
+            DraftManager.cleanupOldDrafts(7);
+            
+        } catch (e) {
+            console.error("❌ Error checking for unsaved drafts:", e.toString());
+        }
+    }
+    
+    // Helper function to format drafts message with icons and grouping
+    function formatDraftsMessage(summary) {
+        if (!summary || !summary.byType) {
+            return "Loading drafts...";
+        }
+        
+        var message = "";
+        var typeIcons = {
+            "timesheet": "⏱️",
+            "task": "🗒",
+            "project": "📁",
+            "activity": "📝"
+        };
+        
+        var typeLabels = {
+            "timesheet": "Timesheet",
+            "task": "Task",
+            "project": "Project",
+            "activity": "Activity"
+        };
+        
+        var typeOrder = ["timesheet", "task", "project", "activity"];
+        
+        for (var i = 0; i < typeOrder.length; i++) {
+            var type = typeOrder[i];
+            if (!summary.byType[type]) continue;
+            
+            var count = summary.byType[type];
+            var icon = typeIcons[type] || "•";
+            var label = typeLabels[type] || type;
+            
+            message += icon + " " + count + " " + label;
+            if (count > 1) message += "s";
+            message += ",\t";
+        }
+        
+        return message;
     }
 
     // Function to load saved theme preference and apply it

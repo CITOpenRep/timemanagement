@@ -41,6 +41,15 @@ import "components"
 Page {
     id: timeSheet
     title: i18n.dtr("ubtms", "Timesheet")
+    
+    // Handle hardware back button
+    Keys.onReleased: {
+        if (event.key === Qt.Key_Escape || event.key === Qt.Key_Back) {
+            handleBackNavigation();
+            event.accepted = true;
+        }
+    }
+    
     header: PageHeader {
         id: tsHeader
         StyleHints {
@@ -50,7 +59,18 @@ Page {
             dividerColor: LomiriColors.slate
         }
 
-        title: timeSheet.title
+        title: timeSheet.title + (draftHandler.hasUnsavedChanges ? " •" : "")
+
+        // Custom back button with unsaved changes check
+        leadingActionBar.actions: [
+            Action {
+                iconName: "back"
+                text: "Back"
+                onTriggered: {
+                    handleBackNavigation();
+                }
+            }
+        ]
 
         trailingActionBar.actions: [
             Action {
@@ -72,7 +92,7 @@ Page {
         ]
     }
 
-    function save_timesheet() {
+    function save_timesheet(skipNavigation) {
         let time = time_sheet_widget.elapsedTime;
 
         const currentStatus = getCurrentTimesheetStatus();
@@ -80,10 +100,8 @@ Page {
         if (currentStatus === "updated") {
             const savedTime = Model.getTimesheetUnitAmount(recordid);
             time = Utils.convertDecimalHoursToHHMM(savedTime);
-            console.log("Using finalized time from database:", time);
         } else if (recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
             time = TimerService.stop();
-            console.log("Timer stopped during save, final time:", time);
         }
 
         const ids = workItem.getIds();
@@ -91,17 +109,17 @@ Page {
 
         if (!user) {
             notifPopup.open("Error", "Unable to find the user, cannot save", "error");
-            return;
+            return false;
         }
 
         if (ids.project_id === null) {
             notifPopup.open("Error", "You need to select a project to save timesheet", "error");
-            return;
+            return false;
         }
 
         if (ids.task_id === null) {
             notifPopup.open("Error", "You need to select a task to save timesheet", "error");
-            return;
+            return false;
         }
 
         let correctTaskId;
@@ -126,7 +144,7 @@ Page {
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
-            'status': "draft"
+            'status': "draft"  // WORKFLOW status (not submitted yet), NOT form draft status
         };
         if (recordid && recordid !== 0) {
             timesheet_data.id = recordid;
@@ -135,9 +153,21 @@ Page {
         const result = Model.saveTimesheet(timesheet_data);
         if (!result.success) {
             notifPopup.open("Error", "Unable to Save the Timesheet: " + result.error, "error");
+            return false;
         } else {
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
+            
+            // Clear form draft (unsaved changes) after successful database save
+            draftHandler.clearDraft();
+            
             time_sheet_widget.elapsedTime = time;
+            
+            // Navigate back to list view after successful save (unless skipNavigation is true)
+            if (!skipNavigation) {
+                navigateBack();
+            }
+            
+            return true;
         }
     }
 
@@ -157,6 +187,11 @@ Page {
     function switchToEditMode() {
         if (recordid !== 0) {
             isReadOnly = false;
+            
+            // Initialize draft handler when switching from read-only to edit mode
+            // This ensures drafts are loaded if they exist
+            var originalTimesheetData = getCurrentFormData();
+            draftHandler.initialize(originalTimesheetData);
         }
     }
 
@@ -166,6 +201,163 @@ Page {
     property var recordid: 0 //0 means creation mode
     property bool isReadOnly: false // Can be overridden when page is opened
     property var currentTimesheet: {}
+
+    // ==================== DRAFT HANDLER ====================
+    FormDraftHandler {
+        id: draftHandler
+        draftType: "timesheet"
+        recordId: timeSheet.recordid
+        accountId: (currentTimesheet && currentTimesheet.account_id) ? currentTimesheet.account_id : 0
+        enabled: !isReadOnly
+        autoSaveInterval: 300000 // 5 minutes
+        
+        onDraftLoaded: {
+            restoreFormFromDraft(draftData);
+            notifPopup.open("📂 Draft Restored", 
+                "Unsaved changes restored: " + getChangesSummary(), 
+                "info");
+        }
+        
+        onUnsavedChangesWarning: {
+            PopupUtils.open(unsavedChangesDialog);
+        }
+        
+        onDraftSaved: {
+            console.log("💾 Timesheet draft saved successfully (ID: " + draftId + ")");
+        }
+    }
+
+    // Save/Discard dialog for back navigation
+    SaveDiscardDialog {
+        id: unsavedChangesDialog
+        
+        onSaveRequested: {
+            var success = save_timesheet(true); // true = skip automatic navigation
+            // Only navigate back if save was successful
+            if (success) {
+                Qt.callLater(navigateBack);
+            }
+        }
+        
+        onDiscardRequested: {
+            restoreFormToOriginal();  // Restore form to original values
+            draftHandler.clearDraft(); // Clear the draft from database
+            Qt.callLater(navigateBack);
+        }
+        
+        onCancelled: {
+            // User cancelled navigation
+        }
+    }
+
+    // Handle back navigation with unsaved changes check
+    function handleBackNavigation() {
+        if (draftHandler.hasUnsavedChanges) {
+            unsavedChangesDialog.open("timesheet");
+        } else {
+            navigateBack();
+        }
+    }
+
+    // Helper function to navigate back
+    function navigateBack() {
+        // Method 1: AdaptivePageLayout (primary method for this app)
+        try {
+            if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
+                apLayout.removePages(timeSheet);
+                return;
+            }
+        } catch (e) {}
+        
+        // Method 2: Standard pageStack
+        try {
+            if (pageStack && typeof pageStack.pop === 'function') {
+                pageStack.pop();
+                return;
+            }
+        } catch (e) {}
+        
+        // Method 3: Parent pop
+        try {
+            if (parent && typeof parent.pop === 'function') {
+                parent.pop();
+                return;
+            }
+        } catch (e) {}
+    }
+
+    // Track navigation to ReadMore page
+    property bool navigatingToReadMore: false
+
+    function restoreFormFromDraft(draftData) {
+        if (draftData.description) description_text.setContent(draftData.description);
+        if (draftData.date) date_widget.setSelectedDate(draftData.date);
+        if (draftData.quadrant !== undefined) priorityGrid.currentIndex = draftData.quadrant;
+        if (draftData.elapsedTime) time_sheet_widget.elapsedTime = draftData.elapsedTime;
+        
+        // Restore WorkItemSelector selections
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (draftData.accountId !== undefined || draftData.projectId !== undefined) {
+            var accountId = normalizeIdForRestore(draftData.accountId);
+            var projectId = normalizeIdForRestore(draftData.projectId);
+            var subprojectId = normalizeIdForRestore(draftData.subprojectId);
+            var taskId = normalizeIdForRestore(draftData.taskId);
+            var subtaskId = normalizeIdForRestore(draftData.subtaskId);
+            
+            if (accountId > 0 || projectId > 0) {
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, -1);
+            }
+        }
+    }
+    
+    function restoreFormToOriginal() {
+        var originalData = draftHandler.originalData;
+        if (originalData.description !== undefined) description_text.setContent(originalData.description);
+        if (originalData.date) date_widget.setSelectedDate(originalData.date);
+        if (originalData.quadrant !== undefined) priorityGrid.currentIndex = originalData.quadrant;
+        if (originalData.elapsedTime !== undefined) time_sheet_widget.elapsedTime = originalData.elapsedTime;
+        
+        // Restore WorkItemSelector to original selections
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (originalData.accountId !== undefined || originalData.projectId !== undefined) {
+            var accountId = normalizeIdForRestore(originalData.accountId);
+            var projectId = normalizeIdForRestore(originalData.projectId);
+            var subprojectId = normalizeIdForRestore(originalData.subprojectId);
+            var taskId = normalizeIdForRestore(originalData.taskId);
+            var subtaskId = normalizeIdForRestore(originalData.subtaskId);
+            
+            if (accountId > 0 || projectId > 0) {
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, -1);
+            }
+        }
+    }
+    
+    function getCurrentFormData() {
+        const ids = workItem.getIds();
+        // NOTE: WorkItemSelector.getIds() returns null for "not selected" (not -1)
+        // We keep null values as-is for consistency with WorkItemSelector
+        return {
+            description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            date: date_widget.formattedDate ? date_widget.formattedDate() : "",
+            quadrant: priorityGrid.currentIndex,
+            elapsedTime: time_sheet_widget.elapsedTime,
+            accountId: ids.account_id,        // null or number
+            projectId: ids.project_id,         // null or number
+            subprojectId: ids.subproject_id,   // null or number
+            taskId: ids.task_id,               // null or number
+            subtaskId: ids.subtask_id          // null or number
+        };
+    }
 
     NotificationPopup {
         id: notifPopup
@@ -201,9 +393,55 @@ Page {
                     showSubTaskSelector: true
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     // height: units.gu(29) // Uncomment if you need fixed height
-                    //onAccountChanged:
-                    // console.log("Account id is ->>>>" + accountId);
-                    //{}
+                    
+                    // Track changes for draft management
+                    onStateChanged: {
+                        console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        
+                        if (draftHandler.enabled && draftHandler._initialized) {
+                            // Get current IDs for reference
+                            var idsForDraft = workItem.getIds();
+                            
+                            // Extract the actual changed ID from the state change signal
+                            var changedId = data.id || null;
+                            
+                            console.log("📝 Tracking WorkItemSelector changes:", JSON.stringify({
+                                state: newState,
+                                changedId: changedId,
+                                currentIds: {
+                                    account: idsForDraft.account_id,
+                                    project: idsForDraft.project_id,
+                                    subproject: idsForDraft.subproject_id,
+                                    task: idsForDraft.task_id,
+                                    subtask: idsForDraft.subtask_id
+                                }
+                            }));
+                            
+                            // Track the field that actually changed
+                            if (newState === "AccountSelected") {
+                                console.log("✅ Tracking accountId:", changedId);
+                                draftHandler.markFieldChanged("accountId", changedId);
+                            } else if (newState === "ProjectSelected") {
+                                console.log("✅ Tracking projectId:", changedId);
+                                draftHandler.markFieldChanged("projectId", changedId);
+                            } else if (newState === "SubprojectSelected") {
+                                console.log("✅ Tracking subprojectId:", changedId);
+                                draftHandler.markFieldChanged("subprojectId", changedId);
+                            } else if (newState === "TaskSelected") {
+                                console.log("✅ Tracking taskId:", changedId);
+                                draftHandler.markFieldChanged("taskId", changedId);
+                            } else if (newState === "SubtaskSelected") {
+                                console.log("✅ Tracking subtaskId:", changedId);
+                                draftHandler.markFieldChanged("subtaskId", changedId);
+                            } else {
+                                console.warn("⚠️ Unknown state - not tracking:", newState);
+                            }
+                            
+                            console.log("� Draft status - hasUnsavedChanges:", draftHandler.hasUnsavedChanges, "changedFields:", draftHandler.changedFields.length);
+                        } else {
+                            console.log("⏸️ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
+                        }
+                    }
                 }
             }
         }
@@ -252,6 +490,12 @@ Page {
                 width: parent.width - units.gu(2)
 
                 property int currentIndex: 0
+                
+                onCurrentIndexChanged: {
+                    if (draftHandler.enabled && draftHandler._initialized) {
+                        draftHandler.markFieldChanged("quadrant", currentIndex);
+                    }
+                }
 
                 RadioButton {
                     id: priority1
@@ -350,6 +594,13 @@ Page {
                 onInvalidtimesheet: {
                     notifPopup.open("Error", "Save the time sheet first", "error");
                 }
+                
+                // Track elapsed time changes for draft management
+                onElapsedTimeChanged: {
+                    if (draftHandler.enabled && draftHandler._initialized) {
+                        draftHandler.markFieldChanged("elapsedTime", elapsedTime);
+                    }
+                }
             }
             Label {
                 anchors.fill: parent
@@ -373,6 +624,12 @@ Page {
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(5)
                     anchors.centerIn: parent.centerIn
+                    
+                    onDateChanged: {
+                        if (draftHandler.enabled && draftHandler._initialized) {
+                            draftHandler.markFieldChanged("date", formattedDate());
+                        }
+                    }
                 }
             }
         }
@@ -407,8 +664,16 @@ Page {
                             Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
-                                useRichText: false
+                                useRichText: false,
+                                parentDraftHandler: draftHandler // Pass draft handler reference
                             });
+                        }
+                        
+                        // Track inline text changes for draft management
+                        onTextChanged: {
+                            if (draftHandler.enabled && draftHandler._initialized) {
+                                draftHandler.markFieldChanged("description", getFormattedText());
+                            }
                         }
                     }
                 }
@@ -454,9 +719,13 @@ Page {
                     time_sheet_widget.autoMode = (currentTimesheet.timer_type === "automatic");
                 }
             } else {
-                //  console.log("NO recordid - calling loadAccounts()");
                 workItem.loadAccounts();
-                console.log("New timesheet - loading accounts for creation mode");
+            }
+            
+            // Initialize draft handler AFTER all form fields are populated
+            if (!isReadOnly) {
+                var originalTimesheetData = getCurrentFormData();
+                draftHandler.initialize(originalTimesheetData);
             }
         }
     }
@@ -467,6 +736,11 @@ Page {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
+                
+                // Track description change for draft
+                if (draftHandler.enabled) {
+                    draftHandler.markFieldChanged("description", description_text.getFormattedText());
+                }
             }
         }
         // Don't clear Global.description_temporary_holder when page becomes invisible

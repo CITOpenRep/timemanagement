@@ -58,6 +58,7 @@ ListItem {
     property bool starInteractionActive: false
     property bool isMyTasksContext: false // Set to true when used in MyTasks page
     property int accountId: -1 // Account ID for the task
+    property bool hasDraft: false // Indicates if this task has unsaved draft changes
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -430,7 +431,7 @@ ListItem {
 
                             Text {
                                 id: projectTitleText
-                                text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
+                                text: ((taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task"))
                                 color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                                 font.pixelSize: units.gu(2)
 
@@ -600,8 +601,30 @@ ListItem {
                     anchors.right: parent.right
                     anchors.rightMargin: units.gu(2)
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: units.gu(0.4)
+                    spacing: units.gu(0.5)
                     width: parent.width
+
+                                            Rectangle {
+    id: draftIndicator
+    visible: hasDraft
+    width: draftLabel.width + units.gu(1.2)
+    height: units.gu(2)
+    radius: height / 2
+    color: "#FFF3E0"
+    border.color: "#FF9800"
+    border.width: units.gu(0.15)
+anchors.right: parent.right
+
+    
+    Text {
+        id: draftLabel
+        text: "DRAFT"
+        font.pixelSize: units.gu(1.1)
+        font.bold: true
+        color: "#F57C00"
+        anchors.centerIn: parent
+    }
+}
                     Text {
                         text: "Planned (H): " + (allocatedHours !== 0 ? allocatedHours : "N/A")
                         font.pixelSize: units.gu(1.5)
