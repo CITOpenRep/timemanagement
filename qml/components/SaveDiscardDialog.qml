@@ -49,7 +49,7 @@ Item {
 
             Text {
                 id: messageText
-                text: "You have unsaved changes. What would you like to do?\n\nNote: If you cancel, you can navigate back to continue editing."
+                text: i18n.dtr("ubtms", "You have unsaved changes. What would you like to do?\n\nNote: If you cancel, you can navigate back to continue editing.")
                 width: parent.width
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
@@ -61,7 +61,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 Button {
-                    text: "Save"
+                    text: i18n.dtr("ubtms", "Save")
                     color: LomiriColors.green
                     onClicked: {
                         console.log("💾 SaveDiscardDialog: User clicked Save");
@@ -76,7 +76,7 @@ Item {
                 }
 
                 Button {
-                    text: "Discard"
+                    text: i18n.dtr("ubtms", "Discard")
                     color: LomiriColors.red
                     onClicked: {
                         console.log("🗑️ SaveDiscardDialog: User clicked Discard");
@@ -91,7 +91,7 @@ Item {
                 }
 
                 Button {
-                    text: "Cancel"
+                    text: i18n.dtr("ubtms", "Cancel")
                     onClicked: {
                         console.log("❌ SaveDiscardDialog: User clicked Cancel");
                         PopupUtils.close(confirmDialog);

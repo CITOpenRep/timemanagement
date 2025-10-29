@@ -131,7 +131,7 @@ ListItem {
                 id: startstopaction
                 visible: recordId > 0
                 iconSource: "../images/stop.png"
-                text: "Stop Timer"
+                text: i18n.dtr("ubtms", "Stop Timer")
                 onTriggered: {
                     stop_workflow();
                 }
@@ -343,7 +343,7 @@ ListItem {
                         width: parent.width
 
                         Text {
-                            text: "Planned (H): " + Utils.truncateText(allocatedHours, 6)
+                            text: i18n.dtr("ubtms", "Planned (H): ") + Utils.truncateText(allocatedHours, 6)
                             font.pixelSize: units.gu(1.5)
                             horizontalAlignment: Text.AlignRight
                             width: parent.width
@@ -351,7 +351,7 @@ ListItem {
                         }
 
                         Text {
-                            text: "Start Date: " + (startDate !== "" ? startDate : "Not set")
+                            text: i18n.dtr("ubtms", "Start Date: ") + (startDate !== "" ? startDate : i18n.dtr("ubtms", "Not set"))
                             font.pixelSize: units.gu(1.5)
                             horizontalAlignment: Text.AlignRight
                             width: parent.width
@@ -359,7 +359,7 @@ ListItem {
                         }
 
                         Text {
-                            text: "End Date: " + (endDate !== "" ? endDate : "Not set")
+                            text: i18n.dtr("ubtms", "End Date: ") + (endDate !== "" ? endDate : i18n.dtr("ubtms", "Not set"))
                             font.pixelSize: units.gu(1.5)
                             horizontalAlignment: Text.AlignRight
                             width: parent.width

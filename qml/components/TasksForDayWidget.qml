@@ -31,7 +31,8 @@ Item {
             spacing: units.gu(1)
 
             Label {
-                text: "Plan for Today"
+                id: headerLabel
+                text: i18n.dtr("ubtms", "Plan for Today")
                 font.bold: true
                 font.pixelSize: units.gu(2)
                 horizontalAlignment: Text.AlignHCenter
