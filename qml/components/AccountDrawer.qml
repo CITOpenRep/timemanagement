@@ -58,7 +58,7 @@ Item {
                         }
 
                         Label {
-                            text: "Account Selection"
+                            text: i18n.dtr("ubtms", "Account Selection")
                             font.pixelSize: units.gu(2.5)
                             font.weight: Font.Bold
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
@@ -69,7 +69,7 @@ Item {
                         }
 
                         Button {
-                            text: "Close"
+                            text: i18n.dtr("ubtms", "Close")
                             onClicked: PopupUtils.close(accountDialog)
                         }
                     }
@@ -86,7 +86,7 @@ Item {
                         spacing: units.gu(1)
 
                         Label {
-                            text: "Select Account:"
+                            text: i18n.dtr("ubtms", "Select Account:")
                             font.pixelSize: units.gu(1.8)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                         }
@@ -155,14 +155,14 @@ Item {
                         spacing: units.gu(0.5)
 
                         Label {
-                            text: "Current Account:"
+                            text: i18n.dtr("ubtms", "Current Account:")
                             font.pixelSize: units.gu(1.5)
                             font.weight: Font.Bold
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                         }
 
                         Label {
-                            text: currentAccountName || "No account selected"
+                            text: currentAccountName || i18n.dtr("ubtms", "No account selected")
                             font.pixelSize: units.gu(1.8)
                             color: currentAccountName ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#2E7D32") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#FF6B6B" : "#D32F2F")
                         }
@@ -180,14 +180,14 @@ Item {
                         spacing: units.gu(2)
 
                         Label {
-                            text: "Last Sync:"
+                            text: i18n.dtr("ubtms", "Last Sync:")
                             font.pixelSize: units.gu(1.5)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                         }
 
                         Label {
                             id: lastSyncLabel
-                            text: "Never"
+                            text: i18n.dtr("ubtms", "Never")
                             font.pixelSize: units.gu(1.5)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#FFA726" : "#F57C00"
                         }
@@ -209,7 +209,7 @@ Item {
                         anchors.centerIn: parent
                         width: units.gu(20)
                         height: units.gu(5)
-                        text: isSyncing ? "Syncing..." : "Sync Data"
+                        text: isSyncing ? i18n.dtr("ubtms", "Syncing...") : i18n.dtr("ubtms", "Sync Data")
                         enabled: !isSyncing && currentAccountId >= 0 && currentAccountId !== -1
 
                         background: Rectangle {
@@ -273,7 +273,7 @@ Item {
                         spacing: units.gu(0.5)
 
                         Label {
-                            text: "Note: Sync is not available for 'All Accounts' view"
+                            text: i18n.dtr("ubtms", "Note: Sync is not available for 'All Accounts' view")
                             font.pixelSize: units.gu(1.4)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#FFA726" : "#F57C00"
                             font.italic: true
@@ -282,7 +282,7 @@ Item {
                         }
 
                         Label {
-                            text: "Please select a specific account to sync data"
+                            text: i18n.dtr("ubtms", "Please select a specific account to sync data")
                             font.pixelSize: units.gu(1.2)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#CCCCCC" : "#666666"
                             horizontalAlignment: Text.AlignHCenter
@@ -303,7 +303,7 @@ Item {
                         spacing: units.gu(1)
 
                         Label {
-                            text: syncSteps.length > 0 && currentStep < syncSteps.length ? syncSteps[currentStep] : "Syncing data..."
+                            text: syncSteps.length > 0 && currentStep < syncSteps.length ? syncSteps[currentStep] : i18n.dtr("ubtms", "Syncing data...")
                             font.pixelSize: units.gu(1.5)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                         }
@@ -329,7 +329,7 @@ Item {
             }
 
             Button {
-                text: "OK"
+                text: i18n.dtr("ubtms", "OK")
                 onClicked: PopupUtils.close(accountDialog)
             }
         }
@@ -362,7 +362,7 @@ Item {
         // Add "All Accounts" option first
         accountModel.append({
             id: -1,
-            name: "All Accounts",
+            name: i18n.dtr("ubtms", "All Accounts"),
             database: "",
             link: "",
             username: "",
@@ -412,8 +412,8 @@ Item {
             // If only "All Accounts" option exists, select it
             accountComboBox.currentIndex = 0;
             currentAccountId = -1;
-            currentAccountName = "All Accounts";
-            accountChanged(-1, "All Accounts");
+            currentAccountName = i18n.dtr("ubtms", "All Accounts");
+            accountChanged(-1, i18n.dtr("ubtms", "All Accounts"));
         }
     }
 
@@ -423,10 +423,10 @@ Item {
             if (syncStatus && syncStatus !== "") {
                 lastSyncLabel.text = syncStatus;
             } else {
-                lastSyncLabel.text = "Never";
+                lastSyncLabel.text = i18n.dtr("ubtms", "Never");
             }
         } else {
-            lastSyncLabel.text = "N/A for All Accounts";
+            lastSyncLabel.text = i18n.dtr("ubtms", "N/A for All Accounts");
         }
     }
 
@@ -449,7 +449,7 @@ Item {
         const currentAccount = accounts.find(acc => acc.id === currentAccountId);
 
         if (!currentAccount) {
-            syncFailed("Account not found");
+            syncFailed(i18n.dtr("ubtms", "Account not found"));
             return;
         }
 
@@ -457,9 +457,9 @@ Item {
         if (currentAccount.id === 0) {
             // Local account - no sync needed
             isSyncing = false;
-            syncCompleted(true, "Local account - no sync required");
+            syncCompleted(true, i18n.dtr("ubtms", "Local account - no sync required"));
             if (typeof notifPopup !== 'undefined') {
-                notifPopup.open("Info", "Local account - no sync required", "info");
+                notifPopup.open(i18n.dtr("ubtms", "Info"), i18n.dtr("ubtms", "Local account - no sync required"), "info");
             }
             return;
         }
@@ -469,7 +469,7 @@ Item {
         console.log("🔄 Starting sync for account:", currentAccount.name);
 
         // Simulate sync steps
-        syncSteps = ["Connecting to server...", "Syncing projects...", "Syncing tasks...", "Syncing timesheets...", "Syncing activities...", "Updating local data..."];
+        syncSteps = [i18n.dtr("ubtms", "Connecting to server..."), i18n.dtr("ubtms", "Syncing projects..."), i18n.dtr("ubtms", "Syncing tasks..."), i18n.dtr("ubtms", "Syncing timesheets..."), i18n.dtr("ubtms", "Syncing activities..."), i18n.dtr("ubtms", "Updating local data...")];
         currentStep = 0;
 
         // Start step-by-step sync simulation
@@ -478,10 +478,10 @@ Item {
 
     function syncFailed(error) {
         isSyncing = false;
-        syncCompleted(false, "Sync failed: " + error);
+        syncCompleted(false, i18n.dtr("ubtms", "Sync failed: ") + error);
 
         if (typeof notifPopup !== 'undefined') {
-            notifPopup.open("Error", "Sync failed: " + error, "error");
+            notifPopup.open(i18n.dtr("ubtms", "Error"), i18n.dtr("ubtms", "Sync failed: ") + error, "error");
         }
     }
 
@@ -497,11 +497,11 @@ Item {
                 syncStepTimer.stop();
                 isSyncing = false;
                 updateLastSyncStatus();
-                syncCompleted(true, "Sync completed successfully");
+                syncCompleted(true, i18n.dtr("ubtms", "Sync completed successfully"));
 
                 // Show success notification
                 if (typeof notifPopup !== 'undefined') {
-                    notifPopup.open("Success", "Data synchronized successfully!", "success");
+                    notifPopup.open(i18n.dtr("ubtms", "Success"), i18n.dtr("ubtms", "Data synchronized successfully!"), "success");
                 }
             }
         }
