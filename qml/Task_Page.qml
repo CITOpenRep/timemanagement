@@ -333,7 +333,7 @@ Page {
             anchors.centerIn: parent
             font.pixelSize: units.gu(2)
             visible: false
-            text: 'No Task Available'
+            text: i18n.dtr("ubtms", "No tasks found.")
         }
     }
 
@@ -349,8 +349,8 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: "Create"
-            },
+                label: i18n.dtr("ubtms", "Task")
+            }
         ]
         onMenuItemSelected: {
             if (index === 0) {
