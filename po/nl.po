@@ -120,7 +120,7 @@ msgstr "Later"
 
 #: ../qml/Activity_Page.qml:508
 msgid "OverDue"
-msgstr ""
+msgstr "Achterstallig "
 
 #: ../qml/Activity_Page.qml:509 ../qml/Task_Page.qml:212
 #: ../qml/Timesheet_Page.qml:131
@@ -275,8 +275,7 @@ msgstr "Taaksynchronisatie forceren"
 
 #: ../qml/Settings_Page.qml:549
 msgid "Reset task timestamps to force fresh sync from Odoo"
-msgstr ""
-"Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
+msgstr "Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
 
 #: ../qml/Settings_Page.qml:567
 msgid "Reset Tasks Without Stages"
@@ -432,8 +431,7 @@ msgstr "Gegevens synchroniseren"
 
 #: ../qml/components/AccountDrawer.qml:276
 msgid "Note: Sync is not available for 'All Accounts' view"
-msgstr ""
-"Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
+msgstr "Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
 
 #: ../qml/components/AccountDrawer.qml:285
 msgid "Please select a specific account to sync data"
@@ -684,24 +682,24 @@ msgstr "Niet doen"
 
 #: ../qml/components/ImagePreviewer.qml:78
 msgid "Download"
-msgstr ""
+msgstr "Downloaden"
 
 #: ../qml/components/ImagePreviewer.qml:131
 msgid "No image to save"
-msgstr ""
+msgstr "Geen afbeelding om op te slaan"
 
 #: ../qml/components/ImagePreviewer.qml:155
 #, fuzzy
 msgid "Saved"
-msgstr "Opslaan"
+msgstr "Opgeslagen"
 
 #: ../qml/components/ImagePreviewer.qml:158
 msgid "Choose where to save"
-msgstr ""
+msgstr "Kies waar u wilt opslaan"
 
 #: ../qml/components/ImagePreviewer.qml:160
 msgid "Could not open export dialog"
-msgstr ""
+msgstr "Kon exportdialoog niet openen"
 
 #: ../qml/components/ImagePreviewer.qml:164
 #, fuzzy
@@ -710,11 +708,11 @@ msgstr "Synchronisatie mislukt: "
 
 #: ../qml/components/ImagePreviewer.qml:170
 msgid "No image to open"
-msgstr ""
+msgstr "Geen afbeelding om te openen"
 
 #: ../qml/components/ImagePreviewer.qml:188
 msgid "Could not open chooser"
-msgstr ""
+msgstr "Kon kiezer niet openen"
 
 #: ../qml/components/ImagePreviewer.qml:192
 #, fuzzy
@@ -877,11 +875,11 @@ msgstr "Onbekende gebruiker"
 #: ../qml/components/WorkItemSelector.qml:128
 #, fuzzy
 msgid "Subproject"
-msgstr "Project"
+msgstr "Subproject"
 
 #: ../qml/components/WorkItemSelector.qml:130
 msgid "Subtask"
-msgstr ""
+msgstr "Subtaak"
 
 #: ../qml/components/WorkItemSelector.qml:131
 #, fuzzy
@@ -889,6 +887,5 @@ msgid "Assignee"
 msgstr "Toegewezenen"
 
 #: ubtms.desktop.in.h:1
-#, fuzzy
 msgid "Time Management"
-msgstr "Tijdbeheer-app - Bèta"
+msgstr "Tijdbeheer"
