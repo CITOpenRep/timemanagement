@@ -222,8 +222,8 @@ Page {
         
         onDraftLoaded: {
             restoreFormFromDraft(draftData);
-            notifPopup.open("📂 Draft Restored", 
-                "Unsaved changes restored: " + getChangesSummary(), 
+            notifPopup.open("📂 Draft Found", 
+                "Unsaved changes restored. ", 
                 "info");
         }
         

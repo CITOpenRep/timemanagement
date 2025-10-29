@@ -183,8 +183,8 @@ Page {
             // Only restore if form is fully initialized
             if (formFullyInitialized) {
                 restoreFormFromDraft(draftData);
-                notifPopup.open("📂 Draft Restored", 
-                    "Unsaved changes restored: " + getChangesSummary(), 
+                notifPopup.open("📂 Draft Found", 
+                    "Unsaved changes restored. ", 
                     "info");
             } else {
                 // Defer restoration until form is ready
@@ -831,14 +831,14 @@ Page {
 
                     // Handle multi-assignee changes (for enableMultipleAssignees mode)
                     onMultiAssigneesChanged: {
-                        console.log("🔔 MultiAssignees changed:", JSON.stringify(assignees));
+                        
                         
                         if (draftHandler.enabled && draftHandler._initialized) {
                             var idsForDraft = workItem.getIds();
-                            console.log("✅ Tracking multipleAssignees - count:", assignees.length, "ids:", idsForDraft.assignee_ids);
+                         
                             draftHandler.markFieldChanged("multipleAssignees", idsForDraft.multiple_assignees);
                             draftHandler.markFieldChanged("assigneeIds", idsForDraft.assignee_ids);
-                            console.log("📊 Draft status after assignee change - hasUnsavedChanges:", draftHandler.hasUnsavedChanges);
+                            
                         } else {
                             console.log("⏸️ Multi-assignee draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
                         }
