@@ -33,6 +33,21 @@
 
       <h3>Change History : </h3>
 
+            <h4> 31-10-2025 : Version 1.1.9 </h4>
+
+      <h4>New Features</h4>
+<ul>
+<li>Introdcing Draft Manager in Timesheets and Tasks form View. Draft Manager will save your data in draft state in case of app crash or in case of Navigation to some other page. </li>
+<li>Introducing Weblates. Added Support for nl language.</li>
+<li> Adding Rich Text Editor support for Project Updates. </li>
+</ul>
+
+ <h4>Bug Fixes and Enhancement</h4>
+<ul>
+<li>Added Download Button in Attachments. </li>
+<li>Fixes in Project Search. </li>
+</ul>
+
       <h4> 19-10-2025 : Version 1.1.8.1 </h4>
 
       <h4>Bug Fixes and Enhancement</h4>
