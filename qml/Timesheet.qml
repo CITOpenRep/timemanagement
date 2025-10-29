@@ -88,6 +88,15 @@ Page {
                 onTriggered: {
                     switchToEditMode();
                 }
+            }, Action{
+                iconName: "close"
+                text: "Close"
+                visible: draftHandler.hasUnsavedChanges 
+                onTriggered: {
+                    restoreFormToOriginal();  // Restore form to original values
+            draftHandler.clearDraft(); // Clear the draft from database
+             Qt.callLater(navigateBack);
+                }
             }
         ]
     }
