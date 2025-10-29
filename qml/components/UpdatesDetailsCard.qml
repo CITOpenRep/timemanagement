@@ -56,7 +56,7 @@ ListItem {
 
                 Text {
                     Layout.fillWidth: true
-                    text: (name && name.trim() !== "") ? Utils.truncateText(name, 35) : "Untitled Update"
+                    text: (name && name.trim() !== "") ? Utils.truncateText(name, 35) : i18n.dtr("ubtms", "Untitled Update")
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
@@ -86,7 +86,7 @@ ListItem {
 
                 Text {
                     Layout.fillWidth: true
-                    text: "By: " + (user ? Accounts.getUserNameByOdooId(user, account_id) : "Unknown User") + " | " + (date ? date : "No Date")
+                    text: i18n.dtr("ubtms", "By: ") + (user ? Accounts.getUserNameByOdooId(user, account_id) : i18n.dtr("ubtms", "Unknown User")) + " | " + (date ? date : i18n.dtr("ubtms", "No Date"))
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#666"
                     elide: Text.ElideRight
@@ -94,7 +94,7 @@ ListItem {
 
                 TSButton {
                     id: details_button
-                    text: "Details"
+                    text: i18n.dtr("ubtms", "Details")
                     Layout.preferredWidth: units.gu(14)
                     height: units.gu(5)
                     onClicked: updateItem.showDescription("<h1>" + name + "</h1>" + description)
@@ -103,7 +103,7 @@ ListItem {
 
             // Project Name
             Text {
-                text: Utils.truncateText(Project.getProjectName(project_id, account_id), 40) || "Unknown Project"
+                text: Utils.truncateText(Project.getProjectName(project_id, account_id), 40) || i18n.dtr("ubtms", "Unknown Project")
                 font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#666"
                 elide: Text.ElideRight

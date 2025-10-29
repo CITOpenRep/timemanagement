@@ -152,7 +152,7 @@ Rectangle {
                 id: searchField
                 anchors.fill: parent
                 anchors.rightMargin: units.gu(4) // Space for clear button
-                placeholderText: "Search..."
+                placeholderText: i18n.dtr("ubtms", "Search...")
                 background: Rectangle {
                     color: "transparent"
                 }

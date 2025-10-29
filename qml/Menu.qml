@@ -115,7 +115,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "Dashboard"
+                            text: i18n.dtr("ubtms","Dashboard")
                         }
                     }
                 }
@@ -146,7 +146,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "Timesheet"
+                            text: i18n.dtr("ubtms","Timesheet")
                         }
                     }
                 }
@@ -174,7 +174,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "Activities"
+                            text: i18n.dtr("ubtms","Activities")
                         }
                     }
                 }
@@ -205,7 +205,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "My Tasks"
+                            text: i18n.dtr("ubtms","My Tasks")
                         }
                     }
                 }
@@ -236,7 +236,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "All Tasks"
+                            text: i18n.dtr("ubtms","All Tasks")
                         }
                     }
                 }
@@ -267,7 +267,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "Projects"
+                            text: i18n.dtr("ubtms","Projects")
                         }
                     }
                 }
@@ -298,7 +298,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "Project Updates"
+                            text: i18n.dtr("ubtms","Project Updates")
                         }
                     }
                 }
@@ -326,7 +326,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "About Us"
+                            text: i18n.dtr("ubtms","About Us")
                         }
                     }
                 }
@@ -357,7 +357,7 @@ Page {
                         Label {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
-                            text: "Settings"
+                            text: i18n.dtr("ubtms","Settings")
                         }
                     }
                 }

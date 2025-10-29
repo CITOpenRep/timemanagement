@@ -124,7 +124,7 @@ Rectangle {
                 }
 
                 Label {
-                    text: selectedAccountName ? "✓ " + selectedAccountName : "No account selected"
+                    text: selectedAccountName ? "✓ " + selectedAccountName : i18n.dtr("ubtms","No account selected")
                     font.pixelSize: units.gu(1.5)
                     color: selectedAccountName ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#2E7D32") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#FF6B6B" : "#D32F2F")
                 }

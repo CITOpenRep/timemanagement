@@ -144,7 +144,7 @@ ListItem {
                     }
                 }
                 visible: recordId > 0
-                text: "update Timesheet"
+                text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     play_pause_workflow();
                 }
@@ -153,7 +153,7 @@ ListItem {
                 id: startstopaction
                 iconSource: "../images/stop.png"
                 visible: ((recordId === TimerService.getActiveTimesheetId()) && (TimerService.isRunning()))
-                text: "update Timesheet"
+                text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     stop_workflow();
                 }
@@ -162,7 +162,7 @@ ListItem {
                 id: readyAction
                 visible: (recordId !== TimerService.getActiveTimesheetId()) //Dont show this for the active running entry
                 iconSource: "../images/save.svg"
-                text: "Mark Ready for Sync"
+                text: i18n.dtr("ubtms", "Mark Ready for Sync")
                 onTriggered: {
                     save_workflow();
                 }
@@ -289,7 +289,7 @@ anchors.right: parent.right
     
     Text {
         id: draftLabel
-        text: "DRAFT"
+        text: i18n.dtr("ubtms", "DRAFT")
         font.pixelSize: units.gu(1.1)
         font.bold: true
         color: "#F57C00"

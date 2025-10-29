@@ -59,7 +59,7 @@ Item {
         spacing: units.gu(1)
 
         Label {
-            text: "Time Tracking"
+            text: i18n.dtr("ubtms", "Time Tracking")
             anchors.left: parent.left
             anchors.right: parent.right
             font.bold: true
@@ -74,7 +74,7 @@ Item {
 
             RadioButton {
                 id: manualRadio
-                text: "Manual"
+                text: i18n.dtr("ubtms", "Manual")
                 contentItem: Text {
                     text: manualRadio.text
                     color: theme.palette.normal.backgroundText
@@ -90,7 +90,7 @@ Item {
 
             RadioButton {
                 id: automatedRadio
-                text: "Automated"
+                text: i18n.dtr("ubtms", "Automated")
                 contentItem: Text {
                     text: automatedRadio.text
                     color: theme.palette.normal.backgroundText

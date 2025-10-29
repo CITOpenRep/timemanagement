@@ -252,7 +252,7 @@ Page {
                         TextField {
                             id: linkInput
                             enabled: !isReadOnly
-                            placeholderText: "Enter Odoo URL here"
+                            placeholderText: i18n.dtr("ubtms", "Enter Odoo URL here")
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
                             height: parent.height
@@ -263,7 +263,7 @@ Page {
                     }
                     TSButton {
                         id: fetch_db_button
-                        text: "Fetch Databases"
+                        text: i18n.dtr("ubtms", "Fetch Databases")
                         visible: !isReadOnly
                         width: units.gu(28)
                         height: units.gu(4)
@@ -315,7 +315,7 @@ Page {
                         height: units.gu(3)
                         TSLabel {
                             id: database_list_label
-                            text: "Database"
+                            text: i18n.dtr("ubtms", "Database")
                             anchors.verticalCenter: parent.verticalCenter
                             visible: activeBackendAccount
                         }
@@ -376,7 +376,7 @@ Page {
                         TextField {
                             id: manualDbInput
                             width: parent.width
-                            placeholderText: "Enter Database Name"
+                            placeholderText: i18n.dtr("ubtms", "Enter Database Name")
                         }
                     }
                 }
@@ -394,7 +394,7 @@ Page {
                         TSLabel {
                             id: username_label
                             visible: activeBackendAccount
-                            text: "Username"
+                            text: i18n.dtr("ubtms", "Username")
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -427,7 +427,7 @@ Page {
                         height: units.gu(5)
                         TSLabel {
                             id: connectwith_label
-                            text: "Connect With"
+                            text: i18n.dtr("ubtms", "Connect With")
                             visible: activeBackendAccount
                             anchors.verticalCenter: parent.verticalCenter
                         }

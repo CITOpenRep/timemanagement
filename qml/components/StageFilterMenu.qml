@@ -351,7 +351,7 @@ Item {
                 }
 
                 Text {
-                    text: "Current: " + selectedFilterName
+                    text: i18n.dtr("ubtms", "Current: ") + selectedFilterName
                     font.pixelSize: units.gu(1.6)
                     color: theme.palette.normal.backgroundText
                     anchors.centerIn: parent

@@ -55,7 +55,7 @@ Page {
         leadingActionBar.actions: [
             Action {
                 iconName: "back"
-                text: "Back"
+                text: i18n.dtr("ubtms", "Back")
                 onTriggered: {
                     handleBackNavigation();
                 }
@@ -66,7 +66,7 @@ Page {
             Action {
                 iconSource: "images/save.svg"
                 visible: !isReadOnly
-                text: "Save"
+                text: i18n.dtr("ubtms", "Save")
                 onTriggered: {
                     save_task_data();
                 }
@@ -74,14 +74,14 @@ Page {
             Action {
                 iconName: "edit"
                 visible: isReadOnly && recordid !== 0
-                text: "Edit"
+                text: i18n.dtr("ubtms", "Edit")
                 onTriggered: {
                     switchToEditMode();
                 }
             },
             Action{
                 iconName: "close"
-                text: "Close"
+                text: i18n.dtr("ubtms", "Close")
                 visible: draftHandler.hasUnsavedChanges 
                 onTriggered: {
                     restoreFormToOriginal();  // Restore form to original values
@@ -960,7 +960,7 @@ Page {
                     aspect: LomiriShape.Flat
                     Label {
                         id: name_label
-                        text: "Name"
+                        text: i18n.dtr("ubtms", "Name")
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -1020,7 +1020,7 @@ Page {
                     height: units.gu(5)
                     aspect: LomiriShape.Flat
                     Label {
-                        text: "Priority"
+                        text: i18n.dtr("ubtms", "Priority")
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -1084,7 +1084,7 @@ Page {
             visible: recordid === 0 // Only show when creating new task
 
             TSLabel {
-                text: "Initial Stage"
+                text: i18n.dtr("ubtms", "Initial Stage")
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -1184,7 +1184,7 @@ Page {
 
             // Row 1: Current Stage
             TSLabel {
-                text: "Current Stage:"
+                text: i18n.dtr("ubtms", "Current Stage:")
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHLeft
@@ -1194,7 +1194,7 @@ Page {
             }
 
             TSLabel {
-                text: currentTask && currentTask.state ? Task.getTaskStageName(currentTask.state) : "Not set"
+                text: currentTask && currentTask.state ? Task.getTaskStageName(currentTask.state) : i18n.dtr("ubtms", "Not set")
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
                 fontBold: true
@@ -1224,7 +1224,7 @@ Page {
                 iconColor: "#1f2937"
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
-                text: "Change"
+                text: i18n.dtr("ubtms", "Change")
                 onClicked: {
                     if (!currentTask || !currentTask.id) {
                         notifPopup.open("Error", "Task data not available", "error");
@@ -1242,7 +1242,7 @@ Page {
 
             // Row 2: Activities
             TSLabel {
-                text: "Activities"
+                text: i18n.dtr("ubtms", "Activities")
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHLeft
@@ -1261,7 +1261,7 @@ Page {
                 fontBold: true
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
-                text: "Create"
+                text: i18n.dtr("ubtms", "Create")
                 onClicked: {
                     let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
                     if (result.success) {
@@ -1365,7 +1365,7 @@ Page {
 
             TSLabel {
                 id: hours_label
-                text: "Planned Hours"
+                text: i18n.dtr("ubtms", "Planned Hours")
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -1377,7 +1377,7 @@ Page {
                 height: units.gu(5)
                 anchors.verticalCenter: parent.verticalCenter
                 text: "01:00"
-                placeholderText: "e.g., 2:30 or 1.5"
+                placeholderText: i18n.dtr("ubtms", "e.g., 2:30 or 1.5")
                 
                 onTextChanged: {
                     if (draftHandler.enabled) {
@@ -1480,14 +1480,14 @@ Page {
 
             TSLabel {
                 id: deadline_label
-                text: "Deadline"
+                text: i18n.dtr("ubtms", "Deadline")
                 width: parent.width * 0.3
                 anchors.verticalCenter: parent.verticalCenter
             }
 
             TSLabel {
                 id: deadline_text
-                text: "Not set"
+                text: i18n.dtr("ubtms", "Not set")
                 enabled: !isReadOnly
                 width: parent.width * 0.4
                 fontBold: true
@@ -1495,7 +1495,7 @@ Page {
             }
 
             TSButton {
-                text: "Select"
+                text: i18n.dtr("ubtms", "Select")
                 objectName: "button_deadline"
                 enabled: !isReadOnly
                 width: parent.width * 0.2
@@ -1538,7 +1538,7 @@ Page {
 
     CustomDatePicker {
         id: deadlinePicker
-        titleText: "Select Deadline"
+        titleText: i18n.dtr("ubtms", "Select Deadline")
 
         onDateSelected: {
             deadline_text.text = Qt.formatDate(new Date(date), "yyyy-MM-dd");

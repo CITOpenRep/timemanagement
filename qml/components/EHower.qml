@@ -96,7 +96,7 @@ Item {
 
     Text {
         id: headlabel
-        text: "Time spent based on priorities"
+        text: i18n.dtr("ubtms","Time spent based on priorities")
         font.pixelSize: units.gu(2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         anchors.topMargin: 5

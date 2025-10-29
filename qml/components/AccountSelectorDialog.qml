@@ -15,7 +15,7 @@ Item {
     height: 0
 
     // ---------- Public API ----------
-    property string titleText: "Select account"
+    property string titleText: i18n.dtr("ubtms","Select Account")   
     property bool restrictToLocalOnly: false
     /** Persist last accepted choice (set when user presses OK) */
     property int selectedAccountId: Accounts.getDefaultAccountId()
@@ -150,7 +150,7 @@ Item {
                         } else {
                             currentIndex = -1;
                             selectedInstanceId = -1;
-                            editText = "Select an account";
+                            editText = i18n.dtr("ubtms","Select an account");
                         }
                     }
 
@@ -229,7 +229,7 @@ Item {
                     anchors.margins: units.gu(1)
 
                     Button {
-                        text: "Cancel"
+                        text: i18n.dtr("ubtms","Cancel")
                         onClicked: {
                             PopupUtils.close(dlg)
                             root.canceled()
@@ -237,7 +237,7 @@ Item {
                     }
 
                     Button {
-                        text: "OK"
+                        text: i18n.dtr("ubtms","OK")
                         enabled: accountCombo.selectedInstanceId !== -1
                         onClicked: {
                             // persist on root and emit

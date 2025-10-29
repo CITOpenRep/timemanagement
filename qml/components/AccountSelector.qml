@@ -102,7 +102,7 @@ ComboBox {
         } else {
             currentIndex = -1;
             selectedInstanceId = -1;
-            editText = "Select an account";
+            editText = i18n.dtr("ubtms","Select an account");
         }
     }
 

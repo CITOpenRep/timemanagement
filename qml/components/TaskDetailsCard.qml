@@ -239,7 +239,7 @@ ListItem {
                 id: playpauseaction
                 iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../images/play.png" : "../images/pause.png") : "../images/play.png"
                 visible: recordId > 0
-                text: "update Timesheet"
+                text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     play_pause_workflow();
                 }
@@ -248,7 +248,7 @@ ListItem {
                 id: startstopaction
                 visible: recordId > 0
                 iconSource: "../images/stop.png"
-                text: "update Timesheet"
+                text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     stop_workflow();
                 }
@@ -344,7 +344,7 @@ ListItem {
                 anchors.centerIn: parent
                 //visible: allocatedHours === 0 && spentHours > 0
                 visible: false
-                text: "Unable to track progress – no planned hours"
+                text: i18n.dtr("ubtms", "Unable to track progress – no planned hours")
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                 font.pixelSize: units.gu(1.5)
                 anchors.bottomMargin: units.gu(.5)
@@ -355,7 +355,7 @@ ListItem {
                 anchors.centerIn: parent
                 // visible: spentHours === 0
                 visible: false
-                text: "No progress yet"
+                text: i18n.dtr("ubtms", "No progress yet")
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                 font.pixelSize: units.gu(1.5)
                 anchors.bottomMargin: units.gu(.5)
@@ -618,7 +618,7 @@ anchors.right: parent.right
     
     Text {
         id: draftLabel
-        text: "DRAFT"
+        text: i18n.dtr("ubtms", "DRAFT")
         font.pixelSize: units.gu(1.1)
         font.bold: true
         color: "#F57C00"
@@ -626,21 +626,21 @@ anchors.right: parent.right
     }
 }
                     Text {
-                        text: "Planned (H): " + (allocatedHours !== 0 ? allocatedHours : "N/A")
+                        text: i18n.dtr("ubtms", "Planned (H): ") + (allocatedHours !== 0 ? allocatedHours : i18n.dtr("ubtms", "N/A"))
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555"
                     }
                     Text {
-                        text: "Start Date: " + (startDate !== "" ? toDateOnly(startDate) : "Not set")
+                        text: i18n.dtr("ubtms", "Start Date: ") + (startDate !== "" ? toDateOnly(startDate) : i18n.dtr("ubtms", "Not set"))
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                     }
                     Text {
-                        text: "End Date: " + (endDate !== "" ? toDateOnly(endDate) : "Not set")
+                        text: i18n.dtr("ubtms", "End Date: ") + (endDate !== "" ? toDateOnly(endDate) : i18n.dtr("ubtms", "Not set"))
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width

@@ -34,7 +34,7 @@ Item {
     height: units.gu(50)
 
     property bool readOnly: false
-    property string labelText: "Assignees"
+    property string labelText: i18n.dtr("ubtms", "Assignees")
     property int accountId: -1
     property bool enabledState: true
     property var selectedAssignees: [] // Array of {id, name} objects
@@ -118,7 +118,7 @@ Item {
 
             TSButton {
                 id: displayButton
-                text: "Select Assignees"
+                text: i18n.dtr("ubtms", "Select Assignees")
                 enabled: enabledState && !readOnly && availableAssignees.length > 0
                 width: parent.width * 0.3
                 height: units.gu(5)
@@ -291,7 +291,7 @@ Item {
                         anchors.margins: units.gu(2)
 
                         Label {
-                            text: "Select Assignees"
+                            text: i18n.dtr("ubtms", "Select Assignees")
                             font.bold: true
                             font.pixelSize: units.gu(2)
 
@@ -418,7 +418,7 @@ Item {
 
                         TSButton {
                             id: clearButton
-                            text: "Clear All"
+                            text: i18n.dtr("ubtms", "Clear All")
                             enabled: !readOnly
                             onClicked: {
                                 if (!readOnly) {
@@ -431,7 +431,7 @@ Item {
 
                         TSButton {
                             id: doneButton
-                            text: "Done"
+                            text: i18n.dtr("ubtms", "Done")
                             onClicked: {
                                 dialogContainer.visible = false;
                             }

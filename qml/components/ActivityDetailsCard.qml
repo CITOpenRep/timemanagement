@@ -252,7 +252,7 @@ ListItem {
                         spacing: units.gu(0.2)
 
                         Text {
-                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? Utils.truncateText(root.summary, 20) : "No Summary"
+                            text: (typeof root.summary === "string" && root.summary.trim() !== "" && root.summary !== "0") ? Utils.truncateText(root.summary, 20) : i18n.dtr("ubtms", "No Summary")
                             textFormat: Text.PlainText
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                             font.pixelSize: units.gu(2)
@@ -263,7 +263,7 @@ ListItem {
                         }
 
                         Text {
-                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? Utils.truncateText(root.stripHtmlTags(root.notes), 30) : "No Notes"
+                            text: (typeof root.notes === "string" && root.notes.trim() !== "" && root.notes !== "0") ? Utils.truncateText(root.stripHtmlTags(root.notes), 30) : i18n.dtr("ubtms", "No Notes")
                             textFormat: Text.PlainText
                             font.pixelSize: units.gu(1.6)
                             maximumLineCount: 1
@@ -275,7 +275,7 @@ ListItem {
                         }
 
                         Text {
-                            text: root.user ? "Assigned to: " + root.user : "Unassigned"
+                            text: root.user ? i18n.dtr("ubtms", "Assigned to: ") + root.user : i18n.dtr("ubtms", "Unassigned")
                             width: parent.width - units.gu(2)
                             font.pixelSize: units.gu(1.6)
                             height: units.gu(3)
@@ -299,7 +299,7 @@ ListItem {
                     spacing: units.gu(0.4)
 
                     Text {
-                        text: root.activity_type_name || ("Type ID: " + root.activity_type_id)
+                        text: root.activity_type_name || (i18n.dtr("ubtms", "Type ID: ") + root.activity_type_id)
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: units.gu(6)

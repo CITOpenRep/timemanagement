@@ -128,9 +128,9 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
 
-        label1: "All"
-        label2: "Active"
-        label3: "Draft"
+        label1: i18n.dtr("ubtms","All")
+        label2: i18n.dtr("ubtms","Active")
+        label3: i18n.dtr("ubtms","Draft")
 
         filter1: "all"
         filter2: "active"

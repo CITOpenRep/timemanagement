@@ -35,7 +35,7 @@ Page {
         trailingActionBar.actions: [
             Action {
                 iconName: "tick"
-                text: "Create"
+                text: i18n.dtr("ubtms", "Create")
                 onTriggered: {
                     if (titleField.text.trim() === "" || statusSelector.currentIndex < 0) {
                         return;
