@@ -122,7 +122,7 @@ MainView {
 
     AccountSelectorDialog {
         id: accountPicker
-        titleText: "Switch account"
+        titleText: i18n.dtr("ubtms", "Switch account")
         restrictToLocalOnly: false
 
         onAccepted: function (id, name) {

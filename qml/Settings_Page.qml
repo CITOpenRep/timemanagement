@@ -302,7 +302,7 @@ Page {
 
                             // Header
                             Text {
-                                text: "App Theme Preference"
+                                text: i18n.dtr("ubtms", "App Theme Preference")
                                 font.pixelSize: units.gu(2.5)
                                 font.bold: true
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
@@ -310,7 +310,7 @@ Page {
                             }
 
                             Text {
-                                text: "Choose your preferred theme for the application"
+                                text: i18n.dtr("ubtms", "Choose your preferred theme for the application")
                                 font.pixelSize: units.gu(1.5)
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -371,7 +371,7 @@ Page {
                                     }
 
                                     Text {
-                                        text: "Light Theme"
+                                        text: i18n.dtr("ubtms", "Light Theme")
                                         font.pixelSize: units.gu(1.5)
                                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -436,7 +436,7 @@ Page {
                                     }
 
                                     Text {
-                                        text: "Dark Theme"
+                                        text: i18n.dtr("ubtms", "Dark Theme")
                                         font.pixelSize: units.gu(1.5)
                                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -477,7 +477,7 @@ Page {
 
                             // Header
                             Text {
-                                text: "Personal Stages Diagnostics"
+                                text: i18n.dtr("ubtms", "Personal Stages Diagnostics")
                                 font.pixelSize: units.gu(2.5)
                                 font.bold: true
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
@@ -485,7 +485,7 @@ Page {
                             }
 
                             Text {
-                                text: "Check personal stage data status and configuration"
+                                text: i18n.dtr("ubtms", "Check personal stage data status and configuration")
                                 font.pixelSize: units.gu(1.5)
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -500,7 +500,7 @@ Page {
                                 width: units.gu(30)
                                 height: units.gu(5)
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Check Personal Stage Status"
+                                text: i18n.dtr("ubtms", "Check Personal Stage Status")
                                 fontSize: units.gu(1.8)
                                 onClicked: {
                                     var result = Utils.migratePersonalStageData();
@@ -538,7 +538,7 @@ Page {
 
                             // Force Resync Section
                             Text {
-                                text: "Force Task Re-sync"
+                                text: i18n.dtr("ubtms", "Force Task Re-sync")
                                 font.pixelSize: units.gu(2)
                                 font.bold: true
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
@@ -546,7 +546,7 @@ Page {
                             }
 
                             Text {
-                                text: "Reset task timestamps to force fresh sync from Odoo"
+                                text: i18n.dtr("ubtms", "Reset task timestamps to force fresh sync from Odoo")
                                 font.pixelSize: units.gu(1.5)
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -564,7 +564,7 @@ Page {
                                     id: resyncWithoutStagesButton
                                     width: units.gu(21)
                                     height: units.gu(5)
-                                    text: "Reset Tasks Without Stages"
+                                    text: i18n.dtr("ubtms", "Reset Tasks Without Stages")
                                     fontSize: units.gu(1.5)
                                     bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#FF9800" : "#F57C00"
                                     onClicked: {
@@ -620,7 +620,7 @@ Page {
 
                     // Accounts Section Header
                     Text {
-                        text: "Connected Accounts"
+                        text: i18n.dtr("ubtms", "Connected Accounts")
                         font.pixelSize: units.gu(2.5)
                         font.bold: true
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
@@ -684,13 +684,13 @@ Page {
                                             }
 
                                             Text {
-                                                text: "URL : " + ((model.link.length > 40) ? model.link.substring(0, 40) + "..." : model.link)
+                                                text: i18n.dtr("ubtms", "URL : ") + ((model.link.length > 40) ? model.link.substring(0, 40) + "..." : model.link)
                                                 font.pixelSize: units.gu(1.2)
                                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                                 elide: Text.ElideNone
                                             }
                                             Text {
-                                                text: "Database : " + model.database
+                                                text: i18n.dtr("ubtms", "Database : ") + model.database
                                                 font.pixelSize: units.gu(1.1)
                                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                                             }
@@ -702,7 +702,7 @@ Page {
                                             CheckBox {
                                                 id: defaultCheckBox
                                                 checked: model.is_default === 1
-                                                text: "Default"
+                                                text: i18n.dtr("ubtms", "Default")
 
                                                 // Handle the click/toggle event
                                                 onClicked: {
@@ -725,7 +725,7 @@ Page {
                                                 width: units.gu(10)
                                                 height: units.gu(4)
                                                 fontSize: units.gu(1.5)
-                                                text: "Delete"
+                                                text: i18n.dtr("ubtms", "Delete")
                                                 onClicked: {
                                                     Accounts.deleteAccountAndRelatedData(model.id);
                                                     accountListModel.remove(index);
@@ -736,7 +736,7 @@ Page {
                                                 width: units.gu(10)
                                                 height: units.gu(4)
                                                 fontSize: units.gu(1.5)
-                                                text: "Show Logs"
+                                                text: i18n.dtr("ubtms", "Show Logs")
                                                 onClicked: {
                                                     apLayout.addPageToNextColumn(settings, Qt.resolvedUrl("SyncLog.qml"), {
                                                         "recordid": model.id
@@ -757,7 +757,7 @@ Page {
                                                     anchors.fill: parent
                                                     visible: !syncContainer.syncing
                                                     fontSize: units.gu(1.5)
-                                                    text: "Sync"
+                                                    text: i18n.dtr("ubtms", "Sync")
                                                     onClicked: {
                                                         console.log("Starting sync for account:", model.id, "(" + model.name + ")");
                                                         syncingAccountId = model.id;
@@ -834,7 +834,7 @@ Page {
 
                                                     Text {
                                                         anchors.centerIn: parent
-                                                        text: "Syncing..."
+                                                        text: i18n.dtr("ubtms", "Syncing...")
                                                         color: "white"
                                                         font.pixelSize: units.gu(1.2)
                                                     }
