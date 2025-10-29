@@ -659,6 +659,81 @@ function getChangesSummary(changedFields) {
 }
 
 /**
+ * Cleans up drafts for deleted records
+ * This removes drafts associated with tasks/timesheets that have been marked as deleted
+ * @param {string} draftType - Type of draft (task, timesheet, etc.)
+ * @param {Array} recordIds - Array of record IDs that were deleted (optional, if not provided cleans all deleted)
+ * @returns {Object} {success: boolean, deletedCount: number, message: string}
+ */
+function cleanupDraftsForDeletedRecords(draftType, recordIds) {
+    var result = {
+        success: false,
+        deletedCount: 0,
+        message: ""
+    };
+    
+    if (!draftType) {
+        result.message = "draftType is required";
+        return result;
+    }
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        
+        var tableName = null;
+        if (draftType === "task") {
+            tableName = "project_task_app";
+        } else if (draftType === "timesheet") {
+            tableName = "account_analytic_line_app";
+        }
+        
+        if (!tableName) {
+            result.message = "Unsupported draft type: " + draftType;
+            return result;
+        }
+        
+        db.transaction(function(tx) {
+            var query = "";
+            var params = [];
+            
+            if (recordIds && recordIds.length > 0) {
+                // Delete drafts for specific deleted record IDs
+                var placeholders = recordIds.map(function() { return "?"; }).join(",");
+                query = "DELETE FROM form_drafts WHERE draft_type = ? AND record_id IN (" + placeholders + ")";
+                params = [draftType].concat(recordIds);
+            } else {
+                // Delete all drafts for records marked as deleted in the main table
+                query = "DELETE FROM form_drafts WHERE draft_type = ? AND record_id IN " +
+                       "(SELECT id FROM " + tableName + " WHERE status = 'deleted')";
+                params = [draftType];
+            }
+            
+            var deleteResult = tx.executeSql(query, params);
+            result.deletedCount = deleteResult.rowsAffected;
+        });
+        
+        result.success = true;
+        result.message = "Cleaned up " + result.deletedCount + " draft(s) for deleted " + draftType + "(s)";
+        
+        if (result.deletedCount > 0) {
+            console.log("🗑️ " + result.message);
+        }
+        
+    } catch (e) {
+        result.message = e.toString();
+        console.error("❌ Error cleaning up drafts for deleted records:", result.message);
+        DBCommon.logException("cleanupDraftsForDeletedRecords", e);
+    }
+    
+    return result;
+}
+
+/**
  * Gets a summary of drafts grouped by type with human-readable labels
  * @param {number} accountId - Account ID (-1 for all accounts)
  * @returns {Object} Summary object with counts and formatted message

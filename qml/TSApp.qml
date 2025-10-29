@@ -460,6 +460,9 @@ MainView {
         
         // Check for unsaved drafts from previous session (crash recovery)
         checkForUnsavedDrafts();
+        
+        // Clean up drafts for deleted records
+        cleanupDeletedRecordDrafts();
 
         Qt.callLater(function () {
             apLayout.setFirstScreen(); // Delay page setup until after DB init
@@ -485,6 +488,26 @@ MainView {
             
         } catch (e) {
             console.error("❌ Error checking for unsaved drafts:", e.toString());
+        }
+    }
+    
+    // Function to clean up drafts for deleted records on app startup
+    function cleanupDeletedRecordDrafts() {
+        try {
+            // Clean up task drafts for deleted tasks
+            var taskResult = DraftManager.cleanupDraftsForDeletedRecords("task");
+            if (taskResult.deletedCount > 0) {
+                console.log("🗑️ Cleaned up " + taskResult.deletedCount + " draft(s) for deleted tasks");
+            }
+            
+            // Clean up timesheet drafts for deleted timesheets
+            var timesheetResult = DraftManager.cleanupDraftsForDeletedRecords("timesheet");
+            if (timesheetResult.deletedCount > 0) {
+                console.log("🗑️ Cleaned up " + timesheetResult.deletedCount + " draft(s) for deleted timesheets");
+            }
+            
+        } catch (e) {
+            console.error("❌ Error cleaning up deleted record drafts:", e.toString());
         }
     }
     

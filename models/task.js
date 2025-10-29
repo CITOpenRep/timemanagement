@@ -22,6 +22,7 @@
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
+.import "draft_manager.js" as DraftManager
 
 // Helper to handle -1/null
 function validId(value) {
@@ -429,6 +430,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
         var timestamp = Utils.getFormattedTimestampUTC();
         
         var result = { success: false, message: "", deletedTaskIds: [] };
+        var deletedTimesheetIds = [];
         
         db.transaction(function (tx) {
             // First, get the task details
@@ -469,8 +471,8 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
                 [timestamp, taskId]
             );
             
-            // Mark related timesheets as deleted
-            markRelatedTimesheetsAsDeleted(tx, [taskId], timestamp);
+            // Mark related timesheets as deleted and capture their IDs for draft cleanup
+            deletedTimesheetIds = markRelatedTimesheetsAsDeleted(tx, [taskId], timestamp);
             
             if (forceDelete && childTasks.length > 0) {
                 console.warn("⚠️  Force delete enabled - deleted parent task with " + childTasks.length + " children");
@@ -484,6 +486,21 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
             
             console.info("✅ Task deleted successfully: " + taskName);
         });
+        
+        // Clean up any drafts for this deleted task and its related timesheets (outside transaction)
+        if (result.success) {
+            try {
+                DraftManager.cleanupDraftsForDeletedRecords("task", [taskId]);
+                
+                // Also clean up drafts for related timesheets if any were deleted
+                if (deletedTimesheetIds.length > 0) {
+                    DraftManager.cleanupDraftsForDeletedRecords("timesheet", deletedTimesheetIds);
+                }
+            } catch (draftError) {
+                console.warn("⚠️  Failed to cleanup drafts:", draftError);
+                // Don't fail the deletion if draft cleanup fails
+            }
+        }
         
         return result;
         
@@ -649,9 +666,12 @@ function checkTaskHasChildren(taskId) {
  * @param {Object} tx - Database transaction object
  * @param {Array<number>} taskIds - Array of local task IDs from project_task_app
  * @param {string} timestamp - Timestamp for last_modified
+ * @returns {Array<number>} Array of timesheet IDs that were deleted (for draft cleanup)
  */
 function markRelatedTimesheetsAsDeleted(tx, taskIds, timestamp) {
-    if (taskIds.length === 0) return;
+    var deletedTimesheetIds = [];
+    
+    if (taskIds.length === 0) return deletedTimesheetIds;
     
     try {
         // Get the odoo_record_id values for the local task IDs
@@ -674,8 +694,19 @@ function markRelatedTimesheetsAsDeleted(tx, taskIds, timestamp) {
         // If we have odoo_record_ids, mark related timesheets as deleted
         if (taskRecordIds.length > 0) {
             var timesheetPlaceholders = taskRecordIds.map(() => '?').join(',');
-            var updateParams = [timestamp].concat(taskRecordIds);
             
+            // First, get the IDs of timesheets we're about to delete (for draft cleanup)
+            var timesheetQuery = tx.executeSql(
+                "SELECT id FROM account_analytic_line_app WHERE task_id IN (" + timesheetPlaceholders + ") AND (status IS NULL OR status != 'deleted')",
+                taskRecordIds
+            );
+            
+            for (var j = 0; j < timesheetQuery.rows.length; j++) {
+                deletedTimesheetIds.push(timesheetQuery.rows.item(j).id);
+            }
+            
+            // Now mark them as deleted
+            var updateParams = [timestamp].concat(taskRecordIds);
             var result = tx.executeSql(
                 "UPDATE account_analytic_line_app SET status = 'deleted', last_modified = ? WHERE task_id IN (" + timesheetPlaceholders + ") AND (status IS NULL OR status != 'deleted')",
                 updateParams
@@ -689,6 +720,8 @@ function markRelatedTimesheetsAsDeleted(tx, taskIds, timestamp) {
     } catch (e) {
         console.error("Error marking related timesheets as deleted:", e);
     }
+    
+    return deletedTimesheetIds;
 }
 
 function edittaskData(data) {

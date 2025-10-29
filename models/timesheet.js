@@ -2,6 +2,7 @@
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
 .import "accounts.js" as Accounts
+.import "draft_manager.js" as DraftManager
 
 
 /**
@@ -384,6 +385,7 @@ function isTimesheetReadyToStartTimer(timesheetId) {
 
 
 /**
+/**
  * Marks a timesheet entry as deleted in the local SQLite database by setting its `status` to `'deleted'`.
  *
  * This is a soft delete and does not remove the record from the database.
@@ -403,6 +405,15 @@ function markTimesheetAsDeleted(taskId) {
         });
 
         DBCommon.log("Timesheet marked as deleted (id: " + taskId + ")");
+        
+        // Clean up any drafts for this deleted timesheet
+        try {
+            DraftManager.cleanupDraftsForDeletedRecords("timesheet", [taskId]);
+        } catch (draftError) {
+            console.warn("⚠️  Failed to cleanup timesheet draft:", draftError);
+            // Don't fail the deletion if draft cleanup fails
+        }
+        
         return { success: true, message: "Timesheet marked as deleted." };
 
     } catch (e) {
