@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ubtms\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-15 20:53+0000\n"
+"POT-Creation-Date: 2025-10-29 09:41+0000\n"
 "PO-Revision-Date: 2025-10-15 22:45+0200\n"
 "Last-Translator: Gokul Kartha <gokul@cloudify-os-live>\n"
 "Language-Team: Dutch <vertaling@vrijschrift.org>\n"
@@ -17,31 +17,108 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../qml/Aboutus.qml:35 ../qml/Dashboard.qml:117
+#: ../qml/Aboutus.qml:35 ../qml/Aboutus.qml:51 ../qml/Dashboard.qml:117
 msgid "About"
 msgstr "Over"
+
+#: ../qml/Aboutus.qml:75
+#, fuzzy
+msgid "Time Management App - Beta"
+msgstr "Tijdbeheer"
+
+#: ../qml/Aboutus.qml:81
+msgid "Version: "
+msgstr ""
+
+#: ../qml/Aboutus.qml:86
+msgid "Release Notes: "
+msgstr ""
 
 #: ../qml/Account_Page.qml:36
 msgid "Create Account"
 msgstr "Account aanmaken"
 
+#: ../qml/Account_Page.qml:64 ../qml/Activities.qml:71 ../qml/Tasks.qml:69
+#: ../qml/components/SaveDiscardDialog.qml:64
+msgid "Save"
+msgstr ""
+
+#: ../qml/Account_Page.qml:73 ../qml/Tasks.qml:77
+msgid "Edit"
+msgstr ""
+
+#: ../qml/Account_Page.qml:255
+msgid "Enter Odoo URL here"
+msgstr ""
+
+#: ../qml/Account_Page.qml:266
+msgid "Fetch Databases"
+msgstr ""
+
+#: ../qml/Account_Page.qml:318
+msgid "Database"
+msgstr ""
+
+#: ../qml/Account_Page.qml:379
+msgid "Enter Database Name"
+msgstr ""
+
+#: ../qml/Account_Page.qml:397
+msgid "Username"
+msgstr ""
+
+#: ../qml/Account_Page.qml:430
+msgid "Connect With"
+msgstr ""
+
 #: ../qml/Activities.qml:18 ../qml/Dashboard.qml:260
 msgid "Activity"
 msgstr "Activiteit"
 
-#: ../qml/Activity_Page.qml:40 ../qml/Dashboard.qml:142
+#: ../qml/Activities.qml:83 ../qml/Tasks.qml:58
+msgid "Back"
+msgstr ""
+
+#: ../qml/Activities.qml:179
+msgid "Connected to"
+msgstr ""
+
+#: ../qml/Activities.qml:189 ../qml/Projects.qml:43
+#: ../qml/components/WorkItemSelector.qml:127
+msgid "Project"
+msgstr "Project"
+
+#: ../qml/Activities.qml:207 ../qml/Dashboard.qml:254 ../qml/Dashboard3.qml:32
+#: ../qml/Task_Page.qml:352 ../qml/Tasks.qml:45
+#: ../qml/components/WorkItemSelector.qml:129
+msgid "Task"
+msgstr "Taak"
+
+#: ../qml/Activities.qml:239
+msgid "Summary"
+msgstr ""
+
+#: ../qml/Activity_Page.qml:40 ../qml/Dashboard.qml:142 ../qml/Menu.qml:177
+#: ../qml/Projects.qml:288 ../qml/Tasks.qml:1230
 msgid "Activities"
+msgstr "Activiteiten"
+
+#: ../qml/Activity_Page.qml:611
+#, fuzzy
+msgid "No Activities Available"
 msgstr "Activiteiten"
 
 #: ../qml/Dashboard.qml:43
 msgid "Time Manager - Time Management Dashboard"
 msgstr "Time Manager - Tijdbeheer Dashboard"
 
-#: ../qml/Dashboard.qml:94 ubtms.desktop.in.h:1
-msgid "Time Management"
-msgstr "Tijdbeheer"
+#: ../qml/Dashboard.qml:94 ../qml/Dashboard.qml:434
+#: ../qml/components/WorkItemSelector.qml:126
+#, fuzzy
+msgid "Account"
+msgstr "Account:"
 
-#: ../qml/Dashboard.qml:110
+#: ../qml/Dashboard.qml:110 ../qml/Menu.qml:81
 msgid "Switch Accounts"
 msgstr "Van account wisselen"
 
@@ -53,33 +130,31 @@ msgstr "Donkere modus"
 msgid "Light Mode"
 msgstr "Lichte modus"
 
-#: ../qml/Dashboard.qml:133 ../qml/Dashboard.qml:257 ../qml/Timesheet.qml:43
+#: ../qml/Dashboard.qml:133 ../qml/Dashboard.qml:257 ../qml/Menu.qml:149
+#: ../qml/Timesheet.qml:43
 msgid "Timesheet"
 msgstr "Urenstaat"
 
-#: ../qml/Dashboard.qml:151 ../qml/MyTasks.qml:41
+#: ../qml/Dashboard.qml:151 ../qml/Menu.qml:208 ../qml/MyTasks.qml:41
 msgid "My Tasks"
 msgstr "Mijn taken"
 
-#: ../qml/Dashboard.qml:160 ../qml/Task_Page.qml:41
+#: ../qml/Dashboard.qml:160 ../qml/Menu.qml:239 ../qml/Task_Page.qml:41
 msgid "All Tasks"
 msgstr "Alle taken"
 
-#: ../qml/Dashboard.qml:169 ../qml/Project_Page.qml:42
+#: ../qml/Dashboard.qml:169 ../qml/Menu.qml:270 ../qml/Project_Page.qml:42
 msgid "Projects"
 msgstr "Projecten"
 
-#: ../qml/Dashboard.qml:178 ../qml/Updates_Page.qml:38
+#: ../qml/Dashboard.qml:178 ../qml/Menu.qml:301 ../qml/Projects.qml:413
+#: ../qml/Updates_Page.qml:38
 msgid "Project Updates"
 msgstr "Projectupdates"
 
-#: ../qml/Dashboard.qml:187 ../qml/Settings_Page.qml:36
+#: ../qml/Dashboard.qml:187 ../qml/Menu.qml:360 ../qml/Settings_Page.qml:36
 msgid "Settings"
 msgstr "Instellingen"
-
-#: ../qml/Dashboard.qml:254 ../qml/Dashboard3.qml:32 ../qml/Tasks.qml:45
-msgid "Task"
-msgstr "Taak"
 
 #: ../qml/Dashboard2.qml:32
 msgid "Charts"
@@ -93,29 +168,399 @@ msgstr "Tijdsbesteding per taak"
 msgid "Menu"
 msgstr "Menu"
 
-#: ../qml/Projects.qml:43
-msgid "Project"
-msgstr "Project"
+#: ../qml/Menu.qml:118
+msgid "Dashboard"
+msgstr ""
+
+#: ../qml/Menu.qml:329
+#, fuzzy
+msgid "About Us"
+msgstr "Over"
+
+#: ../qml/MyTasks.qml:302
+msgid "Showing closed/completed tasks"
+msgstr ""
+
+#: ../qml/MyTasks.qml:380
+msgid "No Tasks Assigned to You"
+msgstr ""
+
+#: ../qml/Project_Page.qml:55
+msgid "New"
+msgstr ""
+
+#: ../qml/Project_Page.qml:65
+msgid "Search"
+msgstr ""
+
+#: ../qml/Projects.qml:212
+#, fuzzy
+msgid "Project Name"
+msgstr "Projectupdates"
+
+#: ../qml/Projects.qml:307 ../qml/Projects.qml:366 ../qml/Projects.qml:431
+#: ../qml/Tasks.qml:1249 ../qml/components/CreateUpdatePage.qml:38
+#, fuzzy
+msgid "Create"
+msgstr "Account aanmaken"
+
+#: ../qml/Projects.qml:333 ../qml/Projects.qml:398 ../qml/Projects.qml:464
+msgid "View"
+msgstr ""
+
+#: ../qml/Projects.qml:348
+#, fuzzy
+msgid "Tasks"
+msgstr "Taak"
+
+#: ../qml/Projects.qml:489
+#, fuzzy
+msgid "Allocated Hours"
+msgstr "Uren selecteren"
+
+#: ../qml/ReadMorePage.qml:23 ../qml/components/CreateUpdateDialog.qml:121
+#: ../qml/components/CreateUpdatePage.qml:188
+#: ../qml/components/RichTextPreview.qml:7
+msgid "Description"
+msgstr "Beschrijving"
+
+#: ../qml/Settings_Page.qml:305
+msgid "App Theme Preference"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:313
+msgid "Choose your preferred theme for the application"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:374
+#, fuzzy
+msgid "Light Theme"
+msgstr "Lichte modus"
+
+#: ../qml/Settings_Page.qml:439
+#, fuzzy
+msgid "Dark Theme"
+msgstr "Donkere modus"
+
+#: ../qml/Settings_Page.qml:480
+msgid "Personal Stages Diagnostics"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:488
+msgid "Check personal stage data status and configuration"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:503
+#, fuzzy
+msgid "Check Personal Stage Status"
+msgstr "Persoonlijke fase wijzigen"
+
+#: ../qml/Settings_Page.qml:541
+msgid "Force Task Re-sync"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:549
+msgid "Reset task timestamps to force fresh sync from Odoo"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:567
+msgid "Reset Tasks Without Stages"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:589
+#, fuzzy
+msgid "Reset All Tasks"
+msgstr "Alle taken"
+
+#: ../qml/Settings_Page.qml:623
+#, fuzzy
+msgid "Connected Accounts"
+msgstr "Account aanmaken"
+
+#: ../qml/Settings_Page.qml:687
+msgid "URL : "
+msgstr ""
+
+#: ../qml/Settings_Page.qml:693
+msgid "Database : "
+msgstr ""
+
+#: ../qml/Settings_Page.qml:705
+msgid "Default"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:728
+msgid "Delete"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:739
+msgid "Show Logs"
+msgstr ""
+
+#: ../qml/Settings_Page.qml:760
+#, fuzzy
+msgid "Sync"
+msgstr "Synchronisatielogboek"
+
+#: ../qml/Settings_Page.qml:837 ../qml/components/AccountDrawer.qml:212
+msgid "Syncing..."
+msgstr ""
 
 #: ../qml/SyncLog.qml:7
 msgid "Sync Log"
 msgstr "Synchronisatielogboek"
 
+#: ../qml/TSApp.qml:125
+#, fuzzy
+msgid "Switch account"
+msgstr "Van account wisselen"
+
+#: ../qml/Task_Page.qml:207
+msgid "Today"
+msgstr ""
+
+#: ../qml/Task_Page.qml:208
+msgid "This Week"
+msgstr ""
+
+#: ../qml/Task_Page.qml:209
+msgid "This Month"
+msgstr ""
+
+#: ../qml/Task_Page.qml:210
+#, fuzzy
+msgid "Later"
+msgstr "Later doen"
+
+#: ../qml/Task_Page.qml:211 ../qml/components/MultiAssigneeSelector.qml:434
+msgid "Done"
+msgstr ""
+
+#: ../qml/Task_Page.qml:212 ../qml/Timesheet_Page.qml:131
+msgid "All"
+msgstr ""
+
+#: ../qml/Task_Page.qml:336
+msgid "No tasks found."
+msgstr ""
+
+#: ../qml/Tasks.qml:84 ../qml/components/AccountDrawer.qml:72
+msgid "Close"
+msgstr ""
+
+#: ../qml/Tasks.qml:948
+msgid "Name"
+msgstr ""
+
+#: ../qml/Tasks.qml:1008
+msgid "Priority"
+msgstr ""
+
+#: ../qml/Tasks.qml:1072
+msgid "Initial Stage"
+msgstr ""
+
+#: ../qml/Tasks.qml:1172
+msgid "Current Stage:"
+msgstr ""
+
+#: ../qml/Tasks.qml:1182 ../qml/Tasks.qml:1475
+#: ../qml/components/ProjectDetailsCard.qml:354
+#: ../qml/components/ProjectDetailsCard.qml:362
+#: ../qml/components/TaskDetailsCard.qml:636
+#: ../qml/components/TaskDetailsCard.qml:643
+msgid "Not set"
+msgstr ""
+
+#: ../qml/Tasks.qml:1212
+msgid "Change"
+msgstr ""
+
+#: ../qml/Tasks.qml:1353
+#, fuzzy
+msgid "Planned Hours"
+msgstr "Uren selecteren"
+
+#: ../qml/Tasks.qml:1365
+msgid "e.g., 2:30 or 1.5"
+msgstr ""
+
+#: ../qml/Tasks.qml:1468
+msgid "Deadline"
+msgstr ""
+
+#: ../qml/Tasks.qml:1483
+#, fuzzy
+msgid "Select"
+msgstr "Kleur selecteren"
+
+#: ../qml/Tasks.qml:1526
+msgid "Select Deadline"
+msgstr ""
+
 #: ../qml/Timesheet_Page.qml:39
 msgid "Timesheets"
 msgstr "Urenstaten"
 
+#: ../qml/Timesheet_Page.qml:132
+#, fuzzy
+msgid "Active"
+msgstr "Activiteiten"
+
+#: ../qml/Timesheet_Page.qml:133
+msgid "Draft"
+msgstr ""
+
 #: ../qml/components/AccountDrawer.qml:28
+#: ../qml/components/AccountDrawer.qml:61
 msgid "Account Selection"
 msgstr "Accountselectie"
+
+#: ../qml/components/AccountDrawer.qml:89
+#, fuzzy
+msgid "Select Account:"
+msgstr "Account:"
+
+#: ../qml/components/AccountDrawer.qml:158
+#, fuzzy
+msgid "Current Account:"
+msgstr "Account aanmaken"
+
+#: ../qml/components/AccountDrawer.qml:165
+#: ../qml/components/AccountFilter.qml:127
+#, fuzzy
+msgid "No account selected"
+msgstr "Accountselectie"
+
+#: ../qml/components/AccountDrawer.qml:183
+msgid "Last Sync:"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:190
+#: ../qml/components/AccountDrawer.qml:426
+msgid "Never"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:212
+msgid "Sync Data"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:276
+msgid "Note: Sync is not available for 'All Accounts' view"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:285
+msgid "Please select a specific account to sync data"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:306
+msgid "Syncing data..."
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:332
+#: ../qml/components/AccountSelectorDialog.qml:240
+#: ../qml/components/CustomDatePicker.qml:166
+#: ../qml/components/TimePickerPopup.qml:108
+msgid "OK"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:365
+#: ../qml/components/AccountDrawer.qml:415
+#: ../qml/components/AccountDrawer.qml:416
+#, fuzzy
+msgid "All Accounts"
+msgstr "Account:"
+
+#: ../qml/components/AccountDrawer.qml:429
+msgid "N/A for All Accounts"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:452
+#, fuzzy
+msgid "Account not found"
+msgstr "Accountselectie"
+
+#: ../qml/components/AccountDrawer.qml:460
+#: ../qml/components/AccountDrawer.qml:462
+msgid "Local account - no sync required"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:462
+msgid "Info"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:472
+msgid "Connecting to server..."
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:472
+msgid "Syncing activities..."
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:472
+msgid "Syncing projects..."
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:472
+msgid "Syncing tasks..."
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:472
+msgid "Syncing timesheets..."
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:472
+msgid "Updating local data..."
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:481
+#: ../qml/components/AccountDrawer.qml:484
+msgid "Sync failed: "
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:484
+msgid "Error"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:500
+msgid "Sync completed successfully"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:504
+msgid "Data synchronized successfully!"
+msgstr ""
+
+#: ../qml/components/AccountDrawer.qml:504
+msgid "Success"
+msgstr ""
 
 #: ../qml/components/AccountFilter.qml:68
 msgid "Account:"
 msgstr "Account:"
 
+#: ../qml/components/AccountSelector.qml:105
+#: ../qml/components/AccountSelectorDialog.qml:153
+#, fuzzy
+msgid "Select an account"
+msgstr "Uren selecteren"
+
+#: ../qml/components/AccountSelectorDialog.qml:18
+#, fuzzy
+msgid "Select Account"
+msgstr "Account aanmaken"
+
 #: ../qml/components/AccountSelectorDialog.qml:59
 msgid "Choose an account to use"
 msgstr "Kies een account om te gebruiken"
+
+#: ../qml/components/AccountSelectorDialog.qml:232
+#: ../qml/components/CreateUpdateDialog.qml:146
+#: ../qml/components/CustomDatePicker.qml:131
+#: ../qml/components/CustomDatePicker.qml:159
+#: ../qml/components/SaveDiscardDialog.qml:94
+#: ../qml/components/TimePickerPopup.qml:102
+msgid "Cancel"
+msgstr "Annuleren"
 
 #: ../qml/components/ActivityDetailsCard.qml:70
 msgid "OVERDUE"
@@ -128,6 +573,26 @@ msgstr "VANDAAG"
 #: ../qml/components/ActivityDetailsCard.qml:82
 msgid "PLANNED"
 msgstr "GEPLAND"
+
+#: ../qml/components/ActivityDetailsCard.qml:255
+msgid "No Summary"
+msgstr ""
+
+#: ../qml/components/ActivityDetailsCard.qml:266
+msgid "No Notes"
+msgstr ""
+
+#: ../qml/components/ActivityDetailsCard.qml:278
+msgid "Assigned to: "
+msgstr ""
+
+#: ../qml/components/ActivityDetailsCard.qml:278
+msgid "Unassigned"
+msgstr ""
+
+#: ../qml/components/ActivityDetailsCard.qml:302
+msgid "Type ID: "
+msgstr ""
 
 #: ../qml/components/ActivityDetailsCard.qml:344
 msgid "Reschedule Activity Date"
@@ -161,25 +626,50 @@ msgstr "Uploaden"
 msgid "Select Color"
 msgstr "Kleur selecteren"
 
-#: ../qml/components/CreateUpdateDialog.qml:34
+#: ../qml/components/CreateUpdateDialog.qml:42
+#: ../qml/components/CreateUpdatePage.qml:16
 msgid "New Project Update"
 msgstr "Nieuwe projectupdate"
 
-#: ../qml/components/CreateUpdateDialog.qml:46
+#: ../qml/components/CreateUpdateDialog.qml:87
+#: ../qml/components/CreateUpdatePage.qml:123
 msgid "Update Title"
 msgstr "Titel bijwerken"
 
-#: ../qml/components/CreateUpdateDialog.qml:61
+#: ../qml/components/CreateUpdateDialog.qml:102
 msgid "Progress:"
 msgstr "Voortgang:"
 
-#: ../qml/components/CreateUpdateDialog.qml:80
-msgid "Write your update description..."
-msgstr "Schrijf je updatebeschrijving..."
+#: ../qml/components/CreateUpdatePage.qml:130
+#, fuzzy
+msgid "Enter update title..."
+msgstr "Titel bijwerken"
 
-#: ../qml/components/CreateUpdateDialog.qml:89
-msgid "Cancel"
-msgstr "Annuleren"
+#: ../qml/components/CreateUpdatePage.qml:146
+#, fuzzy
+msgid "Project Status"
+msgstr "Projectupdates"
+
+#: ../qml/components/CreateUpdatePage.qml:161
+#, fuzzy
+msgid "Progress"
+msgstr "Voortgang:"
+
+#: ../qml/components/CustomDatePicker.qml:110
+msgid "Next Week"
+msgstr ""
+
+#: ../qml/components/CustomDatePicker.qml:117
+msgid "Next Month"
+msgstr ""
+
+#: ../qml/components/CustomDatePicker.qml:124
+msgid "Custom"
+msgstr ""
+
+#: ../qml/components/EHower.qml:99
+msgid "Time spent based on priorities"
+msgstr ""
 
 #: ../qml/components/EHower.qml:129
 msgid "URGENT"
@@ -213,12 +703,52 @@ msgstr "Later doen"
 msgid "Don't do"
 msgstr "Niet doen"
 
+#: ../qml/components/ListHeader.qml:155
+#, fuzzy
+msgid "Search..."
+msgstr "Zoek toegewezenen..."
+
+#: ../qml/components/MultiAssigneeSelector.qml:37
+#, fuzzy
+msgid "Assignees"
+msgstr "Filter op toegewezenen"
+
+#: ../qml/components/MultiAssigneeSelector.qml:121
+#: ../qml/components/MultiAssigneeSelector.qml:294
+#, fuzzy
+msgid "Select Assignees"
+msgstr "Filter op toegewezenen"
+
+#: ../qml/components/MultiAssigneeSelector.qml:421
+#, fuzzy
+msgid "Clear All"
+msgstr "Filter wissen"
+
 #: ../qml/components/PersonalStageSelector.qml:59
 msgid "Change Personal Stage"
 msgstr "Persoonlijke fase wijzigen"
 
-#: ../qml/components/ProjectPieChart.qml:42 \
-../qml/components/ProjectPieChart.qml:140
+#: ../qml/components/ProjectDetailsCard.qml:134
+msgid "Stop Timer"
+msgstr ""
+
+#: ../qml/components/ProjectDetailsCard.qml:346
+#: ../qml/components/TaskDetailsCard.qml:629
+msgid "Planned (H): "
+msgstr ""
+
+#: ../qml/components/ProjectDetailsCard.qml:354
+#: ../qml/components/TaskDetailsCard.qml:636
+msgid "Start Date: "
+msgstr ""
+
+#: ../qml/components/ProjectDetailsCard.qml:362
+#: ../qml/components/TaskDetailsCard.qml:643
+msgid "End Date: "
+msgstr ""
+
+#: ../qml/components/ProjectPieChart.qml:42
+#: ../qml/components/ProjectPieChart.qml:140
 msgid "Most Time-Consuming Projects"
 msgstr "Meest tijdrovende projecten"
 
@@ -226,22 +756,123 @@ msgstr "Meest tijdrovende projecten"
 msgid "Most Time-Consuming Projects(No Data)"
 msgstr "Meest tijdrovende projecten (geen gegevens)"
 
-#: ../qml/components/RichTextPreview.qml:7
-msgid "Description"
-msgstr "Beschrijving"
-
 #: ../qml/components/SaveDiscardDialog.qml:48
 msgid "Unsaved Changes"
 msgstr "Niet-opgeslagen wijzigingen"
+
+#: ../qml/components/SaveDiscardDialog.qml:52
+msgid ""
+"You have unsaved changes. What would you like to do?\n"
+"\n"
+"Note: If you cancel, you can navigate back to continue editing."
+msgstr ""
+
+#: ../qml/components/SaveDiscardDialog.qml:79
+msgid "Discard"
+msgstr ""
+
+#: ../qml/components/StageFilterMenu.qml:354
+msgid "Current: "
+msgstr ""
+
+#: ../qml/components/TaskDetailsCard.qml:242
+#: ../qml/components/TaskDetailsCard.qml:251
+#: ../qml/components/TimeSheetDetailsCard.qml:147
+#: ../qml/components/TimeSheetDetailsCard.qml:156
+#, fuzzy
+msgid "update Timesheet"
+msgstr "Urenstaat"
+
+#: ../qml/components/TaskDetailsCard.qml:347
+msgid "Unable to track progress – no planned hours"
+msgstr ""
+
+#: ../qml/components/TaskDetailsCard.qml:358
+msgid "No progress yet"
+msgstr ""
+
+#: ../qml/components/TaskDetailsCard.qml:621
+#: ../qml/components/TimeSheetDetailsCard.qml:292
+msgid "DRAFT"
+msgstr ""
+
+#: ../qml/components/TaskDetailsCard.qml:629
+msgid "N/A"
+msgstr ""
 
 #: ../qml/components/TaskStageSelector.qml:55
 msgid "Change Task Stage"
 msgstr "Taakfase wijzigen"
 
+#: ../qml/components/TasksForDayWidget.qml:35
+msgid "Plan for Today"
+msgstr ""
+
 #: ../qml/components/TimePickerPopup.qml:43
 msgid "Select Hours"
 msgstr "Uren selecteren"
 
+#: ../qml/components/TimeRecorderWidget.qml:62
+msgid "Time Tracking"
+msgstr ""
+
+#: ../qml/components/TimeRecorderWidget.qml:77
+msgid "Manual"
+msgstr ""
+
+#: ../qml/components/TimeRecorderWidget.qml:93
+msgid "Automated"
+msgstr ""
+
 #: ../qml/components/TimeSheetDescriptionPopup.qml:54
 msgid "Add Description to Timesheet"
 msgstr "Beschrijving toevoegen aan urenstaat"
+
+#: ../qml/components/TimeSheetDetailsCard.qml:165
+msgid "Mark Ready for Sync"
+msgstr ""
+
+#: ../qml/components/UpdatesDetailsCard.qml:59
+msgid "Untitled Update"
+msgstr ""
+
+#: ../qml/components/UpdatesDetailsCard.qml:89
+msgid "By: "
+msgstr ""
+
+#: ../qml/components/UpdatesDetailsCard.qml:89
+msgid "No Date"
+msgstr ""
+
+#: ../qml/components/UpdatesDetailsCard.qml:89
+msgid "Unknown User"
+msgstr ""
+
+#: ../qml/components/UpdatesDetailsCard.qml:97
+msgid "Details"
+msgstr ""
+
+#: ../qml/components/UpdatesDetailsCard.qml:106
+#, fuzzy
+msgid "Unknown Project"
+msgstr "Project"
+
+#: ../qml/components/WorkItemSelector.qml:128
+#, fuzzy
+msgid "Subproject"
+msgstr "Project"
+
+#: ../qml/components/WorkItemSelector.qml:130
+msgid "Subtask"
+msgstr ""
+
+#: ../qml/components/WorkItemSelector.qml:131
+msgid "Assignee"
+msgstr ""
+
+#: ubtms.desktop.in.h:1
+msgid "Time Management"
+msgstr "Tijdbeheer"
+
+#~ msgid "Write your update description..."
+#~ msgstr "Schrijf je updatebeschrijving..."
