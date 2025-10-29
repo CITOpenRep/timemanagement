@@ -829,6 +829,21 @@ Page {
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(10)
 
+                    // Handle multi-assignee changes (for enableMultipleAssignees mode)
+                    onMultiAssigneesChanged: {
+                        console.log("🔔 MultiAssignees changed:", JSON.stringify(assignees));
+                        
+                        if (draftHandler.enabled && draftHandler._initialized) {
+                            var idsForDraft = workItem.getIds();
+                            console.log("✅ Tracking multipleAssignees - count:", assignees.length, "ids:", idsForDraft.assignee_ids);
+                            draftHandler.markFieldChanged("multipleAssignees", idsForDraft.multiple_assignees);
+                            draftHandler.markFieldChanged("assigneeIds", idsForDraft.assignee_ids);
+                            console.log("📊 Draft status after assignee change - hasUnsavedChanges:", draftHandler.hasUnsavedChanges);
+                        } else {
+                            console.log("⏸️ Multi-assignee draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
+                        }
+                    }
+
                     // Monitor project and account changes to reload stages
                     onStateChanged: {
                         console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
