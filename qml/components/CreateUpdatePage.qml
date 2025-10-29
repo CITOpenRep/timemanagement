@@ -7,6 +7,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import Lomiri.Components.Popups 1.3
 import QtQuick.Layouts 1.3
 import "../../models/accounts.js" as Accounts
 import "../../models/global.js" as Global
@@ -23,6 +24,51 @@ Page {
 
     // Status list
     property var projectUpdateStatus: ["on_track", "at_risk", "off_track", "on_hold"]
+    
+    // Draft management
+    FormDraftHandler {
+        id: draftHandler
+        draftType: "project_update"
+        recordId: null  // Always null for new updates
+        accountId: createUpdatePage.accountId
+        enabled: true
+        pageIdentifier: "create_update_" + createUpdatePage.projectId
+        
+        onDraftLoaded: function(draftData, changedFields) {
+            console.log("📋 Loading draft for project update, changed fields:", changedFields);
+            
+            // Restore form fields from draft
+            if (draftData.title !== undefined) {
+                titleField.text = draftData.title;
+            }
+            if (draftData.status !== undefined) {
+                var statusIndex = projectUpdateStatus.indexOf(draftData.status);
+                if (statusIndex !== -1) {
+                    statusSelector.currentIndex = statusIndex;
+                }
+            }
+            if (draftData.progress !== undefined) {
+                progressSlider.value = draftData.progress;
+            }
+            if (draftData.description !== undefined) {
+                descriptionField.setContent(draftData.description);
+                lastKnownContent = draftData.description;
+            }
+            
+            // Show notification about recovered draft
+            Qt.callLater(function() {
+                notifPopup.open(
+                    i18n.dtr("ubtms", "Draft Recovered"),
+                    i18n.dtr("ubtms", "Your unsaved changes have been recovered."),
+                    "info"
+                );
+            });
+        }
+        
+        onUnsavedChangesWarning: {
+            PopupUtils.open(unsavedChangesDialogComponent);
+        }
+    }
 
     header: PageHeader {
         title: createUpdatePage.title
@@ -31,6 +77,21 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+        
+        leadingActionBar.actions: [
+            Action {
+                iconName: "back"
+                text: i18n.dtr("ubtms", "Back")
+                onTriggered: {
+                    // Check for unsaved changes before going back
+                    if (draftHandler.hasUnsavedChanges) {
+                        PopupUtils.open(unsavedChangesDialogComponent);
+                    } else {
+                        pageStack.removePages(createUpdatePage);
+                    }
+                }
+            }
+        ]
 
         trailingActionBar.actions: [
             Action {
@@ -38,6 +99,11 @@ Page {
                 text: i18n.dtr("ubtms", "Create")
                 onTriggered: {
                     if (titleField.text.trim() === "" || statusSelector.currentIndex < 0) {
+                        notifPopup.open(
+                            i18n.dtr("ubtms", "Validation Error"),
+                            i18n.dtr("ubtms", "Please fill in all required fields."),
+                            "error"
+                        );
                         return;
                     }
 
@@ -56,12 +122,58 @@ Page {
                         Global.createUpdateCallback(updateData);
                     }
                     
+                    // Clear draft after successful save
+                    draftHandler.clearDraft();
+                    
                     // Clear temporary holder and go back
                     Global.description_temporary_holder = "";
                     pageStack.removePages(createUpdatePage);
                 }
             }
         ]
+    }
+    
+    // Unsaved changes dialog
+    Component {
+        id: unsavedChangesDialogComponent
+        Dialog {
+            id: unsavedChangesDialog
+            title: i18n.dtr("ubtms", "Unsaved Changes")
+            text: i18n.dtr("ubtms", "You have unsaved changes. What would you like to do?")
+            
+            Button {
+                text: i18n.dtr("ubtms", "Save Draft")
+                color: LomiriColors.green
+                onClicked: {
+                    draftHandler.saveAndLeave();
+                    PopupUtils.close(unsavedChangesDialog);
+                    pageStack.removePages(createUpdatePage);
+                }
+            }
+            
+            Button {
+                text: i18n.dtr("ubtms", "Discard")
+                color: LomiriColors.red
+                onClicked: {
+                    draftHandler.discardAndLeave();
+                    PopupUtils.close(unsavedChangesDialog);
+                    pageStack.removePages(createUpdatePage);
+                }
+            }
+            
+            Button {
+                text: i18n.dtr("ubtms", "Cancel")
+                onClicked: {
+                    PopupUtils.close(unsavedChangesDialog);
+                }
+            }
+        }
+    }
+    
+    NotificationPopup {
+        id: notifPopup
+        width: units.gu(80)
+        height: units.gu(80)
     }
 
     // Monitor visibility to reload content from Global when returning from ReadMorePage
@@ -97,6 +209,9 @@ Page {
                 Global.description_temporary_holder !== createUpdatePage.lastKnownContent) {
                 descriptionField.setContent(Global.description_temporary_holder);
                 createUpdatePage.lastKnownContent = Global.description_temporary_holder;
+                
+                // Also update the draft with the new description
+                draftHandler.markFieldChanged("description", Global.description_temporary_holder);
             }
         }
     }
@@ -128,6 +243,10 @@ Page {
                 id: titleField
                 width: parent.width - units.gu(2)
                 placeholderText: i18n.dtr("ubtms", "Enter update title...")
+                
+                onTextChanged: {
+                    draftHandler.markFieldChanged("title", text);
+                }
 
                 Rectangle {
                     anchors.fill: parent
@@ -152,6 +271,12 @@ Page {
                 width: parent.width - units.gu(2)
                 model: createUpdatePage.projectUpdateStatus
                 currentIndex: 0
+                
+                onCurrentIndexChanged: {
+                    if (currentIndex >= 0) {
+                        draftHandler.markFieldChanged("status", createUpdatePage.projectUpdateStatus[currentIndex]);
+                    }
+                }
             }
 
             // Progress Slider
@@ -172,6 +297,10 @@ Page {
                     minimumValue: 0
                     maximumValue: 100
                     value: 0
+                    
+                    onValueChanged: {
+                        draftHandler.markFieldChanged("progress", Math.round(value));
+                    }
                 }
                 Label {
                     text: Math.round(progressSlider.value) + "%"
@@ -197,6 +326,13 @@ Page {
                 is_read_only: false
                 useRichText: true
                 
+                // Monitor text property changes instead of using onTextChanged signal
+                onOriginalHtmlContentChanged: {
+                    if (originalHtmlContent !== undefined) {
+                        draftHandler.markFieldChanged("description", originalHtmlContent);
+                    }
+                }
+                
                 onClicked: {
                     Global.description_temporary_holder = descriptionField.getFormattedText();
                     
@@ -218,5 +354,15 @@ Page {
         titleField.text = "";
         statusSelector.currentIndex = 0;
         progressSlider.value = 0;
+        
+        // Initialize draft handler with empty original data
+        var originalData = {
+            title: "",
+            status: projectUpdateStatus[0],
+            progress: 0,
+            description: ""
+        };
+        
+        draftHandler.initialize(originalData);
     }
 }
