@@ -204,12 +204,12 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
 
-        label1: "Today"
-        label2: "This Week"
-        label3: "This Month"
-        label4: "Later"
-        label5: "Done"
-        label6: "All"
+        label1: i18n.dtr("ubtms", "Today")
+        label2: i18n.dtr("ubtms", "This Week")
+        label3: i18n.dtr("ubtms", "This Month")
+        label4: i18n.dtr("ubtms", "Later")
+        label5: i18n.dtr("ubtms", "Done")
+        label6: i18n.dtr("ubtms", "All")
         label7: ""
 
         filter1: "today"
