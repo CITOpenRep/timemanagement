@@ -586,7 +586,7 @@ Page {
                                     id: resyncAllButton
                                     width: units.gu(21)
                                     height: units.gu(5)
-                                    text: "Reset All Tasks"
+                                    text: i18n.dtr("ubtms", "Reset All Tasks")
                                     fontSize: units.gu(1.5)
                                     bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f44336" : "#c62828"
                                     onClicked: {

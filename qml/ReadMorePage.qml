@@ -20,7 +20,7 @@ Page {
 
     header: PageHeader {
         id: header
-        title: "Description"
+        title: i18n.dtr("ubtms","Description")
 
         StyleHints {
 
