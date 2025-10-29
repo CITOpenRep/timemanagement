@@ -210,6 +210,7 @@ Page {
     property var recordid: 0 //0 means creation mode
     property bool isReadOnly: false // Can be overridden when page is opened
     property var currentTimesheet: {}
+    property bool _hasInitialized: false  // Flag to track if page has been initialized
 
     // ==================== DRAFT HANDLER ====================
     FormDraftHandler {
@@ -297,6 +298,58 @@ Page {
 
     // Track navigation to ReadMore page
     property bool navigatingToReadMore: false
+
+    // Initialize timesheet data when page becomes visible for the first time
+    function initializeTimesheet() {
+        if (_hasInitialized) {
+            console.log("⏭️ Timesheet already initialized, skipping");
+            return;
+        }
+        
+        console.log("🔄 Initializing Timesheet - recordid:", recordid, "isReadOnly:", isReadOnly);
+        _hasInitialized = true;
+
+        if (recordid != 0) {
+            // Set flag before loading to prevent auto-initialization
+            workItem.deferredLoadingPlanned = true;
+
+            currentTimesheet = Model.getTimeSheetDetails(recordid);
+            let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
+            let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
+            let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
+            let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
+            let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
+
+            // Check if this is a newly created timesheet (has recordid but no project/task data)
+            if (projectId === -1 && taskId === -1) {
+                // For new timesheets, load with account but no project/task data
+                workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, -1);
+            } else {
+                workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1);
+                console.log("Loaded existing timesheet with recordid:", recordid, "instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId, "subProjectId:", subProjectId, "subTaskId:", subTaskId);
+            }
+
+            date_widget.setSelectedDate(currentTimesheet.record_date);
+            description_text.setContent(currentTimesheet.name);
+            if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
+                time_sheet_widget.elapsedTime = currentTimesheet.spentHours;
+            }
+            if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
+                priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1;
+            }
+            if (currentTimesheet.timer_type && currentTimesheet.timer_type !== "") {
+                time_sheet_widget.autoMode = (currentTimesheet.timer_type === "automatic");
+            }
+        } else {
+            workItem.loadAccounts();
+        }
+        
+        // Initialize draft handler AFTER all form fields are populated
+        if (!isReadOnly) {
+            var originalTimesheetData = getCurrentFormData();
+            draftHandler.initialize(originalTimesheetData);
+        }
+    }
 
     function restoreFormFromDraft(draftData) {
         if (draftData.description) description_text.setContent(draftData.description);
@@ -690,57 +743,19 @@ Page {
         }
 
         Component.onCompleted: {
-            // console.log("Timesheet onCompleted - recordid:", recordid, "isReadOnly:", isReadOnly);
-
-            if (recordid != 0) {
-                // Set flag before loading to prevent auto-initialization
-                workItem.deferredLoadingPlanned = true;
-
-                currentTimesheet = Model.getTimeSheetDetails(recordid);
-                let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
-                let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
-                let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
-                let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
-                let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
-
-                //    console.log("Timesheet data - instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId);
-
-                // Check if this is a newly created timesheet (has recordid but no project/task data)
-                if (projectId === -1 && taskId === -1) {
-                    // console.log("NEW timesheet - loading with account only");
-                    // For new timesheets, load with account but no project/task data
-                    workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, -1);
-                } else {
-                    //  console.log("EXISTING timesheet - loading with full data");
-                    workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1);
-                    console.log("Loaded existing timesheet with recordid:", recordid, "instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId, "subProjectId:", subProjectId, "subTaskId:", subTaskId);
-                }
-
-                date_widget.setSelectedDate(currentTimesheet.record_date);
-                description_text.setContent(currentTimesheet.name);
-                if (currentTimesheet.spentHours && currentTimesheet.spentHours !== "") {
-                    time_sheet_widget.elapsedTime = currentTimesheet.spentHours;
-                }
-                if (currentTimesheet.quadrant_id && currentTimesheet.quadrant_id !== "") {
-                    priorityGrid.currentIndex = parseInt(currentTimesheet.quadrant_id) - 1;
-                }
-                if (currentTimesheet.timer_type && currentTimesheet.timer_type !== "") {
-                    time_sheet_widget.autoMode = (currentTimesheet.timer_type === "automatic");
-                }
-            } else {
-                workItem.loadAccounts();
-            }
-            
-            // Initialize draft handler AFTER all form fields are populated
-            if (!isReadOnly) {
-                var originalTimesheetData = getCurrentFormData();
-                draftHandler.initialize(originalTimesheetData);
-            }
+            // Defer initialization until page becomes visible to avoid loading on app startup
+            // This prevents draft loading when the page is pre-instantiated but not shown
+            console.log("⏳ Timesheet Flickable completed - initialization deferred until page visible");
         }
     }
 
     onVisibleChanged: {
         if (visible) {
+            // Initialize on first visibility
+            if (!_hasInitialized) {
+                Qt.callLater(initializeTimesheet);
+            }
+            
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
