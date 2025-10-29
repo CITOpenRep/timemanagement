@@ -753,7 +753,7 @@ msgid "update Timesheet"
 msgstr "Urenstaat bijwerken"
 
 #: ../qml/components/TaskDetailsCard.qml:347
-msgid "Unable to track progress â€" no planned hours"
+msgid "Unable to track progress - no planned hours"
 msgstr "Kan voortgang niet volgen – geen geplande uren"
 
 #: ../qml/components/TaskDetailsCard.qml:358
