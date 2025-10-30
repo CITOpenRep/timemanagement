@@ -592,8 +592,7 @@ Item {
             height: units.gu(5)
             width: parent.width
             anchors.rightMargin: units.gu(4) // Space for clear button
-            placeholderText: "Search projects..."
-            //   color: "#333333"
+            placeholderText: i18n.dtr("ubtms", "Search projects")
             selectByMouse: true
             onAccepted: performSearch(text)
             //Todo: Later Experiment with Debouncing search , solve performance issues causing the crash 

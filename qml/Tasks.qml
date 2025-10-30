@@ -818,7 +818,7 @@ Page {
                 WorkItemSelector {
                     id: workItem
                     readOnly: isReadOnly
-                    taskLabelText: "Parent Task"
+                    taskLabelText: i18n.dtr("ubtms", "Parent Task")
                     showAccountSelector: true
                     showAssigneeSelector: true
                     enableMultipleAssignees: true  // Enable multiple assignee selection

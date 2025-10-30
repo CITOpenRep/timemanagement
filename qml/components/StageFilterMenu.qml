@@ -176,7 +176,7 @@ Item {
                     }
 
                     Text {
-                        text: "Filter by Stage"
+                        text: i18n.dtr("ubtms", "Filter by Stage")
                         font.bold: true
                         font.pixelSize: units.gu(2.2)
                         color: theme.palette.normal.backgroundText

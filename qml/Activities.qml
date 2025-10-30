@@ -326,7 +326,7 @@ Page {
                 TreeSelector {
                     id: activityTypeSelector
                     enabled: !isReadOnly
-                    labelText: "Activity Type"
+                    labelText: i18n.dtr("ubtms","Activity Type")
                     width: flickable.width - units.gu(2)
                     height: units.gu(29)
                 }

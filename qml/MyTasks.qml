@@ -393,7 +393,7 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: "Create"
+                label: i18n.dtr("ubtms", "Create")
             },
         ]
         onMenuItemSelected: {
