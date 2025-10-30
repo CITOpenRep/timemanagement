@@ -14,7 +14,7 @@ import "../../models/global.js" as Global
 
 Page {
     id: createUpdatePage
-    title: i18n.dtr("ubtms", "New Project Update")
+    title: i18n.dtr("ubtms", "New Project Update") 
 
     // Properties
     property int projectId: -1
@@ -71,12 +71,14 @@ Page {
     }
 
     header: PageHeader {
-        title: createUpdatePage.title
+        title: createUpdatePage.title + (draftHandler.hasUnsavedChanges ? " •" : "")
         StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        
         
         leadingActionBar.actions: [
             Action {
@@ -127,6 +129,15 @@ Page {
                     
                     // Clear temporary holder and go back
                     Global.description_temporary_holder = "";
+                    pageStack.removePages(createUpdatePage);
+                }
+            },    Action{
+                iconName: "close"
+                text: i18n.dtr("ubtms", "Close")
+                visible: draftHandler.hasUnsavedChanges 
+                onTriggered: {
+                   draftHandler.discardAndLeave();
+                  //  PopupUtils.close(unsavedChangesDialog);
                     pageStack.removePages(createUpdatePage);
                 }
             }
