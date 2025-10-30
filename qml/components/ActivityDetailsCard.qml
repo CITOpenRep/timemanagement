@@ -317,13 +317,13 @@ ListItem {
                     }
 
                     Rectangle {
-                        width: units.gu(6)
+                        width: units.gu(7)
                         height: units.gu(2.2)
                         color: getActivityStateInfo().color
 
                         Text {
                             anchors.centerIn: parent
-                            text: getActivityStateInfo().text
+                            text: Utils.truncateText(getActivityStateInfo().text,7)
                             font.pixelSize: units.gu(1.2)
                             color: "white"
                         }
