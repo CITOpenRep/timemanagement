@@ -2,6 +2,7 @@
 .import "database.js" as DBCommon
 
 function initializeDatabase() {
+    console.log("🗄️  Initializing database...");
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
     DBCommon.createOrUpdateTable("sync_report",
@@ -450,9 +451,96 @@ function initializeDatabase() {
         ]
     );
 
+    // Form drafts table for auto-save functionality
+    // Drop and recreate to fix column name mismatch from previous version
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        db.transaction(function(tx) {
+            // Check if table exists and has wrong column names
+            var tableInfo = tx.executeSql("PRAGMA table_info(form_drafts)");
+            var hasOldSchema = false;
+            
+            for (var i = 0; i < tableInfo.rows.length; i++) {
+                var colName = tableInfo.rows.item(i).name;
+                if (colName === "form_data" || colName === "changed_fields") {
+                    hasOldSchema = true;
+                    break;
+                }
+            }
+            
+            // Drop table if it has old schema
+            if (hasOldSchema) {
+                console.log("🔄 Dropping form_drafts table with old schema...");
+                tx.executeSql("DROP TABLE IF EXISTS form_drafts");
+                console.log("✅ Old form_drafts table dropped");
+            }
+        });
+    } catch (e) {
+        console.log("ℹ️ form_drafts table doesn't exist yet, will create fresh");
+    }
+    
+    DBCommon.createOrUpdateTable("form_drafts",
+        "CREATE TABLE IF NOT EXISTS form_drafts (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "draft_type TEXT NOT NULL," +           // task, timesheet, project, activity, project_update
+            "record_id INTEGER," +                  // NULL for new records, ID for editing existing
+            "account_id INTEGER NOT NULL," +
+            "page_identifier TEXT NOT NULL," +      // Unique identifier for page instance
+            "draft_data TEXT NOT NULL," +           // JSON serialized form data (matches draft_manager.js)
+            "original_data TEXT," +                 // JSON serialized original data
+            "field_changes TEXT," +                 // JSON array of changed field names (matches draft_manager.js)
+            "is_new_record INTEGER DEFAULT 0," +    // 1 if new record, 0 if editing existing
+            "created_at TEXT NOT NULL," +           // ISO timestamp
+            "updated_at TEXT NOT NULL," +           // ISO timestamp
+            "UNIQUE (draft_type, account_id, page_identifier, record_id)" +
+        ")",
+        [
+            "id INTEGER",
+            "draft_type TEXT",
+            "record_id INTEGER",
+            "account_id INTEGER",
+            "page_identifier TEXT",
+            "draft_data TEXT",
+            "original_data TEXT",
+            "field_changes TEXT",
+            "is_new_record INTEGER",
+            "created_at TEXT",
+            "updated_at TEXT"
+        ]
+    );
+    
+    // Create indexes for form_drafts table for better query performance
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        db.transaction(function(tx) {
+            // Index for querying drafts by type and account
+            tx.executeSql(
+                "CREATE INDEX IF NOT EXISTS idx_form_drafts_type_account " +
+                "ON form_drafts (draft_type, account_id)"
+            );
+            
+            // Index for querying drafts by record
+            tx.executeSql(
+                "CREATE INDEX IF NOT EXISTS idx_form_drafts_record " +
+                "ON form_drafts (draft_type, record_id, account_id)"
+            );
+            
+            // Index for cleanup queries (finding old drafts)
+            tx.executeSql(
+                "CREATE INDEX IF NOT EXISTS idx_form_drafts_timestamp " +
+                "ON form_drafts (created_at, updated_at)"
+            );
+        });
+        console.log("✅ Form drafts table and indexes created successfully");
+    } catch (e) {
+        console.error("❌ Error creating form_drafts indexes:", e);
+    }
+
 
     purgeCache();
     syncDraftFlags();
+    
+    console.log("✅ Database initialization complete");
 }
 
 function purgeCache() {

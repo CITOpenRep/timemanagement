@@ -506,6 +506,21 @@ MainView {
                 console.log("🗑️ Cleaned up " + timesheetResult.deletedCount + " draft(s) for deleted timesheets");
             }
             
+            // Clean up project drafts for deleted projects
+            var projectResult = DraftManager.cleanupDraftsForDeletedRecords("project");
+            if (projectResult.deletedCount > 0) {
+                console.log("🗑️ Cleaned up " + projectResult.deletedCount + " draft(s) for deleted projects");
+            }
+            
+            // Clean up activity drafts for deleted activities
+            var activityResult = DraftManager.cleanupDraftsForDeletedRecords("activity");
+            if (activityResult.deletedCount > 0) {
+                console.log("🗑️ Cleaned up " + activityResult.deletedCount + " draft(s) for deleted activities");
+            }
+            
+            // Note: project_update drafts are always for new records (recordId = null)
+            // so they don't need cleanup based on deleted records
+            
         } catch (e) {
             console.error("❌ Error cleaning up deleted record drafts:", e.toString());
         }
@@ -522,17 +537,19 @@ MainView {
             "timesheet": "⏱️",
             "task": "🗒",
             "project": "📁",
-            "activity": "📝"
+            "activity": "📝",
+            "project_update": "📊"
         };
         
         var typeLabels = {
             "timesheet": "Timesheet",
             "task": "Task",
             "project": "Project",
-            "activity": "Activity"
+            "activity": "Activity",
+            "project_update": "Project Update"
         };
         
-        var typeOrder = ["timesheet", "task", "project", "activity"];
+        var typeOrder = ["timesheet", "task", "project", "activity", "project_update"];
         
         for (var i = 0; i < typeOrder.length; i++) {
             var type = typeOrder[i];
