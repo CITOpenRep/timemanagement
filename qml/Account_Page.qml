@@ -170,11 +170,11 @@ Page {
     ListModel {
         id: menuconnectwithModel
         ListElement {
-            modelData: "Connect With Api Key"
+            modelData: i18n.dtr("ubtms", "Connect With Api Key")
             itemid: 0
         }
         ListElement {
-            modelData: "Connect With Password"
+            modelData: i18n.dtr("ubtms", "Connect With Password")
             itemid: 1
         }
     }
@@ -408,7 +408,7 @@ Page {
                             id: usernameInput
                             visible: activeBackendAccount
                             enabled: !isReadOnly
-                            placeholderText: "Username"
+                            placeholderText: i18n.dtr("ubtms", "Username")
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
                         }

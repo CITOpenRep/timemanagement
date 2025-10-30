@@ -725,7 +725,7 @@ Page {
                                                 width: units.gu(10)
                                                 height: units.gu(4)
                                                 fontSize: units.gu(1.5)
-                                                text: i18n.dtr("ubtms", "Delete")
+                                                text: Utils.truncateText(i18n.dtr("ubtms", "Delete"),10)
                                                 onClicked: {
                                                     Accounts.deleteAccountAndRelatedData(model.id);
                                                     accountListModel.remove(index);
@@ -736,7 +736,7 @@ Page {
                                                 width: units.gu(10)
                                                 height: units.gu(4)
                                                 fontSize: units.gu(1.5)
-                                                text: i18n.dtr("ubtms", "Show Logs")
+                                                text: Utils.truncateText(i18n.dtr("ubtms", "Show Log"),10)
                                                 onClicked: {
                                                     apLayout.addPageToNextColumn(settings, Qt.resolvedUrl("SyncLog.qml"), {
                                                         "recordid": model.id
@@ -757,7 +757,7 @@ Page {
                                                     anchors.fill: parent
                                                     visible: !syncContainer.syncing
                                                     fontSize: units.gu(1.5)
-                                                    text: i18n.dtr("ubtms", "Sync")
+                                                    text: Utils.truncateText(i18n.dtr("ubtms", "Sync"),10)
                                                     onClicked: {
                                                         console.log("Starting sync for account:", model.id, "(" + model.name + ")");
                                                         syncingAccountId = model.id;
