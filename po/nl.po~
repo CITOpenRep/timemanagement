@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ubtms\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 10:51+0000\n"
+"POT-Creation-Date: 2025-10-30 10:17+0000\n"
 "PO-Revision-Date: 2025-10-15 22:45+0200\n"
 "Last-Translator: Gokul Kartha <gokul@cloudify-os-live>\n"
 "Language-Team: Dutch <vertaling@vrijschrift.org>\n"
@@ -75,6 +75,7 @@ msgid "Activity"
 msgstr "Activiteit"
 
 #: ../qml/Activities.qml:83 ../qml/Tasks.qml:58
+#: ../qml/components/CreateUpdatePage.qml:86
 msgid "Back"
 msgstr "Terug"
 
@@ -219,7 +220,8 @@ msgid "Project Name"
 msgstr "Projectnaam"
 
 #: ../qml/Projects.qml:307 ../qml/Projects.qml:366 ../qml/Projects.qml:431
-#: ../qml/Tasks.qml:1264 ../qml/components/CreateUpdatePage.qml:38
+#: ../qml/Tasks.qml:1264 ../qml/Timesheet_Page.qml:272
+#: ../qml/components/CreateUpdatePage.qml:101
 msgid "Create"
 msgstr "Aanmaken"
 
@@ -236,7 +238,7 @@ msgid "Allocated Hours"
 msgstr "Toegewezen uren"
 
 #: ../qml/ReadMorePage.qml:23 ../qml/components/CreateUpdateDialog.qml:121
-#: ../qml/components/CreateUpdatePage.qml:188
+#: ../qml/components/CreateUpdatePage.qml:328
 #: ../qml/components/RichTextPreview.qml:7
 msgid "Description"
 msgstr "Beschrijving"
@@ -275,7 +277,8 @@ msgstr "Taaksynchronisatie forceren"
 
 #: ../qml/Settings_Page.qml:549
 msgid "Reset task timestamps to force fresh sync from Odoo"
-msgstr "Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
+msgstr ""
+"Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
 
 #: ../qml/Settings_Page.qml:567
 msgid "Reset Tasks Without Stages"
@@ -335,6 +338,7 @@ msgid "No tasks found."
 msgstr "Geen taken gevonden."
 
 #: ../qml/Tasks.qml:84 ../qml/components/AccountDrawer.qml:72
+#: ../qml/components/CreateUpdatePage.qml:136
 msgid "Close"
 msgstr "Sluiten"
 
@@ -431,7 +435,8 @@ msgstr "Gegevens synchroniseren"
 
 #: ../qml/components/AccountDrawer.qml:276
 msgid "Note: Sync is not available for 'All Accounts' view"
-msgstr "Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
+msgstr ""
+"Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
 
 #: ../qml/components/AccountDrawer.qml:285
 msgid "Please select a specific account to sync data"
@@ -535,6 +540,7 @@ msgstr "Kies een account om te gebruiken"
 
 #: ../qml/components/AccountSelectorDialog.qml:232
 #: ../qml/components/CreateUpdateDialog.qml:146
+#: ../qml/components/CreateUpdatePage.qml:176
 #: ../qml/components/CustomDatePicker.qml:131
 #: ../qml/components/CustomDatePicker.qml:159
 #: ../qml/components/SaveDiscardDialog.qml:94
@@ -607,12 +613,12 @@ msgid "Select Color"
 msgstr "Kleur selecteren"
 
 #: ../qml/components/CreateUpdateDialog.qml:42
-#: ../qml/components/CreateUpdatePage.qml:16
+#: ../qml/components/CreateUpdatePage.qml:17
 msgid "New Project Update"
 msgstr "Nieuwe projectupdate"
 
 #: ../qml/components/CreateUpdateDialog.qml:87
-#: ../qml/components/CreateUpdatePage.qml:123
+#: ../qml/components/CreateUpdatePage.qml:249
 msgid "Update Title"
 msgstr "Titel bijwerken"
 
@@ -620,15 +626,54 @@ msgstr "Titel bijwerken"
 msgid "Progress:"
 msgstr "Voortgang:"
 
-#: ../qml/components/CreateUpdatePage.qml:130
+#: ../qml/components/CreateUpdatePage.qml:61
+msgid "Draft Recovered"
+msgstr ""
+
+#: ../qml/components/CreateUpdatePage.qml:62
+msgid "Your unsaved changes have been recovered."
+msgstr ""
+
+#: ../qml/components/CreateUpdatePage.qml:105
+msgid "Validation Error"
+msgstr ""
+
+#: ../qml/components/CreateUpdatePage.qml:106
+msgid "Please fill in all required fields."
+msgstr ""
+
+#: ../qml/components/CreateUpdatePage.qml:152
+#: ../qml/components/SaveDiscardDialog.qml:48
+msgid "Unsaved Changes"
+msgstr "Niet-opgeslagen wijzigingen"
+
+#: ../qml/components/CreateUpdatePage.qml:153
+#, fuzzy
+msgid "You have unsaved changes. What would you like to do?"
+msgstr ""
+"Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
+"\n"
+"Opmerking: Als je annuleert, kun je teruggaan om verder te bewerken."
+
+#: ../qml/components/CreateUpdatePage.qml:156
+#, fuzzy
+msgid "Save Draft"
+msgstr "Concept"
+
+#: ../qml/components/CreateUpdatePage.qml:166
+#: ../qml/components/SaveDiscardDialog.qml:79
+msgid "Discard"
+msgstr "Verwerpen"
+
+#: ../qml/components/CreateUpdatePage.qml:256
 msgid "Enter update title..."
 msgstr "Voer updatetitel in..."
 
-#: ../qml/components/CreateUpdatePage.qml:146
+#: ../qml/components/CreateUpdatePage.qml:276
 msgid "Project Status"
 msgstr "Projectstatus"
 
-#: ../qml/components/CreateUpdatePage.qml:161
+#: ../qml/components/CreateUpdatePage.qml:297
 msgid "Progress"
 msgstr "Voortgang"
 
@@ -768,10 +813,6 @@ msgstr "Meest tijdrovende projecten"
 msgid "Most Time-Consuming Projects(No Data)"
 msgstr "Meest tijdrovende projecten (geen gegevens)"
 
-#: ../qml/components/SaveDiscardDialog.qml:48
-msgid "Unsaved Changes"
-msgstr "Niet-opgeslagen wijzigingen"
-
 #: ../qml/components/SaveDiscardDialog.qml:52
 msgid ""
 "You have unsaved changes. What would you like to do?\n"
@@ -781,10 +822,6 @@ msgstr ""
 "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
 "\n"
 "Opmerking: Als je annuleert, kun je teruggaan om verder te bewerken."
-
-#: ../qml/components/SaveDiscardDialog.qml:79
-msgid "Discard"
-msgstr "Verwerpen"
 
 #: ../qml/components/StageFilterMenu.qml:354
 msgid "Current: "
