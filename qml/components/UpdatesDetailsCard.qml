@@ -28,6 +28,8 @@ ListItem {
     property int account_id: 0
     property int colorPallet: 0
     signal showDescription(string description)
+    signal editRequested(int accountId, int recordId)
+    signal viewRequested(int accountId, int recordId)
     signal deleteRequested(int recordId)
 
     height: contentLayout.implicitHeight + units.gu(1)
@@ -39,6 +41,25 @@ ListItem {
                 onTriggered: deleteRequested(recordId)
             }
         ]
+    }
+
+    trailingActions: ListItemActions {
+        actions: [
+            Action {
+                iconName: "edit"
+                text: i18n.dtr("ubtms", "Edit")
+                onTriggered: editRequested(account_id, recordId)
+            },
+            Action {
+                iconName: "info"
+                text: i18n.dtr("ubtms", "View")
+                onTriggered: viewRequested(account_id, recordId)
+            }
+        ]
+    }
+
+    onClicked: {
+        viewRequested(account_id, recordId)
     }
 
     ListItemLayout {
