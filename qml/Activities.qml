@@ -33,7 +33,7 @@ Page {
     property bool hasBeenSaved: false
     // Track if we're navigating to ReadMorePage to avoid showing save dialog
     property bool navigatingToReadMore: false
-    // Track if user has modified form fields
+    // Track if user has modified form fields (deprecated - now using draftHandler)
     property bool formModified: false
 
     // Handle hardware back button presses
@@ -106,6 +106,70 @@ Page {
         height: units.gu(80)
     }
 
+    // Draft Handler for auto-save and crash recovery
+    FormDraftHandler {
+        id: draftHandler
+        draftType: "activity"
+        recordId: recordid
+        accountId: accountid
+        enabled: !isReadOnly
+        autoSaveInterval: 30000 // 30 seconds
+        
+        onDraftLoaded: function(draftData, changedFields) {
+            console.log("📝 Activities.qml: Draft loaded with", changedFields.length, "changed fields");
+            
+            // Restore form fields from draft
+            if (draftData.summary !== undefined) {
+                summary.text = draftData.summary;
+            }
+            if (draftData.notes !== undefined) {
+                notes.setContent(draftData.notes);
+            }
+            if (draftData.activity_type_id !== undefined) {
+                activityTypeSelector.selectedId = draftData.activity_type_id;
+            }
+            if (draftData.due_date !== undefined) {
+                date_widget.setSelectedDate(draftData.due_date);
+            }
+            if (draftData.account_id !== undefined) {
+                workItem.setAccountId(draftData.account_id);
+            }
+            if (draftData.project_id !== undefined) {
+                workItem.setProjectId(draftData.project_id);
+            }
+            if (draftData.sub_project_id !== undefined) {
+                workItem.setSubProjectId(draftData.sub_project_id);
+            }
+            if (draftData.task_id !== undefined) {
+                workItem.setTaskId(draftData.task_id);
+            }
+            if (draftData.sub_task_id !== undefined) {
+                workItem.setSubTaskId(draftData.sub_task_id);
+            }
+            if (draftData.user_id !== undefined) {
+                workItem.setUserId(draftData.user_id);
+            }
+            if (draftData.linkedType !== undefined) {
+                if (draftData.linkedType === "project") {
+                    projectRadio.checked = true;
+                } else if (draftData.linkedType === "task") {
+                    taskRadio.checked = true;
+                }
+            }
+            
+            // Show notification about draft
+            notifPopup.open("Draft Restored", "Your unsaved changes have been restored", "info");
+        }
+        
+        onDraftSaved: function(draftId) {
+            console.log("💾 Activities.qml: Draft saved with ID:", draftId);
+        }
+        
+        onDraftCleared: function() {
+            console.log("🗑️ Activities.qml: Draft cleared");
+        }
+    }
+
     SaveDiscardDialog {
         id: saveDiscardDialog
         onSaveRequested: {
@@ -119,6 +183,8 @@ Page {
                     Activity.deleteActivity(accountid, recordid);
                 }
             }
+            // Clear draft when discarding
+            draftHandler.clearDraft();
             navigateBack();
         }
         onCancelled:
@@ -153,11 +219,18 @@ Page {
                     width: flickable.width - units.gu(2)
                     onStateChanged: {
                         if (newState === "AccountSelected") {
-                            // Only reset activity type for new activities, not when loading existing ones
-                            if (recordid === 0) {
-                                reloadActivityTypeSelector(data.id, -1);
-                            }
+                            let acctId = workItem.getIds().account_id;
+                            reloadActivityTypeSelector(acctId, -1);
                         }
+                        
+                        // Track changes in draft handler
+                        var ids = workItem.getIds();
+                        draftHandler.markFieldChanged("account_id", ids.account_id);
+                        draftHandler.markFieldChanged("project_id", ids.project_id);
+                        draftHandler.markFieldChanged("sub_project_id", ids.subproject_id);
+                        draftHandler.markFieldChanged("task_id", ids.task_id);
+                        draftHandler.markFieldChanged("sub_task_id", ids.subtask_id);
+                        draftHandler.markFieldChanged("user_id", ids.assignee_id);
                     }
                 }
             }
@@ -198,6 +271,8 @@ Page {
                     onCheckedChanged: {
                         if (checked) {
                             taskRadio.checked = false;
+                            // Track changes in draft handler
+                            draftHandler.markFieldChanged("linkedType", "project");
                         }
                     }
                 }
@@ -216,6 +291,8 @@ Page {
                     onCheckedChanged: {
                         if (checked) {
                             projectRadio.checked = false;
+                            // Track changes in draft handler
+                            draftHandler.markFieldChanged("linkedType", "task");
                         }
                     }
                 }
@@ -260,6 +337,8 @@ Page {
                         if (text !== currentActivity.summary) {
                             formModified = true;
                         }
+                        // Track changes in draft handler
+                        draftHandler.markFieldChanged("summary", text);
                     }
 
                     // Custom styling for border highlighting
@@ -308,6 +387,10 @@ Page {
                                 //useRichText: false
                             });
                         }
+                        onContentChanged: function(content) {
+                            // Track changes in draft handler
+                            draftHandler.markFieldChanged("notes", content);
+                        }
                     }
                 }
             }
@@ -329,6 +412,10 @@ Page {
                     labelText: i18n.dtr("ubtms","Activity Type")
                     width: flickable.width - units.gu(2)
                     height: units.gu(29)
+                    onItemSelected: function(id, name) {
+                        // Track changes in draft handler
+                        draftHandler.markFieldChanged("activity_type_id", id);
+                    }
                 }
             }
         }
@@ -345,6 +432,10 @@ Page {
                     width: flickable.width - units.gu(2)
                     height: units.gu(5)
                     anchors.centerIn: parent.centerIn
+                    onDateChanged: function(selectedDate) {
+                        // Track changes in draft handler
+                        draftHandler.markFieldChanged("due_date", Qt.formatDate(selectedDate, "yyyy-MM-dd"));
+                    }
                 }
             }
         }
@@ -400,6 +491,21 @@ Page {
 
             // Check if this is a truly saved activity or a newly created one with default values
             hasBeenSaved = !Activity.isActivityUnsaved(accountid, recordid);
+            
+            // Initialize draft handler with original data
+            draftHandler.initialize({
+                summary: currentActivity.summary || "",
+                notes: currentActivity.notes || "",
+                activity_type_id: currentActivity.activity_type_id,
+                due_date: currentActivity.due_date,
+                account_id: currentActivity.account_id,
+                project_id: currentActivity.project_id,
+                sub_project_id: currentActivity.sub_project_id,
+                task_id: currentActivity.task_id,
+                sub_task_id: currentActivity.sub_task_id,
+                user_id: currentActivity.user_id,
+                linkedType: currentActivity.linkedType
+            });
         } else {
             // For new activities
             let account = Accounts.getAccountsList();
@@ -413,6 +519,21 @@ Page {
             // New activities start as unsaved
             hasBeenSaved = false;
             console.log("📝 Activities.qml: New activity creation mode");
+            
+            // Initialize draft handler with empty data for new activities
+            draftHandler.initialize({
+                summary: "",
+                notes: "",
+                activity_type_id: -1,
+                due_date: "",
+                account_id: 0,
+                project_id: -1,
+                sub_project_id: -1,
+                task_id: -1,
+                sub_task_id: -1,
+                user_id: -1,
+                linkedType: "task"
+            });
         }
     }
 
@@ -554,6 +675,13 @@ Page {
         } else {
             hasBeenSaved = true;  // Mark that this activity has been properly saved
             formModified = false; // Reset form modification flag after successful save
+            
+            // Clear draft after successful save
+            draftHandler.clearDraft();
+            
+            // Update original data in draft handler to reset baseline
+            draftHandler.updateOriginalData();
+            
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
             // No navigation - stay on the same page like Timesheet.qml
             // User can use back button to return to list page
@@ -592,6 +720,10 @@ Page {
             if (Global.description_temporary_holder !== "" && Global.description_context === "activity_notes") {
                 //Check if you are coming back from the ReadMore page
                 notes.setContent(Global.description_temporary_holder);
+                
+                // Mark field as changed in draft handler
+                draftHandler.markFieldChanged("notes", Global.description_temporary_holder);
+                
                 Global.description_temporary_holder = "";
                 Global.description_context = "";
             }
