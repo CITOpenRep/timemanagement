@@ -137,6 +137,10 @@ Item {
             if (modelData[i].id === selectedId) {
                 entity_btn.text = modelData[i].name;
                 selectionButton.selectedId = selectedId;
+                
+                // Emit selectionMade signal so draft tracking works during deferred loading
+                selectionButton.selectionMade(selectedId, modelData[i].name, selectorType);
+                
                 //  console.log("[SelectionButton] Deferred selection applied for", selectorType, ":", selectedId, modelData[i].name);
                 return;
             }
