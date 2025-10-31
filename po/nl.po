@@ -737,7 +737,7 @@ msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
 #: ../qml/components/CreateUpdatePage.qml:156
 #, fuzzy
 msgid "Save Draft"
-msgstr "Concept"
+msgstr "Concept Opslaan"
 
 #: ../qml/components/CreateUpdatePage.qml:166
 #: ../qml/components/SaveDiscardDialog.qml:79
