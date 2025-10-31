@@ -170,11 +170,11 @@ Page {
     ListModel {
         id: menuconnectwithModel
         ListElement {
-            modelData: i18n.dtr("ubtms", "Connect With Api Key")
+            modelData: "Connect With Api Key"
             itemid: 0
         }
         ListElement {
-            modelData: i18n.dtr("ubtms", "Connect With Password")
+            modelData: "Connect With Password"
             itemid: 1
         }
     }
@@ -463,7 +463,7 @@ Page {
                             width: connectWith_combo.width
                             hoverEnabled: true
                             contentItem: Text {
-                                text: model.modelData
+                                text: i18n.dtr("ubtms", model.modelData)
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                                 leftPadding: units.gu(1)
                                 elide: Text.ElideRight
