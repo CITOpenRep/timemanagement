@@ -130,7 +130,7 @@ Page {
                         notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
                     }
                 } else {
-                    notifPopup.open("Saved", "Your account has been saved, Enjoy using the app !", "success");
+                    notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been saved, Enjoy using the app !"), "success");
 
                     isReadOnly = true;
                 }
@@ -205,7 +205,7 @@ Page {
                         height: units.gu(4)
                         TSLabel {
                             id: account_name_label
-                            text: "Account Name"
+                            text: i18n.dtr("ubtms", "Account Name")
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -219,7 +219,7 @@ Page {
                             id: accountNameInput
                             enabled: !isReadOnly
                             anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "Account Name"
+                            placeholderText:i18n.dtr("ubtms", "Account Name")
                             width: parent.width
                         }
                     }
