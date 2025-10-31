@@ -42,25 +42,30 @@ Page {
     Keys.onReleased: {
         if (event.key === Qt.Key_Back || event.key === Qt.Key_Escape) {
             event.accepted = true;
-
-            // Check if we need to show save/discard dialog
-            if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
-                var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
-                var shouldShowDialog = isUnsaved || formModified;
-
-                if (shouldShowDialog) {
-                    saveDiscardDialog.open();
-                    return;
-                }
-            }
-
-            navigateBack();
+            handleBackNavigation();
         }
+    }
+
+    function handleBackNavigation() {
+        // Check if we're navigating to ReadMore page
+        if (navigatingToReadMore) {
+            navigateBack();
+            return;
+        }
+        
+        // Check if we have unsaved changes
+        if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+            saveDiscardDialog.open();
+            return;
+        }
+        
+        // No unsaved changes, navigate back normally
+        navigateBack();
     }
 
     header: PageHeader {
         id: header
-        title: activityDetailsPage.title
+        title: activityDetailsPage.title + (draftHandler.hasUnsavedChanges ? " •" : "")
         StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
@@ -71,9 +76,16 @@ Page {
                 iconSource: "images/save.svg"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms", "Save")
-                // text: 
                 onTriggered: {
                     saveActivityData();
+                }
+            },
+            Action {
+                iconName: "edit"
+                visible: isReadOnly && recordid !== 0
+                text: i18n.dtr("ubtms", "Edit")
+                onTriggered: {
+                    switchToEditMode();
                 }
             }
         ]
@@ -83,20 +95,8 @@ Page {
             Action {
                 iconName: "back"
                 text: i18n.dtr("ubtms", "Back")
-                // text: 
                 onTriggered: {
-                    // Check if we need to show save/discard dialog
-                    if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
-                        var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
-                        var shouldShowDialog = isUnsaved || formModified;
-
-                        if (shouldShowDialog) {
-                            saveDiscardDialog.open();
-                            return;
-                        }
-                    }
-
-                    navigateBack();
+                    handleBackNavigation();
                 }
             }
         ]
@@ -183,22 +183,69 @@ Page {
         id: saveDiscardDialog
         onSaveRequested: {
             saveActivityData();
-            // navigateBack(); // Do not navigate back immediately after save - stay on the page so if user wants to continue editing, they can or if there are validation errors they can correct them
+            // After successful save, navigate back
+            if (hasBeenSaved) {
+                navigateBack();
+            }
         }
         onDiscardRequested: {
-            // Delete the unsaved activity
+            // For new activities that haven't been saved, delete them
             if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
                 if (Activity.isActivityUnsaved(accountid, recordid)) {
                     Activity.deleteActivity(accountid, recordid);
                 }
             }
+            
+            // For edit mode, restore to original read-only state
+            if (recordid > 0 && hasBeenSaved) {
+                restoreFormToOriginal();
+                isReadOnly = true;
+            }
+            
             // Clear draft when discarding
             draftHandler.clearDraft();
             navigateBack();
         }
-        onCancelled:
-        // User wants to stay and continue editing
-        {}
+        onCancelled: {
+            // User wants to stay and continue editing
+        }
+    }
+
+    function restoreFormToOriginal() {
+        console.log("🔄 Restoring form to original values...");
+        
+        var originalData = draftHandler.originalData;
+        if (originalData.summary !== undefined) summary.text = originalData.summary;
+        if (originalData.notes !== undefined) notes.setContent(originalData.notes);
+        if (originalData.activity_type_id !== undefined && originalData.account_id !== undefined) {
+            reloadActivityTypeSelector(originalData.account_id, originalData.activity_type_id);
+        }
+        if (originalData.due_date !== undefined) {
+            date_widget.setSelectedDate(originalData.due_date);
+        }
+        
+        // Restore radio button selection
+        if (originalData.linkedType !== undefined) {
+            if (originalData.linkedType === "project") {
+                projectRadio.checked = true;
+                taskRadio.checked = false;
+            } else if (originalData.linkedType === "task") {
+                taskRadio.checked = true;
+                projectRadio.checked = false;
+            }
+        }
+        
+        // Restore WorkItemSelector
+        if (originalData.account_id !== undefined) {
+            var accountId = originalData.account_id || 0;
+            var projectId = originalData.project_id || -1;
+            var subProjectId = originalData.sub_project_id || -1;
+            var taskId = originalData.task_id || -1;
+            var subTaskId = originalData.sub_task_id || -1;
+            var userId = originalData.user_id || -1;
+            
+            workItem.deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, userId);
+        }
     }
     Flickable {
         id: flickable
@@ -412,7 +459,7 @@ Page {
                         is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Store and pass the key to the page
-                            Global.description_temporary_holder = getFormattedText();
+                            Global.description_temporary_holder = notes.getFormattedText();
                             Global.description_context = "activity_notes";
                             navigatingToReadMore = true;
                             apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
@@ -601,35 +648,99 @@ Page {
         initializationTimer.start();
     }
 
+    function switchToEditMode() {
+        // Switch from read-only to edit mode
+        if (recordid !== 0) {
+            console.log("🔄 Activities.qml: Switching to edit mode");
+            isReadOnly = false;
+            
+            // Initialize draft handler when switching from read-only to edit mode
+            // This ensures drafts are loaded if they exist
+            var originalActivityData = getCurrentFormData();
+            draftHandler.initialize(originalActivityData);
+        }
+    }
+
+    function getCurrentFormData() {
+        const ids = workItem.getIds();
+        
+        var formData = {
+            summary: summary.text || "",
+            notes: notes.getFormattedText() || "",
+            activity_type_id: activityTypeSelector.selectedId || -1,
+            due_date: date_widget.formattedDate() || "",
+            account_id: ids.account_id || 0,
+            project_id: ids.project_id || -1,
+            sub_project_id: ids.subproject_id || -1,
+            task_id: ids.task_id || -1,
+            sub_task_id: ids.subtask_id || -1,
+            user_id: ids.assignee_id || -1,
+            linkedType: taskRadio.checked ? "task" : (projectRadio.checked ? "project" : "")
+        };
+        
+        return formData;
+    }
+
     // Robust navigation function with multiple fallback methods
     function navigateBack() {
+        console.log("🔙 Attempting to navigate back...");
+        
+        // Method 1: AdaptivePageLayout (primary method for this app)
+        try {
+            if (typeof apLayout !== "undefined" && apLayout !== null) {
+                apLayout.removePages(activityDetailsPage);
+                console.log("✅ Navigated back using apLayout.removePages");
+                return;
+            }
+        } catch (e) {
+            console.warn("⚠️ apLayout.removePages failed:", e);
+        }
+        
+        // Method 2: Standard pageStack
         try {
             if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
                 pageStack.pop();
+                console.log("✅ Navigated back using pageStack.pop");
                 return;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("⚠️ pageStack.pop failed:", e);
+        }
 
+        // Method 3: Stack view
         try {
             if (typeof Stack !== "undefined" && Stack.view && Stack.view.pop) {
                 Stack.view.pop();
+                console.log("✅ Navigated back using Stack.view.pop");
                 return;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("⚠️ Stack.view.pop failed:", e);
+        }
 
+        // Method 4: pageStack removePages
         try {
             if (typeof pageStack !== "undefined" && pageStack && pageStack.removePages) {
                 pageStack.removePages(activityDetailsPage);
+                console.log("✅ Navigated back using pageStack.removePages");
                 return;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("⚠️ pageStack.removePages failed:", e);
+        }
 
+        // Method 5: Parent pop
         try {
             if (parent && parent.pop) {
                 parent.pop();
+                console.log("✅ Navigated back using parent.pop");
                 return;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("⚠️ parent.pop failed:", e);
+        }
+        
+        console.warn("⚠️ No navigation method found!");
     }
     function reloadActivityTypeSelector(accountId, selectedTypeId) {
         let rawTypes = Activity.getActivityTypesForAccount(accountId);

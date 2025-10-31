@@ -569,6 +569,20 @@ Page {
                         "isReadOnly": true
                     });
                 }
+                onEditRequested: function (accountid, recordid) {
+                    apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                        "recordid": recordid,
+                        "accountid": accountid,
+                        "isReadOnly": false
+                    });
+                }
+                onViewRequested: function (accountid, recordid) {
+                    apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
+                        "recordid": recordid,
+                        "accountid": accountid,
+                        "isReadOnly": true
+                    });
+                }
                 onMarkAsDone: function (accountid, recordid) {
                     Activity.markAsDone(accountid, recordid);
                     get_activity_list();
