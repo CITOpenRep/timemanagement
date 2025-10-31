@@ -125,36 +125,43 @@ Page {
             if (draftData.notes !== undefined) {
                 notes.setContent(draftData.notes);
             }
-            if (draftData.activity_type_id !== undefined) {
-                activityTypeSelector.selectedId = draftData.activity_type_id;
+            if (draftData.activity_type_id !== undefined && draftData.account_id !== undefined) {
+                // Reload activity type selector with the account from draft
+                reloadActivityTypeSelector(draftData.account_id, draftData.activity_type_id);
             }
             if (draftData.due_date !== undefined) {
                 date_widget.setSelectedDate(draftData.due_date);
             }
-            if (draftData.account_id !== undefined) {
-                workItem.setAccountId(draftData.account_id);
-            }
-            if (draftData.project_id !== undefined) {
-                workItem.setProjectId(draftData.project_id);
-            }
-            if (draftData.sub_project_id !== undefined) {
-                workItem.setSubProjectId(draftData.sub_project_id);
-            }
-            if (draftData.task_id !== undefined) {
-                workItem.setTaskId(draftData.task_id);
-            }
-            if (draftData.sub_task_id !== undefined) {
-                workItem.setSubTaskId(draftData.sub_task_id);
-            }
-            if (draftData.user_id !== undefined) {
-                workItem.setUserId(draftData.user_id);
-            }
+            
+            // Restore radio button selection first
             if (draftData.linkedType !== undefined) {
                 if (draftData.linkedType === "project") {
                     projectRadio.checked = true;
+                    taskRadio.checked = false;
                 } else if (draftData.linkedType === "task") {
                     taskRadio.checked = true;
+                    projectRadio.checked = false;
                 }
+            }
+            
+            // Restore WorkItemSelector using deferredLoadExistingRecordSet
+            if (draftData.account_id !== undefined) {
+                var accountId = draftData.account_id || 0;
+                var projectId = draftData.project_id || -1;
+                var subProjectId = draftData.sub_project_id || -1;
+                var taskId = draftData.task_id || -1;
+                var subTaskId = draftData.sub_task_id || -1;
+                var userId = draftData.user_id || -1;
+                
+                console.log("📝 Activities.qml: Restoring WorkItem with:", 
+                    "account:", accountId, 
+                    "project:", projectId, 
+                    "subproject:", subProjectId,
+                    "task:", taskId,
+                    "subtask:", subTaskId,
+                    "user:", userId);
+                
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, userId);
             }
             
             // Show notification about draft
@@ -452,9 +459,6 @@ Page {
             let instanceId = currentActivity.account_id;
             let user_id = currentActivity.user_id;
 
-            // Load the Activity Type
-            reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
-
             // Default radio selection
             taskRadio.checked = false;
             projectRadio.checked = false;
@@ -464,35 +468,11 @@ Page {
                 currentActivity.sub_project_id = -1;
             }
 
-            switch (currentActivity.linkedType) {
-            case "task":
-                // Connected to task: Show project, subproject, and task selectors
-
-                taskRadio.checked = true;
-
-                workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
-                break;
-            case "project":
-                // Connected to project/subproject: Show project and subproject selectors
-
-                projectRadio.checked = true;
-                workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
-                break;
-            default:
-                workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
-            }
-
-            // Update fields with loaded data
-            summary.text = currentActivity.summary || "";
-            notes.setContent(currentActivity.notes || "");
-
-            // Update due date
-            date_widget.setSelectedDate(currentActivity.due_date);
-
             // Check if this is a truly saved activity or a newly created one with default values
             hasBeenSaved = !Activity.isActivityUnsaved(accountid, recordid);
             
-            // Initialize draft handler with original data
+            // Initialize draft handler with original data FIRST
+            // This will trigger tryLoadDraft() which may call onDraftLoaded
             draftHandler.initialize({
                 summary: currentActivity.summary || "",
                 notes: currentActivity.notes || "",
@@ -506,6 +486,35 @@ Page {
                 user_id: currentActivity.user_id,
                 linkedType: currentActivity.linkedType
             });
+            
+            // If no draft was loaded, load the activity data normally
+            // (if draft was loaded, onDraftLoaded already populated the fields)
+            if (!draftHandler.hasUnsavedChanges) {
+                // Load the Activity Type
+                reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
+
+                switch (currentActivity.linkedType) {
+                case "task":
+                    // Connected to task: Show project, subproject, and task selectors
+                    taskRadio.checked = true;
+                    workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
+                    break;
+                case "project":
+                    // Connected to project/subproject: Show project and subproject selectors
+                    projectRadio.checked = true;
+                    workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
+                    break;
+                default:
+                    workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
+                }
+
+                // Update fields with loaded data
+                summary.text = currentActivity.summary || "";
+                notes.setContent(currentActivity.notes || "");
+
+                // Update due date
+                date_widget.setSelectedDate(currentActivity.due_date);
+            }
         } else {
             // For new activities
             let account = Accounts.getAccountsList();
