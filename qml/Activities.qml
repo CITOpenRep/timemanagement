@@ -887,6 +887,10 @@ Page {
                 notes.setContent(currentActivity.notes || "");
                 date_widget.setSelectedDate(currentActivity.due_date);
                 console.log("📅 Activities.qml: Set date widget to:", currentActivity.due_date);
+                
+                // Reload Activity Type selector with the saved value
+                reloadActivityTypeSelector(currentActivity.account_id, currentActivity.activity_type_id);
+                console.log("📅 Activities.qml: Reloaded activity type:", currentActivity.activity_type_id);
 
                 // Reset form modification flag after loading data
                 formModified = false;
