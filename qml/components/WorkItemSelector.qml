@@ -123,12 +123,12 @@ Rectangle {
         }
     }
 
-    property string accountLabelText: "Account"
-    property string projectLabelText: "Project"
-    property string subProjectLabelText: "Subproject"
-    property string taskLabelText: "Task"
-    property string subTaskLabelText: "Subtask"
-    property string assigneeLabelText: "Assignee"
+    property string accountLabelText: i18n.dtr("ubtms", "Account")
+    property string projectLabelText: i18n.dtr("ubtms", "Project")
+    property string subProjectLabelText: i18n.dtr("ubtms", "Subproject")
+    property string taskLabelText: i18n.dtr("ubtms", "Task")
+    property string subTaskLabelText: i18n.dtr("ubtms", "Subtask")
+    property string assigneeLabelText: i18n.dtr("ubtms", "Assignee")
 
     signal stateChanged(string newState, var data)
     signal multiAssigneesChanged(var assignees)
@@ -177,7 +177,8 @@ Rectangle {
                 selectedSubProjectId = project_component.selectedId;
                 transitionTo("ProjectSelected", payload);
             }
-        } else if (selectorType === "Task") {
+        } else if (selectorType === "Task" || selectorType === taskLabelText) {
+            // Match both "Task" and custom taskLabelText (e.g., "Parent Task")
             selectedTaskId = id;
             transitionTo("TaskSelected", payload);
         } else if (selectorType === "Subtask") {

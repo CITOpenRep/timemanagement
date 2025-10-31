@@ -299,7 +299,7 @@ Page {
             }
 
             Text {
-                text: "Showing closed/completed tasks"
+                text: i18n.dtr("ubtms", "Showing closed/completed tasks")
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4caf50" : "#3c763d"
                 font.pixelSize: units.gu(1.5)
                 font.bold: true
@@ -377,7 +377,7 @@ Page {
             anchors.centerIn: parent
             font.pixelSize: units.gu(2)
             visible: false
-            text: 'No Tasks Assigned to You'
+            text:i18n.dtr("ubtms", "No Tasks Assigned to You")
         }
     }
 
@@ -393,7 +393,7 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: "Create"
+                label: i18n.dtr("ubtms", "Create")
             },
         ]
         onMenuItemSelected: {

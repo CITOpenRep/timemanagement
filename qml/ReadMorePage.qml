@@ -14,10 +14,13 @@ Page {
     property string textkey: ""
     property string text: ""
     property bool isReadOnly: true
+    
+    // Reference to parent form's draft handler (for tracking changes)
+    property var parentDraftHandler: null
 
     header: PageHeader {
         id: header
-        title: "Description"
+        title: i18n.dtr("ubtms","Description")
 
         StyleHints {
 
@@ -65,6 +68,11 @@ Page {
 
             onContentChanged: {
                 Global.description_temporary_holder = newText;
+                
+                // Track changes in parent form's draft handler
+                if (parentDraftHandler && !isReadOnly) {
+                    parentDraftHandler.markFieldChanged("description", newText);
+                }
             }
 
             onContentLoaded: {
@@ -92,6 +100,11 @@ Page {
             onTextChanged: {
                 if (!readOnly) {
                     Global.description_temporary_holder = simpleEditor.text;
+                    
+                    // Track changes in parent form's draft handler
+                    if (parentDraftHandler) {
+                        parentDraftHandler.markFieldChanged("description", simpleEditor.text);
+                    }
                 }
             }
         }
@@ -127,9 +140,19 @@ Page {
                 // Also get content as backup
                 editor.getText(function (content) {
                     Global.description_temporary_holder = content;
+                    // Save draft when leaving ReadMore page
+                    if (parentDraftHandler) {
+                        parentDraftHandler.markFieldChanged("description", content);
+                        parentDraftHandler.saveDraft();
+                    }
                 });
             } else if (!useRichText && simpleEditor) {
                 Global.description_temporary_holder = simpleEditor.text;
+                // Save draft when leaving ReadMore page
+                if (parentDraftHandler) {
+                    parentDraftHandler.markFieldChanged("description", simpleEditor.text);
+                    parentDraftHandler.saveDraft();
+                }
             }
         }
     }
@@ -141,8 +164,6 @@ Page {
         } else if (useRichText && editor) {
             editor.text = Global.description_temporary_holder;
         }
-        //console.log("Got full data")
-        //console.log(Global.description_temporary_holder)
     }
 
     Component.onDestruction: {
@@ -152,6 +173,12 @@ Page {
                 editor.syncContent();
             } else if (!useRichText && simpleEditor) {
                 Global.description_temporary_holder = simpleEditor.text;
+            }
+            
+            // Save draft one last time before page is destroyed
+            if (parentDraftHandler) {
+                parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
+                parentDraftHandler.saveDraft();
             }
         }
     }

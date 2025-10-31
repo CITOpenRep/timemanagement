@@ -429,24 +429,27 @@ Item {
         return "#607D8B";
     }
 
-    //  FileSmart(fileUrl, mime) – avoids Gallery duplicates for images
-    function openFileSmart(fileUrl, mime) {
-        var url = (fileUrl && fileUrl.indexOf("file://") === 0) ? fileUrl : "file://" + fileUrl;
-        var m = mime || "";
+    //  FileSmart(record) – avoids Gallery duplicates for images
+    function openFileSmart(record) {
+        if (!record) return;
 
-        // For images, open directly (no ContentHub export → no copies in Pictures)
+        var fileUrl = record.url || "";
+        var url = (fileUrl && fileUrl.indexOf("file://") === 0) ? fileUrl : "file://" + fileUrl;
+        var m = record.mimetype || "application/octet-stream";
+
+        // For images, open our in-app preview (no ContentHub duplication)
         if (m.indexOf("image/") === 0) {
             console.log("Showing in builtin image viewer");
-            _showImageInApp(url);
+            _showImageInApp(record);
             return;
         }
 
-        // For everything else, keep your existing "Open with…" flow
+        // For everything else, use the ContentHub export flow (“Open with…”)
         try {
             var inst = PopupUtils.open(contentExporterComponent);
             if (inst) {
                 inst.fileUrl = url;
-                console.log("[AttachmentManager] Export dialog opened for", url);
+                console.log("[AttachmentManager] ContentPickerDialog (export) opened for", url);
             } else {
                 console.warn("[AttachmentManager] Export dialog missing; fallback to external open");
                 Qt.openUrlExternally(url);
@@ -457,11 +460,28 @@ Item {
         }
     }
 
-    function _showImageInApp(fileUrl) {
+    function _showImageInApp(record) {
         try {
+            var fileUrl = record.url || "";
             var url = (fileUrl && fileUrl.indexOf("file://") === 0) ? fileUrl : "file://" + fileUrl;
 
+            if (typeof imagePreviewer === "undefined" || !imagePreviewer) {
+                console.warn("[AttachmentManager] imagePreviewer not available; opening via export as fallback");
+                openFileWithDialog(url);
+                return;
+            }
+
             imagePreviewer.imageSource = url;
+            imagePreviewer.originalFilename = record.name || "image";
+            imagePreviewer.mimetype = record.mimetype || "image/*";
+
+            // hand off IDs so the previewer can track first-save per account/record
+            if (typeof imagePreviewer.accountId !== "undefined")
+                imagePreviewer.accountId = record.account_id || attachmentManager.account_id;
+            if (typeof imagePreviewer.recordId !== "undefined")
+                imagePreviewer.recordId = record.odoo_record_id || 0;
+
+            imagePreviewer.notifier = notifier;
             imagePreviewer.visible = true;
         } catch (e) {
             console.error("[AttachmentManager] _showImageInApp error:", e);
@@ -469,20 +489,17 @@ Item {
     }
 
     function _downloadAndOpen(rec) {
-        if (!rec)
-            return;
+        if (!rec) return;
 
-        // If there's no Odoo id but we already have a file/url, open it
+        // No Odoo id but we already have a file/url → open directly
         if (rec.odoo_record_id <= 0) {
             if (rec.url && rec.url.toString().length) {
                 var u = rec.url.toString();
                 if (u.indexOf("http://") === 0 || u.indexOf("https://") === 0) {
                     Qt.openUrlExternally(u);
                 } else {
-                    if (u.indexOf("file://") !== 0)
-                        u = "file://" + u;
-                    // PASS MIME so images bypass ContentHub
-                    openFileSmart(u, rec.mimetype || "application/octet-stream");
+                    // Use smart opener with the full record (handles images vs others)
+                    openFileSmart(rec);
                 }
                 return;
             }
@@ -495,17 +512,24 @@ Item {
 
         python.call("backend.get_existing_attachment_path", [fname, mime], function (existingPath) {
             if (existingPath && existingPath.length) {
-                // Open the existing file right away
-                console.log("We already have the local copy of this file, Lets open!!!!");
-                var fileUrl = existingPath.indexOf("file://") === 0 ? existingPath : "file://" + existingPath;
-                openFileSmart(fileUrl, mime);   // <<< use smart opener here
+                console.log("Local copy found; opening");
+                // Build a record so openFileSmart() gets all needed fields
+                var existingRec = {
+                    name: rec.name,
+                    url: (existingPath.indexOf("file://") === 0) ? existingPath : ("file://" + existingPath),
+                    mimetype: mime,
+                    size: rec.size,
+                    created: rec.created,
+                    account_id: rec.account_id || attachmentManager.account_id,
+                    odoo_record_id: rec.odoo_record_id,
+                    _raw: rec._raw
+                };
+                openFileSmart(existingRec);
                 return;
             }
-            console.log("Unable to find locally !!!");
+            console.log("Local copy not found; downloading…");
 
-            // ---- Not present locally: proceed with on-demand download as before ----
             _busy = true;
-
             python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                 if (!path) {
                     _busy = false;
@@ -513,33 +537,47 @@ Item {
                     return;
                 }
 
-                python.call("backend.attachment_ondemand_download", [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id], function (res) {
-                    _busy = false;
+                python.call("backend.attachment_ondemand_download",
+                    [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id],
+                    function (res) {
+                        _busy = false;
 
-                    if (!res) {
-                        attachmentManager._notify("No response from ondemand_download", 2500);
-                        return;
-                    }
+                        if (!res) {
+                            attachmentManager._notify("No response from ondemand_download", 2500);
+                            return;
+                        }
 
-                    if (res.type === "binary" && res.data) {
-                        var dlName = (res.name && res.name.length) ? res.name : fname;
-                        var dlMime = res.mimetype || mime;
+                        if (res.type === "binary" && res.data) {
+                            var dlName = (res.name && res.name.length) ? res.name : fname;
+                            var dlMime = res.mimetype || mime;
 
-                        python.call("backend.ensure_export_file_from_base64", [dlName, res.data, dlMime], function (resultPath) {
-                            if (!resultPath || !resultPath.length) {
-                                attachmentManager._notify("Failed to prepare file", 2500);
-                                return;
-                            }
-                            var fileUrl = resultPath.indexOf("file://") === 0 ? resultPath : "file://" + resultPath;
-                            openFileSmart(fileUrl, dlMime);  // <<< smart open
-                        });
-                    } else if (res.type === "url" && res.url) {
-                        Qt.openUrlExternally(res.url);
-                    } else {
-                        attachmentManager._notify("Attachment has no usable data", 2500);
-                    }
-                });
+                            python.call("backend.ensure_export_file_from_base64",
+                                        [dlName, res.data, dlMime],
+                                        function (resultPath) {
+                                if (!resultPath || !resultPath.length) {
+                                    attachmentManager._notify("Failed to prepare file", 2500);
+                                    return;
+                                }
+                                var rec2 = {
+                                    name: dlName,
+                                    url: (resultPath.indexOf("file://") === 0) ? resultPath : ("file://" + resultPath),
+                                    mimetype: dlMime,
+                                    size: rec.size,
+                                    created: rec.created,
+                                    account_id: rec.account_id || attachmentManager.account_id,
+                                    odoo_record_id: rec.odoo_record_id,
+                                    _raw: rec._raw
+                                };
+                                openFileSmart(rec2);
+                            });
+                        } else if (res.type === "url" && res.url) {
+                            Qt.openUrlExternally(res.url);
+                        } else {
+                            attachmentManager._notify("Attachment has no usable data", 2500);
+                        }
+                    });
             });
         });
     }
+
 }

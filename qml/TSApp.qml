@@ -28,6 +28,7 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
 import QtQuick.LocalStorage 2.7 as Sql
 import "../models/dbinit.js" as DbInit
+import "../models/draft_manager.js" as DraftManager
 import "components"
 import "."
 
@@ -81,47 +82,17 @@ MainView {
         }
     }
 
-    // --- Fullscreen Image Previewer, Mainly used by attachment manager ---
-    //GOKUL, This can be moved as a component ? Later
-    Rectangle {
+    //used by attachment manager for example
+    ImagePreviewer
+    {
         id: imagePreviewer
         anchors.fill: parent
-        color: "#444"
-        visible: false
-        z: 999   // ensure it's above all other elements
-        focus: true
-
-        property url imageSource: ""
-
-        Image {
-            id: overlayImage
-            anchors.centerIn: parent
-            width: parent.width
-            height: parent.height
-            fillMode: Image.PreserveAspectFit
-            asynchronous: true
-            smooth: true
-            source: imagePreviewer.imageSource
-        }
-
-        Button {
-            id: closeBtn
-            text: "\u2715"
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: units.gu(1)
-            onClicked: imagePreviewer.visible = false
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: imagePreviewer.visible = false
-        }
     }
+
 
     AccountSelectorDialog {
         id: accountPicker
-        titleText: "Switch account"
+        titleText: i18n.dtr("ubtms", "Switch account")
         restrictToLocalOnly: false
 
         onAccepted: function (id, name) {
@@ -447,7 +418,8 @@ MainView {
         if (project_page && project_page.projectlist && typeof project_page.projectlist.refresh === 'function') {
             project_page.projectlist.refresh();
         }
-
+        
+     
         // Force UI layout refresh
         Qt.callLater(function () {
             forceAllPagesUIRefresh();
@@ -485,11 +457,114 @@ MainView {
 
         // Load and apply saved theme preference
         loadAndApplyTheme();
+        
+        // Check for unsaved drafts from previous session (crash recovery)
+        checkForUnsavedDrafts();
+        
+        // Clean up drafts for deleted records
+        cleanupDeletedRecordDrafts();
 
         Qt.callLater(function () {
             apLayout.setFirstScreen(); // Delay page setup until after DB init
 
         });
+    }
+    
+    // Function to check for unsaved drafts on app startup (crash recovery)
+    function checkForUnsavedDrafts() {
+        try {
+            var summary = DraftManager.getDraftsSummary(-1);  // Get summary for all accounts
+            
+            if (summary.total > 0) {
+                var message = "You have unsaved work from a previous session:\n\n" + 
+                             formatDraftsMessage(summary) + 
+                             "\n\nOpen the respective forms to restore your changes.";
+                
+                notifPopup.open("📂 Unsaved Drafts Found", message, "info");
+            }
+            
+            // Cleanup old drafts (older than 7 days)
+            DraftManager.cleanupOldDrafts(7);
+            
+        } catch (e) {
+            console.error("❌ Error checking for unsaved drafts:", e.toString());
+        }
+    }
+    
+    // Function to clean up drafts for deleted records on app startup
+    function cleanupDeletedRecordDrafts() {
+        try {
+            // Clean up task drafts for deleted tasks
+            var taskResult = DraftManager.cleanupDraftsForDeletedRecords("task");
+            if (taskResult.deletedCount > 0) {
+                console.log("🗑️ Cleaned up " + taskResult.deletedCount + " draft(s) for deleted tasks");
+            }
+            
+            // Clean up timesheet drafts for deleted timesheets
+            var timesheetResult = DraftManager.cleanupDraftsForDeletedRecords("timesheet");
+            if (timesheetResult.deletedCount > 0) {
+                console.log("🗑️ Cleaned up " + timesheetResult.deletedCount + " draft(s) for deleted timesheets");
+            }
+            
+            // Clean up project drafts for deleted projects
+            var projectResult = DraftManager.cleanupDraftsForDeletedRecords("project");
+            if (projectResult.deletedCount > 0) {
+                console.log("🗑️ Cleaned up " + projectResult.deletedCount + " draft(s) for deleted projects");
+            }
+            
+            // Clean up activity drafts for deleted activities
+            var activityResult = DraftManager.cleanupDraftsForDeletedRecords("activity");
+            if (activityResult.deletedCount > 0) {
+                console.log("🗑️ Cleaned up " + activityResult.deletedCount + " draft(s) for deleted activities");
+            }
+            
+            // Note: project_update drafts are always for new records (recordId = null)
+            // so they don't need cleanup based on deleted records
+            
+        } catch (e) {
+            console.error("❌ Error cleaning up deleted record drafts:", e.toString());
+        }
+    }
+    
+    // Helper function to format drafts message with icons and grouping
+    function formatDraftsMessage(summary) {
+        if (!summary || !summary.byType) {
+            return "Loading drafts...";
+        }
+        
+        var message = "";
+        var typeIcons = {
+            "timesheet": "⏱️",
+            "task": "🗒",
+            "project": "📁",
+            "activity": "📝",
+            "project_update": "📊"
+        };
+        
+        var typeLabels = {
+            "timesheet": "Timesheet",
+            "task": "Task",
+            "project": "Project",
+            "activity": "Activity",
+            "project_update": "Project Update"
+        };
+        
+        var typeOrder = ["timesheet", "task", "project", "activity", "project_update"];
+        
+        for (var i = 0; i < typeOrder.length; i++) {
+            var type = typeOrder[i];
+            if (!summary.byType[type]) continue;
+            
+            var count = summary.byType[type];
+            var icon = typeIcons[type] || "•";
+            var label = typeLabels[type] || type;
+            
+            message += icon + " " + count + " " + label;
+            if (count > 1) message += "s";
+            message += ",\t";
+        }
+        
+        return message;
     }
 
     // Function to load saved theme preference and apply it

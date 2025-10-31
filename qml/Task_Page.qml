@@ -204,12 +204,12 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
 
-        label1: "Today"
-        label2: "This Week"
-        label3: "This Month"
-        label4: "Later"
-        label5: "Done"
-        label6: "All"
+        label1: i18n.dtr("ubtms", "Today")
+        label2: i18n.dtr("ubtms", "This Week")
+        label3: i18n.dtr("ubtms", "This Month")
+        label4: i18n.dtr("ubtms", "Later")
+        label5: i18n.dtr("ubtms", "Done")
+        label6: i18n.dtr("ubtms", "All")
         label7: ""
 
         filter1: "today"
@@ -333,7 +333,7 @@ Page {
             anchors.centerIn: parent
             font.pixelSize: units.gu(2)
             visible: false
-            text: 'No Task Available'
+            text: i18n.dtr("ubtms", "No tasks found.")
         }
     }
 
@@ -349,8 +349,8 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: "Create"
-            },
+                label: i18n.dtr("ubtms", "Task")
+            }
         ]
         onMenuItemSelected: {
             if (index === 0) {

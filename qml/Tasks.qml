@@ -44,18 +44,29 @@ Page {
     id: taskCreate
     title: i18n.dtr("ubtms", "Task")
     header: PageHeader {
-        title: taskCreate.title
+        title: taskCreate.title + (draftHandler.hasUnsavedChanges ? " •" : "")
         StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
 
+        // Custom back button with unsaved changes check
+        leadingActionBar.actions: [
+            Action {
+                iconName: "back"
+                text: i18n.dtr("ubtms", "Back")
+                onTriggered: {
+                    handleBackNavigation();
+                }
+            }
+        ]
+
         trailingActionBar.actions: [
             Action {
                 iconSource: "images/save.svg"
                 visible: !isReadOnly
-                text: "Save"
+                text: i18n.dtr("ubtms", "Save")
                 onTriggered: {
                     save_task_data();
                 }
@@ -63,9 +74,19 @@ Page {
             Action {
                 iconName: "edit"
                 visible: isReadOnly && recordid !== 0
-                text: "Edit"
+                text: i18n.dtr("ubtms", "Edit")
                 onTriggered: {
                     switchToEditMode();
+                }
+            },
+            Action{
+                iconName: "close"
+                text: i18n.dtr("ubtms", "Close")
+                visible: draftHandler.hasUnsavedChanges 
+                onTriggered: {
+                    restoreFormToOriginal();  // Restore form to original values
+            draftHandler.clearDraft(); // Clear the draft from database
+             Qt.callLater(navigateBack);
                 }
             }
         ]
@@ -79,6 +100,13 @@ Page {
     property int selectedparentId: 0
     property int selectedTaskId: 0
     property int priority: 0
+    
+    onPriorityChanged: {
+        if (draftHandler.enabled && draftHandler._initialized) {
+            draftHandler.markFieldChanged("priority", priority);
+        }
+    }
+    
     property int subProjectId: 0
     property var prevtask: ""
     property var textkey: ""
@@ -86,6 +114,35 @@ Page {
     property real expandedHeight: units.gu(60)
     property int selectedStageOdooRecordId: -1 // For storing selected stage during task creation
     property var selectedPersonalStageOdooRecordId: null // For storing selected personal stage (null = no stage, >0 = stage ID)
+    
+    // Track stage changes for draft management
+    onSelectedStageOdooRecordIdChanged: {
+        console.log("🎯 Stage changed to:", selectedStageOdooRecordId);
+        if (isRestoringFromDraft) {
+            console.log("⏭️ Stage tracking skipped - restoring from draft");
+            return;
+        }
+        if (draftHandler.enabled && draftHandler._initialized) {
+            draftHandler.markFieldChanged("selectedStageOdooRecordId", selectedStageOdooRecordId);
+            console.log("📝 Tracked stage change - hasUnsavedChanges:", draftHandler.hasUnsavedChanges);
+        } else {
+            console.log("⏸️ Stage tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
+        }
+    }
+    
+    onSelectedPersonalStageOdooRecordIdChanged: {
+        console.log("🎯 Personal stage changed to:", selectedPersonalStageOdooRecordId);
+        if (isRestoringFromDraft) {
+            console.log("⏭️ Personal stage tracking skipped - restoring from draft");
+            return;
+        }
+        if (draftHandler.enabled && draftHandler._initialized) {
+            draftHandler.markFieldChanged("selectedPersonalStageOdooRecordId", selectedPersonalStageOdooRecordId);
+            console.log("📝 Tracked personal stage change - hasUnsavedChanges:", draftHandler.hasUnsavedChanges);
+        } else {
+            console.log("⏸️ Personal stage tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
+        }
+    }
 
     // Properties for prefilled data when creating task from project
     property var prefilledAccountId: -1
@@ -96,10 +153,379 @@ Page {
 
     property var currentTask: {}
 
+    // Track if we're navigating to ReadMorePage to avoid showing save dialog
+    property bool navigatingToReadMore: false
+    
+    // Track if form is fully initialized (to defer draft restoration)
+    property bool formFullyInitialized: false
+    
+    // Flag to suppress change tracking during draft restoration
+    property bool isRestoringFromDraft: false
+
+    // Handle hardware back button presses
+    Keys.onReleased: {
+        if (event.key === Qt.Key_Back || event.key === Qt.Key_Escape) {
+            event.accepted = true;
+            handleBackNavigation();
+        }
+    }
+
+    // ==================== DRAFT HANDLER ====================
+    FormDraftHandler {
+        id: draftHandler
+        draftType: "task"
+        recordId: taskCreate.recordid
+        accountId: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
+        enabled: !isReadOnly
+        autoSaveInterval: 300000 // 5 minutes
+        
+        onDraftLoaded: {
+            // Only restore if form is fully initialized
+            if (formFullyInitialized) {
+                restoreFormFromDraft(draftData);
+                notifPopup.open("📂 Draft Found", 
+                    "Unsaved changes restored. ", 
+                    "info");
+            } else {
+                // Defer restoration until form is ready
+                console.log("⏳ Deferring draft restoration until form is fully initialized...");
+                Qt.callLater(function() {
+                    if (formFullyInitialized) {
+                        restoreFormFromDraft(draftData);
+                        notifPopup.open("📂 Draft Restored", 
+                            "Unsaved changes restored: " + getChangesSummary(), 
+                            "info");
+                    }
+                });
+            }
+        }
+        
+        onUnsavedChangesWarning: {
+            // This signal is now handled by the back button logic
+            console.log("⚠️ Unsaved changes detected");
+        }
+        
+        onDraftSaved: {
+            console.log("💾 Draft saved successfully (ID: " + draftId + ")");
+        }
+    }
+
+    SaveDiscardDialog {
+        id: saveDiscardDialog
+        onSaveRequested: {
+            console.log("💾 SaveDiscardDialog: Saving task...");
+            var success = save_task_data(true); // true = skip automatic navigation
+            // Only navigate back if save was successful
+            if (success) {
+                Qt.callLater(navigateBack);
+            }
+        }
+        onDiscardRequested: {
+            console.log("🗑️ SaveDiscardDialog: Discarding changes...");
+            restoreFormToOriginal();  // Restore form to original values
+            draftHandler.clearDraft(); // Clear the draft from database
+            Qt.callLater(navigateBack);
+        }
+        onCancelled: {
+            console.log("❌ User cancelled navigation - staying on page");
+        }
+    }
+
+    function handleBackNavigation() {
+        // Check if we're navigating to ReadMore page
+        if (navigatingToReadMore) {
+            navigateBack();
+            return;
+        }
+        
+        // Check if we have unsaved changes
+        if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+            console.log("⚠️ Unsaved changes detected on back navigation");
+            saveDiscardDialog.open();
+            return;
+        }
+        
+        // No unsaved changes, navigate back normally
+        navigateBack();
+    }
+
+    function navigateBack() {
+        console.log("🔙 Attempting to navigate back...");
+        
+        // Method 1: AdaptivePageLayout (primary method for this app)
+        try {
+            if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
+                console.log("✅ Navigating via apLayout.removePages()");
+                apLayout.removePages(taskCreate);
+                return;
+            }
+        } catch (e) {
+            console.error("❌ apLayout navigation error:", e);
+        }
+        
+        // Method 2: Standard pageStack
+        try {
+            if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
+                console.log("✅ Navigating via pageStack.pop()");
+                pageStack.pop();
+                return;
+            }
+        } catch (e) {
+            console.error("❌ Navigation error with pageStack:", e);
+        }
+
+        // Method 3: Parent pop
+        try {
+            if (parent && parent.pop) {
+                console.log("✅ Navigating via parent.pop()");
+                parent.pop();
+                return;
+            }
+        } catch (e) {
+            console.error("❌ Parent navigation error:", e);
+        }
+        
+        console.warn("⚠️ No navigation method found!");
+    }
+
+    function restoreFormFromDraft(draftData) {
+        console.log("🔄 Restoring form from draft data...");
+        
+        // Set flag to suppress tracking during restoration
+        isRestoringFromDraft = true;
+        
+        if (draftData.name) name_text.text = draftData.name;
+        if (draftData.description) description_text.setContent(draftData.description);
+        if (draftData.plannedHours) hours_input.text = draftData.plannedHours;
+        if (draftData.priority !== undefined) priority = draftData.priority;
+        
+        if (draftData.startDate || draftData.endDate) {
+            date_range_widget.setDateRange(
+                draftData.startDate || "", 
+                draftData.endDate || ""
+            );
+        }
+        
+        if (draftData.deadline) {
+            deadline_text.text = draftData.deadline;
+        }
+        
+        // Restore WorkItemSelector selections
+        // Helper function to convert null/undefined to -1 for WorkItemSelector
+        // WorkItemSelector expects -1 for "not selected", but stores null in drafts
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (draftData.accountId !== undefined || draftData.projectId !== undefined) {
+            console.log("📋 Restoring WorkItemSelector from draft...");
+            
+            var accountId = normalizeIdForRestore(draftData.accountId);
+            var projectId = normalizeIdForRestore(draftData.projectId);
+            var subprojectId = normalizeIdForRestore(draftData.subprojectId);
+            var taskId = normalizeIdForRestore(draftData.taskId);
+            var subtaskId = normalizeIdForRestore(draftData.subtaskId);
+            var assigneeId = normalizeIdForRestore(draftData.assigneeId);
+            
+            console.log("📋 Draft IDs - account:", accountId, "project:", projectId, "subproject:", subprojectId, "task:", taskId, "assignee:", assigneeId);
+            
+            // Only restore if we have valid IDs (at least account or project)
+            if (accountId > 0 || projectId > 0) {
+                // Use deferred loading to restore all selections
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, assigneeId);
+                
+                // If using multiple assignees, restore them after deferred loading completes
+                if (workItem.enableMultipleAssignees && draftData.multipleAssignees) {
+                    Qt.callLater(function() {
+                        workItem.setMultipleAssignees(draftData.multipleAssignees);
+                    });
+                }
+                
+                // Reload stages if project was selected, then restore the stage from draft
+                if (projectId > 0 && accountId > 0) {
+                    // Save the stage values from draft before loading
+                    var savedStageId = draftData.selectedStageOdooRecordId;
+                    var savedPersonalStageId = draftData.selectedPersonalStageOdooRecordId;
+                    
+                    Qt.callLater(function() {
+                        loadStagesForProject(projectId, accountId);
+                        
+                        // Restore the stage from draft AFTER stages are loaded
+                        // Use another Qt.callLater to ensure stages are fully loaded
+                        Qt.callLater(function() {
+                            if (savedStageId !== undefined && savedStageId !== null) {
+                                console.log("🔄 Restoring draft stage:", savedStageId, "after stage loading");
+                                selectedStageOdooRecordId = savedStageId;
+                                
+                                // Also update the combobox selection
+                                for (var i = 0; i < stageListModel.count; i++) {
+                                    if (stageListModel.get(i).odoo_record_id === savedStageId) {
+                                        stageComboBox.currentIndex = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (savedPersonalStageId !== undefined) {
+                                console.log("🔄 Restoring draft personal stage:", savedPersonalStageId, "after stage loading");
+                                selectedPersonalStageOdooRecordId = savedPersonalStageId;
+                            }
+                            
+                            // Clear the restoration flag after stage restoration is complete
+                            Qt.callLater(function() {
+                                isRestoringFromDraft = false;
+                                console.log("✅ Draft restoration complete - tracking re-enabled");
+                            });
+                        });
+                    });
+                } else {
+                    // No project selected, restore stages directly
+                    if (draftData.selectedStageOdooRecordId !== undefined) {
+                        selectedStageOdooRecordId = draftData.selectedStageOdooRecordId;
+                    }
+                    if (draftData.selectedPersonalStageOdooRecordId !== undefined) {
+                        selectedPersonalStageOdooRecordId = draftData.selectedPersonalStageOdooRecordId;
+                    }
+                    
+                    // Clear the restoration flag
+                    Qt.callLater(function() {
+                        isRestoringFromDraft = false;
+                        console.log("✅ Draft restoration complete (no project) - tracking re-enabled");
+                    });
+                }
+            } else {
+                console.log("⚠️ Draft has no valid account/project IDs - skipping WorkItemSelector restoration");
+                
+                // Still restore stage selections even if no project
+                if (draftData.selectedStageOdooRecordId !== undefined) {
+                    selectedStageOdooRecordId = draftData.selectedStageOdooRecordId;
+                }
+                if (draftData.selectedPersonalStageOdooRecordId !== undefined) {
+                    selectedPersonalStageOdooRecordId = draftData.selectedPersonalStageOdooRecordId;
+                }
+                
+                // Clear the restoration flag
+                Qt.callLater(function() {
+                    isRestoringFromDraft = false;
+                    console.log("✅ Draft restoration complete (no valid IDs) - tracking re-enabled");
+                });
+            }
+        } else {
+            // No WorkItemSelector data, but restore stages if present
+            if (draftData.selectedStageOdooRecordId !== undefined) {
+                selectedStageOdooRecordId = draftData.selectedStageOdooRecordId;
+            }
+            if (draftData.selectedPersonalStageOdooRecordId !== undefined) {
+                selectedPersonalStageOdooRecordId = draftData.selectedPersonalStageOdooRecordId;
+            }
+            
+            // Clear the restoration flag
+            Qt.callLater(function() {
+                isRestoringFromDraft = false;
+                console.log("✅ Draft restoration complete (no WorkItemSelector) - tracking re-enabled");
+            });
+        }
+    }
+    
+    function restoreFormToOriginal() {
+        console.log("🔄 Restoring form to original values...");
+        
+        var originalData = draftHandler.originalData;
+        if (originalData.name !== undefined) name_text.text = originalData.name;
+        if (originalData.description !== undefined) description_text.setContent(originalData.description);
+        if (originalData.plannedHours !== undefined) hours_input.text = originalData.plannedHours;
+        if (originalData.priority !== undefined) priority = originalData.priority;
+        
+        if (originalData.startDate !== undefined || originalData.endDate !== undefined) {
+            date_range_widget.setDateRange(
+                originalData.startDate || "", 
+                originalData.endDate || ""
+            );
+        }
+        
+        if (originalData.deadline !== undefined) {
+            deadline_text.text = originalData.deadline;
+        }
+        
+        // Restore WorkItemSelector to original selections
+        // Helper function to convert null/undefined to -1 for WorkItemSelector
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (originalData.accountId !== undefined || originalData.projectId !== undefined) {
+            var accountId = normalizeIdForRestore(originalData.accountId);
+            var projectId = normalizeIdForRestore(originalData.projectId);
+            var subprojectId = normalizeIdForRestore(originalData.subprojectId);
+            var taskId = normalizeIdForRestore(originalData.taskId);
+            var subtaskId = normalizeIdForRestore(originalData.subtaskId);
+            var assigneeId = normalizeIdForRestore(originalData.assigneeId);
+            
+            if (accountId > 0 || projectId > 0) {
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, assigneeId);
+                
+                if (workItem.enableMultipleAssignees && originalData.multipleAssignees) {
+                    Qt.callLater(function() {
+                        workItem.setMultipleAssignees(originalData.multipleAssignees);
+                    });
+                }
+            }
+        }
+        
+        // Restore stage selections
+        if (originalData.selectedStageOdooRecordId !== undefined) {
+            selectedStageOdooRecordId = originalData.selectedStageOdooRecordId;
+        }
+        if (originalData.selectedPersonalStageOdooRecordId !== undefined) {
+            selectedPersonalStageOdooRecordId = originalData.selectedPersonalStageOdooRecordId;
+        }
+    }
+    
+    function getCurrentFormData() {
+        const ids = workItem.getIds();
+        
+        // NOTE: WorkItemSelector.getIds() returns null for "not selected" (not -1)
+        // We keep null values as-is for consistency with WorkItemSelector
+        var formData = {
+            name: name_text.text,
+            description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            plannedHours: hours_input.text,
+            priority: priority,
+            startDate: date_range_widget.formattedStartDate ? date_range_widget.formattedStartDate() : "",
+            endDate: date_range_widget.formattedEndDate ? date_range_widget.formattedEndDate() : "",
+            deadline: deadline_text.text,
+            accountId: ids.account_id,        // null or number
+            projectId: ids.project_id,         // null or number
+            subprojectId: ids.subproject_id,   // null or number
+            taskId: ids.task_id,               // null or number
+            subtaskId: ids.subtask_id,         // null or number
+            selectedStageOdooRecordId: selectedStageOdooRecordId,
+            selectedPersonalStageOdooRecordId: selectedPersonalStageOdooRecordId
+        };
+        
+        // Include assignee data based on mode
+        if (workItem.enableMultipleAssignees) {
+            formData.multipleAssignees = ids.multiple_assignees || [];
+            formData.assigneeIds = ids.assignee_ids || [];
+        } else {
+            formData.assigneeId = ids.assignee_id;  // null or number
+        }
+        
+        return formData;
+    }
+
     function switchToEditMode() {
         // Simply change the current page to edit mode
         if (recordid !== 0) {
             isReadOnly = false;
+            
+            // Initialize draft handler when switching from read-only to edit mode
+            // This ensures drafts are loaded if they exist
+            var originalTaskData = getCurrentFormData();
+            draftHandler.initialize(originalTaskData);
         }
     }
 
@@ -137,7 +563,7 @@ Page {
         return text;
     }
 
-    function save_task_data() {
+    function save_task_data(skipNavigation) {
         const ids = workItem.getIds();
 
         // Check for assignees - either single or multiple
@@ -150,17 +576,17 @@ Page {
 
         if (!hasAssignees) {
             notifPopup.open("Error", "Please select at least one assignee", "error");
-            return;
+            return false;
         }
         if (!ids.project_id) {
             notifPopup.open("Error", "Please select the project", "error");
-            return;
+            return false;
         }
 
         // Validate hours input before saving
         if (hours_input.text !== "" && !validateHoursInput(hours_input.text)) {
             notifPopup.open("Error", "Please enter valid hours (e.g., 1.5, 2:30, or 8:00)", "error");
-            return;
+            return false;
         }
 
         if (name_text.text != "") {
@@ -223,21 +649,28 @@ Page {
             const result = Task.saveOrUpdateTask(saveData);
             if (!result.success) {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
+                return false;
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
+                
+                // Clear draft after successful save
+                draftHandler.clearDraft();
+                
                 // Format the hours display after successful save
                 if (hours_input.text !== "") {
                     hours_input.text = formatHoursDisplay(hours_input.text);
                 }
-                // Reload the task data to reflect changes
-                if (recordid !== 0) {
-                    currentTask = Task.getTaskDetails(recordid);
+                
+                // Navigate back to list view after successful save (unless skipNavigation is true)
+                if (!skipNavigation) {
+                    navigateBack();
                 }
-                // No navigation - stay on the same page like Timesheet.qml
-                // User can use back button to return to list page
+                
+                return true;
             }
         } else {
             notifPopup.open("Error", "Please add a Name to the task", "error");
+            return false;
         }
 
     //  isReadOnly = true; // Switch back to read-only mode after saving
@@ -385,7 +818,7 @@ Page {
                 WorkItemSelector {
                     id: workItem
                     readOnly: isReadOnly
-                    taskLabelText: "Parent Task"
+                    taskLabelText: i18n.dtr("ubtms", "Parent Task")
                     showAccountSelector: true
                     showAssigneeSelector: true
                     enableMultipleAssignees: true  // Enable multiple assignee selection
@@ -396,9 +829,82 @@ Page {
                     width: tasksDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(10)
 
+                    // Handle multi-assignee changes (for enableMultipleAssignees mode)
+                    onMultiAssigneesChanged: {
+                        
+                        
+                        if (draftHandler.enabled && draftHandler._initialized) {
+                            var idsForDraft = workItem.getIds();
+                         
+                            draftHandler.markFieldChanged("multipleAssignees", idsForDraft.multiple_assignees);
+                            draftHandler.markFieldChanged("assigneeIds", idsForDraft.assignee_ids);
+                            
+                        } else {
+                            console.log("⏸️ Multi-assignee draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
+                        }
+                    }
+
                     // Monitor project and account changes to reload stages
                     onStateChanged: {
-                        // console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+
+                        // Track changes for draft management (for all modes)
+                        if (draftHandler.enabled && draftHandler._initialized) {
+                            // Get current IDs - but note that component.selectedId may not be updated yet
+                            // So we need to get the REAL current state by querying the properties
+                            var idsForDraft = workItem.getIds();
+                            
+                            // Update the specific field that just changed based on the state
+                            // This ensures we track the actual change even if getIds() hasn't updated yet
+                            var changedId = data.id || null;
+                            
+                            console.log("📝 Tracking WorkItemSelector changes:", JSON.stringify({
+                                state: newState,
+                                changedId: changedId,
+                                currentIds: {
+                                    account: idsForDraft.account_id,
+                                    project: idsForDraft.project_id,
+                                    subproject: idsForDraft.subproject_id,
+                                    task: idsForDraft.task_id,
+                                    subtask: idsForDraft.subtask_id,
+                                    assignee: idsForDraft.assignee_id
+                                }
+                            }));
+                            
+                            // Track the field that actually changed
+                            if (newState === "AccountSelected") {
+                                console.log("✅ Tracking accountId:", changedId);
+                                draftHandler.markFieldChanged("accountId", changedId);
+                            } else if (newState === "ProjectSelected") {
+                                console.log("✅ Tracking projectId:", changedId);
+                                draftHandler.markFieldChanged("projectId", changedId);
+                            } else if (newState === "SubprojectSelected") {
+                                console.log("✅ Tracking subprojectId:", changedId);
+                                draftHandler.markFieldChanged("subprojectId", changedId);
+                            } else if (newState === "TaskSelected") {
+                                console.log("✅ Tracking taskId (Parent Task):", changedId);
+                                draftHandler.markFieldChanged("taskId", changedId);
+                            } else if (newState === "SubtaskSelected") {
+                                console.log("✅ Tracking subtaskId:", changedId);
+                                draftHandler.markFieldChanged("subtaskId", changedId);
+                            } else if (newState === "AssigneeSelected") {
+                                // For assignees, also check if using multi-assignee mode
+                                if (workItem.enableMultipleAssignees) {
+                                    console.log("✅ Tracking multipleAssignees:", idsForDraft.assignee_ids);
+                                    draftHandler.markFieldChanged("multipleAssignees", idsForDraft.multiple_assignees);
+                                    draftHandler.markFieldChanged("assigneeIds", idsForDraft.assignee_ids);
+                                } else {
+                                    console.log("✅ Tracking assigneeId:", changedId);
+                                    draftHandler.markFieldChanged("assigneeId", changedId);
+                                }
+                            } else {
+                                console.warn("⚠️ Unknown state - not tracking:", newState);
+                            }
+                            
+                            console.log("📊 Draft status - hasUnsavedChanges:", draftHandler.hasUnsavedChanges, "changedFields:", draftHandler.changedFields.length);
+                        } else {
+                            console.log("⏸️ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
+                        }
 
                         if (recordid === 0) {
                             // Only in creation mode
@@ -454,7 +960,7 @@ Page {
                     aspect: LomiriShape.Flat
                     Label {
                         id: name_label
-                        text: "Name"
+                        text: i18n.dtr("ubtms", "Name")
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -469,6 +975,12 @@ Page {
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(15) : tasksDetailsPageFlickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
                     text: ""
+                    
+                    onTextChanged: {
+                        if (draftHandler.enabled) {
+                            draftHandler.markFieldChanged("name", text);
+                        }
+                    }
 
                     Rectangle {
                         //  visible: !isReadOnly
@@ -508,7 +1020,7 @@ Page {
                     height: units.gu(5)
                     aspect: LomiriShape.Flat
                     Label {
-                        text: "Priority"
+                        text: i18n.dtr("ubtms", "Priority")
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -572,7 +1084,7 @@ Page {
             visible: recordid === 0 // Only show when creating new task
 
             TSLabel {
-                text: "Initial Stage"
+                text: i18n.dtr("ubtms", "Initial Stage")
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -637,8 +1149,16 @@ Page {
                             //set the data to a global Slore and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
+                                isReadOnly: isReadOnly,
+                                parentDraftHandler: draftHandler // Pass draft handler reference
                             });
+                        }
+                        
+                        // Track inline text changes for draft management
+                        onTextChanged: {
+                            if (draftHandler.enabled && draftHandler._initialized) {
+                                draftHandler.markFieldChanged("description", getFormattedText());
+                            }
                         }
                     }
                 }
@@ -664,7 +1184,7 @@ Page {
 
             // Row 1: Current Stage
             TSLabel {
-                text: "Current Stage:"
+                text: i18n.dtr("ubtms", "Current Stage:")
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHLeft
@@ -674,7 +1194,7 @@ Page {
             }
 
             TSLabel {
-                text: currentTask && currentTask.state ? Task.getTaskStageName(currentTask.state) : "Not set"
+                text: currentTask && currentTask.state ? Task.getTaskStageName(currentTask.state) : i18n.dtr("ubtms", "Not set")
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
                 fontBold: true
@@ -704,7 +1224,7 @@ Page {
                 iconColor: "#1f2937"
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
-                text: "Change"
+                text: i18n.dtr("ubtms", "Change")
                 onClicked: {
                     if (!currentTask || !currentTask.id) {
                         notifPopup.open("Error", "Task data not available", "error");
@@ -722,7 +1242,7 @@ Page {
 
             // Row 2: Activities
             TSLabel {
-                text: "Activities"
+                text: i18n.dtr("ubtms", "Activities")
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHLeft
@@ -741,7 +1261,7 @@ Page {
                 fontBold: true
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
-                text: "Create"
+                text: i18n.dtr("ubtms", "Create")
                 onClicked: {
                     let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
                     if (result.success) {
@@ -845,7 +1365,7 @@ Page {
 
             TSLabel {
                 id: hours_label
-                text: "Planned Hours"
+                text: i18n.dtr("ubtms", "Planned Hours")
                 width: parent.width * 0.25
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -857,7 +1377,13 @@ Page {
                 height: units.gu(5)
                 anchors.verticalCenter: parent.verticalCenter
                 text: "01:00"
-                placeholderText: "e.g., 2:30 or 1.5"
+                placeholderText: i18n.dtr("ubtms", "e.g., 2:30 or 1.5")
+                
+                onTextChanged: {
+                    if (draftHandler.enabled) {
+                        draftHandler.markFieldChanged("plannedHours", text);
+                    }
+                }
 
                 // Input validation
                 validator: RegExpValidator {
@@ -931,6 +1457,13 @@ Page {
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(35) : tasksDetailsPageFlickable.width - units.gu(30)
                     height: units.gu(4)
                     anchors.centerIn: parent.centerIn
+                    
+                    onRangeChanged: {
+                        if (draftHandler.enabled && draftHandler._initialized) {
+                            draftHandler.markFieldChanged("startDate", formattedStartDate());
+                            draftHandler.markFieldChanged("endDate", formattedEndDate());
+                        }
+                    }
                 }
             }
         }
@@ -947,14 +1480,14 @@ Page {
 
             TSLabel {
                 id: deadline_label
-                text: "Deadline"
+                text: i18n.dtr("ubtms", "Deadline")
                 width: parent.width * 0.3
                 anchors.verticalCenter: parent.verticalCenter
             }
 
             TSLabel {
                 id: deadline_text
-                text: "Not set"
+                text: i18n.dtr("ubtms", "Not set")
                 enabled: !isReadOnly
                 width: parent.width * 0.4
                 fontBold: true
@@ -962,7 +1495,7 @@ Page {
             }
 
             TSButton {
-                text: "Select"
+                text: i18n.dtr("ubtms", "Select")
                 objectName: "button_deadline"
                 enabled: !isReadOnly
                 width: parent.width * 0.2
@@ -986,8 +1519,8 @@ Page {
                 id: attachments_widget
                 anchors.fill: parent
                 resource_type: "project.task"   // keep as-is if that's your default
-                resource_id: currentTask.odoo_record_id
-                account_id: currentTask.account_id
+                resource_id: (currentTask && currentTask.odoo_record_id) ? currentTask.odoo_record_id : 0
+                account_id: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
                 notifier: infobar
 
                 onUploadCompleted: {
@@ -1005,10 +1538,15 @@ Page {
 
     CustomDatePicker {
         id: deadlinePicker
-        titleText: "Select Deadline"
+        titleText: i18n.dtr("ubtms", "Select Deadline")
 
         onDateSelected: {
             deadline_text.text = Qt.formatDate(new Date(date), "yyyy-MM-dd");
+            
+            // Track deadline change for draft
+            if (draftHandler.enabled) {
+                draftHandler.markFieldChanged("deadline", deadline_text.text);
+            }
         }
     }
 
@@ -1119,6 +1657,15 @@ Page {
             }
         }
     //  console.log("currentTask loaded:", JSON.stringify(currentTask));
+    
+        // Mark form as fully initialized
+        formFullyInitialized = true;
+        
+        // Initialize draft handler AFTER all form fields are populated
+        if (!isReadOnly) {
+            var originalTaskData = getCurrentFormData();
+            draftHandler.initialize(originalTaskData);
+        }
     }
 
     Component.onCompleted: {
@@ -1134,6 +1681,11 @@ Page {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
+                
+                // Track description change for draft
+                if (draftHandler.enabled) {
+                    draftHandler.markFieldChanged("description", description_text.getFormattedText());
+                }
             }
         } else {
             Global.description_temporary_holder = "";

@@ -58,6 +58,7 @@ ListItem {
     property bool starInteractionActive: false
     property bool isMyTasksContext: false // Set to true when used in MyTasks page
     property int accountId: -1 // Account ID for the task
+    property bool hasDraft: false // Indicates if this task has unsaved draft changes
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -238,7 +239,7 @@ ListItem {
                 id: playpauseaction
                 iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../images/play.png" : "../images/pause.png") : "../images/play.png"
                 visible: recordId > 0
-                text: "update Timesheet"
+                text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     play_pause_workflow();
                 }
@@ -247,7 +248,7 @@ ListItem {
                 id: startstopaction
                 visible: recordId > 0
                 iconSource: "../images/stop.png"
-                text: "update Timesheet"
+                text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     stop_workflow();
                 }
@@ -343,7 +344,7 @@ ListItem {
                 anchors.centerIn: parent
                 //visible: allocatedHours === 0 && spentHours > 0
                 visible: false
-                text: "Unable to track progress – no planned hours"
+                text: i18n.dtr("ubtms", "Unable to track progress – no planned hours")
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                 font.pixelSize: units.gu(1.5)
                 anchors.bottomMargin: units.gu(.5)
@@ -354,7 +355,7 @@ ListItem {
                 anchors.centerIn: parent
                 // visible: spentHours === 0
                 visible: false
-                text: "No progress yet"
+                text: i18n.dtr("ubtms", "No progress yet")
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
                 font.pixelSize: units.gu(1.5)
                 anchors.bottomMargin: units.gu(.5)
@@ -430,7 +431,7 @@ ListItem {
 
                             Text {
                                 id: projectTitleText
-                                text: (taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task")
+                                text: ((taskName !== "" ? hasChildren ? truncateText(taskName, 20) : truncateText(taskName, 30) : "Unnamed Task"))
                                 color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
                                 font.pixelSize: units.gu(2)
 
@@ -600,24 +601,46 @@ ListItem {
                     anchors.right: parent.right
                     anchors.rightMargin: units.gu(2)
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: units.gu(0.4)
+                    spacing: units.gu(0.5)
                     width: parent.width
+
+                                            Rectangle {
+    id: draftIndicator
+    visible: hasDraft
+    width: draftLabel.width + units.gu(1.2)
+    height: units.gu(2)
+    radius: height / 2
+    color: "#FFF3E0"
+    border.color: "#FF9800"
+    border.width: units.gu(0.15)
+anchors.right: parent.right
+
+    
+    Text {
+        id: draftLabel
+        text: i18n.dtr("ubtms", "DRAFT")
+        font.pixelSize: units.gu(1.1)
+        font.bold: true
+        color: "#F57C00"
+        anchors.centerIn: parent
+    }
+}
                     Text {
-                        text: "Planned (H): " + (allocatedHours !== 0 ? allocatedHours : "N/A")
+                        text: i18n.dtr("ubtms", "Planned (H): ") + (allocatedHours !== 0 ? allocatedHours : i18n.dtr("ubtms", "N/A"))
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555"
                     }
                     Text {
-                        text: "Start Date: " + (startDate !== "" ? toDateOnly(startDate) : "Not set")
+                        text: i18n.dtr("ubtms", "Start Date: ") + (startDate !== "" ? toDateOnly(startDate) : i18n.dtr("ubtms", "Not set"))
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
                     }
                     Text {
-                        text: "End Date: " + (endDate !== "" ? toDateOnly(endDate) : "Not set")
+                        text: i18n.dtr("ubtms", "End Date: ") + (endDate !== "" ? toDateOnly(endDate) : i18n.dtr("ubtms", "Not set"))
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: parent.width

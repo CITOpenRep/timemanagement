@@ -176,7 +176,7 @@ Item {
                     }
 
                     Text {
-                        text: "Filter by Stage"
+                        text: i18n.dtr("ubtms", "Filter by Stage")
                         font.bold: true
                         font.pixelSize: units.gu(2.2)
                         color: theme.palette.normal.backgroundText
@@ -351,7 +351,7 @@ Item {
                 }
 
                 Text {
-                    text: "Current: " + selectedFilterName
+                    text: i18n.dtr("ubtms", "Current: ") + selectedFilterName
                     font.pixelSize: units.gu(1.6)
                     color: theme.palette.normal.backgroundText
                     anchors.centerIn: parent

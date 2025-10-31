@@ -163,20 +163,6 @@ Page {
         height: units.gu(80)
     }
 
-    CreateUpdateDialog {
-        id: updates_dialog
-        width: units.gu(80)
-        height: units.gu(80)
-        onUpdateCreated: {
-            let result = Project.createUpdateSnapShot(updateData);
-            if (result['is_success'] === false) {
-                notifPopup.open("Failed", result['message'], "error");
-            } else {
-                notifPopup.open("Saved", "Project updated has been saved", "success");
-            }
-        }
-    }
-
     Flickable {
         id: projectDetailsPageFlickable
         anchors.topMargin: units.gu(6)
@@ -223,7 +209,7 @@ Page {
                     aspect: LomiriShape.Flat
                     Label {
                         id: project_label
-                        text: "Project Name"
+                        text:i18n.dtr("ubtms", "Project Name")  
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -299,7 +285,7 @@ Page {
             // First Row - Activities
             TSLabel {
                 visible: isReadOnly
-                text: "Activities"
+                text: i18n.dtr("ubtms","Activities")
                 width: (parent.width - units.gu(2)) / 3
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHLeft
@@ -318,7 +304,7 @@ Page {
 
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
-                text: "Create"
+                text: i18n.dtr("ubtms","Create")
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     let result = Activity.createActivityFromProjectOrTask(true, project.account_id, project.odoo_record_id);
@@ -344,7 +330,7 @@ Page {
                 iconName: "view-on"
                 iconColor: "#1f2937"
                 width: (parent.width - units.gu(2)) / 3
-                text: "View"
+               text: i18n.dtr("ubtms","View")
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activity_Page.qml"), {
@@ -359,7 +345,7 @@ Page {
             // Second Row - Tasks
             TSLabel {
                 visible: isReadOnly
-                text: "Tasks"
+                text: i18n.dtr("ubtms","Tasks")
                 width: (parent.width - units.gu(2)) / 3
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHLeft
@@ -377,7 +363,7 @@ Page {
                 iconColor: "#f97316"
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
-                text: "Create"
+                text: i18n.dtr("ubtms","Create")
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     // Determine if this is a subproject and get parent project info
@@ -409,7 +395,7 @@ Page {
                 width: (parent.width - units.gu(2)) / 3
                 iconName: "view-on"
                 iconColor: "#1f2937"
-                text: "View"
+               text: i18n.dtr("ubtms","View")
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Task_Page.qml"), {
@@ -424,7 +410,7 @@ Page {
             // Third Row - Project Updates
             TSLabel {
                 visible: isReadOnly
-                text: "Project Updates"
+                text: i18n.dtr("ubtms","Project Updates")
                 width: (parent.width - units.gu(2)) / 3
                 height: units.gu(6)
                 horizontalAlignment: Text.AlignHLeft
@@ -442,10 +428,26 @@ Page {
                 iconColor: "#f97316"
                 fontBold: true
                 width: (parent.width - units.gu(2)) / 3
-                text: "Create"
+                text: i18n.dtr("ubtms","Create")
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
-                    updates_dialog.open(project.account_id, project.odoo_record_id);
+                    
+                    // Store callback in Global for CreateUpdatePage to access
+                    Global.createUpdateCallback = function(updateData) {
+                        let result = Project.createUpdateSnapShot(updateData);
+                        if (result['is_success'] === false) {
+                            notifPopup.open("Failed", result['message'], "error");
+                        } else {
+                            notifPopup.open("Saved", "Project update has been saved", "success");
+                        }
+                        Global.createUpdateCallback = null;
+                    };
+                    
+                    // Open CreateUpdatePage
+                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("components/CreateUpdatePage.qml"), {
+                        "projectId": project.odoo_record_id,
+                        "accountId": project.account_id
+                    });
                 }
             }
 
@@ -459,7 +461,7 @@ Page {
                 iconName: "view-on"
                 iconColor: "#1f2937"
                 width: (parent.width - units.gu(2)) / 3
-                text: "View"
+               text: i18n.dtr("ubtms","View")
                 onClicked: {
                     let project = Project.getProjectDetails(recordid);
                     apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Updates_Page.qml"), {
@@ -484,7 +486,7 @@ Page {
 
             TSLabel {
                 id: hours_label
-                text: "Allocated Hours"
+               text: i18n.dtr("ubtms","Allocated Hours")
                 width: parent.width * 0.3
                 anchors.verticalCenter: parent.verticalCenter
             }

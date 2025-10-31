@@ -107,28 +107,28 @@ Item {
                     }
 
                     TSButton {
-                        text: "Next Week"
+                        text: i18n.dtr("ubtms", "Next Week")
                         bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         Layout.fillWidth: true
                         onClicked: selectSingleDate(Utils.getNextWeekSameDay(currentDate))
                     }
 
                     TSButton {
-                        text: "Next Month"
+                        text: i18n.dtr("ubtms", "Next Month")
                         bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         Layout.fillWidth: true
                         onClicked: selectSingleDate(Utils.getNextMonthSameDay(currentDate))
                     }
 
                     TSButton {
-                        text: "Custom"
+                        text: i18n.dtr("ubtms", "Custom")
                         bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                         Layout.fillWidth: true
                         onClicked: showCustomPicker = !showCustomPicker
                     }
 
                     TSButton {
-                        text: "Cancel"
+                        text: i18n.dtr("ubtms", "Cancel")
                         Layout.fillWidth: true
                         bgColor: "#F25041"
                         visible: !showCustomPicker
@@ -156,14 +156,14 @@ Item {
                         spacing: units.gu(2)
 
                         TSButton {
-                            text: "Cancel"
+                            text: i18n.dtr("ubtms", "Cancel")
                             Layout.fillWidth: true
                             bgColor: "#F25041"
                             onClicked: PopupUtils.close(quickDialog)
                         }
 
                         TSButton {
-                            text: "OK"
+                            text: i18n.dtr("ubtms", "OK")
                             Layout.fillWidth: true
                             bgColor: "#1F7D53"
                             onClicked: {

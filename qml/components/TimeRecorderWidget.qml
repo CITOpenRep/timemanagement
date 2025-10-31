@@ -46,9 +46,10 @@ Item {
         onTimeSelected: {
             let timeStr = (hour < 10 ? "0" + hour : hour) + ":" + (minute < 10 ? "0" + minute : minute);
 
-            elapsedTime = timeStr;  // for example, update a field
+            elapsedTime = timeStr;  // Update UI field
             timeDisplay.text = elapsedTime;
-            TimeSheet.updateTimesheetWithDuration(timesheetId, timeDisplay.text);
+            // NOTE: Time is NOT saved to database here - it will be saved when user clicks "Save" on the form
+            // This allows draft management to work properly and enables "Discard" to revert changes
         }
     }
 
@@ -58,7 +59,7 @@ Item {
         spacing: units.gu(1)
 
         Label {
-            text: "Time Tracking"
+            text: i18n.dtr("ubtms", "Time Tracking")
             anchors.left: parent.left
             anchors.right: parent.right
             font.bold: true
@@ -73,7 +74,7 @@ Item {
 
             RadioButton {
                 id: manualRadio
-                text: "Manual"
+                text: i18n.dtr("ubtms", "Manual")
                 contentItem: Text {
                     text: manualRadio.text
                     color: theme.palette.normal.backgroundText
@@ -89,7 +90,7 @@ Item {
 
             RadioButton {
                 id: automatedRadio
-                text: "Automated"
+                text: i18n.dtr("ubtms", "Automated")
                 contentItem: Text {
                     text: automatedRadio.text
                     color: theme.palette.normal.backgroundText

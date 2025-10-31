@@ -52,7 +52,7 @@ Page {
         trailingActionBar.actions: [
             Action {
                 iconName: "add"
-                text: "New"
+                text: i18n.dtr("ubtms", "New")
                 onTriggered: {
                     // console.log("Create Project clicked");
                     apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {
@@ -62,7 +62,7 @@ Page {
             },
             Action {
                 iconName: "search"
-                text: "Search"
+                text: i18n.dtr("ubtms", "Search")
                 onTriggered: {
                     projectlist.toggleSearchVisibility();
                 }

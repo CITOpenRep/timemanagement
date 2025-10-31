@@ -61,7 +61,8 @@ Page {
             Action {
                 iconSource: "images/save.svg"
                 visible: !isReadOnly
-                text: "Save"
+                text: i18n.dtr("ubtms","Save")
+                
                 onTriggered: {
                     handleAccountSave();
                 }
@@ -69,7 +70,7 @@ Page {
             Action {
                 iconName: "edit"
                 visible: isReadOnly
-                text: "Edit"
+                text: i18n.dtr("ubtms","Edit")
                 onTriggered: {
                     switchToEditMode();
                 }
@@ -129,7 +130,7 @@ Page {
                         notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
                     }
                 } else {
-                    notifPopup.open("Saved", "Your account has been saved, Enjoy using the app !", "success");
+                    notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been saved, Enjoy using the app !"), "success");
 
                     isReadOnly = true;
                 }
@@ -204,7 +205,7 @@ Page {
                         height: units.gu(4)
                         TSLabel {
                             id: account_name_label
-                            text: "Account Name"
+                            text: i18n.dtr("ubtms", "Account Name")
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -218,7 +219,7 @@ Page {
                             id: accountNameInput
                             enabled: !isReadOnly
                             anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "Account Name"
+                            placeholderText:i18n.dtr("ubtms", "Account Name")
                             width: parent.width
                         }
                     }
@@ -251,7 +252,7 @@ Page {
                         TextField {
                             id: linkInput
                             enabled: !isReadOnly
-                            placeholderText: "Enter Odoo URL here"
+                            placeholderText: i18n.dtr("ubtms", "Enter Odoo URL here")
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
                             height: parent.height
@@ -262,7 +263,7 @@ Page {
                     }
                     TSButton {
                         id: fetch_db_button
-                        text: "Fetch Databases"
+                        text: i18n.dtr("ubtms", "Fetch Databases")
                         visible: !isReadOnly
                         width: units.gu(28)
                         height: units.gu(4)
@@ -314,7 +315,7 @@ Page {
                         height: units.gu(3)
                         TSLabel {
                             id: database_list_label
-                            text: "Database"
+                            text: i18n.dtr("ubtms", "Database")
                             anchors.verticalCenter: parent.verticalCenter
                             visible: activeBackendAccount
                         }
@@ -375,7 +376,7 @@ Page {
                         TextField {
                             id: manualDbInput
                             width: parent.width
-                            placeholderText: "Enter Database Name"
+                            placeholderText: i18n.dtr("ubtms", "Enter Database Name")
                         }
                     }
                 }
@@ -393,7 +394,7 @@ Page {
                         TSLabel {
                             id: username_label
                             visible: activeBackendAccount
-                            text: "Username"
+                            text: i18n.dtr("ubtms", "Username")
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -407,7 +408,7 @@ Page {
                             id: usernameInput
                             visible: activeBackendAccount
                             enabled: !isReadOnly
-                            placeholderText: "Username"
+                            placeholderText: i18n.dtr("ubtms", "Username")
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
                         }
@@ -426,7 +427,7 @@ Page {
                         height: units.gu(5)
                         TSLabel {
                             id: connectwith_label
-                            text: "Connect With"
+                            text: i18n.dtr("ubtms", "Connect With")
                             visible: activeBackendAccount
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -462,7 +463,7 @@ Page {
                             width: connectWith_combo.width
                             hoverEnabled: true
                             contentItem: Text {
-                                text: model.modelData
+                                text: i18n.dtr("ubtms", model.modelData)
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                                 leftPadding: units.gu(1)
                                 elide: Text.ElideRight

@@ -30,6 +30,40 @@ function getAccountsList() {
     return accountsList;
 }
 
+
+function markAttachmentDownloaded(accountId, recordId, fileName) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            tx.executeSql(
+                "INSERT OR REPLACE INTO attachment_download_app (account_id, record_id, file_name, downloaded) VALUES (?, ?, ?, 1)",
+                [accountId, recordId, fileName]
+            );
+        });
+    } catch (e) {
+        console.error("markAttachmentDownloaded failed:", e);
+    }
+}
+
+function isAttachmentDownloaded(accountId, recordId) {
+    var result = false;
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                "SELECT downloaded FROM attachment_download_app WHERE account_id = ? AND record_id = ?",
+                [accountId, recordId]
+            );
+            if (rs.rows.length > 0 && rs.rows.item(0).downloaded === 1)
+                result = true;
+        });
+    } catch (e) {
+        console.error("isAttachmentDownloaded failed:", e);
+    }
+    return result;
+}
+
+
 /**
  * Sets the specified account as the default in the local SQLite database.
  *

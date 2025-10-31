@@ -68,7 +68,8 @@ Page {
             Action {
                 iconSource: "images/save.svg"
                 visible: !isReadOnly
-                text: "Save"
+                text: i18n.dtr("ubtms", "Save")
+                // text: 
                 onTriggered: {
                     saveActivityData();
                 }
@@ -79,7 +80,8 @@ Page {
         leadingActionBar.actions: [
             Action {
                 iconName: "back"
-                text: "Back"
+                text: i18n.dtr("ubtms", "Back")
+                // text: 
                 onTriggered: {
                     // Check if we need to show save/discard dialog
                     if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
@@ -174,7 +176,7 @@ Page {
                     aspect: LomiriShape.Flat
                     TSLabel {
                         id: resource_label
-                        text: "Connected to"
+                        text:  i18n.dtr("ubtms", "Connected to")
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -184,7 +186,7 @@ Page {
                 leftPadding: units.gu(3)
                 RadioButton {
                     id: projectRadio
-                    text: "Project"
+                    text: i18n.dtr("ubtms","Project")
                     checked: false
                     enabled: !isReadOnly
                     contentItem: Text {
@@ -202,7 +204,7 @@ Page {
 
                 RadioButton {
                     id: taskRadio
-                    text: "Task"
+                    text: i18n.dtr("ubtms","Task")
                     checked: true
                     enabled: !isReadOnly
                     contentItem: Text {
@@ -234,7 +236,7 @@ Page {
                     aspect: LomiriShape.Flat
                     TSLabel {
                         id: name_label
-                        text: "Summary"
+                        text: i18n.dtr("ubtms","Summary")
                         // font.bold: true
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
@@ -324,7 +326,7 @@ Page {
                 TreeSelector {
                     id: activityTypeSelector
                     enabled: !isReadOnly
-                    labelText: "Activity Type"
+                    labelText: i18n.dtr("ubtms","Activity Type")
                     width: flickable.width - units.gu(2)
                     height: units.gu(29)
                 }

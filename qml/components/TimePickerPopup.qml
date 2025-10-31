@@ -99,13 +99,13 @@ Item {
                 Row {
                     spacing: units.gu(2)
                     TSButton {
-                        text: "Cancel"
+                        text: i18n.dtr("ubtms", "Cancel")
                         width: units.gu(10)
                         height: units.gu(5)
                         onClicked: PopupUtils.close(timeDialog)
                     }
                     TSButton {
-                        text: "OK"
+                        text: i18n.dtr("ubtms", "OK")
                         height: units.gu(5)
                         width: units.gu(10)
                         onClicked: {

@@ -2,6 +2,7 @@
 .import "database.js" as DBCommon
 .import "utils.js" as Utils
 .import "accounts.js" as Accounts
+.import "draft_manager.js" as DraftManager
 
 
 /**
@@ -122,7 +123,8 @@ function fetchTimesheetsByStatus(status, accountId) {
                     task: taskName,
                     user: userName,
                     timer_type: row.timer_type || 'manual',
-                    color_pallet: parseInt(inheritedColor) || 0
+                    color_pallet: parseInt(inheritedColor) || 0,
+                    has_draft: row.has_draft || 0
                 });
             }
         });
@@ -237,7 +239,8 @@ function fetchTimesheetsForAllAccounts(status) {
                     task: taskName,
                     user: userName,
                     timer_type: row.timer_type || 'manual',
-                    color_pallet: parseInt(inheritedColor) || 0
+                    color_pallet: parseInt(inheritedColor) || 0,
+                    has_draft: row.has_draft || 0
                 });
             }
         });
@@ -382,6 +385,7 @@ function isTimesheetReadyToStartTimer(timesheetId) {
 
 
 /**
+/**
  * Marks a timesheet entry as deleted in the local SQLite database by setting its `status` to `'deleted'`.
  *
  * This is a soft delete and does not remove the record from the database.
@@ -401,6 +405,15 @@ function markTimesheetAsDeleted(taskId) {
         });
 
         DBCommon.log("Timesheet marked as deleted (id: " + taskId + ")");
+        
+        // Clean up any drafts for this deleted timesheet
+        try {
+            DraftManager.cleanupDraftsForDeletedRecords("timesheet", [taskId]);
+        } catch (draftError) {
+            console.warn("⚠️  Failed to cleanup timesheet draft:", draftError);
+            // Don't fail the deletion if draft cleanup fails
+        }
+        
         return { success: true, message: "Timesheet marked as deleted." };
 
     } catch (e) {
@@ -456,7 +469,8 @@ function getTimeSheetDetails(record_id, accountId) {
                     'quadrant_id': row.quadrant_id,
                     'record_date': Utils.formatDate(new Date(row.record_date)),
                     'timer_type': row.timer_type || 'manual',
-                    'user_id': row.user_id
+                    'user_id': row.user_id,
+                    'has_draft': row.has_draft || 0
                 };
                 
                 console.log("getTimeSheetDetails: Returning timesheet_detail:", JSON.stringify(timesheet_detail));
@@ -520,7 +534,8 @@ function saveTimesheet(data) {
                           last_modified = ?,
                           status = ?,
                           timer_type = ?,
-                          user_id = ?
+                          user_id = ?,
+                          has_draft = 0
                           WHERE id = ?`,
                           [
                               data.instance_id || null,
@@ -569,8 +584,8 @@ function createTimesheet(instance_id,userid) {
         db.transaction(function (tx) {
             tx.executeSql(`INSERT INTO account_analytic_line_app
                           (account_id, record_date, project_id, task_id, name, sub_project_id,
-                          sub_task_id, quadrant_id, unit_amount, last_modified, status, timer_type, user_id)
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                          sub_task_id, quadrant_id, unit_amount, last_modified, status, timer_type, user_id, has_draft)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
                           [
                               instance_id,               // account_id
                               Utils.getToday(),      // record_date, fallback to today
