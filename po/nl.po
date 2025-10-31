@@ -323,7 +323,6 @@ msgid "Delete"
 msgstr "Verwijderen"
 
 #: ../qml/Settings_Page.qml:739
-#, fuzzy
 msgid "Show Log"
 msgstr "Logboeken weergeven"
 
