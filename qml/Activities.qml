@@ -35,6 +35,8 @@ Page {
     property bool navigatingToReadMore: false
     // Track if user has modified form fields (deprecated - now using draftHandler)
     property bool formModified: false
+    // Flag to prevent tracking changes during initialization
+    property bool isInitializing: true
 
     // Handle hardware back button presses
     Keys.onReleased: {
@@ -230,14 +232,32 @@ Page {
                             reloadActivityTypeSelector(acctId, -1);
                         }
                         
-                        // Track changes in draft handler
-                        var ids = workItem.getIds();
-                        draftHandler.markFieldChanged("account_id", ids.account_id);
-                        draftHandler.markFieldChanged("project_id", ids.project_id);
-                        draftHandler.markFieldChanged("sub_project_id", ids.subproject_id);
-                        draftHandler.markFieldChanged("task_id", ids.task_id);
-                        draftHandler.markFieldChanged("sub_task_id", ids.subtask_id);
-                        draftHandler.markFieldChanged("user_id", ids.assignee_id);
+                        // Track changes in draft handler (only after initialization)
+                        if (!isInitializing) {
+                            var ids = workItem.getIds();
+                            console.log("📝 Activities.qml: WorkItem state changed to:", newState, "IDs:", JSON.stringify(ids));
+                            
+                            // Track all IDs whenever state changes (check for valid values, not null, undefined, or -1)
+                            if (ids.account_id !== undefined && ids.account_id !== null && ids.account_id !== -1) {
+                                draftHandler.markFieldChanged("account_id", ids.account_id);
+                            }
+                            if (ids.project_id !== undefined && ids.project_id !== null && ids.project_id !== -1) {
+                                draftHandler.markFieldChanged("project_id", ids.project_id);
+                            }
+                            if (ids.subproject_id !== undefined && ids.subproject_id !== null && ids.subproject_id !== -1) {
+                                draftHandler.markFieldChanged("sub_project_id", ids.subproject_id);
+                            }
+                            if (ids.task_id !== undefined && ids.task_id !== null && ids.task_id !== -1) {
+                                draftHandler.markFieldChanged("task_id", ids.task_id);
+                            }
+                            if (ids.subtask_id !== undefined && ids.subtask_id !== null && ids.subtask_id !== -1) {
+                                draftHandler.markFieldChanged("sub_task_id", ids.subtask_id);
+                            }
+                            if (ids.assignee_id !== undefined && ids.assignee_id !== null && ids.assignee_id !== -1) {
+                                console.log("📝 Activities.qml: Tracking assignee change:", ids.assignee_id);
+                                draftHandler.markFieldChanged("user_id", ids.assignee_id);
+                            }
+                        }
                     }
                 }
             }
@@ -278,8 +298,10 @@ Page {
                     onCheckedChanged: {
                         if (checked) {
                             taskRadio.checked = false;
-                            // Track changes in draft handler
-                            draftHandler.markFieldChanged("linkedType", "project");
+                            // Track changes in draft handler (only after initialization)
+                            if (!isInitializing) {
+                                draftHandler.markFieldChanged("linkedType", "project");
+                            }
                         }
                     }
                 }
@@ -298,8 +320,10 @@ Page {
                     onCheckedChanged: {
                         if (checked) {
                             projectRadio.checked = false;
-                            // Track changes in draft handler
-                            draftHandler.markFieldChanged("linkedType", "task");
+                            // Track changes in draft handler (only after initialization)
+                            if (!isInitializing) {
+                                draftHandler.markFieldChanged("linkedType", "task");
+                            }
                         }
                     }
                 }
@@ -337,15 +361,16 @@ Page {
                     readOnly: isReadOnly
                     width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
                     height: units.gu(5) // Start with collapsed height
-                    anchors.centerIn: parent.centerIn
                     text: currentActivity.summary
 
                     onTextChanged: {
                         if (text !== currentActivity.summary) {
                             formModified = true;
                         }
-                        // Track changes in draft handler
-                        draftHandler.markFieldChanged("summary", text);
+                        // Track changes in draft handler (only after initialization)
+                        if (!isInitializing) {
+                            draftHandler.markFieldChanged("summary", text);
+                        }
                     }
 
                     // Custom styling for border highlighting
@@ -372,16 +397,17 @@ Page {
 
             Column {
                 id: myCol9
-                anchors.fill: parent
+                width: parent.width
+                height: parent.height
 
                 Item {
                     id: textAreaContainer
-                    anchors.fill: parent
+                    width: parent.width
+                    height: parent.height
                     RichTextPreview {
                         id: notes
                         anchors.fill: parent
                         title: "Notes"
-                        anchors.centerIn: parent.centerIn
                         text: ""
                         is_read_only: isReadOnly
                         onClicked: {
@@ -395,8 +421,10 @@ Page {
                             });
                         }
                         onContentChanged: function(content) {
-                            // Track changes in draft handler
-                            draftHandler.markFieldChanged("notes", content);
+                            // Track changes in draft handler (only after initialization)
+                            if (!isInitializing) {
+                                draftHandler.markFieldChanged("notes", content);
+                            }
                         }
                     }
                 }
@@ -420,8 +448,18 @@ Page {
                     width: flickable.width - units.gu(2)
                     height: units.gu(29)
                     onItemSelected: function(id, name) {
-                        // Track changes in draft handler
-                        draftHandler.markFieldChanged("activity_type_id", id);
+                        // Track changes in draft handler (only after initialization)
+                        if (!isInitializing) {
+                            console.log("📝 Activities.qml: Activity type selected:", id, name);
+                            draftHandler.markFieldChanged("activity_type_id", id);
+                        }
+                    }
+                    onSelectedIdChanged: {
+                        // Also track programmatic changes (only after initialization)
+                        if (!isInitializing && selectedId !== -1) {
+                            console.log("📝 Activities.qml: Activity type changed to:", selectedId);
+                            draftHandler.markFieldChanged("activity_type_id", selectedId);
+                        }
                     }
                 }
             }
@@ -440,17 +478,31 @@ Page {
                     height: units.gu(5)
                     anchors.centerIn: parent.centerIn
                     onDateChanged: function(selectedDate) {
-                        // Track changes in draft handler
-                        draftHandler.markFieldChanged("due_date", Qt.formatDate(selectedDate, "yyyy-MM-dd"));
+                        // Track changes in draft handler (only after initialization)
+                        if (!isInitializing) {
+                            draftHandler.markFieldChanged("due_date", Qt.formatDate(selectedDate, "yyyy-MM-dd"));
+                        }
                     }
                 }
             }
         }
     }
 
+    // Timer to end initialization phase
+    Timer {
+        id: initializationTimer
+        interval: 500  // 500ms should be enough for all components to settle
+        repeat: false
+        onTriggered: {
+            isInitializing = false;
+            console.log("🎯 Activities.qml: Initialization complete, draft tracking now active");
+        }
+    }
+
     Component.onCompleted: {
         // Initialize form modification tracking
         formModified = false;
+        isInitializing = true;
 
         if (recordid != 0) {
             currentActivity = Activity.getActivityById(recordid, accountid);
@@ -544,6 +596,9 @@ Page {
                 linkedType: "task"
             });
         }
+        
+        // Start timer to end initialization phase
+        initializationTimer.start();
     }
 
     // Robust navigation function with multiple fallback methods
@@ -728,9 +783,14 @@ Page {
 
             if (Global.description_temporary_holder !== "" && Global.description_context === "activity_notes") {
                 //Check if you are coming back from the ReadMore page
-                notes.setContent(Global.description_temporary_holder);
                 
-                // Mark field as changed in draft handler
+                // Temporarily set isInitializing to avoid triggering during setContent
+                var wasInitializing = isInitializing;
+                isInitializing = true;
+                notes.setContent(Global.description_temporary_holder);
+                isInitializing = wasInitializing;
+                
+                // Mark field as changed in draft handler (force this one)
                 draftHandler.markFieldChanged("notes", Global.description_temporary_holder);
                 
                 Global.description_temporary_holder = "";
