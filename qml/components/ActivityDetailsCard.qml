@@ -21,6 +21,8 @@ ListItem {
     property int colorPallet: 0
 
     signal cardClicked(int accountid, int recordid)
+    signal editRequested(int accountid, int recordid)
+    signal viewRequested(int accountid, int recordid)
     signal markAsDone(int accountid, int recordId)
     signal createFollowup(int accountid, int recordId)
     signal dateChanged(int accountid, int recordId, string newDate)
@@ -171,12 +173,23 @@ ListItem {
     trailingActions: ListItemActions {
         actions: [
             Action {
+                iconName: "edit"
+                text: i18n.dtr("ubtms", "Edit")
+                onTriggered: root.editRequested(root.account_id, root.odoo_record_id)
+            },
+            Action {
+                iconName: "info"
+                text: i18n.dtr("ubtms", "View")
+                onTriggered: root.viewRequested(root.account_id, root.odoo_record_id)
+            },
+            Action {
                 iconName: "tick"
-                // color: "#4CAF50"
+                text: i18n.dtr("ubtms", "Mark Done")
                 onTriggered: markAsDone(root.account_id, root.odoo_record_id)
             },
             Action {
                 iconName: "retweet"
+                text: i18n.dtr("ubtms", "Follow-up")
                 onTriggered: createFollowup(root.account_id, root.odoo_record_id)
             }
         ]
@@ -333,9 +346,8 @@ ListItem {
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        onClicked: root.cardClicked(root.account_id, root.odoo_record_id)
+    onClicked: {
+        root.cardClicked(root.account_id, root.odoo_record_id)
     }
 
     // Date Selector for changing activity date

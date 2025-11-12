@@ -37,7 +37,7 @@
 
       <h4>New Features</h4>
 <ul>
-<li>Introdcing Draft Manager in Timesheets, Tasks form View and Project Update Creation Form. Draft Manager will save your data in draft state in case of app crash or in case of Navigation to some other page. </li>
+<li>Introdcing Draft Manager in Timesheets, Tasks form View, Activities, and Project Update Creation Form. Draft Manager will save your data in draft state in case of app crash or in case of Navigation to some other page. </li>
 <li>Introducing Weblates. Added Support for nl language.</li>
 <li> Adding Rich Text Editor support for Project Updates. </li>
 </ul>

@@ -144,6 +144,27 @@ function getProjectUpdatesByProject(projectOdooRecordId, accountId) {
     return updateList;
 }
 
+function getProjectUpdateById(updateId, accountId) {
+    var update = null;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_update_app WHERE id = ? AND account_id = ? LIMIT 1";
+            var result = tx.executeSql(query, [updateId, accountId]);
+
+            if (result.rows.length > 0) {
+                update = DBCommon.rowToObject(result.rows.item(0));
+            }
+        });
+    } catch (e) {
+        console.error("❌ getProjectUpdateById failed:", e);
+    }
+
+    return update || {};
+}
+
 function getProjectStageName(odooRecordId) {
     var stageName = null;
 

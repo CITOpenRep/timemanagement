@@ -33,32 +33,39 @@ Page {
     property bool hasBeenSaved: false
     // Track if we're navigating to ReadMorePage to avoid showing save dialog
     property bool navigatingToReadMore: false
-    // Track if user has modified form fields
+    // Track if user has modified form fields (deprecated - now using draftHandler)
     property bool formModified: false
+    // Flag to prevent tracking changes during initialization
+    property bool isInitializing: true
 
     // Handle hardware back button presses
     Keys.onReleased: {
         if (event.key === Qt.Key_Back || event.key === Qt.Key_Escape) {
             event.accepted = true;
-
-            // Check if we need to show save/discard dialog
-            if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
-                var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
-                var shouldShowDialog = isUnsaved || formModified;
-
-                if (shouldShowDialog) {
-                    saveDiscardDialog.open();
-                    return;
-                }
-            }
-
-            navigateBack();
+            handleBackNavigation();
         }
+    }
+
+    function handleBackNavigation() {
+        // Check if we're navigating to ReadMore page
+        if (navigatingToReadMore) {
+            navigateBack();
+            return;
+        }
+        
+        // Check if we have unsaved changes
+        if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+            saveDiscardDialog.open();
+            return;
+        }
+        
+        // No unsaved changes, navigate back normally
+        navigateBack();
     }
 
     header: PageHeader {
         id: header
-        title: activityDetailsPage.title
+        title: activityDetailsPage.title + (draftHandler.hasUnsavedChanges ? " •" : "")
         StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
@@ -69,9 +76,16 @@ Page {
                 iconSource: "images/save.svg"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms", "Save")
-                // text: 
                 onTriggered: {
                     saveActivityData();
+                }
+            },
+            Action {
+                iconName: "edit"
+                visible: isReadOnly && recordid !== 0
+                text: i18n.dtr("ubtms", "Edit")
+                onTriggered: {
+                    switchToEditMode();
                 }
             }
         ]
@@ -81,20 +95,8 @@ Page {
             Action {
                 iconName: "back"
                 text: i18n.dtr("ubtms", "Back")
-                // text: 
                 onTriggered: {
-                    // Check if we need to show save/discard dialog
-                    if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
-                        var isUnsaved = Activity.isActivityUnsaved(accountid, recordid);
-                        var shouldShowDialog = isUnsaved || formModified;
-
-                        if (shouldShowDialog) {
-                            saveDiscardDialog.open();
-                            return;
-                        }
-                    }
-
-                    navigateBack();
+                    handleBackNavigation();
                 }
             }
         ]
@@ -106,24 +108,144 @@ Page {
         height: units.gu(80)
     }
 
+    // Draft Handler for auto-save and crash recovery
+    FormDraftHandler {
+        id: draftHandler
+        draftType: "activity"
+        recordId: recordid
+        accountId: accountid
+        enabled: !isReadOnly
+        autoSaveInterval: 30000 // 30 seconds
+        
+        onDraftLoaded: function(draftData, changedFields) {
+            console.log("📝 Activities.qml: Draft loaded with", changedFields.length, "changed fields");
+            
+            // Restore form fields from draft
+            if (draftData.summary !== undefined) {
+                summary.text = draftData.summary;
+            }
+            if (draftData.notes !== undefined) {
+                notes.setContent(draftData.notes);
+            }
+            if (draftData.activity_type_id !== undefined && draftData.account_id !== undefined) {
+                // Reload activity type selector with the account from draft
+                reloadActivityTypeSelector(draftData.account_id, draftData.activity_type_id);
+            }
+            if (draftData.due_date !== undefined) {
+                date_widget.setSelectedDate(draftData.due_date);
+            }
+            
+            // Restore radio button selection first
+            if (draftData.linkedType !== undefined) {
+                if (draftData.linkedType === "project") {
+                    projectRadio.checked = true;
+                    taskRadio.checked = false;
+                } else if (draftData.linkedType === "task") {
+                    taskRadio.checked = true;
+                    projectRadio.checked = false;
+                }
+            }
+            
+            // Restore WorkItemSelector using deferredLoadExistingRecordSet
+            if (draftData.account_id !== undefined) {
+                var accountId = draftData.account_id || 0;
+                var projectId = draftData.project_id || -1;
+                var subProjectId = draftData.sub_project_id || -1;
+                var taskId = draftData.task_id || -1;
+                var subTaskId = draftData.sub_task_id || -1;
+                var userId = draftData.user_id || -1;
+                
+                console.log("📝 Activities.qml: Restoring WorkItem with:", 
+                    "account:", accountId, 
+                    "project:", projectId, 
+                    "subproject:", subProjectId,
+                    "task:", taskId,
+                    "subtask:", subTaskId,
+                    "user:", userId);
+                
+                workItem.deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, userId);
+            }
+            
+            // Show notification about draft
+            notifPopup.open("Draft Restored", "Your unsaved changes have been restored", "info");
+        }
+        
+        onDraftSaved: function(draftId) {
+            console.log("💾 Activities.qml: Draft saved with ID:", draftId);
+        }
+        
+        onDraftCleared: function() {
+            console.log("🗑️ Activities.qml: Draft cleared");
+        }
+    }
+
     SaveDiscardDialog {
         id: saveDiscardDialog
         onSaveRequested: {
             saveActivityData();
-            // navigateBack(); // Do not navigate back immediately after save - stay on the page so if user wants to continue editing, they can or if there are validation errors they can correct them
+            // After successful save, navigate back
+            if (hasBeenSaved) {
+                navigateBack();
+            }
         }
         onDiscardRequested: {
-            // Delete the unsaved activity
+            // For new activities that haven't been saved, delete them
             if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
                 if (Activity.isActivityUnsaved(accountid, recordid)) {
                     Activity.deleteActivity(accountid, recordid);
                 }
             }
+            
+            // For edit mode, restore to original read-only state
+            if (recordid > 0 && hasBeenSaved) {
+                restoreFormToOriginal();
+                isReadOnly = true;
+            }
+            
+            // Clear draft when discarding
+            draftHandler.clearDraft();
             navigateBack();
         }
-        onCancelled:
-        // User wants to stay and continue editing
-        {}
+        onCancelled: {
+            // User wants to stay and continue editing
+        }
+    }
+
+    function restoreFormToOriginal() {
+        console.log("🔄 Restoring form to original values...");
+        
+        var originalData = draftHandler.originalData;
+        if (originalData.summary !== undefined) summary.text = originalData.summary;
+        if (originalData.notes !== undefined) notes.setContent(originalData.notes);
+        if (originalData.activity_type_id !== undefined && originalData.account_id !== undefined) {
+            reloadActivityTypeSelector(originalData.account_id, originalData.activity_type_id);
+        }
+        if (originalData.due_date !== undefined) {
+            date_widget.setSelectedDate(originalData.due_date);
+        }
+        
+        // Restore radio button selection
+        if (originalData.linkedType !== undefined) {
+            if (originalData.linkedType === "project") {
+                projectRadio.checked = true;
+                taskRadio.checked = false;
+            } else if (originalData.linkedType === "task") {
+                taskRadio.checked = true;
+                projectRadio.checked = false;
+            }
+        }
+        
+        // Restore WorkItemSelector
+        if (originalData.account_id !== undefined) {
+            var accountId = originalData.account_id || 0;
+            var projectId = originalData.project_id || -1;
+            var subProjectId = originalData.sub_project_id || -1;
+            var taskId = originalData.task_id || -1;
+            var subTaskId = originalData.sub_task_id || -1;
+            var userId = originalData.user_id || -1;
+            
+            workItem.deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, userId);
+        }
     }
     Flickable {
         id: flickable
@@ -153,9 +275,34 @@ Page {
                     width: flickable.width - units.gu(2)
                     onStateChanged: {
                         if (newState === "AccountSelected") {
-                            // Only reset activity type for new activities, not when loading existing ones
-                            if (recordid === 0) {
-                                reloadActivityTypeSelector(data.id, -1);
+                            let acctId = workItem.getIds().account_id;
+                            reloadActivityTypeSelector(acctId, -1);
+                        }
+                        
+                        // Track changes in draft handler (only after initialization)
+                        if (!isInitializing) {
+                            var ids = workItem.getIds();
+                            console.log("📝 Activities.qml: WorkItem state changed to:", newState, "IDs:", JSON.stringify(ids));
+                            
+                            // Track all IDs whenever state changes (check for valid values, not null, undefined, or -1)
+                            if (ids.account_id !== undefined && ids.account_id !== null && ids.account_id !== -1) {
+                                draftHandler.markFieldChanged("account_id", ids.account_id);
+                            }
+                            if (ids.project_id !== undefined && ids.project_id !== null && ids.project_id !== -1) {
+                                draftHandler.markFieldChanged("project_id", ids.project_id);
+                            }
+                            if (ids.subproject_id !== undefined && ids.subproject_id !== null && ids.subproject_id !== -1) {
+                                draftHandler.markFieldChanged("sub_project_id", ids.subproject_id);
+                            }
+                            if (ids.task_id !== undefined && ids.task_id !== null && ids.task_id !== -1) {
+                                draftHandler.markFieldChanged("task_id", ids.task_id);
+                            }
+                            if (ids.subtask_id !== undefined && ids.subtask_id !== null && ids.subtask_id !== -1) {
+                                draftHandler.markFieldChanged("sub_task_id", ids.subtask_id);
+                            }
+                            if (ids.assignee_id !== undefined && ids.assignee_id !== null && ids.assignee_id !== -1) {
+                                console.log("📝 Activities.qml: Tracking assignee change:", ids.assignee_id);
+                                draftHandler.markFieldChanged("user_id", ids.assignee_id);
                             }
                         }
                     }
@@ -198,6 +345,10 @@ Page {
                     onCheckedChanged: {
                         if (checked) {
                             taskRadio.checked = false;
+                            // Track changes in draft handler (only after initialization)
+                            if (!isInitializing) {
+                                draftHandler.markFieldChanged("linkedType", "project");
+                            }
                         }
                     }
                 }
@@ -216,6 +367,10 @@ Page {
                     onCheckedChanged: {
                         if (checked) {
                             projectRadio.checked = false;
+                            // Track changes in draft handler (only after initialization)
+                            if (!isInitializing) {
+                                draftHandler.markFieldChanged("linkedType", "task");
+                            }
                         }
                     }
                 }
@@ -253,12 +408,15 @@ Page {
                     readOnly: isReadOnly
                     width: flickable.width < units.gu(361) ? flickable.width - units.gu(15) : flickable.width - units.gu(10)
                     height: units.gu(5) // Start with collapsed height
-                    anchors.centerIn: parent.centerIn
                     text: currentActivity.summary
 
                     onTextChanged: {
                         if (text !== currentActivity.summary) {
                             formModified = true;
+                        }
+                        // Track changes in draft handler (only after initialization)
+                        if (!isInitializing) {
+                            draftHandler.markFieldChanged("summary", text);
                         }
                     }
 
@@ -286,27 +444,34 @@ Page {
 
             Column {
                 id: myCol9
-                anchors.fill: parent
+                width: parent.width
+                height: parent.height
 
                 Item {
                     id: textAreaContainer
-                    anchors.fill: parent
+                    width: parent.width
+                    height: parent.height
                     RichTextPreview {
                         id: notes
                         anchors.fill: parent
                         title: "Notes"
-                        anchors.centerIn: parent.centerIn
                         text: ""
                         is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Store and pass the key to the page
-                            Global.description_temporary_holder = getFormattedText();
+                            Global.description_temporary_holder = notes.getFormattedText();
                             Global.description_context = "activity_notes";
                             navigatingToReadMore = true;
                             apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly
                                 //useRichText: false
                             });
+                        }
+                        onContentChanged: function(content) {
+                            // Track changes in draft handler (only after initialization)
+                            if (!isInitializing) {
+                                draftHandler.markFieldChanged("notes", content);
+                            }
                         }
                     }
                 }
@@ -329,6 +494,20 @@ Page {
                     labelText: i18n.dtr("ubtms","Activity Type")
                     width: flickable.width - units.gu(2)
                     height: units.gu(29)
+                    onItemSelected: function(id, name) {
+                        // Track changes in draft handler (only after initialization)
+                        if (!isInitializing) {
+                            console.log("📝 Activities.qml: Activity type selected:", id, name);
+                            draftHandler.markFieldChanged("activity_type_id", id);
+                        }
+                    }
+                    onSelectedIdChanged: {
+                        // Also track programmatic changes (only after initialization)
+                        if (!isInitializing && selectedId !== -1) {
+                            console.log("📝 Activities.qml: Activity type changed to:", selectedId);
+                            draftHandler.markFieldChanged("activity_type_id", selectedId);
+                        }
+                    }
                 }
             }
         }
@@ -345,14 +524,32 @@ Page {
                     width: flickable.width - units.gu(2)
                     height: units.gu(5)
                     anchors.centerIn: parent.centerIn
+                    onDateChanged: function(selectedDate) {
+                        // Track changes in draft handler (only after initialization)
+                        if (!isInitializing) {
+                            draftHandler.markFieldChanged("due_date", Qt.formatDate(selectedDate, "yyyy-MM-dd"));
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    // Timer to end initialization phase
+    Timer {
+        id: initializationTimer
+        interval: 500  // 500ms should be enough for all components to settle
+        repeat: false
+        onTriggered: {
+            isInitializing = false;
+            console.log("🎯 Activities.qml: Initialization complete, draft tracking now active");
         }
     }
 
     Component.onCompleted: {
         // Initialize form modification tracking
         formModified = false;
+        isInitializing = true;
 
         if (recordid != 0) {
             currentActivity = Activity.getActivityById(recordid, accountid);
@@ -360,9 +557,6 @@ Page {
 
             let instanceId = currentActivity.account_id;
             let user_id = currentActivity.user_id;
-
-            // Load the Activity Type
-            reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
 
             // Default radio selection
             taskRadio.checked = false;
@@ -373,33 +567,53 @@ Page {
                 currentActivity.sub_project_id = -1;
             }
 
-            switch (currentActivity.linkedType) {
-            case "task":
-                // Connected to task: Show project, subproject, and task selectors
-
-                taskRadio.checked = true;
-
-                workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
-                break;
-            case "project":
-                // Connected to project/subproject: Show project and subproject selectors
-
-                projectRadio.checked = true;
-                workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
-                break;
-            default:
-                workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
-            }
-
-            // Update fields with loaded data
-            summary.text = currentActivity.summary || "";
-            notes.setContent(currentActivity.notes || "");
-
-            // Update due date
-            date_widget.setSelectedDate(currentActivity.due_date);
-
             // Check if this is a truly saved activity or a newly created one with default values
             hasBeenSaved = !Activity.isActivityUnsaved(accountid, recordid);
+            
+            // Initialize draft handler with original data FIRST
+            // This will trigger tryLoadDraft() which may call onDraftLoaded
+            draftHandler.initialize({
+                summary: currentActivity.summary || "",
+                notes: currentActivity.notes || "",
+                activity_type_id: currentActivity.activity_type_id,
+                due_date: currentActivity.due_date,
+                account_id: currentActivity.account_id,
+                project_id: currentActivity.project_id,
+                sub_project_id: currentActivity.sub_project_id,
+                task_id: currentActivity.task_id,
+                sub_task_id: currentActivity.sub_task_id,
+                user_id: currentActivity.user_id,
+                linkedType: currentActivity.linkedType
+            });
+            
+            // If no draft was loaded, load the activity data normally
+            // (if draft was loaded, onDraftLoaded already populated the fields)
+            if (!draftHandler.hasUnsavedChanges) {
+                // Load the Activity Type
+                reloadActivityTypeSelector(instanceId, currentActivity.activity_type_id);
+
+                switch (currentActivity.linkedType) {
+                case "task":
+                    // Connected to task: Show project, subproject, and task selectors
+                    taskRadio.checked = true;
+                    workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, currentActivity.task_id, currentActivity.sub_task_id, user_id);
+                    break;
+                case "project":
+                    // Connected to project/subproject: Show project and subproject selectors
+                    projectRadio.checked = true;
+                    workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
+                    break;
+                default:
+                    workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
+                }
+
+                // Update fields with loaded data
+                summary.text = currentActivity.summary || "";
+                notes.setContent(currentActivity.notes || "");
+
+                // Update due date
+                date_widget.setSelectedDate(currentActivity.due_date);
+            }
         } else {
             // For new activities
             let account = Accounts.getAccountsList();
@@ -413,38 +627,120 @@ Page {
             // New activities start as unsaved
             hasBeenSaved = false;
             console.log("📝 Activities.qml: New activity creation mode");
+            
+            // Initialize draft handler with empty data for new activities
+            draftHandler.initialize({
+                summary: "",
+                notes: "",
+                activity_type_id: -1,
+                due_date: "",
+                account_id: 0,
+                project_id: -1,
+                sub_project_id: -1,
+                task_id: -1,
+                sub_task_id: -1,
+                user_id: -1,
+                linkedType: "task"
+            });
         }
+        
+        // Start timer to end initialization phase
+        initializationTimer.start();
+    }
+
+    function switchToEditMode() {
+        // Switch from read-only to edit mode
+        if (recordid !== 0) {
+            console.log("🔄 Activities.qml: Switching to edit mode");
+            isReadOnly = false;
+            
+            // Initialize draft handler when switching from read-only to edit mode
+            // This ensures drafts are loaded if they exist
+            var originalActivityData = getCurrentFormData();
+            draftHandler.initialize(originalActivityData);
+        }
+    }
+
+    function getCurrentFormData() {
+        const ids = workItem.getIds();
+        
+        var formData = {
+            summary: summary.text || "",
+            notes: notes.getFormattedText() || "",
+            activity_type_id: activityTypeSelector.selectedId || -1,
+            due_date: date_widget.formattedDate() || "",
+            account_id: ids.account_id || 0,
+            project_id: ids.project_id || -1,
+            sub_project_id: ids.subproject_id || -1,
+            task_id: ids.task_id || -1,
+            sub_task_id: ids.subtask_id || -1,
+            user_id: ids.assignee_id || -1,
+            linkedType: taskRadio.checked ? "task" : (projectRadio.checked ? "project" : "")
+        };
+        
+        return formData;
     }
 
     // Robust navigation function with multiple fallback methods
     function navigateBack() {
+        console.log("🔙 Attempting to navigate back...");
+        
+        // Method 1: AdaptivePageLayout (primary method for this app)
+        try {
+            if (typeof apLayout !== "undefined" && apLayout !== null) {
+                apLayout.removePages(activityDetailsPage);
+                console.log("✅ Navigated back using apLayout.removePages");
+                return;
+            }
+        } catch (e) {
+            console.warn("⚠️ apLayout.removePages failed:", e);
+        }
+        
+        // Method 2: Standard pageStack
         try {
             if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
                 pageStack.pop();
+                console.log("✅ Navigated back using pageStack.pop");
                 return;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("⚠️ pageStack.pop failed:", e);
+        }
 
+        // Method 3: Stack view
         try {
             if (typeof Stack !== "undefined" && Stack.view && Stack.view.pop) {
                 Stack.view.pop();
+                console.log("✅ Navigated back using Stack.view.pop");
                 return;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("⚠️ Stack.view.pop failed:", e);
+        }
 
+        // Method 4: pageStack removePages
         try {
             if (typeof pageStack !== "undefined" && pageStack && pageStack.removePages) {
                 pageStack.removePages(activityDetailsPage);
+                console.log("✅ Navigated back using pageStack.removePages");
                 return;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("⚠️ pageStack.removePages failed:", e);
+        }
 
+        // Method 5: Parent pop
         try {
             if (parent && parent.pop) {
                 parent.pop();
+                console.log("✅ Navigated back using parent.pop");
                 return;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("⚠️ parent.pop failed:", e);
+        }
+        
+        console.warn("⚠️ No navigation method found!");
     }
     function reloadActivityTypeSelector(accountId, selectedTypeId) {
         let rawTypes = Activity.getActivityTypesForAccount(accountId);
@@ -554,6 +850,13 @@ Page {
         } else {
             hasBeenSaved = true;  // Mark that this activity has been properly saved
             formModified = false; // Reset form modification flag after successful save
+            
+            // Clear draft after successful save
+            draftHandler.clearDraft();
+            
+            // Update original data in draft handler to reset baseline
+            draftHandler.updateOriginalData();
+            
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
             // No navigation - stay on the same page like Timesheet.qml
             // User can use back button to return to list page
@@ -584,6 +887,10 @@ Page {
                 notes.setContent(currentActivity.notes || "");
                 date_widget.setSelectedDate(currentActivity.due_date);
                 console.log("📅 Activities.qml: Set date widget to:", currentActivity.due_date);
+                
+                // Reload Activity Type selector with the saved value
+                reloadActivityTypeSelector(currentActivity.account_id, currentActivity.activity_type_id);
+                console.log("📅 Activities.qml: Reloaded activity type:", currentActivity.activity_type_id);
 
                 // Reset form modification flag after loading data
                 formModified = false;
@@ -591,7 +898,16 @@ Page {
 
             if (Global.description_temporary_holder !== "" && Global.description_context === "activity_notes") {
                 //Check if you are coming back from the ReadMore page
+                
+                // Temporarily set isInitializing to avoid triggering during setContent
+                var wasInitializing = isInitializing;
+                isInitializing = true;
                 notes.setContent(Global.description_temporary_holder);
+                isInitializing = wasInitializing;
+                
+                // Mark field as changed in draft handler (force this one)
+                draftHandler.markFieldChanged("notes", Global.description_temporary_holder);
+                
                 Global.description_temporary_holder = "";
                 Global.description_context = "";
             }

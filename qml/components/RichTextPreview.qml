@@ -16,6 +16,7 @@ Rectangle {
     color: "transparent"
 
     signal clicked
+    signal contentChanged(string content)
 
     // Function to get the raw text content with formatting preserved
     function getFormattedText() {
@@ -77,6 +78,8 @@ Rectangle {
                 onTextChanged: {
                     if (!is_read_only) {
                         originalHtmlContent = text;
+                        // Emit signal for draft tracking
+                        root.contentChanged(text);
                     }
                 }
 
