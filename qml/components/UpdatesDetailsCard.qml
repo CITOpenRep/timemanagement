@@ -49,12 +49,13 @@ ListItem {
                 iconName: "edit"
                 text: i18n.dtr("ubtms", "Edit")
                 onTriggered: editRequested(account_id, recordId)
-            },
-            Action {
-                iconName: "info"
-                text: i18n.dtr("ubtms", "View")
-                onTriggered: viewRequested(account_id, recordId)
             }
+            // View action disabled for now as Click Action is There , in Project Updates we do not Follow Parent Child Hierarchy
+            // Action {
+            //     iconName: "info"
+            //     text: i18n.dtr("ubtms", "View")
+            //     onTriggered: viewRequested(account_id, recordId)
+            // }
         ]
     }
 

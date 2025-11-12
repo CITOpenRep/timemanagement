@@ -177,11 +177,12 @@ ListItem {
                 text: i18n.dtr("ubtms", "Edit")
                 onTriggered: root.editRequested(root.account_id, root.odoo_record_id)
             },
-            Action {
-                iconName: "info"
-                text: i18n.dtr("ubtms", "View")
-                onTriggered: root.viewRequested(root.account_id, root.odoo_record_id)
-            },
+            //View action disabled for now as Click Action is There , in Activities we do not Follow Parent Child Hierarchy
+            // Action {
+            //     iconName: "info"
+            //     text: i18n.dtr("ubtms", "View")
+            //     onTriggered: root.viewRequested(root.account_id, root.odoo_record_id)
+            // },
             Action {
                 iconName: "tick"
                 text: i18n.dtr("ubtms", "Mark Done")
