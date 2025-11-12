@@ -53,6 +53,9 @@ Page {
         "date": ""
     }
     
+    // Status list
+    property var projectUpdateStatus: ["on_track", "at_risk", "off_track", "on_hold"]
+    
     // Track if the update has been saved at least once
     property bool hasBeenSaved: false
     // Track if we're navigating to ReadMorePage
@@ -149,7 +152,10 @@ Page {
                 description_text.setContent(draftData.description);
             }
             if (draftData.project_status !== undefined) {
-                statusSelector.selectedStatus = draftData.project_status;
+                var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(draftData.project_status);
+                if (statusIndex !== -1) {
+                    statusSelector.currentIndex = statusIndex;
+                }
             }
             if (draftData.progress !== undefined) {
                 progressSlider.value = draftData.progress;
@@ -204,7 +210,12 @@ Page {
         var originalData = draftHandler.originalData;
         if (originalData.name !== undefined) name_text.text = originalData.name;
         if (originalData.description !== undefined) description_text.setContent(originalData.description);
-        if (originalData.project_status !== undefined) statusSelector.selectedStatus = originalData.project_status;
+        if (originalData.project_status !== undefined) {
+            var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(originalData.project_status);
+            if (statusIndex !== -1) {
+                statusSelector.currentIndex = statusIndex;
+            }
+        }
         if (originalData.progress !== undefined) progressSlider.value = originalData.progress;
     }
     
@@ -325,13 +336,16 @@ Page {
                         width: parent.width
                     }
                     
-                    StatusSelector {
+                    ComboBox {
                         id: statusSelector
-                        readOnly: isReadOnly
                         width: parent.width
-                        onStatusChanged: {
-                            if (!isInitializing) {
-                                draftHandler.markFieldChanged("project_status", selectedStatus);
+                        model: updateDetailsPage.projectUpdateStatus
+                        currentIndex: updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status) >= 0 ? updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status) : 0
+                        enabled: !isReadOnly
+                        
+                        onCurrentIndexChanged: {
+                            if (!isInitializing && currentIndex >= 0) {
+                                draftHandler.markFieldChanged("project_status", updateDetailsPage.projectUpdateStatus[currentIndex]);
                             }
                         }
                     }
@@ -447,7 +461,7 @@ Page {
         var formData = {
             name: name_text.text || "",
             description: description_text.getFormattedText() || "",
-            project_status: statusSelector.selectedStatus || "",
+            project_status: updateDetailsPage.projectUpdateStatus[statusSelector.currentIndex] || "",
             progress: progressSlider.value || 0,
             account_id: currentUpdate.account_id || 0,
             project_id: currentUpdate.project_id || -1,
@@ -494,7 +508,7 @@ Page {
             return;
         }
         
-        if (!statusSelector.selectedStatus) {
+        if (!updateDetailsPage.projectUpdateStatus[statusSelector.currentIndex]) {
             notifPopup.open("Error", "Please select a project status", "error");
             return;
         }
@@ -503,7 +517,7 @@ Page {
             account_id: currentUpdate.account_id,
             project_id: currentUpdate.project_id,
             name: Utils.cleanText(name_text.text),
-            project_status: statusSelector.selectedStatus,
+            project_status: updateDetailsPage.projectUpdateStatus[statusSelector.currentIndex],
             progress: progressSlider.value,
             description: Utils.cleanText(description_text.getFormattedText()),
             user_id: currentUpdate.user_id || Accounts.getCurrentUserOdooId(currentUpdate.account_id)
@@ -550,7 +564,8 @@ Page {
             if (!draftHandler.hasUnsavedChanges) {
                 name_text.text = currentUpdate.name || "";
                 description_text.setContent(currentUpdate.description || "");
-                statusSelector.selectedStatus = currentUpdate.project_status || "";
+                var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status || "");
+                statusSelector.currentIndex = statusIndex >= 0 ? statusIndex : 0;
                 progressSlider.value = currentUpdate.progress || 0;
             }
         } else {
@@ -575,7 +590,7 @@ Page {
             // Set initial values
             name_text.text = "";
             description_text.setContent("");
-            statusSelector.selectedStatus = "on_track";
+            statusSelector.currentIndex = 0; // "on_track" is at index 0
             progressSlider.value = 0;
         }
         
