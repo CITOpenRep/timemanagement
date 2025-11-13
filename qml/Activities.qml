@@ -419,10 +419,15 @@ Page {
             TSButton {
                 width: parent.width - units.gu(2)
                 height: units.gu(6)
-                bgColor: "#eff6ff"
-                fgColor: "#2563eb"
-                hoverColor: "#dbeafe"
-                borderColor: "#93c5fd"
+                
+             
+              //  borderColor: "#f97316"
+
+                   bgColor: "#fef1e7"
+                fgColor: "#f97316"
+                hoverColor: '#f3e0d1'
+               
+                iconColor: "#f97316"
                 iconName: {
                     if (!currentActivity) return "";
                     if (currentActivity.linkedType === "task") return "stock_application";
@@ -430,7 +435,7 @@ Page {
                     if (currentActivity.linkedType === "update") return "history";
                     return "";
                 }
-                iconColor: "#2563eb"
+             //   iconColor: "#2563eb"
                 fontBold: true
                 text: {
                     if (!currentActivity) return "";
