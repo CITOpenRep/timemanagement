@@ -138,12 +138,19 @@ Page {
             
             // Restore radio button selection first
             if (draftData.linkedType !== undefined) {
-                if (draftData.linkedType === "project") {
-                    projectRadio.checked = true;
-                    taskRadio.checked = false;
-                } else if (draftData.linkedType === "task") {
+                taskRadio.checked = false;
+                projectRadio.checked = false;
+                updateRadio.checked = false;
+                otherRadio.checked = false;
+                
+                if (draftData.linkedType === "task") {
                     taskRadio.checked = true;
-                    projectRadio.checked = false;
+                } else if (draftData.linkedType === "project") {
+                    projectRadio.checked = true;
+                } else if (draftData.linkedType === "update") {
+                    updateRadio.checked = true;
+                } else if (draftData.linkedType === "other") {
+                    otherRadio.checked = true;
                 }
             }
             
@@ -227,12 +234,19 @@ Page {
         
         // Restore radio button selection
         if (originalData.linkedType !== undefined) {
-            if (originalData.linkedType === "project") {
-                projectRadio.checked = true;
-                taskRadio.checked = false;
-            } else if (originalData.linkedType === "task") {
+            taskRadio.checked = false;
+            projectRadio.checked = false;
+            updateRadio.checked = false;
+            otherRadio.checked = false;
+            
+            if (originalData.linkedType === "task") {
                 taskRadio.checked = true;
-                projectRadio.checked = false;
+            } else if (originalData.linkedType === "project") {
+                projectRadio.checked = true;
+            } else if (originalData.linkedType === "update") {
+                updateRadio.checked = true;
+            } else if (originalData.linkedType === "other") {
+                otherRadio.checked = true;
             }
         }
         
@@ -456,45 +470,105 @@ Page {
             Column {
                 id: myCol99w
                 leftPadding: units.gu(3)
-                RadioButton {
-                    id: projectRadio
-                    text: i18n.dtr("ubtms","Project")
-                    checked: false
-                    enabled: !isReadOnly
-                    contentItem: Text {
-                        text: projectRadio.text
-                        color: theme.palette.normal.backgroundText
-                        leftPadding: projectRadio.indicator.width + projectRadio.spacing
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    onCheckedChanged: {
-                        if (checked) {
-                            taskRadio.checked = false;
-                            // Track changes in draft handler (only after initialization)
-                            if (!isInitializing) {
-                                draftHandler.markFieldChanged("linkedType", "project");
+                
+                Grid {
+                    columns: 2
+                    spacing: units.gu(1)
+                    
+                    RadioButton {
+                        id: projectRadio
+                        text: i18n.dtr("ubtms","Project")
+                        checked: false
+                        enabled: !isReadOnly
+                        contentItem: Text {
+                            text: projectRadio.text
+                            color: theme.palette.normal.backgroundText
+                            leftPadding: projectRadio.indicator.width + projectRadio.spacing
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onCheckedChanged: {
+                            if (checked) {
+                                taskRadio.checked = false;
+                                updateRadio.checked = false;
+                                otherRadio.checked = false;
+                                // Track changes in draft handler (only after initialization)
+                                if (!isInitializing) {
+                                    draftHandler.markFieldChanged("linkedType", "project");
+                                }
                             }
                         }
                     }
-                }
 
-                RadioButton {
-                    id: taskRadio
-                    text: i18n.dtr("ubtms","Task")
-                    checked: true
-                    enabled: !isReadOnly
-                    contentItem: Text {
-                        text: taskRadio.text
-                        color: theme.palette.normal.backgroundText
-                        leftPadding: taskRadio.indicator.width + taskRadio.spacing
-                        verticalAlignment: Text.AlignVCenter
+                    RadioButton {
+                        id: taskRadio
+                        text: i18n.dtr("ubtms","Task")
+                        checked: true
+                        enabled: !isReadOnly
+                        contentItem: Text {
+                            text: taskRadio.text
+                            color: theme.palette.normal.backgroundText
+                            leftPadding: taskRadio.indicator.width + taskRadio.spacing
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onCheckedChanged: {
+                            if (checked) {
+                                projectRadio.checked = false;
+                                updateRadio.checked = false;
+                                otherRadio.checked = false;
+                                // Track changes in draft handler (only after initialization)
+                                if (!isInitializing) {
+                                    draftHandler.markFieldChanged("linkedType", "task");
+                                }
+                            }
+                        }
                     }
-                    onCheckedChanged: {
-                        if (checked) {
-                            projectRadio.checked = false;
-                            // Track changes in draft handler (only after initialization)
-                            if (!isInitializing) {
-                                draftHandler.markFieldChanged("linkedType", "task");
+                    
+                    RadioButton {
+                        id: updateRadio
+                        text: i18n.dtr("ubtms","Update")
+                        checked: false
+                        enabled: !isReadOnly
+                        visible: recordid !== 0  // Only show when editing existing activity
+                        contentItem: Text {
+                            text: updateRadio.text
+                            color: theme.palette.normal.backgroundText
+                            leftPadding: updateRadio.indicator.width + updateRadio.spacing
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onCheckedChanged: {
+                            if (checked) {
+                                projectRadio.checked = false;
+                                taskRadio.checked = false;
+                                otherRadio.checked = false;
+                                // Track changes in draft handler (only after initialization)
+                                if (!isInitializing) {
+                                    draftHandler.markFieldChanged("linkedType", "update");
+                                }
+                            }
+                        }
+                    }
+                    
+                    RadioButton {
+                        id: otherRadio
+                        text: i18n.dtr("ubtms","Other")
+                        checked: false
+                        enabled: !isReadOnly
+                        visible: recordid !== 0  // Only show when editing existing activity
+                        contentItem: Text {
+                            text: otherRadio.text
+                            color: theme.palette.normal.backgroundText
+                            leftPadding: otherRadio.indicator.width + otherRadio.spacing
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onCheckedChanged: {
+                            if (checked) {
+                                projectRadio.checked = false;
+                                taskRadio.checked = false;
+                                updateRadio.checked = false;
+                                // Track changes in draft handler (only after initialization)
+                                if (!isInitializing) {
+                                    draftHandler.markFieldChanged("linkedType", "other");
+                                }
                             }
                         }
                     }
@@ -686,6 +760,8 @@ Page {
             // Default radio selection
             taskRadio.checked = false;
             projectRadio.checked = false;
+            updateRadio.checked = false;
+            otherRadio.checked = false;
 
             // If project and subproject are the same, treat it as no subproject selected.
             if (currentActivity.project_id && currentActivity.project_id === currentActivity.sub_project_id) {
@@ -727,6 +803,16 @@ Page {
                     // Connected to project/subproject: Show project and subproject selectors
                     projectRadio.checked = true;
                     workItem.deferredLoadExistingRecordSet(instanceId, currentActivity.project_id, currentActivity.sub_project_id, -1, -1, user_id);
+                    break;
+                case "update":
+                    // Connected to project update
+                    updateRadio.checked = true;
+                    workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
+                    break;
+                case "other":
+                    // Not connected to anything specific
+                    otherRadio.checked = true;
+                    workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
                     break;
                 default:
                     workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, user_id);
@@ -789,6 +875,18 @@ Page {
     function getCurrentFormData() {
         const ids = workItem.getIds();
         
+        // Determine linkedType based on which radio button is checked
+        var linkedType = "";
+        if (taskRadio.checked) {
+            linkedType = "task";
+        } else if (projectRadio.checked) {
+            linkedType = "project";
+        } else if (updateRadio.checked) {
+            linkedType = "update";
+        } else if (otherRadio.checked) {
+            linkedType = "other";
+        }
+        
         var formData = {
             summary: summary.text || "",
             notes: notes.getFormattedText() || "",
@@ -800,7 +898,7 @@ Page {
             task_id: ids.task_id || -1,
             sub_task_id: ids.subtask_id || -1,
             user_id: ids.assignee_id || -1,
-            linkedType: taskRadio.checked ? "task" : (projectRadio.checked ? "project" : "")
+            linkedType: linkedType
         };
         
         return formData;
