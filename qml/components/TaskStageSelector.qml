@@ -101,7 +101,7 @@ Dialog {
             width: parent.width
             wrapMode: Text.WordWrap
             text: {
-                var currentStageName = Task.getTaskStageName(currentStageOdooRecordId);
+                var currentStageName = Task.getTaskStageName(currentStageOdooRecordId, accountId);
                 return "Current Stage: <b>" + currentStageName + "</b>";
             }
             font.pixelSize: units.gu(2)

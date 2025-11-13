@@ -120,7 +120,7 @@ Dialog {
                 if (currentPersonalStageOdooRecordId === null || currentPersonalStageOdooRecordId === undefined || currentPersonalStageOdooRecordId === -1) {
                     return "Current Personal Stage: <b>None</b>";
                 }
-                var currentStageName = Task.getTaskStageName(currentPersonalStageOdooRecordId);
+                var currentStageName = Task.getTaskStageName(currentPersonalStageOdooRecordId, accountId);
                 return "Current Personal Stage: <b>" + currentStageName + "</b>";
             }
             font.pixelSize: units.gu(2)

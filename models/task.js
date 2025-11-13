@@ -152,7 +152,7 @@ function saveOrUpdateTask(data) {
 }
 
 
-function getTaskStageName(odooRecordId) {
+function getTaskStageName(odooRecordId, accountId) {
     var stageName = "Undefined";
 
     try {
@@ -171,11 +171,11 @@ function getTaskStageName(odooRecordId) {
             var query = `
                 SELECT name
                 FROM project_task_type_app
-                WHERE odoo_record_id = ?
+                WHERE odoo_record_id = ? AND account_id = ?
                 LIMIT 1
             `;
 
-            var result = tx.executeSql(query, [odooRecordId]);
+            var result = tx.executeSql(query, [odooRecordId, accountId]);
 
             if (result.rows.length > 0) {
                 stageName = result.rows.item(0).name;
@@ -1769,7 +1769,7 @@ function isTaskInDoneStage(task) {
         var stageId = task.state;
         if (!stageId) return false;
 
-        var stageName = getTaskStageName(stageId);
+        var stageName = getTaskStageName(stageId, task.account_id);
         if (!stageName) return false;
 
         return stageName.toString().toLowerCase() === "done" || stageName.toString().toLowerCase() === "completed" || stageName.toString().toLowerCase() === "finished" || stageName.toString().toLowerCase() === "closed" || stageName.toString().toLowerCase() === "verified";
@@ -1792,7 +1792,7 @@ function isTaskInCancelledStage(task) {
         var stageId = task.state;
         if (!stageId) return false;
 
-        var stageName = getTaskStageName(stageId);
+        var stageName = getTaskStageName(stageId, task.account_id);
         if (!stageName) return false;
 
         return stageName.toString().toLowerCase() === "cancelled" || stageName.toString().toLowerCase() === "canceled";

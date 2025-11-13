@@ -1194,7 +1194,7 @@ Page {
             }
 
             TSLabel {
-                text: currentTask && currentTask.state ? Task.getTaskStageName(currentTask.state) : i18n.dtr("ubtms", "Not set")
+                text: currentTask && currentTask.state ? Task.getTaskStageName(currentTask.state, currentTask.account_id) : i18n.dtr("ubtms", "Not set")
                 width: (parent.width - (2 * parent.columnSpacing)) / 3
                 height: units.gu(6)
                 fontBold: true
@@ -1202,7 +1202,7 @@ Page {
                     if (!currentTask || !currentTask.state) {
                         return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
                     }
-                    var stageName = Task.getTaskStageName(currentTask.state).toLowerCase();
+                    var stageName = Task.getTaskStageName(currentTask.state, currentTask.account_id).toLowerCase();
                     if (stageName === "completed" || stageName === "finished" || stageName === "closed" || stageName === "verified" || stageName === "done") {
                         return "green";
                     }
