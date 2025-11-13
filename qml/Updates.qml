@@ -189,11 +189,9 @@ Page {
                 Project.markProjectUpdateAsDeleted(recordid);
             }
             
-            // For edit mode, restore to original read-only state
-            if (recordid > 0 && hasBeenSaved) {
+      
                 restoreFormToOriginal();
-                isReadOnly = true;
-            }
+         
             
             // Clear draft when discarding
             draftHandler.clearDraft();
