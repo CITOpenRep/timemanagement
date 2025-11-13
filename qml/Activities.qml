@@ -10,6 +10,7 @@ import "../models/utils.js" as Utils
 import "../models/activity.js" as Activity
 import "../models/accounts.js" as Accounts
 import "../models/task.js" as Task
+import "../models/project.js" as Project
 import "../models/global.js" as Global
 import "components"
 
@@ -302,8 +303,28 @@ Page {
             } else {
                 notifPopup.open("Error", "No valid project connection found", "error");
             }
+        } else if (currentActivity.linkedType === "update") {
+            // Navigate to Project Update
+            var updateOdooRecordId = currentActivity.update_id || -1;
+
+            if (updateOdooRecordId > 0) {
+                console.log("🔗 Navigating to Project Update with odoo_record_id:", updateOdooRecordId);
+                // Get the local update id from odoo_record_id
+                var updateLocalId = Project.getUpdateLocalIdFromOdooId(updateOdooRecordId, currentActivity.account_id);
+                if (updateLocalId > 0) {
+                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Updates.qml"), {
+                        "recordid": updateLocalId,
+                        "accountid": currentActivity.account_id,
+                        "isReadOnly": true
+                    });
+                } else {
+                    notifPopup.open("Error", "Connected project update not found in local database", "error");
+                }
+            } else {
+                notifPopup.open("Error", "No valid project update connection found", "error");
+            }
         } else {
-            notifPopup.open("Info", "This activity is not connected to a task or project", "info");
+            notifPopup.open("Info", "This activity is not connected to a task, project, or update", "info");
         }
     }
 
@@ -379,7 +400,7 @@ Page {
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
             topPadding: units.gu(2)
-            visible: isReadOnly && recordid !== 0 && currentActivity && (currentActivity.linkedType === "task" || currentActivity.linkedType === "project")
+            visible: isReadOnly && recordid !== 0 && currentActivity && (currentActivity.linkedType === "task" || currentActivity.linkedType === "project" || currentActivity.linkedType === "update")
 
             TSButton {
                 width: parent.width - units.gu(2)
@@ -388,7 +409,13 @@ Page {
                 fgColor: "#2563eb"
                 hoverColor: "#dbeafe"
                 borderColor: "#93c5fd"
-                iconName: currentActivity && currentActivity.linkedType === "task" ? "stock_application" : "folder-symbolic"
+                iconName: {
+                    if (!currentActivity) return "";
+                    if (currentActivity.linkedType === "task") return "stock_application";
+                    if (currentActivity.linkedType === "project") return "folder-symbolic";
+                    if (currentActivity.linkedType === "update") return "history";
+                    return "";
+                }
                 iconColor: "#2563eb"
                 fontBold: true
                 text: {
@@ -397,6 +424,8 @@ Page {
                         return i18n.dtr("ubtms", "View Connected Task");
                     } else if (currentActivity.linkedType === "project") {
                         return i18n.dtr("ubtms", "View Connected Project");
+                    } else if (currentActivity.linkedType === "update") {
+                        return i18n.dtr("ubtms", "View Connected Update");
                     }
                     return "";
                 }

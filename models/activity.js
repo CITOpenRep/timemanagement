@@ -136,6 +136,10 @@ function getActivityById(record_id, account_id) {
                     activity.project_id = linkage.project_id;
                     activity.sub_project_id = linkage.sub_project_id;
                     activity.linkedType = "project";
+                } else if (activity.resModel === "project.update" && activity.link_id) {
+                    // Project update linkage
+                    activity.update_id = activity.link_id;
+                    activity.linkedType = "update";
                 } else {
                     console.log("Activity not linked to recognized model, using defaults.");
                 }
@@ -159,6 +163,7 @@ function initializeEnrichmentDefaults(activity) {
     activity.sub_project_id = -1;
     activity.task_id = -1;
     activity.sub_task_id = -1;
+    activity.update_id = -1;
     activity.linkedType = "other";
 }
 
@@ -814,6 +819,10 @@ function getActivitiesForProject(projectOdooRecordId, accountId) {
                     activity.project_id = enrichedProject.project_id;
                     activity.sub_project_id = enrichedProject.sub_project_id;
                     activity.linkedType = "project";
+                } else if (activity.resModel === "project.update") {
+                    initializeEnrichmentDefaults(activity);
+                    activity.update_id = activity.link_id;
+                    activity.linkedType = "update";
                 } else {
                     initializeEnrichmentDefaults(activity);
                 }
