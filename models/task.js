@@ -77,6 +77,37 @@ function isUserAssignedToTask(taskLocalId, userOdooId) {
     }
 }
 
+/**
+ * Get local task ID from Odoo record ID
+ * @param {number} odooRecordId - The Odoo record ID of the task
+ * @param {number} accountId - The account ID
+ * @returns {number} Local task ID, or -1 if not found
+ */
+function getLocalIdFromOdooId(odooRecordId, accountId) {
+    var localId = -1;
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function(tx) {
+            var result = tx.executeSql(
+                'SELECT id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? AND (status IS NULL OR status != \"deleted\") LIMIT 1',
+                [odooRecordId, accountId]
+            );
+            
+            if (result.rows.length > 0) {
+                localId = result.rows.item(0).id;
+            } else {
+                console.warn("Task not found for odoo_record_id:", odooRecordId, "account_id:", accountId);
+            }
+        });
+    } catch (e) {
+        console.error("getLocalIdFromOdooId failed:", e);
+    }
+    
+    return localId;
+}
+
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);

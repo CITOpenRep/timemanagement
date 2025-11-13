@@ -3,6 +3,37 @@
 .import "utils.js" as Utils
 .import "accounts.js" as Account
 
+/**
+ * Get local project ID from Odoo record ID
+ * @param {number} odooRecordId - The Odoo record ID of the project
+ * @param {number} accountId - The account ID
+ * @returns {number} Local project ID, or -1 if not found
+ */
+function getLocalIdFromOdooId(odooRecordId, accountId) {
+    var localId = -1;
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function(tx) {
+            var result = tx.executeSql(
+                'SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
+                [odooRecordId, accountId]
+            );
+            
+            if (result.rows.length > 0) {
+                localId = result.rows.item(0).id;
+            } else {
+                console.warn("Project not found for odoo_record_id:", odooRecordId, "account_id:", accountId);
+            }
+        });
+    } catch (e) {
+        console.error("getLocalIdFromOdooId failed:", e);
+    }
+    
+    return localId;
+}
+
 
 
 /**

@@ -247,6 +247,66 @@ Page {
             workItem.deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, userId);
         }
     }
+
+    function navigateToConnectedItem() {
+        if (!currentActivity || !currentActivity.linkedType) {
+            notifPopup.open("Error", "Activity connection information not available", "error");
+            return;
+        }
+
+        if (currentActivity.linkedType === "task") {
+            // Navigate to Task - use sub_task_id if available, otherwise task_id
+            var taskOdooRecordId = -1;
+            if (currentActivity.sub_task_id && currentActivity.sub_task_id > 0) {
+                taskOdooRecordId = currentActivity.sub_task_id;
+            } else if (currentActivity.task_id && currentActivity.task_id > 0) {
+                taskOdooRecordId = currentActivity.task_id;
+            }
+
+            if (taskOdooRecordId > 0) {
+                console.log("🔗 Navigating to Task with odoo_record_id:", taskOdooRecordId);
+                // Get the local task id from odoo_record_id
+                var taskLocalId = Task.getLocalIdFromOdooId(taskOdooRecordId, currentActivity.account_id);
+                if (taskLocalId > 0) {
+                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Tasks.qml"), {
+                        "recordid": taskLocalId,
+                        "isReadOnly": true
+                    });
+                } else {
+                    notifPopup.open("Error", "Connected task not found in local database", "error");
+                }
+            } else {
+                notifPopup.open("Error", "No valid task connection found", "error");
+            }
+        } else if (currentActivity.linkedType === "project") {
+            // Navigate to Project - use sub_project_id if available, otherwise project_id
+            var projectOdooRecordId = -1;
+            if (currentActivity.sub_project_id && currentActivity.sub_project_id > 0) {
+                projectOdooRecordId = currentActivity.sub_project_id;
+            } else if (currentActivity.project_id && currentActivity.project_id > 0) {
+                projectOdooRecordId = currentActivity.project_id;
+            }
+
+            if (projectOdooRecordId > 0) {
+                console.log("🔗 Navigating to Project with odoo_record_id:", projectOdooRecordId);
+                // Get the local project id from odoo_record_id
+                var projectLocalId = Project.getLocalIdFromOdooId(projectOdooRecordId, currentActivity.account_id);
+                if (projectLocalId > 0) {
+                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Projects.qml"), {
+                        "recordid": projectLocalId,
+                        "isReadOnly": true
+                    });
+                } else {
+                    notifPopup.open("Error", "Connected project not found in local database", "error");
+                }
+            } else {
+                notifPopup.open("Error", "No valid project connection found", "error");
+            }
+        } else {
+            notifPopup.open("Info", "This activity is not connected to a task or project", "info");
+        }
+    }
+
     Flickable {
         id: flickable
         anchors.fill: parent
@@ -310,9 +370,45 @@ Page {
             }
         }
 
+        // Navigation button to view connected task or project
+        Row {
+            id: rowNavigate
+            anchors.top: row1.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            topPadding: units.gu(2)
+            visible: isReadOnly && recordid !== 0 && currentActivity && (currentActivity.linkedType === "task" || currentActivity.linkedType === "project")
+
+            TSButton {
+                width: parent.width - units.gu(2)
+                height: units.gu(6)
+                bgColor: "#eff6ff"
+                fgColor: "#2563eb"
+                hoverColor: "#dbeafe"
+                borderColor: "#93c5fd"
+                iconName: currentActivity && currentActivity.linkedType === "task" ? "stock_application" : "folder-symbolic"
+                iconColor: "#2563eb"
+                fontBold: true
+                text: {
+                    if (!currentActivity) return "";
+                    if (currentActivity.linkedType === "task") {
+                        return i18n.dtr("ubtms", "View Connected Task");
+                    } else if (currentActivity.linkedType === "project") {
+                        return i18n.dtr("ubtms", "View Connected Project");
+                    }
+                    return "";
+                }
+                onClicked: {
+                    navigateToConnectedItem();
+                }
+            }
+        }
+
         Row {
             id: row1w
-            anchors.top: row1.bottom
+            anchors.top: rowNavigate.bottom
             topPadding: units.gu(1)
             Column {
                 id: myCol88w
