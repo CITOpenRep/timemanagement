@@ -499,6 +499,14 @@ Page {
                                 // Track changes in draft handler (only after initialization)
                                 if (!isInitializing) {
                                     draftHandler.markFieldChanged("linkedType", "project");
+                                    // Also mark current project/subproject IDs as changed to ensure they're saved in draft
+                                    var ids = workItem.getIds();
+                                    if (ids.project_id !== undefined && ids.project_id !== null && ids.project_id !== -1) {
+                                        draftHandler.markFieldChanged("project_id", ids.project_id);
+                                    }
+                                    if (ids.subproject_id !== undefined && ids.subproject_id !== null && ids.subproject_id !== -1) {
+                                        draftHandler.markFieldChanged("sub_project_id", ids.subproject_id);
+                                    }
                                 }
                             }
                         }
@@ -523,6 +531,20 @@ Page {
                                 // Track changes in draft handler (only after initialization)
                                 if (!isInitializing) {
                                     draftHandler.markFieldChanged("linkedType", "task");
+                                    // Also mark current project/subproject/task/subtask IDs as changed to ensure they're saved in draft
+                                    var ids = workItem.getIds();
+                                    if (ids.project_id !== undefined && ids.project_id !== null && ids.project_id !== -1) {
+                                        draftHandler.markFieldChanged("project_id", ids.project_id);
+                                    }
+                                    if (ids.subproject_id !== undefined && ids.subproject_id !== null && ids.subproject_id !== -1) {
+                                        draftHandler.markFieldChanged("sub_project_id", ids.subproject_id);
+                                    }
+                                    if (ids.task_id !== undefined && ids.task_id !== null && ids.task_id !== -1) {
+                                        draftHandler.markFieldChanged("task_id", ids.task_id);
+                                    }
+                                    if (ids.subtask_id !== undefined && ids.subtask_id !== null && ids.subtask_id !== -1) {
+                                        draftHandler.markFieldChanged("sub_task_id", ids.subtask_id);
+                                    }
                                 }
                             }
                         }
