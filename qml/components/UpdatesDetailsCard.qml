@@ -85,10 +85,10 @@ ListItem {
                 }
 
                 Rectangle {
-                    height: units.gu(3)
+                    height: units.gu(4)
                     width: details_button.width
-                    color: status === "on_track" ? "green" : status === "at_risk" ? "orange" : status === "off_track" ? "red" : "grey"
-                    //Layout.preferredWidth: statusText.paintedWidth + units.gu(4)
+                    color: status === "on_track" ? "#52b788" : status === "at_risk" ? '#e98b49' : status === "off_track" ? '#d65d5d' : "grey"
+                    radius: units.gu(0.8)
                     Layout.alignment: Qt.AlignRight
 
                     Text {
@@ -118,7 +118,11 @@ ListItem {
                     id: details_button
                     text: i18n.dtr("ubtms", "Details")
                     Layout.preferredWidth: units.gu(14)
-                    height: units.gu(5)
+                    height: units.gu(4)
+                    // borderColor: "#f97316"
+                      bgColor: "#fef1e7"
+                fgColor: "#f97316"
+                hoverColor: '#f3e0d1'
                     onClicked: updateItem.showDescription("<h1>" + name + "</h1>" + description)
                 }
             }
