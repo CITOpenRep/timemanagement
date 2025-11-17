@@ -27,6 +27,7 @@ ListItem {
     property int recordId: -1
     property int account_id: 0
     property int colorPallet: 0
+    property bool hasDraft: false // Indicates if this task has unsaved draft changes
     signal showDescription(string description)
     signal editRequested(int accountId, int recordId)
     signal viewRequested(int accountId, int recordId)
@@ -82,6 +83,7 @@ ListItem {
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
+                  
                 }
 
                 Rectangle {
@@ -126,7 +128,11 @@ ListItem {
                     onClicked: updateItem.showDescription("<h1>" + name + "</h1>" + description)
                 }
             }
+            
 
+            RowLayout {
+                width: parent.width
+          
             // Project Name
             Text {
                 text: Utils.truncateText(Project.getProjectName(project_id, account_id), 40) || i18n.dtr("ubtms", "Unknown Project")
@@ -134,6 +140,31 @@ ListItem {
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#666"
                 elide: Text.ElideRight
             }
+
+                                                        Rectangle {
+    id: draftIndicator
+    visible: hasDraft
+    width: draftLabel.width + units.gu(1.2)
+    height: units.gu(2)
+    radius: height / 2
+    color: "#FFF3E0"
+    border.color: "#FF9800"
+    border.width: units.gu(0.15)
+anchors.right: parent.right
+
+    
+    Text {
+        id: draftLabel
+        text: i18n.dtr("ubtms", "DRAFT")
+        font.pixelSize: units.gu(1.1)
+        font.bold: true
+        color: "#F57C00"
+        anchors.centerIn: parent
+    }
+}
+
+            }
+  
 
             // Progress Bar
             ProgressBar {

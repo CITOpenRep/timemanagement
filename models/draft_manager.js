@@ -143,6 +143,8 @@ function saveDraft(params) {
                     tableName = "project_task_app";
                 } else if (draftType === "timesheet") {
                     tableName = "account_analytic_line_app";
+                } else if (draftType === "project_update") {
+                    tableName = "project_update_app";
                 }
                 
                 if (tableName) {
@@ -297,6 +299,8 @@ function deleteDraft(draftId) {
                         tableName = "project_task_app";
                     } else if (draftType === "timesheet") {
                         tableName = "account_analytic_line_app";
+                    } else if (draftType === "project_update") {
+                        tableName = "project_update_app";
                     }
                     
                     if (tableName) {
@@ -410,6 +414,8 @@ function deleteDrafts(params) {
                         tableName = "project_task_app";
                     } else if (draftType === "timesheet") {
                         tableName = "account_analytic_line_app";
+                    } else if (draftType === "project_update") {
+                        tableName = "project_update_app";
                     }
                     
                     if (tableName) {
@@ -853,6 +859,8 @@ function syncHasDraftFlags() {
                     tableName = "project_task_app";
                 } else if (draftType === "timesheet") {
                     tableName = "account_analytic_line_app";
+                } else if (draftType === "project_update") {
+                    tableName = "project_update_app";
                 }
                 
                 if (tableName) {
@@ -887,6 +895,18 @@ function syncHasDraftFlags() {
                 tx.executeSql(
                     "UPDATE account_analytic_line_app SET has_draft = 0 WHERE id = ?",
                     [timesheetIds.rows.item(k).id]
+                );
+                result.updatedCount++;
+            }
+            
+            // For project updates
+            var updateIds = tx.executeSql(
+                "SELECT id FROM project_update_app WHERE has_draft = 1 AND id NOT IN (SELECT record_id FROM form_drafts WHERE draft_type = 'project_update' AND record_id IS NOT NULL)"
+            );
+            for (var l = 0; l < updateIds.rows.length; l++) {
+                tx.executeSql(
+                    "UPDATE project_update_app SET has_draft = 0 WHERE id = ?",
+                    [updateIds.rows.item(l).id]
                 );
                 result.updatedCount++;
             }

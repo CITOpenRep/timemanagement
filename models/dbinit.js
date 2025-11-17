@@ -321,6 +321,7 @@ function initializeDatabase() {
             "odoo_record_id INTEGER," +
             "last_modified datetime," +
             "status TEXT DEFAULT ''," +   // local sync status
+            "has_draft INTEGER DEFAULT 0," +
             "UNIQUE (odoo_record_id, account_id)" +
         ")",
         [
@@ -335,7 +336,8 @@ function initializeDatabase() {
             "project_id INTEGER",
             "odoo_record_id INTEGER",
             "last_modified datetime",
-            "status TEXT DEFAULT ''"
+            "status TEXT DEFAULT ''",
+            "has_draft INTEGER DEFAULT 0"
         ]
     );
 
