@@ -88,7 +88,9 @@ ListItem {
 
                 Rectangle {
                     height: units.gu(4)
-                    width: details_button.width
+                    width: details_button.width 
+                    
+                
                     color: status === "on_track" ? "#52b788" : status === "at_risk" ? '#e98b49' : status === "off_track" ? '#d65d5d' : "grey"
                     radius: units.gu(0.8)
                     Layout.alignment: Qt.AlignRight
@@ -119,7 +121,7 @@ ListItem {
                 TSButton {
                     id: details_button
                     text: i18n.dtr("ubtms", "Details")
-                    Layout.preferredWidth: units.gu(14)
+                    Layout.preferredWidth: units.gu(12)
                     height: units.gu(4)
                     // borderColor: "#f97316"
                       bgColor: "#fef1e7"
