@@ -168,6 +168,21 @@ Rectangle {
             transitionTo("AccountSelected", payload);
         } else if (selectorType === "Project") {
             selectedProjectId = id;
+            
+            // Clear child selections when project changes
+            if (subproject_compoent) {
+                subproject_compoent.selectedId = -1;
+                subproject_compoent.update_label("Select");
+            }
+            if (task_component) {
+                task_component.selectedId = -1;
+                task_component.update_label("Select");
+            }
+            if (subtask_component) {
+                subtask_component.selectedId = -1;
+                subtask_component.update_label("Select");
+            }
+            
             transitionTo("ProjectSelected", payload);
         } else if (selectorType === "Subproject") {
             if (id !== -1) {

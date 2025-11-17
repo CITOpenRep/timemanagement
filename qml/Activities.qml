@@ -437,7 +437,7 @@ Page {
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
             topPadding: units.gu(2)
-            visible: isReadOnly && recordid !== 0 && currentActivity && (currentActivity.linkedType === "task" || currentActivity.linkedType === "project" || currentActivity.linkedType === "update")
+            visible: recordid !== 0 && currentActivity && (currentActivity.linkedType === "task" || currentActivity.linkedType === "project" || currentActivity.linkedType === "update")
 
             TSButton {
                 width: parent.width - units.gu(2)
@@ -507,7 +507,7 @@ Page {
                         id: projectRadio
                         text: i18n.dtr("ubtms","Project")
                         checked: false
-                        enabled: !isReadOnly
+                         enabled: recordid === 0 
                         contentItem: Text {
                             text: projectRadio.text
                             color: theme.palette.normal.backgroundText
@@ -539,7 +539,7 @@ Page {
                         id: taskRadio
                         text: i18n.dtr("ubtms","Task")
                         checked: true
-                        enabled: !isReadOnly
+                        enabled: recordid === 0 
                         contentItem: Text {
                             text: taskRadio.text
                             color: theme.palette.normal.backgroundText
@@ -577,7 +577,7 @@ Page {
                         id: updateRadio
                         text: i18n.dtr("ubtms","Update")
                         checked: false
-                        enabled: !isReadOnly
+                        enabled: recordid === 0 
                         visible: recordid !== 0  // Only show when editing existing activity
                         contentItem: Text {
                             text: updateRadio.text
@@ -602,7 +602,7 @@ Page {
                         id: otherRadio
                         text: i18n.dtr("ubtms","Other")
                         checked: false
-                        enabled: !isReadOnly
+                        enabled: recordid === 0 
                         visible: recordid !== 0  // Only show when editing existing activity
                         contentItem: Text {
                             text: otherRadio.text
@@ -1065,14 +1065,24 @@ Page {
         var resId = 0;
 
         if (projectRadio.checked) {
-            // Use subproject if selected, otherwise use main project
-            linkid = ids.subproject_id || ids.project_id;
+            // Use subproject if it's valid and not -1/null, otherwise use main project
+            // Check if subproject_id is a valid value (not -1, not null, not undefined)
+            if (ids.subproject_id && ids.subproject_id !== -1 && ids.subproject_id !== null) {
+                linkid = ids.subproject_id;
+            } else if (ids.project_id && ids.project_id !== -1 && ids.project_id !== null) {
+                linkid = ids.project_id;
+            }
             resId = Accounts.getOdooModelId(ids.account_id, "Project");
-            //   console.log("Project mode - linking to:", ids.subproject_id ? "subproject " + ids.subproject_id : "project " + ids.project_id);
+            console.log("DEBUG Activities.qml - Project mode - project_id:", ids.project_id, "subproject_id:", ids.subproject_id, "final linkid:", linkid);
         }
 
         if (taskRadio.checked) {
-            linkid = ids.subtask_id || ids.task_id;
+            // Use subtask if it's valid and not -1/null, otherwise use main task
+            if (ids.subtask_id && ids.subtask_id !== -1 && ids.subtask_id !== null) {
+                linkid = ids.subtask_id;
+            } else if (ids.task_id && ids.task_id !== -1 && ids.task_id !== null) {
+                linkid = ids.task_id;
+            }
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
             console.log("DEBUG Activities.qml - Task mode linkid:", linkid, "subtask_id:", ids.subtask_id, "task_id:", ids.task_id);
         }

@@ -87,7 +87,7 @@ ListItem {
                 }
 
                 Rectangle {
-                    height: units.gu(4)
+                    height: units.gu(3.5)
                     width: details_button.width 
                     
                 
@@ -143,7 +143,7 @@ ListItem {
                 elide: Text.ElideRight
             }
 
-                                                        Rectangle {
+           Rectangle {
     id: draftIndicator
     visible: hasDraft
     width: draftLabel.width + units.gu(1.2)
