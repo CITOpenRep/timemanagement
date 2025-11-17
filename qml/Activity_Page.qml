@@ -269,7 +269,8 @@ Page {
                     resId: item.resId,
                     resModel: item.resModel,
                     last_modified: item.last_modified,
-                    color_pallet: item.color_pallet
+                    color_pallet: item.color_pallet,
+                    hasDraft: item.has_draft === 1
                 });
             }
 
@@ -561,6 +562,8 @@ Page {
                 due_date: model.due_date
                 state: model.state
                 colorPallet: model.color_pallet
+                hasDraft: model.hasDraft
+
 
                 onCardClicked: function (accountid, recordid) {
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {

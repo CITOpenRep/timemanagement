@@ -197,21 +197,30 @@ Page {
             }
         }
         onDiscardRequested: {
+            // Clear draft first when discarding
+            draftHandler.clearDraft();
+            
             // For new activities that haven't been saved, delete them
             if (recordid > 0 && !hasBeenSaved && !isReadOnly) {
                 if (Activity.isActivityUnsaved(accountid, recordid)) {
                     Activity.deleteActivity(accountid, recordid);
                 }
+                navigateBack();
+                return;
             }
             
-            // For edit mode, restore to original read-only state
+            // For edit mode on existing saved activities, restore and stay in read-only
             if (recordid > 0 && hasBeenSaved) {
+                console.log("🔄 Discarding changes on existing activity - restoring to read-only");
+                isInitializing = true;  // Prevent draft tracking during restoration
                 restoreFormToOriginal();
                 isReadOnly = true;
+                isInitializing = false;
+                // Don't navigate back - stay on the page in read-only mode
+                return;
             }
             
-            // Clear draft when discarding
-            draftHandler.clearDraft();
+            // For all other cases (shouldn't happen normally), just navigate back
             navigateBack();
         }
         onCancelled: {
@@ -223,6 +232,8 @@ Page {
         console.log("🔄 Restoring form to original values...");
         
         var originalData = draftHandler.originalData;
+        
+        // Restore basic fields
         if (originalData.summary !== undefined) summary.text = originalData.summary;
         if (originalData.notes !== undefined) notes.setContent(originalData.notes);
         if (originalData.activity_type_id !== undefined && originalData.account_id !== undefined) {
@@ -261,6 +272,8 @@ Page {
             
             workItem.deferredLoadExistingRecordSet(accountId, projectId, subProjectId, taskId, subTaskId, userId);
         }
+        
+        console.log("✅ Form restored to original values");
     }
 
     function navigateToConnectedItem() {

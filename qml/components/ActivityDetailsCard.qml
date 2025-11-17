@@ -6,7 +6,7 @@ import "../../models/activity.js" as Activity
 ListItem {
     id: root
     width: parent.width
-    height: units.gu(10)
+    height: units.gu(11)
 
     property string notes: ""
     property string activity_type_name: ""
@@ -19,6 +19,7 @@ ListItem {
     property var odoo_record_id
     property var account_id
     property int colorPallet: 0
+    property bool hasDraft: false // Indicates if this task has unsaved draft changes
 
     signal cardClicked(int accountid, int recordid)
     signal editRequested(int accountid, int recordid)
@@ -297,6 +298,27 @@ ListItem {
                             //    anchors.right: parent.right
                             //  anchors.bottom: root.bottom
                         }
+    Rectangle {
+    id: draftIndicator
+    visible: hasDraft
+    width: draftLabel.width + units.gu(1.2)
+    height: units.gu(2)
+    radius: height / 2
+    color: "#FFF3E0"
+    border.color: "#FF9800"
+    border.width: units.gu(0.15)
+//anchors.right: parent.right
+
+    
+    Text {
+        id: draftLabel
+        text: i18n.dtr("ubtms", "DRAFT")
+        font.pixelSize: units.gu(1.1)
+        font.bold: true
+        color: "#F57C00"
+        anchors.centerIn: parent
+    }
+}
                     }
                 }
             }

@@ -233,11 +233,12 @@ function initializeDatabase() {
             resModel TEXT,\
             state TEXT,\
             status TEXT DEFAULT "",\
+            has_draft INTEGER DEFAULT 0,\
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'activity_type_id INTEGER', 'summary TEXT', 'due_date DATE', 'user_id INTEGER',
                                   'notes TEXT', 'odoo_record_id INTEGER', 'last_modified datetime', 'link_id INTEGER', 'project_id INTEGER',
-                                  'task_id INTEGER', 'resId INTEGER', 'resModel TEXT', 'state TEXT', 'status TEXT DEFAULT ""']
+                                  'task_id INTEGER', 'resId INTEGER', 'resModel TEXT', 'state TEXT', 'status TEXT DEFAULT ""', 'has_draft INTEGER DEFAULT 0']
                                  );
     DBCommon.createOrUpdateTable("ir_attachment_app",
         "CREATE TABLE IF NOT EXISTS ir_attachment_app (" +

@@ -145,6 +145,8 @@ function saveDraft(params) {
                     tableName = "account_analytic_line_app";
                 } else if (draftType === "project_update") {
                     tableName = "project_update_app";
+                } else if (draftType === "activity") {
+                    tableName = "mail_activity_app";
                 }
                 
                 if (tableName) {
@@ -301,6 +303,8 @@ function deleteDraft(draftId) {
                         tableName = "account_analytic_line_app";
                     } else if (draftType === "project_update") {
                         tableName = "project_update_app";
+                    } else if (draftType === "activity") {
+                        tableName = "mail_activity_app";
                     }
                     
                     if (tableName) {
@@ -416,6 +420,8 @@ function deleteDrafts(params) {
                         tableName = "account_analytic_line_app";
                     } else if (draftType === "project_update") {
                         tableName = "project_update_app";
+                    } else if (draftType === "activity") {
+                        tableName = "mail_activity_app";
                     }
                     
                     if (tableName) {
@@ -861,6 +867,8 @@ function syncHasDraftFlags() {
                     tableName = "account_analytic_line_app";
                 } else if (draftType === "project_update") {
                     tableName = "project_update_app";
+                } else if (draftType === "activity") {
+                    tableName = "mail_activity_app";
                 }
                 
                 if (tableName) {
@@ -907,6 +915,18 @@ function syncHasDraftFlags() {
                 tx.executeSql(
                     "UPDATE project_update_app SET has_draft = 0 WHERE id = ?",
                     [updateIds.rows.item(l).id]
+                );
+                result.updatedCount++;
+            }
+            
+            // For activities
+            var activityIds = tx.executeSql(
+                "SELECT id FROM mail_activity_app WHERE has_draft = 1 AND id NOT IN (SELECT record_id FROM form_drafts WHERE draft_type = 'activity' AND record_id IS NOT NULL)"
+            );
+            for (var m = 0; m < activityIds.rows.length; m++) {
+                tx.executeSql(
+                    "UPDATE mail_activity_app SET has_draft = 0 WHERE id = ?",
+                    [activityIds.rows.item(m).id]
                 );
                 result.updatedCount++;
             }
