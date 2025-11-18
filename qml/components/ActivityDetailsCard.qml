@@ -353,7 +353,7 @@ ListItem {
                     }
 
                     Rectangle {
-                        width: units.gu(7)
+                        width: units.gu(6.5)
                         height: units.gu(2.2)
                         color: getActivityStateInfo().color
 

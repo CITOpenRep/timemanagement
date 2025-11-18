@@ -431,16 +431,21 @@ Page {
         // Navigation button to view connected task or project
         Row {
             id: rowNavigate
+            width: parent.width
+            height: units.gu(6)
             anchors.top: row1.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
+            
             topPadding: units.gu(2)
             visible: recordid !== 0 && currentActivity && (currentActivity.linkedType === "task" || currentActivity.linkedType === "project" || currentActivity.linkedType === "update")
 
             TSButton {
-                width: parent.width - units.gu(2)
+           anchors.horizontalCenter: parent.horizontalCenter
+         
+                width: parent.width/3
                 height: units.gu(6)
                 
              
@@ -463,11 +468,11 @@ Page {
                 text: {
                     if (!currentActivity) return "";
                     if (currentActivity.linkedType === "task") {
-                        return i18n.dtr("ubtms", "View Connected Task");
+                        return i18n.dtr("ubtms", "View Task");
                     } else if (currentActivity.linkedType === "project") {
-                        return i18n.dtr("ubtms", "View Connected Project");
+                        return i18n.dtr("ubtms", "View Project");
                     } else if (currentActivity.linkedType === "update") {
-                        return i18n.dtr("ubtms", "View Connected Update");
+                        return i18n.dtr("ubtms", "View Update");
                     }
                     return "";
                 }
