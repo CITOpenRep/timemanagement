@@ -33,6 +33,23 @@
 
       <h3>Change History : </h3>
 
+          <h4> 21-11-2025 : Version 1.1.10 </h4>
+
+      <h4>New Features</h4>
+<ul>
+<li>Introducing <b> Connected </b> to Button in Activities. This button will be helpful in Navigation to Connected Tasks, Projects and Project Updates. </li>
+<li>Introdcing Edit Mode in Project Updates and Activities. </li>
+<li>Introducing Draft Manager for Activities and Prroject updates.</li>
+
+</ul>
+
+ <h4>Bug Fixes and Enhancement</h4>
+<ul>
+<li>Fixes in UI for Project Updates ListView. </li>
+<li>Fixes in Task Stages while working with Multiple Instances. </li>
+<li> Added Two More Connection Types for Activities. "Updates" and "Other". </li>
+</ul>
+
             <h4> 31-10-2025 : Version 1.1.9 </h4>
 
       <h4>New Features</h4>
