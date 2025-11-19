@@ -120,6 +120,10 @@ Rectangle {
         onTriggered: {
             console.log("[WorkItemSelector] Timer triggered - updating states");
             updateAllSelectorStates();
+            // Reset deferredLoadingPlanned flag after states are updated
+            if (deferredLoadingPlanned) {
+                deferredLoadingPlanned = false;
+            }
         }
     }
 
