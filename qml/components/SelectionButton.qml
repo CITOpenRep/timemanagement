@@ -35,9 +35,9 @@ Item {
 
         onSelectionMade: {
             // console.log("[SelectionButton] Selected:", id, name, "for", selectorType);
-            selectionButton.selectionMade(id, name, selectorType);
             selectionButton.selectedId = id;
             entity_btn_label.text = name;
+            selectionButton.selectionMade(id, name, selectorType);
         }
     }
 
@@ -120,10 +120,8 @@ Item {
         // Only enable if not in read-only mode
         if (readOnly) {
             enabledState = false;
-            console.log("[SelectionButton] Ignoring setEnabled(" + isEnabled + ") because readOnly is true for", selectorType);
         } else {
             enabledState = isEnabled;
-            //   console.log("[SelectionButton] setEnabled(" + isEnabled + ") for", selectorType);
         }
     }
 
