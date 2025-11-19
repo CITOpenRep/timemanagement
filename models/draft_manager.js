@@ -75,7 +75,7 @@ function saveDraft(params) {
         
         // Don't save if no changes
         if (!result.hasChanges) {
-            console.log("📝 No changes detected, skipping draft save");
+           // console.log("📝 No changes detected, skipping draft save");
             result.success = true;
             return result;
         }

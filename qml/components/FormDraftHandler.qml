@@ -205,7 +205,7 @@ Item {
      * @param value - New value
      */
     function markFieldChanged(fieldName, value) {
-        console.log("📝 FormDraftHandler.markFieldChanged called - field:", fieldName, "value:", value, "enabled:", enabled, "_initialized:", _initialized, "_preventAutoSave:", _preventAutoSave);
+      //  console.log("📝 FormDraftHandler.markFieldChanged called - field:", fieldName, "value:", value, "enabled:", enabled, "_initialized:", _initialized, "_preventAutoSave:", _preventAutoSave);
         
         if (!enabled || !_initialized || _preventAutoSave) {
             console.log("⚠️ FormDraftHandler.markFieldChanged - returning early (checks failed)");
@@ -219,7 +219,7 @@ Item {
         changedFields = DraftManager.getChangedFields(currentFormData, originalData);
         hasUnsavedChanges = changedFields.length > 0;
         
-        console.log("✅ FormDraftHandler.markFieldChanged - updated. hasUnsavedChanges:", hasUnsavedChanges, "changedFields count:", changedFields.length);
+      //  console.log("✅ FormDraftHandler.markFieldChanged - updated. hasUnsavedChanges:", hasUnsavedChanges, "changedFields count:", changedFields.length);
     }
     
     /**
