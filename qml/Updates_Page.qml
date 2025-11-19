@@ -165,7 +165,8 @@ Page {
                 'progress': u.progress,
                 'description': u.description,
                 'project_id': u.project_id,
-                'user': u.user_id
+                'user': u.user_id,
+                'hasDraft': u.has_draft
             });
         }
     }
@@ -190,6 +191,7 @@ Page {
             date: model.date
             progress: model.progress
             recordId: model.id
+            hasDraft: model.hasDraft
 
             onEditRequested: function(accountId, recordId) {
                 apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("Updates.qml"), {

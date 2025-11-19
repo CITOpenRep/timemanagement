@@ -112,6 +112,16 @@ Page {
                 onTriggered: {
                     switchToEditMode();
                 }
+            }, 
+            Action{
+                iconName: "close"
+                text: i18n.dtr("ubtms", "Close")
+                visible: draftHandler.hasUnsavedChanges 
+                onTriggered: {
+                    restoreFormToOriginal();  // Restore form to original values
+            draftHandler.clearDraft(); // Clear the draft from database
+             Qt.callLater(navigateBack);
+                }
             }
         ]
         
@@ -189,11 +199,9 @@ Page {
                 Project.markProjectUpdateAsDeleted(recordid);
             }
             
-            // For edit mode, restore to original read-only state
-            if (recordid > 0 && hasBeenSaved) {
+      
                 restoreFormToOriginal();
-                isReadOnly = true;
-            }
+         
             
             // Clear draft when discarding
             draftHandler.clearDraft();

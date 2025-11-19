@@ -205,7 +205,12 @@ Item {
      * @param value - New value
      */
     function markFieldChanged(fieldName, value) {
-        if (!enabled || !_initialized || _preventAutoSave) return;
+      //  console.log("📝 FormDraftHandler.markFieldChanged called - field:", fieldName, "value:", value, "enabled:", enabled, "_initialized:", _initialized, "_preventAutoSave:", _preventAutoSave);
+        
+        if (!enabled || !_initialized || _preventAutoSave) {
+            console.log("⚠️ FormDraftHandler.markFieldChanged - returning early (checks failed)");
+            return;
+        }
         
         // Update current form data
         currentFormData[fieldName] = value;
@@ -213,6 +218,8 @@ Item {
         // Recalculate changed fields
         changedFields = DraftManager.getChangedFields(currentFormData, originalData);
         hasUnsavedChanges = changedFields.length > 0;
+        
+      //  console.log("✅ FormDraftHandler.markFieldChanged - updated. hasUnsavedChanges:", hasUnsavedChanges, "changedFields count:", changedFields.length);
     }
     
     /**
