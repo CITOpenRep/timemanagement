@@ -191,6 +191,14 @@ Rectangle {
         } else if (selectorType === "Task" || selectorType === taskLabelText) {
             // Match both "Task" and custom taskLabelText (e.g., "Parent Task")
             selectedTaskId = id;
+            
+            // Clear child selections when task changes
+            if (subtask_component) {
+                subtask_component.selectedId = -1;
+                subtask_component.update_label("Select");
+            }
+            selectedSubTaskId = -1;
+            
             transitionTo("TaskSelected", payload);
         } else if (selectorType === "Subtask") {
             if (id !== -1) {
