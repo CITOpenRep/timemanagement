@@ -377,7 +377,7 @@ Page {
                         }
                         
                         Text {
-                            text: progressSlider.value + "%"
+                            text: Math.round(progressSlider.value) + "%"
                             font.pixelSize: units.gu(2)
                             width: parent.width * 0.3
                             horizontalAlignment: Text.AlignRight
