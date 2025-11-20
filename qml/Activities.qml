@@ -338,7 +338,8 @@ Page {
                 if (taskLocalId > 0) {
                     apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Tasks.qml"), {
                         "recordid": taskLocalId,
-                        "isReadOnly": true
+                        "isReadOnly": true,
+                        "editVisible": false
                     });
                 } else {
                     notifPopup.open("Error", "Connected task not found in local database", "error");

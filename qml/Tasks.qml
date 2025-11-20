@@ -73,7 +73,7 @@ Page {
             },
             Action {
                 iconName: "edit"
-                visible: isReadOnly && recordid !== 0
+                visible: isReadOnly && recordid !== 0 && editVisible
                 text: i18n.dtr("ubtms", "Edit")
                 onTriggered: {
                     switchToEditMode();
@@ -100,7 +100,7 @@ Page {
     property int selectedparentId: 0
     property int selectedTaskId: 0
     property int priority: 0
-    
+    property bool editVisible: true   
     onPriorityChanged: {
         if (draftHandler.enabled && draftHandler._initialized) {
             draftHandler.markFieldChanged("priority", priority);
