@@ -533,11 +533,16 @@ Page {
         
         console.log("💾 Saving update data:", JSON.stringify(updateData));
         
-        const result = Project.createUpdateSnapShot(updateData);
+        const result = Project.createUpdateSnapShot(updateData, recordid);
         if (!result.is_success) {
             notifPopup.open("Error", "Unable to save the Project Update", "error");
         } else {
             hasBeenSaved = true;
+            
+            // If this was a new record (recordid was 0), update recordid with the new ID
+            if (recordid === 0 && result.record_id) {
+                recordid = result.record_id;
+            }
             
             // Clear draft after successful save
             draftHandler.clearDraft();

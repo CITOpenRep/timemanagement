@@ -581,65 +581,82 @@ function createUpdateProject(project_data, recordid) {
     return messageObj;
 }
 /**
- * Creates a new project update in the local SQLite database.
+ * Creates a new project update or updates an existing one in the local SQLite database.
  *
- * Always inserts a new record and marks `status` as "updated" for sync tracking.
+ * If `recordid` is 0 or undefined, a new project update is inserted. Otherwise, the existing
+ * project update with the matching `id` is updated. Marks `status` as "updated" for sync tracking.
  *
  * @param {Object} update_data - The project update data (project_id, name, project_status, progress, description, account_id, user_id).
+ * @param {number} recordid - The local ID of the project update to update. Use 0 to create a new project update.
  * @returns {Object} - { is_success: boolean, message: string, record_id: number }
  */
-function createUpdateSnapShot(update_data) {
+function createUpdateSnapShot(update_data, recordid) {
     var messageObj = { is_success: false };
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC(); // e.g., 2025-08-04 11:45:00
     var createDate = timestamp.split(" ")[0];        // Extract yyyy-mm-dd format
-    var newRecordId = 0;
+    var newRecordId = recordid || 0;
 
     db.transaction(function (tx) {
         try {
-            // console.log("Creating Project Update:");
-            // console.log("Account ID:", update_data.account_id);
-            // console.log("Project ID:", update_data.project_id);
-            // console.log("Name:", update_data.name);
-            // console.log("Project Status:", update_data.project_status);
-            // console.log("Progress:", update_data.progress);
-            // console.log("Description:", update_data.description);
-            // console.log("User ID:", update_data.user_id);
-            // console.log("Create Date:", createDate);
+            if (!recordid || recordid === 0) {
+                // INSERT new project update
+                tx.executeSql(
+                    `INSERT INTO project_update_app
+                     (account_id, project_id, name, project_status, progress, description, user_id, date, last_modified, status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        update_data.account_id,
+                        update_data.project_id,
+                        update_data.name,
+                        update_data.project_status,
+                        update_data.progress,
+                        update_data.description,
+                        update_data.user_id,
+                        createDate,   // yyyy-mm-dd
+                        timestamp,    // full timestamp
+                        "updated"     // sync tracking flag
+                    ]
+                );
 
-            // INSERT new project update with user_id and create_date
-            tx.executeSql(
-                `INSERT INTO project_update_app
-                 (account_id, project_id, name, project_status, progress, description, user_id, date, last_modified, status)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    update_data.account_id,
-                    update_data.project_id,
-                    update_data.name,
-                    update_data.project_status,
-                    update_data.progress,
-                    update_data.description,
-                    update_data.user_id,
-                    createDate,   // yyyy-mm-dd
-                    timestamp,    // full timestamp
-                    "updated"     // sync tracking flag
-                ]
-            );
-
-            // Retrieve the newly inserted record ID
-            var result = tx.executeSql("SELECT last_insert_rowid() AS id");
-            if (result.rows.length > 0) {
-                newRecordId = result.rows.item(0).id;
+                // Retrieve the newly inserted record ID
+                var result = tx.executeSql("SELECT last_insert_rowid() AS id");
+                if (result.rows.length > 0) {
+                    newRecordId = result.rows.item(0).id;
+                }
+                
+                messageObj.message = "Project Update created successfully!";
+            } else {
+                // UPDATE existing project update
+                tx.executeSql(
+                    `UPDATE project_update_app 
+                     SET account_id = ?, project_id = ?, name = ?, project_status = ?, 
+                         progress = ?, description = ?, user_id = ?, last_modified = ?, status = ?
+                     WHERE id = ?`,
+                    [
+                        update_data.account_id,
+                        update_data.project_id,
+                        update_data.name,
+                        update_data.project_status,
+                        update_data.progress,
+                        update_data.description,
+                        update_data.user_id,
+                        timestamp,    // full timestamp
+                        "updated",    // sync tracking flag
+                        recordid
+                    ]
+                );
+                
+                messageObj.message = "Project Update updated successfully!";
             }
 
             messageObj.is_success = true;
-            messageObj.message = "Project Update created successfully!";
             messageObj.record_id = newRecordId;
 
         } catch (error) {
             console.error("createUpdateSnapShot failed:", error);
             messageObj.is_success = false;
-            messageObj.message = "Project Update could not be created!\n" + error;
+            messageObj.message = "Project Update could not be saved!\n" + error;
         }
     });
 
