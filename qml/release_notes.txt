@@ -33,21 +33,21 @@
 
       <h3>Change History : </h3>
 
-          <h4> 21-11-2025 : Version 1.1.10 </h4>
-
 <h4>New Features</h4>
 <ul>
-  <li>Added a <b>View</b> button in Activities. This helps you move to related Tasks, Projects, and Project Updates.</li>
-  <li>Added <b>Edit Mode</b> in Project Updates and Activities.</li>
-  <li>Added a <b>Draft Manager</b> for Activities and Project Updates.</li>
+  <li>Activities - Navigate to project/task detail view from the activity screen.</li>
+  <li>Project updates - In-app edit option for Summary, description and overall progress.</li>
+  <li>Activities - In-app editing for summary, description, activity type, and date.</li>
+  <li>Draft management - in Activities and Project Updates - Edit option.</li>
 </ul>
 
-<h4>Bug Fixes and Enhancements</h4>
+<h4>Bug Fixes and Improvements</h4>
 <ul>
-  <li>Improved the UI in the Project Updates ListView.</li>
+  <li>Improved UI in the Project Updates ListView.</li>
   <li>Fixed Task Stages issues when using multiple instances.</li>
-  <li>Added two more connection types for Activities: "Updates" and "Other".</li>
+  <li>Added two more connection types for Activities: Updates and Other.</li>
 </ul>
+
 
 
             <h4> 31-10-2025 : Version 1.1.9 </h4>
