@@ -1085,6 +1085,12 @@ Page {
                 linkid = ids.project_id;
             }
             resId = Accounts.getOdooModelId(ids.account_id, "Project");
+            
+            // Validate that project connection is valid
+            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
+                notifPopup.open("Error", "Activity must be connected to a valid project", "error");
+                return;
+            }
         }
 
         if (taskRadio.checked) {
@@ -1095,14 +1101,15 @@ Page {
                 linkid = ids.task_id;
             }
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
+            
+            // Validate that task connection is valid
+            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
+                notifPopup.open("Error", "Activity must be connected to a valid task", "error");
+                return;
+            }
         }
 
         const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
-
-        if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
-            notifPopup.open("Error", "Activity must be connected to a project or task", "error");
-            return;
-        }
 
         // Use the selected assignee, or fall back to current user if no assignee selected
         const user = ids.assignee_id || Accounts.getCurrentUserOdooId(ids.account_id);
