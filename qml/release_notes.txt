@@ -33,12 +33,15 @@
 
       <h3>Change History : </h3>
 
+
+            <h4> 21-11-2025 : Version 1.1.10 </h4>
+
 <h4>New Features</h4>
 <ul>
-  <li>Activities - Navigate to project/task detail view from the activity screen.</li>
-  <li>Project updates - In-app edit option for Summary, description and overall progress.</li>
-  <li>Activities - In-app editing for summary, description, activity type, and date. Edit Activity Currently Works For Project and Tasks. </li>
-  <li>Draft management - in Activities and Project Updates - Edit option.</li>
+  <li><b>Activities </b>- Navigate to project/task detail view from the activity screen.</li>
+  <li><b>Project updates</b> - In-app edit option for Summary, description and overall progress.</li>
+  <li><b>Activities</b> - In-app editing for summary, description, activity type, date and WorkItemSelector Details. </li>
+  <li><b>Draft management</b> - in Activities and Project Updates - Edit option.</li>
 </ul>
 
 <h4>Bug Fixes and Improvements</h4>
