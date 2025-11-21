@@ -37,7 +37,7 @@
 <ul>
   <li>Activities - Navigate to project/task detail view from the activity screen.</li>
   <li>Project updates - In-app edit option for Summary, description and overall progress.</li>
-  <li>Activities - In-app editing for summary, description, activity type, and date.</li>
+  <li>Activities - In-app editing for summary, description, activity type, and date. Edit Activity Currently Works For Project and Tasks. </li>
   <li>Draft management - in Activities and Project Updates - Edit option.</li>
 </ul>
 
