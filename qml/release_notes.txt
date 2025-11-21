@@ -33,11 +33,31 @@
 
       <h3>Change History : </h3>
 
+
+            <h4> 21-11-2025 : Version 1.1.10 </h4>
+
+<h4>New Features</h4>
+<ul>
+  <li><b>Activities </b>- Navigate to project/task detail view from the activity screen.</li>
+  <li><b>Project updates</b> - In-app edit option for Summary, description and overall progress.</li>
+  <li><b>Activities</b> - In-app editing for summary, description, activity type, date and WorkItemSelector Details. </li>
+  <li><b>Draft management</b> - in Activities and Project Updates - Edit option.</li>
+</ul>
+
+<h4>Bug Fixes and Improvements</h4>
+<ul>
+  <li>Improved UI in the Project Updates ListView.</li>
+  <li>Fixed Task Stages issues when using multiple instances.</li>
+  <li>Added two more connection types for Activities: Updates and Other.</li>
+</ul>
+
+
+
             <h4> 31-10-2025 : Version 1.1.9 </h4>
 
       <h4>New Features</h4>
 <ul>
-<li>Introdcing Draft Manager in Timesheets, Tasks form View and Project Update Creation Form. Draft Manager will save your data in draft state in case of app crash or in case of Navigation to some other page. </li>
+<li>Introdcing Draft Manager in Timesheets, Tasks form View, Activities, and Project Update Creation Form. Draft Manager will save your data in draft state in case of app crash or in case of Navigation to some other page. </li>
 <li>Introducing Weblates. Added Support for nl language.</li>
 <li> Adding Rich Text Editor support for Project Updates. </li>
 </ul>

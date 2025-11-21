@@ -56,12 +56,30 @@ Page {
         }
 
         trailingActionBar.actions: [
-            // iconName: "account"
-            // text: "Account"
-            // onTriggered: {
-            //     accountFilterVisible = !accountFilterVisible
-            // }
-            Action {}
+            Action {
+                iconName: "add"
+                text: i18n.dtr("ubtms", "New")
+                visible: filterByProject && projectOdooRecordId && projectAccountId >= 0
+                onTriggered: {
+                    // Create a new update object with project context
+                    var newUpdate = {
+                        account_id: projectAccountId,
+                        project_id: projectOdooRecordId,
+                        name: "",
+                        description: "",
+                        project_status: "on_track",
+                        progress: 0,
+                        user_id: Account.getCurrentUserOdooId(projectAccountId)
+                    };
+                    
+                    apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("Updates.qml"), {
+                        "recordid": 0,
+                        "accountid": projectAccountId,
+                        "currentUpdate": newUpdate,
+                        "isReadOnly": false
+                    });
+                }
+            }
         ]
     }
 
@@ -147,7 +165,8 @@ Page {
                 'progress': u.progress,
                 'description': u.description,
                 'project_id': u.project_id,
-                'user': u.user_id
+                'user': u.user_id,
+                'hasDraft': u.has_draft
             });
         }
     }
@@ -171,6 +190,24 @@ Page {
             description: model.description
             date: model.date
             progress: model.progress
+            recordId: model.id
+            hasDraft: model.hasDraft
+
+            onEditRequested: function(accountId, recordId) {
+                apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("Updates.qml"), {
+                    "recordid": recordId,
+                    "accountid": accountId,
+                    "isReadOnly": false
+                });
+            }
+
+            onViewRequested: function(accountId, recordId) {
+                apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("Updates.qml"), {
+                    "recordid": recordId,
+                    "accountid": accountId,
+                    "isReadOnly": true
+                });
+            }
 
             onShowDescription: {
                 Global.description_temporary_holder = description;

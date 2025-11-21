@@ -6,7 +6,7 @@ import "../../models/activity.js" as Activity
 ListItem {
     id: root
     width: parent.width
-    height: units.gu(10)
+    height: units.gu(11)
 
     property string notes: ""
     property string activity_type_name: ""
@@ -19,8 +19,11 @@ ListItem {
     property var odoo_record_id
     property var account_id
     property int colorPallet: 0
+    property bool hasDraft: false // Indicates if this task has unsaved draft changes
 
     signal cardClicked(int accountid, int recordid)
+    signal editRequested(int accountid, int recordid)
+    signal viewRequested(int accountid, int recordid)
     signal markAsDone(int accountid, int recordId)
     signal createFollowup(int accountid, int recordId)
     signal dateChanged(int accountid, int recordId, string newDate)
@@ -171,12 +174,24 @@ ListItem {
     trailingActions: ListItemActions {
         actions: [
             Action {
+                iconName: "edit"
+                text: i18n.dtr("ubtms", "Edit")
+                onTriggered: root.editRequested(root.account_id, root.odoo_record_id)
+            },
+            //View action disabled for now as Click Action is There , in Activities we do not Follow Parent Child Hierarchy
+            // Action {
+            //     iconName: "info"
+            //     text: i18n.dtr("ubtms", "View")
+            //     onTriggered: root.viewRequested(root.account_id, root.odoo_record_id)
+            // },
+            Action {
                 iconName: "tick"
-                // color: "#4CAF50"
+                text: i18n.dtr("ubtms", "Mark Done")
                 onTriggered: markAsDone(root.account_id, root.odoo_record_id)
             },
             Action {
                 iconName: "retweet"
+                text: i18n.dtr("ubtms", "Follow-up")
                 onTriggered: createFollowup(root.account_id, root.odoo_record_id)
             }
         ]
@@ -283,6 +298,27 @@ ListItem {
                             //    anchors.right: parent.right
                             //  anchors.bottom: root.bottom
                         }
+    Rectangle {
+    id: draftIndicator
+    visible: hasDraft
+    width: draftLabel.width + units.gu(1.2)
+    height: units.gu(2)
+    radius: height / 2
+    color: "#FFF3E0"
+    border.color: "#FF9800"
+    border.width: units.gu(0.15)
+//anchors.right: parent.right
+
+    
+    Text {
+        id: draftLabel
+        text: i18n.dtr("ubtms", "DRAFT")
+        font.pixelSize: units.gu(1.1)
+        font.bold: true
+        color: "#F57C00"
+        anchors.centerIn: parent
+    }
+}
                     }
                 }
             }
@@ -317,7 +353,7 @@ ListItem {
                     }
 
                     Rectangle {
-                        width: units.gu(7)
+                        width: units.gu(6.5)
                         height: units.gu(2.2)
                         color: getActivityStateInfo().color
 
@@ -333,9 +369,8 @@ ListItem {
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        onClicked: root.cardClicked(root.account_id, root.odoo_record_id)
+    onClicked: {
+        root.cardClicked(root.account_id, root.odoo_record_id)
     }
 
     // Date Selector for changing activity date

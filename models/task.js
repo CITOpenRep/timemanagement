@@ -77,6 +77,37 @@ function isUserAssignedToTask(taskLocalId, userOdooId) {
     }
 }
 
+/**
+ * Get local task ID from Odoo record ID
+ * @param {number} odooRecordId - The Odoo record ID of the task
+ * @param {number} accountId - The account ID
+ * @returns {number} Local task ID, or -1 if not found
+ */
+function getLocalIdFromOdooId(odooRecordId, accountId) {
+    var localId = -1;
+    
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        
+        db.transaction(function(tx) {
+            var result = tx.executeSql(
+                'SELECT id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? AND (status IS NULL OR status != \"deleted\") LIMIT 1',
+                [odooRecordId, accountId]
+            );
+            
+            if (result.rows.length > 0) {
+                localId = result.rows.item(0).id;
+            } else {
+                console.warn("Task not found for odoo_record_id:", odooRecordId, "account_id:", accountId);
+            }
+        });
+    } catch (e) {
+        console.error("getLocalIdFromOdooId failed:", e);
+    }
+    
+    return localId;
+}
+
 function saveOrUpdateTask(data) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -152,7 +183,7 @@ function saveOrUpdateTask(data) {
 }
 
 
-function getTaskStageName(odooRecordId) {
+function getTaskStageName(odooRecordId, accountId) {
     var stageName = "Undefined";
 
     try {
@@ -171,11 +202,11 @@ function getTaskStageName(odooRecordId) {
             var query = `
                 SELECT name
                 FROM project_task_type_app
-                WHERE odoo_record_id = ?
+                WHERE odoo_record_id = ? AND account_id = ?
                 LIMIT 1
             `;
 
-            var result = tx.executeSql(query, [odooRecordId]);
+            var result = tx.executeSql(query, [odooRecordId, accountId]);
 
             if (result.rows.length > 0) {
                 stageName = result.rows.item(0).name;
@@ -1769,7 +1800,7 @@ function isTaskInDoneStage(task) {
         var stageId = task.state;
         if (!stageId) return false;
 
-        var stageName = getTaskStageName(stageId);
+        var stageName = getTaskStageName(stageId, task.account_id);
         if (!stageName) return false;
 
         return stageName.toString().toLowerCase() === "done" || stageName.toString().toLowerCase() === "completed" || stageName.toString().toLowerCase() === "finished" || stageName.toString().toLowerCase() === "closed" || stageName.toString().toLowerCase() === "verified";
@@ -1792,7 +1823,7 @@ function isTaskInCancelledStage(task) {
         var stageId = task.state;
         if (!stageId) return false;
 
-        var stageName = getTaskStageName(stageId);
+        var stageName = getTaskStageName(stageId, task.account_id);
         if (!stageName) return false;
 
         return stageName.toString().toLowerCase() === "cancelled" || stageName.toString().toLowerCase() === "canceled";

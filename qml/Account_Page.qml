@@ -517,7 +517,7 @@ Page {
                         height: passwordInput.height
                         visible: activeBackendAccount
                         fontSize: units.gu(1.2)
-                        text: isPasswordVisible ? "hide" : "show"
+                        text: isPasswordVisible ? i18n.dtr("ubtms", "Hide") : i18n.dtr("ubtms","show")
                         onClicked: {
                             isPasswordVisible = !isPasswordVisible;
                         }

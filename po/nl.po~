@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ubtms\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-30 10:17+0000\n"
+"POT-Creation-Date: 2025-10-31 04:44+0000\n"
 "PO-Revision-Date: 2025-10-15 22:45+0200\n"
 "Last-Translator: Gokul Kartha <gokul@cloudify-os-live>\n"
 "Language-Team: Dutch <vertaling@vrijschrift.org>\n"
@@ -46,6 +46,16 @@ msgstr "Opslaan"
 msgid "Edit"
 msgstr "Bewerken"
 
+#: ../qml/Account_Page.qml:173
+#, fuzzy
+msgid "Connect With Api Key"
+msgstr "Verbinden met"
+
+#: ../qml/Account_Page.qml:177
+#, fuzzy
+msgid "Connect With Password"
+msgstr "Verbinden met"
+
 #: ../qml/Account_Page.qml:255
 msgid "Enter Odoo URL here"
 msgstr "Voer hier Odoo URL in"
@@ -62,7 +72,7 @@ msgstr "Database"
 msgid "Enter Database Name"
 msgstr "Voer databasenaam in"
 
-#: ../qml/Account_Page.qml:397
+#: ../qml/Account_Page.qml:397 ../qml/Account_Page.qml:411
 msgid "Username"
 msgstr "Gebruikersnaam"
 
@@ -97,6 +107,11 @@ msgstr "Taak"
 #: ../qml/Activities.qml:239
 msgid "Summary"
 msgstr "Samenvatting"
+
+#: ../qml/Activities.qml:329
+#, fuzzy
+msgid "Activity Type"
+msgstr "Activiteit"
 
 #: ../qml/Activity_Page.qml:40 ../qml/Dashboard.qml:142 ../qml/Menu.qml:177
 #: ../qml/Projects.qml:288 ../qml/Tasks.qml:1245
@@ -207,6 +222,12 @@ msgstr "Gesloten/voltooide taken weergeven"
 msgid "No Tasks Assigned to You"
 msgstr "Geen taken aan jou toegewezen"
 
+#: ../qml/MyTasks.qml:396 ../qml/Projects.qml:307 ../qml/Projects.qml:366
+#: ../qml/Projects.qml:431 ../qml/Tasks.qml:1264 ../qml/Timesheet_Page.qml:272
+#: ../qml/components/CreateUpdatePage.qml:101
+msgid "Create"
+msgstr "Aanmaken"
+
 #: ../qml/Project_Page.qml:55
 msgid "New"
 msgstr "Nieuw"
@@ -218,12 +239,6 @@ msgstr "Zoeken"
 #: ../qml/Projects.qml:212
 msgid "Project Name"
 msgstr "Projectnaam"
-
-#: ../qml/Projects.qml:307 ../qml/Projects.qml:366 ../qml/Projects.qml:431
-#: ../qml/Tasks.qml:1264 ../qml/Timesheet_Page.qml:272
-#: ../qml/components/CreateUpdatePage.qml:101
-msgid "Create"
-msgstr "Aanmaken"
 
 #: ../qml/Projects.qml:333 ../qml/Projects.qml:398 ../qml/Projects.qml:464
 msgid "View"
@@ -277,8 +292,7 @@ msgstr "Taaksynchronisatie forceren"
 
 #: ../qml/Settings_Page.qml:549
 msgid "Reset task timestamps to force fresh sync from Odoo"
-msgstr ""
-"Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
+msgstr "Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
 
 #: ../qml/Settings_Page.qml:567
 msgid "Reset Tasks Without Stages"
@@ -309,7 +323,7 @@ msgid "Delete"
 msgstr "Verwijderen"
 
 #: ../qml/Settings_Page.qml:739
-msgid "Show Logs"
+msgid "Show Log"
 msgstr "Logboeken weergeven"
 
 #: ../qml/Settings_Page.qml:760
@@ -342,11 +356,15 @@ msgstr "Geen taken gevonden."
 msgid "Close"
 msgstr "Sluiten"
 
+#: ../qml/Tasks.qml:821
+msgid "Parent Task"
+msgstr "Ouder taak"
+
 #: ../qml/Tasks.qml:963
 msgid "Name"
 msgstr "Naam"
 
-#: ../qml/Tasks.qml:1023
+#: ../qml/Tasks.qml:1023 ../qml/Timesheet.qml:526
 msgid "Priority"
 msgstr "Prioriteit"
 
@@ -389,6 +407,70 @@ msgstr "Selecteren"
 #: ../qml/Tasks.qml:1541
 msgid "Select Deadline"
 msgstr "Deadline selecteren"
+
+#: ../qml/Timesheet.qml:542
+msgid "What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom Important."
+"<br><br><b>1. Important & Urgent:</b><br>Here you write down important "
+"activities, which also have to be done immediately. These are urgent "
+"problems or projects with a hard deadline. I.e. If you manage a restaurant "
+"and an employee has not shown up, it is a rather urgent and acute problem. "
+"All signals are on red, so this is a typical activity for the first quadrant."
+"<br><br><b>2. Important & Not Urgent:</b><br>If you leave the activities in "
+"this quadrant for the coming week, nothing will immediately go wrong. But be "
+"careful: These are activities and projects that will help you in the long "
+"term. Think of thinking about a strategy, improving work processes in your "
+"team, investing in relationships and investing in yourself. i.e. You are a "
+"team leader who has just been told during his performance review that more "
+"creative input is expected. Such an outcome of a performance review is an "
+"assignment that will never feel urgent, but is very important. You can "
+"quickly recognize the important & non-urgent activities by answering the "
+"question: if I don't do this, will it get me into trouble in the long run? "
+"If the answer is yes, then you have an important & non-urgent activity. If "
+"the answer is no, then it is a non-important & non-urgent activity."
+"<br><br><b>3. Urgent & Not Important:</b><br>This quadrant concerns "
+"activities that do not help you in the long run, but that are screaming for "
+"your attention this week. An adjustment in a presentation that has to be "
+"done for a colleague on the spur of the moment or the milk that is almost "
+"empty. With tasks in this quadrant it is very important to check whether "
+"they are actually urgent. Requests from others in particular often seem very "
+"urgent, while they can sometimes wait a day or a week. It is usually fine to "
+"postpone this work to a more suitable moment, provided that I communicate "
+"well about this. If you have the opportunity to delegate or outsource these "
+"tasks in this quadrant, do so. If you work for yourself, this is not always "
+"possible. In that case, I advise you to organize your working day in such a "
+"way that you are guided as little as possible by these urgent tasks, if "
+"necessary by reserving a fixed time block each day for these types of "
+"emergencies. That way you keep control over your agenda.<br><br><b>4. Not "
+"Important & Not Urgent:</b><br>This type of work that you want to have on "
+"your plate as little as possible, because it does not help you in any way. "
+"Constantly refreshing your mailbox, for example. But meetings without a "
+"clear goal also fall into this category. You can undoubtedly point out more "
+"of these types of 'busy work' examples yourself: things that you do, but "
+"that do not really benefit anyone. Sometimes these activities are a great "
+"short break from your work, but usually they are a great excuse to postpone "
+"your important work for a while."
+msgstr ""
+"\"Wat belangrijk is, is zelden urgent, en wat urgent is, is zelden belangrijk.\"<br><br>"
+"<b>1. Belangrijk & Urgent:</b><br>Hier schrijf je belangrijke activiteiten op die ook onmiddellijk gedaan moeten worden. Dit zijn urgente problemen of projecten met een harde deadline. Stel je voor: als je een restaurant runt en een werknemer is niet komen opdagen, dan is dat een tamelijk urgent en acuut probleem. Alle seinen staan op rood, dus dit is een typische activiteit voor het eerste kwadrant."
+"<br><br><b>2. Belangrijk & Niet Urgent:</b><br>Als je de activiteiten in dit kwadrant voor de komende week laat liggen, gaat er niet direct iets mis. Maar wees voorzichtig: dit zijn activiteiten en projecten die je op de lange termijn vooruithelpen. Denk aan nadenken over een strategie, het verbeteren van werkprocessen in je team, investeren in relaties en investeren in jezelf. Bijvoorbeeld: je bent een teamleider die tijdens zijn functioneringsgesprek net te horen heeft gekregen dat er meer creatieve inbreng wordt verwacht. Zo'n uitkomst van een functioneringsgesprek is een opdracht die nooit urgent zal aanvoelen, maar wel zeer belangrijk is. Je kunt de belangrijke & niet-urgente activiteiten snel herkennen door de vraag te beantwoorden: als ik dit niet doe, kom ik dan op de lange termijn in de problemen? Als het antwoord ja is, dan heb je een belangrijke & niet-urgente activiteit. Als het antwoord nee is, dan is het een niet-belangrijke & niet-urgente activiteit."
+"<br><br><b>3. Urgent & Niet Belangrijk:</b><br>Dit kwadrant betreft activiteiten die je op de lange termijn niet helpen, maar die deze week wel schreeuwen om je aandacht. Een aanpassing in een presentatie die nog even snel gedaan moet worden voor een collega, of de melk die bijna op is. Bij taken in dit kwadrant is het erg belangrijk om na te gaan of ze daadwerkelijk urgent zijn. Vooral verzoeken van anderen lijken vaak erg dringend, terwijl ze soms best een dag of week kunnen wachten. Het is doorgaans prima om dit werk uit te stellen naar een geschikter moment, mits ik hier goed over communiceer. Als je de mogelijkheid hebt om deze taken in dit kwadrant te delegeren of uit te besteden, doe dat dan. Als je voor jezelf werkt is dit niet altijd mogelijk. In dat geval raad ik aan om je werkdag zo in te richten dat je zo min mogelijk wordt geleid door deze urgente taken, eventueel door elke dag een vast tijdblok te reserveren voor dit soort 'brandjes'. Op die manier behoud je controle over je agenda."
+"<br><br><b>4. Niet Belangrijk & Niet Urgent:</b><br>Dit soort werk wil je zo min mogelijk op je bord hebben, want het helpt je op geen enkele manier. Constant je mailbox verversen bijvoorbeeld. Maar ook vergaderingen zonder duidelijk doel vallen onder deze categorie. Je kunt ongetwijfeld zelf meer van dit soort 'drukdoenerij' voorbeelden aanwijzen: zaken die je doet, maar waar niemand echt baat bij heeft. Soms zijn deze activiteiten een prima korte onderbreking van je werk, maar meestal zijn ze een uitstekend excuus om je belangrijke werk nog even uit te stellen."
+
+#: ../qml/Timesheet.qml:564
+msgid "Important, Urgent (1)"
+msgstr "Belangrijk & Urgent (1)"
+
+#: ../qml/Timesheet.qml:583
+msgid "Important, Not Urgent (2)"
+msgstr "Belangrijk & Niet Urgent"
+
+#: ../qml/Timesheet.qml:602
+msgid "Urgent, Not Important (3)"
+msgstr "Urgent, Niet Belangrijk (3)"
+
+#: ../qml/Timesheet.qml:621
+msgid "Not Urgent, Not Important (4)"
+msgstr "Niet Urgent, Niet Belangrijk (4)"
 
 #: ../qml/Timesheet_Page.qml:39
 msgid "Timesheets"
@@ -435,8 +517,7 @@ msgstr "Gegevens synchroniseren"
 
 #: ../qml/components/AccountDrawer.qml:276
 msgid "Note: Sync is not available for 'All Accounts' view"
-msgstr ""
-"Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
+msgstr "Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
 
 #: ../qml/components/AccountDrawer.qml:285
 msgid "Please select a specific account to sync data"
@@ -628,19 +709,19 @@ msgstr "Voortgang:"
 
 #: ../qml/components/CreateUpdatePage.qml:61
 msgid "Draft Recovered"
-msgstr ""
+msgstr "Concept Hersteld"
 
 #: ../qml/components/CreateUpdatePage.qml:62
 msgid "Your unsaved changes have been recovered."
-msgstr ""
+msgstr "Je niet-opgeslagen wijzigingen zijn hersteld."
 
 #: ../qml/components/CreateUpdatePage.qml:105
 msgid "Validation Error"
-msgstr ""
+msgstr "Validatiefout"
 
 #: ../qml/components/CreateUpdatePage.qml:106
 msgid "Please fill in all required fields."
-msgstr ""
+msgstr "Vul alle verplichte velden in."
 
 #: ../qml/components/CreateUpdatePage.qml:152
 #: ../qml/components/SaveDiscardDialog.qml:48
@@ -649,16 +730,14 @@ msgstr "Niet-opgeslagen wijzigingen"
 
 #: ../qml/components/CreateUpdatePage.qml:153
 #, fuzzy
-msgid "You have unsaved changes. What would you like to do?"
-msgstr ""
-"Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
-"\n"
-"Opmerking: Als je annuleert, kun je teruggaan om verder te bewerken."
+msgid "You have unsaved changes. What would you like to do?\n"
+msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
+
 
 #: ../qml/components/CreateUpdatePage.qml:156
 #, fuzzy
 msgid "Save Draft"
-msgstr "Concept"
+msgstr "Concept Opslaan"
 
 #: ../qml/components/CreateUpdatePage.qml:166
 #: ../qml/components/SaveDiscardDialog.qml:79
@@ -804,6 +883,11 @@ msgstr "Startdatum: "
 msgid "End Date: "
 msgstr "Einddatum: "
 
+#: ../qml/components/ProjectList.qml:595
+#, fuzzy
+msgid "Search projects"
+msgstr "Projecten synchroniseren..."
+
 #: ../qml/components/ProjectPieChart.qml:42
 #: ../qml/components/ProjectPieChart.qml:140
 msgid "Most Time-Consuming Projects"
@@ -814,14 +898,16 @@ msgid "Most Time-Consuming Projects(No Data)"
 msgstr "Meest tijdrovende projecten (geen gegevens)"
 
 #: ../qml/components/SaveDiscardDialog.qml:52
-msgid ""
-"You have unsaved changes. What would you like to do?\n"
+msgid "You have unsaved changes. What would you like to do?\n"
 "\n"
-"Note: If you cancel, you can navigate back to continue editing."
-msgstr ""
-"Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
-"\n"
-"Opmerking: Als je annuleert, kun je teruggaan om verder te bewerken."
+"Note: If you cancel, you can navigate back to continue editing.\n"
+msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
+
+
+#: ../qml/components/StageFilterMenu.qml:179
+#, fuzzy
+msgid "Filter by Stage"
+msgstr "Filter op toegewezenen"
 
 #: ../qml/components/StageFilterMenu.qml:354
 msgid "Current: "

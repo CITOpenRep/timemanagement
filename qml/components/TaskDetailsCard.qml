@@ -583,10 +583,10 @@ ListItem {
 
                         Text {
 
-                            text: Task.getTaskStageName(stage)
-                            color: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
+                            text: Task.getTaskStageName(stage, accountId)
+                            color: Task.getTaskStageName(stage, accountId).toLowerCase() === "completed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "finished" || Task.getTaskStageName(stage, accountId).toLowerCase() === "closed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "verified" || Task.getTaskStageName(stage, accountId).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
                             font.pixelSize: units.gu(1.75)
-                            font.bold: Task.getTaskStageName(stage).toLowerCase() === "completed" || Task.getTaskStageName(stage).toLowerCase() === "finished" || Task.getTaskStageName(stage).toLowerCase() === "closed" || Task.getTaskStageName(stage).toLowerCase() === "verified" || Task.getTaskStageName(stage).toLowerCase() === "done" ? true : false
+                            font.bold: Task.getTaskStageName(stage, accountId).toLowerCase() === "completed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "finished" || Task.getTaskStageName(stage, accountId).toLowerCase() === "closed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "verified" || Task.getTaskStageName(stage, accountId).toLowerCase() === "done" ? true : false
                         }
                     }
                 }
