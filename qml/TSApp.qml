@@ -29,6 +29,7 @@ import QtQuick.Layouts 1.11
 import QtQuick.LocalStorage 2.7 as Sql
 import "../models/dbinit.js" as DbInit
 import "../models/draft_manager.js" as DraftManager
+import Pparent.Notifications 1.0
 import "components"
 import "."
 
@@ -57,6 +58,15 @@ MainView {
 
     signal globalAccountChanged(int accountId, string accountName)
     signal accountDataRefreshRequested(int accountId)
+
+    NotificationHelper {
+        id: notificationSystem
+        push_app_id: "ubtms_ubtms"
+    }
+
+    function showSystemNotification(title, message) {
+        notificationSystem.showNotificationMessage(title, message)
+    }
 
     GlobalTimerWidget {
         id: globalTimerWidget

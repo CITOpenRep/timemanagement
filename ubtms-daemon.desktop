@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Time Management Daemon
+Exec=python3 src/daemon.py
+Type=Application
+NoDisplay=true
+X-Lomiri-Background-Service=true
