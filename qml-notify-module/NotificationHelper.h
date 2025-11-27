@@ -19,6 +19,9 @@ public:
     
     //Update notification counter on icon
     Q_INVOKABLE bool updateCount(const int count);
+
+    // Start the background daemon
+    Q_INVOKABLE void startDaemon();
     
     // Send a notification based on JSON notification
     bool sendJSON(const QJsonObject &message);

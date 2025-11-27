@@ -8,6 +8,9 @@
 #include <QJsonDocument>
 #include <QDebug>
 #include <QJsonArray>
+#include <QProcess>
+#include <QCoreApplication>
+#include <QFileInfo>
 
 #define PUSH_SERVICE "com.lomiri.PushNotifications"
 #define POSTAL_SERVICE "com.lomiri.Postal"
@@ -133,3 +136,43 @@ QString NotificationHelper::get_push_app_id()
    
 void NotificationHelper::set_push_app_id(QString value)
 { push_app_id = value; }
+
+void NotificationHelper::startDaemon()
+{
+    // Check if daemon is already running
+    int exitCode = QProcess::execute("pgrep", QStringList() << "-f" << "python3.*daemon.py");
+    if (exitCode == 0) {
+        qDebug() << "Daemon already running.";
+        return;
+    }
+
+    qDebug() << "Starting daemon...";
+    
+    // Use hardcoded path for the start script
+    QString startScript = "/opt/click.ubuntu.com/ubtms/current/start-daemon.sh";
+    
+    qDebug() << "Start script path:" << startScript;
+    
+    // Check if the start script exists
+    QFileInfo checkFile(startScript);
+    if (!checkFile.exists()) {
+        qDebug() << "Start script not found at:" << startScript;
+        // Fall back to direct daemon start
+        QString daemonPath = "/opt/click.ubuntu.com/ubtms/current/src/daemon.py";
+        QProcess *process = new QProcess();
+        process->setWorkingDirectory("/opt/click.ubuntu.com/ubtms/current");
+        process->setProgram("python3");
+        process->setArguments(QStringList() << daemonPath);
+        bool success = process->startDetached();
+        qDebug() << "Direct daemon start result:" << success;
+        return;
+    }
+    
+    // Start the daemon using the shell script (handles environment setup)
+    bool success = QProcess::startDetached("/bin/bash", QStringList() << startScript);
+    if (success) {
+        qDebug() << "Daemon started successfully via start script";
+    } else {
+        qDebug() << "Failed to start daemon";
+    }
+}

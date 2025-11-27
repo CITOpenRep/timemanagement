@@ -62,6 +62,10 @@ MainView {
     NotificationHelper {
         id: notificationSystem
         push_app_id: "ubtms_ubtms"
+        Component.onCompleted: {
+            console.log("Starting background daemon...")
+            startDaemon()
+        }
     }
 
     function showSystemNotification(title, message) {

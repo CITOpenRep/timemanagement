@@ -32,7 +32,7 @@ import os
 import time
 import sqlite3
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
@@ -60,7 +60,7 @@ class NotificationDaemon:
         self.app_db = self._get_app_db_path()
         # Use the main app database for settings/users as well, since QML creates them there
         self.settings_db = self.app_db
-        self.last_task_count = {}
+        self.last_check_time = {} # Store last check timestamp per account
         self.notification_interface = None
         self._init_dbus()
         
@@ -86,6 +86,19 @@ class NotificationDaemon:
     
     def _init_dbus(self):
         """Initialize DBus connection for sending notifications."""
+        # Auto-detect DBus session if not set (Robustness fix)
+        if "DBUS_SESSION_BUS_ADDRESS" not in os.environ:
+            try:
+                uid = os.getuid()
+                bus_path = f"/run/user/{uid}/bus"
+                if os.path.exists(bus_path):
+                    os.environ["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={bus_path}"
+                    log.info(f"[DAEMON] Auto-detected DBus address: {os.environ['DBUS_SESSION_BUS_ADDRESS']}")
+                else:
+                    log.warning(f"[DAEMON] Could not find DBus socket at {bus_path}")
+            except Exception as e:
+                log.error(f"[DAEMON] Error trying to auto-detect DBus: {e}")
+
         try:
             DBusGMainLoop(set_as_default=True)
             self.bus = dbus.SessionBus()
@@ -189,49 +202,117 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Failed to send notification: {e}")
     
-    def get_task_count(self, account_id):
-        """Get current task count for an account from database."""
+    def get_current_user_id(self, account_id, username):
+        """Get the Odoo user ID for the current account login."""
         try:
             conn = sqlite3.connect(self.app_db)
             cursor = conn.cursor()
+            # Match login from config with login in res_users_app
             cursor.execute(
-                "SELECT COUNT(*) FROM project_task_app WHERE account_id = ?",
-                (account_id,)
+                "SELECT odoo_record_id FROM res_users_app WHERE account_id = ? AND login = ?",
+                (account_id, username)
             )
-            count = cursor.fetchone()[0]
+            result = cursor.fetchone()
             conn.close()
-            return count
+            if result:
+                return result[0]
+            return None
         except Exception as e:
-            log.error(f"[DAEMON] Failed to get task count: {e}")
-            return 0
-    
-    def get_total_task_count(self):
-        """Get total task count across all accounts."""
+            log.error(f"[DAEMON] Failed to get current user ID: {e}")
+            return None
+
+    def check_for_updates(self, account_id, account_name, username):
+        """Check for new tasks, activities, and projects since last check."""
+        
+        # Initialize last check time if not set (default to now, so we only catch future updates)
+        # Use Odoo-compatible format (YYYY-MM-DD HH:MM:SS)
+        # We subtract 5 minutes to catch items synced in the current cycle (or just before daemon start)
+        if account_id not in self.last_check_time:
+            start_time = datetime.utcnow() - timedelta(minutes=5)
+            self.last_check_time[account_id] = start_time.strftime("%Y-%m-%d %H:%M:%S")
+            # Don't return here! Proceed to check updates using this slightly backdated timestamp.
+            # This ensures we catch the tasks that were just synced in the current cycle.
+            # return 
+
+        last_check = self.last_check_time[account_id]
+        current_user_id = self.get_current_user_id(account_id, username)
+        
+        log.info(f"[DAEMON] Checking updates for {account_name} since {last_check} (User ID: {current_user_id})")
+        
         try:
             conn = sqlite3.connect(self.app_db)
+            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            # Assuming we want to count all tasks for now
-            cursor.execute("SELECT COUNT(*) FROM project_task_app")
-            count = cursor.fetchone()[0]
-            conn.close()
-            return count
-        except Exception as e:
-            log.error(f"[DAEMON] Failed to get total task count: {e}")
-            return 0
+            
+            # 1. New/Updated Tasks Assigned to User
+            # user_id in project_task_app is a CSV string of IDs (Many2many)
+            if current_user_id:
+                user_id_pattern = f"%,{current_user_id},%"
+                # Handle single ID, start of list, end of list, or middle of list
+                # Or just wrap the field in commas and search
+                cursor.execute(
+                    """
+                    SELECT name, project_id FROM project_task_app 
+                    WHERE account_id = ? 
+                    AND (',' || user_id || ',') LIKE ?
+                    AND last_modified > ?
+                    """,
+                    (account_id, user_id_pattern, last_check)
+                )
+                new_tasks = cursor.fetchall()
+                if new_tasks:
+                    log.info(f"[DAEMON] Found {len(new_tasks)} new tasks for user {current_user_id}")
+                
+                for task in new_tasks:
+                    self.send_notification(
+                        "Task Update",
+                        f"Task '{task['name']}' has been updated or assigned to you."
+                    )
 
-    def check_for_new_tasks(self, account_id, account_name):
-        """Check if there are new tasks and notify if so."""
-        current_count = self.get_task_count(account_id)
-        previous_count = self.last_task_count.get(account_id, current_count)
-        
-        if current_count > previous_count:
-            new_tasks = current_count - previous_count
-            self.send_notification(
-                "New Tasks",
-                f"{new_tasks} new task(s) in {account_name}"
+            # 2. New/Updated Activities Assigned to User
+            # user_id in mail_activity_app is a single ID (Many2one)
+            if current_user_id:
+                cursor.execute(
+                    """
+                    SELECT summary, due_date FROM mail_activity_app 
+                    WHERE account_id = ? 
+                    AND user_id = ? 
+                    AND last_modified > ?
+                    """,
+                    (account_id, current_user_id, last_check)
+                )
+                new_activities = cursor.fetchall()
+                for activity in new_activities:
+                    summary = activity['summary'] or "New Activity"
+                    self.send_notification(
+                        "Activity Assigned",
+                        f"{summary} (Due: {activity['due_date']})"
+                    )
+
+            # 3. Project Updates (General)
+            # Maybe filter by favorites or membership if possible, for now notify all project updates
+            cursor.execute(
+                """
+                SELECT name FROM project_project_app 
+                WHERE account_id = ? 
+                AND last_modified > ?
+                """,
+                (account_id, last_check)
             )
-        
-        self.last_task_count[account_id] = current_count
+            new_projects = cursor.fetchall()
+            for project in new_projects:
+                self.send_notification(
+                    "Project Update",
+                    f"Project '{project['name']}' has been updated."
+                )
+
+            conn.close()
+            
+            # Update last check time
+            self.last_check_time[account_id] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to check for updates: {e}")
     
     def sync_account(self, account):
         """Sync a single account and check for updates."""
@@ -261,16 +342,41 @@ class NotificationDaemon:
                 password=account_pass
             )
             
-            # Sync data from Odoo
-            sync_all_from_odoo(client, account_id, self.settings_db)
+            # Sync data from Odoo with timeout handling
+            import signal
+            
+            def timeout_handler(signum, frame):
+                raise TimeoutError("Sync operation timed out")
+            
+            # Set timeout for sync operation (2 minutes max)
+            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(120)  # 2 minute timeout
+            
+            try:
+                sync_all_from_odoo(client, account_id, self.settings_db)
+            finally:
+                signal.alarm(0)  # Cancel the alarm
+                signal.signal(signal.SIGALRM, old_handler)
             
             # Check for new tasks and notify
-            self.check_for_new_tasks(account_id, account_name)
+            self.check_for_updates(account_id, account_name, account_user)
             
             log.info(f"[DAEMON] Sync completed for {account_name}")
             
+        except TimeoutError as e:
+            log.error(f"[DAEMON] Sync timed out for {account_name}: {e}")
+            # Still try to check for updates with existing data
+            try:
+                self.check_for_updates(account_id, account_name, account_user)
+            except Exception as e2:
+                log.error(f"[DAEMON] Failed to check updates after timeout: {e2}")
         except Exception as e:
             log.error(f"[DAEMON] Error syncing account {account_name}: {e}")
+            # Still try to check for updates with existing data
+            try:
+                self.check_for_updates(account_id, account_name, account_user)
+            except Exception as e2:
+                log.error(f"[DAEMON] Failed to check updates after error: {e2}")
     
     def sync_all_accounts(self):
         """Sync all configured accounts."""
@@ -298,8 +404,11 @@ class NotificationDaemon:
         log.info(f"[DAEMON] Settings DB: {self.settings_db}")
         log.info(f"[DAEMON] App DB: {self.app_db}")
         
-        # Initial sync
-        self.sync_all_accounts()
+        # Initial sync with exception handling
+        try:
+            self.sync_all_accounts()
+        except Exception as e:
+            log.error(f"[DAEMON] Initial sync failed: {e}")
         
         # Schedule periodic sync using GLib
         GLib.timeout_add_seconds(
@@ -314,17 +423,40 @@ class NotificationDaemon:
         except KeyboardInterrupt:
             log.info("[DAEMON] Shutting down daemon")
             loop.quit()
+        except Exception as e:
+            log.error(f"[DAEMON] Main loop error: {e}")
+            # Try to restart the loop
+            loop.quit()
+            loop.run()
     
     def _periodic_sync(self):
         """Callback for periodic sync."""
-        log.info(f"[DAEMON] Periodic sync triggered at {datetime.now()}")
-        self.sync_all_accounts()
-        return True  # Continue the timer
+        try:
+            log.info(f"[DAEMON] Periodic sync triggered at {datetime.now()}")
+            self.sync_all_accounts()
+        except Exception as e:
+            log.error(f"[DAEMON] Periodic sync failed: {e}")
+        return True  # Always continue the timer
+    
+    def get_total_task_count(self):
+        """Get total task count across all accounts."""
+        try:
+            conn = sqlite3.connect(self.app_db)
+            cursor = conn.cursor()
+            # Assuming we want to count all tasks for now
+            cursor.execute("SELECT COUNT(*) FROM project_task_app")
+            count = cursor.fetchone()[0]
+            conn.close()
+            return count
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to get total task count: {e}")
+            return 0
 
 
 def main():
     """Entry point for daemon."""
     import argparse
+    import traceback
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", action="store_true", help="Send test notification on startup")
     args = parser.parse_args()
@@ -343,7 +475,18 @@ def main():
         daemon.run()
     except Exception as e:
         log.error(f"[DAEMON] Fatal error: {e}")
-        sys.exit(1)
+        log.error(f"[DAEMON] Traceback: {traceback.format_exc()}")
+        # Keep the daemon running even after fatal error
+        # by sleeping and retrying
+        while True:
+            log.info("[DAEMON] Attempting to restart daemon in 60 seconds...")
+            time.sleep(60)
+            try:
+                daemon = NotificationDaemon()
+                daemon.run()
+            except Exception as e:
+                log.error(f"[DAEMON] Restart failed: {e}")
+                continue
 
 
 if __name__ == "__main__":
