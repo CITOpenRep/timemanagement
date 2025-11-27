@@ -50,15 +50,16 @@ from logger import setup_logger
 log = setup_logger()
 
 # Configuration
-SYNC_INTERVAL_MINUTES = 15
+SYNC_INTERVAL_MINUTES = 1
 APP_ID = "ubtms_ubtms"
 
 class NotificationDaemon:
     """Background service for syncing and sending notifications."""
     
     def __init__(self):
-        self.settings_db = self._get_settings_db_path()
         self.app_db = self._get_app_db_path()
+        # Use the main app database for settings/users as well, since QML creates them there
+        self.settings_db = self.app_db
         self.last_task_count = {}
         self.notification_interface = None
         self._init_dbus()
@@ -87,24 +88,25 @@ class NotificationDaemon:
         """Initialize DBus connection for sending notifications."""
         try:
             DBusGMainLoop(set_as_default=True)
-            bus = dbus.SessionBus()
+            self.bus = dbus.SessionBus()
             
-            # Get Lomiri Postal service for notifications
-            postal_service = bus.get_object(
-                'com.lomiri.Postal',
-                f'/com/lomiri/Postal/{self._make_path(APP_ID)}'
+            # Use standard notifications interface
+            notify_service = self.bus.get_object(
+                'org.freedesktop.Notifications',
+                '/org/freedesktop/Notifications'
             )
             self.notification_interface = dbus.Interface(
-                postal_service,
-                'com.lomiri.Postal'
+                notify_service,
+                'org.freedesktop.Notifications'
             )
-            log.info("[DAEMON] DBus notification interface initialized")
+            log.info("[DAEMON] DBus notification interface initialized (org.freedesktop.Notifications)")
         except Exception as e:
             log.error(f"[DAEMON] Failed to initialize DBus: {e}")
             self.notification_interface = None
     
     def _make_path(self, app_id):
         """Convert app_id to DBus path format."""
+        # This method is no longer used but kept for reference if needed
         pkg = app_id.split('_')[0]
         path = ""
         for c in pkg:
@@ -121,24 +123,68 @@ class NotificationDaemon:
             return
         
         try:
-            import json
-            notification = {
-                "notification": {
-                    "card": {
-                        "summary": title,
-                        "body": message,
-                        "popup": True,
-                        "persist": True,
-                        "icon": "/opt/click.ubuntu.com/ubtms/current/icon.png",
-                        "actions": [f"appid://ubtms/ubtms/current-user-version"]
-                    },
-                    "sound": True,
-                    "vibrate": True
-                }
-            }
+            # app_name, replaces_id, app_icon, summary, body, actions, hints, timeout
+            icon_path = "/opt/click.ubuntu.com/ubtms/current/assets/logo.png"
             
-            notification_json = json.dumps(notification)
-            self.notification_interface.Post(APP_ID, notification_json)
+            # Hybrid approach:
+            # 1. Send Badge via Postal (Persistent badge)
+            # 2. Send Popup via Postal (Persistent popup via helper)
+            
+            # 1. Badge via Postal
+            try:
+                postal_path = "/com/lomiri/Postal/ubtms"
+                postal = self.bus.get_object('com.lomiri.Postal', postal_path)
+                postal_iface = dbus.Interface(postal, 'com.lomiri.Postal')
+                
+                # Calculate total tasks across all accounts for badge
+                total_tasks = self.get_total_task_count()
+                
+                postal_iface.SetCounter("ubtms_ubtms", total_tasks, True)
+                log.info(f"[DAEMON] Badge updated to {total_tasks}")
+            except Exception as e:
+                log.error(f"[DAEMON] Failed to update badge: {e}")
+
+            # 2. Popup via Postal (using push helper)
+            try:
+                postal_path = "/com/lomiri/Postal/ubtms"
+                postal = self.bus.get_object('com.lomiri.Postal', postal_path)
+                postal_iface = dbus.Interface(postal, 'com.lomiri.Postal')
+                
+                # Construct JSON message for Postal
+                msg = {
+                    "message": message,
+                    "notification": {
+                        "card": {
+                            "summary": title,
+                            "body": message,
+                            "popup": True,
+                            "persist": True,
+                            "icon": "/opt/click.ubuntu.com/ubtms/current/assets/logo.png",
+                            "actions": ["appid://ubtms/ubtms/current-user-version"]
+                        },
+                        "sound": True,
+                        "vibrate": True
+                    }
+                }
+                
+                import json
+                json_str = json.dumps(msg)
+                
+                # Use the exact ID that matches the desktop file
+                postal_iface.Post("ubtms_ubtms_1.1.10", json_str)
+                log.info(f"[DAEMON] Notification sent via Postal: {title}")
+                
+            except Exception as e:
+                log.error(f"[DAEMON] Failed to send Postal notification: {e}")
+                # Fallback to Standard Notifications if Postal fails
+                hints = {
+                    "urgency": dbus.Byte(2),
+                    "resident": dbus.Boolean(True),
+                    "desktop-entry": "ubtms_ubtms_1.1.10"
+                }
+                self.notification_interface.Notify(
+                    "Time Management", 0, icon_path, title, message, [], hints, 0
+                )
             log.info(f"[DAEMON] Notification sent: {title}")
         except Exception as e:
             log.error(f"[DAEMON] Failed to send notification: {e}")
@@ -159,6 +205,20 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Failed to get task count: {e}")
             return 0
     
+    def get_total_task_count(self):
+        """Get total task count across all accounts."""
+        try:
+            conn = sqlite3.connect(self.app_db)
+            cursor = conn.cursor()
+            # Assuming we want to count all tasks for now
+            cursor.execute("SELECT COUNT(*) FROM project_task_app")
+            count = cursor.fetchone()[0]
+            conn.close()
+            return count
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to get total task count: {e}")
+            return 0
+
     def check_for_new_tasks(self, account_id, account_name):
         """Check if there are new tasks and notify if so."""
         current_count = self.get_task_count(account_id)
@@ -178,21 +238,28 @@ class NotificationDaemon:
         account_id = account["id"]
         account_name = account.get("name", "Unknown")
         
+        # Map config keys to OdooClient expected keys
+        # config.py returns: id, name, link, database, username, api_key
+        account_url = account.get("link")
+        account_db = account.get("database")
+        account_user = account.get("username")
+        account_pass = account.get("api_key")
+
+        # Skip local account or accounts without URL
+        if not account_url or account_name == "Local Account":
+            log.info(f"[DAEMON] Skipping local/invalid account: {account_name}")
+            return
+
         try:
             log.info(f"[DAEMON] Syncing account: {account_name} (ID: {account_id})")
             
-            # Create Odoo client
+            # Create Odoo client (authenticates automatically)
             client = OdooClient(
-                url=account["url"],
-                database=account["database"],
-                username=account["username"],
-                password=account["password"]
+                url=account_url,
+                db=account_db,
+                username=account_user,
+                password=account_pass
             )
-            
-            # Authenticate
-            if not client.authenticate():
-                log.error(f"[DAEMON] Failed to authenticate account {account_name}")
-                return
             
             # Sync data from Odoo
             sync_all_from_odoo(client, account_id, self.settings_db)
@@ -257,8 +324,22 @@ class NotificationDaemon:
 
 def main():
     """Entry point for daemon."""
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test", action="store_true", help="Send test notification on startup")
+    args = parser.parse_args()
+
     try:
         daemon = NotificationDaemon()
+        
+        if args.test:
+            log.info("[DAEMON] Test mode: Sending test notification...")
+            daemon.send_notification("Test Notification", "This is a test notification from the daemon")
+            log.info("[DAEMON] Test notification sent successfully")
+            # We can exit after test or continue. Let's continue to test the loop too if needed, 
+            # but usually test is just for notification.
+            # For now, let's just run the daemon normally after test.
+            
         daemon.run()
     except Exception as e:
         log.error(f"[DAEMON] Fatal error: {e}")

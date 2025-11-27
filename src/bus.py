@@ -21,8 +21,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import pyotherside
+# pyotherside is only available when running inside QML context
+# When running standalone (e.g., daemon), we gracefully skip sending events
+try:
+    import pyotherside
+    _HAS_PYOTHERSIDE = True
+except ImportError:
+    _HAS_PYOTHERSIDE = False
 
 def send(event_name, payload):
-    pyotherside.send({'event': event_name, 'payload': payload})
-    return True
+    """
+    Send an event to QML via pyotherside.
+    
+    When running outside QML context (e.g., daemon), this is a no-op.
+    """
+    if _HAS_PYOTHERSIDE:
+        pyotherside.send({'event': event_name, 'payload': payload})
+        return True
+    # Running standalone - just log or ignore
+    return False

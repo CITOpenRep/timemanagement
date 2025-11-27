@@ -11,6 +11,10 @@
         "ubtms-daemon": {
             "apparmor": "ubtms.apparmor",
             "desktop": "ubtms-daemon.desktop"
+        },
+        "push": {
+            "apparmor": "ubtms-push.apparmor",
+            "push-helper": "ubtms-push-helper.json"
         }
     },
     "version": "1.1.10",
