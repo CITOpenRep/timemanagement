@@ -64,7 +64,18 @@ Page {
     property bool isInitializing: true
     
     // Flag to indicate if project selection is needed (new update without pre-selected project)
-    property bool needsProjectSelection: recordid === 0 && (!currentUpdate.project_id || currentUpdate.project_id <= 0)
+    // This is set on page load and updated after save
+    property bool needsProjectSelection: false
+    
+    // Display names for account and project (tracked by QML for proper binding updates)
+    property string displayAccountName: ""
+    property string displayProjectName: ""
+    
+    // Function to update display names
+    function updateDisplayNames() {
+        displayAccountName = Accounts.getAccountName(currentUpdate.account_id) || i18n.dtr("ubtms", "Unknown Account");
+        displayProjectName = Project.getProjectName(currentUpdate.project_id, currentUpdate.account_id) || i18n.dtr("ubtms", "Unknown Project");
+    }
     
     // Handle hardware back button presses
     Keys.onReleased: {
@@ -286,27 +297,34 @@ Page {
                     }
                 }
                 
-                Component.onCompleted: {
-                    if (needsProjectSelection) {
-                        // Get the default account ID
-                        var defaultAccountId = Accounts.getDefaultAccountId();
-                        
-                        // If currentUpdate doesn't have a valid account, use default
-                        if (currentUpdate.account_id < 0 || currentUpdate.account_id === undefined) {
-                            currentUpdate.account_id = defaultAccountId >= 0 ? defaultAccountId : 0;
-                        }
-                        
-                        // Load accounts with the default account pre-selected
-                        var accountToSelect = currentUpdate.account_id >= 0 ? currentUpdate.account_id : defaultAccountId;
-                        loadAccounts(accountToSelect);
-                        
-                        // After loading accounts, load projects for the selected account
-                        // This makes the project selector ready for selection
-                        if (accountToSelect >= 0) {
-                            Qt.callLater(function() {
-                                loadProjects(accountToSelect, -1);
-                            });
-                        }
+                // Initialize the selector when it becomes visible
+                onVisibleChanged: {
+                    if (visible) {
+                        initializeWorkItemSelector();
+                    }
+                }
+                
+                function initializeWorkItemSelector() {
+                    console.log("📋 Initializing WorkItemSelector for project selection");
+                    
+                    // Get the default account ID
+                    var defaultAccountId = Accounts.getDefaultAccountId();
+                    
+                    // If currentUpdate doesn't have a valid account, use default
+                    if (currentUpdate.account_id < 0 || currentUpdate.account_id === undefined) {
+                        currentUpdate.account_id = defaultAccountId >= 0 ? defaultAccountId : 0;
+                    }
+                    
+                    // Load accounts with the default account pre-selected
+                    var accountToSelect = currentUpdate.account_id >= 0 ? currentUpdate.account_id : defaultAccountId;
+                    loadAccounts(accountToSelect);
+                    
+                    // After loading accounts, load projects for the selected account
+                    // This makes the project selector ready for selection
+                    if (accountToSelect >= 0) {
+                        Qt.callLater(function() {
+                            loadProjects(accountToSelect, -1);
+                        });
                     }
                 }
             }
@@ -333,7 +351,7 @@ Page {
                         }
                         
                         Text {
-                            text: Accounts.getAccountName(currentUpdate.account_id) || i18n.dtr("ubtms", "Unknown Account")
+                            text: displayAccountName
                             font.pixelSize: units.gu(2)
                             width: parent.width - units.gu(13)
                             anchors.verticalCenter: parent.verticalCenter
@@ -353,7 +371,7 @@ Page {
                         }
                         
                         Text {
-                            text: Project.getProjectName(currentUpdate.project_id, currentUpdate.account_id) || i18n.dtr("ubtms", "Unknown Project")
+                            text: displayProjectName
                             font.pixelSize: units.gu(2)
                             width: parent.width - units.gu(13)
                             anchors.verticalCenter: parent.verticalCenter
@@ -634,6 +652,12 @@ Page {
                 recordid = result.record_id;
             }
             
+            // Project selection is no longer needed after save - show the read-only display
+            needsProjectSelection = false;
+            
+            // Update display names with the saved values
+            updateDisplayNames();
+            
             // Clear draft after successful save
             draftHandler.clearDraft();
             
@@ -648,7 +672,8 @@ Page {
         isInitializing = true;
         
         if (recordid != 0) {
-            // Load existing update
+            // Load existing update - project selection is not needed
+            needsProjectSelection = false;
             currentUpdate = Project.getProjectUpdateById(recordid, accountid);
             hasBeenSaved = true;
             
@@ -671,13 +696,22 @@ Page {
                 statusSelector.currentIndex = statusIndex >= 0 ? statusIndex : 0;
                 progressSlider.value = currentUpdate.progress || 0;
             }
+            
+            // Update display names for existing update
+            updateDisplayNames();
         } else {
-            // New update - currentUpdate should be pre-populated with project context
+            // New update - check if project is pre-selected or needs selection
             hasBeenSaved = false;
             
-            // Ensure we have valid project context for new updates
-            if (!currentUpdate.project_id || currentUpdate.project_id <= 0) {
-                console.warn("⚠️ Creating update without project context!");
+            // Determine if we need project selection (no valid project_id provided)
+            needsProjectSelection = (!currentUpdate.project_id || currentUpdate.project_id <= 0);
+            
+            if (needsProjectSelection) {
+                console.log("📝 Creating update - project selection needed");
+            } else {
+                console.log("📝 Creating update with pre-selected project:", currentUpdate.project_id);
+                // Update display names for pre-selected project
+                updateDisplayNames();
             }
             
             draftHandler.initialize({
