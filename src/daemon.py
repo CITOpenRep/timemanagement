@@ -530,10 +530,33 @@ class NotificationDaemon:
                     {"timesheet_name": ts_name, "hours": timesheet['unit_amount']}
                 )
 
+            # Get the maximum last_modified from all synced tables to use as next last_check
+            # This ensures we don't miss records due to time sync differences
+            max_modified = last_check  # Default to current last_check
+            try:
+                cursor.execute("""
+                    SELECT MAX(last_modified) FROM (
+                        SELECT MAX(last_modified) as last_modified FROM project_task_app WHERE account_id = ?
+                        UNION ALL
+                        SELECT MAX(last_modified) FROM mail_activity_app WHERE account_id = ?
+                        UNION ALL
+                        SELECT MAX(last_modified) FROM project_project_app WHERE account_id = ?
+                        UNION ALL
+                        SELECT MAX(last_modified) FROM account_analytic_line_app WHERE account_id = ?
+                    )
+                """, (account_id, account_id, account_id, account_id))
+                result = cursor.fetchone()
+                if result and result[0]:
+                    max_modified = result[0]
+                    log.info(f"[DAEMON] Max last_modified from DB: {max_modified}")
+            except Exception as e:
+                log.error(f"[DAEMON] Failed to get max last_modified: {e}")
+
             conn.close()
             
-            # Update last check time and persist to file
-            self.last_check_time[str(account_id)] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            # Update last check time using the max modified time from synced data
+            # This ensures we don't miss records due to clock differences between server and device
+            self.last_check_time[str(account_id)] = max_modified
             self._save_last_check_times()
             
         except Exception as e:
