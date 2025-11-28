@@ -59,6 +59,7 @@ APP_ID = "ubtms_ubtms"
 MANIFEST_PATH = "/opt/click.ubuntu.com/ubtms/current/manifest.json"
 PID_FILE = Path.home() / ".daemon.pid"
 HEARTBEAT_FILE = Path.home() / ".daemon_heartbeat"
+LAST_CHECK_FILE = Path.home() / ".daemon_last_check.json"
 
 def get_app_version():
     """Get app version from manifest.json dynamically."""
@@ -91,13 +92,33 @@ class NotificationDaemon:
         self.app_db = self._get_app_db_path()
         # Use the main app database for settings/users as well, since QML creates them there
         self.settings_db = self.app_db
-        self.last_check_time = {} # Store last check timestamp per account
+        self.last_check_time = self._load_last_check_times()  # Load persisted timestamps
         self.notification_interface = None
         self.running = True
         self.loop = None
         self._write_pid_file()
         self._setup_signal_handlers()
         self._init_dbus()
+    
+    def _load_last_check_times(self):
+        """Load persisted last check timestamps from file."""
+        try:
+            if LAST_CHECK_FILE.exists():
+                with open(LAST_CHECK_FILE, 'r') as f:
+                    data = json.load(f)
+                    log.info(f"[DAEMON] Loaded last check times: {data}")
+                    return data
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to load last check times: {e}")
+        return {}
+    
+    def _save_last_check_times(self):
+        """Persist last check timestamps to file."""
+        try:
+            with open(LAST_CHECK_FILE, 'w') as f:
+                json.dump(self.last_check_time, f)
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to save last check times: {e}")
     
     def _write_pid_file(self):
         """Write current PID to file for process management."""
@@ -302,17 +323,20 @@ class NotificationDaemon:
     def check_for_updates(self, account_id, account_name, username):
         """Check for new tasks, activities, and projects since last check."""
         
+        # Convert account_id to string for consistent JSON key handling
+        account_key = str(account_id)
+        
         # Initialize last check time if not set (default to now, so we only catch future updates)
         # Use Odoo-compatible format (YYYY-MM-DD HH:MM:SS)
         # We subtract 5 minutes to catch items synced in the current cycle (or just before daemon start)
-        if account_id not in self.last_check_time:
+        if account_key not in self.last_check_time:
             start_time = datetime.now(timezone.utc) - timedelta(minutes=5)
-            self.last_check_time[account_id] = start_time.strftime("%Y-%m-%d %H:%M:%S")
+            self.last_check_time[account_key] = start_time.strftime("%Y-%m-%d %H:%M:%S")
+            self._save_last_check_times()
             # Don't return here! Proceed to check updates using this slightly backdated timestamp.
             # This ensures we catch the tasks that were just synced in the current cycle.
-            # return 
 
-        last_check = self.last_check_time[account_id]
+        last_check = self.last_check_time[account_key]
         current_user_id = self.get_current_user_id(account_id, username)
         
         log.info(f"[DAEMON] Checking updates for {account_name} since {last_check} (User ID: {current_user_id})")
@@ -348,12 +372,17 @@ class NotificationDaemon:
                         f"Task '{task['name']}' has been updated or assigned to you."
                     )
                     # Persist notification to database for frontend display
+                    # Note: sqlite3.Row doesn't have .get(), use bracket notation with try/except
+                    try:
+                        project_id = task['project_id']
+                    except (KeyError, IndexError):
+                        project_id = None
                     add_notification(
                         self.app_db,
                         account_id,
                         "Task",
                         f"Task '{task['name']}' has been updated or assigned to you.",
-                        {"task_name": task['name'], "project_id": task.get('project_id')}
+                        {"task_name": task['name'], "project_id": project_id}
                     )
 
             # 2. New/Updated Activities Assigned to User
@@ -439,8 +468,9 @@ class NotificationDaemon:
 
             conn.close()
             
-            # Update last check time
-            self.last_check_time[account_id] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            # Update last check time and persist to file
+            self.last_check_time[str(account_id)] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            self._save_last_check_times()
             
         except Exception as e:
             log.error(f"[DAEMON] Failed to check for updates: {e}")
@@ -484,7 +514,11 @@ class NotificationDaemon:
             signal.alarm(120)  # 2 minute timeout
             
             try:
+                # Update heartbeat before sync to signal we're alive
+                self._update_heartbeat()
                 sync_all_from_odoo(client, account_id, self.settings_db)
+                # Update heartbeat after sync
+                self._update_heartbeat()
             finally:
                 signal.alarm(0)  # Cancel the alarm
                 signal.signal(signal.SIGALRM, old_handler)

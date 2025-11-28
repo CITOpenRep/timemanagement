@@ -71,7 +71,7 @@ MainView {
     // Periodic daemon health check timer
     Timer {
         id: daemonHealthCheckTimer
-        interval: 60000  // Check every 60 seconds
+        interval: 300000  // Check every 5 minutes (was 60 seconds)
         running: true
         repeat: true
         onTriggered: {

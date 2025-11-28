@@ -25,7 +25,7 @@
 
 // Heartbeat file constants
 #define HEARTBEAT_FILE "/home/phablet/.daemon_heartbeat"
-#define MAX_HEARTBEAT_AGE_SECS 120
+#define MAX_HEARTBEAT_AGE_SECS 300  // 5 minutes - allow time for slow syncs
 
 
 
@@ -215,20 +215,33 @@ bool NotificationHelper::isDaemonHealthy()
 
 void NotificationHelper::ensureDaemonRunning()
 {
-    if (!isDaemonHealthy()) {
-        qDebug() << "Daemon not healthy, attempting restart...";
+    // First check if daemon process is running at all
+    int exitCode = QProcess::execute("pgrep", QStringList() << "-f" << "python3.*daemon.py");
+    
+    if (exitCode == 0) {
+        // Daemon process is running, don't kill it - just log status
+        qDebug() << "Daemon process is running";
         
-        // Kill any stale daemon process
-        QProcess::execute("pkill", QStringList() << "-f" << "python3.*daemon.py");
-        
-        // Clean up stale files
-        QFile::remove("/home/phablet/.daemon.pid");
-        QFile::remove(HEARTBEAT_FILE);
-        
-        // Wait a moment for cleanup
-        QThread::msleep(500);
-        
-        // Start daemon fresh
-        startDaemon();
+        // Optional: check heartbeat for logging purposes only
+        QFileInfo heartbeatFile(HEARTBEAT_FILE);
+        if (heartbeatFile.exists()) {
+            QDateTime lastModified = heartbeatFile.lastModified();
+            qint64 ageSecs = lastModified.secsTo(QDateTime::currentDateTime());
+            qDebug() << "Daemon heartbeat age:" << ageSecs << "seconds";
+        }
+        return;  // Daemon is running, don't interfere
     }
+    
+    // Daemon is not running, start it
+    qDebug() << "Daemon not running, starting...";
+    
+    // Clean up stale files before starting
+    QFile::remove("/home/phablet/.daemon.pid");
+    QFile::remove(HEARTBEAT_FILE);
+    
+    // Wait a moment for cleanup
+    QThread::msleep(500);
+    
+    // Start daemon fresh
+    startDaemon();
 }

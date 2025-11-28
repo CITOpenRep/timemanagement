@@ -74,29 +74,29 @@ cd "$CLICK_PATH"
 # Clean up old heartbeat file
 rm -f "$HEARTBEAT_FILE"
 
-# Double-fork daemonization pattern with nohup for persistence
-(
-    # Second fork - detach from terminal completely
-    cd "$CLICK_PATH"
-    # Use nohup and redirect to ensure daemon survives terminal close
-    nohup python3 "$DAEMON_PATH" >> "$LOG_FILE" 2>&1 &
-    echo $! > "$PID_FILE"
-) &
+# TRUE DAEMONIZATION using setsid to create new session
+# This ensures the daemon survives:
+# 1. App closing
+# 2. USB disconnection
+# 3. ADB session termination
+# 4. Parent process termination
 
+# Use setsid to create a new session (fully detached from terminal)
+# Close stdin, stdout, stderr and redirect to log file
+setsid python3 "$DAEMON_PATH" </dev/null >> "$LOG_FILE" 2>&1 &
 DAEMON_PID=$!
-echo "$(date): Started daemon launcher with PID $DAEMON_PID" >> "$LOG_FILE"
 
-# Wait briefly for daemon to start
+# Give it a moment to start and write PID file
 sleep 1
 
-# Verify daemon started
-if [ -f "$PID_FILE" ]; then
-    ACTUAL_PID=$(cat "$PID_FILE")
-    if kill -0 "$ACTUAL_PID" 2>/dev/null; then
-        echo "$(date): Daemon confirmed running with PID $ACTUAL_PID" >> "$LOG_FILE"
-    else
-        echo "$(date): WARNING - Daemon may not have started properly" >> "$LOG_FILE"
-    fi
+echo "$(date): Started daemon with setsid, launcher PID $DAEMON_PID" >> "$LOG_FILE"
+
+# Verify daemon started by checking for python process
+ACTUAL_PID=$(pgrep -f "python3.*daemon.py" 2>/dev/null | head -1)
+if [ -n "$ACTUAL_PID" ]; then
+    echo "$(date): Daemon confirmed running with PID $ACTUAL_PID" >> "$LOG_FILE"
+else
+    echo "$(date): WARNING - Daemon may not have started properly" >> "$LOG_FILE"
 fi
 
 # Return immediately
