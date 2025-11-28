@@ -11,6 +11,10 @@
 #include <QProcess>
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <QFile>
+#include <QDateTime>
+#include <QDir>
+#include <QThread>
 
 #define PUSH_SERVICE "com.lomiri.PushNotifications"
 #define POSTAL_SERVICE "com.lomiri.Postal"
@@ -18,6 +22,10 @@
 #define POSTAL_PATH "/com/lomiri/Postal"
 #define PUSH_IFACE "com.lomiri.PushNotifications"
 #define POSTAL_IFACE "com.lomiri.Postal"
+
+// Heartbeat file constants
+#define HEARTBEAT_FILE "/home/phablet/.daemon_heartbeat"
+#define MAX_HEARTBEAT_AGE_SECS 120
 
 
 
@@ -174,5 +182,53 @@ void NotificationHelper::startDaemon()
         qDebug() << "Daemon started successfully via start script";
     } else {
         qDebug() << "Failed to start daemon";
+    }
+}
+
+bool NotificationHelper::isDaemonHealthy()
+{
+    // First check if process is running
+    int exitCode = QProcess::execute("pgrep", QStringList() << "-f" << "python3.*daemon.py");
+    if (exitCode != 0) {
+        qDebug() << "Daemon process not found";
+        return false;
+    }
+    
+    // Check heartbeat file age
+    QFileInfo heartbeatFile(HEARTBEAT_FILE);
+    if (!heartbeatFile.exists()) {
+        qDebug() << "Heartbeat file not found";
+        return false;
+    }
+    
+    QDateTime lastModified = heartbeatFile.lastModified();
+    qint64 ageSecs = lastModified.secsTo(QDateTime::currentDateTime());
+    
+    if (ageSecs > MAX_HEARTBEAT_AGE_SECS) {
+        qDebug() << "Daemon heartbeat stale:" << ageSecs << "seconds old";
+        return false;
+    }
+    
+    qDebug() << "Daemon healthy, heartbeat age:" << ageSecs << "seconds";
+    return true;
+}
+
+void NotificationHelper::ensureDaemonRunning()
+{
+    if (!isDaemonHealthy()) {
+        qDebug() << "Daemon not healthy, attempting restart...";
+        
+        // Kill any stale daemon process
+        QProcess::execute("pkill", QStringList() << "-f" << "python3.*daemon.py");
+        
+        // Clean up stale files
+        QFile::remove("/home/phablet/.daemon.pid");
+        QFile::remove(HEARTBEAT_FILE);
+        
+        // Wait a moment for cleanup
+        QThread::msleep(500);
+        
+        // Start daemon fresh
+        startDaemon();
     }
 }

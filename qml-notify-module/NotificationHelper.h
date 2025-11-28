@@ -23,6 +23,12 @@ public:
     // Start the background daemon
     Q_INVOKABLE void startDaemon();
     
+    // Check if daemon is running and healthy
+    Q_INVOKABLE bool isDaemonHealthy();
+    
+    // Ensure daemon is running (start if not running or unhealthy)
+    Q_INVOKABLE void ensureDaemonRunning();
+    
     // Send a notification based on JSON notification
     bool sendJSON(const QJsonObject &message);
     

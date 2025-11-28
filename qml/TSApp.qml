@@ -67,6 +67,18 @@ MainView {
             startDaemon()
         }
     }
+    
+    // Periodic daemon health check timer
+    Timer {
+        id: daemonHealthCheckTimer
+        interval: 60000  // Check every 60 seconds
+        running: true
+        repeat: true
+        onTriggered: {
+            console.log("Checking daemon health...")
+            notificationSystem.ensureDaemonRunning()
+        }
+    }
 
     function showSystemNotification(title, message) {
         notificationSystem.showNotificationMessage(title, message)

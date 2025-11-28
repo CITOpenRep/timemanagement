@@ -30,9 +30,13 @@ Periodically syncs with Odoo and triggers notifications for new tasks/updates.
 import sys
 import os
 import time
+import json
 import sqlite3
+import argparse
+import traceback
+import signal
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
@@ -52,6 +56,33 @@ log = setup_logger()
 # Configuration
 SYNC_INTERVAL_MINUTES = 1
 APP_ID = "ubtms_ubtms"
+MANIFEST_PATH = "/opt/click.ubuntu.com/ubtms/current/manifest.json"
+PID_FILE = Path.home() / ".daemon.pid"
+HEARTBEAT_FILE = Path.home() / ".daemon_heartbeat"
+
+def get_app_version():
+    """Get app version from manifest.json dynamically."""
+    try:
+        # Try installed path first
+        if Path(MANIFEST_PATH).exists():
+            with open(MANIFEST_PATH, 'r') as f:
+                manifest = json.load(f)
+                return manifest.get('version', '1.1.10')
+        # Fallback to development path
+        dev_manifest = Path(__file__).parent.parent / "manifest.json.in"
+        if dev_manifest.exists():
+            with open(dev_manifest, 'r') as f:
+                content = f.read()
+                # Parse version from manifest.json.in
+                import re
+                match = re.search(r'"version":\s*"([^"]+)"', content)
+                if match:
+                    return match.group(1)
+    except Exception as e:
+        log.error(f"[DAEMON] Failed to read app version: {e}")
+    return '1.1.10'  # Fallback version
+
+APP_VERSION = get_app_version()
 
 class NotificationDaemon:
     """Background service for syncing and sending notifications."""
@@ -62,7 +93,54 @@ class NotificationDaemon:
         self.settings_db = self.app_db
         self.last_check_time = {} # Store last check timestamp per account
         self.notification_interface = None
+        self.running = True
+        self.loop = None
+        self._write_pid_file()
+        self._setup_signal_handlers()
         self._init_dbus()
+    
+    def _write_pid_file(self):
+        """Write current PID to file for process management."""
+        try:
+            PID_FILE.write_text(str(os.getpid()))
+            log.info(f"[DAEMON] PID file written: {PID_FILE}")
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to write PID file: {e}")
+    
+    def _cleanup_pid_file(self):
+        """Remove PID file on shutdown."""
+        try:
+            if PID_FILE.exists():
+                PID_FILE.unlink()
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to remove PID file: {e}")
+    
+    def _setup_signal_handlers(self):
+        """Setup signal handlers for graceful shutdown."""
+        signal.signal(signal.SIGTERM, self._handle_shutdown)
+        signal.signal(signal.SIGINT, self._handle_shutdown)
+        signal.signal(signal.SIGHUP, self._handle_reload)
+    
+    def _handle_shutdown(self, signum, frame):
+        """Handle shutdown signals gracefully."""
+        log.info(f"[DAEMON] Received signal {signum}, shutting down...")
+        self.running = False
+        self._cleanup_pid_file()
+        if self.loop:
+            self.loop.quit()
+    
+    def _handle_reload(self, signum, frame):
+        """Handle reload signal (SIGHUP) to re-read configuration."""
+        log.info("[DAEMON] Received SIGHUP, reloading configuration...")
+        # Force immediate sync on next cycle
+        self.last_check_time.clear()
+    
+    def _update_heartbeat(self):
+        """Update heartbeat file to indicate daemon is alive."""
+        try:
+            HEARTBEAT_FILE.write_text(datetime.now(timezone.utc).isoformat())
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to update heartbeat: {e}")
         
     def _get_settings_db_path(self):
         """Get path to app settings database."""
@@ -143,17 +221,17 @@ class NotificationDaemon:
             # 1. Send Badge via Postal (Persistent badge)
             # 2. Send Popup via Postal (Persistent popup via helper)
             
-            # 1. Badge via Postal
+            # 1. Badge via Postal - use unread notification count instead of total tasks
             try:
                 postal_path = "/com/lomiri/Postal/ubtms"
                 postal = self.bus.get_object('com.lomiri.Postal', postal_path)
                 postal_iface = dbus.Interface(postal, 'com.lomiri.Postal')
                 
-                # Calculate total tasks across all accounts for badge
-                total_tasks = self.get_total_task_count()
+                # Use unread notification count for badge (more meaningful)
+                unread_count = self.get_unread_notification_count()
                 
-                postal_iface.SetCounter("ubtms_ubtms", total_tasks, True)
-                log.info(f"[DAEMON] Badge updated to {total_tasks}")
+                postal_iface.SetCounter("ubtms_ubtms", unread_count, True)
+                log.info(f"[DAEMON] Badge updated to {unread_count} unread notifications")
             except Exception as e:
                 log.error(f"[DAEMON] Failed to update badge: {e}")
 
@@ -180,11 +258,11 @@ class NotificationDaemon:
                     }
                 }
                 
-                import json
                 json_str = json.dumps(msg)
                 
-                # Use the exact ID that matches the desktop file
-                postal_iface.Post("ubtms_ubtms_1.1.10", json_str)
+                # Use dynamic version from manifest
+                app_id_with_version = f"ubtms_ubtms_{APP_VERSION}"
+                postal_iface.Post(app_id_with_version, json_str)
                 log.info(f"[DAEMON] Notification sent via Postal: {title}")
                 
             except Exception as e:
@@ -228,7 +306,7 @@ class NotificationDaemon:
         # Use Odoo-compatible format (YYYY-MM-DD HH:MM:SS)
         # We subtract 5 minutes to catch items synced in the current cycle (or just before daemon start)
         if account_id not in self.last_check_time:
-            start_time = datetime.utcnow() - timedelta(minutes=5)
+            start_time = datetime.now(timezone.utc) - timedelta(minutes=5)
             self.last_check_time[account_id] = start_time.strftime("%Y-%m-%d %H:%M:%S")
             # Don't return here! Proceed to check updates using this slightly backdated timestamp.
             # This ensures we catch the tasks that were just synced in the current cycle.
@@ -264,9 +342,18 @@ class NotificationDaemon:
                     log.info(f"[DAEMON] Found {len(new_tasks)} new tasks for user {current_user_id}")
                 
                 for task in new_tasks:
+                    # Send system notification
                     self.send_notification(
                         "Task Update",
                         f"Task '{task['name']}' has been updated or assigned to you."
+                    )
+                    # Persist notification to database for frontend display
+                    add_notification(
+                        self.app_db,
+                        account_id,
+                        "Task",
+                        f"Task '{task['name']}' has been updated or assigned to you.",
+                        {"task_name": task['name'], "project_id": task.get('project_id')}
                     )
 
             # 2. New/Updated Activities Assigned to User
@@ -284,9 +371,18 @@ class NotificationDaemon:
                 new_activities = cursor.fetchall()
                 for activity in new_activities:
                     summary = activity['summary'] or "New Activity"
+                    # Send system notification
                     self.send_notification(
                         "Activity Assigned",
                         f"{summary} (Due: {activity['due_date']})"
+                    )
+                    # Persist notification to database for frontend display
+                    add_notification(
+                        self.app_db,
+                        account_id,
+                        "Activity",
+                        f"{summary} (Due: {activity['due_date']})",
+                        {"summary": summary, "due_date": activity['due_date']}
                     )
 
             # 3. Project Updates (General)
@@ -301,15 +397,50 @@ class NotificationDaemon:
             )
             new_projects = cursor.fetchall()
             for project in new_projects:
+                # Send system notification
                 self.send_notification(
                     "Project Update",
                     f"Project '{project['name']}' has been updated."
+                )
+                # Persist notification to database for frontend display
+                add_notification(
+                    self.app_db,
+                    account_id,
+                    "Project",
+                    f"Project '{project['name']}' has been updated.",
+                    {"project_name": project['name']}
+                )
+
+            # 4. Timesheet Updates
+            cursor.execute(
+                """
+                SELECT name, unit_amount FROM account_analytic_line_app 
+                WHERE account_id = ? 
+                AND last_modified > ?
+                """,
+                (account_id, last_check)
+            )
+            new_timesheets = cursor.fetchall()
+            for timesheet in new_timesheets:
+                ts_name = timesheet['name'] or "Timesheet Entry"
+                # Send system notification
+                self.send_notification(
+                    "Timesheet Update",
+                    f"Timesheet '{ts_name}' ({timesheet['unit_amount']}h) has been updated."
+                )
+                # Persist notification to database for frontend display
+                add_notification(
+                    self.app_db,
+                    account_id,
+                    "Timesheet",
+                    f"Timesheet '{ts_name}' ({timesheet['unit_amount']}h) has been updated.",
+                    {"timesheet_name": ts_name, "hours": timesheet['unit_amount']}
                 )
 
             conn.close()
             
             # Update last check time
-            self.last_check_time[account_id] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            self.last_check_time[account_id] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             
         except Exception as e:
             log.error(f"[DAEMON] Failed to check for updates: {e}")
@@ -398,11 +529,16 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Error in sync_all_accounts: {e}")
     
     def run(self):
-        """Main daemon loop."""
+        """Main daemon loop with robust keep-alive mechanism."""
         log.info(f"[DAEMON] Starting TimeManagement background daemon")
+        log.info(f"[DAEMON] App Version: {APP_VERSION}")
         log.info(f"[DAEMON] Sync interval: {SYNC_INTERVAL_MINUTES} minutes")
         log.info(f"[DAEMON] Settings DB: {self.settings_db}")
         log.info(f"[DAEMON] App DB: {self.app_db}")
+        log.info(f"[DAEMON] PID: {os.getpid()}")
+        
+        # Update heartbeat on start
+        self._update_heartbeat()
         
         # Initial sync with exception handling
         try:
@@ -416,18 +552,34 @@ class NotificationDaemon:
             self._periodic_sync
         )
         
-        # Run main loop
-        loop = GLib.MainLoop()
-        try:
-            loop.run()
-        except KeyboardInterrupt:
-            log.info("[DAEMON] Shutting down daemon")
-            loop.quit()
-        except Exception as e:
-            log.error(f"[DAEMON] Main loop error: {e}")
-            # Try to restart the loop
-            loop.quit()
-            loop.run()
+        # Schedule heartbeat update every 30 seconds
+        GLib.timeout_add_seconds(30, self._heartbeat_callback)
+        
+        # Run main loop with restart capability
+        self.loop = GLib.MainLoop()
+        while self.running:
+            try:
+                self.loop.run()
+            except KeyboardInterrupt:
+                log.info("[DAEMON] Shutting down daemon (KeyboardInterrupt)")
+                self.running = False
+            except Exception as e:
+                log.error(f"[DAEMON] Main loop error: {e}")
+                log.error(f"[DAEMON] Traceback: {traceback.format_exc()}")
+                if self.running:
+                    log.info("[DAEMON] Restarting main loop in 5 seconds...")
+                    time.sleep(5)
+                    self.loop = GLib.MainLoop()
+        
+        # Cleanup on exit
+        self._cleanup_pid_file()
+        log.info("[DAEMON] Daemon stopped")
+    
+    def _heartbeat_callback(self):
+        """Callback for periodic heartbeat update."""
+        if self.running:
+            self._update_heartbeat()
+        return self.running  # Continue timer if still running
     
     def _periodic_sync(self):
         """Callback for periodic sync."""
@@ -451,42 +603,99 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Failed to get total task count: {e}")
             return 0
+    
+    def get_unread_notification_count(self):
+        """Get count of unread notifications for badge display."""
+        try:
+            conn = sqlite3.connect(self.app_db)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM notification WHERE read_status = 0")
+            count = cursor.fetchone()[0]
+            conn.close()
+            return count
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to get unread notification count: {e}")
+            return 0
+
+
+def check_already_running():
+    """Check if daemon is already running to prevent duplicates."""
+    if PID_FILE.exists():
+        try:
+            old_pid = int(PID_FILE.read_text().strip())
+            # Check if process is still running
+            os.kill(old_pid, 0)
+            return True, old_pid
+        except (ProcessLookupError, ValueError):
+            # Process not running, clean up stale PID file
+            PID_FILE.unlink()
+        except PermissionError:
+            # Process running but we can't signal it
+            return True, old_pid
+    return False, None
 
 
 def main():
     """Entry point for daemon."""
-    import argparse
-    import traceback
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="TimeManagement background sync daemon")
     parser.add_argument("--test", action="store_true", help="Send test notification on startup")
+    parser.add_argument("--force", action="store_true", help="Force start even if already running")
+    parser.add_argument("--status", action="store_true", help="Check if daemon is running")
     args = parser.parse_args()
+    
+    # Status check
+    if args.status:
+        is_running, pid = check_already_running()
+        if is_running:
+            print(f"Daemon is running (PID: {pid})")
+            # Check heartbeat age
+            if HEARTBEAT_FILE.exists():
+                try:
+                    last_beat = datetime.fromisoformat(HEARTBEAT_FILE.read_text().strip())
+                    age = (datetime.now(timezone.utc) - last_beat).total_seconds()
+                    print(f"Last heartbeat: {age:.0f} seconds ago")
+                except:
+                    print("Heartbeat file unreadable")
+            sys.exit(0)
+        else:
+            print("Daemon is not running")
+            sys.exit(1)
+    
+    # Check for existing instance
+    if not args.force:
+        is_running, pid = check_already_running()
+        if is_running:
+            log.info(f"[DAEMON] Daemon already running with PID {pid}")
+            sys.exit(0)
 
-    try:
-        daemon = NotificationDaemon()
-        
-        if args.test:
-            log.info("[DAEMON] Test mode: Sending test notification...")
-            daemon.send_notification("Test Notification", "This is a test notification from the daemon")
-            log.info("[DAEMON] Test notification sent successfully")
-            # We can exit after test or continue. Let's continue to test the loop too if needed, 
-            # but usually test is just for notification.
-            # For now, let's just run the daemon normally after test.
+    # Retry loop for daemon startup
+    max_retries = 10
+    retry_delay = 30  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            daemon = NotificationDaemon()
             
-        daemon.run()
-    except Exception as e:
-        log.error(f"[DAEMON] Fatal error: {e}")
-        log.error(f"[DAEMON] Traceback: {traceback.format_exc()}")
-        # Keep the daemon running even after fatal error
-        # by sleeping and retrying
-        while True:
-            log.info("[DAEMON] Attempting to restart daemon in 60 seconds...")
-            time.sleep(60)
-            try:
-                daemon = NotificationDaemon()
-                daemon.run()
-            except Exception as e:
-                log.error(f"[DAEMON] Restart failed: {e}")
-                continue
+            if args.test:
+                log.info("[DAEMON] Test mode: Sending test notification...")
+                daemon.send_notification("Test Notification", "This is a test notification from the daemon")
+                log.info("[DAEMON] Test notification sent successfully")
+                
+            daemon.run()
+            break  # If run() completes normally, exit loop
+            
+        except Exception as e:
+            log.error(f"[DAEMON] Fatal error (attempt {attempt + 1}/{max_retries}): {e}")
+            log.error(f"[DAEMON] Traceback: {traceback.format_exc()}")
+            
+            if attempt < max_retries - 1:
+                log.info(f"[DAEMON] Restarting in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                # Increase delay for next retry (exponential backoff capped at 5 min)
+                retry_delay = min(retry_delay * 2, 300)
+            else:
+                log.error("[DAEMON] Max retries exceeded, daemon stopping")
+                sys.exit(1)
 
 
 if __name__ == "__main__":
