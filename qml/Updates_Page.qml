@@ -59,25 +59,45 @@ Page {
             Action {
                 iconName: "add"
                 text: i18n.dtr("ubtms", "New")
-                visible: filterByProject && projectOdooRecordId && projectAccountId >= 0
                 onTriggered: {
-                    // Create a new update object with project context
-                    var newUpdate = {
-                        account_id: projectAccountId,
-                        project_id: projectOdooRecordId,
-                        name: "",
-                        description: "",
-                        project_status: "on_track",
-                        progress: 0,
-                        user_id: Account.getCurrentUserOdooId(projectAccountId)
-                    };
-                    
-                    apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("Updates.qml"), {
-                        "recordid": 0,
-                        "accountid": projectAccountId,
-                        "currentUpdate": newUpdate,
-                        "isReadOnly": false
-                    });
+                    if (filterByProject && projectOdooRecordId && projectAccountId >= 0) {
+                        // Direct creation when viewing updates for a specific project
+                        var newUpdate = {
+                            account_id: projectAccountId,
+                            project_id: projectOdooRecordId,
+                            name: "",
+                            description: "",
+                            project_status: "on_track",
+                            progress: 0,
+                            user_id: Account.getCurrentUserOdooId(projectAccountId)
+                        };
+                        
+                        apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("Updates.qml"), {
+                            "recordid": 0,
+                            "accountid": projectAccountId,
+                            "currentUpdate": newUpdate,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        // Navigate to Updates.qml with no pre-selected project
+                        // The form will show WorkItemSelector to choose Account and Project
+                        var emptyUpdate = {
+                            account_id: selectedAccountId >= 0 ? selectedAccountId : 0,
+                            project_id: -1,
+                            name: "",
+                            description: "",
+                            project_status: "on_track",
+                            progress: 0,
+                            user_id: -1
+                        };
+                        
+                        apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("Updates.qml"), {
+                            "recordid": 0,
+                            "accountid": selectedAccountId >= 0 ? selectedAccountId : 0,
+                            "currentUpdate": emptyUpdate,
+                            "isReadOnly": false
+                        });
+                    }
                 }
             }
         ]
