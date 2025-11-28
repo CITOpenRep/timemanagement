@@ -81,8 +81,12 @@ Page {
                     } else {
                         // Navigate to Updates.qml with no pre-selected project
                         // The form will show WorkItemSelector to choose Account and Project
+                        // Use selected account from filter, or default account
+                        var defaultAcctId = Account.getDefaultAccountId();
+                        var accountToUse = selectedAccountId >= 0 ? selectedAccountId : (defaultAcctId >= 0 ? defaultAcctId : 0);
+                        
                         var emptyUpdate = {
-                            account_id: selectedAccountId >= 0 ? selectedAccountId : 0,
+                            account_id: accountToUse,
                             project_id: -1,
                             name: "",
                             description: "",
@@ -93,7 +97,7 @@ Page {
                         
                         apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("Updates.qml"), {
                             "recordid": 0,
-                            "accountid": selectedAccountId >= 0 ? selectedAccountId : 0,
+                            "accountid": accountToUse,
                             "currentUpdate": emptyUpdate,
                             "isReadOnly": false
                         });

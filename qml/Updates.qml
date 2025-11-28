@@ -288,11 +288,24 @@ Page {
                 
                 Component.onCompleted: {
                     if (needsProjectSelection) {
-                        // Load accounts when selector is needed
-                        if (currentUpdate.account_id >= 0) {
-                            loadAccounts(currentUpdate.account_id);
-                        } else {
-                            loadAccounts();
+                        // Get the default account ID
+                        var defaultAccountId = Accounts.getDefaultAccountId();
+                        
+                        // If currentUpdate doesn't have a valid account, use default
+                        if (currentUpdate.account_id < 0 || currentUpdate.account_id === undefined) {
+                            currentUpdate.account_id = defaultAccountId >= 0 ? defaultAccountId : 0;
+                        }
+                        
+                        // Load accounts with the default account pre-selected
+                        var accountToSelect = currentUpdate.account_id >= 0 ? currentUpdate.account_id : defaultAccountId;
+                        loadAccounts(accountToSelect);
+                        
+                        // After loading accounts, load projects for the selected account
+                        // This makes the project selector ready for selection
+                        if (accountToSelect >= 0) {
+                            Qt.callLater(function() {
+                                loadProjects(accountToSelect, -1);
+                            });
                         }
                     }
                 }
