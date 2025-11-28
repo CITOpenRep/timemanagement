@@ -81,6 +81,9 @@ Page {
                     }
 
                     // isReadOnly = !isReadOnly
+                    // Preserve existing favorites value when editing, default to 0 for new projects
+                    var currentFavorites = (project && project.favorites !== undefined) ? project.favorites : 0;
+                    
                     var project_data = {
                         'account_id': ids.account_id >= 0 ? ids.account_id : 0,
                         'name': project_name.text,
@@ -89,9 +92,10 @@ Page {
                         'parent_id': ids.project_id,
                         'allocated_hours': hours_text.text,
                         'description': description_text.text,
-                        'favorites': 0,
+                        'favorites': currentFavorites,
                         'color': project_color,
-                        'status': "updated"
+                        'status': "updated",
+                        'user_id': ids.assignee_id
                     };
                     //  console.log(JSON.stringify(project_data, null, 4));
 
@@ -407,6 +411,9 @@ Page {
             return false;
         }
 
+        // Preserve existing favorites value when editing, default to 0 for new projects
+        var currentFavorites = (project && project.favorites !== undefined) ? project.favorites : 0;
+
         var project_data = {
             'account_id': ids.account_id >= 0 ? ids.account_id : 0,
             'name': project_name.text,
@@ -415,9 +422,10 @@ Page {
             'parent_id': ids.project_id,
             'allocated_hours': hours_text.text,
             'description': description_text.text,
-            'favorites': 0,
+            'favorites': currentFavorites,
             'color': project_color,
-            'status': "updated"
+            'status': "updated",
+            'user_id': ids.assignee_id
         };
 
         var response = Project.createUpdateProject(project_data, recordid);
@@ -451,16 +459,15 @@ Page {
         project = Project.getProjectDetails(projectId);
         if (project && Object.keys(project).length > 0) {
             // Set all fields with project details
-            // console.log("ACCOUNT id is ")
-            // console.log( project.account_id)
             let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
             let parentId = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
+            let userId = (project.user_id !== undefined && project.user_id !== null) ? project.user_id : -1;
 
-            // Set parent project selection
+            // Set parent project selection and assignee
             if (workItem.deferredLoadExistingRecordSet) {
-                workItem.deferredLoadExistingRecordSet(instanceId, parentId, -1, -1, -1, -1);
+                workItem.deferredLoadExistingRecordSet(instanceId, parentId, -1, -1, -1, userId);
             } else if (workItem.applyDeferredSelection) {
-                workItem.applyDeferredSelection(instanceId, parentId, -1);
+                workItem.applyDeferredSelection(instanceId, parentId, userId);
             }
 
             project_name.text = project.name || "";

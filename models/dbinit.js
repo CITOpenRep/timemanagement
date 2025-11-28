@@ -77,6 +77,7 @@ function initializeDatabase() {
             stage INTEGER,\
             status TEXT DEFAULT "",\
             odoo_record_id INTEGER,\
+            user_id INTEGER,\
             UNIQUE (odoo_record_id, account_id)\
         )',
         [
@@ -95,7 +96,8 @@ function initializeDatabase() {
             'color_pallet TEXT',
             'stage INTEGER',
             'status TEXT DEFAULT ""',
-            'odoo_record_id INTEGER'
+            'odoo_record_id INTEGER',
+            'user_id INTEGER'
         ]
     );
 

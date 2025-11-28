@@ -260,6 +260,82 @@ def should_push_field(local_val, remote_val, local_ts, remote_ts):
         return True
 
 
+def sync_project_favorite(client, record, db_path):
+    """
+    Sync project favorite status to Odoo by manipulating favorite_user_ids.
+    
+    In Odoo, is_favorite is a computed field based on whether the current user
+    is in the favorite_user_ids many2many field. To toggle favorite, we need
+    to add/remove the current user from favorite_user_ids.
+    
+    Args:
+        client: OdooClient instance for making API calls
+        record (dict): Local project record containing 'favorites' and 'odoo_record_id'
+        db_path (str): Path to SQLite database file
+        
+    Returns:
+        bool: True if sync successful, False otherwise
+    """
+    try:
+        odoo_record_id = record.get("odoo_record_id")
+        local_favorite = record.get("favorites")
+        
+        if not odoo_record_id:
+            log.debug("[SKIP] No odoo_record_id for project favorite sync")
+            return False
+        
+        # Convert local favorite value to boolean
+        is_local_favorite = bool(local_favorite) if local_favorite is not None else False
+        
+        # Read current state from Odoo
+        existing = client.call(
+            "project.project",
+            "read",
+            [[odoo_record_id]],
+            {"fields": ["is_favorite", "favorite_user_ids"]},
+        )
+        
+        if not existing:
+            log.warning(f"[SKIP] Project {odoo_record_id} not found in Odoo")
+            return False
+        
+        existing_data = existing[0]
+        remote_is_favorite = existing_data.get("is_favorite", False)
+        
+        log.debug(f"[FAVORITE] Project {odoo_record_id}: local={is_local_favorite}, remote={remote_is_favorite}")
+        
+        # Only sync if there's a difference
+        if is_local_favorite == remote_is_favorite:
+            log.debug(f"[SKIP] Favorite status already in sync for project {odoo_record_id}")
+            return True
+        
+        # Get current user ID from the client
+        current_user_id = client.uid
+        
+        if is_local_favorite:
+            # Add current user to favorite_user_ids using (4, id) command
+            client.call(
+                "project.project",
+                "write",
+                [[odoo_record_id], {"favorite_user_ids": [(4, current_user_id)]}]
+            )
+            log.debug(f"[FAVORITE] Added user {current_user_id} to favorites for project {odoo_record_id}")
+        else:
+            # Remove current user from favorite_user_ids using (3, id) command
+            client.call(
+                "project.project",
+                "write",
+                [[odoo_record_id], {"favorite_user_ids": [(3, current_user_id)]}]
+            )
+            log.debug(f"[FAVORITE] Removed user {current_user_id} from favorites for project {odoo_record_id}")
+        
+        return True
+        
+    except Exception as e:
+        log.error(f"[ERROR] Failed to sync project favorite: {e}")
+        return False
+
+
 def construct_changes(field_map, field_info, record, existing_data):
     """
     Construct a dictionary of changes to be applied to an Odoo record.
@@ -279,6 +355,9 @@ def construct_changes(field_map, field_info, record, existing_data):
         using timestamps to determine if changes should be applied.
         Skips fields not found in field_info or with missing sqlite_field mapping.
     """
+    # Fields that should not be pushed to Odoo (computed/readonly fields)
+    SKIP_FIELDS = {"last_update_status", "is_favorite"}
+    
     changes = {}
     remote_write_date = existing_data.get("write_date")
     local_last_modified = record.get("last_modified")
@@ -289,6 +368,10 @@ def construct_changes(field_map, field_info, record, existing_data):
     for odoo_field, sqlite_field in field_map.items():
         if odoo_field not in field_info:
             log.debug(f"[SKIP] Field '{odoo_field}' not found in field_info.")
+            continue
+
+        if odoo_field in SKIP_FIELDS:
+            log.debug(f"[SKIP] Field '{odoo_field}' is in SKIP_FIELDS (computed/readonly).")
             continue
 
         if not sqlite_field:
@@ -449,6 +532,10 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                 )
                 log.debug(f"[SYNC] Reset status for {model_name} id={record['id']} after update.")
 
+            # Handle favorites sync for project.project (is_favorite is computed in Odoo)
+            if model_name == "project.project":
+                sync_project_favorite(client, record, record.get("db_path", "app_settings.db"))
+
             # else:
             #    log.debug(f"[SKIP] No changes for {model_name} id={record['odoo_record_id']}.")
             return record["odoo_record_id"]
@@ -460,7 +547,7 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             return None
 
     else:
-        SKIP_FIELDS = {"last_update_status"}  # you can add others here later
+        SKIP_FIELDS = {"last_update_status", "is_favorite"}  # is_favorite is computed field in Odoo
 
         odoo_data = {}
         for odoo_field, sqlite_field in field_map.items():
