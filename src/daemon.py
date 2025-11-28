@@ -53,6 +53,17 @@ from logger import setup_logger
 
 log = setup_logger()
 
+# Global exception handler to prevent silent crashes
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """Log any uncaught exceptions before crashing."""
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    log.error(f"[DAEMON] UNCAUGHT EXCEPTION: {exc_type.__name__}: {exc_value}")
+    log.error(f"[DAEMON] Traceback: {''.join(traceback.format_tb(exc_traceback))}")
+
+sys.excepthook = global_exception_handler
+
 # Configuration
 SYNC_INTERVAL_MINUTES = 1
 APP_ID = "ubtms_ubtms"
@@ -138,12 +149,19 @@ class NotificationDaemon:
     
     def _setup_signal_handlers(self):
         """Setup signal handlers for graceful shutdown."""
-        signal.signal(signal.SIGTERM, self._handle_shutdown)
+        # Ignore SIGTERM to prevent being killed by app lifecycle
+        # Only respond to SIGINT (Ctrl+C) for intentional shutdown
+        signal.signal(signal.SIGTERM, self._handle_sigterm_ignore)
         signal.signal(signal.SIGINT, self._handle_shutdown)
         signal.signal(signal.SIGHUP, self._handle_reload)
     
+    def _handle_sigterm_ignore(self, signum, frame):
+        """Ignore SIGTERM to stay alive when app closes."""
+        log.info(f"[DAEMON] Ignoring SIGTERM (signal {signum}) - daemon will continue running")
+        # Do NOT shutdown - just log and continue
+    
     def _handle_shutdown(self, signum, frame):
-        """Handle shutdown signals gracefully."""
+        """Handle shutdown signals gracefully (only SIGINT)."""
         log.info(f"[DAEMON] Received signal {signum}, shutting down...")
         self.running = False
         self._cleanup_pid_file()
@@ -341,25 +359,68 @@ class NotificationDaemon:
         
         log.info(f"[DAEMON] Checking updates for {account_name} since {last_check} (User ID: {current_user_id})")
         
+        # Debug: Log total count of activities for this account
+        try:
+            debug_conn = sqlite3.connect(self.app_db)
+            debug_cursor = debug_conn.cursor()
+            debug_cursor.execute("SELECT COUNT(*) FROM mail_activity_app WHERE account_id = ?", (account_id,))
+            total_activities = debug_cursor.fetchone()[0]
+            debug_cursor.execute("SELECT COUNT(*) FROM mail_activity_app WHERE account_id = ? AND user_id = ?", (account_id, current_user_id))
+            user_activities = debug_cursor.fetchone()[0]
+            debug_cursor.execute("SELECT COUNT(*) FROM mail_activity_app WHERE account_id = ? AND last_modified > ?", (account_id, last_check))
+            new_activities_count = debug_cursor.fetchone()[0]
+            debug_conn.close()
+            log.info(f"[DAEMON] Activity stats: total={total_activities}, for_user={user_activities}, new_since_check={new_activities_count}")
+        except Exception as e:
+            log.error(f"[DAEMON] Debug activity query failed: {e}")
+        
+        # Debug: Log task stats similar to activity stats
+        try:
+            debug_conn = sqlite3.connect(self.app_db)
+            debug_cursor = debug_conn.cursor()
+            debug_cursor.execute("SELECT COUNT(*) FROM project_task_app WHERE account_id = ?", (account_id,))
+            total_tasks = debug_cursor.fetchone()[0]
+            debug_cursor.execute("SELECT COUNT(*) FROM project_task_app WHERE account_id = ? AND last_modified > ?", (account_id, last_check))
+            new_tasks_count = debug_cursor.fetchone()[0]
+            # Check with user_id pattern
+            user_id_pattern = f"%,{current_user_id},%"
+            debug_cursor.execute(
+                "SELECT COUNT(*) FROM project_task_app WHERE account_id = ? AND (',' || user_id || ',') LIKE ? AND last_modified > ?",
+                (account_id, user_id_pattern, last_check)
+            )
+            new_tasks_for_user = debug_cursor.fetchone()[0]
+            # Sample a recent task to see user_id format
+            debug_cursor.execute("SELECT id, name, user_id, last_modified FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC LIMIT 1", (account_id,))
+            sample_task = debug_cursor.fetchone()
+            debug_conn.close()
+            log.info(f"[DAEMON] Task stats: total={total_tasks}, new_since_check={new_tasks_count}, for_user={new_tasks_for_user}")
+            if sample_task:
+                log.info(f"[DAEMON] Sample task: id={sample_task[0]}, name={sample_task[1]}, user_id='{sample_task[2]}', modified={sample_task[3]}")
+                log.info(f"[DAEMON] Pattern used: '{user_id_pattern}', last_check: '{last_check}'")
+        except Exception as e:
+            log.error(f"[DAEMON] Debug task query failed: {e}")
+        
         try:
             conn = sqlite3.connect(self.app_db)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
             # 1. New/Updated Tasks Assigned to User
-            # user_id in project_task_app is a CSV string of IDs (Many2many)
+            # user_id can be a single ID or CSV string of IDs (Many2many)
             if current_user_id:
-                user_id_pattern = f"%,{current_user_id},%"
-                # Handle single ID, start of list, end of list, or middle of list
-                # Or just wrap the field in commas and search
+                # Match both single ID and CSV patterns
                 cursor.execute(
                     """
                     SELECT name, project_id FROM project_task_app 
                     WHERE account_id = ? 
-                    AND (',' || user_id || ',') LIKE ?
+                    AND (
+                        user_id = ? 
+                        OR user_id = ?
+                        OR (',' || user_id || ',') LIKE ?
+                    )
                     AND last_modified > ?
                     """,
-                    (account_id, user_id_pattern, last_check)
+                    (account_id, current_user_id, str(current_user_id), f"%,{current_user_id},%", last_check)
                 )
                 new_tasks = cursor.fetchall()
                 if new_tasks:
@@ -386,18 +447,21 @@ class NotificationDaemon:
                     )
 
             # 2. New/Updated Activities Assigned to User
-            # user_id in mail_activity_app is a single ID (Many2one)
+            # user_id in mail_activity_app could be integer or stored as first element of tuple
             if current_user_id:
+                # Try both exact match and string match for flexibility
                 cursor.execute(
                     """
                     SELECT summary, due_date FROM mail_activity_app 
                     WHERE account_id = ? 
-                    AND user_id = ? 
+                    AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
                     AND last_modified > ?
                     """,
-                    (account_id, current_user_id, last_check)
+                    (account_id, current_user_id, str(current_user_id), str(current_user_id), last_check)
                 )
                 new_activities = cursor.fetchall()
+                if new_activities:
+                    log.info(f"[DAEMON] Found {len(new_activities)} new activities for user {current_user_id}")
                 for activity in new_activities:
                     summary = activity['summary'] or "New Activity"
                     # Send system notification
@@ -502,46 +566,39 @@ class NotificationDaemon:
                 username=account_user,
                 password=account_pass
             )
+            log.info(f"[DAEMON] OdooClient created for {account_name}")
             
-            # Sync data from Odoo with timeout handling
-            import signal
+            # Update heartbeat before sync to signal we're alive
+            self._update_heartbeat()
             
-            def timeout_handler(signum, frame):
-                raise TimeoutError("Sync operation timed out")
-            
-            # Set timeout for sync operation (2 minutes max)
-            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(120)  # 2 minute timeout
-            
+            # Sync data from Odoo (no signal-based timeout to avoid GLib conflicts)
             try:
-                # Update heartbeat before sync to signal we're alive
-                self._update_heartbeat()
+                log.info(f"[DAEMON] Starting sync_all_from_odoo for {account_name}")
                 sync_all_from_odoo(client, account_id, self.settings_db)
-                # Update heartbeat after sync
-                self._update_heartbeat()
-            finally:
-                signal.alarm(0)  # Cancel the alarm
-                signal.signal(signal.SIGALRM, old_handler)
+                log.info(f"[DAEMON] sync_all_from_odoo completed for {account_name}")
+            except Exception as sync_error:
+                log.error(f"[DAEMON] sync_all_from_odoo failed: {sync_error}")
+                log.error(f"[DAEMON] Sync error traceback: {traceback.format_exc()}")
+                # Continue with notification check using existing data
+            
+            # Update heartbeat after sync
+            self._update_heartbeat()
             
             # Check for new tasks and notify
+            log.info(f"[DAEMON] Checking for updates for {account_name}")
             self.check_for_updates(account_id, account_name, account_user)
             
             log.info(f"[DAEMON] Sync completed for {account_name}")
             
-        except TimeoutError as e:
-            log.error(f"[DAEMON] Sync timed out for {account_name}: {e}")
-            # Still try to check for updates with existing data
-            try:
-                self.check_for_updates(account_id, account_name, account_user)
-            except Exception as e2:
-                log.error(f"[DAEMON] Failed to check updates after timeout: {e2}")
         except Exception as e:
             log.error(f"[DAEMON] Error syncing account {account_name}: {e}")
+            log.error(f"[DAEMON] Error traceback: {traceback.format_exc()}")
             # Still try to check for updates with existing data
             try:
                 self.check_for_updates(account_id, account_name, account_user)
             except Exception as e2:
                 log.error(f"[DAEMON] Failed to check updates after error: {e2}")
+                log.error(f"[DAEMON] Updates error traceback: {traceback.format_exc()}")
     
     def sync_all_accounts(self):
         """Sync all configured accounts."""
