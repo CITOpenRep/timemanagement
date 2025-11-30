@@ -99,6 +99,7 @@ Page {
         leadingActionBar.actions: [
             Action {
                 id: notificationAction
+                //todo : Fix the Icons visibility based on notification count
                 iconSource: notificationBell.notificationCount > 0 ? "images/notification_active.png" : "images/notification.png"
                 text: notificationBell.notificationCount > 0 ? 
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.notificationCount + ")" : 
@@ -507,7 +508,7 @@ Page {
                 id: notificationListView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                model: notificationBell.notificationCount
+                model: notificationBell.notificationList
                 clip: true
                 spacing: units.gu(1)
 
@@ -524,7 +525,7 @@ Page {
 
                         Label {
                             Layout.fillWidth: true
-                            text: notificationBell.notificationList[index] ? notificationBell.notificationList[index].message : ""
+                            text: modelData.message || ""
                             wrapMode: Text.WordWrap
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                         }
@@ -534,13 +535,10 @@ Page {
                             width: units.gu(4)
                             color: LomiriColors.red
                             onClicked: {
-                                var notif = notificationBell.notificationList[index];
-                                if (notif) {
-                                    Notifications.deleteNotification(notif.id);
-                                    notificationBell.loadNotifications();
-                                    if (notificationBell.notificationCount === 0) {
-                                        notificationPopupDialog.close();
-                                    }
+                                Notifications.deleteNotification(modelData.id);
+                                notificationBell.loadNotifications();
+                                if (notificationBell.notificationCount === 0) {
+                                    notificationPopupDialog.close();
                                 }
                             }
                         }
