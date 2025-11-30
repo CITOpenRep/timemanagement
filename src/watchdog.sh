@@ -1,7 +1,7 @@
 #!/bin/bash
 # Watchdog script for UBTMS Background Sync Daemon
 # This script checks if the daemon is running and restarts it if not
-# Can be run via cron: */5 * * * * /opt/click.ubuntu.com/ubtms/current/src/watchdog.sh
+# Can be run via cron, systemd timer, or upstart
 
 PID_FILE="$HOME/.daemon.pid"
 HEARTBEAT_FILE="$HOME/.daemon_heartbeat"
@@ -11,6 +11,27 @@ MAX_HEARTBEAT_AGE=300  # 5 minutes
 
 log_msg() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [WATCHDOG] $1" >> "$LOG_FILE"
+}
+
+# Wait for DBus session to be available (important after boot)
+wait_for_dbus() {
+    local uid=$(id -u)
+    local bus_path="/run/user/$uid/bus"
+    local max_wait=60
+    local waited=0
+    
+    while [ ! -S "$bus_path" ] && [ $waited -lt $max_wait ]; do
+        sleep 2
+        waited=$((waited + 2))
+    done
+    
+    if [ -S "$bus_path" ]; then
+        export DBUS_SESSION_BUS_ADDRESS="unix:path=$bus_path"
+        return 0
+    else
+        log_msg "DBus session not available after ${max_wait}s"
+        return 1
+    fi
 }
 
 # Check if daemon is healthy
@@ -48,15 +69,18 @@ check_daemon_health() {
 restart_daemon() {
     log_msg "Restarting daemon..."
     
+    # Wait for DBus to be available
+    if ! wait_for_dbus; then
+        log_msg "Cannot start daemon - DBus not available"
+        return 1
+    fi
+    
     # Kill any zombie processes
     pkill -9 -f "python3.*daemon.py" 2>/dev/null
     sleep 1
     
     # Clean up stale files
     rm -f "$PID_FILE" 2>/dev/null
-    
-    # Set up environment
-    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
     
     # Start daemon with setsid for proper daemonization
     cd /opt/click.ubuntu.com/ubtms/current

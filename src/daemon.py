@@ -344,18 +344,6 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Post-wake sync failed: {e}")
         return False  # Don't repeat - one-shot callback
     
-    def _make_path(self, app_id):
-        """Convert app_id to DBus path format."""
-        # This method is no longer used but kept for reference if needed
-        pkg = app_id.split('_')[0]
-        path = ""
-        for c in pkg:
-            if c in ['+', '.', '-', ':', '~', '_']:
-                path += f"_{ord(c):02x}"
-            else:
-                path += c
-        return path
-    
     def send_notification(self, title, message):
         """Send a system notification via DBus."""
         if not self.notification_interface:
@@ -818,20 +806,6 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Periodic sync failed: {e}")
         return True  # Always continue the timer
-    
-    def get_total_task_count(self):
-        """Get total task count across all accounts."""
-        try:
-            conn = sqlite3.connect(self.app_db)
-            cursor = conn.cursor()
-            # Assuming we want to count all tasks for now
-            cursor.execute("SELECT COUNT(*) FROM project_task_app")
-            count = cursor.fetchone()[0]
-            conn.close()
-            return count
-        except Exception as e:
-            log.error(f"[DAEMON] Failed to get total task count: {e}")
-            return 0
     
     def get_unread_notification_count(self):
         """Get count of unread notifications for badge display."""
