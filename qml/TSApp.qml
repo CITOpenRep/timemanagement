@@ -29,6 +29,7 @@ import QtQuick.Layouts 1.11
 import QtQuick.LocalStorage 2.7 as Sql
 import "../models/dbinit.js" as DbInit
 import "../models/draft_manager.js" as DraftManager
+import "../models/notifications.js" as Notifications
 import Pparent.Notifications 1.0
 import "components"
 import "."
@@ -484,6 +485,9 @@ MainView {
         // Load and apply saved theme preference
         loadAndApplyTheme();
         
+        // Update system badge to reflect current unread notifications
+        updateSystemBadge();
+        
         // Check for unsaved drafts from previous session (crash recovery)
         checkForUnsavedDrafts();
         
@@ -494,6 +498,18 @@ MainView {
             apLayout.setFirstScreen(); // Delay page setup until after DB init
 
         });
+    }
+    
+    // Function to update the system badge with current unread notification count
+    function updateSystemBadge() {
+        try {
+            var unreadList = Notifications.getUnreadNotifications();
+            var count = unreadList.length;
+            notificationSystem.updateCount(count);
+            console.log("System badge updated to:", count);
+        } catch (e) {
+            console.error("Failed to update system badge:", e);
+        }
     }
     
     // Function to check for unsaved drafts on app startup (crash recovery)

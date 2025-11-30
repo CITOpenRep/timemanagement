@@ -106,3 +106,53 @@ function markAsRead(id) {
         DBCommon.logException("markAsRead", e);
     }
 }
+
+/**
+ * Marks all notifications as read.
+ */
+function markAllAsRead() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            tx.executeSql(`UPDATE ${TABLE_NAME} SET read_status = 1 WHERE read_status = 0`);
+        });
+    } catch (e) {
+        DBCommon.logException("markAllAsRead", e);
+    }
+}
+
+/**
+ * Deletes all read notifications.
+ */
+function deleteAllRead() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            tx.executeSql(`DELETE FROM ${TABLE_NAME} WHERE read_status = 1`);
+        });
+    } catch (e) {
+        DBCommon.logException("deleteAllRead", e);
+    }
+}
+
+/**
+ * Gets count of unread notifications.
+ *
+ * @returns {int} Count of unread notifications
+ */
+function getUnreadCount() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var count = 0;
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(`SELECT COUNT(*) as cnt FROM ${TABLE_NAME} WHERE read_status = 0`);
+            if (rs.rows.length > 0) {
+                count = rs.rows.item(0).cnt;
+            }
+        });
+        return count;
+    } catch (e) {
+        DBCommon.logException("getUnreadCount", e);
+        return 0;
+    }
+}
