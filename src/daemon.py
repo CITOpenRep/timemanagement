@@ -206,8 +206,13 @@ class NotificationDaemon:
         log.warning("[DAEMON] Could not find app database, using fallback")
         return str(user_home / ".local" / "share" / "ubtms" / "timemanagement.db")
     
-    def _init_dbus(self):
-        """Initialize DBus connection for sending notifications."""
+    def _init_dbus(self, max_retries=5, retry_delay=2):
+        """Initialize DBus connection for sending notifications.
+        
+        Args:
+            max_retries: Number of times to retry if service unavailable
+            retry_delay: Seconds to wait between retries
+        """
         # Auto-detect DBus session if not set (Robustness fix)
         if "DBUS_SESSION_BUS_ADDRESS" not in os.environ:
             try:
@@ -221,23 +226,30 @@ class NotificationDaemon:
             except Exception as e:
                 log.error(f"[DAEMON] Error trying to auto-detect DBus: {e}")
 
-        try:
-            DBusGMainLoop(set_as_default=True)
-            self.bus = dbus.SessionBus()
-            
-            # Use standard notifications interface
-            notify_service = self.bus.get_object(
-                'org.freedesktop.Notifications',
-                '/org/freedesktop/Notifications'
-            )
-            self.notification_interface = dbus.Interface(
-                notify_service,
-                'org.freedesktop.Notifications'
-            )
-            log.info("[DAEMON] DBus notification interface initialized (org.freedesktop.Notifications)")
-        except Exception as e:
-            log.error(f"[DAEMON] Failed to initialize DBus: {e}")
-            self.notification_interface = None
+        for attempt in range(max_retries):
+            try:
+                DBusGMainLoop(set_as_default=True)
+                self.bus = dbus.SessionBus()
+                
+                # Use standard notifications interface
+                notify_service = self.bus.get_object(
+                    'org.freedesktop.Notifications',
+                    '/org/freedesktop/Notifications'
+                )
+                self.notification_interface = dbus.Interface(
+                    notify_service,
+                    'org.freedesktop.Notifications'
+                )
+                log.info("[DAEMON] DBus notification interface initialized (org.freedesktop.Notifications)")
+                return  # Success!
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    log.warning(f"[DAEMON] DBus init attempt {attempt + 1}/{max_retries} failed: {e}")
+                    log.info(f"[DAEMON] Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                else:
+                    log.error(f"[DAEMON] Failed to initialize DBus after {max_retries} attempts: {e}")
+                    self.notification_interface = None
     
     def _request_wakelock(self):
         """Request a wakelock from repowerd to prevent the daemon from being killed during device sleep."""
@@ -346,9 +358,14 @@ class NotificationDaemon:
     
     def send_notification(self, title, message):
         """Send a system notification via DBus."""
+        # Retry DBus initialization if not available
         if not self.notification_interface:
-            log.warning("[DAEMON] Notification interface not available")
-            return
+            log.info("[DAEMON] Notification interface not available, attempting re-initialization...")
+            self._init_dbus()
+            if not self.notification_interface:
+                log.warning("[DAEMON] DBus re-initialization failed, skipping notification")
+                return
+            log.info("[DAEMON] DBus re-initialized successfully!")
         
         try:
             # app_name, replaces_id, app_icon, summary, body, actions, hints, timeout
