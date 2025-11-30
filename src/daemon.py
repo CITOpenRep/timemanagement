@@ -107,9 +107,13 @@ class NotificationDaemon:
         self.notification_interface = None
         self.running = True
         self.loop = None
+        self.wakelock_cookie = None  # For suspend inhibition
         self._write_pid_file()
         self._setup_signal_handlers()
+        self._protect_from_oom()  # Lower OOM priority to survive memory pressure
         self._init_dbus()
+        self._request_wakelock()  # Request wakelock to survive device sleep
+        self._setup_suspend_handler()  # Handle sleep/wake events
     
     def _load_last_check_times(self):
         """Load persisted last check timestamps from file."""
@@ -164,6 +168,7 @@ class NotificationDaemon:
         """Handle shutdown signals gracefully (only SIGINT)."""
         log.info(f"[DAEMON] Received signal {signum}, shutting down...")
         self.running = False
+        self._release_wakelock()  # Release wakelock before exiting
         self._cleanup_pid_file()
         if self.loop:
             self.loop.quit()
@@ -233,6 +238,111 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Failed to initialize DBus: {e}")
             self.notification_interface = None
+    
+    def _request_wakelock(self):
+        """Request a wakelock from repowerd to prevent the daemon from being killed during device sleep."""
+        try:
+            # Connect to system bus for repowerd
+            system_bus = dbus.SystemBus()
+            repowerd = system_bus.get_object('com.lomiri.Repowerd', '/com/lomiri/Repowerd')
+            repowerd_iface = dbus.Interface(repowerd, 'com.lomiri.Repowerd')
+            
+            # Request system state: state=1 means "active" (prevent suspend)
+            # MUST use dbus.Int32(1) - Python int causes "Invalid state" error
+            self.wakelock_cookie = repowerd_iface.requestSysState("ubtms-daemon", dbus.Int32(1))
+            log.info(f"[DAEMON] Wakelock acquired (state=1): {self.wakelock_cookie}")
+            
+            # Also schedule periodic wakeups to ensure we get CPU time
+            self._schedule_wakeup()
+        except Exception as e:
+            log.warning(f"[DAEMON] Failed to acquire wakelock (daemon may be killed during sleep): {e}")
+            self.wakelock_cookie = None
+    
+    def _schedule_wakeup(self):
+        """Schedule a wakeup in 90 seconds to ensure periodic sync even during deep sleep."""
+        try:
+            system_bus = dbus.SystemBus()
+            repowerd = system_bus.get_object('com.lomiri.Repowerd', '/com/lomiri/Repowerd')
+            repowerd_iface = dbus.Interface(repowerd, 'com.lomiri.Repowerd')
+            
+            # Schedule wakeup 90 seconds from now (before next sync at 60s interval with buffer)
+            wakeup_time = int(time.time()) + 90
+            cookie = repowerd_iface.requestWakeup("ubtms-sync", dbus.UInt64(wakeup_time))
+            log.info(f"[DAEMON] Scheduled wakeup at {wakeup_time} (cookie: {cookie})")
+        except Exception as e:
+            log.warning(f"[DAEMON] Failed to schedule wakeup: {e}")
+    
+    def _release_wakelock(self):
+        """Release the wakelock when shutting down."""
+        if self.wakelock_cookie:
+            try:
+                system_bus = dbus.SystemBus()
+                repowerd = system_bus.get_object('com.lomiri.Repowerd', '/com/lomiri/Repowerd')
+                repowerd_iface = dbus.Interface(repowerd, 'com.lomiri.Repowerd')
+                repowerd_iface.clearSysState(self.wakelock_cookie)
+                log.info(f"[DAEMON] Wakelock released: {self.wakelock_cookie}")
+                self.wakelock_cookie = None
+            except Exception as e:
+                log.error(f"[DAEMON] Failed to release wakelock: {e}")
+    
+    def _protect_from_oom(self):
+        """Lower OOM score to make the daemon less likely to be killed under memory pressure.
+        
+        The OOM killer uses oom_score_adj to prioritize which processes to kill.
+        Range is -1000 (never kill) to 1000 (kill first). Default is 0.
+        We use -500 which significantly lowers our kill priority.
+        """
+        try:
+            oom_adj_path = f'/proc/{os.getpid()}/oom_score_adj'
+            with open(oom_adj_path, 'w') as f:
+                f.write('-500')
+            log.info("[DAEMON] OOM protection enabled (oom_score_adj=-500)")
+        except PermissionError:
+            log.warning("[DAEMON] Cannot set OOM score - insufficient permissions (needs root)")
+        except Exception as e:
+            log.warning(f"[DAEMON] Failed to set OOM protection: {e}")
+    
+    def _setup_suspend_handler(self):
+        """Register to receive PrepareForSleep signals from logind to handle system suspend/resume."""
+        try:
+            system_bus = dbus.SystemBus()
+            
+            # Connect to logind's PrepareForSleep signal
+            system_bus.add_signal_receiver(
+                self._handle_sleep_signal,
+                signal_name='PrepareForSleep',
+                dbus_interface='org.freedesktop.login1.Manager',
+                bus_name='org.freedesktop.login1'
+            )
+            log.info("[DAEMON] Suspend/resume handler registered with logind")
+        except Exception as e:
+            log.warning(f"[DAEMON] Failed to register suspend handler: {e}")
+    
+    def _handle_sleep_signal(self, sleeping):
+        """Handle PrepareForSleep signal from logind.
+        
+        Args:
+            sleeping: True when system is going to sleep, False when waking up
+        """
+        if sleeping:
+            log.info("[DAEMON] System preparing to sleep - saving state")
+            self._save_last_check_times()
+            self._update_heartbeat()
+        else:
+            log.info("[DAEMON] System waking up - refreshing wakelocks and scheduling sync")
+            # Re-acquire wakelock after wake
+            self._request_wakelock()
+            # Schedule immediate sync after short delay
+            GLib.timeout_add_seconds(5, self._sync_after_wake)
+    
+    def _sync_after_wake(self):
+        """Perform sync after system wakes from sleep."""
+        log.info("[DAEMON] Post-wake sync starting")
+        try:
+            self.sync_all_accounts()
+        except Exception as e:
+            log.error(f"[DAEMON] Post-wake sync failed: {e}")
+        return False  # Don't repeat - one-shot callback
     
     def _make_path(self, app_id):
         """Convert app_id to DBus path format."""
@@ -686,6 +796,7 @@ class NotificationDaemon:
                     self.loop = GLib.MainLoop()
         
         # Cleanup on exit
+        self._release_wakelock()
         self._cleanup_pid_file()
         log.info("[DAEMON] Daemon stopped")
     
@@ -699,6 +810,10 @@ class NotificationDaemon:
         """Callback for periodic sync."""
         try:
             log.info(f"[DAEMON] Periodic sync triggered at {datetime.now()}")
+            # Reschedule wakeup for next sync cycle
+            self._schedule_wakeup()
+            # Refresh wakelock to ensure it's still active
+            self._request_wakelock()
             self.sync_all_accounts()
         except Exception as e:
             log.error(f"[DAEMON] Periodic sync failed: {e}")
