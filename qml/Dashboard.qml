@@ -461,6 +461,22 @@ Page {
         id: notificationBell
         visible: false
         parentWindow: mainPage
+        
+        // Track previous count to detect new notifications
+        property int previousCount: 0
+        
+        onNotificationCountChanged: {
+            if (notificationCount > previousCount && previousCount > 0) {
+                // New notifications arrived while app is open
+                var newCount = notificationCount - previousCount;
+                notifPopup.open(
+                    i18n.dtr("ubtms", "New Notifications"),
+                    i18n.dtr("ubtms", "You have %1 new notification(s)").arg(newCount),
+                    "info"
+                );
+            }
+            previousCount = notificationCount;
+        }
     }
 
     // Simple notification popup for messages

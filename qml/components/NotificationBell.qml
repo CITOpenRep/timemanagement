@@ -157,6 +157,23 @@ Item {
             }
         }
     }
+    
+    // Periodic refresh timer to check for new notifications while app is open
+    Timer {
+        id: notificationRefreshTimer
+        interval: 30000  // Check every 30 seconds
+        running: true
+        repeat: true
+        onTriggered: {
+            var oldCount = notificationCount;
+            loadNotifications();
+            // If new notifications arrived, we could show a toast here
+            if (notificationCount > oldCount) {
+                console.log("New notifications arrived:", notificationCount - oldCount);
+            }
+        }
+    }
+    
     Component.onCompleted: {
         loadNotifications();
     }
