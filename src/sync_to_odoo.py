@@ -69,6 +69,47 @@ def load_field_mapping(model_name, config_path="field_config.json"):
         return {}
 
 
+def get_res_model_id(db_path, account_id, res_model):
+    """
+    Look up the Odoo model ID (res_model_id) from the ir_model_app table.
+    
+    Args:
+        db_path (str): Path to SQLite database file
+        account_id: Account ID to filter by
+        res_model (str): The technical model name (e.g., "project.task", "sale.order")
+        
+    Returns:
+        int or None: The odoo_record_id from ir_model_app if found, None otherwise
+    """
+    if not res_model:
+        return None
+    
+    try:
+        # Ensure account_id is an integer (it might be a float like 3.0)
+        account_id_int = int(account_id) if account_id is not None else None
+        
+        query = "SELECT odoo_record_id FROM ir_model_app WHERE account_id = ? AND technical_name = ?"
+        rows = safe_sql_execute(db_path, query, (account_id_int, res_model), fetch=True, commit=False)
+        
+        if rows and len(rows) > 0:
+            log.debug(f"[ACTIVITY] Found res_model_id={rows[0][0]} for model '{res_model}' in account {account_id_int}")
+            return rows[0][0]
+        
+        # Debug: List available models in this account
+        debug_query = "SELECT technical_name, odoo_record_id FROM ir_model_app WHERE account_id = ? LIMIT 20"
+        debug_rows = safe_sql_execute(db_path, debug_query, (account_id_int,), fetch=True, commit=False)
+        if debug_rows:
+            available_models = [row[0] for row in debug_rows if row[0]]
+            log.debug(f"[DEBUG] Available models in account {account_id_int}: {available_models[:10]}...")
+        else:
+            log.warning(f"[WARN] No ir.model records found for account {account_id_int}. Run sync from Odoo first.")
+        
+        return None
+    except Exception as e:
+        log.warning(f"[WARN] Failed to look up res_model_id for '{res_model}': {e}")
+        return None
+
+
 def get_local_records(
     table_name,
     model_name,
@@ -492,6 +533,29 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                             if end_key in odoo_data:
                                 del odoo_data[end_key]
                                 log.debug(f"[SANITIZE] Removed invalid create {end_key} from payload")
+
+            # Special handling for mail.activity: res_model_id lookup and validation
+            if model_name == "mail.activity":
+                res_model = odoo_data.get("res_model")
+                res_id = odoo_data.get("res_id")
+                
+                # Validate res_model and res_id are set
+                if not res_model or not res_id or res_id <= 0:
+                    log.error(f"[ERROR] Activity id={record.get('id')} missing required res_model or res_id. res_model={res_model}, res_id={res_id}")
+                    log.error(f"[ERROR] Activities must be linked to a document (project.task, project.project, sale.order, crm.lead, etc.)")
+                    log.error(f"[ERROR] Skipping this activity. It may need to be deleted or re-linked in the app.")
+                    return None
+                
+                # Look up res_model_id from ir_model_app table
+                res_model_id = get_res_model_id(record["db_path"], record["account_id"], res_model)
+                if not res_model_id:
+                    log.error(f"[ERROR] Could not find ir.model record for '{res_model}' in account {record['account_id']}")
+                    log.error(f"[ERROR] Please sync from Odoo first to populate ir.model data, then try syncing activities again.")
+                    return None
+                
+                # Add res_model_id to the Odoo data
+                odoo_data["res_model_id"] = res_model_id
+                log.debug(f"[ACTIVITY] Resolved res_model_id={res_model_id} for res_model='{res_model}'")
 
             new_id = client.call(model_name, "create", [odoo_data])
             log.debug(f"[CREATE] {model_name} new record created with id={new_id}.")

@@ -718,6 +718,15 @@ function createFollowupActivity(account_id,activityId) {
 
             var original = result.rows.item(0);
 
+            // Validate that the original activity has valid resModel and link_id
+            // Activities without proper linkage cannot be synced to Odoo
+            if (!original.resModel || original.resModel === "" || original.resModel === null) {
+                throw new Error("Cannot create follow-up: Original activity is not linked to any document (resModel is null)");
+            }
+            if (!original.link_id || original.link_id <= 0) {
+                throw new Error("Cannot create follow-up: Original activity has no valid document link (link_id is " + original.link_id + ")");
+            }
+
             // 2. Insert a new record with cloned values
             tx.executeSql(
                 `INSERT INTO mail_activity_app (
