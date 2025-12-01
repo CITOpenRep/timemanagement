@@ -33,6 +33,15 @@
 
       <h3>Change History : </h3>
 
+      <h4> 01-12-2025 : Version 1.1.11 </h4>
+
+
+      <h4>Bug Fixes and Improvements</h4>
+<ul>
+  <li>Bug Fixes in Follow-up Activity ceation and Syncing Mechanism.</li>
+</ul>
+
+
 
             <h4> 21-11-2025 : Version 1.1.10 </h4>
 
