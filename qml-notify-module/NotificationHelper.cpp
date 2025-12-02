@@ -9,12 +9,14 @@
 #include <QDebug>
 #include <QJsonArray>
 #include <QProcess>
+#include <QProcessEnvironment>
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QFile>
 #include <QDateTime>
 #include <QDir>
 #include <QThread>
+#include <unistd.h>
 
 #define PUSH_SERVICE "com.lomiri.PushNotifications"
 #define POSTAL_SERVICE "com.lomiri.Postal"
@@ -147,54 +149,50 @@ void NotificationHelper::set_push_app_id(QString value)
 
 void NotificationHelper::startDaemon()
 {
+    qDebug() << "Starting daemon...";
+    
+    QString uid = QString::number(getuid());
+    QString dbusAddr = QString("unix:path=/run/user/%1/bus").arg(uid);
+    
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("DBUS_SESSION_BUS_ADDRESS", dbusAddr);
+    
+    // Always ensure systemd service exists first
+    QString serviceFile = QString("/home/phablet/.config/systemd/user/ubtms-daemon.service");
+    QFileInfo serviceInfo(serviceFile);
+    
+    if (!serviceInfo.exists()) {
+        qDebug() << "Systemd service not found, running bootstrap to create it...";
+        
+        // Run bootstrap to create the service file
+        QString bootstrapScript = "/opt/click.ubuntu.com/ubtms/current/src/daemon_bootstrap.py";
+        QProcess bootstrap;
+        bootstrap.setWorkingDirectory("/opt/click.ubuntu.com/ubtms/current");
+        bootstrap.setProcessEnvironment(env);
+        bootstrap.start("python3", QStringList() << bootstrapScript);
+        bootstrap.waitForFinished(30000);  // Wait up to 30 seconds
+        
+        // Reload systemd after creating service
+        QProcess::execute("systemctl", QStringList() << "--user" << "daemon-reload");
+        qDebug() << "Bootstrap completed, service should be created";
+        return;  // Bootstrap already starts the daemon
+    }
+    
     // Check if daemon is already running
     int exitCode = QProcess::execute("pgrep", QStringList() << "-f" << "python3.*daemon.py");
     if (exitCode == 0) {
         qDebug() << "Daemon already running.";
         return;
     }
-
-    qDebug() << "Starting daemon...";
     
-    // First, run the bootstrap/setup to ensure dependencies and autostart are configured
-    QString bootstrapScript = "/opt/click.ubuntu.com/ubtms/current/src/daemon_bootstrap.py";
-    QString startScript = "/opt/click.ubuntu.com/ubtms/current/start-daemon.sh";
-    
-    // Check if the start script exists
-    QFileInfo checkFile(startScript);
-    if (!checkFile.exists()) {
-        qDebug() << "Start script not found at:" << startScript;
-        
-        // Try bootstrap directly
-        QFileInfo bootstrapFile(bootstrapScript);
-        if (bootstrapFile.exists()) {
-            qDebug() << "Using bootstrap script directly";
-            QProcess *process = new QProcess();
-            process->setWorkingDirectory("/opt/click.ubuntu.com/ubtms/current");
-            process->setProgram("python3");
-            process->setArguments(QStringList() << bootstrapScript);
-            bool success = process->startDetached();
-            qDebug() << "Bootstrap daemon start result:" << success;
-            return;
-        }
-        
-        // Fall back to direct daemon start
-        QString daemonPath = "/opt/click.ubuntu.com/ubtms/current/src/daemon.py";
-        QProcess *process = new QProcess();
-        process->setWorkingDirectory("/opt/click.ubuntu.com/ubtms/current");
-        process->setProgram("python3");
-        process->setArguments(QStringList() << daemonPath);
-        bool success = process->startDetached();
-        qDebug() << "Direct daemon start result:" << success;
-        return;
-    }
-    
-    // Start the daemon using the shell script (handles environment setup)
-    bool success = QProcess::startDetached("/bin/bash", QStringList() << startScript);
-    if (success) {
-        qDebug() << "Daemon started successfully via start script";
+    // Start via systemd
+    QProcess systemctl;
+    systemctl.setProcessEnvironment(env);
+    systemctl.start("systemctl", QStringList() << "--user" << "start" << "ubtms-daemon");
+    if (systemctl.waitForFinished(5000) && systemctl.exitCode() == 0) {
+        qDebug() << "Daemon started via systemd";
     } else {
-        qDebug() << "Failed to start daemon";
+        qDebug() << "Systemd start failed:" << systemctl.readAllStandardError();
     }
 }
 

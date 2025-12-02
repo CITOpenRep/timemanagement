@@ -59,6 +59,16 @@ WantedBy=graphical-session.target
     symlink.symlink_to(service_file)
     
     log("Systemd service configured")
+    
+    # Try to activate systemd
+    try:
+        uid = os.getuid()
+        env = os.environ.copy()
+        env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path=/run/user/{uid}/bus"
+        subprocess.run(["systemctl", "--user", "daemon-reload"], env=env, timeout=5, capture_output=True)
+        log("Systemd reloaded")
+    except Exception as e:
+        log(f"Could not reload systemd: {e}")
 
 
 def main():
