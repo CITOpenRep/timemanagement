@@ -156,15 +156,28 @@ void NotificationHelper::startDaemon()
 
     qDebug() << "Starting daemon...";
     
-    // Use hardcoded path for the start script
+    // First, run the bootstrap/setup to ensure dependencies and autostart are configured
+    QString bootstrapScript = "/opt/click.ubuntu.com/ubtms/current/src/daemon_bootstrap.py";
     QString startScript = "/opt/click.ubuntu.com/ubtms/current/start-daemon.sh";
-    
-    qDebug() << "Start script path:" << startScript;
     
     // Check if the start script exists
     QFileInfo checkFile(startScript);
     if (!checkFile.exists()) {
         qDebug() << "Start script not found at:" << startScript;
+        
+        // Try bootstrap directly
+        QFileInfo bootstrapFile(bootstrapScript);
+        if (bootstrapFile.exists()) {
+            qDebug() << "Using bootstrap script directly";
+            QProcess *process = new QProcess();
+            process->setWorkingDirectory("/opt/click.ubuntu.com/ubtms/current");
+            process->setProgram("python3");
+            process->setArguments(QStringList() << bootstrapScript);
+            bool success = process->startDetached();
+            qDebug() << "Bootstrap daemon start result:" << success;
+            return;
+        }
+        
         // Fall back to direct daemon start
         QString daemonPath = "/opt/click.ubuntu.com/ubtms/current/src/daemon.py";
         QProcess *process = new QProcess();

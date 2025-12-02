@@ -38,9 +38,61 @@ import signal
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 import logging
-from dbus.mainloop.glib import DBusGMainLoop
-from gi.repository import GLib
-import dbus
+
+# Early check for required dependencies with helpful error messages
+MISSING_DEPS = []
+SETUP_INSTRUCTIONS = """
+===============================================
+MISSING DEPENDENCIES FOR PUSH NOTIFICATIONS
+===============================================
+
+The TimeManagement background daemon requires additional
+Python packages that are not installed on this device.
+
+To fix this, connect to your device and run:
+
+  adb shell
+  sudo apt update
+  sudo apt install python3-dbus python3-gi gir1.2-glib-2.0
+
+Then restart the app or reboot the device.
+===============================================
+"""
+
+try:
+    from dbus.mainloop.glib import DBusGMainLoop
+    import dbus
+except ImportError as e:
+    MISSING_DEPS.append(f"python3-dbus ({e})")
+
+try:
+    from gi.repository import GLib
+except ImportError as e:
+    MISSING_DEPS.append(f"python3-gi / gir1.2-glib-2.0 ({e})")
+
+if MISSING_DEPS:
+    # Write error to log file before crashing
+    log_file = Path.home() / "daemon.log"
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    error_msg = f"{timestamp} [DAEMON] FATAL: Missing dependencies: {', '.join(MISSING_DEPS)}\n"
+    error_msg += f"{timestamp} [DAEMON] {SETUP_INSTRUCTIONS}\n"
+    
+    try:
+        with open(log_file, 'a') as f:
+            f.write(error_msg)
+    except:
+        pass
+    
+    print(error_msg, file=sys.stderr)
+    
+    # Create a marker file so the app knows setup is needed
+    setup_needed_file = Path.home() / ".ubtms_needs_setup"
+    try:
+        setup_needed_file.write_text('\n'.join(MISSING_DEPS))
+    except:
+        pass
+    
+    sys.exit(1)
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
@@ -52,6 +104,14 @@ from common import add_notification
 from logger import setup_logger
 
 log = setup_logger()
+
+# Remove the setup needed marker since dependencies are OK
+setup_needed_file = Path.home() / ".ubtms_needs_setup"
+if setup_needed_file.exists():
+    try:
+        setup_needed_file.unlink()
+    except:
+        pass
 
 # Global exception handler to prevent silent crashes
 def global_exception_handler(exc_type, exc_value, exc_traceback):
@@ -185,6 +245,12 @@ class NotificationDaemon:
             HEARTBEAT_FILE.write_text(datetime.now(timezone.utc).isoformat())
         except Exception as e:
             log.error(f"[DAEMON] Failed to update heartbeat: {e}")
+    
+    def _cleanup_memory(self):
+        """Force garbage collection to reduce memory footprint."""
+        import gc
+        gc.collect()
+        log.debug("[DAEMON] Memory cleanup completed")
         
     def _get_settings_db_path(self):
         """Get path to app settings database."""
@@ -697,6 +763,9 @@ class NotificationDaemon:
         try:
             log.info(f"[DAEMON] Syncing account: {account_name} (ID: {account_id})")
             
+            # Update heartbeat before creating client
+            self._update_heartbeat()
+            
             # Create Odoo client (authenticates automatically)
             client = OdooClient(
                 url=account_url,
@@ -706,14 +775,22 @@ class NotificationDaemon:
             )
             log.info(f"[DAEMON] OdooClient created for {account_name}")
             
-            # Update heartbeat before sync to signal we're alive
+            # Update heartbeat after client creation
             self._update_heartbeat()
             
-            # Sync data from Odoo (no signal-based timeout to avoid GLib conflicts)
+            # Sync data from Odoo
             try:
                 log.info(f"[DAEMON] Starting sync_all_from_odoo for {account_name}")
+                self._update_heartbeat()
+                
                 sync_all_from_odoo(client, account_id, self.settings_db)
+                
+                self._update_heartbeat()
                 log.info(f"[DAEMON] sync_all_from_odoo completed for {account_name}")
+                
+                # Clean up memory after sync to reduce footprint
+                self._cleanup_memory()
+                
             except Exception as sync_error:
                 log.error(f"[DAEMON] sync_all_from_odoo failed: {sync_error}")
                 log.error(f"[DAEMON] Sync error traceback: {traceback.format_exc()}")
@@ -727,6 +804,9 @@ class NotificationDaemon:
             self.check_for_updates(account_id, account_name, account_user)
             
             log.info(f"[DAEMON] Sync completed for {account_name}")
+            
+            # Final memory cleanup after account processing
+            self._cleanup_memory()
             
         except Exception as e:
             log.error(f"[DAEMON] Error syncing account {account_name}: {e}")
@@ -751,6 +831,8 @@ class NotificationDaemon:
             
             for account in accounts:
                 self.sync_account(account)
+                # Update heartbeat between accounts
+                self._update_heartbeat()
             
             log.info("[DAEMON] All accounts synced")
             
@@ -843,14 +925,11 @@ def check_already_running():
     if PID_FILE.exists():
         try:
             old_pid = int(PID_FILE.read_text().strip())
-            # Check if process is still running
-            os.kill(old_pid, 0)
+            os.kill(old_pid, 0)  # Check if process exists
             return True, old_pid
         except (ProcessLookupError, ValueError):
-            # Process not running, clean up stale PID file
-            PID_FILE.unlink()
+            PID_FILE.unlink(missing_ok=True)
         except PermissionError:
-            # Process running but we can't signal it
             return True, old_pid
     return False, None
 
