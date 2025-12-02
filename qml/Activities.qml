@@ -1075,6 +1075,7 @@ Page {
 
         var linkid = -1;
         var resId = 0;
+        var resModel = "";
 
         if (projectRadio.checked) {
             // Use subproject if it's valid and not -1/null, otherwise use main project
@@ -1085,15 +1086,14 @@ Page {
                 linkid = ids.project_id;
             }
             resId = Accounts.getOdooModelId(ids.account_id, "Project");
+            resModel = "project.project";
             
             // Validate that project connection is valid
             if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
                 notifPopup.open("Error", "Activity must be connected to a valid project", "error");
                 return;
             }
-        }
-
-        if (taskRadio.checked) {
+        } else if (taskRadio.checked) {
             // Use subtask if it's valid and not -1/null, otherwise use main task
             if (ids.subtask_id && ids.subtask_id !== -1 && ids.subtask_id !== null) {
                 linkid = ids.subtask_id;
@@ -1101,15 +1101,36 @@ Page {
                 linkid = ids.task_id;
             }
             resId = Accounts.getOdooModelId(ids.account_id, "Task");
+            resModel = "project.task";
             
             // Validate that task connection is valid
             if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
                 notifPopup.open("Error", "Activity must be connected to a valid task", "error");
                 return;
             }
+        } else if (updateRadio.checked || otherRadio.checked) {
+            // For "update" or "other" types, preserve the original activity's resModel and link_id
+            // These types are only visible for existing activities that were synced from Odoo
+            // and may be linked to models like sale.order, crm.lead, project.update, etc.
+            if (currentActivity && currentActivity.resModel) {
+                resModel = currentActivity.resModel;
+                linkid = currentActivity.link_id || -1;
+                resId = currentActivity.resId || 0;
+                
+                // Validate that we have valid linkage data
+                if (!resModel || linkid <= 0) {
+                    notifPopup.open("Error", "Cannot save activity: missing document connection. Please select Task or Project type.", "error");
+                    return;
+                }
+            } else {
+                notifPopup.open("Error", "Cannot save activity without a document connection. Please select Task or Project type.", "error");
+                return;
+            }
+        } else {
+            // No type selected - should not happen but handle gracefully
+            notifPopup.open("Error", "Please select how this activity is connected (Task, Project, etc.)", "error");
+            return;
         }
-
-        const resModel = projectRadio.checked ? "project.project" : taskRadio.checked ? "project.task" : "";
 
         // Use the selected assignee, or fall back to current user if no assignee selected
         const user = ids.assignee_id || Accounts.getCurrentUserOdooId(ids.account_id);

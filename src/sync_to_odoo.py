@@ -69,6 +69,124 @@ def load_field_mapping(model_name, config_path="field_config.json"):
         return {}
 
 
+def get_res_model_id(db_path, account_id, res_model):
+    """
+    Look up the Odoo model ID (res_model_id) from the ir_model_app table.
+    
+    Args:
+        db_path (str): Path to SQLite database file
+        account_id: Account ID to filter by
+        res_model (str): The technical model name (e.g., "project.task", "sale.order")
+        
+    Returns:
+        int or None: The odoo_record_id from ir_model_app if found, None otherwise
+    """
+    if not res_model:
+        return None
+    
+    try:
+        # Ensure account_id is an integer (it might be a float like 3.0)
+        account_id_int = int(account_id) if account_id is not None else None
+        
+        query = "SELECT odoo_record_id FROM ir_model_app WHERE account_id = ? AND technical_name = ?"
+        rows = safe_sql_execute(db_path, query, (account_id_int, res_model), fetch=True, commit=False)
+        
+        if rows and len(rows) > 0:
+            log.debug(f"[ACTIVITY] Found res_model_id={rows[0][0]} for model '{res_model}' in account {account_id_int}")
+            return rows[0][0]
+        
+        # Debug: List available models in this account
+        debug_query = "SELECT technical_name, odoo_record_id FROM ir_model_app WHERE account_id = ? LIMIT 20"
+        debug_rows = safe_sql_execute(db_path, debug_query, (account_id_int,), fetch=True, commit=False)
+        if debug_rows:
+            available_models = [row[0] for row in debug_rows if row[0]]
+            log.debug(f"[DEBUG] Available models in account {account_id_int}: {available_models[:10]}...")
+        else:
+            log.warning(f"[WARN] No ir.model records found for account {account_id_int}. Run sync from Odoo first.")
+        
+        return None
+    except Exception as e:
+        log.warning(f"[WARN] Failed to look up res_model_id for '{res_model}': {e}")
+        return None
+
+
+def cleanup_corrupted_activities(db_path, account_id):
+    """
+    Remove corrupted/orphaned activity records that cannot be synced to Odoo.
+    
+    Corrupted activities are those with:
+    - NULL or empty resModel (not linked to any document type)
+    - NULL, empty, or <= 0 link_id (not linked to a specific document)
+    - No odoo_record_id (never synced) - we only clean up local-only records
+    
+    Args:
+        db_path (str): Path to SQLite database file
+        account_id: Account ID to filter by
+        
+    Returns:
+        int: Number of records cleaned up
+    """
+    try:
+        account_id_int = int(account_id) if account_id is not None else None
+        
+        # First, count how many corrupted records exist
+        count_query = """
+            SELECT COUNT(*) FROM mail_activity_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NULL
+            AND (
+                resModel IS NULL 
+                OR resModel = '' 
+                OR link_id IS NULL 
+                OR link_id <= 0
+            )
+        """
+        count_result = safe_sql_execute(db_path, count_query, (account_id_int,), fetch=True, commit=False)
+        corrupted_count = count_result[0][0] if count_result else 0
+        
+        if corrupted_count == 0:
+            log.debug(f"[CLEANUP] No corrupted activities found for account {account_id_int}")
+            return 0
+        
+        # Get details of corrupted records for logging
+        detail_query = """
+            SELECT id, summary, resModel, link_id FROM mail_activity_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NULL
+            AND (
+                resModel IS NULL 
+                OR resModel = '' 
+                OR link_id IS NULL 
+                OR link_id <= 0
+            )
+        """
+        corrupted_records = safe_sql_execute(db_path, detail_query, (account_id_int,), fetch=True, commit=False)
+        
+        for record in corrupted_records:
+            log.warning(f"[CLEANUP] Removing corrupted activity: id={record[0]}, summary='{record[1]}', resModel={record[2]}, link_id={record[3]}")
+        
+        # Delete the corrupted records
+        delete_query = """
+            DELETE FROM mail_activity_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NULL
+            AND (
+                resModel IS NULL 
+                OR resModel = '' 
+                OR link_id IS NULL 
+                OR link_id <= 0
+            )
+        """
+        safe_sql_execute(db_path, delete_query, (account_id_int,))
+        
+        log.info(f"[CLEANUP] Removed {corrupted_count} corrupted activity records for account {account_id_int}")
+        return corrupted_count
+        
+    except Exception as e:
+        log.error(f"[ERROR] Failed to cleanup corrupted activities: {e}")
+        return 0
+
+
 def get_local_records(
     table_name,
     model_name,
@@ -493,6 +611,29 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                                 del odoo_data[end_key]
                                 log.debug(f"[SANITIZE] Removed invalid create {end_key} from payload")
 
+            # Special handling for mail.activity: res_model_id lookup and validation
+            if model_name == "mail.activity":
+                res_model = odoo_data.get("res_model")
+                res_id = odoo_data.get("res_id")
+                
+                # Validate res_model and res_id are set
+                if not res_model or not res_id or res_id <= 0:
+                    log.error(f"[ERROR] Activity id={record.get('id')} missing required res_model or res_id. res_model={res_model}, res_id={res_id}")
+                    log.error(f"[ERROR] Activities must be linked to a document (project.task, project.project, sale.order, crm.lead, etc.)")
+                    log.error(f"[ERROR] Skipping this activity. It may need to be deleted or re-linked in the app.")
+                    return None
+                
+                # Look up res_model_id from ir_model_app table
+                res_model_id = get_res_model_id(record["db_path"], record["account_id"], res_model)
+                if not res_model_id:
+                    log.error(f"[ERROR] Could not find ir.model record for '{res_model}' in account {record['account_id']}")
+                    log.error(f"[ERROR] Please sync from Odoo first to populate ir.model data, then try syncing activities again.")
+                    return None
+                
+                # Add res_model_id to the Odoo data
+                odoo_data["res_model_id"] = res_model_id
+                log.debug(f"[ACTIVITY] Resolved res_model_id={res_model_id} for res_model='{res_model}'")
+
             new_id = client.call(model_name, "create", [odoo_data])
             log.debug(f"[CREATE] {model_name} new record created with id={new_id}.")
 
@@ -549,11 +690,16 @@ def sync_to_odoo(
         - Handles both local and remote deletions
         - Updates record status after successful operations
         - Logs comprehensive sync statistics
+        - For mail.activity: automatically cleans up corrupted/orphaned records
         
     Note:
         Records marked as 'deleted' are removed from both Odoo and local SQLite.
         Handles cases where Odoo records are already deleted remotely.
     """
+    # Special handling for mail.activity: cleanup corrupted records before sync
+    if model_name == "mail.activity":
+        cleanup_corrupted_activities(db_path, account_id)
+    
     all_records = get_local_records(
         table_name, model_name, account_id, db_path, config_path
     )

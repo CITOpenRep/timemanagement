@@ -2,7 +2,7 @@
 
 .pragma library
 
-var version="1.1.10"
+var version="1.1.11"
 
 //fonts
 var FontSizes = {
