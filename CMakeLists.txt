@@ -4,12 +4,19 @@ project(timemanagementapp C CXX)
 # Automatically create moc files
 set(CMAKE_AUTOMOC ON)
 
+find_package(Qt5 REQUIRED COMPONENTS Core Qml Quick DBus)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLIB REQUIRED glib-2.0)
+pkg_check_modules(LIBNOTIFY REQUIRED libnotify)
+
 execute_process(
     COMMAND dpkg-architecture -qDEB_HOST_MULTIARCH
     OUTPUT_VARIABLE ARCH_TRIPLET
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 set(QT_IMPORTS_DIR "lib/${ARCH_TRIPLET}")
+
+add_subdirectory(qml-notify-module)
 
 set(PROJECT_NAME "ubtms")
 set(FULL_PROJECT_NAME "ubtms")
@@ -38,6 +45,11 @@ endif()
 configure_file(manifest.json.in ${CMAKE_CURRENT_BINARY_DIR}/manifest.json)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/manifest.json DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(FILES ${PROJECT_NAME}.apparmor DESTINATION ${DATA_DIR})
+install(FILES ubtms-push.apparmor DESTINATION ${DATA_DIR})
+install(FILES ubtms-push-helper.json DESTINATION ${DATA_DIR})
+install(PROGRAMS push-helper.py DESTINATION ${DATA_DIR})
+install(PROGRAMS start-daemon.sh DESTINATION ${DATA_DIR})
+install(FILES ubtms-daemon.desktop DESTINATION ${DATA_DIR})
 
 install(DIRECTORY assets DESTINATION ${DATA_DIR})
 install(DIRECTORY src DESTINATION ${DATA_DIR})

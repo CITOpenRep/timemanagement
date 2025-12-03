@@ -1,4 +1,5 @@
 {
-    "policy_groups": ["networking","content_exchange","content_exchange_source","webview"],
-    "policy_version": 20.04
+    "policy_groups": ["networking","content_exchange","content_exchange_source","webview", "push-notification-client"],
+    "policy_version": 20.04,
+    "template": "unconfined"
 }
