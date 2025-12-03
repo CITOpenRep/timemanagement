@@ -49,54 +49,6 @@ clickable install
 ```
 to install the app on the connected device.
 
-## Enable Background Sync & Push Notifications
-
-After installing the app on a device, you need to run a one-time setup to enable background sync and push notifications:
-
-### Quick Setup
-
-Connect to your device and run:
-
-```bash
-adb shell
-bash /opt/click.ubuntu.com/ubtms/current/src/device_setup.sh
-```
-
-This script will:
-1. Install required Python dependencies (`python3-dbus`, `python3-gi`)
-2. Create autostart entries for the background daemon
-3. Start the daemon immediately
-
-### Manual Setup (if script fails)
-
-If the automatic setup fails, install dependencies manually:
-
-```bash
-# On the device (via adb shell or terminal)
-sudo apt update
-sudo apt install python3-dbus python3-gi gir1.2-glib-2.0
-
-# Then run the setup script
-bash /opt/click.ubuntu.com/ubtms/current/src/device_setup.sh
-```
-
-### Troubleshooting
-
-If notifications stop working, run the diagnostic script:
-
-```bash
-bash /opt/click.ubuntu.com/ubtms/current/src/diagnose_daemon.sh
-```
-
-Check daemon logs:
-```bash
-tail -f ~/daemon.log
-```
-
-Manually restart the daemon:
-```bash
-bash /opt/click.ubuntu.com/ubtms/current/start-daemon.sh
-```
 
 ## License
 
