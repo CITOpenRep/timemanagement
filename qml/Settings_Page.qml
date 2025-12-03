@@ -56,13 +56,6 @@ Page {
                 onTriggered: {
                     toggleVisibleMigrationSection();
                 }
-            },
-            Action {
-                iconName: "message"
-                text: "Test Notification"
-                onTriggered: {
-                    mainView.showSystemNotification("Test Notification", "This is a test notification from TimeManagement app!");
-                }
             }
         ]
     }
