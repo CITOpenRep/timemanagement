@@ -1317,7 +1317,17 @@ Page {
                 height: units.gu(6)
                 text: i18n.dtr("ubtms", "Create")
                 onClicked: {
-             
+
+                    
+              const result = Timesheet.createTimesheetFromTask(currentTask.account_id, currentTask.odoo_record_id);
+                if (result.success) {
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Timesheet.qml"), {
+                        "recordid": result.id,
+                        "isReadOnly": false
+                    });
+                } else {
+                    console.error("Error creating timesheet: " + result.message);
+                }
                 }
             }
 
