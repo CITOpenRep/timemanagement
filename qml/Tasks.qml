@@ -1177,7 +1177,7 @@ Page {
             anchors.rightMargin: units.gu(1)
             anchors.topMargin: units.gu(1)
             columns: 3
-            rows: 2
+            rows: 3
             spacing: units.gu(1)
             rowSpacing: units.gu(1)
             columnSpacing: units.gu(1)
@@ -1275,6 +1275,71 @@ Page {
                     }
                 }
             }
+
+              TSButton {
+                visible: recordid !== 0
+                bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
+                iconName: "filters"
+                iconColor: "#1f2937"
+                width: (parent.width - (2 * parent.columnSpacing)) / 3
+                height: units.gu(6)
+                text: i18n.dtr("ubtms", "View")
+                onClicked: {
+                    console.log("Viewing activities for task:", currentTask.id);
+                }
+            }
+
+
+               // Row 3: Timesheets
+            TSLabel {
+                text: i18n.dtr("ubtms", "Timesheets")
+                width: (parent.width - (2 * parent.columnSpacing)) / 3
+                height: units.gu(6)
+                horizontalAlignment: Text.AlignHLeft
+                verticalAlignment: Text.AlignVCenter
+                fontBold: true
+                color: "#f97316"
+            }
+
+            TSButton {
+                visible: recordid !== 0
+                bgColor: "#fef1e7"
+                fgColor: "#f97316"
+                hoverColor: '#f3e0d1'
+                iconName: "add"
+                iconColor: "#f97316"
+                fontBold: true
+                width: (parent.width - (2 * parent.columnSpacing)) / 3
+                height: units.gu(6)
+                text: i18n.dtr("ubtms", "Create")
+                onClicked: {
+             
+                }
+            }
+
+              TSButton {
+                visible: recordid !== 0
+                bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
+                iconName: "filters"
+                iconColor: "#1f2937"
+                width: (parent.width - (2 * parent.columnSpacing)) / 3
+                height: units.gu(6)
+                text: i18n.dtr("ubtms", "View")
+                onClicked: {
+                    console.log("Viewing timesheets for task:", currentTask.id);
+                }
+            }
+
+
+
         }
 
         // Row {
