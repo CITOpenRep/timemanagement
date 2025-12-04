@@ -24,7 +24,25 @@
 import xmlrpc.client
 import logging
 import base64
+import socket
 from bus import send
+
+# Default timeout for XML-RPC calls (60 seconds)
+DEFAULT_TIMEOUT = 60
+
+
+class TimeoutTransport(xmlrpc.client.SafeTransport):
+    """Custom transport with timeout support for XML-RPC calls."""
+    
+    def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.timeout = timeout
+    
+    def make_connection(self, host):
+        conn = super().make_connection(host)
+        conn.timeout = self.timeout
+        return conn
+
 
 class OdooClient:
     """
@@ -68,7 +86,11 @@ class OdooClient:
             int: UID if authentication is successful, otherwise raises an exception.
         """
         try:
-            common = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
+            transport = TimeoutTransport(timeout=DEFAULT_TIMEOUT)
+            common = xmlrpc.client.ServerProxy(
+                f"{self.url}/xmlrpc/2/common",
+                transport=transport
+            )
             uid = common.authenticate(self.db, self.username, self.password, {})
             if not uid:
                 send("sync_message",f"Authentication failed for server")
@@ -76,6 +98,9 @@ class OdooClient:
                     f"Authentication failed for user '{self.username}' on database '{self.db}'"
                 )
             return uid
+        except socket.timeout:
+            send("sync_error", "Connection timed out - server not responding")
+            raise ConnectionError("Login timed out - check network connection")
         except Exception as e:
             send("sync_error",f"Login to server failed")
             raise ConnectionError(f"Login failed: {e}")
@@ -88,8 +113,11 @@ class OdooClient:
             ServerProxy: A proxy for calling model methods.
         """
         try:
+            transport = TimeoutTransport(timeout=DEFAULT_TIMEOUT)
             return xmlrpc.client.ServerProxy(
-                f"{self.url}/xmlrpc/2/object", allow_none=True
+                f"{self.url}/xmlrpc/2/object",
+                transport=transport,
+                allow_none=True
             )
         except Exception as e:
             raise ConnectionError(f"Failed to create model proxy: {e}")

@@ -9,8 +9,14 @@
 #include <QDebug>
 #include <QJsonArray>
 #include <QProcess>
+#include <QProcessEnvironment>
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <QFile>
+#include <QDateTime>
+#include <QDir>
+#include <QThread>
+#include <unistd.h>
 
 #define PUSH_SERVICE "com.lomiri.PushNotifications"
 #define POSTAL_SERVICE "com.lomiri.Postal"
@@ -18,6 +24,10 @@
 #define POSTAL_PATH "/com/lomiri/Postal"
 #define PUSH_IFACE "com.lomiri.PushNotifications"
 #define POSTAL_IFACE "com.lomiri.Postal"
+
+// Heartbeat file constants
+#define HEARTBEAT_FILE "/home/phablet/.daemon_heartbeat"
+#define MAX_HEARTBEAT_AGE_SECS 300  // 5 minutes - allow time for slow syncs
 
 
 
@@ -139,40 +149,110 @@ void NotificationHelper::set_push_app_id(QString value)
 
 void NotificationHelper::startDaemon()
 {
+    qDebug() << "Starting daemon...";
+    
+    QString uid = QString::number(getuid());
+    QString dbusAddr = QString("unix:path=/run/user/%1/bus").arg(uid);
+    
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("DBUS_SESSION_BUS_ADDRESS", dbusAddr);
+    
+    // Always ensure systemd service exists first
+    QString serviceFile = QString("/home/phablet/.config/systemd/user/ubtms-daemon.service");
+    QFileInfo serviceInfo(serviceFile);
+    
+    if (!serviceInfo.exists()) {
+        qDebug() << "Systemd service not found, running bootstrap to create it...";
+        
+        // Run bootstrap to create the service file
+        QString bootstrapScript = "/opt/click.ubuntu.com/ubtms/current/src/daemon_bootstrap.py";
+        QProcess bootstrap;
+        bootstrap.setWorkingDirectory("/opt/click.ubuntu.com/ubtms/current");
+        bootstrap.setProcessEnvironment(env);
+        bootstrap.start("python3", QStringList() << bootstrapScript);
+        bootstrap.waitForFinished(30000);  // Wait up to 30 seconds
+        
+        // Reload systemd after creating service
+        QProcess::execute("systemctl", QStringList() << "--user" << "daemon-reload");
+        qDebug() << "Bootstrap completed, service should be created";
+        return;  // Bootstrap already starts the daemon
+    }
+    
     // Check if daemon is already running
     int exitCode = QProcess::execute("pgrep", QStringList() << "-f" << "python3.*daemon.py");
     if (exitCode == 0) {
         qDebug() << "Daemon already running.";
         return;
     }
-
-    qDebug() << "Starting daemon...";
     
-    // Use hardcoded path for the start script
-    QString startScript = "/opt/click.ubuntu.com/ubtms/current/start-daemon.sh";
-    
-    qDebug() << "Start script path:" << startScript;
-    
-    // Check if the start script exists
-    QFileInfo checkFile(startScript);
-    if (!checkFile.exists()) {
-        qDebug() << "Start script not found at:" << startScript;
-        // Fall back to direct daemon start
-        QString daemonPath = "/opt/click.ubuntu.com/ubtms/current/src/daemon.py";
-        QProcess *process = new QProcess();
-        process->setWorkingDirectory("/opt/click.ubuntu.com/ubtms/current");
-        process->setProgram("python3");
-        process->setArguments(QStringList() << daemonPath);
-        bool success = process->startDetached();
-        qDebug() << "Direct daemon start result:" << success;
-        return;
-    }
-    
-    // Start the daemon using the shell script (handles environment setup)
-    bool success = QProcess::startDetached("/bin/bash", QStringList() << startScript);
-    if (success) {
-        qDebug() << "Daemon started successfully via start script";
+    // Start via systemd
+    QProcess systemctl;
+    systemctl.setProcessEnvironment(env);
+    systemctl.start("systemctl", QStringList() << "--user" << "start" << "ubtms-daemon");
+    if (systemctl.waitForFinished(5000) && systemctl.exitCode() == 0) {
+        qDebug() << "Daemon started via systemd";
     } else {
-        qDebug() << "Failed to start daemon";
+        qDebug() << "Systemd start failed:" << systemctl.readAllStandardError();
     }
+}
+
+bool NotificationHelper::isDaemonHealthy()
+{
+    // First check if process is running
+    int exitCode = QProcess::execute("pgrep", QStringList() << "-f" << "python3.*daemon.py");
+    if (exitCode != 0) {
+        qDebug() << "Daemon process not found";
+        return false;
+    }
+    
+    // Check heartbeat file age
+    QFileInfo heartbeatFile(HEARTBEAT_FILE);
+    if (!heartbeatFile.exists()) {
+        qDebug() << "Heartbeat file not found";
+        return false;
+    }
+    
+    QDateTime lastModified = heartbeatFile.lastModified();
+    qint64 ageSecs = lastModified.secsTo(QDateTime::currentDateTime());
+    
+    if (ageSecs > MAX_HEARTBEAT_AGE_SECS) {
+        qDebug() << "Daemon heartbeat stale:" << ageSecs << "seconds old";
+        return false;
+    }
+    
+    qDebug() << "Daemon healthy, heartbeat age:" << ageSecs << "seconds";
+    return true;
+}
+
+void NotificationHelper::ensureDaemonRunning()
+{
+    // First check if daemon process is running at all
+    int exitCode = QProcess::execute("pgrep", QStringList() << "-f" << "python3.*daemon.py");
+    
+    if (exitCode == 0) {
+        // Daemon process is running, don't kill it - just log status
+        qDebug() << "Daemon process is running";
+        
+        // Optional: check heartbeat for logging purposes only
+        QFileInfo heartbeatFile(HEARTBEAT_FILE);
+        if (heartbeatFile.exists()) {
+            QDateTime lastModified = heartbeatFile.lastModified();
+            qint64 ageSecs = lastModified.secsTo(QDateTime::currentDateTime());
+            qDebug() << "Daemon heartbeat age:" << ageSecs << "seconds";
+        }
+        return;  // Daemon is running, don't interfere
+    }
+    
+    // Daemon is not running, start it
+    qDebug() << "Daemon not running, starting...";
+    
+    // Clean up stale files before starting
+    QFile::remove("/home/phablet/.daemon.pid");
+    QFile::remove(HEARTBEAT_FILE);
+    
+    // Wait a moment for cleanup
+    QThread::msleep(500);
+    
+    // Start daemon fresh
+    startDaemon();
 }

@@ -222,6 +222,7 @@ def add_notification(db_path, account_id, notif_type, message, payload):
         Sets read_status to 0 (unread) by default.
         Stores payload as JSON string and adds UTC timestamp.
         Uses safe_sql_execute for thread-safe database operations.
+        Prevents duplicate notifications with same message within 60 seconds.
     """
     # Ensure table exists
     create_table_sql = """
@@ -237,6 +238,28 @@ def add_notification(db_path, account_id, notif_type, message, payload):
     """
 
     safe_sql_execute(db_path, create_table_sql)
+
+    # Check for duplicate notification (same message within last 60 seconds)
+    # This prevents duplicate notifications from multiple sync cycles
+    check_duplicate_sql = """
+        SELECT COUNT(*) FROM notification 
+        WHERE account_id = ? AND message = ? AND type = ? AND read_status = 0
+        AND timestamp > datetime('now', '-60 seconds')
+    """
+    
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute(check_duplicate_sql, (account_id, message, notif_type))
+        count = cursor.fetchone()[0]
+        conn.close()
+        
+        if count > 0:
+            # Duplicate notification exists, skip
+            return
+    except Exception as e:
+        # If check fails, proceed with insert (better to have duplicate than miss notification)
+        pass
 
     insert_sql = """
         INSERT INTO notification (account_id, timestamp, message, type, payload, read_status)

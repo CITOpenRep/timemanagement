@@ -3,6 +3,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import "../../models/constants.js" as AppConst
 import "../../models/notifications.js" as Notifications
+import Pparent.Notifications 1.0
 
 Item {
     id: bellWidget
@@ -20,6 +21,12 @@ Item {
     property Item parentWindow
 
     property var notificationList: []
+
+    // NotificationHelper for updating badge
+    NotificationHelper {
+        id: badgeHelper
+        push_app_id: "ubtms_ubtms"
+    }
 
     Image {
         source: "../images/notification.png"
@@ -71,6 +78,8 @@ Item {
         for (var i = 0; i < notificationList.length; i++) {
             notificationModel.append(notificationList[i]);
         }
+        // Update system badge to match current unread count
+        badgeHelper.updateCount(notificationCount);
     }
 
     ListModel {
@@ -112,6 +121,8 @@ Item {
                                 Notifications.deleteNotification(model.id);
                                 notificationModel.remove(index);
                                 notificationCount = notificationModel.count;
+                                // Update system badge after removing notification
+                                badgeHelper.updateCount(notificationCount);
                                 if (notificationCount === 0)
                                     notificationPopup.close();
                             }
@@ -120,13 +131,49 @@ Item {
                 }
             }
 
-            TSButton {
-                text: "Close"
+            RowLayout {
                 Layout.alignment: Qt.AlignHCenter
-                onClicked: notificationPopup.close()
+                spacing: units.gu(2)
+                
+                TSButton {
+                    text: "Clear All"
+                    visible: notificationModel.count > 0
+                    onClicked: {
+                        // Delete all displayed notifications
+                        for (var i = 0; i < notificationList.length; i++) {
+                            Notifications.deleteNotification(notificationList[i].id);
+                        }
+                        notificationModel.clear();
+                        notificationCount = 0;
+                        badgeHelper.updateCount(0);
+                        notificationPopup.close();
+                    }
+                }
+                
+                TSButton {
+                    text: "Close"
+                    onClicked: notificationPopup.close()
+                }
             }
         }
     }
+    
+    // Periodic refresh timer to check for new notifications while app is open
+    Timer {
+        id: notificationRefreshTimer
+        interval: 30000  // Check every 30 seconds
+        running: true
+        repeat: true
+        onTriggered: {
+            var oldCount = notificationCount;
+            loadNotifications();
+            // If new notifications arrived, we could show a toast here
+            if (notificationCount > oldCount) {
+                console.log("New notifications arrived:", notificationCount - oldCount);
+            }
+        }
+    }
+    
     Component.onCompleted: {
         loadNotifications();
     }
