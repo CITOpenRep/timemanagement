@@ -87,6 +87,8 @@ Page {
     property string currentSearchQuery: ""
 
     property bool filterByProject: false
+    property bool filterByTasks : false
+    property int taskOdooRecordId : -1
     property int projectOdooRecordId: -1
     property int projectAccountId: -1
     property string projectName: ""
@@ -189,7 +191,15 @@ Page {
                 // When filtering by project, get activities for that specific project
                 allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
                 console.log("Retrieved", allActivities.length, "activities for project:", projectOdooRecordId);
-            } else {
+
+            } 
+  else if (filterByTasks) {
+                // When filtering by task, get activities for that specific task
+                allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
+                console.log("Retrieved", allActivities.length, "activities for task:", taskOdooRecordId);
+
+  }          
+            else {
                 // Normal account-based filtering
                 if (currentFilter && currentFilter !== "" || currentSearchQuery) {
                     // Pass currentAccountId only if filterByAccount is true and selectedAccountId >= 0

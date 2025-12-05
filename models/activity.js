@@ -855,6 +855,66 @@ function getActivitiesForProject(projectOdooRecordId, accountId) {
     return activityList;
 }
 
+function getActivitiesForTask(taskOdooRecordId, accountId) {
+    var activityList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
+
+        db.transaction(function (tx) {
+            // Build project color map
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            var query = `
+                SELECT * FROM mail_activity_app
+                WHERE resModel = 'project.task' 
+                AND link_id = ?
+                AND (status IS NULL OR status != 'deleted')
+                ORDER BY due_date ASC`;
+            var params = [taskOdooRecordId];
+
+            // If accountId is provided, filter by it
+            if (accountId && accountId > 0) {
+                query = `
+                    SELECT * FROM mail_activity_app
+                    WHERE resModel = 'project.task' 
+                    AND link_id = ?
+                    AND account_id = ?
+                    AND (status IS NULL OR status != 'deleted')
+                    ORDER BY due_date ASC`;
+                params = [taskOdooRecordId, accountId];
+            }
+
+            var rs = tx.executeSql(query, params);
+            console.log("getActivitiesForTask: Found", rs.rows.length, "activities for task:", taskOdooRecordId);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(rs, i);
+
+                // Enrich with project color if available
+                if (activity.project_id && projectColorMap[activity.project_id]) {
+                    activity.color_pallet = projectColorMap[activity.project_id];
+                } else {
+                    activity.color_pallet = 0;
+                }
+
+                activityList.push(activity);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getActivitiesForTask", e);
+    }
+
+    return activityList;
+}
+
 /**
  * Deletes an activity record from the local database.
  * This is useful for cleaning up activities that were created but never properly saved.

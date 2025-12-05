@@ -1289,7 +1289,13 @@ Page {
                 height: units.gu(6)
                 text: i18n.dtr("ubtms", "View")
                 onClicked: {
-                    console.log("Viewing activities for task:", currentTask.id);
+                    console.log("Viewing activities for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Activity_Page.qml"), {
+                        "filterByTasks": true,
+                        "taskOdooRecordId": currentTask.odoo_record_id,
+                        "projectAccountId": currentTask.account_id,
+                        "projectName": currentTask.name || "Task"
+                    });
                 }
             }
 
@@ -1317,17 +1323,17 @@ Page {
                 height: units.gu(6)
                 text: i18n.dtr("ubtms", "Create")
                 onClicked: {
-
-                    
-              const result = Timesheet.createTimesheetFromTask(currentTask.account_id, currentTask.odoo_record_id);
-                if (result.success) {
-                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Timesheet.qml"), {
-                        "recordid": result.id,
-                        "isReadOnly": false
-                    });
-                } else {
-                    console.error("Error creating timesheet: " + result.message);
-                }
+                    // createTimesheetFromTask expects only the task's odoo_record_id
+                    const result = Timesheet.createTimesheetFromTask(currentTask.odoo_record_id);
+                    if (result.success) {
+                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Timesheet.qml"), {
+                            "recordid": result.id,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        console.error("Error creating timesheet:", result.error);
+                        notifPopup.open("Error", "Unable to create timesheet: " + result.error, "error");
+                    }
                 }
             }
 
@@ -1344,7 +1350,13 @@ Page {
                 height: units.gu(6)
                 text: i18n.dtr("ubtms", "View")
                 onClicked: {
-                    console.log("Viewing timesheets for task:", currentTask.id);
+                    console.log("Viewing timesheets for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Timesheet_Page.qml"), {
+                        "filterByTask": true,
+                        "taskOdooRecordId": currentTask.odoo_record_id,
+                        "taskAccountId": currentTask.account_id,
+                        "taskName": currentTask.name || "Task"
+                    });
                 }
             }
 
@@ -1610,6 +1622,7 @@ Page {
             }
         }
     }
+    
 
     CustomDatePicker {
         id: deadlinePicker
@@ -1765,5 +1778,5 @@ Page {
         } else {
             Global.description_temporary_holder = "";
         }
+        }
     }
-}

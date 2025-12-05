@@ -47,9 +47,15 @@ Page {
     property string selectedAccountId: accountPicker.selectedAccountId // Start with "All accounts" for filtering
     property string defaultAccountId: accountPicker.selectedAccountId // For creating records
 
+    // Properties for filtering by task
+    property bool filterByTask: false
+    property int taskOdooRecordId: -1
+    property int taskAccountId: -1
+    property string taskName: ""
+
     header: PageHeader {
         id: timesheetsheader
-        title: timesheets.title
+        title: filterByTask ? i18n.dtr("ubtms", "Timesheets") + " - " + taskName : timesheets.title
         StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
@@ -167,9 +173,14 @@ Page {
 
         var timesheets_list = [];
 
+        // Check if we're filtering by task
+        if (filterByTask && taskOdooRecordId > 0) {
+            console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId);
+            timesheets_list = Model.getTimesheetsForTask(taskOdooRecordId, taskAccountId);
+        }
         // Use different fetch method depending on account selector choice
         // strict comparison to string "-1" so "-1" and -1 mismatch issues are avoided
-        if (filterAccountId === "-1") {
+        else if (filterAccountId === "-1") {
             console.log("Account selector: All accounts selected — fetching all timesheets");
             timesheets_list = Model.fetchTimesheetsForAllAccounts(currentFilter);
         } else {
