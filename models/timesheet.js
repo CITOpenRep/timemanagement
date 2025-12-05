@@ -257,9 +257,10 @@ function fetchTimesheetsForAllAccounts(status) {
  *
  * @param {number} taskOdooRecordId - The Odoo record ID of the task.
  * @param {number} accountId - The account ID (optional, if provided will filter by account).
+ * @param {string} status - The status filter: 'all', 'active', 'draft', etc.
  * @returns {Array<Object>} - A list of enriched timesheet entries for the task.
  */
-function getTimesheetsForTask(taskOdooRecordId, accountId) {
+function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheetList = [];
 
@@ -276,12 +277,23 @@ function getTimesheetsForTask(taskOdooRecordId, accountId) {
             var query = "";
             var params = [];
 
-            if (accountId && accountId > 0) {
-                query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
-                params = [taskOdooRecordId, accountId];
+            // Build query based on status and accountId
+            if (!status || status.toLowerCase() === "all") {
+                if (accountId && accountId > 0) {
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                    params = [taskOdooRecordId, accountId];
+                } else {
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                    params = [taskOdooRecordId];
+                }
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
-                params = [taskOdooRecordId];
+                if (accountId && accountId > 0) {
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY last_modified DESC";
+                    params = [taskOdooRecordId, accountId, status];
+                } else {
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY last_modified DESC";
+                    params = [taskOdooRecordId, status];
+                }
             }
 
             console.log("Executing getTimesheetsForTask query:", query, "with params:", params);

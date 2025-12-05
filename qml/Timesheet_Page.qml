@@ -175,8 +175,8 @@ Page {
 
         // Check if we're filtering by task
         if (filterByTask && taskOdooRecordId > 0) {
-            console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId);
-            timesheets_list = Model.getTimesheetsForTask(taskOdooRecordId, taskAccountId);
+            console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId, "status:", currentFilter);
+            timesheets_list = Model.getTimesheetsForTask(taskOdooRecordId, taskAccountId, currentFilter);
         }
         // Use different fetch method depending on account selector choice
         // strict comparison to string "-1" so "-1" and -1 mismatch issues are avoided

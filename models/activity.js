@@ -870,10 +870,21 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
                 projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
             }
 
+            // Get the task's project_id for color inheritance
+            var taskProjectId = null;
+            var taskRs = tx.executeSql(
+                "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                [taskOdooRecordId]
+            );
+            if (taskRs.rows.length > 0) {
+                taskProjectId = taskRs.rows.item(0).project_id;
+            }
+
             var query = `
                 SELECT * FROM mail_activity_app
                 WHERE resModel = 'project.task' 
                 AND link_id = ?
+                AND state != 'done'
                 AND (status IS NULL OR status != 'deleted')
                 ORDER BY due_date ASC`;
             var params = [taskOdooRecordId];
@@ -885,6 +896,7 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
                     WHERE resModel = 'project.task' 
                     AND link_id = ?
                     AND account_id = ?
+                    AND state != 'done'
                     AND (status IS NULL OR status != 'deleted')
                     ORDER BY due_date ASC`;
                 params = [taskOdooRecordId, accountId];
@@ -895,11 +907,11 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
 
             for (var i = 0; i < rs.rows.length; i++) {
                 var row = rs.rows.item(i);
-                var activity = DBCommon.rowToObject(rs, i);
+                var activity = DBCommon.rowToObject(row);
 
-                // Enrich with project color if available
-                if (activity.project_id && projectColorMap[activity.project_id]) {
-                    activity.color_pallet = projectColorMap[activity.project_id];
+                // Inherit color from task's project
+                if (taskProjectId && projectColorMap[taskProjectId]) {
+                    activity.color_pallet = parseInt(projectColorMap[taskProjectId]) || 0;
                 } else {
                     activity.color_pallet = 0;
                 }
