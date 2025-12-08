@@ -36,10 +36,12 @@
        <h4> 08-12-2025 : Version 1.2.0 </h4>
 
 
-      <h4>Bug Fixes and Improvements</h4>
+      <h4>New Features and Improvements</h4>
 <ul>
   <li>Introducing Push notifications.</li>
-   <li>Introducing Auto-Sync to Odoo.</li>
+   <li>Introducing Auto-Sync from Odoo to Device.</li>
+   <li> Added "View Activity" Button in Task Form View. </li>
+   <li> Added "Create" and "View" Timesheet button in Task Form View. </li>
 </ul>
 
 
