@@ -139,7 +139,7 @@ def get_app_version():
         if Path(MANIFEST_PATH).exists():
             with open(MANIFEST_PATH, 'r') as f:
                 manifest = json.load(f)
-                return manifest.get('version', '1.1.10')
+                return manifest.get('version', '1.2.0')
         # Fallback to development path
         dev_manifest = Path(__file__).parent.parent / "manifest.json.in"
         if dev_manifest.exists():
@@ -152,7 +152,7 @@ def get_app_version():
                     return match.group(1)
     except Exception as e:
         log.error(f"[DAEMON] Failed to read app version: {e}")
-    return '1.1.10'  # Fallback version
+    return '1.2.0'  # Fallback version
 
 APP_VERSION = get_app_version()
 
@@ -488,15 +488,19 @@ class NotificationDaemon:
             except Exception as e:
                 log.error(f"[DAEMON] Failed to send Postal notification: {e}")
                 # Fallback to Standard Notifications if Postal fails
-                hints = {
-                    "urgency": dbus.Byte(2),
-                    "resident": dbus.Boolean(True),
-                    "desktop-entry": "ubtms_ubtms_1.1.10"
-                }
-                self.notification_interface.Notify(
-                    "Time Management", 0, icon_path, title, message, [], hints, 0
-                )
-            log.info(f"[DAEMON] Notification sent: {title}")
+                try:
+                    hints = {
+                        "urgency": dbus.Byte(2),
+                        "resident": dbus.Boolean(True),
+                        "desktop-entry": f"ubtms_ubtms_{APP_VERSION}",
+                        "x-lomiri-snap-decisions": dbus.String("true")
+                    }
+                    notification_id = self.notification_interface.Notify(
+                        "Time Management", 0, icon_path, title, message, [], hints, -1
+                    )
+                    log.info(f"[DAEMON] Fallback notification sent via freedesktop (ID: {notification_id}): {title}")
+                except Exception as fallback_error:
+                    log.error(f"[DAEMON] Fallback notification also failed: {fallback_error}")
         except Exception as e:
             log.error(f"[DAEMON] Failed to send notification: {e}")
     
