@@ -87,6 +87,8 @@ Page {
     property string currentSearchQuery: ""
 
     property bool filterByProject: false
+    property bool filterByTasks : false
+    property int taskOdooRecordId : -1
     property int projectOdooRecordId: -1
     property int projectAccountId: -1
     property string projectName: ""
@@ -189,7 +191,15 @@ Page {
                 // When filtering by project, get activities for that specific project
                 allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
                 console.log("Retrieved", allActivities.length, "activities for project:", projectOdooRecordId);
-            } else {
+
+            } 
+  else if (filterByTasks) {
+                // When filtering by task, get activities for that specific task
+                allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
+                console.log("Retrieved", allActivities.length, "activities for task:", taskOdooRecordId);
+
+  }          
+            else {
                 // Normal account-based filtering
                 if (currentFilter && currentFilter !== "" || currentSearchQuery) {
                     // Pass currentAccountId only if filterByAccount is true and selectedAccountId >= 0
@@ -239,12 +249,12 @@ Page {
 
             var filteredActivities = [];
 
-            // Apply additional filtering (date/search) when using project filtering
+            // Apply additional filtering (date/search) when using project or task filtering
             for (let i = 0; i < allActivities.length; i++) {
                 var item = allActivities[i];
 
-                // When filtering by project, still apply date and search filters
-                if (filterByProject && !shouldIncludeItem(item)) {
+                // When filtering by project or task, still apply date and search filters
+                if ((filterByProject || filterByTasks) && !shouldIncludeItem(item)) {
                     continue;
                 }
 
@@ -553,7 +563,9 @@ Page {
             model: activityListModel
             delegate: ActivityDetailsCard {
                 id: activityCard
-                odoo_record_id: model.id
+                // Use model.id for local database ID (used for navigation to Activities.qml)
+                // Use model.odoo_record_id for the Odoo record ID
+                odoo_record_id: model.id  // This is the local DB id, used for navigating to Activities.qml
                 notes: model.notes
                 activity_type_name: model.activity_type_name
                 summary: model.summary
@@ -561,8 +573,8 @@ Page {
                 account_id: model.account_id
                 due_date: model.due_date
                 state: model.state
-                colorPallet: model.color_pallet
-                hasDraft: model.hasDraft
+                colorPallet: model.color_pallet || 0
+                hasDraft: model.hasDraft || false
 
 
                 onCardClicked: function (accountid, recordid) {
