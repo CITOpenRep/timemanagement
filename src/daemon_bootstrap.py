@@ -10,7 +10,8 @@ import subprocess
 from pathlib import Path
 
 HOME = Path.home()
-CLICK_PATH = Path("/opt/click.ubuntu.com/ubtms/current")
+# Dynamically determine CLICK_PATH from this script's location or APP_DIR
+CLICK_PATH = Path(os.environ.get("APP_DIR", Path(__file__).resolve().parent.parent))
 DAEMON_PATH = CLICK_PATH / "src" / "daemon.py"
 LOG_FILE = HOME / "daemon.log"
 

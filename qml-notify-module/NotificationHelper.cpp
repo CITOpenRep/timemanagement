@@ -35,8 +35,10 @@ QJsonObject NotificationHelper::buildSummaryMessage(const QString &title,const Q
 
 
     QString appid=push_app_id.section('_', 0, 0);
-    QString activityid=push_app_id.section('_', 1, 1);    
-    QString icon = QString("/opt/click.ubuntu.com/")+appid+QString("/current/icon.png");
+    QString activityid=push_app_id.section('_', 1, 1);
+    // Use dynamic path from app directory instead of hardcoded path
+    QString appDir = QCoreApplication::applicationDirPath();
+    QString icon = appDir + QString("/icon.png");
 
     QJsonObject c;
     c["summary"] = title;
@@ -164,10 +166,11 @@ void NotificationHelper::startDaemon()
     if (!serviceInfo.exists()) {
         qDebug() << "Systemd service not found, running bootstrap to create it...";
         
-        // Run bootstrap to create the service file
-        QString bootstrapScript = "/opt/click.ubuntu.com/ubtms/current/src/daemon_bootstrap.py";
+        // Run bootstrap to create the service file - use dynamic path
+        QString appDir = QCoreApplication::applicationDirPath();
+        QString bootstrapScript = appDir + "/src/daemon_bootstrap.py";
         QProcess bootstrap;
-        bootstrap.setWorkingDirectory("/opt/click.ubuntu.com/ubtms/current");
+        bootstrap.setWorkingDirectory(appDir);
         bootstrap.setProcessEnvironment(env);
         bootstrap.start("python3", QStringList() << bootstrapScript);
         bootstrap.waitForFinished(30000);  // Wait up to 30 seconds

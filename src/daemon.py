@@ -127,7 +127,9 @@ sys.excepthook = global_exception_handler
 # Configuration
 SYNC_INTERVAL_MINUTES = 1
 APP_ID = "ubtms_ubtms"
-MANIFEST_PATH = "/opt/click.ubuntu.com/ubtms/current/manifest.json"
+# Dynamically determine paths from this script's location
+APP_ROOT = Path(__file__).resolve().parent.parent
+MANIFEST_PATH = str(APP_ROOT / "manifest.json")
 PID_FILE = Path.home() / ".daemon.pid"
 HEARTBEAT_FILE = Path.home() / ".daemon_heartbeat"
 LAST_CHECK_FILE = Path.home() / ".daemon_last_check.json"
@@ -139,7 +141,7 @@ def get_app_version():
         if Path(MANIFEST_PATH).exists():
             with open(MANIFEST_PATH, 'r') as f:
                 manifest = json.load(f)
-                return manifest.get('version', '1.2.0')
+                return manifest.get('version', '1.2.1')
         # Fallback to development path
         dev_manifest = Path(__file__).parent.parent / "manifest.json.in"
         if dev_manifest.exists():
@@ -152,7 +154,7 @@ def get_app_version():
                     return match.group(1)
     except Exception as e:
         log.error(f"[DAEMON] Failed to read app version: {e}")
-    return '1.2.0'  # Fallback version
+    return '1.2.1'  # Fallback version
 
 APP_VERSION = get_app_version()
 
@@ -435,7 +437,7 @@ class NotificationDaemon:
         
         try:
             # app_name, replaces_id, app_icon, summary, body, actions, hints, timeout
-            icon_path = "/opt/click.ubuntu.com/ubtms/current/assets/logo.png"
+            icon_path = str(APP_ROOT / "assets" / "logo.png")
             
             # Hybrid approach:
             # 1. Send Badge via Postal (Persistent badge)
@@ -470,7 +472,7 @@ class NotificationDaemon:
                             "body": message,
                             "popup": True,
                             "persist": True,
-                            "icon": "/opt/click.ubuntu.com/ubtms/current/assets/logo.png",
+                            "icon": str(APP_ROOT / "assets" / "logo.png"),
                             "actions": ["appid://ubtms/ubtms/current-user-version"]
                         },
                         "sound": True,

@@ -17,7 +17,7 @@
             "push-helper": "ubtms-push-helper.json"
         }
     },
-    "version": "1.2.0",
+    "version": "1.2.1",
     "maintainer": "CIT Services <info@cit-services.eu>",
     "framework" : "@CLICK_FRAMEWORK@"
 }
