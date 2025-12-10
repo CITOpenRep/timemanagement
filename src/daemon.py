@@ -105,6 +105,12 @@ from logger import setup_logger
 
 log = setup_logger()
 
+# Immediate startup verification - write directly to confirm daemon started
+log.info("[DAEMON] ========================================")
+log.info("[DAEMON] Module loaded and logger initialized")
+log.info(f"[DAEMON] Script location: {__file__}")
+log.info(f"[DAEMON] Home directory: {Path.home()}")
+
 # Remove the setup needed marker since dependencies are OK
 setup_needed_file = Path.home() / ".ubtms_needs_setup"
 if setup_needed_file.exists():
@@ -908,8 +914,10 @@ class NotificationDaemon:
             # Refresh wakelock to ensure it's still active
             self._request_wakelock()
             self.sync_all_accounts()
+            log.info("[DAEMON] Periodic sync completed successfully")
         except Exception as e:
             log.error(f"[DAEMON] Periodic sync failed: {e}")
+            log.error(f"[DAEMON] Periodic sync traceback: {traceback.format_exc()}")
         return True  # Always continue the timer
     
     def get_unread_notification_count(self):

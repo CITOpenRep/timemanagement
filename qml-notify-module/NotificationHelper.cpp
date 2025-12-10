@@ -153,49 +153,91 @@ void NotificationHelper::startDaemon()
 {
     qDebug() << "Starting daemon...";
     
-    QString uid = QString::number(getuid());
-    QString dbusAddr = QString("unix:path=/run/user/%1/bus").arg(uid);
-    
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    env.insert("DBUS_SESSION_BUS_ADDRESS", dbusAddr);
-    
-    // Always ensure systemd service exists first
-    QString serviceFile = QString("/home/phablet/.config/systemd/user/ubtms-daemon.service");
-    QFileInfo serviceInfo(serviceFile);
-    
-    if (!serviceInfo.exists()) {
-        qDebug() << "Systemd service not found, running bootstrap to create it...";
-        
-        // Run bootstrap to create the service file - use dynamic path
-        QString appDir = QCoreApplication::applicationDirPath();
-        QString bootstrapScript = appDir + "/src/daemon_bootstrap.py";
-        QProcess bootstrap;
-        bootstrap.setWorkingDirectory(appDir);
-        bootstrap.setProcessEnvironment(env);
-        bootstrap.start("python3", QStringList() << bootstrapScript);
-        bootstrap.waitForFinished(30000);  // Wait up to 30 seconds
-        
-        // Reload systemd after creating service
-        QProcess::execute("systemctl", QStringList() << "--user" << "daemon-reload");
-        qDebug() << "Bootstrap completed, service should be created";
-        return;  // Bootstrap already starts the daemon
-    }
-    
-    // Check if daemon is already running
+    // Check if daemon is already running first
     int exitCode = QProcess::execute("pgrep", QStringList() << "-f" << "python3.*daemon.py");
     if (exitCode == 0) {
         qDebug() << "Daemon already running.";
         return;
     }
     
-    // Start via systemd
+    QString uid = QString::number(getuid());
+    QString dbusAddr = QString("unix:path=/run/user/%1/bus").arg(uid);
+    
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("DBUS_SESSION_BUS_ADDRESS", dbusAddr);
+    
+    // Get the click package path dynamically
+    QString clickPath = "/opt/click.ubuntu.com/ubtms/current";
+    QString appDir = QCoreApplication::applicationDirPath();
+    if (QFile::exists(appDir + "/src/daemon.py")) {
+        clickPath = appDir;
+    }
+    
+    qDebug() << "Using click path:" << clickPath;
+    
+    // Ensure log directory exists
+    QString logDir = QDir::homePath() + "/.local/share/ubtms";
+    QDir().mkpath(logDir);
+    QString logFile = logDir + "/daemon.log";
+    
+    // Check if systemd service exists, if not create it via bootstrap
+    QString serviceFile = QDir::homePath() + "/.config/systemd/user/ubtms-daemon.service";
+    QFileInfo serviceInfo(serviceFile);
+    
+    if (!serviceInfo.exists()) {
+        qDebug() << "Systemd service not found, running bootstrap to create it...";
+        
+        // Run bootstrap to create the service file
+        QString bootstrapScript = clickPath + "/src/daemon_bootstrap.py";
+        QProcess bootstrap;
+        bootstrap.setWorkingDirectory(clickPath);
+        bootstrap.setProcessEnvironment(env);
+        bootstrap.start("python3", QStringList() << bootstrapScript);
+        bootstrap.waitForFinished(30000);  // Wait up to 30 seconds
+        
+        qDebug() << "Bootstrap exit code:" << bootstrap.exitCode();
+        qDebug() << "Bootstrap stderr:" << bootstrap.readAllStandardError();
+        
+        // Reload systemd after creating service
+        QProcess reload;
+        reload.setProcessEnvironment(env);
+        reload.start("systemctl", QStringList() << "--user" << "daemon-reload");
+        reload.waitForFinished(5000);
+        
+        qDebug() << "Bootstrap completed, service should be created";
+    }
+    
+    // Try to start via systemd first (this ensures boot-time auto-start works)
     QProcess systemctl;
     systemctl.setProcessEnvironment(env);
     systemctl.start("systemctl", QStringList() << "--user" << "start" << "ubtms-daemon");
+    
     if (systemctl.waitForFinished(5000) && systemctl.exitCode() == 0) {
         qDebug() << "Daemon started via systemd";
+        return;
+    }
+    
+    qDebug() << "Systemd start failed:" << systemctl.readAllStandardError();
+    qDebug() << "Falling back to direct process start...";
+    
+    // Fallback: Start daemon directly as a detached process
+    QString daemonScript = clickPath + "/src/daemon.py";
+    
+    if (!QFile::exists(daemonScript)) {
+        qDebug() << "Daemon script not found at:" << daemonScript;
+        return;
+    }
+    
+    // Start daemon as detached process with setsid to divorce from parent
+    QStringList args;
+    args << "-c" << QString("cd '%1' && setsid python3 src/daemon.py >> '%2' 2>&1 &").arg(clickPath).arg(logFile);
+    
+    bool started = QProcess::startDetached("/bin/bash", args);
+    
+    if (started) {
+        qDebug() << "Daemon started successfully as detached process";
     } else {
-        qDebug() << "Systemd start failed:" << systemctl.readAllStandardError();
+        qDebug() << "Failed to start daemon - all methods failed";
     }
 }
 

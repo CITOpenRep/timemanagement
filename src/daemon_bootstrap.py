@@ -31,6 +31,11 @@ def setup_systemd_service():
     systemd_dir = HOME / ".config" / "systemd" / "user"
     systemd_dir.mkdir(parents=True, exist_ok=True)
     
+    # Ensure log directory exists
+    log_dir = HOME / ".local" / "share" / "ubtms"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "daemon.log"
+    
     service_file = systemd_dir / "ubtms-daemon.service"
     service_content = f"""[Unit]
 Description=TimeManagement Background Sync Daemon
@@ -43,8 +48,8 @@ WorkingDirectory={CLICK_PATH}
 Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus"
 Restart=always
 RestartSec=10
-StandardOutput=append:{HOME}/daemon.log
-StandardError=append:{HOME}/daemon.log
+StandardOutput=append:{log_file}
+StandardError=append:{log_file}
 
 [Install]
 WantedBy=graphical-session.target
