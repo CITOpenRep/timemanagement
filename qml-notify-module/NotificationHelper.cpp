@@ -46,9 +46,17 @@
 #define PUSH_IFACE "com.lomiri.PushNotifications"
 #define POSTAL_IFACE "com.lomiri.Postal"
 
-// Heartbeat file constants
-#define HEARTBEAT_FILE "/home/phablet/.daemon_heartbeat"
+// Heartbeat file constants - paths are computed dynamically using QDir::homePath()
 #define MAX_HEARTBEAT_AGE_SECS 300  // 5 minutes - allow time for slow syncs
+
+// Helper functions to get dynamic paths
+static QString getHeartbeatFilePath() {
+    return QDir::homePath() + "/.daemon_heartbeat";
+}
+
+static QString getPidFilePath() {
+    return QDir::homePath() + "/.daemon.pid";
+}
 
 
 
@@ -272,9 +280,10 @@ bool NotificationHelper::isDaemonHealthy()
     }
     
     // Check heartbeat file age
-    QFileInfo heartbeatFile(HEARTBEAT_FILE);
+    QString heartbeatPath = getHeartbeatFilePath();
+    QFileInfo heartbeatFile(heartbeatPath);
     if (!heartbeatFile.exists()) {
-        qDebug() << "Heartbeat file not found";
+        qDebug() << "Heartbeat file not found at:" << heartbeatPath;
         return false;
     }
     
@@ -300,7 +309,8 @@ void NotificationHelper::ensureDaemonRunning()
         qDebug() << "Daemon process is running";
         
         // Optional: check heartbeat for logging purposes only
-        QFileInfo heartbeatFile(HEARTBEAT_FILE);
+        QString heartbeatPath = getHeartbeatFilePath();
+        QFileInfo heartbeatFile(heartbeatPath);
         if (heartbeatFile.exists()) {
             QDateTime lastModified = heartbeatFile.lastModified();
             qint64 ageSecs = lastModified.secsTo(QDateTime::currentDateTime());
@@ -313,8 +323,8 @@ void NotificationHelper::ensureDaemonRunning()
     qDebug() << "Daemon not running, starting...";
     
     // Clean up stale files before starting
-    QFile::remove("/home/phablet/.daemon.pid");
-    QFile::remove(HEARTBEAT_FILE);
+    QFile::remove(getPidFilePath());
+    QFile::remove(getHeartbeatFilePath());
     
     // Wait a moment for cleanup
     QThread::msleep(500);
