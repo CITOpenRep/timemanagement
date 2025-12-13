@@ -1,6 +1,6 @@
 [Desktop Entry]
 _Name=Time Management
-Exec=qmlscene %U qml/TSApp.qml
+Exec=qmlscene %U -I qml-plugins qml/TSApp.qml
 Icon=assets/logo.png
 Terminal=false
 Type=Application

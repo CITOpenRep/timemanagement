@@ -7,9 +7,17 @@
         "ubtms": {
             "apparmor": "ubtms.apparmor",
             "desktop":  "ubtms.desktop"
+        },
+        "ubtms-daemon": {
+            "apparmor": "ubtms.apparmor",
+            "desktop": "ubtms-daemon.desktop"
+        },
+        "push": {
+            "apparmor": "ubtms-push.apparmor",
+            "push-helper": "ubtms-push-helper.json"
         }
     },
-    "version": "1.1.11",
+    "version": "1.2.0",
     "maintainer": "CIT Services <info@cit-services.eu>",
     "framework" : "@CLICK_FRAMEWORK@"
 }

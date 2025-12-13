@@ -29,6 +29,8 @@ import QtQuick.Layouts 1.11
 import QtQuick.LocalStorage 2.7 as Sql
 import "../models/dbinit.js" as DbInit
 import "../models/draft_manager.js" as DraftManager
+import "../models/notifications.js" as Notifications
+import Pparent.Notifications 1.0
 import "components"
 import "."
 
@@ -57,6 +59,31 @@ MainView {
 
     signal globalAccountChanged(int accountId, string accountName)
     signal accountDataRefreshRequested(int accountId)
+
+    NotificationHelper {
+        id: notificationSystem
+        push_app_id: "ubtms_ubtms"
+        Component.onCompleted: {
+            console.log("Starting background daemon...")
+            startDaemon()
+        }
+    }
+    
+    // Periodic daemon health check timer - check more frequently to catch crashes
+    Timer {
+        id: daemonHealthCheckTimer
+        interval: 120000  // Check every 2 minutes to catch daemon crashes quickly
+        running: true
+        repeat: true
+        onTriggered: {
+            console.log("Checking daemon health...")
+            notificationSystem.ensureDaemonRunning()
+        }
+    }
+
+    function showSystemNotification(title, message) {
+        notificationSystem.showNotificationMessage(title, message)
+    }
 
     GlobalTimerWidget {
         id: globalTimerWidget
@@ -458,6 +485,12 @@ MainView {
         // Load and apply saved theme preference
         loadAndApplyTheme();
         
+        // Update system badge to reflect current unread notifications
+        updateSystemBadge();
+        
+        // Check if daemon setup is needed (missing dependencies)
+        checkDaemonSetupNeeded();
+        
         // Check for unsaved drafts from previous session (crash recovery)
         checkForUnsavedDrafts();
         
@@ -468,6 +501,47 @@ MainView {
             apLayout.setFirstScreen(); // Delay page setup until after DB init
 
         });
+    }
+    
+    // Function to check if background sync daemon needs setup
+    function checkDaemonSetupNeeded() {
+        try {
+            // Check for the marker file that daemon creates when dependencies are missing
+            var xhr = new XMLHttpRequest();
+            var setupFile = "/home/phablet/.ubtms_needs_setup";
+            xhr.open("GET", "file://" + setupFile, false);
+            try {
+                xhr.send();
+                if (xhr.status === 200 && xhr.responseText.length > 0) {
+                    var missingDeps = xhr.responseText;
+                    console.log("Daemon setup needed - missing: " + missingDeps);
+                    
+                    var message = "Background sync requires additional packages.\n\n" +
+                                 "To enable push notifications, connect via adb and run:\n\n" +
+                                 "sudo apt install python3-dbus python3-gi gir1.2-glib-2.0\n\n" +
+                                 "Then restart the app.";
+                    
+                    notifPopup.open("⚠️ Setup Required", message, "warning");
+                }
+            } catch (fileError) {
+                // File doesn't exist = setup is complete, this is normal
+                console.log("Daemon setup check: OK (no setup needed)");
+            }
+        } catch (e) {
+            console.log("Daemon setup check skipped:", e);
+        }
+    }
+    
+    // Function to update the system badge with current unread notification count
+    function updateSystemBadge() {
+        try {
+            var unreadList = Notifications.getUnreadNotifications();
+            var count = unreadList.length;
+            notificationSystem.updateCount(count);
+            console.log("System badge updated to:", count);
+        } catch (e) {
+            console.error("Failed to update system badge:", e);
+        }
     }
     
     // Function to check for unsaved drafts on app startup (crash recovery)
