@@ -1,9 +1,11 @@
 #!/bin/bash
 # Start the TimeManagement background daemon
 
-CLICK_PATH="/opt/click.ubuntu.com/ubtms/current"
-LOG_FILE="/home/phablet/daemon.log"
-PID_FILE="/home/phablet/.daemon.pid"
+# Dynamically determine CLICK_PATH from this script's location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLICK_PATH="${APP_DIR:-$SCRIPT_DIR}"
+LOG_FILE="$HOME/daemon.log"
+PID_FILE="$HOME/.daemon.pid"
 
 echo "$(date): Starting daemon" >> "$LOG_FILE"
 

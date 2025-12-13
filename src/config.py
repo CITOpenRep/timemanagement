@@ -63,13 +63,20 @@ def get_all_accounts(settings_db_path):
     Note:
         Queries the 'users' table and returns all accounts as a list of dictionaries.
         Each dictionary contains all account fields for easy access.
+        Returns empty list if the database or table doesn't exist yet.
     """
-    conn = sqlite3.connect(settings_db_path)
-    cur = conn.cursor()
-    cur.execute("SELECT id, name, link, database, username, api_key FROM users")
-    rows = cur.fetchall()
-    conn.close()
-    return [
-        dict(zip(["id", "name", "link", "database", "username", "api_key"], row))
-        for row in rows
-    ]
+    try:
+        conn = sqlite3.connect(settings_db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, link, database, username, api_key FROM users")
+        rows = cur.fetchall()
+        conn.close()
+        return [
+            dict(zip(["id", "name", "link", "database", "username", "api_key"], row))
+            for row in rows
+        ]
+    except sqlite3.OperationalError as e:
+        # Table doesn't exist yet - QML app hasn't been opened
+        if "no such table" in str(e):
+            return []
+        raise
