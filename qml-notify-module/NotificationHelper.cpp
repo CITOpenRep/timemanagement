@@ -91,7 +91,6 @@ QJsonObject NotificationHelper::buildSummaryMessage(const QString &title,const Q
 }
 
 
-//shamelessly stolen from accounts-polld
 bool NotificationHelper::sendJSON(const QJsonObject &message)
 {
     QDBusMessage msg = QDBusMessage::createMethodCall(POSTAL_SERVICE,
@@ -133,7 +132,6 @@ bool NotificationHelper::updateCount(const int count)
     
 }
 
-//shamelessly stolen from accounts-polld
 QByteArray NotificationHelper::makePath(const QString &appId)
 {
     QByteArray path(QByteArrayLiteral("/com/lomiri/Postal/"));
