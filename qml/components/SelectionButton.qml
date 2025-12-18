@@ -27,11 +27,9 @@ Item {
         entity_btn_label.text = text;
     }
 
-    // Internal DialogComboSelector
-    DialogComboSelector {
-        id: comboSelectorDialog
-        width: units.gu(80)
-        height: units.gu(10)
+    // Internal OptionSelectorPopover - Direct list selection without intermediate dialog
+    OptionSelectorPopover {
+        id: optionSelectorPopover
 
         onSelectionMade: {
             // console.log("[SelectionButton] Selected:", id, name, "for", selectorType);
@@ -104,7 +102,7 @@ Item {
                             // console.log("[SelectionButton] No data set for", selectorType);
                             return;
                         }
-                        comboSelectorDialog.open(labelText, modelData);
+                        optionSelectorPopover.open(labelText, modelData, entity_btn);
                     }
                 }
             }
