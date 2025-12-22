@@ -99,6 +99,7 @@ function getProjectDetails(project_id) {
                     planned_end_date: row.planned_end_date ? Utils.formatDate(new Date(row.planned_end_date)) : "",
                     allocated_hours: Utils.convertDecimalHoursToHHMM(row.allocated_hours),
                     favorites: row.favorites || 0,
+                    user_id: row.user_id || null,
                     last_update_status: row.last_update_status,
                     description: row.description || "",
                     last_modified: row.last_modified,
@@ -550,11 +551,11 @@ function createUpdateProject(project_data, recordid) {
             if (recordid === 0) {
                 tx.executeSql('INSERT INTO project_project_app \
                             (account_id, name, parent_id, planned_start_date, planned_end_date, \
-                            allocated_hours, favorites, description, last_modified, color_pallet,status)\
-                            Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)',
+                            allocated_hours, favorites, description, last_modified, color_pallet, status, user_id)\
+                            Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [project_data.account_id, project_data.name, project_data.parent_id,
                                project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status]);
+                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null]);
                 
                 // Get the ID of the newly inserted project
                 var result = tx.executeSql("SELECT last_insert_rowid() as id");
@@ -564,11 +565,11 @@ function createUpdateProject(project_data, recordid) {
             } else {
                 tx.executeSql('UPDATE project_project_app SET \
                             account_id = ?, name = ?, parent_id = ?, planned_start_date = ?, planned_end_date = ?, \
-                            allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?, status=?\
+                            allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?, status = ?, user_id = ?\
                             where id = ?',
                               [project_data.account_id, project_data.name, project_data.parent_id,
                                project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, recordid]);
+                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null, recordid]);
             }
             messageObj['is_success'] = true;
             messageObj['message'] = 'Project saved Successfully!';
@@ -862,6 +863,7 @@ function getProjectName(projectId, accountId) {
     }
 }
 
+
 /**
  * Toggles the favorite status of a project in the local database.
  *
@@ -877,8 +879,8 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         db.transaction(function (tx) {
             var favoriteValue = isFavorite ? 1 : 0;
             var updateResult = tx.executeSql(
-                'UPDATE project_project_app SET favorites = ?, last_modified = ? WHERE id = ?',
-                [favoriteValue, new Date().toISOString(), projectId]
+                'UPDATE project_project_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
+                [favoriteValue, new Date().toISOString(), "updated", projectId]
             );
 
             if (updateResult.rowsAffected > 0) {

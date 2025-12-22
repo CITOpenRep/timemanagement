@@ -25,11 +25,11 @@ Item {
     signal canceled()
 
     // carry initial request until dialog is visible
-    property int _initialAccountId: -1
+    property int _initialAccountId: -2  // -2 means no initial selection, -1 is valid "All" option
 
     /** Show dialog; optionally preselect an account id */
     function open(initialAccountId) {
-        _initialAccountId = (typeof initialAccountId === "number") ? initialAccountId : -1
+        _initialAccountId = (typeof initialAccountId === "number") ? initialAccountId : -2
         PopupUtils.open(dialogComponent)
     }
 
@@ -105,8 +105,8 @@ Item {
                     }
 
                     // ---- State & signals ----
-                    property int selectedInstanceId: -1
-                    property int deferredAccountId: -1
+                    property int selectedInstanceId: -2  // -2 means no selection, -1 is valid "All" option
+                    property int deferredAccountId: -2  // -2 means no deferred selection, -1 is valid "All" option
                     property bool shouldDeferSelection: false
                     property bool suppressSignal: false
                     signal accountSelected(int id, string name)
@@ -116,6 +116,19 @@ Item {
 
                     function loadAccounts() {
                         internalInstanceModel.clear();
+
+                        // Add "All" option first (ID = -1)
+                        if (!restrictToLocalOnly) {
+                            internalInstanceModel.append({
+                                id: -1,
+                                name: i18n.dtr("ubtms", "All Accounts"),
+                                database: "",
+                                link: "",
+                                username: "",
+                                is_default: 0
+                            });
+                        }
+
                         const accounts = Accounts.getAccountsList();
                         for (let i = 0; i < accounts.length; i++) {
                             if (restrictToLocalOnly && accounts[i].id !== 0) continue;
@@ -128,11 +141,11 @@ Item {
                                 is_default: accounts[i].is_default || 0
                             });
                         }
-                        if (shouldDeferSelection && deferredAccountId > -1) {
+                        if (shouldDeferSelection && deferredAccountId >= -1) {
                             shouldDeferSelection = false;
                             Qt.callLater(() => {
                                 selectAccountById(deferredAccountId);
-                                deferredAccountId = -1;
+                                deferredAccountId = -2;  // Use -2 as "no deferred selection" marker
                             });
                         } else {
                             Qt.callLater(() => selectDefaultAccount());
@@ -149,7 +162,7 @@ Item {
                                 accountSelected(selectedInstanceId, first.name);
                         } else {
                             currentIndex = -1;
-                            selectedInstanceId = -1;
+                            selectedInstanceId = -2;  // -2 means no selection, -1 is valid "All Accounts"
                             editText = i18n.dtr("ubtms","Select an account");
                         }
                     }
@@ -238,7 +251,7 @@ Item {
 
                     Button {
                         text: i18n.dtr("ubtms","OK")
-                        enabled: accountCombo.selectedInstanceId !== -1
+                        enabled: accountCombo.selectedInstanceId >= -1  // -1 is "All Accounts", which is valid
                         onClicked: {
                             // persist on root and emit
                             root.selectedAccountId = accountCombo.selectedInstanceId
@@ -256,10 +269,10 @@ Item {
                     // refresh list
                     accountCombo.refreshAndSelectDefault()
                     // apply deferred initial id from root.open()
-                    if (root._initialAccountId >= 0) {
+                    if (root._initialAccountId >= -1) {
                         accountCombo.shouldDeferSelection = true
                         accountCombo.deferredAccountId = root._initialAccountId
-                        root._initialAccountId = -1
+                        root._initialAccountId = -2
                     }
                 }
             }
