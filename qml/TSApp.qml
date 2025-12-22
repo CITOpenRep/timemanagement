@@ -175,6 +175,21 @@ MainView {
             notificationSystem.ensureDaemonRunning()
         }
     }
+    
+    // Timer for delayed deep link navigation on cold start
+    // This ensures all UI components are fully loaded before navigating
+    Timer {
+        id: delayedNavigationTimer
+        interval: 500  // 500ms delay to ensure pages are loaded
+        repeat: false
+        onTriggered: {
+            if (pendingNavigation) {
+                console.log("delayedNavigationTimer: Executing pending navigation - type:", pendingNavigation.type, "id:", pendingNavigation.id);
+                navigateToRecord(pendingNavigation.type, pendingNavigation.id, pendingNavigation.accountId);
+                pendingNavigation = null;
+            }
+        }
+    }
 
     function showSystemNotification(title, message) {
         notificationSystem.showNotificationMessage(title, message)
@@ -417,11 +432,10 @@ MainView {
             init = false;
             
             // Process any pending deep link navigation
+            // Use a Timer to ensure all UI components are fully loaded on cold start
             if (pendingNavigation) {
-                Qt.callLater(function() {
-                    navigateToRecord(pendingNavigation.type, pendingNavigation.id, pendingNavigation.accountId);
-                    pendingNavigation = null;
-                });
+                console.log("setFirstScreen: Pending navigation detected, scheduling with delay");
+                delayedNavigationTimer.start();
             }
         }
 
