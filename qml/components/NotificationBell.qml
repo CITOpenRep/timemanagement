@@ -118,13 +118,64 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
+                                // Parse payload for navigation data
+                                var payload = {};
+                                try {
+                                    if (model.payload) {
+                                        payload = JSON.parse(model.payload);
+                                    }
+                                } catch (e) {
+                                    console.error("Failed to parse notification payload:", e);
+                                }
+                                
+                                var recordId = payload.id || -1;
+                                var accountId = model.account_id || 0;
+                                
+                                // Close popup before navigation
+                                notificationPopup.close();
+                                
+                                // Navigate based on notification type
+                                if (model.type === "Task" && recordId > 0) {
+                                    if (typeof apLayout !== "undefined" && apLayout) {
+                                        apLayout.addPageToNextColumn(apLayout.primaryPage, 
+                                            Qt.resolvedUrl("../Tasks.qml"), {
+                                                "recordid": recordId,
+                                                "isReadOnly": true
+                                            });
+                                    }
+                                } else if (model.type === "Activity" && recordId > 0) {
+                                    if (typeof apLayout !== "undefined" && apLayout) {
+                                        apLayout.addPageToNextColumn(apLayout.primaryPage, 
+                                            Qt.resolvedUrl("../Activities.qml"), {
+                                                "recordid": recordId,
+                                                "accountid": accountId,
+                                                "isReadOnly": true
+                                            });
+                                    }
+                                } else if (model.type === "Project" && recordId > 0) {
+                                    if (typeof apLayout !== "undefined" && apLayout) {
+                                        apLayout.addPageToNextColumn(apLayout.primaryPage, 
+                                            Qt.resolvedUrl("../Projects.qml"), {
+                                                "recordid": recordId,
+                                                "isReadOnly": true
+                                            });
+                                    }
+                                } else if (model.type === "Timesheet" && recordId > 0) {
+                                    if (typeof apLayout !== "undefined" && apLayout) {
+                                        apLayout.addPageToNextColumn(apLayout.primaryPage, 
+                                            Qt.resolvedUrl("../Timesheet.qml"), {
+                                                "recordid": recordId,
+                                                "isReadOnly": true
+                                            });
+                                    }
+                                }
+                                
+                                // Mark as read and remove from list
                                 Notifications.deleteNotification(model.id);
                                 notificationModel.remove(index);
                                 notificationCount = notificationModel.count;
                                 // Update system badge after removing notification
                                 badgeHelper.updateCount(notificationCount);
-                                if (notificationCount === 0)
-                                    notificationPopup.close();
                             }
                         }
                     }

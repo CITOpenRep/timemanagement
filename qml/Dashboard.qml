@@ -61,28 +61,28 @@ Page {
     }
 
     function simulateTestNotifications() {
+        // First clear all existing notifications
+        Notifications.deleteAllNotifications();
+        console.log("Cleared all notifications");
+        
+        // Add test notifications with valid record IDs (id: 1 should exist for each type)
         Notifications.addNotification(1, "Task", "Task 'Write Report' is due today", {
-            id: 1026
+            id: 1
         });
         Notifications.addNotification(1, "Project", "Project 'Website Revamp' deadline is tomorrow", {
-            id: 3001
+            id: 1
         });
-        Notifications.addNotification(1, "Sync", "Sync failed for task 'Client Meeting'", [
-            {
-                id: 1014,
-                error: "Missing project_id"
-            },
-            {
-                id: 1025,
-                error: "Unknown task_id"
-            }
-        ]);
         Notifications.addNotification(1, "Activity", "Meeting with John at 3 PM", {
-            id: 45
+            id: 1
         });
-        Notifications.addNotification(1, "Timesheet", "No timesheet logged today", {
-            date: "2025-06-13"
+        Notifications.addNotification(1, "Timesheet", "Timesheet entry updated", {
+            id: 1
         });
+        
+        console.log("Created 4 test notifications with record IDs");
+        
+        // Refresh the notification list
+        notificationBell.loadNotifications();
     }
 
     header: PageHeader {
@@ -534,6 +534,65 @@ Page {
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#f5f5f5"
                     radius: units.gu(0.5)
 
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            // Parse payload for navigation data
+                            var payload = {};
+                            console.log("Raw modelData:", JSON.stringify(modelData));
+                            console.log("Raw payload field:", modelData.payload);
+                            try {
+                                if (modelData.payload) {
+                                    payload = typeof modelData.payload === 'string' 
+                                        ? JSON.parse(modelData.payload) 
+                                        : modelData.payload;
+                                    console.log("Parsed payload:", JSON.stringify(payload));
+                                }
+                            } catch (e) {
+                                console.error("Failed to parse notification payload:", e);
+                            }
+                            
+                            var recordId = payload.id || -1;
+                            var accountId = modelData.account_id || 0;
+                            var notifType = modelData.type || "";
+                            
+                            console.log("Notification clicked - Type:", notifType, "RecordId:", recordId, "AccountId:", accountId);
+                            
+                            // Close popup before navigation
+                            notificationPopupDialog.close();
+                            
+                            // Navigate based on notification type
+                            if (notifType === "Task" && recordId > 0) {
+                                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
+                                    "recordid": recordId,
+                                    "isReadOnly": true
+                                });
+                            } else if (notifType === "Activity" && recordId > 0) {
+                                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
+                                    "recordid": recordId,
+                                    "accountid": accountId,
+                                    "isReadOnly": true
+                                });
+                            } else if (notifType === "Project" && recordId > 0) {
+                                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Projects.qml"), {
+                                    "recordid": recordId,
+                                    "isReadOnly": true
+                                });
+                            } else if (notifType === "Timesheet" && recordId > 0) {
+                                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                                    "recordid": recordId,
+                                    "isReadOnly": true
+                                });
+                            } else {
+                                console.log("No navigation - Type:", notifType, "RecordId:", recordId);
+                            }
+                            
+                            // Mark as read and refresh
+                            Notifications.deleteNotification(modelData.id);
+                            notificationBell.loadNotifications();
+                        }
+                    }
+
                     RowLayout {
                         anchors.fill: parent
                         anchors.margins: units.gu(1)
@@ -583,6 +642,15 @@ Page {
                         }
                         notificationBell.loadNotifications();
                         notificationPopupDialog.close();
+                    }
+                }
+                
+                Button {
+                    text: "Test Nav"
+                    color: LomiriColors.blue
+                    onClicked: {
+                        simulateTestNotifications();
+                        notifPopup.open("Test Notifications", "Created 4 test notifications with proper record IDs. Click on them to test navigation.", "info");
                     }
                 }
 
