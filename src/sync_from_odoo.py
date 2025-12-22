@@ -115,13 +115,29 @@ def insert_record(
     Note:
         Handles data type conversion for SQLite compatibility and converts
         one2many/many2many fields to comma-separated strings. Adds notification
-        on failure.
+        on failure. Preserves local 'status' field if record has pending changes.
     """
     try:
         field_map = load_field_mapping(model_name, config_path)
         columns = []
         values = []
         record["account_id"] = account_id
+        
+        # Check if local record has pending changes (status = 'updated' or 'created')
+        # If so, we should preserve certain local fields like 'favorites'
+        odoo_record_id = record.get("id")
+        existing_status = None
+        existing_favorites = None
+        if odoo_record_id:
+            try:
+                check_sql = f"SELECT status, favorites FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
+                result = safe_sql_execute(db_path, check_sql, (odoo_record_id, account_id), fetch=True, commit=False)
+                if result and len(result) > 0:
+                    existing_status = result[0][0]
+                    existing_favorites = result[0][1]
+            except Exception as e:
+                log.debug(f"[DEBUG] Could not check existing status: {e}")
+        
         for odoo_field, sqlite_field in field_map.items():
             val = record.get(odoo_field)
 
@@ -153,6 +169,12 @@ def insert_record(
                 except Exception as e:
                     log.warning(f"[WARN] Unable to convert field {odoo_field}: {e}")
                     val = None
+            
+            # Preserve local favorites if there are pending changes
+            if sqlite_field == "favorites" and existing_status in ("updated", "created"):
+                val = existing_favorites
+                log.debug(f"[PRESERVE] Keeping local favorites value: {val} (status={existing_status})")
+            
             if sqlite_field == "account_id":
                 continue  # Already manually handled
             columns.append(sqlite_field)
@@ -161,6 +183,12 @@ def insert_record(
         # Finally, append account_id at the end
         columns.append("account_id")
         values.append(account_id)
+        
+        # Preserve status if there are pending changes
+        if existing_status in ("updated", "created"):
+            columns.append("status")
+            values.append(existing_status)
+            log.debug(f"[PRESERVE] Keeping local status: {existing_status}")
 
         placeholders = ", ".join(["?"] * len(columns))
         #log.debug(f"[INSERT] Final account_id for {table_name}: {account_id}")
