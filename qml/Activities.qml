@@ -1085,11 +1085,11 @@ Page {
             } else if (ids.project_id && ids.project_id !== -1 && ids.project_id !== null) {
                 linkid = ids.project_id;
             }
-            resId = Accounts.getOdooModelId(ids.account_id, "Project");
+            resId = Accounts.getOdooModelId(ids.account_id, "Project") || 0;
             resModel = "project.project";
             
             // Validate that project connection is valid
-            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
+            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || !resId || resId <= 0) {
                 notifPopup.open("Error", "Activity must be connected to a valid project", "error");
                 return;
             }
@@ -1100,11 +1100,11 @@ Page {
             } else if (ids.task_id && ids.task_id !== -1 && ids.task_id !== null) {
                 linkid = ids.task_id;
             }
-            resId = Accounts.getOdooModelId(ids.account_id, "Task");
+            resId = Accounts.getOdooModelId(ids.account_id, "Task") || 0;
             resModel = "project.task";
             
             // Validate that task connection is valid
-            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
+            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || !resId || resId <= 0) {
                 notifPopup.open("Error", "Activity must be connected to a valid task", "error");
                 return;
             }
@@ -1153,11 +1153,11 @@ Page {
             updatedDate: date_widget.formattedDate(),
             updatedNote: Utils.cleanText(notes.text),
             resModel: resModel,
-            resId: resId,
+            resId: (resId || 0),
             link_id: linkid,
-            task_id: null,
+            task_id: (resModel === "project.task") ? linkid : ((currentActivity && typeof currentActivity.task_id !== "undefined" && currentActivity.task_id !== null) ? currentActivity.task_id : -1),
             state: "planned",
-            project_id: null,
+            project_id: (resModel === "project.project") ? linkid : ((currentActivity && typeof currentActivity.project_id !== "undefined" && currentActivity.project_id !== null) ? currentActivity.project_id : -1),
             status: "updated"
         };
 
