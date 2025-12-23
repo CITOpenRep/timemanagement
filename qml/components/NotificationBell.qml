@@ -217,28 +217,35 @@ Item {
                 clip: true
                 spacing: units.gu(0.5)
 
-                delegate: Item {
+                delegate: ListItem {
                     id: delegateItem
                     width: notificationListView.width
                     height: units.gu(8)
                     
-                    property real swipeX: 0
-                    property bool swiping: false
+                    // Standard Ubuntu Touch leading actions (swipe right to reveal)
+                    leadingActions: ListItemActions {
+                        actions: [
+                            Action {
+                                iconName: "delete"
+                                text: i18n.dtr("ubtms", "Delete")
+                                onTriggered: {
+                                    Notifications.deleteNotification(modelData.id);
+                                    loadNotifications();
+                                }
+                            }
+                        ]
+                    }
+                    
+                    onClicked: handleNotificationClick(modelData)
                     
                     Rectangle {
                         id: notificationCard
                         anchors.fill: parent
-                        anchors.leftMargin: delegateItem.swipeX
+                        anchors.margins: units.gu(0.5)
                         radius: units.gu(1)
-                        color: cardMouseArea.pressed 
-                            ? theme.palette.normal.base 
-                            : theme.palette.normal.background
+                        color: theme.palette.normal.background
                         border.color: theme.palette.normal.base
                         border.width: 1
-                        
-                        Behavior on color {
-                            ColorAnimation { duration: 100 }
-                        }
 
                         RowLayout {
                             anchors.fill: parent
@@ -341,69 +348,6 @@ Item {
                                 Layout.alignment: Qt.AlignVCenter
                             }
                         }
-                    }
-                    
-                    // Delete indicator
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: units.gu(6)
-                        height: units.gu(6)
-                        radius: units.gu(1)
-                        color: "#E53935"
-                        visible: delegateItem.swipeX < -units.gu(3)
-                        opacity: Math.min(1, -delegateItem.swipeX / units.gu(10))
-                        
-                        Label {
-                            anchors.centerIn: parent
-                            text: "🗑"
-                            font.pixelSize: units.gu(2.5)
-                        }
-                    }
-                    
-                    MouseArea {
-                        id: cardMouseArea
-                        anchors.fill: parent
-                        
-                        property real startX: 0
-                        
-                        onPressed: {
-                            startX = mouseX;
-                            delegateItem.swiping = false;
-                        }
-                        
-                        onPositionChanged: {
-                            var diff = mouseX - startX;
-                            if (Math.abs(diff) > units.gu(2)) {
-                                delegateItem.swiping = true;
-                            }
-                            if (diff < 0) {
-                                delegateItem.swipeX = Math.max(-units.gu(15), diff);
-                            }
-                        }
-                        
-                        onReleased: {
-                            if (delegateItem.swipeX < -units.gu(10)) {
-                                Notifications.deleteNotification(modelData.id);
-                                loadNotifications();
-                            } else if (!delegateItem.swiping) {
-                                handleNotificationClick(modelData);
-                            }
-                            swipeResetAnimation.start();
-                        }
-                        
-                        onCanceled: {
-                            swipeResetAnimation.start();
-                        }
-                    }
-                    
-                    NumberAnimation {
-                        id: swipeResetAnimation
-                        target: delegateItem
-                        property: "swipeX"
-                        to: 0
-                        duration: 200
-                        easing.type: Easing.OutCubic
                     }
                 }
             }
