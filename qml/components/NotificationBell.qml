@@ -25,9 +25,51 @@ Item {
     }
 
     function loadNotifications() {
-        notificationList = Notifications.getUnreadNotifications();
+        var rawList = Notifications.getUnreadNotifications();
+        
+        // Debug: Log the raw data from database
+        console.log("[NotificationBell] Raw notifications count: " + rawList.length);
+        
+        // Debug: Log unique IDs to check for database duplicates
+        var ids = [];
+        for (var i = 0; i < rawList.length; i++) {
+            ids.push(rawList[i].id);
+        }
+        console.log("[NotificationBell] Notification IDs: " + JSON.stringify(ids));
+        
+        // Deduplicate by message content (keep only the most recent - highest ID)
+        // This handles cases where the daemon creates duplicate entries
+        var messageMap = {};
+        for (var j = 0; j < rawList.length; j++) {
+            var notif = rawList[j];
+            var key = notif.type + "|" + notif.message;  // Unique key: type + message
+            
+            if (!messageMap[key] || notif.id > messageMap[key].id) {
+                messageMap[key] = notif;  // Keep the newest (highest ID)
+            }
+        }
+        
+        // Convert map back to array
+        var dedupedList = [];
+        for (var msgKey in messageMap) {
+            if (messageMap.hasOwnProperty(msgKey)) {
+                dedupedList.push(messageMap[msgKey]);
+            }
+        }
+        
+        // Sort by ID descending (newest first)
+        dedupedList.sort(function(a, b) { return b.id - a.id; });
+        
+        // Log deduplication results
+        if (dedupedList.length !== rawList.length) {
+            console.log("[NotificationBell] Deduplicated: " + rawList.length + " -> " + dedupedList.length + " notifications");
+        }
+        
+        notificationList = dedupedList;
         notificationCount = notificationList.length;
         badgeHelper.updateCount(notificationCount);
+        
+        console.log("[NotificationBell] Final notificationList.length: " + notificationList.length);
     }
     
     function openPopup() {
@@ -216,11 +258,26 @@ Item {
                 model: notificationList
                 clip: true
                 spacing: units.gu(0.5)
+                
+                // Debug: Log when model count changes
+                onCountChanged: {
+                    console.log("[NotificationBell] ListView count changed to: " + count + " (model length: " + (notificationList ? notificationList.length : 0) + ")");
+                }
 
                 delegate: ListItem {
                     id: delegateItem
                     width: notificationListView.width
                     height: units.gu(8)
+                    
+                    // Disable ListItem's default visual elements to prevent double rendering
+                    divider.visible: false
+                    color: "transparent"  // Make ListItem background transparent
+                    highlightColor: "transparent"
+                    
+                    // Debug: Log when each delegate is created
+                    Component.onCompleted: {
+                        console.log("[NotificationBell] Delegate created for notification ID: " + (modelData ? modelData.id : "unknown") + " at index: " + index);
+                    }
                     
                     // Standard Ubuntu Touch leading actions (swipe right to reveal)
                     leadingActions: ListItemActions {
@@ -243,9 +300,13 @@ Item {
                         anchors.fill: parent
                         anchors.margins: units.gu(0.5)
                         radius: units.gu(1)
-                        color: theme.palette.normal.background
+                        color: delegateItem.pressed ? theme.palette.normal.base : theme.palette.normal.background
                         border.color: theme.palette.normal.base
                         border.width: 1
+                        
+                        Behavior on color {
+                            ColorAnimation { duration: 100 }
+                        }
 
                         RowLayout {
                             anchors.fill: parent
