@@ -442,8 +442,16 @@ class NotificationDaemon:
             log.info("[DAEMON] DBus re-initialized successfully!")
         
         try:
-            # app_name, replaces_id, app_icon, summary, body, actions, hints, timeout
-            icon_path = str(APP_ROOT / "assets" / "logo.png")
+            # Type-specific icon mapping
+            icon_map = {
+                "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
+                "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
+                "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
+                "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
+            }
+            # Select icon based on notification type, fallback to logo
+            icon_path = icon_map.get(nav_type, str(APP_ROOT / "assets" / "logo.png"))
+            log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
             
             # Construct deep link URI for navigation (if navigation params provided)
             if nav_type and record_id and record_id > 0:
@@ -487,6 +495,8 @@ class NotificationDaemon:
                     "account_id": account_id or 0
                 }
                 
+                # Note: Ubuntu Touch shows app icon as primary icon by design
+                # We use x-canonical-secondary-icon to show type-specific icon
                 msg = {
                     "message": message_data,
                     "notification": {
@@ -495,11 +505,13 @@ class NotificationDaemon:
                             "body": message,
                             "popup": True,
                             "persist": True,
-                            "icon": str(APP_ROOT / "assets" / "logo.png"),
+                            "icon": str(APP_ROOT / "assets" / "logo.png"),  # App icon (required)
                             "actions": [action_uri]
                         },
                         "sound": True,
-                        "vibrate": True
+                        "vibrate": True,
+                        # Secondary icon for notification type (monochrome recommended)
+                        "x-canonical-secondary-icon": icon_path
                     }
                 }
                 
