@@ -457,16 +457,15 @@ class NotificationDaemon:
             if nav_type and record_id and record_id > 0:
                 action_uri = f"ubtms://navigate?type={nav_type}&id={record_id}&account_id={account_id or 0}"
             else:
+                # Format: appid://package-name/hook-name/current-user-version
                 action_uri = "appid://ubtms/ubtms/current-user-version"
             
             log.info(f"[DAEMON] Notification action URI: {action_uri}")
             
-            # Hybrid approach:
-            # 1. Send Badge via Postal (Persistent badge)
-            # 2. Send Popup via Postal (Persistent popup via helper)
-            
-            # 1. Badge via Postal - use unread notification count instead of total tasks
+            # 1. Update Badge via Postal
             try:
+                # Postal path is based on package name (before underscore)
+                # For ubtms_ubtms, the package is "ubtms", so path is /com/lomiri/Postal/ubtms
                 postal_path = "/com/lomiri/Postal/ubtms"
                 postal = self.bus.get_object('com.lomiri.Postal', postal_path)
                 postal_iface = dbus.Interface(postal, 'com.lomiri.Postal')
@@ -479,14 +478,15 @@ class NotificationDaemon:
             except Exception as e:
                 log.error(f"[DAEMON] Failed to update badge: {e}")
 
-            # 2. Popup via Postal (using push helper)
+            # 2. Send notification popup via Postal Post method
+            # This simulates receiving a push notification locally
+            notification_sent = False
             try:
                 postal_path = "/com/lomiri/Postal/ubtms"
                 postal = self.bus.get_object('com.lomiri.Postal', postal_path)
                 postal_iface = dbus.Interface(postal, 'com.lomiri.Postal')
                 
                 # Construct JSON message for Postal
-                # The "message" field is passed to the app via PushClient.getNotifications()
                 # Include navigation data so the app can navigate to the correct record
                 message_data = {
                     "text": message,
@@ -495,49 +495,75 @@ class NotificationDaemon:
                     "account_id": account_id or 0
                 }
                 
-                # Note: Ubuntu Touch shows app icon as primary icon by design
-                # We use x-canonical-secondary-icon to show type-specific icon
+                # Use raw path (not file:// URI) - matches C++ NotificationHelper behavior
+                icon_file = str(APP_ROOT / "assets" / "logo.png")
+                
+                # Ubuntu Touch Postal notification format
+                # Note: vibrate can be true (use default) or an object with pattern
                 msg = {
                     "message": message_data,
                     "notification": {
+                        "tag": f"{nav_type or 'update'}_{record_id or 0}_{int(time.time())}",
                         "card": {
                             "summary": title,
                             "body": message,
                             "popup": True,
                             "persist": True,
-                            "icon": str(APP_ROOT / "assets" / "logo.png"),  # App icon (required)
+                            "icon": icon_file,
                             "actions": [action_uri]
                         },
                         "sound": True,
-                        "vibrate": True,
-                        # Secondary icon for notification type (monochrome recommended)
-                        "x-canonical-secondary-icon": icon_path
+                        "vibrate": True
                     }
                 }
                 
                 json_str = json.dumps(msg)
+                log.info(f"[DAEMON] Postal JSON payload: {json_str}")
                 
                 # Use dynamic version from manifest
                 app_id_with_version = f"ubtms_ubtms_{APP_VERSION}"
-                postal_iface.Post(app_id_with_version, json_str)
+                log.info(f"[DAEMON] Calling Postal.Post with app_id={app_id_with_version}")
+                
+                # Call Post and check for errors
+                try:
+                    result = postal_iface.Post(app_id_with_version, json_str)
+                    log.info(f"[DAEMON] Postal.Post result: {result}")
+                except dbus.exceptions.DBusException as dbus_err:
+                    log.error(f"[DAEMON] DBus exception from Postal.Post: {dbus_err}")
+                    raise
+                    
                 log.info(f"[DAEMON] Notification sent via Postal: {title}")
+                notification_sent = True
                 
             except Exception as e:
-                log.error(f"[DAEMON] Failed to send Postal notification: {e}")
-                # Fallback to Standard Notifications if Postal fails
+                log.warning(f"[DAEMON] Postal notification failed: {e}")
+            
+            # 3. Fallback to Standard Freedesktop Notifications if Postal didn't work
+            if not notification_sent:
                 try:
                     hints = {
-                        "urgency": dbus.Byte(2),
-                        "resident": dbus.Boolean(True),
-                        "desktop-entry": f"ubtms_ubtms_{APP_VERSION}",
-                        "x-lomiri-snap-decisions": dbus.String("true")
+                        "urgency": dbus.Byte(2),  # Critical urgency
+                        "desktop-entry": dbus.String("ubtms_ubtms"),
+                        "x-canonical-snap-decisions": dbus.String("true"),
+                        "x-canonical-private-button-tint": dbus.Boolean(True),
                     }
+                    # Add action for clickable notification
+                    actions = ["default", "Open", action_uri, "View"]
+                    
                     notification_id = self.notification_interface.Notify(
-                        "Time Management", 0, icon_path, title, message, [], hints, -1
+                        "Time Management",  # App name
+                        0,  # Replace ID (0 = new notification)
+                        icon_path,  # Icon path
+                        title,  # Summary
+                        message,  # Body
+                        actions,  # Actions
+                        hints,  # Hints
+                        -1  # Timeout (-1 = default)
                     )
-                    log.info(f"[DAEMON] Fallback notification sent via freedesktop (ID: {notification_id}): {title}")
+                    log.info(f"[DAEMON] Notification sent via freedesktop (ID: {notification_id}): {title}")
                 except Exception as fallback_error:
-                    log.error(f"[DAEMON] Fallback notification also failed: {fallback_error}")
+                    log.error(f"[DAEMON] Freedesktop notification also failed: {fallback_error}")
+                    
         except Exception as e:
             log.error(f"[DAEMON] Failed to send notification: {e}")
     
