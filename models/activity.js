@@ -677,7 +677,7 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
                     link_id,
                     "planned",        // default activity state
                     timestamp,
-                    ""             // mark as unsynced/new
+                    "updated"         // mark for sync (must be 'updated' for sync_to_odoo to pick it up)
                 ]
             );
 

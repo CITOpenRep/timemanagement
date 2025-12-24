@@ -643,9 +643,11 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                 log.debug(
                     f"[UPDATE] {model_name} id={record['odoo_record_id']} updated with merged fields."
                 )
+                # Atomic status reset: only clear if status is still 'updated' to prevent race conditions
+                # where user makes changes during sync and those changes would be lost
                 safe_sql_execute(
                     record["db_path"],
-                    f"UPDATE {record['table_name']} SET status = '' WHERE id = ? AND account_id = ?",
+                    f"UPDATE {record['table_name']} SET status = '' WHERE id = ? AND account_id = ? AND status = 'updated'",
                     (record["id"], record["account_id"])
                 )
                 log.debug(f"[SYNC] Reset status for {model_name} id={record['id']} after update.")
@@ -724,9 +726,11 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             new_id = client.call(model_name, "create", [odoo_data])
             log.debug(f"[CREATE] {model_name} new record created with id={new_id}.")
 
+            # Atomic status reset: only clear if status is still 'updated' to prevent race conditions
+            # where user makes changes during sync and those changes would be lost
             safe_sql_execute(
                 record["db_path"],
-                f"UPDATE {record['table_name']} SET odoo_record_id = ?, status = '' WHERE id = ? AND account_id = ?",
+                f"UPDATE {record['table_name']} SET odoo_record_id = ?, status = '' WHERE id = ? AND account_id = ? AND status = 'updated'",
                 (new_id, record["id"], record["account_id"])
             )
             log.debug(f"[SYNC] Reset status for {model_name} id={record['id']} after creation.")
