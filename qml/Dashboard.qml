@@ -105,9 +105,8 @@ Page {
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.notificationCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
                 onTriggered: {
-                    notificationBell.loadNotifications();
                     if (notificationBell.notificationCount > 0) {
-                        notificationPopupDialog.open();
+                        notificationBell.openPopup();
                     } else {
                         notifPopup.open("No Notifications", "You have no new notifications", "info");
                     }
@@ -456,7 +455,7 @@ Page {
         }
     }
 
-    // Hidden NotificationBell for logic (not visible, used for data)
+    // NotificationBell component handles all notification UI
     NotificationBell {
         id: notificationBell
         visible: false
@@ -467,7 +466,6 @@ Page {
         
         onNotificationCountChanged: {
             if (notificationCount > previousCount && previousCount > 0) {
-                // New notifications arrived while app is open
                 var newCount = notificationCount - previousCount;
                 notifPopup.open(
                     i18n.dtr("ubtms", "New Notifications"),
@@ -477,190 +475,37 @@ Page {
             }
             previousCount = notificationCount;
         }
+        
+        // Handle navigation from notification clicks
+        onNavigateToRecord: {
+            if (navType === "Task" && recordId > 0) {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": true
+                });
+            } else if (navType === "Activity" && recordId > 0) {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
+                    "recordid": recordId,
+                    "accountid": accountId,
+                    "isReadOnly": true
+                });
+            } else if (navType === "Project" && recordId > 0) {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Projects.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": true
+                });
+            } else if (navType === "Timesheet" && recordId > 0) {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": true
+                });
+            }
+        }
     }
 
     // Simple notification popup for messages
     NotificationPopup {
         id: notifPopup
-    }
-
-    // Notification Popup Dialog
-    Controls.Popup {
-        id: notificationPopupDialog
-        modal: true
-        focus: true
-        width: mainPage.width * 0.9
-        height: mainPage.height * 0.6
-        x: (mainPage.width - width) / 2
-        y: (mainPage.height - height) / 2
-        
-        background: Rectangle {
-            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "white"
-            radius: units.gu(1)
-            border.color: LomiriColors.orange
-            border.width: 1
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: units.gu(2)
-            spacing: units.gu(1)
-
-            Label {
-                text: i18n.dtr("ubtms", "Notifications")
-                font.bold: true
-                font.pixelSize: units.gu(2.5)
-                Layout.alignment: Qt.AlignHCenter
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                height: 1
-                color: LomiriColors.orange
-            }
-
-            ListView {
-                id: notificationListView
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                model: notificationBell.notificationList
-                clip: true
-                spacing: units.gu(1)
-
-                delegate: Rectangle {
-                    width: notificationListView.width
-                    height: units.gu(6)
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#f5f5f5"
-                    radius: units.gu(0.5)
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            // Parse payload for navigation data
-                            var payload = {};
-                            console.log("Raw modelData:", JSON.stringify(modelData));
-                            console.log("Raw payload field:", modelData.payload);
-                            try {
-                                if (modelData.payload) {
-                                    payload = typeof modelData.payload === 'string' 
-                                        ? JSON.parse(modelData.payload) 
-                                        : modelData.payload;
-                                    console.log("Parsed payload:", JSON.stringify(payload));
-                                }
-                            } catch (e) {
-                                console.error("Failed to parse notification payload:", e);
-                            }
-                            
-                            var recordId = payload.id || -1;
-                            var accountId = modelData.account_id || 0;
-                            var notifType = modelData.type || "";
-                            
-                            console.log("Notification clicked - Type:", notifType, "RecordId:", recordId, "AccountId:", accountId);
-                            
-                            // Close popup before navigation
-                            notificationPopupDialog.close();
-                            
-                            // Navigate based on notification type
-                            if (notifType === "Task" && recordId > 0) {
-                                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
-                                    "recordid": recordId,
-                                    "isReadOnly": true
-                                });
-                            } else if (notifType === "Activity" && recordId > 0) {
-                                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
-                                    "recordid": recordId,
-                                    "accountid": accountId,
-                                    "isReadOnly": true
-                                });
-                            } else if (notifType === "Project" && recordId > 0) {
-                                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Projects.qml"), {
-                                    "recordid": recordId,
-                                    "isReadOnly": true
-                                });
-                            } else if (notifType === "Timesheet" && recordId > 0) {
-                                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
-                                    "recordid": recordId,
-                                    "isReadOnly": true
-                                });
-                            } else {
-                                console.log("No navigation - Type:", notifType, "RecordId:", recordId);
-                            }
-                            
-                            // Mark as read and refresh
-                            Notifications.deleteNotification(modelData.id);
-                            notificationBell.loadNotifications();
-                        }
-                    }
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: units.gu(1)
-                        spacing: units.gu(1)
-
-                        Label {
-                            Layout.fillWidth: true
-                            text: modelData.message || ""
-                            wrapMode: Text.WordWrap
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                        }
-
-                        Button {
-                            text: "✕"
-                            width: units.gu(4)
-                            color: LomiriColors.red
-                            onClicked: {
-                                Notifications.deleteNotification(modelData.id);
-                                notificationBell.loadNotifications();
-                                if (notificationBell.notificationCount === 0) {
-                                    notificationPopupDialog.close();
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Label {
-                    anchors.centerIn: parent
-                    text: i18n.dtr("ubtms", "No notifications")
-                    visible: notificationBell.notificationCount === 0
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666"
-                }
-            }
-
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: units.gu(2)
-
-                Button {
-                    text: i18n.dtr("ubtms", "Clear All")
-                    color: LomiriColors.red
-                    visible: notificationBell.notificationCount > 0
-                    onClicked: {
-                        for (var i = 0; i < notificationBell.notificationList.length; i++) {
-                            Notifications.deleteNotification(notificationBell.notificationList[i].id);
-                        }
-                        notificationBell.loadNotifications();
-                        notificationPopupDialog.close();
-                    }
-                }
-                
-                Button {
-                    text: "Test Nav"
-                    color: LomiriColors.blue
-                    onClicked: {
-                        simulateTestNotifications();
-                        notifPopup.open("Test Notifications", "Created 4 test notifications with proper record IDs. Click on them to test navigation.", "info");
-                    }
-                }
-
-                Button {
-                    text: i18n.dtr("ubtms", "Close")
-                    color: LomiriColors.graphite
-                    onClicked: notificationPopupDialog.close()
-                }
-            }
-        }
     }
 
     Component.onCompleted: {
