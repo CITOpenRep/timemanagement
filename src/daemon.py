@@ -430,8 +430,8 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Post-wake sync failed: {e}")
         return False  # Don't repeat - one-shot callback
     
-    def send_notification(self, title, message):
-        """Send a system notification via DBus."""
+    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None):
+        """Send a system notification via DBus with optional deep link navigation."""
         # Retry DBus initialization if not available
         if not self.notification_interface:
             log.info("[DAEMON] Notification interface not available, attempting re-initialization...")
@@ -442,8 +442,24 @@ class NotificationDaemon:
             log.info("[DAEMON] DBus re-initialized successfully!")
         
         try:
-            # app_name, replaces_id, app_icon, summary, body, actions, hints, timeout
-            icon_path = str(APP_ROOT / "assets" / "logo.png")
+            # Type-specific icon mapping
+            icon_map = {
+                "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
+                "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
+                "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
+                "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
+            }
+            # Select icon based on notification type, fallback to logo
+            icon_path = icon_map.get(nav_type, str(APP_ROOT / "assets" / "logo.png"))
+            log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
+            
+            # Construct deep link URI for navigation (if navigation params provided)
+            if nav_type and record_id and record_id > 0:
+                action_uri = f"ubtms://navigate?type={nav_type}&id={record_id}&account_id={account_id or 0}"
+            else:
+                action_uri = "appid://ubtms/ubtms/current-user-version"
+            
+            log.info(f"[DAEMON] Notification action URI: {action_uri}")
             
             # Hybrid approach:
             # 1. Send Badge via Postal (Persistent badge)
@@ -470,19 +486,32 @@ class NotificationDaemon:
                 postal_iface = dbus.Interface(postal, 'com.lomiri.Postal')
                 
                 # Construct JSON message for Postal
+                # The "message" field is passed to the app via PushClient.getNotifications()
+                # Include navigation data so the app can navigate to the correct record
+                message_data = {
+                    "text": message,
+                    "type": nav_type or "",
+                    "id": record_id or -1,
+                    "account_id": account_id or 0
+                }
+                
+                # Note: Ubuntu Touch shows app icon as primary icon by design
+                # We use x-canonical-secondary-icon to show type-specific icon
                 msg = {
-                    "message": message,
+                    "message": message_data,
                     "notification": {
                         "card": {
                             "summary": title,
                             "body": message,
                             "popup": True,
                             "persist": True,
-                            "icon": str(APP_ROOT / "assets" / "logo.png"),
-                            "actions": ["appid://ubtms/ubtms/current-user-version"]
+                            "icon": str(APP_ROOT / "assets" / "logo.png"),  # App icon (required)
+                            "actions": [action_uri]
                         },
                         "sound": True,
-                        "vibrate": True
+                        "vibrate": True,
+                        # Secondary icon for notification type (monochrome recommended)
+                        "x-canonical-secondary-icon": icon_path
                     }
                 }
                 
@@ -604,7 +633,7 @@ class NotificationDaemon:
                 # Match both single ID and CSV patterns
                 cursor.execute(
                     """
-                    SELECT name, project_id FROM project_task_app 
+                    SELECT id, name, project_id, odoo_record_id FROM project_task_app 
                     WHERE account_id = ? 
                     AND (
                         user_id = ? 
@@ -620,10 +649,18 @@ class NotificationDaemon:
                     log.info(f"[DAEMON] Found {len(new_tasks)} new tasks for user {current_user_id}")
                 
                 for task in new_tasks:
-                    # Send system notification
+                    # Extract task_id before send_notification
+                    try:
+                        task_id = task['id']
+                    except (KeyError, IndexError):
+                        task_id = None
+                    # Send system notification with deep link
                     self.send_notification(
                         "Task Update",
-                        f"Task '{task['name']}' has been updated or assigned to you."
+                        f"Task '{task['name']}' has been updated or assigned to you.",
+                        nav_type="Task",
+                        record_id=task_id,
+                        account_id=account_id
                     )
                     # Persist notification to database for frontend display
                     # Note: sqlite3.Row doesn't have .get(), use bracket notation with try/except
@@ -631,12 +668,20 @@ class NotificationDaemon:
                         project_id = task['project_id']
                     except (KeyError, IndexError):
                         project_id = None
+                    try:
+                        task_id = task['id']
+                    except (KeyError, IndexError):
+                        task_id = None
+                    try:
+                        odoo_record_id = task['odoo_record_id']
+                    except (KeyError, IndexError):
+                        odoo_record_id = None
                     add_notification(
                         self.app_db,
                         account_id,
                         "Task",
                         f"Task '{task['name']}' has been updated or assigned to you.",
-                        {"task_name": task['name'], "project_id": project_id}
+                        {"task_name": task['name'], "project_id": project_id, "id": task_id, "odoo_record_id": odoo_record_id}
                     )
 
             # 2. New/Updated Activities Assigned to User
@@ -645,7 +690,7 @@ class NotificationDaemon:
                 # Try both exact match and string match for flexibility
                 cursor.execute(
                     """
-                    SELECT summary, due_date FROM mail_activity_app 
+                    SELECT id, summary, due_date, odoo_record_id FROM mail_activity_app 
                     WHERE account_id = ? 
                     AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
                     AND last_modified > ?
@@ -657,25 +702,41 @@ class NotificationDaemon:
                     log.info(f"[DAEMON] Found {len(new_activities)} new activities for user {current_user_id}")
                 for activity in new_activities:
                     summary = activity['summary'] or "New Activity"
-                    # Send system notification
+                    # Extract activity_id before send_notification
+                    try:
+                        activity_id = activity['id']
+                    except (KeyError, IndexError):
+                        activity_id = None
+                    # Send system notification with deep link
                     self.send_notification(
                         "Activity Assigned",
-                        f"{summary} (Due: {activity['due_date']})"
+                        f"{summary} (Due: {activity['due_date']})",
+                        nav_type="Activity",
+                        record_id=activity_id,
+                        account_id=account_id
                     )
                     # Persist notification to database for frontend display
+                    try:
+                        activity_id = activity['id']
+                    except (KeyError, IndexError):
+                        activity_id = None
+                    try:
+                        odoo_record_id = activity['odoo_record_id']
+                    except (KeyError, IndexError):
+                        odoo_record_id = None
                     add_notification(
                         self.app_db,
                         account_id,
                         "Activity",
                         f"{summary} (Due: {activity['due_date']})",
-                        {"summary": summary, "due_date": activity['due_date']}
+                        {"summary": summary, "due_date": activity['due_date'], "id": activity_id, "odoo_record_id": odoo_record_id}
                     )
 
             # 3. Project Updates (General)
             # Maybe filter by favorites or membership if possible, for now notify all project updates
             cursor.execute(
                 """
-                SELECT name FROM project_project_app 
+                SELECT id, name, odoo_record_id FROM project_project_app 
                 WHERE account_id = ? 
                 AND last_modified > ?
                 """,
@@ -683,24 +744,40 @@ class NotificationDaemon:
             )
             new_projects = cursor.fetchall()
             for project in new_projects:
-                # Send system notification
+                # Extract project_id before send_notification
+                try:
+                    project_id = project['id']
+                except (KeyError, IndexError):
+                    project_id = None
+                # Send system notification with deep link
                 self.send_notification(
                     "Project Update",
-                    f"Project '{project['name']}' has been updated."
+                    f"Project '{project['name']}' has been updated.",
+                    nav_type="Project",
+                    record_id=project_id,
+                    account_id=account_id
                 )
                 # Persist notification to database for frontend display
+                try:
+                    project_id = project['id']
+                except (KeyError, IndexError):
+                    project_id = None
+                try:
+                    odoo_record_id = project['odoo_record_id']
+                except (KeyError, IndexError):
+                    odoo_record_id = None
                 add_notification(
                     self.app_db,
                     account_id,
                     "Project",
                     f"Project '{project['name']}' has been updated.",
-                    {"project_name": project['name']}
+                    {"project_name": project['name'], "id": project_id, "odoo_record_id": odoo_record_id}
                 )
 
             # 4. Timesheet Updates
             cursor.execute(
                 """
-                SELECT name, unit_amount FROM account_analytic_line_app 
+                SELECT id, name, unit_amount, odoo_record_id FROM account_analytic_line_app 
                 WHERE account_id = ? 
                 AND last_modified > ?
                 """,
@@ -709,18 +786,34 @@ class NotificationDaemon:
             new_timesheets = cursor.fetchall()
             for timesheet in new_timesheets:
                 ts_name = timesheet['name'] or "Timesheet Entry"
-                # Send system notification
+                # Extract timesheet_id before send_notification
+                try:
+                    timesheet_id = timesheet['id']
+                except (KeyError, IndexError):
+                    timesheet_id = None
+                # Send system notification with deep link
                 self.send_notification(
                     "Timesheet Update",
-                    f"Timesheet '{ts_name}' ({timesheet['unit_amount']}h) has been updated."
+                    f"Timesheet '{ts_name}' ({timesheet['unit_amount']}h) has been updated.",
+                    nav_type="Timesheet",
+                    record_id=timesheet_id,
+                    account_id=account_id
                 )
                 # Persist notification to database for frontend display
+                try:
+                    timesheet_id = timesheet['id']
+                except (KeyError, IndexError):
+                    timesheet_id = None
+                try:
+                    odoo_record_id = timesheet['odoo_record_id']
+                except (KeyError, IndexError):
+                    odoo_record_id = None
                 add_notification(
                     self.app_db,
                     account_id,
                     "Timesheet",
                     f"Timesheet '{ts_name}' ({timesheet['unit_amount']}h) has been updated.",
-                    {"timesheet_name": ts_name, "hours": timesheet['unit_amount']}
+                    {"timesheet_name": ts_name, "hours": timesheet['unit_amount'], "id": timesheet_id, "odoo_record_id": odoo_record_id}
                 )
 
             # Get the maximum last_modified from all synced tables to use as next last_check

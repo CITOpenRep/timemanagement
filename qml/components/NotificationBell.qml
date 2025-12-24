@@ -109,23 +109,117 @@ Item {
                 model: notificationModel
                 delegate: Item {
                     width: parent.width
-                    height: units.gu(5)
+                    height: units.gu(6)
 
-                    TSLabel {
+                    RowLayout {
                         anchors.fill: parent
-                        text: model.message
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                Notifications.deleteNotification(model.id);
-                                notificationModel.remove(index);
-                                notificationCount = notificationModel.count;
-                                // Update system badge after removing notification
-                                badgeHelper.updateCount(notificationCount);
-                                if (notificationCount === 0)
-                                    notificationPopup.close();
+                        anchors.margins: units.gu(0.5)
+                        spacing: units.gu(1)
+                        
+                        // Type-specific icon
+                        Rectangle {
+                            Layout.preferredWidth: units.gu(4)
+                            Layout.preferredHeight: units.gu(4)
+                            radius: units.gu(0.5)
+                            color: {
+                                switch(model.type) {
+                                    case "Task": return "#4CAF50";     // Green
+                                    case "Activity": return "#2196F3"; // Blue
+                                    case "Project": return "#FF9800";  // Orange
+                                    case "Timesheet": return "#9C27B0"; // Purple
+                                    default: return "#757575";         // Grey
+                                }
                             }
+                            
+                            Image {
+                                anchors.centerIn: parent
+                                width: units.gu(2.5)
+                                height: units.gu(2.5)
+                                source: {
+                                    switch(model.type) {
+                                        case "Task": return "../images/task.svg";
+                                        case "Activity": return "../images/activity.svg";
+                                        case "Project": return "../images/project.svg";
+                                        case "Timesheet": return "../images/timesheet.svg";
+                                        default: return "../images/notification.png";
+                                    }
+                                }
+                                fillMode: Image.PreserveAspectFit
+                            }
+                        }
+
+                        TSLabel {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            text: model.message
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                            wrapMode: Text.WordWrap
+                            maximumLineCount: 2
+                        }
+                    }
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            // Parse payload for navigation data
+                            var payload = {};
+                            try {
+                                if (model.payload) {
+                                    payload = JSON.parse(model.payload);
+                                }
+                            } catch (e) {
+                                console.error("Failed to parse notification payload:", e);
+                            }
+                            
+                            var recordId = payload.id || -1;
+                            var accountId = model.account_id || 0;
+                            
+                            // Close popup before navigation
+                            notificationPopup.close();
+                            
+                            // Navigate based on notification type
+                            if (model.type === "Task" && recordId > 0) {
+                                if (typeof apLayout !== "undefined" && apLayout) {
+                                    apLayout.addPageToNextColumn(apLayout.primaryPage, 
+                                        Qt.resolvedUrl("../Tasks.qml"), {
+                                            "recordid": recordId,
+                                            "isReadOnly": true
+                                        });
+                                }
+                            } else if (model.type === "Activity" && recordId > 0) {
+                                if (typeof apLayout !== "undefined" && apLayout) {
+                                    apLayout.addPageToNextColumn(apLayout.primaryPage, 
+                                        Qt.resolvedUrl("../Activities.qml"), {
+                                            "recordid": recordId,
+                                            "accountid": accountId,
+                                            "isReadOnly": true
+                                        });
+                                }
+                            } else if (model.type === "Project" && recordId > 0) {
+                                if (typeof apLayout !== "undefined" && apLayout) {
+                                    apLayout.addPageToNextColumn(apLayout.primaryPage, 
+                                        Qt.resolvedUrl("../Projects.qml"), {
+                                            "recordid": recordId,
+                                            "isReadOnly": true
+                                        });
+                                }
+                            } else if (model.type === "Timesheet" && recordId > 0) {
+                                if (typeof apLayout !== "undefined" && apLayout) {
+                                    apLayout.addPageToNextColumn(apLayout.primaryPage, 
+                                        Qt.resolvedUrl("../Timesheet.qml"), {
+                                            "recordid": recordId,
+                                            "isReadOnly": true
+                                        });
+                                }
+                            }
+                            
+                            // Mark as read and remove from list
+                            Notifications.deleteNotification(model.id);
+                            notificationModel.remove(index);
+                            notificationCount = notificationModel.count;
+                            // Update system badge after removing notification
+                            badgeHelper.updateCount(notificationCount);
                         }
                     }
                 }

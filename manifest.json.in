@@ -6,7 +6,8 @@
     "hooks": {
         "ubtms": {
             "apparmor": "ubtms.apparmor",
-            "desktop":  "ubtms.desktop"
+            "desktop":  "ubtms.desktop",
+            "urls": "ubtms-urls.json"
         },
         "ubtms-daemon": {
             "apparmor": "ubtms.apparmor",
