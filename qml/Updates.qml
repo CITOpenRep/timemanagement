@@ -63,6 +63,20 @@ Page {
     // Flag to prevent tracking changes during initialization
     property bool isInitializing: true
     
+    // Flag to indicate if project selection is needed (new update without pre-selected project)
+    // This is set on page load and updated after save
+    property bool needsProjectSelection: false
+    
+    // Display names for account and project (tracked by QML for proper binding updates)
+    property string displayAccountName: ""
+    property string displayProjectName: ""
+    
+    // Function to update display names
+    function updateDisplayNames() {
+        displayAccountName = Accounts.getAccountName(currentUpdate.account_id) || i18n.dtr("ubtms", "Unknown Account");
+        displayProjectName = Project.getProjectName(currentUpdate.project_id, currentUpdate.account_id) || i18n.dtr("ubtms", "Unknown Project");
+    }
+    
     // Handle hardware back button presses
     Keys.onReleased: {
         if (event.key === Qt.Key_Back || event.key === Qt.Key_Escape) {
@@ -241,10 +255,85 @@ Page {
             spacing: units.gu(2)
             topPadding: units.gu(2)
             
-            // Project Info (Read-only display)
+            // WorkItemSelector for new updates without pre-selected project
+            WorkItemSelector {
+                id: workItemSelector
+                width: parent.width - units.gu(2)
+                anchors.horizontalCenter: parent.horizontalCenter
+                
+                // Only visible for new updates that need project selection
+                visible: needsProjectSelection && !isReadOnly
+                
+                // Only show Account and Project selectors
+                showAccountSelector: true
+                showProjectSelector: true
+                showSubProjectSelector: false
+                showTaskSelector: false
+                showSubTaskSelector: false
+                showAssigneeSelector: false
+                
+                readOnly: isReadOnly
+                
+                onStateChanged: function(newState, data) {
+                    console.log("Updates.qml: WorkItemSelector state:", newState, JSON.stringify(data));
+                    
+                    if (newState === "AccountSelected") {
+                        currentUpdate.account_id = data.id;
+                        // Reset project when account changes
+                        currentUpdate.project_id = -1;
+                        
+                        if (!isInitializing) {
+                            draftHandler.markFieldChanged("account_id", data.id);
+                        }
+                    } else if (newState === "ProjectSelected") {
+                        currentUpdate.project_id = data.id;
+                        
+                        // Also update user_id to current user for this account
+                        currentUpdate.user_id = Accounts.getCurrentUserOdooId(currentUpdate.account_id);
+                        
+                        if (!isInitializing) {
+                            draftHandler.markFieldChanged("project_id", data.id);
+                        }
+                    }
+                }
+                
+                // Initialize the selector when it becomes visible
+                onVisibleChanged: {
+                    if (visible) {
+                        initializeWorkItemSelector();
+                    }
+                }
+                
+                function initializeWorkItemSelector() {
+                    console.log("📋 Initializing WorkItemSelector for project selection");
+                    
+                    // Get the default account ID
+                    var defaultAccountId = Accounts.getDefaultAccountId();
+                    
+                    // If currentUpdate doesn't have a valid account, use default
+                    if (currentUpdate.account_id < 0 || currentUpdate.account_id === undefined) {
+                        currentUpdate.account_id = defaultAccountId >= 0 ? defaultAccountId : 0;
+                    }
+                    
+                    // Load accounts with the default account pre-selected
+                    var accountToSelect = currentUpdate.account_id >= 0 ? currentUpdate.account_id : defaultAccountId;
+                    loadAccounts(accountToSelect);
+                    
+                    // After loading accounts, load projects for the selected account
+                    // This makes the project selector ready for selection
+                    if (accountToSelect >= 0) {
+                        Qt.callLater(function() {
+                            loadProjects(accountToSelect, -1);
+                        });
+                    }
+                }
+            }
+            
+            // Project Info (Read-only display) - shown when project is already selected or in read-only mode
             Row {
                 width: parent.width
                 leftPadding: units.gu(1)
+                visible: !needsProjectSelection || isReadOnly
                 
                 Column {
                     width: parent.width - units.gu(2)
@@ -262,7 +351,7 @@ Page {
                         }
                         
                         Text {
-                            text: Accounts.getAccountName(currentUpdate.account_id) || i18n.dtr("ubtms", "Unknown Account")
+                            text: displayAccountName
                             font.pixelSize: units.gu(2)
                             width: parent.width - units.gu(13)
                             anchors.verticalCenter: parent.verticalCenter
@@ -282,7 +371,7 @@ Page {
                         }
                         
                         Text {
-                            text: Project.getProjectName(currentUpdate.project_id, currentUpdate.account_id) || i18n.dtr("ubtms", "Unknown Project")
+                            text: displayProjectName
                             font.pixelSize: units.gu(2)
                             width: parent.width - units.gu(13)
                             anchors.verticalCenter: parent.verticalCenter
@@ -506,7 +595,22 @@ Page {
     }
     
     function saveUpdateData() {
-        if (!currentUpdate.project_id || currentUpdate.project_id <= 0) {
+        // Get project_id from WorkItemSelector if it was used, otherwise from currentUpdate
+        var projectId = currentUpdate.project_id;
+        var accountId = currentUpdate.account_id;
+        
+        // If WorkItemSelector was used, get values from it
+        if (needsProjectSelection && workItemSelector.visible) {
+            var ids = workItemSelector.getIds();
+            if (ids.project_id && ids.project_id > 0) {
+                projectId = ids.project_id;
+            }
+            if (ids.account_id !== null && ids.account_id >= 0) {
+                accountId = ids.account_id;
+            }
+        }
+        
+        if (!projectId || projectId <= 0) {
             notifPopup.open("Error", "Project is required", "error");
             return;
         }
@@ -522,14 +626,18 @@ Page {
         }
         
         const updateData = {
-            account_id: currentUpdate.account_id,
-            project_id: currentUpdate.project_id,
+            account_id: accountId,
+            project_id: projectId,
             name: Utils.cleanText(name_text.text),
             project_status: updateDetailsPage.projectUpdateStatus[statusSelector.currentIndex],
             progress: progressSlider.value,
             description: Utils.cleanText(description_text.getFormattedText()),
-            user_id: currentUpdate.user_id || Accounts.getCurrentUserOdooId(currentUpdate.account_id)
+            user_id: currentUpdate.user_id || Accounts.getCurrentUserOdooId(accountId)
         };
+        
+        // Update currentUpdate with the values used for saving
+        currentUpdate.account_id = accountId;
+        currentUpdate.project_id = projectId;
         
         console.log("💾 Saving update data:", JSON.stringify(updateData));
         
@@ -543,6 +651,12 @@ Page {
             if (recordid === 0 && result.record_id) {
                 recordid = result.record_id;
             }
+            
+            // Project selection is no longer needed after save - show the read-only display
+            needsProjectSelection = false;
+            
+            // Update display names with the saved values
+            updateDisplayNames();
             
             // Clear draft after successful save
             draftHandler.clearDraft();
@@ -558,7 +672,8 @@ Page {
         isInitializing = true;
         
         if (recordid != 0) {
-            // Load existing update
+            // Load existing update - project selection is not needed
+            needsProjectSelection = false;
             currentUpdate = Project.getProjectUpdateById(recordid, accountid);
             hasBeenSaved = true;
             
@@ -581,13 +696,22 @@ Page {
                 statusSelector.currentIndex = statusIndex >= 0 ? statusIndex : 0;
                 progressSlider.value = currentUpdate.progress || 0;
             }
+            
+            // Update display names for existing update
+            updateDisplayNames();
         } else {
-            // New update - currentUpdate should be pre-populated with project context
+            // New update - check if project is pre-selected or needs selection
             hasBeenSaved = false;
             
-            // Ensure we have valid project context for new updates
-            if (!currentUpdate.project_id || currentUpdate.project_id <= 0) {
-                console.warn("⚠️ Creating update without project context!");
+            // Determine if we need project selection (no valid project_id provided)
+            needsProjectSelection = (!currentUpdate.project_id || currentUpdate.project_id <= 0);
+            
+            if (needsProjectSelection) {
+                console.log("📝 Creating update - project selection needed");
+            } else {
+                console.log("📝 Creating update with pre-selected project:", currentUpdate.project_id);
+                // Update display names for pre-selected project
+                updateDisplayNames();
             }
             
             draftHandler.initialize({
