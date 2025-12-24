@@ -609,9 +609,81 @@ Page {
                 }
             }
         }
+
+        // Current Stage Display Grid (similar to Tasks.qml)
+        Grid {
+            id: currentStageRow
+            visible: recordid !== 0
+            anchors.top: myRow9.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            anchors.topMargin: units.gu(1)
+            columns: 3
+            spacing: units.gu(1)
+
+            // Row: Current Stage
+            TSLabel {
+                text: i18n.dtr("ubtms", "Current Stage:")
+                width: (parent.width - (2 * parent.spacing)) / 3
+                height: units.gu(6)
+                horizontalAlignment: Text.AlignHLeft
+                verticalAlignment: Text.AlignVCenter
+                fontBold: true
+                color: "#f97316"
+            }
+
+            TSLabel {
+                text: project && project.stage ? Project.getProjectStageName(project.stage) : i18n.dtr("ubtms", "Not set")
+                width: (parent.width - (2 * parent.spacing)) / 3
+                height: units.gu(6)
+                fontBold: true
+                color: {
+                    if (!project || !project.stage) {
+                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
+                    }
+                    var stageName = Project.getProjectStageName(project.stage).toLowerCase();
+                    if (stageName === "completed" || stageName === "finished" || stageName === "closed" || stageName === "verified" || stageName === "done") {
+                        return "green";
+                    }
+                    return "#f97316";
+                }
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+            }
+
+            TSButton {
+                visible: recordid !== 0
+                bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
+                iconName: "filters"
+                iconColor: "#1f2937"
+                width: (parent.width - (2 * parent.spacing)) / 3
+                height: units.gu(6)
+                text: i18n.dtr("ubtms", "Change")
+                onClicked: {
+                    if (!project || !project.id) {
+                        notifPopup.open("Error", "Project data not available", "error");
+                        return;
+                    }
+
+                    var dialog = PopupUtils.open(projectStageSelector, projectCreate, {
+                        projectId: project.id,
+                        accountId: project.account_id,
+                        currentStageOdooRecordId: project.stage || -1
+                    });
+                }
+            }
+        }
+
         Grid {
             id: myRow82
-            anchors.top: myRow9.bottom
+            anchors.top: (recordid !== 0) ? currentStageRow.bottom : myRow9.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
@@ -951,6 +1023,36 @@ Page {
         onColorPicked: function (index, value) {
             project_color_label.color = value;
             project_color = index;
+        }
+    }
+
+    // Project Stage Selector Component
+    Component {
+        id: projectStageSelector
+        ProjectStageSelector {
+            onStageSelected: handleStageChange(stageOdooRecordId, stageName)
+        }
+    }
+
+    // Handle project stage change
+    function handleStageChange(stageOdooRecordId, stageName) {
+        if (!project || !project.id) {
+            notifPopup.open("Error", "Project data not available", "error");
+            return;
+        }
+
+        var result = Project.updateProjectStage(project.id, stageOdooRecordId, project.account_id);
+
+        if (result.success) {
+            // Update local project data to reflect the change
+            project.stage = stageOdooRecordId;
+            
+            // Reload project data to ensure UI is updated
+            loadProjectData(recordid);
+            
+            notifPopup.open("Success", "Project stage changed to: " + stageName, "success");
+        } else {
+            notifPopup.open("Error", "Failed to update project stage: " + (result.error || "Unknown error"), "error");
         }
     }
 

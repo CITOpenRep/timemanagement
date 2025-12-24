@@ -292,6 +292,37 @@ function getAllProjectStages() {
 }
 
 /**
+ * Retrieve project stages for a specific account from the local DB.
+ * @param {number} accountId - The account ID to filter stages by
+ * @returns {Array} Array of stage objects for the specified account
+ */
+function getProjectStagesForAccount(accountId) {
+    var stages = [];
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active, fold FROM project_project_stage_app WHERE account_id = ? ORDER BY sequence ASC, name COLLATE NOCASE ASC";
+            var result = tx.executeSql(query, [accountId]);
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                stages.push({
+                    id: row.id,
+                    account_id: row.account_id,
+                    odoo_record_id: row.odoo_record_id,
+                    name: row.name,
+                    sequence: row.sequence,
+                    active: row.active,
+                    fold: row.fold
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getProjectStagesForAccount failed:", e);
+    }
+    return stages;
+}
+
+/**
  * Retrieve only open project stages (where fold = 0) from the local DB.
  * Returns an array of stage objects for filtering open projects.
  */
@@ -320,6 +351,54 @@ function getOpenProjectStages() {
     }
     return openStages;
 }
+
+/**
+ * Updates the stage of a project
+ * @param {number} projectId - The local ID of the project
+ * @param {number} stageOdooRecordId - The odoo_record_id of the new stage
+ * @param {number} accountId - The account ID
+ * @returns {Object} Success/error result
+ */
+function updateProjectStage(projectId, stageOdooRecordId, accountId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var timestamp = Utils.getFormattedTimestampUTC();
+        
+        db.transaction(function (tx) {
+            // Verify the project exists and belongs to the account
+            var projectCheck = tx.executeSql(
+                'SELECT id FROM project_project_app WHERE id = ? AND account_id = ?',
+                [projectId, accountId]
+            );
+            
+            if (projectCheck.rows.length === 0) {
+                throw "Project not found or does not belong to this account";
+            }
+            
+            // Verify the stage exists
+            var stageCheck = tx.executeSql(
+                'SELECT id FROM project_project_stage_app WHERE odoo_record_id = ?',
+                [stageOdooRecordId]
+            );
+            
+            if (stageCheck.rows.length === 0) {
+                throw "Stage not found";
+            }
+            
+            // Update the project's stage
+            tx.executeSql(
+                'UPDATE project_project_app SET stage = ?, last_modified = ?, status = ? WHERE id = ?',
+                [stageOdooRecordId, timestamp, "updated", projectId]
+            );
+        });
+        
+        return { success: true };
+    } catch (e) {
+        console.error("updateProjectStage failed:", e);
+        return { success: false, error: e.message || e };
+    }
+}
+
 /**
  * Retrieves all attachments for a given project and account.
  *
