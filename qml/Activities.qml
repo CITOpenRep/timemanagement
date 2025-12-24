@@ -1085,7 +1085,7 @@ Page {
             } else if (ids.project_id && ids.project_id !== -1 && ids.project_id !== null) {
                 linkid = ids.project_id;
             }
-            resId = Accounts.getOdooModelId(ids.account_id, "Project") || 0;
+            resId = Accounts.getOdooModelId(ids.account_id, "project.project") || 0;
             resModel = "project.project";
             
             // Validate that project connection is valid
@@ -1100,7 +1100,7 @@ Page {
             } else if (ids.task_id && ids.task_id !== -1 && ids.task_id !== null) {
                 linkid = ids.task_id;
             }
-            resId = Accounts.getOdooModelId(ids.account_id, "Task") || 0;
+            resId = Accounts.getOdooModelId(ids.account_id, "project.task") || 0;
             resModel = "project.task";
             
             // Validate that task connection is valid
