@@ -147,7 +147,7 @@ def get_app_version():
         if Path(MANIFEST_PATH).exists():
             with open(MANIFEST_PATH, 'r') as f:
                 manifest = json.load(f)
-                return manifest.get('version', '1.2.1')
+                return manifest.get('version', '1.2.2')
         # Fallback to development path
         dev_manifest = Path(__file__).parent.parent / "manifest.json.in"
         if dev_manifest.exists():
@@ -160,7 +160,7 @@ def get_app_version():
                     return match.group(1)
     except Exception as e:
         log.error(f"[DAEMON] Failed to read app version: {e}")
-    return '1.2.1'  # Fallback version
+    return '1.2.2'  # Fallback version
 
 APP_VERSION = get_app_version()
 

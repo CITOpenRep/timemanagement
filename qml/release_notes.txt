@@ -33,6 +33,8 @@
 
       <h3>Change History : </h3>
 
+       <h4> 24-12-2025 : Version 1.2.2 </h4>
+
        <h4> 08-12-2025 : Version 1.2.0 </h4>
 
 
