@@ -33,7 +33,34 @@
 
       <h3>Change History : </h3>
 
-       <h4> 24-12-2025 : Version 1.2.2 </h4>
+       <h4> 17-01-2026 : Version 1.2.2 </h4>
+
+      <h4>New Features and Improvements</h4>
+<ul>
+  <li><b>Deep Linking from Notifications:</b> Tap on system notifications to navigate directly to the specific record (project, task, activity, etc.).</li>
+  <li><b>Project Stage Management:</b> View and update project stages directly from the app with a new stage selector dialog.</li>
+  <li><b>Project Updates Enhancements:</b> Added search and status filtering functionality in Project Updates page.</li>
+  <li><b>Improved Project Selection:</b> Enhanced account and project selection logic for creating new updates.</li>
+  <li><b>Option Selector Popover:</b> Replaced Selection Button Dialog Box with a cleaner OptionSelector Popover for better UX.</li>
+  <li><b>Draft Manager for Projects:</b> Added draft management support for project forms.</li>
+  <li><b>User Favorites Sync:</b> Added user_id field to projects and sync favorites with Odoo.</li>
+</ul>
+
+      <h4>Notification System Improvements</h4>
+<ul>
+  <li><b>Redesigned Notification Popup:</b> Enhanced header, empty state display, and improved overall layout.</li>
+  <li><b>Swipe-to-Delete:</b> Delete individual notifications by swiping them away.</li>
+  <li><b>Notification Deduplication:</b> Improved loading with deduplication to prevent duplicate notifications.</li>
+  <li><b>Enhanced Notification Icons:</b> Better icons and layout for improved user experience.</li>
+</ul>
+
+      <h4>Bug Fixes and Technical Improvements</h4>
+<ul>
+  <li>Fixed null value warnings for task_id and resId in Activities and Activity_Page.</li>
+  <li>Improved daemon startup process with better logging and service checks.</li>
+  <li>Refactored heartbeat file handling to use dynamic paths.</li>
+  <li>Code review fixes for passing manual review requirements.</li>
+</ul>
 
        <h4> 08-12-2025 : Version 1.2.0 </h4>
 
