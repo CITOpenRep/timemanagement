@@ -45,6 +45,10 @@ Page {
 
     // Use numeric -1 as default (All accounts). Do NOT initialize from default account (that's for creation only).
     property int selectedAccountId: accountPicker.selectedAccountId
+    
+    // Search and filter properties
+    property string currentSearchQuery: ""
+    property string currentStatusFilter: "all"
 
     header: PageHeader {
         id: updatesheader
@@ -56,6 +60,13 @@ Page {
         }
 
         trailingActionBar.actions: [
+            Action {
+                iconName: "search"
+                text: i18n.dtr("ubtms", "Search")
+                onTriggered: {
+                    updatesListHeader.toggleSearchVisibility();
+                }
+            },
             Action {
                 iconName: "add"
                 text: i18n.dtr("ubtms", "New")
@@ -162,6 +173,46 @@ Page {
     ListModel {
         id: updatesModel
     }
+    
+    // Helper function to check if an update passes the search filter
+    function passesSearchFilter(update, query) {
+        if (!query || query.trim() === "") {
+            return true;
+        }
+        
+        var searchLower = query.toLowerCase().trim();
+        
+        // Search in name
+        if (update.name && update.name.toLowerCase().indexOf(searchLower) !== -1) {
+            return true;
+        }
+        
+        // Search in description
+        if (update.description && update.description.toLowerCase().indexOf(searchLower) !== -1) {
+            return true;
+        }
+        
+        // Search in project name
+        var projectName = Project.getProjectName(update.project_id, update.account_id) || "";
+        if (projectName.toLowerCase().indexOf(searchLower) !== -1) {
+            return true;
+        }
+        
+        // Search in status
+        if (update.project_status && update.project_status.toLowerCase().indexOf(searchLower) !== -1) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Helper function to check if an update passes the status filter
+    function passesStatusFilter(update, statusFilter) {
+        if (!statusFilter || statusFilter === "all") {
+            return true;
+        }
+        return update.project_status === statusFilter;
+    }
 
     function fetchupdates() {
         var updates_list = [];
@@ -178,8 +229,20 @@ Page {
         }
 
         updatesModel.clear();
+        
         for (var index = 0; index < updates_list.length; index++) {
             var u = updates_list[index] || {};
+            
+            // Apply search filter
+            if (!passesSearchFilter(u, currentSearchQuery)) {
+                continue;
+            }
+            
+            // Apply status filter
+            if (!passesStatusFilter(u, currentStatusFilter)) {
+                continue;
+            }
+            
             updatesModel.append({
                 'name': u.name,
                 'id': u.id,
@@ -194,10 +257,49 @@ Page {
             });
         }
     }
+    
+    // ListHeader for search and status filtering
+    ListHeader {
+        id: updatesListHeader
+        anchors.top: updatesheader.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        
+        showSearchBox: false
+        currentFilter: updates.currentStatusFilter
+        
+        // Status filter labels
+        label1: i18n.dtr("ubtms", "All")
+        label2: i18n.dtr("ubtms", "On Track")
+        label3: i18n.dtr("ubtms", "At Risk")
+        label4: i18n.dtr("ubtms", "Off Track")
+        label5: i18n.dtr("ubtms", "On Hold")
+        label6: ""
+        label7: ""
+        
+        // Status filter keys (matching project_status values)
+        filter1: "all"
+        filter2: "on_track"
+        filter3: "at_risk"
+        filter4: "off_track"
+        filter5: "on_hold"
+        filter6: ""
+        filter7: ""
+        
+        onFilterSelected: {
+            updates.currentStatusFilter = filterKey;
+            fetchupdates();
+        }
+        
+        onCustomSearch: {
+            updates.currentSearchQuery = query;
+            fetchupdates();
+        }
+    }
 
     ListView {
         id: timesheetlist
-        anchors.top: updatesheader.bottom
+        anchors.top: updatesListHeader.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
