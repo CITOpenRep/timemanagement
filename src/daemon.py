@@ -97,9 +97,10 @@ if MISSING_DEPS:
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from config import get_all_accounts
+from config import get_all_accounts, get_setting, DEFAULT_SETTINGS
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
+from sync_to_odoo import sync_all_to_odoo
 from common import add_notification
 from logger import setup_logger
 
@@ -131,7 +132,8 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
 sys.excepthook = global_exception_handler
 
 # Configuration
-SYNC_INTERVAL_MINUTES = 1
+# Default sync interval (can be overridden by database settings)
+DEFAULT_SYNC_INTERVAL_MINUTES = 15
 APP_ID = "ubtms_ubtms"
 # Dynamically determine paths from this script's location
 APP_ROOT = Path(__file__).resolve().parent.parent
@@ -176,12 +178,43 @@ class NotificationDaemon:
         self.running = True
         self.loop = None
         self.wakelock_cookie = None  # For suspend inhibition
+        self.sync_timer_id = None  # Track GLib timer for dynamic interval changes
+        self.current_sync_interval = DEFAULT_SYNC_INTERVAL_MINUTES  # Track current interval
         self._write_pid_file()
         self._setup_signal_handlers()
         self._protect_from_oom()  # Lower OOM priority to survive memory pressure
         self._init_dbus()
         self._request_wakelock()  # Request wakelock to survive device sleep
         self._setup_suspend_handler()  # Handle sleep/wake events
+    
+    def _get_sync_settings(self):
+        """
+        Read AutoSync settings from the database.
+        
+        Returns:
+            dict: Settings with keys:
+                - autosync_enabled (bool): Whether AutoSync is enabled
+                - sync_interval_minutes (int): Sync interval in minutes
+                - sync_direction (str): "both", "download_only", or "upload_only"
+        """
+        try:
+            autosync_enabled = get_setting(self.app_db, "autosync_enabled", "true")
+            sync_interval = get_setting(self.app_db, "sync_interval_minutes", "15")
+            sync_direction = get_setting(self.app_db, "sync_direction", "both")
+            
+            return {
+                "autosync_enabled": autosync_enabled.lower() == "true",
+                "sync_interval_minutes": max(1, int(sync_interval)),  # Minimum 1 minute
+                "sync_direction": sync_direction
+            }
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to read sync settings: {e}")
+            # Return safe defaults
+            return {
+                "autosync_enabled": True,
+                "sync_interval_minutes": DEFAULT_SYNC_INTERVAL_MINUTES,
+                "sync_direction": "both"
+            }
     
     def _load_last_check_times(self):
         """Load persisted last check timestamps from file."""
@@ -874,8 +907,13 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Failed to check for updates: {e}")
     
-    def sync_account(self, account):
-        """Sync a single account and check for updates."""
+    def sync_account(self, account, sync_direction="both"):
+        """Sync a single account and check for updates.
+        
+        Args:
+            account: Account dictionary with connection details
+            sync_direction: "both", "download_only", or "upload_only"
+        """
         account_id = account["id"]
         account_name = account.get("name", "Unknown")
         
@@ -892,7 +930,7 @@ class NotificationDaemon:
             return
 
         try:
-            log.info(f"[DAEMON] Syncing account: {account_name} (ID: {account_id})")
+            log.info(f"[DAEMON] Syncing account: {account_name} (ID: {account_id}) [direction: {sync_direction}]")
             
             # Update heartbeat before creating client
             self._update_heartbeat()
@@ -909,23 +947,43 @@ class NotificationDaemon:
             # Update heartbeat after client creation
             self._update_heartbeat()
             
-            # Sync data from Odoo
-            try:
-                log.info(f"[DAEMON] Starting sync_all_from_odoo for {account_name}")
-                self._update_heartbeat()
-                
-                sync_all_from_odoo(client, account_id, self.settings_db)
-                
-                self._update_heartbeat()
-                log.info(f"[DAEMON] sync_all_from_odoo completed for {account_name}")
-                
-                # Clean up memory after sync to reduce footprint
-                self._cleanup_memory()
-                
-            except Exception as sync_error:
-                log.error(f"[DAEMON] sync_all_from_odoo failed: {sync_error}")
-                log.error(f"[DAEMON] Sync error traceback: {traceback.format_exc()}")
-                # Continue with notification check using existing data
+            # UPLOAD FIRST: Sync local changes to Odoo (prevents overwrites)
+            if sync_direction in ("both", "upload_only"):
+                try:
+                    log.info(f"[DAEMON] Starting sync_all_to_odoo for {account_name}")
+                    self._update_heartbeat()
+                    
+                    sync_all_to_odoo(client, account_id, self.settings_db)
+                    
+                    self._update_heartbeat()
+                    log.info(f"[DAEMON] sync_all_to_odoo completed for {account_name}")
+                    
+                    # Clean up memory after upload sync
+                    self._cleanup_memory()
+                    
+                except Exception as upload_error:
+                    log.error(f"[DAEMON] sync_all_to_odoo failed: {upload_error}")
+                    log.error(f"[DAEMON] Upload sync error traceback: {traceback.format_exc()}")
+                    # Continue with download sync
+            
+            # DOWNLOAD: Sync data from Odoo to device
+            if sync_direction in ("both", "download_only"):
+                try:
+                    log.info(f"[DAEMON] Starting sync_all_from_odoo for {account_name}")
+                    self._update_heartbeat()
+                    
+                    sync_all_from_odoo(client, account_id, self.settings_db)
+                    
+                    self._update_heartbeat()
+                    log.info(f"[DAEMON] sync_all_from_odoo completed for {account_name}")
+                    
+                    # Clean up memory after download sync
+                    self._cleanup_memory()
+                    
+                except Exception as sync_error:
+                    log.error(f"[DAEMON] sync_all_from_odoo failed: {sync_error}")
+                    log.error(f"[DAEMON] Sync error traceback: {traceback.format_exc()}")
+                    # Continue with notification check using existing data
             
             # Update heartbeat after sync
             self._update_heartbeat()
@@ -950,8 +1008,15 @@ class NotificationDaemon:
                 log.error(f"[DAEMON] Updates error traceback: {traceback.format_exc()}")
     
     def sync_all_accounts(self):
-        """Sync all configured accounts."""
+        """Sync all configured accounts using current settings."""
         try:
+            # Read current sync settings from database
+            settings = self._get_sync_settings()
+            sync_direction = settings["sync_direction"]
+            
+            log.info(f"[DAEMON] Sync settings: enabled={settings['autosync_enabled']}, "
+                     f"interval={settings['sync_interval_minutes']}min, direction={sync_direction}")
+            
             accounts = get_all_accounts(self.settings_db)
             
             if not accounts:
@@ -961,7 +1026,7 @@ class NotificationDaemon:
             log.info(f"[DAEMON] Starting sync for {len(accounts)} account(s)")
             
             for account in accounts:
-                self.sync_account(account)
+                self.sync_account(account, sync_direction=sync_direction)
                 # Update heartbeat between accounts
                 self._update_heartbeat()
             
@@ -970,11 +1035,32 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Error in sync_all_accounts: {e}")
     
+    def _schedule_sync_timer(self, interval_minutes):
+        """Schedule the sync timer with the given interval."""
+        # Remove existing timer if any
+        if self.sync_timer_id:
+            GLib.source_remove(self.sync_timer_id)
+            self.sync_timer_id = None
+        
+        # Schedule new timer
+        self.current_sync_interval = interval_minutes
+        self.sync_timer_id = GLib.timeout_add_seconds(
+            interval_minutes * 60,
+            self._periodic_sync
+        )
+        log.info(f"[DAEMON] Sync timer scheduled: every {interval_minutes} minutes")
+    
     def run(self):
         """Main daemon loop with robust keep-alive mechanism."""
+        # Read initial settings
+        settings = self._get_sync_settings()
+        initial_interval = settings["sync_interval_minutes"]
+        
         log.info(f"[DAEMON] Starting TimeManagement background daemon")
         log.info(f"[DAEMON] App Version: {APP_VERSION}")
-        log.info(f"[DAEMON] Sync interval: {SYNC_INTERVAL_MINUTES} minutes")
+        log.info(f"[DAEMON] AutoSync enabled: {settings['autosync_enabled']}")
+        log.info(f"[DAEMON] Sync interval: {initial_interval} minutes")
+        log.info(f"[DAEMON] Sync direction: {settings['sync_direction']}")
         log.info(f"[DAEMON] Settings DB: {self.settings_db}")
         log.info(f"[DAEMON] App DB: {self.app_db}")
         log.info(f"[DAEMON] PID: {os.getpid()}")
@@ -982,17 +1068,17 @@ class NotificationDaemon:
         # Update heartbeat on start
         self._update_heartbeat()
         
-        # Initial sync with exception handling
-        try:
-            self.sync_all_accounts()
-        except Exception as e:
-            log.error(f"[DAEMON] Initial sync failed: {e}")
+        # Initial sync with exception handling (if AutoSync is enabled)
+        if settings["autosync_enabled"]:
+            try:
+                self.sync_all_accounts()
+            except Exception as e:
+                log.error(f"[DAEMON] Initial sync failed: {e}")
+        else:
+            log.info("[DAEMON] AutoSync disabled, skipping initial sync")
         
-        # Schedule periodic sync using GLib
-        GLib.timeout_add_seconds(
-            SYNC_INTERVAL_MINUTES * 60,
-            self._periodic_sync
-        )
+        # Schedule periodic sync using GLib with dynamic interval
+        self._schedule_sync_timer(initial_interval)
         
         # Schedule heartbeat update every 30 seconds
         GLib.timeout_add_seconds(30, self._heartbeat_callback)
@@ -1027,7 +1113,26 @@ class NotificationDaemon:
     def _periodic_sync(self):
         """Callback for periodic sync."""
         try:
+            # Read current settings on each sync cycle
+            settings = self._get_sync_settings()
+            
             log.info(f"[DAEMON] Periodic sync triggered at {datetime.now()}")
+            
+            # Check if AutoSync is still enabled
+            if not settings["autosync_enabled"]:
+                log.info("[DAEMON] AutoSync is disabled, skipping sync")
+                # Keep the timer running so we can resume when re-enabled
+                return True
+            
+            # Check if interval changed and reschedule if needed
+            new_interval = settings["sync_interval_minutes"]
+            if new_interval != self.current_sync_interval:
+                log.info(f"[DAEMON] Sync interval changed: {self.current_sync_interval} -> {new_interval} minutes")
+                # Reschedule timer with new interval (will take effect after this sync)
+                self._schedule_sync_timer(new_interval)
+                # Return False to cancel current timer (new one is already scheduled)
+                return False
+            
             # Reschedule wakeup for next sync cycle
             self._schedule_wakeup()
             # Refresh wakelock to ensure it's still active
@@ -1037,7 +1142,7 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Periodic sync failed: {e}")
             log.error(f"[DAEMON] Periodic sync traceback: {traceback.format_exc()}")
-        return True  # Always continue the timer
+        return True  # Continue the timer
     
     def get_unread_notification_count(self):
         """Get count of unread notifications for badge display."""

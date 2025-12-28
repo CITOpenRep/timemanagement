@@ -55,6 +55,21 @@ function initializeDatabase() {
     );
 
 
+    // App Settings table for user preferences (theme, autosync, etc.)
+    DBCommon.createOrUpdateTable("app_settings",
+        'CREATE TABLE IF NOT EXISTS app_settings (' +
+            'key TEXT PRIMARY KEY,' +
+            'value TEXT' +
+        ')',
+        [
+            "key TEXT",
+            "value TEXT"
+        ]
+    );
+
+    // Initialize default AutoSync settings if they don't exist
+    initializeAutoSyncSettings();
+
     //Time to create a local account
     DBCommon.ensureDefaultLocalAccountExists()
     //Local account ends
@@ -546,6 +561,50 @@ function initializeDatabase() {
     syncDraftFlags();
     
     console.log("✅ Database initialization complete");
+}
+
+/**
+ * Initializes default AutoSync settings if they don't exist.
+ * Called during database initialization to ensure settings are available.
+ */
+function initializeAutoSyncSettings() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            // Default settings - only insert if key doesn't exist
+            var defaults = {
+                "autosync_enabled": "true",
+                "sync_interval_minutes": "15",
+                "sync_direction": "both"  // "both", "download_only", "upload_only"
+            };
+
+            for (var key in defaults) {
+                if (defaults.hasOwnProperty(key)) {
+                    var existing = tx.executeSql(
+                        "SELECT value FROM app_settings WHERE key = ?",
+                        [key]
+                    );
+                    if (existing.rows.length === 0) {
+                        tx.executeSql(
+                            "INSERT INTO app_settings (key, value) VALUES (?, ?)",
+                            [key, defaults[key]]
+                        );
+                        console.log("📝 Initialized setting: " + key + " = " + defaults[key]);
+                    }
+                }
+            }
+        });
+
+        console.log("✅ AutoSync settings initialized");
+    } catch (e) {
+        console.error("❌ Error initializing AutoSync settings:", e);
+    }
 }
 
 function purgeCache() {
