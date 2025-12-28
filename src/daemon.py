@@ -180,6 +180,7 @@ class NotificationDaemon:
         self.wakelock_cookie = None  # For suspend inhibition
         self.sync_timer_id = None  # Track GLib timer for dynamic interval changes
         self.current_sync_interval = DEFAULT_SYNC_INTERVAL_MINUTES  # Track current interval
+        self.started_version = APP_VERSION  # Track version at startup for auto-restart
         self._write_pid_file()
         self._setup_signal_handlers()
         self._protect_from_oom()  # Lower OOM priority to survive memory pressure
@@ -215,6 +216,46 @@ class NotificationDaemon:
                 "sync_interval_minutes": DEFAULT_SYNC_INTERVAL_MINUTES,
                 "sync_direction": "both"
             }
+    
+    def _check_version_and_restart(self):
+        """
+        Check if app version has changed and restart daemon if needed.
+        
+        This allows the daemon to pick up code changes after an app update
+        without requiring a device reboot.
+        
+        Returns:
+            bool: True if restart is needed (will not return if restarting)
+        """
+        try:
+            current_version = get_app_version()
+            if current_version != self.started_version:
+                log.info(f"[DAEMON] Version changed: {self.started_version} -> {current_version}")
+                log.info("[DAEMON] Restarting daemon to load new code...")
+                
+                # Save state before restart
+                self._save_last_check_times()
+                self._release_wakelock()
+                self._cleanup_pid_file()
+                
+                # Restart the daemon process
+                # os.execv replaces current process with new one
+                python_exe = sys.executable
+                script_path = os.path.abspath(__file__)
+                log.info(f"[DAEMON] Executing: {python_exe} {script_path}")
+                
+                # Flush logs before restart
+                import logging
+                for handler in logging.root.handlers:
+                    handler.flush()
+                
+                os.execv(python_exe, [python_exe, script_path])
+                # This line is never reached - execv replaces the process
+                
+            return False
+        except Exception as e:
+            log.error(f"[DAEMON] Version check failed: {e}")
+            return False
     
     def _load_last_check_times(self):
         """Load persisted last check timestamps from file."""
@@ -1113,6 +1154,9 @@ class NotificationDaemon:
     def _periodic_sync(self):
         """Callback for periodic sync."""
         try:
+            # Check if app was updated and restart if needed
+            self._check_version_and_restart()
+            
             # Read current settings on each sync cycle
             settings = self._get_sync_settings()
             
