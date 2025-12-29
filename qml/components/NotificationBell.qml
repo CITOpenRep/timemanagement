@@ -60,9 +60,21 @@ Item {
         // Sort by ID descending (newest first)
         dedupedList.sort(function(a, b) { return b.id - a.id; });
         
-        // Log deduplication results
+        // Log deduplication results and clean up duplicates from database
         if (dedupedList.length !== rawList.length) {
             console.log("[NotificationBell] Deduplicated: " + rawList.length + " -> " + dedupedList.length + " notifications");
+            
+            // Delete duplicate entries from database (keep only the ones in dedupedList)
+            var keepIds = {};
+            for (var k = 0; k < dedupedList.length; k++) {
+                keepIds[dedupedList[k].id] = true;
+            }
+            for (var m = 0; m < rawList.length; m++) {
+                if (!keepIds[rawList[m].id]) {
+                    console.log("[NotificationBell] Deleting duplicate notification ID: " + rawList[m].id);
+                    Notifications.deleteNotification(rawList[m].id);
+                }
+            }
         }
         
         notificationList = dedupedList;
@@ -286,6 +298,7 @@ Item {
                                 iconName: "delete"
                                 text: i18n.dtr("ubtms", "Delete")
                                 onTriggered: {
+                                    console.log("[NotificationBell] Swipe delete triggered for ID: " + modelData.id);
                                     Notifications.deleteNotification(modelData.id);
                                     loadNotifications();
                                 }
@@ -433,15 +446,14 @@ Item {
                         
                         Label {
                             anchors.centerIn: parent
-                            text: i18n.dtr("ubtms", "Mark All Read")
+                            text: i18n.dtr("ubtms", "Clear All")
                             color: theme.palette.normal.backgroundText
                         }
                     }
                     
                     onClicked: {
-                        for (var i = 0; i < notificationList.length; i++) {
-                            Notifications.deleteNotification(notificationList[i].id);
-                        }
+                        console.log("[NotificationBell] Clear All clicked - deleting all notifications");
+                        Notifications.deleteAllNotifications();
                         loadNotifications();
                         notificationPopup.close();
                     }

@@ -239,12 +239,11 @@ def add_notification(db_path, account_id, notif_type, message, payload):
 
     safe_sql_execute(db_path, create_table_sql)
 
-    # Check for duplicate notification (same message within last 60 seconds)
+    # Check for duplicate notification (same type+message that is still unread)
     # This prevents duplicate notifications from multiple sync cycles
     check_duplicate_sql = """
         SELECT COUNT(*) FROM notification 
         WHERE account_id = ? AND message = ? AND type = ? AND read_status = 0
-        AND timestamp > datetime('now', '-60 seconds')
     """
     
     try:
@@ -255,7 +254,7 @@ def add_notification(db_path, account_id, notif_type, message, payload):
         conn.close()
         
         if count > 0:
-            # Duplicate notification exists, skip
+            # Duplicate unread notification exists, skip
             return
     except Exception as e:
         # If check fails, proceed with insert (better to have duplicate than miss notification)

@@ -42,6 +42,18 @@ def store_notification(notif_type, message, payload):
             )
         """)
         
+        # Check for duplicate unread notification with same type+message
+        cursor.execute("""
+            SELECT COUNT(*) FROM notification 
+            WHERE message = ? AND type = ? AND read_status = 0
+        """, (message, notif_type))
+        count = cursor.fetchone()[0]
+        
+        if count > 0:
+            # Duplicate unread notification exists, skip
+            conn.close()
+            return
+        
         # Insert notification (account_id = 0 for push notifications)
         cursor.execute("""
             INSERT INTO notification (account_id, timestamp, message, type, payload, read_status)
