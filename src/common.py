@@ -24,12 +24,6 @@
 from datetime import datetime
 import json
 import sqlite3
-from pathlib import Path
-from logger import setup_logger
-from datetime import datetime
-import sqlite3
-import time
-import sqlite3
 import time
 import threading
 from logger import setup_logger
@@ -151,9 +145,6 @@ def check_table_exists(db_path, table_name):
     except Exception as e:
         print(f"[ERROR] Failed to inspect DB: {e}")
         return False
-
-    import json
-    from datetime import datetime
 
 
 def write_sync_report_to_db(db_path, account_id, status, message=""):
