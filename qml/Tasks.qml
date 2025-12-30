@@ -92,6 +92,7 @@ Page {
         ]
     }
     property var recordid: 0 //0 means creation mode
+    property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
 
     property string currentEditingField: ""
     property bool workpersonaSwitchState: true
@@ -1641,7 +1642,20 @@ Page {
     function loadTask() {
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
-            currentTask = Task.getTaskDetails(recordid);
+            // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
+            if (isOdooRecordId) {
+                // recordid is an odoo_record_id (stable, from notification deep link)
+                currentTask = Task.getTaskDetailsByOdooId(recordid);
+                console.log("loadTask: Loaded by odoo_record_id:", recordid, "found local id:", currentTask.id);
+                // Update recordid to local id for subsequent operations
+                if (currentTask && currentTask.id) {
+                    recordid = currentTask.id;
+                    isOdooRecordId = false; // Now we have the local id
+                }
+            } else {
+                // recordid is a local id (from normal navigation)
+                currentTask = Task.getTaskDetails(recordid);
+            }
 
             let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
             let project_id = (currentTask.project_id !== undefined && currentTask.project_id !== null && currentTask.project_id > 0) ? currentTask.project_id : -1;

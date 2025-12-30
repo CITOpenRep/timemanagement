@@ -208,6 +208,7 @@ Page {
     property bool running: false
     property int selectedSubTaskId: 0
     property var recordid: 0 //0 means creation mode
+    property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
     property bool isReadOnly: false // Can be overridden when page is opened
     property var currentTimesheet: {}
     property bool _hasInitialized: false  // Flag to track if page has been initialized
@@ -306,14 +307,27 @@ Page {
             return;
         }
         
-        console.log("🔄 Initializing Timesheet - recordid:", recordid, "isReadOnly:", isReadOnly);
+        console.log("🔄 Initializing Timesheet - recordid:", recordid, "isReadOnly:", isReadOnly, "isOdooRecordId:", isOdooRecordId);
         _hasInitialized = true;
 
         if (recordid != 0) {
             // Set flag before loading to prevent auto-initialization
             workItem.deferredLoadingPlanned = true;
 
-            currentTimesheet = Model.getTimeSheetDetails(recordid);
+            // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
+            if (isOdooRecordId) {
+                // recordid is an odoo_record_id (stable, from notification deep link)
+                currentTimesheet = Model.getTimeSheetDetailsByOdooId(recordid);
+                console.log("Timesheet: Loaded by odoo_record_id:", recordid, "found local id:", currentTimesheet ? currentTimesheet.id : "null");
+                // Update recordid to local id for subsequent operations
+                if (currentTimesheet && currentTimesheet.id) {
+                    recordid = currentTimesheet.id;
+                    isOdooRecordId = false; // Now we have the local id
+                }
+            } else {
+                // recordid is a local id (from normal navigation)
+                currentTimesheet = Model.getTimeSheetDetails(recordid);
+            }
             let instanceId = (currentTimesheet.instance_id !== undefined && currentTimesheet.instance_id !== null) ? currentTimesheet.instance_id : -1;
             let projectId = (currentTimesheet.project_id !== undefined && currentTimesheet.project_id !== null) ? currentTimesheet.project_id : -1;
             let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;

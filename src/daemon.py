@@ -528,8 +528,9 @@ class NotificationDaemon:
             log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
             
             # Construct deep link URI for navigation (if navigation params provided)
+            # Use odoo_id=1 flag to indicate this is an odoo_record_id (stable across syncs)
             if nav_type and record_id and record_id > 0:
-                action_uri = f"ubtms://navigate?type={nav_type}&id={record_id}&account_id={account_id or 0}"
+                action_uri = f"ubtms://navigate?type={nav_type}&id={record_id}&account_id={account_id or 0}&odoo_id=1"
             else:
                 # Format: appid://package-name/hook-name/current-user-version
                 action_uri = "appid://ubtms/ubtms/current-user-version"
@@ -700,11 +701,12 @@ class NotificationDaemon:
             project_id = task.get('project_id')
             odoo_record_id = task.get('odoo_record_id')
             
+            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
                 "Task Assigned",
                 f"You've been assigned to task '{task_name}'.",
                 nav_type="Task",
-                record_id=task_id,
+                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
                 account_id=account_id
             )
             add_notification(
@@ -727,11 +729,12 @@ class NotificationDaemon:
             due_date = activity.get('due_date', 'No date')
             odoo_record_id = activity.get('odoo_record_id')
             
+            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
                 "Activity Assigned",
                 f"New activity: {summary} (Due: {due_date})",
                 nav_type="Activity",
-                record_id=activity_id,
+                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
                 account_id=account_id
             )
             add_notification(
@@ -749,15 +752,16 @@ class NotificationDaemon:
         # 3. PROJECTS: Notify for newly managed/favorited projects
         # =================================================================
         for project in new_assignments['new_projects']:
-            project_id = project.get('id')
+            local_project_id = project.get('id')
             project_name = project.get('name', 'Unknown Project')
             odoo_record_id = project.get('odoo_record_id')
             
+            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
                 "Project Added",
                 f"You now have access to project '{project_name}'.",
                 nav_type="Project",
-                record_id=project_id,
+                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
                 account_id=account_id
             )
             add_notification(
@@ -765,7 +769,7 @@ class NotificationDaemon:
                 account_id,
                 "Project",
                 f"You now have access to project '{project_name}'.",
-                {"project_name": project_name, "id": project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+                {"project_name": project_name, "id": local_project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
             )
         
         if new_assignments['new_projects']:
@@ -780,11 +784,12 @@ class NotificationDaemon:
             hours = timesheet.get('unit_amount', 0)
             odoo_record_id = timesheet.get('odoo_record_id')
             
+            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
                 "Timesheet Added",
                 f"New timesheet '{ts_name}' ({hours}h) synced.",
                 nav_type="Timesheet",
-                record_id=timesheet_id,
+                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
                 account_id=account_id
             )
             add_notification(

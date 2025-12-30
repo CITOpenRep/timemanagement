@@ -118,6 +118,66 @@ function getProjectDetails(project_id) {
 }
 
 /**
+ * Retrieves project details by Odoo record ID (stable identifier).
+ * This is used for deep link navigation from notifications.
+ *
+ * @param {number} odoo_record_id - The Odoo record ID of the project.
+ * @param {number} [account_id] - Optional account ID to narrow the search.
+ * @returns {Object} - An object containing project details, or empty object if not found.
+ */
+function getProjectDetailsByOdooId(odoo_record_id, account_id) {
+    var project_detail = {};
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var sql = 'SELECT * FROM project_project_app WHERE odoo_record_id = ?';
+            var params = [odoo_record_id];
+            
+            if (account_id !== undefined && account_id !== null && account_id > 0) {
+                sql += ' AND account_id = ?';
+                params.push(account_id);
+            }
+            
+            sql += ' LIMIT 1';
+            var result = tx.executeSql(sql, params);
+
+            if (result.rows.length > 0) {
+                var row = result.rows.item(0);
+
+                project_detail = {
+                    id: row.id,
+                    name: row.name,
+                    account_id: row.account_id,
+                    parent_id: row.parent_id,
+                    planned_start_date: row.planned_start_date ? Utils.formatDate(new Date(row.planned_start_date)) : "",
+                    planned_end_date: row.planned_end_date ? Utils.formatDate(new Date(row.planned_end_date)) : "",
+                    allocated_hours: Utils.convertDecimalHoursToHHMM(row.allocated_hours),
+                    favorites: row.favorites || 0,
+                    user_id: row.user_id || null,
+                    last_update_status: row.last_update_status,
+                    description: row.description || "",
+                    last_modified: row.last_modified,
+                    color_pallet: row.color_pallet || "#FFFFFF",
+                    stage: row.stage || 0,
+                    status: row.status || "",
+                    odoo_record_id: row.odoo_record_id
+                };
+                
+                console.log("getProjectDetailsByOdooId found project:", row.id, "for odoo_record_id:", odoo_record_id);
+            } else {
+                console.error("No project found for odoo_record_id:", odoo_record_id);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+    return project_detail;
+}
+
+/**
  * Retrieves all project records from the local SQLite DB as plain objects.
  *
  * @returns {Array<Object>} A list of project objects with fields like id, name, etc.

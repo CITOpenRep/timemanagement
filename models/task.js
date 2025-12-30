@@ -943,6 +943,94 @@ function getTaskDetails(task_id) {
 }
 
 /**
+ * Retrieves detailed information for a specific task by its Odoo record ID.
+ * This is used for deep link navigation from notifications, where we use
+ * the stable odoo_record_id instead of the local id (which changes on sync).
+ *
+ * @param {Number} odoo_record_id - The Odoo record ID of the task.
+ * @param {Number} [account_id] - Optional account ID to narrow the search.
+ * @returns {Object} An object containing all task fields, or empty object if not found.
+ */
+function getTaskDetailsByOdooId(odoo_record_id, account_id) {
+    var task_detail = {};
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var sql = 'SELECT * FROM project_task_app WHERE odoo_record_id = ?';
+            var params = [odoo_record_id];
+            
+            // Optionally filter by account_id for more accurate results
+            if (account_id !== undefined && account_id !== null && account_id > 0) {
+                sql += ' AND account_id = ?';
+                params.push(account_id);
+            }
+            
+            sql += ' LIMIT 1';
+            var result = tx.executeSql(sql, params);
+
+            if (result.rows.length > 0) {
+                var row = result.rows.item(0);
+
+                // Extract initial project_id
+                var project_id = (row.project_id !== undefined && row.project_id !== null && row.project_id > 0) ? row.project_id : -1;
+                var sub_project_id = -1;
+
+                if (project_id > 0) {
+                    // Look up project_project_app to check if this project has a parent_id
+                    var rs_project = tx.executeSql(
+                        'SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
+                        [project_id, row.account_id]
+                    );
+
+                    if (rs_project.rows.length > 0) {
+                        var parent_id = rs_project.rows.item(0).parent_id;
+                        if (parent_id !== undefined && parent_id !== null && parent_id > 0) {
+                            sub_project_id = project_id;
+                            project_id = parent_id;
+                        } else {
+                            sub_project_id = row.sub_project_id;
+                        }
+                    }
+                }
+
+                task_detail = {
+                    id: row.id,
+                    name: row.name,
+                    account_id: row.account_id,
+                    project_id: project_id,
+                    sub_project_id: sub_project_id,
+                    parent_id: row.parent_id,
+                    start_date: row.start_date || "",
+                    end_date: row.end_date || "",
+                    deadline: row.deadline || "",
+                    initial_planned_hours: row.initial_planned_hours || 0,
+                    priority: row.priority,
+                    state: row.state || "",
+                    personal_stage: row.personal_stage || null,
+                    description: row.description || "",
+                    last_modified: row.last_modified,
+                    user_id: row.user_id,
+                    status: row.status || "",
+                    odoo_record_id: row.odoo_record_id,
+                    has_draft: row.has_draft || 0
+                };
+
+                console.log("getTaskDetailsByOdooId found task:", row.id, "for odoo_record_id:", odoo_record_id);
+            } else {
+                console.error("No task found for odoo_record_id:", odoo_record_id);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getTaskDetailsByOdooId", e);
+    }
+
+    return task_detail;
+}
+
+/**
  * Retrieves all non-deleted tasks for the given account from `project_task_app`,
  * inherits color from related projects/subprojects, and adds total spent hours.
  *
