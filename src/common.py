@@ -286,13 +286,16 @@ def get_current_assignments_snapshot(db_path, account_id, user_id):
     This should be called BEFORE sync_from_odoo to capture the pre-sync state.
     After sync, compare with the new state to detect NEW assignments.
     
+    IMPORTANT: We use odoo_record_id (not local id) because INSERT OR REPLACE
+    changes the local auto-increment id on every sync, but odoo_record_id is stable.
+    
     Args:
         db_path (str): Path to the SQLite database file
         account_id (int): Account ID
         user_id (int): The current user's Odoo ID
         
     Returns:
-        dict: Sets of record IDs currently assigned to user for each type
+        dict: Sets of odoo_record_ids currently assigned to user for each type
     """
     snapshot = {
         'tasks': set(),
@@ -309,43 +312,48 @@ def get_current_assignments_snapshot(db_path, account_id, user_id):
         cursor = conn.cursor()
         
         # Tasks: user_id can be single ID or CSV
+        # Use odoo_record_id for stable comparison across syncs
         cursor.execute("""
-            SELECT id FROM project_task_app 
+            SELECT odoo_record_id FROM project_task_app 
             WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
             AND (
                 user_id = ? 
                 OR user_id = ?
                 OR (',' || user_id || ',') LIKE ?
             )
         """, (account_id, user_id, str(user_id), f"%,{user_id},%"))
-        snapshot['tasks'] = {row[0] for row in cursor.fetchall()}
+        snapshot['tasks'] = {row[0] for row in cursor.fetchall() if row[0]}
         
         # Activities: single user_id
         cursor.execute("""
-            SELECT id FROM mail_activity_app 
+            SELECT odoo_record_id FROM mail_activity_app 
             WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
         """, (account_id, user_id, str(user_id), str(user_id)))
-        snapshot['activities'] = {row[0] for row in cursor.fetchall()}
+        snapshot['activities'] = {row[0] for row in cursor.fetchall() if row[0]}
         
         # Projects: user manages or favorites
         cursor.execute("""
-            SELECT id FROM project_project_app 
+            SELECT odoo_record_id FROM project_project_app 
             WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ? OR favorites = 1)
         """, (account_id, user_id, str(user_id)))
-        snapshot['projects'] = {row[0] for row in cursor.fetchall()}
+        snapshot['projects'] = {row[0] for row in cursor.fetchall() if row[0]}
         
         # Timesheets: owned by user
         cursor.execute("""
-            SELECT id FROM account_analytic_line_app 
+            SELECT odoo_record_id FROM account_analytic_line_app 
             WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ?)
         """, (account_id, user_id, str(user_id)))
-        snapshot['timesheets'] = {row[0] for row in cursor.fetchall()}
+        snapshot['timesheets'] = {row[0] for row in cursor.fetchall() if row[0]}
         
         conn.close()
-        log.info(f"[COMMON] Assignment snapshot: tasks={len(snapshot['tasks'])}, "
+        log.info(f"[COMMON] Assignment snapshot (by odoo_record_id): tasks={len(snapshot['tasks'])}, "
                  f"activities={len(snapshot['activities'])}, projects={len(snapshot['projects'])}, "
                  f"timesheets={len(snapshot['timesheets'])}")
         
@@ -361,6 +369,9 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
     
     This should be called AFTER sync_from_odoo completes.
     Only returns records that are NOW assigned to the user but WERE NOT before sync.
+    
+    IMPORTANT: Compares by odoo_record_id (not local id) since INSERT OR REPLACE
+    changes local id on every sync, but odoo_record_id is stable.
     
     Args:
         db_path (str): Path to the SQLite database file
@@ -386,10 +397,11 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Get current tasks assigned to user
+        # Get current tasks assigned to user - compare by odoo_record_id
         cursor.execute("""
             SELECT id, name, project_id, odoo_record_id FROM project_task_app 
             WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
             AND (
                 user_id = ? 
                 OR user_id = ?
@@ -398,45 +410,52 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         """, (account_id, user_id, str(user_id), f"%,{user_id},%"))
         
         for task in cursor.fetchall():
-            if task['id'] not in pre_sync_snapshot['tasks']:
+            odoo_id = task['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot['tasks']:
                 result['new_tasks'].append(dict(task))
         
         # Get current activities assigned to user
         cursor.execute("""
             SELECT id, summary, due_date, odoo_record_id FROM mail_activity_app 
             WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
         """, (account_id, user_id, str(user_id), str(user_id)))
         
         for activity in cursor.fetchall():
-            if activity['id'] not in pre_sync_snapshot['activities']:
+            odoo_id = activity['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot['activities']:
                 result['new_activities'].append(dict(activity))
         
         # Get current projects (managed or favorited)
         cursor.execute("""
             SELECT id, name, odoo_record_id FROM project_project_app 
             WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ? OR favorites = 1)
         """, (account_id, user_id, str(user_id)))
         
         for project in cursor.fetchall():
-            if project['id'] not in pre_sync_snapshot['projects']:
+            odoo_id = project['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot['projects']:
                 result['new_projects'].append(dict(project))
         
         # Get current timesheets (owned by user)
         cursor.execute("""
             SELECT id, name, unit_amount, odoo_record_id FROM account_analytic_line_app 
             WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ?)
         """, (account_id, user_id, str(user_id)))
         
         for timesheet in cursor.fetchall():
-            if timesheet['id'] not in pre_sync_snapshot['timesheets']:
+            odoo_id = timesheet['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot['timesheets']:
                 result['new_timesheets'].append(dict(timesheet))
         
         conn.close()
         
-        log.info(f"[COMMON] New assignments detected: tasks={len(result['new_tasks'])}, "
+        log.info(f"[COMMON] New assignments detected (by odoo_record_id): tasks={len(result['new_tasks'])}, "
                  f"activities={len(result['new_activities'])}, projects={len(result['new_projects'])}, "
                  f"timesheets={len(result['new_timesheets'])}")
         
