@@ -101,7 +101,7 @@ from config import get_all_accounts, get_setting, DEFAULT_SETTINGS
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
 from sync_to_odoo import sync_all_to_odoo
-from common import add_notification
+from common import add_notification, get_current_assignments_snapshot, detect_new_assignments
 from logger import setup_logger
 
 log = setup_logger()
@@ -660,294 +660,152 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Failed to get current user ID: {e}")
             return None
 
-    def check_for_updates(self, account_id, account_name, username):
-        """Check for new tasks, activities, and projects since last check."""
+    def check_for_new_assignments(self, account_id, account_name, current_user_id, pre_sync_snapshot):
+        """
+        Check for NEW assignments only by comparing pre-sync and post-sync state.
         
-        # Convert account_id to string for consistent JSON key handling
-        account_key = str(account_id)
+        This method only sends notifications when:
+        - Tasks: User was NEWLY assigned (not in pre-sync snapshot, now assigned)
+        - Activities: User was NEWLY assigned
+        - Projects: User became manager or favorited (not previously)
+        - Timesheets: New timesheet entries for this user
         
-        # Initialize last check time if not set (default to now, so we only catch future updates)
-        # Use Odoo-compatible format (YYYY-MM-DD HH:MM:SS)
-        # We subtract 5 minutes to catch items synced in the current cycle (or just before daemon start)
-        if account_key not in self.last_check_time:
-            start_time = datetime.now(timezone.utc) - timedelta(minutes=5)
-            self.last_check_time[account_key] = start_time.strftime("%Y-%m-%d %H:%M:%S")
-            self._save_last_check_times()
-            # Don't return here! Proceed to check updates using this slightly backdated timestamp.
-            # This ensures we catch the tasks that were just synced in the current cycle.
-
-        last_check = self.last_check_time[account_key]
-        current_user_id = self.get_current_user_id(account_id, username)
+        This prevents notification spam from:
+        - Daemon restarts (existing assignments don't trigger notifications)
+        - General updates to records (only assignment changes matter)
         
-        log.info(f"[DAEMON] Checking updates for {account_name} since {last_check} (User ID: {current_user_id})")
+        Args:
+            account_id: Account ID
+            account_name: Account name for logging
+            current_user_id: The Odoo user ID for this account
+            pre_sync_snapshot: Snapshot from get_current_assignments_snapshot() taken BEFORE sync
+        """
+        if not current_user_id:
+            log.warning(f"[DAEMON] No user ID for {account_name}, skipping assignment check")
+            return
         
-        # Debug: Log total count of activities for this account
-        try:
-            debug_conn = sqlite3.connect(self.app_db)
-            debug_cursor = debug_conn.cursor()
-            debug_cursor.execute("SELECT COUNT(*) FROM mail_activity_app WHERE account_id = ?", (account_id,))
-            total_activities = debug_cursor.fetchone()[0]
-            debug_cursor.execute("SELECT COUNT(*) FROM mail_activity_app WHERE account_id = ? AND user_id = ?", (account_id, current_user_id))
-            user_activities = debug_cursor.fetchone()[0]
-            debug_cursor.execute("SELECT COUNT(*) FROM mail_activity_app WHERE account_id = ? AND last_modified > ?", (account_id, last_check))
-            new_activities_count = debug_cursor.fetchone()[0]
-            debug_conn.close()
-            log.info(f"[DAEMON] Activity stats: total={total_activities}, for_user={user_activities}, new_since_check={new_activities_count}")
-        except Exception as e:
-            log.error(f"[DAEMON] Debug activity query failed: {e}")
+        log.info(f"[DAEMON] Checking for new assignments for {account_name} (User ID: {current_user_id})")
         
-        # Debug: Log task stats similar to activity stats
-        try:
-            debug_conn = sqlite3.connect(self.app_db)
-            debug_cursor = debug_conn.cursor()
-            debug_cursor.execute("SELECT COUNT(*) FROM project_task_app WHERE account_id = ?", (account_id,))
-            total_tasks = debug_cursor.fetchone()[0]
-            debug_cursor.execute("SELECT COUNT(*) FROM project_task_app WHERE account_id = ? AND last_modified > ?", (account_id, last_check))
-            new_tasks_count = debug_cursor.fetchone()[0]
-            # Check with user_id pattern
-            user_id_pattern = f"%,{current_user_id},%"
-            debug_cursor.execute(
-                "SELECT COUNT(*) FROM project_task_app WHERE account_id = ? AND (',' || user_id || ',') LIKE ? AND last_modified > ?",
-                (account_id, user_id_pattern, last_check)
-            )
-            new_tasks_for_user = debug_cursor.fetchone()[0]
-            # Sample a recent task to see user_id format
-            debug_cursor.execute("SELECT id, name, user_id, last_modified FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC LIMIT 1", (account_id,))
-            sample_task = debug_cursor.fetchone()
-            debug_conn.close()
-            log.info(f"[DAEMON] Task stats: total={total_tasks}, new_since_check={new_tasks_count}, for_user={new_tasks_for_user}")
-            if sample_task:
-                log.info(f"[DAEMON] Sample task: id={sample_task[0]}, name={sample_task[1]}, user_id='{sample_task[2]}', modified={sample_task[3]}")
-                log.info(f"[DAEMON] Pattern used: '{user_id_pattern}', last_check: '{last_check}'")
-        except Exception as e:
-            log.error(f"[DAEMON] Debug task query failed: {e}")
+        # Detect new assignments by comparing current DB state with pre-sync snapshot
+        new_assignments = detect_new_assignments(
+            self.app_db, account_id, current_user_id, pre_sync_snapshot
+        )
         
-        try:
-            conn = sqlite3.connect(self.app_db)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+        # =================================================================
+        # 1. TASKS: Notify only for NEW assignments
+        # =================================================================
+        for task in new_assignments['new_tasks']:
+            task_id = task.get('id')
+            task_name = task.get('name', 'Unknown Task')
+            project_id = task.get('project_id')
+            odoo_record_id = task.get('odoo_record_id')
             
-            # 1. New/Updated Tasks Assigned to User
-            # user_id can be a single ID or CSV string of IDs (Many2many)
-            if current_user_id:
-                # Match both single ID and CSV patterns
-                cursor.execute(
-                    """
-                    SELECT id, name, project_id, odoo_record_id FROM project_task_app 
-                    WHERE account_id = ? 
-                    AND (
-                        user_id = ? 
-                        OR user_id = ?
-                        OR (',' || user_id || ',') LIKE ?
-                    )
-                    AND last_modified > ?
-                    """,
-                    (account_id, current_user_id, str(current_user_id), f"%,{current_user_id},%", last_check)
-                )
-                new_tasks = cursor.fetchall()
-                if new_tasks:
-                    log.info(f"[DAEMON] Found {len(new_tasks)} new tasks for user {current_user_id}")
-                
-                for task in new_tasks:
-                    # Extract task_id before send_notification
-                    try:
-                        task_id = task['id']
-                    except (KeyError, IndexError):
-                        task_id = None
-                    # Send system notification with deep link
-                    self.send_notification(
-                        "Task Update",
-                        f"Task '{task['name']}' has been updated or assigned to you.",
-                        nav_type="Task",
-                        record_id=task_id,
-                        account_id=account_id
-                    )
-                    # Persist notification to database for frontend display
-                    # Note: sqlite3.Row doesn't have .get(), use bracket notation with try/except
-                    try:
-                        project_id = task['project_id']
-                    except (KeyError, IndexError):
-                        project_id = None
-                    try:
-                        task_id = task['id']
-                    except (KeyError, IndexError):
-                        task_id = None
-                    try:
-                        odoo_record_id = task['odoo_record_id']
-                    except (KeyError, IndexError):
-                        odoo_record_id = None
-                    add_notification(
-                        self.app_db,
-                        account_id,
-                        "Task",
-                        f"Task '{task['name']}' has been updated or assigned to you.",
-                        {"task_name": task['name'], "project_id": project_id, "id": task_id, "odoo_record_id": odoo_record_id}
-                    )
-
-            # 2. New/Updated Activities Assigned to User
-            # user_id in mail_activity_app could be integer or stored as first element of tuple
-            if current_user_id:
-                # Try both exact match and string match for flexibility
-                cursor.execute(
-                    """
-                    SELECT id, summary, due_date, odoo_record_id FROM mail_activity_app 
-                    WHERE account_id = ? 
-                    AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
-                    AND last_modified > ?
-                    """,
-                    (account_id, current_user_id, str(current_user_id), str(current_user_id), last_check)
-                )
-                new_activities = cursor.fetchall()
-                if new_activities:
-                    log.info(f"[DAEMON] Found {len(new_activities)} new activities for user {current_user_id}")
-                for activity in new_activities:
-                    summary = activity['summary'] or "New Activity"
-                    # Extract activity_id before send_notification
-                    try:
-                        activity_id = activity['id']
-                    except (KeyError, IndexError):
-                        activity_id = None
-                    # Send system notification with deep link
-                    self.send_notification(
-                        "Activity Assigned",
-                        f"{summary} (Due: {activity['due_date']})",
-                        nav_type="Activity",
-                        record_id=activity_id,
-                        account_id=account_id
-                    )
-                    # Persist notification to database for frontend display
-                    try:
-                        activity_id = activity['id']
-                    except (KeyError, IndexError):
-                        activity_id = None
-                    try:
-                        odoo_record_id = activity['odoo_record_id']
-                    except (KeyError, IndexError):
-                        odoo_record_id = None
-                    add_notification(
-                        self.app_db,
-                        account_id,
-                        "Activity",
-                        f"{summary} (Due: {activity['due_date']})",
-                        {"summary": summary, "due_date": activity['due_date'], "id": activity_id, "odoo_record_id": odoo_record_id}
-                    )
-
-            # 3. Project Updates (General)
-            # Maybe filter by favorites or membership if possible, for now notify all project updates
-            cursor.execute(
-                """
-                SELECT id, name, odoo_record_id FROM project_project_app 
-                WHERE account_id = ? 
-                AND last_modified > ?
-                """,
-                (account_id, last_check)
+            self.send_notification(
+                "Task Assigned",
+                f"You've been assigned to task '{task_name}'.",
+                nav_type="Task",
+                record_id=task_id,
+                account_id=account_id
             )
-            new_projects = cursor.fetchall()
-            for project in new_projects:
-                # Extract project_id before send_notification
-                try:
-                    project_id = project['id']
-                except (KeyError, IndexError):
-                    project_id = None
-                # Send system notification with deep link
-                self.send_notification(
-                    "Project Update",
-                    f"Project '{project['name']}' has been updated.",
-                    nav_type="Project",
-                    record_id=project_id,
-                    account_id=account_id
-                )
-                # Persist notification to database for frontend display
-                try:
-                    project_id = project['id']
-                except (KeyError, IndexError):
-                    project_id = None
-                try:
-                    odoo_record_id = project['odoo_record_id']
-                except (KeyError, IndexError):
-                    odoo_record_id = None
-                add_notification(
-                    self.app_db,
-                    account_id,
-                    "Project",
-                    f"Project '{project['name']}' has been updated.",
-                    {"project_name": project['name'], "id": project_id, "odoo_record_id": odoo_record_id}
-                )
-
-            # 4. Timesheet Updates
-            cursor.execute(
-                """
-                SELECT id, name, unit_amount, odoo_record_id FROM account_analytic_line_app 
-                WHERE account_id = ? 
-                AND last_modified > ?
-                """,
-                (account_id, last_check)
+            add_notification(
+                self.app_db,
+                account_id,
+                "Task",
+                f"You've been assigned to task '{task_name}'.",
+                {"task_name": task_name, "project_id": project_id, "id": task_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
             )
-            new_timesheets = cursor.fetchall()
-            for timesheet in new_timesheets:
-                ts_name = timesheet['name'] or "Timesheet Entry"
-                # Extract timesheet_id before send_notification
-                try:
-                    timesheet_id = timesheet['id']
-                except (KeyError, IndexError):
-                    timesheet_id = None
-                # Send system notification with deep link
-                self.send_notification(
-                    "Timesheet Update",
-                    f"Timesheet '{ts_name}' ({timesheet['unit_amount']}h) has been updated.",
-                    nav_type="Timesheet",
-                    record_id=timesheet_id,
-                    account_id=account_id
-                )
-                # Persist notification to database for frontend display
-                try:
-                    timesheet_id = timesheet['id']
-                except (KeyError, IndexError):
-                    timesheet_id = None
-                try:
-                    odoo_record_id = timesheet['odoo_record_id']
-                except (KeyError, IndexError):
-                    odoo_record_id = None
-                add_notification(
-                    self.app_db,
-                    account_id,
-                    "Timesheet",
-                    f"Timesheet '{ts_name}' ({timesheet['unit_amount']}h) has been updated.",
-                    {"timesheet_name": ts_name, "hours": timesheet['unit_amount'], "id": timesheet_id, "odoo_record_id": odoo_record_id}
-                )
-
-            # Get the maximum last_modified from all synced tables to use as next last_check
-            # This ensures we don't miss records due to time sync differences
-            max_modified = last_check  # Default to current last_check
-            try:
-                cursor.execute("""
-                    SELECT MAX(last_modified) FROM (
-                        SELECT MAX(last_modified) as last_modified FROM project_task_app WHERE account_id = ?
-                        UNION ALL
-                        SELECT MAX(last_modified) FROM mail_activity_app WHERE account_id = ?
-                        UNION ALL
-                        SELECT MAX(last_modified) FROM project_project_app WHERE account_id = ?
-                        UNION ALL
-                        SELECT MAX(last_modified) FROM account_analytic_line_app WHERE account_id = ?
-                    )
-                """, (account_id, account_id, account_id, account_id))
-                result = cursor.fetchone()
-                if result and result[0]:
-                    max_modified = result[0]
-                    log.info(f"[DAEMON] Max last_modified from DB: {max_modified}")
-            except Exception as e:
-                log.error(f"[DAEMON] Failed to get max last_modified: {e}")
-
-            conn.close()
+        
+        if new_assignments['new_tasks']:
+            log.info(f"[DAEMON] Notified {len(new_assignments['new_tasks'])} NEW task assignments")
+        
+        # =================================================================
+        # 2. ACTIVITIES: Notify only for NEW assignments
+        # =================================================================
+        for activity in new_assignments['new_activities']:
+            activity_id = activity.get('id')
+            summary = activity.get('summary') or "New Activity"
+            due_date = activity.get('due_date', 'No date')
+            odoo_record_id = activity.get('odoo_record_id')
             
-            # Update last check time using the max modified time from synced data
-            # This ensures we don't miss records due to clock differences between server and device
-            self.last_check_time[str(account_id)] = max_modified
-            self._save_last_check_times()
+            self.send_notification(
+                "Activity Assigned",
+                f"New activity: {summary} (Due: {due_date})",
+                nav_type="Activity",
+                record_id=activity_id,
+                account_id=account_id
+            )
+            add_notification(
+                self.app_db,
+                account_id,
+                "Activity",
+                f"New activity: {summary} (Due: {due_date})",
+                {"summary": summary, "due_date": due_date, "id": activity_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+            )
+        
+        if new_assignments['new_activities']:
+            log.info(f"[DAEMON] Notified {len(new_assignments['new_activities'])} NEW activity assignments")
+        
+        # =================================================================
+        # 3. PROJECTS: Notify for newly managed/favorited projects
+        # =================================================================
+        for project in new_assignments['new_projects']:
+            project_id = project.get('id')
+            project_name = project.get('name', 'Unknown Project')
+            odoo_record_id = project.get('odoo_record_id')
             
-        except Exception as e:
-            log.error(f"[DAEMON] Failed to check for updates: {e}")
-    
+            self.send_notification(
+                "Project Added",
+                f"You now have access to project '{project_name}'.",
+                nav_type="Project",
+                record_id=project_id,
+                account_id=account_id
+            )
+            add_notification(
+                self.app_db,
+                account_id,
+                "Project",
+                f"You now have access to project '{project_name}'.",
+                {"project_name": project_name, "id": project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+            )
+        
+        if new_assignments['new_projects']:
+            log.info(f"[DAEMON] Notified {len(new_assignments['new_projects'])} NEW project assignments")
+        
+        # =================================================================
+        # 4. TIMESHEETS: Notify for new timesheet entries
+        # =================================================================
+        for timesheet in new_assignments['new_timesheets']:
+            timesheet_id = timesheet.get('id')
+            ts_name = timesheet.get('name') or "Timesheet Entry"
+            hours = timesheet.get('unit_amount', 0)
+            odoo_record_id = timesheet.get('odoo_record_id')
+            
+            self.send_notification(
+                "Timesheet Added",
+                f"New timesheet '{ts_name}' ({hours}h) synced.",
+                nav_type="Timesheet",
+                record_id=timesheet_id,
+                account_id=account_id
+            )
+            add_notification(
+                self.app_db,
+                account_id,
+                "Timesheet",
+                f"New timesheet '{ts_name}' ({hours}h) synced.",
+                {"timesheet_name": ts_name, "hours": hours, "id": timesheet_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+            )
+        
+        if new_assignments['new_timesheets']:
+            log.info(f"[DAEMON] Notified {len(new_assignments['new_timesheets'])} NEW timesheet entries")
+        
+        # Summary log
+        total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
+                     len(new_assignments['new_projects']) + len(new_assignments['new_timesheets']))
+        if total_new == 0:
+            log.info(f"[DAEMON] No new assignments detected for {account_name}")
+        else:
+            log.info(f"[DAEMON] Total {total_new} new assignment notifications sent for {account_name}")
+
     def sync_account(self, account, sync_direction="both"):
         """Sync a single account and check for updates.
         
@@ -969,6 +827,14 @@ class NotificationDaemon:
         if not account_url or account_name == "Local Account":
             log.info(f"[DAEMON] Skipping local/invalid account: {account_name}")
             return
+
+        # Get current user ID for assignment tracking
+        current_user_id = self.get_current_user_id(account_id, account_user)
+        
+        # CRITICAL: Capture assignment snapshot BEFORE sync
+        # This allows us to detect NEW assignments by comparing pre/post sync state
+        pre_sync_snapshot = get_current_assignments_snapshot(self.app_db, account_id, current_user_id)
+        log.info(f"[DAEMON] Pre-sync snapshot captured for {account_name}")
 
         try:
             log.info(f"[DAEMON] Syncing account: {account_name} (ID: {account_id}) [direction: {sync_direction}]")
@@ -1029,9 +895,9 @@ class NotificationDaemon:
             # Update heartbeat after sync
             self._update_heartbeat()
             
-            # Check for new tasks and notify
-            log.info(f"[DAEMON] Checking for updates for {account_name}")
-            self.check_for_updates(account_id, account_name, account_user)
+            # Check for NEW assignments only (compare post-sync with pre-sync snapshot)
+            log.info(f"[DAEMON] Checking for new assignments for {account_name}")
+            self.check_for_new_assignments(account_id, account_name, current_user_id, pre_sync_snapshot)
             
             log.info(f"[DAEMON] Sync completed for {account_name}")
             
@@ -1041,12 +907,12 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Error syncing account {account_name}: {e}")
             log.error(f"[DAEMON] Error traceback: {traceback.format_exc()}")
-            # Still try to check for updates with existing data
+            # On sync error, we still have the pre_sync_snapshot, so we can check for any
+            # assignments that might have been partially synced
             try:
-                self.check_for_updates(account_id, account_name, account_user)
+                self.check_for_new_assignments(account_id, account_name, current_user_id, pre_sync_snapshot)
             except Exception as e2:
-                log.error(f"[DAEMON] Failed to check updates after error: {e2}")
-                log.error(f"[DAEMON] Updates error traceback: {traceback.format_exc()}")
+                log.error(f"[DAEMON] Failed to check assignments after error: {e2}")
     
     def sync_all_accounts(self):
         """Sync all configured accounts using current settings."""
