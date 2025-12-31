@@ -101,7 +101,7 @@ from config import get_all_accounts, get_setting, DEFAULT_SETTINGS
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
 from sync_to_odoo import sync_all_to_odoo
-from common import add_notification, get_current_assignments_snapshot, detect_new_assignments
+from common import add_notification, get_current_assignments_snapshot, detect_new_assignments, should_send_notification
 from logger import setup_logger
 
 log = setup_logger()
@@ -505,7 +505,20 @@ class NotificationDaemon:
         return False  # Don't repeat - one-shot callback
     
     def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None):
-        """Send a system notification via DBus with optional deep link navigation."""
+        """Send a system notification via DBus with optional deep link navigation.
+        
+        Respects user's notification schedule settings - notifications are only
+        sent during the user's configured active hours in their timezone.
+        """
+        # Check if notification should be sent based on schedule settings
+        should_send, reason = should_send_notification(self.app_db)
+        if not should_send:
+            log.info(f"[DAEMON] Notification suppressed: {reason}")
+            log.info(f"[DAEMON] Skipped notification: {title} - {message}")
+            # Still add to in-app notifications so user sees them when they open the app
+            # The system notification (popup/sound) is skipped, but record is kept
+            return
+        
         # Retry DBus initialization if not available
         if not self.notification_interface:
             log.info("[DAEMON] Notification interface not available, attempting re-initialization...")
