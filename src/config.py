@@ -44,6 +44,74 @@ def initialize_app_settings_db(db_path="app_settings.db"):
         print(f"Database already exists at {db_path}. Checking tables...")
 
 
+# Default AutoSync settings
+DEFAULT_SETTINGS = {
+    "autosync_enabled": "true",
+    "sync_interval_minutes": "15",
+    "sync_direction": "both",  # "both", "download_only", "upload_only"
+}
+
+
+def get_setting(db_path, key, default=None):
+    """
+    Retrieve a setting value from the app_settings table.
+
+    Args:
+        db_path (str): Path to the SQLite database file
+        key (str): The setting key to retrieve
+        default: Default value if setting doesn't exist
+
+    Returns:
+        str: The setting value, or default if not found
+    """
+    if default is None:
+        default = DEFAULT_SETTINGS.get(key)
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM app_settings WHERE key = ?", (key,))
+        row = cur.fetchone()
+        conn.close()
+        if row:
+            return row[0]
+        return default
+    except sqlite3.OperationalError as e:
+        # Table doesn't exist yet
+        if "no such table" in str(e):
+            return default
+        raise
+
+
+def set_setting(db_path, key, value):
+    """
+    Save a setting value to the app_settings table.
+
+    Args:
+        db_path (str): Path to the SQLite database file
+        key (str): The setting key to save
+        value (str): The setting value to save
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        # Create table if it doesn't exist
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)"
+        )
+        cur.execute(
+            "INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+            (key, str(value)),
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
 def get_all_accounts(settings_db_path):
     """
     Retrieve all user accounts from the settings database.

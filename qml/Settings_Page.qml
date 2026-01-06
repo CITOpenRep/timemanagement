@@ -218,6 +218,53 @@ Page {
         }
     }
 
+    // AutoSync Settings Helper Functions
+    function getAutoSyncSetting(key) {
+        var defaultValues = {
+            "autosync_enabled": "true",
+            "sync_interval_minutes": "15",
+            "sync_direction": "both"
+        };
+
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var result = defaultValues[key] || "";
+
+            db.transaction(function (tx) {
+                // Create settings table if it doesn't exist
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+
+                var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', [key]);
+                if (rs.rows.length > 0) {
+                    result = rs.rows.item(0).value;
+                }
+            });
+
+            return result;
+        } catch (e) {
+            console.warn("Error reading AutoSync setting:", e);
+            return defaultValues[key] || "";
+        }
+    }
+
+    function saveAutoSyncSetting(key, value) {
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+
+            db.transaction(function (tx) {
+                // Create settings table if it doesn't exist
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+
+                // Save setting (INSERT OR REPLACE)
+                tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', [key, value]);
+            });
+
+            console.log("AutoSync setting saved:", key, "=", value);
+        } catch (e) {
+            console.warn("Error saving AutoSync setting:", e);
+        }
+    }
+
     function updateThemeCheckboxes() {
         if (typeof lightThemeCheckbox !== 'undefined') {
             lightThemeCheckbox.checked = getCurrentTheme() === "Ubuntu.Components.Themes.Ambiance";
@@ -453,6 +500,162 @@ Page {
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    // AutoSync Settings Section
+                    Rectangle {
+                        width: parent.width
+                        height: autoSyncSection.height + units.gu(2)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
+                        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
+                        border.width: 1
+                        radius: units.gu(1)
+
+                        Column {
+                            id: autoSyncSection
+                            width: parent.width - units.gu(2)
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.top: parent.top
+                            anchors.topMargin: units.gu(1)
+                            spacing: units.gu(1.5)
+
+                            // Header
+                            Text {
+                                text: i18n.dtr("ubtms", "Background Sync Settings")
+                                font.pixelSize: units.gu(2.5)
+                                font.bold: true
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+
+                            Text {
+                                text: i18n.dtr("ubtms", "Configure automatic synchronization with Odoo")
+                                font.pixelSize: units.gu(1.5)
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                wrapMode: Text.WordWrap
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            // AutoSync Enable Toggle
+                            Row {
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: units.gu(2)
+
+                                Text {
+                                    text: i18n.dtr("ubtms", "Enable AutoSync")
+                                    font.pixelSize: units.gu(2)
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - autoSyncSwitch.width - units.gu(4)
+                                }
+
+                                Switch {
+                                    id: autoSyncSwitch
+                                    checked: getAutoSyncSetting("autosync_enabled") === "true"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    onCheckedChanged: {
+                                        saveAutoSyncSetting("autosync_enabled", checked ? "true" : "false");
+                                    }
+                                }
+                            }
+
+                            // Sync Interval Selector
+                            Row {
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: units.gu(2)
+                                opacity: autoSyncSwitch.checked ? 1.0 : 0.5
+
+                                Text {
+                                    text: i18n.dtr("ubtms", "Sync Interval")
+                                    font.pixelSize: units.gu(2)
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - syncIntervalCombo.width - units.gu(4)
+                                }
+
+                                ComboBox {
+                                    id: syncIntervalCombo
+                                    width: units.gu(15)
+                                    enabled: autoSyncSwitch.checked
+                                    model: [
+                                        { text: "1 minute", value: "1" },
+                                        { text: "5 minutes", value: "5" },
+                                        { text: "15 minutes", value: "15" },
+                                        { text: "30 minutes", value: "30" },
+                                        { text: "60 minutes", value: "60" }
+                                    ]
+                                    textRole: "text"
+                                    currentIndex: {
+                                        var saved = getAutoSyncSetting("sync_interval_minutes");
+                                        for (var i = 0; i < model.length; i++) {
+                                            if (model[i].value === saved) return i;
+                                        }
+                                        return 2; // Default to 15 minutes
+                                    }
+                                    onCurrentIndexChanged: {
+                                        if (currentIndex >= 0 && currentIndex < model.length) {
+                                            saveAutoSyncSetting("sync_interval_minutes", model[currentIndex].value);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Sync Direction Selector
+                            Row {
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: units.gu(2)
+                                opacity: autoSyncSwitch.checked ? 1.0 : 0.5
+
+                                Text {
+                                    text: i18n.dtr("ubtms", "Sync Direction")
+                                    font.pixelSize: units.gu(2)
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - syncDirectionCombo.width - units.gu(4)
+                                }
+
+                                ComboBox {
+                                    id: syncDirectionCombo
+                                    width: units.gu(18)
+                                    enabled: autoSyncSwitch.checked
+                                    model: [
+                                        { text: "Both (Up & Down)", value: "both" },
+                                        { text: "Download Only", value: "download_only" },
+                                        { text: "Upload Only", value: "upload_only" }
+                                    ]
+                                    textRole: "text"
+                                    currentIndex: {
+                                        var saved = getAutoSyncSetting("sync_direction");
+                                        for (var i = 0; i < model.length; i++) {
+                                            if (model[i].value === saved) return i;
+                                        }
+                                        return 0; // Default to both
+                                    }
+                                    onCurrentIndexChanged: {
+                                        if (currentIndex >= 0 && currentIndex < model.length) {
+                                            saveAutoSyncSetting("sync_direction", model[currentIndex].value);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Info text
+                            Text {
+                                text: i18n.dtr("ubtms", "Note: Changes take effect on the next sync cycle. The background daemon checks for setting updates automatically.")
+                                font.pixelSize: units.gu(1.3)
+                                font.italic: true
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#888"
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                wrapMode: Text.WordWrap
+                                width: parent.width - units.gu(2)
+                                horizontalAlignment: Text.AlignHCenter
                             }
                         }
                     }
