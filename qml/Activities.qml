@@ -18,6 +18,7 @@ Page {
     id: activityDetailsPage
     title: i18n.dtr("ubtms", "Activity")
     property var recordid: 0
+    property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
     property var currentActivity: {
@@ -845,7 +846,21 @@ Page {
         isInitializing = true;
 
         if (recordid != 0) {
-            currentActivity = Activity.getActivityById(recordid, accountid);
+            // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
+            if (isOdooRecordId) {
+                // recordid is an odoo_record_id (stable, from notification deep link)
+                currentActivity = Activity.getActivityByOdooId(recordid, accountid);
+                console.log("Activities: Loaded by odoo_record_id:", recordid, "found local id:", currentActivity ? currentActivity.id : "null");
+                // Update recordid to local id for subsequent operations
+                if (currentActivity && currentActivity.id) {
+                    recordid = currentActivity.id;
+                    accountid = currentActivity.account_id;
+                    isOdooRecordId = false; // Now we have the local id
+                }
+            } else {
+                // recordid is a local id (from normal navigation)
+                currentActivity = Activity.getActivityById(recordid, accountid);
+            }
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
 
             let instanceId = currentActivity.account_id;

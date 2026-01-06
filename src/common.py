@@ -24,12 +24,6 @@
 from datetime import datetime
 import json
 import sqlite3
-from pathlib import Path
-from logger import setup_logger
-from datetime import datetime
-import sqlite3
-import time
-import sqlite3
 import time
 import threading
 from logger import setup_logger
@@ -152,9 +146,6 @@ def check_table_exists(db_path, table_name):
         print(f"[ERROR] Failed to inspect DB: {e}")
         return False
 
-    import json
-    from datetime import datetime
-
 
 def write_sync_report_to_db(db_path, account_id, status, message=""):
     """
@@ -273,3 +264,193 @@ def add_notification(db_path, account_id, notif_type, message, payload):
         insert_sql,
         (account_id, timestamp, message, notif_type, payload_json)
     )
+
+
+# =============================================================================
+# Assignment Tracking - For detecting assignment changes vs general updates
+# =============================================================================
+
+def get_current_assignments_snapshot(db_path, account_id, user_id):
+    """
+    Capture a snapshot of current task/activity assignments BEFORE sync.
+    
+    This should be called BEFORE sync_from_odoo to capture the pre-sync state.
+    After sync, compare with the new state to detect NEW assignments.
+    
+    IMPORTANT: We use odoo_record_id (not local id) because INSERT OR REPLACE
+    changes the local auto-increment id on every sync, but odoo_record_id is stable.
+    
+    Args:
+        db_path (str): Path to the SQLite database file
+        account_id (int): Account ID
+        user_id (int): The current user's Odoo ID
+        
+    Returns:
+        dict: Sets of odoo_record_ids currently assigned to user for each type
+    """
+    snapshot = {
+        'tasks': set(),
+        'activities': set(),
+        'projects': set(),
+        'timesheets': set()
+    }
+    
+    if not user_id:
+        return snapshot
+    
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Tasks: user_id can be single ID or CSV
+        # Use odoo_record_id for stable comparison across syncs
+        cursor.execute("""
+            SELECT odoo_record_id FROM project_task_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+            AND (
+                user_id = ? 
+                OR user_id = ?
+                OR (',' || user_id || ',') LIKE ?
+            )
+        """, (account_id, user_id, str(user_id), f"%,{user_id},%"))
+        snapshot['tasks'] = {row[0] for row in cursor.fetchall() if row[0]}
+        
+        # Activities: single user_id
+        cursor.execute("""
+            SELECT odoo_record_id FROM mail_activity_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+            AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
+        """, (account_id, user_id, str(user_id), str(user_id)))
+        snapshot['activities'] = {row[0] for row in cursor.fetchall() if row[0]}
+        
+        # Projects: user manages or favorites
+        cursor.execute("""
+            SELECT odoo_record_id FROM project_project_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+            AND (user_id = ? OR user_id = ? OR favorites = 1)
+        """, (account_id, user_id, str(user_id)))
+        snapshot['projects'] = {row[0] for row in cursor.fetchall() if row[0]}
+        
+        # Timesheets: owned by user
+        cursor.execute("""
+            SELECT odoo_record_id FROM account_analytic_line_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+            AND (user_id = ? OR user_id = ?)
+        """, (account_id, user_id, str(user_id)))
+        snapshot['timesheets'] = {row[0] for row in cursor.fetchall() if row[0]}
+        
+        conn.close()
+        log.info(f"[COMMON] Assignment snapshot (by odoo_record_id): tasks={len(snapshot['tasks'])}, "
+                 f"activities={len(snapshot['activities'])}, projects={len(snapshot['projects'])}, "
+                 f"timesheets={len(snapshot['timesheets'])}")
+        
+    except Exception as e:
+        log.error(f"[COMMON] Failed to get assignment snapshot: {e}")
+    
+    return snapshot
+
+
+def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
+    """
+    Compare current DB state with pre-sync snapshot to find NEW assignments only.
+    
+    This should be called AFTER sync_from_odoo completes.
+    Only returns records that are NOW assigned to the user but WERE NOT before sync.
+    
+    IMPORTANT: Compares by odoo_record_id (not local id) since INSERT OR REPLACE
+    changes local id on every sync, but odoo_record_id is stable.
+    
+    Args:
+        db_path (str): Path to the SQLite database file
+        account_id (int): Account ID
+        user_id (int): The current user's Odoo ID
+        pre_sync_snapshot (dict): Snapshot from get_current_assignments_snapshot()
+        
+    Returns:
+        dict: Lists of newly assigned record rows for each type
+    """
+    result = {
+        'new_tasks': [],
+        'new_activities': [],
+        'new_projects': [],
+        'new_timesheets': []
+    }
+    
+    if not user_id:
+        return result
+    
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get current tasks assigned to user - compare by odoo_record_id
+        cursor.execute("""
+            SELECT id, name, project_id, odoo_record_id FROM project_task_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+            AND (
+                user_id = ? 
+                OR user_id = ?
+                OR (',' || user_id || ',') LIKE ?
+            )
+        """, (account_id, user_id, str(user_id), f"%,{user_id},%"))
+        
+        for task in cursor.fetchall():
+            odoo_id = task['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot['tasks']:
+                result['new_tasks'].append(dict(task))
+        
+        # Get current activities assigned to user
+        cursor.execute("""
+            SELECT id, summary, due_date, odoo_record_id FROM mail_activity_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+            AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
+        """, (account_id, user_id, str(user_id), str(user_id)))
+        
+        for activity in cursor.fetchall():
+            odoo_id = activity['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot['activities']:
+                result['new_activities'].append(dict(activity))
+        
+        # Get current projects (managed or favorited)
+        cursor.execute("""
+            SELECT id, name, odoo_record_id FROM project_project_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+            AND (user_id = ? OR user_id = ? OR favorites = 1)
+        """, (account_id, user_id, str(user_id)))
+        
+        for project in cursor.fetchall():
+            odoo_id = project['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot['projects']:
+                result['new_projects'].append(dict(project))
+        
+        # Get current timesheets (owned by user)
+        cursor.execute("""
+            SELECT id, name, unit_amount, odoo_record_id FROM account_analytic_line_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+            AND (user_id = ? OR user_id = ?)
+        """, (account_id, user_id, str(user_id)))
+        
+        for timesheet in cursor.fetchall():
+            odoo_id = timesheet['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot['timesheets']:
+                result['new_timesheets'].append(dict(timesheet))
+        
+        conn.close()
+        
+        log.info(f"[COMMON] New assignments detected (by odoo_record_id): tasks={len(result['new_tasks'])}, "
+                 f"activities={len(result['new_activities'])}, projects={len(result['new_projects'])}, "
+                 f"timesheets={len(result['new_timesheets'])}")
+        
+    except Exception as e:
+        log.error(f"[COMMON] Failed to detect new assignments: {e}")
+    
+    return result

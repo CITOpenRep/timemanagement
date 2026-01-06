@@ -157,6 +157,68 @@ function getActivityById(record_id, account_id) {
     return activity;
 }
 
+/**
+ * Retrieves an activity by its Odoo record ID (stable identifier).
+ * This is used for deep link navigation from notifications.
+ *
+ * @param {number} odoo_record_id - The Odoo record ID of the activity.
+ * @param {number} [account_id] - Optional account ID to narrow the search.
+ * @returns {Object|null} Enriched activity object or null if not found.
+ */
+function getActivityByOdooId(odoo_record_id, account_id) {
+    var activity = null;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var sql = 'SELECT * FROM mail_activity_app WHERE odoo_record_id = ?';
+            var params = [odoo_record_id];
+            
+            if (account_id !== undefined && account_id !== null && account_id > 0) {
+                sql += ' AND account_id = ?';
+                params.push(account_id);
+            }
+            
+            sql += ' LIMIT 1';
+            var rs = tx.executeSql(sql, params);
+
+            if (rs.rows.length > 0) {
+                activity = DBCommon.rowToObject(rs.rows.item(0));
+                initializeEnrichmentDefaults(activity);
+
+                if (activity.resModel === "project.task" && activity.link_id) {
+                    let linkage = resolveActivityLinkage(tx, activity.link_id, activity.account_id);
+                    activity.task_id = linkage.task_id;
+                    activity.sub_task_id = linkage.sub_task_id;
+                    activity.project_id = linkage.project_id;
+                    activity.sub_project_id = linkage.sub_project_id;
+                    activity.linkedType = "task";
+                } else if (activity.resModel === "project.project" && activity.link_id) {
+                    let linkage = resolveProjectLinkage(tx, activity.link_id, activity.account_id);
+                    activity.task_id = linkage.task_id;
+                    activity.sub_task_id = linkage.sub_task_id;
+                    activity.project_id = linkage.project_id;
+                    activity.sub_project_id = linkage.sub_project_id;
+                    activity.linkedType = "project";
+                } else if (activity.resModel === "project.update" && activity.link_id) {
+                    activity.update_id = activity.link_id;
+                    activity.linkedType = "update";
+                }
+
+                console.log("getActivityByOdooId found activity id:", activity.id, "for odoo_record_id:", odoo_record_id);
+            } else {
+                console.error("No activity found for odoo_record_id:", odoo_record_id);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getActivityByOdooId", e);
+    }
+
+    return activity;
+}
+
 
 function initializeEnrichmentDefaults(activity) {
     activity.project_id = -1;
