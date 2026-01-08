@@ -412,8 +412,8 @@ Page {
     */
 
     function passesDateFilter(dueDateStr, filter, currentDate) {
-        // Handle "all" filter - show everything
-        if (filter === "all") {
+        // Handle "all" and "done" filters - show everything (done activities are already filtered by state)
+        if (filter === "all" || filter === "done") {
             return true;
         }
 
@@ -524,7 +524,7 @@ Page {
         label4: i18n.dtr("ubtms", "Later")
         label5: i18n.dtr("ubtms", "OverDue")
         label6: i18n.dtr("ubtms", "All")
-        label7: ""
+        label7: i18n.dtr("ubtms", "Done")
         
         showSearchBox: false
         currentFilter: activity.currentFilter
@@ -535,7 +535,7 @@ Page {
         filter4: "later"
         filter5: "overdue"
         filter6: "all"
-        filter7: ""
+        filter7: "done"
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
