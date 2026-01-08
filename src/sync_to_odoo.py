@@ -564,9 +564,10 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
         try:
             # XXXX Special Case: Mark mail.activity as done XXXXX
             if model_name == "mail.activity" and record.get("state") == "done":
+                log.info(f"[ACTIVITY_SYNC_TO] Detected done activity: id={record['id']}, odoo_id={record['odoo_record_id']}, state={record.get('state')}")
                 try:
                     client.call("mail.activity", "action_done", [[record["odoo_record_id"]]])
-                    log.debug(f"[SYNC] Activity {record['odoo_record_id']} marked as done using action_done.")
+                    log.info(f"[ACTIVITY_SYNC_TO] Activity {record['odoo_record_id']} marked as done on server using action_done.")
 
                     # Keep the record locally with status cleared (not pending sync)
                     # This allows the Done filter to show completed activities
@@ -575,7 +576,7 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                         f"UPDATE {record['table_name']} SET status = '' WHERE id = ? AND account_id = ?",
                         (record["id"], record["account_id"])
                     )
-                    log.debug(f"[SYNC] Kept local Activity record {record['id']} with state=done for Done filter")
+                    log.info(f"[ACTIVITY_SYNC_TO] Kept local Activity record {record['id']} with state=done, status cleared")
 
                     return record["odoo_record_id"]
                 except Exception as e:
