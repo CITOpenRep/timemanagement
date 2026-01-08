@@ -568,13 +568,14 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                     client.call("mail.activity", "action_done", [[record["odoo_record_id"]]])
                     log.debug(f"[SYNC] Activity {record['odoo_record_id']} marked as done using action_done.")
 
-                    # ✅ Optional: Remove the record from local SQLite after marking done
+                    # Keep the record locally with status cleared (not pending sync)
+                    # This allows the Done filter to show completed activities
                     safe_sql_execute(
                         record["db_path"],
-                        f"DELETE FROM {record['table_name']} WHERE id = ? AND account_id = ?",
+                        f"UPDATE {record['table_name']} SET status = '' WHERE id = ? AND account_id = ?",
                         (record["id"], record["account_id"])
                     )
-                    log.debug(f"[CLEANUP] Deleted local Activity record {record['id']} from {record['table_name']} after marking as done.")
+                    log.debug(f"[SYNC] Kept local Activity record {record['id']} with state=done for Done filter")
 
                     return record["odoo_record_id"]
                 except Exception as e:
