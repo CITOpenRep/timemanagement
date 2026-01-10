@@ -675,6 +675,11 @@ class NotificationDaemon:
         - Daemon restarts (existing assignments don't trigger notifications)
         - General updates to records (only assignment changes matter)
         
+        BULK NOTIFICATION PROTECTION:
+        - Maximum of 5 notifications per sync cycle per type
+        - If more than 10 total new items detected, likely a fresh sync/data migration
+          and we show a single summary notification instead of individual ones
+        
         Args:
             account_id: Account ID
             account_name: Account name for logging
@@ -693,9 +698,70 @@ class NotificationDaemon:
         )
         
         # =================================================================
-        # 1. TASKS: Notify only for NEW assignments
+        # BULK NOTIFICATION PROTECTION
         # =================================================================
-        for task in new_assignments['new_tasks']:
+        # If too many "new" items detected, this is likely a fresh install,
+        # database reset, or first sync - NOT actual new assignments.
+        # In this case, show a single summary instead of spamming notifications.
+        MAX_NOTIFICATIONS_PER_TYPE = 5
+        BULK_THRESHOLD = 10  # Total items that triggers bulk mode
+        
+        total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
+                     len(new_assignments['new_projects']) + len(new_assignments['new_timesheets']))
+        
+        if total_new > BULK_THRESHOLD:
+            log.warning(f"[DAEMON] Bulk notification protection triggered: {total_new} new items detected")
+            log.warning(f"[DAEMON] This appears to be a fresh sync or data migration - sending summary only")
+            
+            # Send a single summary notification instead of individual ones
+            summary_parts = []
+            if new_assignments['new_tasks']:
+                summary_parts.append(f"{len(new_assignments['new_tasks'])} tasks")
+            if new_assignments['new_activities']:
+                summary_parts.append(f"{len(new_assignments['new_activities'])} activities")
+            if new_assignments['new_projects']:
+                summary_parts.append(f"{len(new_assignments['new_projects'])} projects")
+            if new_assignments['new_timesheets']:
+                summary_parts.append(f"{len(new_assignments['new_timesheets'])} timesheets")
+            
+            summary_msg = f"Synced {', '.join(summary_parts)} for {account_name}"
+            self.send_notification(
+                "Sync Complete",
+                summary_msg,
+                nav_type=None,
+                record_id=None,
+                account_id=account_id
+            )
+            
+            # Still add individual notifications to the DB (for history) but don't send popups
+            # This ensures the notification center has the full list
+            for task in new_assignments['new_tasks']:
+                add_notification(
+                    self.app_db, account_id, "Task",
+                    f"You've been assigned to task '{task.get('name', 'Unknown Task')}'.",
+                    {"task_name": task.get('name'), "project_id": task.get('project_id'), 
+                     "id": task.get('id'), "odoo_record_id": task.get('odoo_record_id'), 
+                     "is_new_assignment": True, "bulk_sync": True}
+                )
+            for activity in new_assignments['new_activities']:
+                add_notification(
+                    self.app_db, account_id, "Activity",
+                    f"New activity: {activity.get('summary') or 'New Activity'} (Due: {activity.get('due_date', 'No date')})",
+                    {"summary": activity.get('summary'), "due_date": activity.get('due_date'),
+                     "id": activity.get('id'), "odoo_record_id": activity.get('odoo_record_id'),
+                     "is_new_assignment": True, "bulk_sync": True}
+                )
+            
+            log.info(f"[DAEMON] Bulk sync summary notification sent for {account_name}")
+            return  # Skip individual notifications
+        
+        # =================================================================
+        # 1. TASKS: Notify only for NEW assignments (max 5 notifications)
+        # =================================================================
+        tasks_to_notify = new_assignments['new_tasks'][:MAX_NOTIFICATIONS_PER_TYPE]
+        tasks_overflow = len(new_assignments['new_tasks']) - len(tasks_to_notify)
+        
+        for task in tasks_to_notify:
             task_id = task.get('id')
             task_name = task.get('name', 'Unknown Task')
             project_id = task.get('project_id')
@@ -717,13 +783,27 @@ class NotificationDaemon:
                 {"task_name": task_name, "project_id": project_id, "id": task_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
             )
         
+        # Add remaining tasks to DB without sending popups
+        for task in new_assignments['new_tasks'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            add_notification(
+                self.app_db, account_id, "Task",
+                f"You've been assigned to task '{task.get('name', 'Unknown Task')}'.",
+                {"task_name": task.get('name'), "project_id": task.get('project_id'), 
+                 "id": task.get('id'), "odoo_record_id": task.get('odoo_record_id'), 
+                 "is_new_assignment": True, "notification_suppressed": True}
+            )
+        
         if new_assignments['new_tasks']:
-            log.info(f"[DAEMON] Notified {len(new_assignments['new_tasks'])} NEW task assignments")
+            log.info(f"[DAEMON] Notified {len(tasks_to_notify)} NEW task assignments" + 
+                     (f" ({tasks_overflow} more added to history)" if tasks_overflow > 0 else ""))
         
         # =================================================================
-        # 2. ACTIVITIES: Notify only for NEW assignments
+        # 2. ACTIVITIES: Notify only for NEW assignments (max 5 notifications)
         # =================================================================
-        for activity in new_assignments['new_activities']:
+        activities_to_notify = new_assignments['new_activities'][:MAX_NOTIFICATIONS_PER_TYPE]
+        activities_overflow = len(new_assignments['new_activities']) - len(activities_to_notify)
+        
+        for activity in activities_to_notify:
             activity_id = activity.get('id')
             summary = activity.get('summary') or "New Activity"
             due_date = activity.get('due_date', 'No date')
@@ -745,13 +825,27 @@ class NotificationDaemon:
                 {"summary": summary, "due_date": due_date, "id": activity_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
             )
         
+        # Add remaining activities to DB without sending popups
+        for activity in new_assignments['new_activities'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            add_notification(
+                self.app_db, account_id, "Activity",
+                f"New activity: {activity.get('summary') or 'New Activity'} (Due: {activity.get('due_date', 'No date')})",
+                {"summary": activity.get('summary'), "due_date": activity.get('due_date'),
+                 "id": activity.get('id'), "odoo_record_id": activity.get('odoo_record_id'),
+                 "is_new_assignment": True, "notification_suppressed": True}
+            )
+        
         if new_assignments['new_activities']:
-            log.info(f"[DAEMON] Notified {len(new_assignments['new_activities'])} NEW activity assignments")
+            log.info(f"[DAEMON] Notified {len(activities_to_notify)} NEW activity assignments" +
+                     (f" ({activities_overflow} more added to history)" if activities_overflow > 0 else ""))
         
         # =================================================================
-        # 3. PROJECTS: Notify for newly managed/favorited projects
+        # 3. PROJECTS: Notify for newly managed/favorited projects (max 5 notifications)
         # =================================================================
-        for project in new_assignments['new_projects']:
+        projects_to_notify = new_assignments['new_projects'][:MAX_NOTIFICATIONS_PER_TYPE]
+        projects_overflow = len(new_assignments['new_projects']) - len(projects_to_notify)
+        
+        for project in projects_to_notify:
             local_project_id = project.get('id')
             project_name = project.get('name', 'Unknown Project')
             odoo_record_id = project.get('odoo_record_id')
@@ -772,13 +866,27 @@ class NotificationDaemon:
                 {"project_name": project_name, "id": local_project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
             )
         
+        # Add remaining projects to DB without sending popups
+        for project in new_assignments['new_projects'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            add_notification(
+                self.app_db, account_id, "Project",
+                f"You now have access to project '{project.get('name', 'Unknown Project')}'.",
+                {"project_name": project.get('name'), "id": project.get('id'), 
+                 "odoo_record_id": project.get('odoo_record_id'),
+                 "is_new_assignment": True, "notification_suppressed": True}
+            )
+        
         if new_assignments['new_projects']:
-            log.info(f"[DAEMON] Notified {len(new_assignments['new_projects'])} NEW project assignments")
+            log.info(f"[DAEMON] Notified {len(projects_to_notify)} NEW project assignments" +
+                     (f" ({projects_overflow} more added to history)" if projects_overflow > 0 else ""))
         
         # =================================================================
-        # 4. TIMESHEETS: Notify for new timesheet entries
+        # 4. TIMESHEETS: Notify for new timesheet entries (max 5 notifications)
         # =================================================================
-        for timesheet in new_assignments['new_timesheets']:
+        timesheets_to_notify = new_assignments['new_timesheets'][:MAX_NOTIFICATIONS_PER_TYPE]
+        timesheets_overflow = len(new_assignments['new_timesheets']) - len(timesheets_to_notify)
+        
+        for timesheet in timesheets_to_notify:
             timesheet_id = timesheet.get('id')
             ts_name = timesheet.get('name') or "Timesheet Entry"
             hours = timesheet.get('unit_amount', 0)
@@ -800,8 +908,19 @@ class NotificationDaemon:
                 {"timesheet_name": ts_name, "hours": hours, "id": timesheet_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
             )
         
+        # Add remaining timesheets to DB without sending popups
+        for timesheet in new_assignments['new_timesheets'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            add_notification(
+                self.app_db, account_id, "Timesheet",
+                f"New timesheet '{timesheet.get('name') or 'Timesheet Entry'}' ({timesheet.get('unit_amount', 0)}h) synced.",
+                {"timesheet_name": timesheet.get('name'), "hours": timesheet.get('unit_amount'),
+                 "id": timesheet.get('id'), "odoo_record_id": timesheet.get('odoo_record_id'),
+                 "is_new_assignment": True, "notification_suppressed": True}
+            )
+        
         if new_assignments['new_timesheets']:
-            log.info(f"[DAEMON] Notified {len(new_assignments['new_timesheets'])} NEW timesheet entries")
+            log.info(f"[DAEMON] Notified {len(timesheets_to_notify)} NEW timesheet entries" +
+                     (f" ({timesheets_overflow} more added to history)" if timesheets_overflow > 0 else ""))
         
         # Summary log
         total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
