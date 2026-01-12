@@ -124,17 +124,27 @@ def insert_record(
         record["account_id"] = account_id
         
         # Check if local record has pending changes (status = 'updated' or 'created')
-        # If so, we should preserve certain local fields like 'favorites'
+        # If so, we should preserve certain local fields like 'favorites' and 'state' for activities
         odoo_record_id = record.get("id")
         existing_status = None
         existing_favorites = None
+        existing_state = None  # For mail_activity_app - preserve done state
         if odoo_record_id:
             try:
-                check_sql = f"SELECT status, favorites FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
+                # For activities, also fetch the state field to preserve 'done' status
+                if table_name == "mail_activity_app":
+                    check_sql = f"SELECT status, favorites, state FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
+                else:
+                    check_sql = f"SELECT status, favorites FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
                 result = safe_sql_execute(db_path, check_sql, (odoo_record_id, account_id), fetch=True, commit=False)
                 if result and len(result) > 0:
                     existing_status = result[0][0]
                     existing_favorites = result[0][1]
+                    if table_name == "mail_activity_app" and len(result[0]) > 2:
+                        existing_state = result[0][2]
+                    # DEBUG: Log activity sync decisions
+                    if table_name == "mail_activity_app":
+                        log.info(f"[ACTIVITY_SYNC] odoo_id={odoo_record_id}: existing_status={existing_status}, existing_state={existing_state}, server_state={record.get('state')}")
             except Exception as e:
                 log.debug(f"[DEBUG] Could not check existing status: {e}")
         
@@ -174,6 +184,12 @@ def insert_record(
             if sqlite_field == "favorites" and existing_status in ("updated", "created"):
                 val = existing_favorites
                 log.debug(f"[PRESERVE] Keeping local favorites value: {val} (status={existing_status})")
+            
+            # Preserve local state for activities if there are pending changes (e.g., 'done' state)
+            if sqlite_field == "state" and table_name == "mail_activity_app" and existing_status in ("updated", "created"):
+                if existing_state:
+                    val = existing_state
+                    log.info(f"[ACTIVITY_SYNC] PRESERVING local state={val} for odoo_id={odoo_record_id} (status={existing_status}, would be overwritten with server_state={record.get('state')})")
             
             if sqlite_field == "account_id":
                 continue  # Already manually handled
@@ -424,18 +440,45 @@ def remove_orphaned_local_records(
     Note:
         Deletes local records with odoo_record_id not in the fetched set,
         ensuring local database doesn't contain stale records.
+        EXCEPTION: Records with status='updated' are preserved (pending local changes).
+        EXCEPTION: For mail_activity_app, records with state='done' are preserved.
     """
     # Fetch all local records with odoo_record_id
-    rows = safe_sql_execute(
-        db_path,
-        f"SELECT id, odoo_record_id FROM {table_name} WHERE account_id = ? AND odoo_record_id IS NOT NULL",
-        (account_id,),
-        fetch=True,
-        commit=False,
-    )
+    # For activities, also fetch state to preserve done activities
+    if table_name == "mail_activity_app":
+        rows = safe_sql_execute(
+            db_path,
+            f"SELECT id, odoo_record_id, status, state FROM {table_name} WHERE account_id = ? AND odoo_record_id IS NOT NULL",
+            (account_id,),
+            fetch=True,
+            commit=False,
+        )
+    else:
+        rows = safe_sql_execute(
+            db_path,
+            f"SELECT id, odoo_record_id, status FROM {table_name} WHERE account_id = ? AND odoo_record_id IS NOT NULL",
+            (account_id,),
+            fetch=True,
+            commit=False,
+        )
 
-    for local_id, odoo_id in rows:
+    for row in rows:
+        local_id = row[0]
+        odoo_id = row[1]
+        status = row[2] if len(row) > 2 else None
+        state = row[3] if len(row) > 3 else None  # Only for activities
+        
         if odoo_id not in fetched_odoo_ids:
+            # Skip deletion if record has pending local changes
+            if status in ("updated", "created"):
+                log.info(f"[SKIP_DELETE] {model_name} local id={local_id} (odoo_id={odoo_id}) has pending changes (status={status}) - NOT deleting")
+                continue
+            
+            # Skip deletion for done activities - they were intentionally kept locally
+            if table_name == "mail_activity_app" and state == "done":
+                log.info(f"[SKIP_DELETE] Activity local id={local_id} (odoo_id={odoo_id}) has state=done - preserving for Done filter")
+                continue
+                
             safe_sql_execute(
                 db_path,
                 f"DELETE FROM {table_name} WHERE id = ?",
