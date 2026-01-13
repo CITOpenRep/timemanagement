@@ -591,10 +591,12 @@ Page {
                     });
                 }
                 onEditRequested: function (accountid, recordid) {
+                    // Don't allow editing activities marked as done
+                    var isActivityDone = model.state === "done";
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         "recordid": recordid,
                         "accountid": accountid,
-                        "isReadOnly": false
+                        "isReadOnly": isActivityDone ? true : false
                     });
                 }
                 onViewRequested: function (accountid, recordid) {
