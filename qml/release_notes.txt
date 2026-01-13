@@ -33,12 +33,12 @@
 
       <h3>Change History : </h3>
 
-       <h4> 17-01-2026 : Version 1.2.2 </h4>
+       <h4> 16-01-2026 : Version 1.2.2 </h4>
 
       <h4>New Features and Improvements</h4>
 <ul>
   <li><b>Deep Linking from Notifications:</b> Tap on system notifications to navigate directly to the specific record (project, task, activity, etc.). Includes delayed navigation on cold start to ensure UI components are fully loaded.</li>
-  <li><b>Push Notifications & Auto-Sync:</b> Introducing push notification system with DBus integration and background daemon for real-time updates. Auto-sync from Odoo to device with configurable settings.</li>
+  <li><b>Push Notifications & Auto-Sync:</b>  Auto-sync from Odoo to device with configurable settings.</li>
   <li><b>Activity Done Filter:</b> Added "Done" filter option in Activities page to view completed activities. Enhanced activity synchronization to preserve 'done' state and local records for better filter visibility.</li>
   <li><b>Assignment Tracking:</b> Notifications now detect new task/project assignments post-sync using stable Odoo record IDs for consistency.</li>
   <li><b>Bulk Notification Protection:</b> Implemented smart notification limiting to prevent notification spam during sync cycles, with summary for fresh syncs.</li>
@@ -48,8 +48,6 @@
   <li><b>Option Selector Popover:</b> Replaced Selection Button Dialog Box with a cleaner OptionSelector Popover for better UX.</li>
   <li><b>Draft Manager for Projects:</b> Added draft management support for project forms.</li>
   <li><b>User Favorites Sync:</b> Added user_id field to projects and sync favorites with Odoo.</li>
-  <li><b>Task Filtering Enhancements:</b> Added task filtering functionality for activities and timesheets with project color inheritance.</li>
-  <li><b>View Activities & Timesheets in Tasks:</b> Added "View Activities" button and "Create Timesheet" functionality in Task detail view.</li>
 </ul>
 
       <h4>Notification System Improvements</h4>
@@ -62,21 +60,9 @@
   <li><b>Periodic Refresh:</b> Automatic notification tracking and periodic refresh in notification bell component.</li>
 </ul>
 
-      <h4>Daemon & Background Sync</h4>
-<ul>
-  <li><b>Notification Daemon:</b> Background daemon with systemd service activation, wakelock management, and OOM protection for reliable operation.</li>
-  <li><b>Health Monitoring:</b> Watchdog script with daemon health checks, DBus availability monitoring, and automatic recovery.</li>
-  <li><b>Version Control:</b> Daemon version check and auto-restart on updates to ensure latest features are active.</li>
-  <li><b>Robust Startup:</b> Enhanced daemon bootstrap script with environment setup, retry logic, and improved error handling.</li>
-  <li><b>Auto-Start Integration:</b> Daemon automatically starts on app launch with proper initialization and service checks.</li>
-</ul>
-
       <h4>Bug Fixes and Technical Improvements</h4>
 <ul>
   <li><b>Activity Race Conditions:</b> Fixed race conditions during activity creation and sync to prevent duplicate submissions.</li>
-  <li><b>Null Value Warnings:</b> Normalized null values for task_id and resId in Activities and Activity_Page to prevent warnings.</li>
-  <li><b>Daemon Improvements:</b> Enhanced daemon startup process with better logging, service checks, and dynamic heartbeat file handling.</li>
-  <li><b>Code Quality:</b> Added copyright notices, licensing information, and code review fixes for passing manual review requirements.</li>
   <li><b>DBus Reliability:</b> Enhanced DBus initialization with retry logic and configurable parameters for improved robustness.</li>
   <li><b>Sync Logic:</b> Updated last check time handling in daemon to use maximum last_modified from synced data for accuracy.</li>
   <li><b>Exception Handling:</b> Improved global exception handling and signal management in NotificationDaemon.</li>
