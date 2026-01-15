@@ -94,10 +94,10 @@
       <div class="curq-section">
          <h2>Recommended Server: CURQ</h2>
          <p>
-            <strong>CURQ</strong> is the all-in-one platform for your business, fully Open Source and tailored to your needs.
+            <a href="https://curq.nl" target="_blank"><strong>CURQ<strong></a> is the all-in-one platform for your business, fully Open Source and tailored to your needs.
          </p>
          <p>
-            With CURQ you can effortlessly arrange your accounting, keep your stock up-to-date, send your quotations and invoices, 
+            With <a href="https://curq.nl" target="_blank">CURQ</a> you can effortlessly arrange your accounting, keep your stock up-to-date, send your quotations and invoices, 
             and you always have insight into the progress of your projects. Everything you need for your business in one place. 
             <strong>Completely open source and independent of the big players.</strong>
          </p>
