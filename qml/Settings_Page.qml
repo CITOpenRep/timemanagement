@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
+import Lomiri.Components.ListItems 1.3 as ListItem
 import io.thp.pyotherside 1.4
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Accounts
@@ -565,83 +566,57 @@ Page {
                             }
 
                             // Sync Interval Selector
-                            Row {
-                                width: parent.width
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: units.gu(2)
-                                opacity: autoSyncSwitch.checked ? 1.0 : 0.5
-
-                                Text {
-                                    text: i18n.dtr("ubtms", "Sync Interval")
-                                    font.pixelSize: units.gu(2)
-                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width - syncIntervalCombo.width - units.gu(4)
+                            ListItem.ItemSelector {
+                                id: syncIntervalCombo
+                                text: i18n.dtr("ubtms", "Sync Interval")
+                                enabled: autoSyncSwitch.checked
+                                model: [
+                                    { text: "1 minute", value: "1" },
+                                    { text: "5 minutes", value: "5" },
+                                    { text: "15 minutes", value: "15" },
+                                    { text: "30 minutes", value: "30" },
+                                    { text: "60 minutes", value: "60" }
+                                ]
+                                delegate: OptionSelectorDelegate { 
+                                    text: modelData.text 
                                 }
-
-                                OptionSelector {
-                                    id: syncIntervalCombo
-                                    width: units.gu(15)
-                                    enabled: autoSyncSwitch.checked
-                                    model: [
-                                        { text: "1 minute", value: "1" },
-                                        { text: "5 minutes", value: "5" },
-                                        { text: "15 minutes", value: "15" },
-                                        { text: "30 minutes", value: "30" },
-                                        { text: "60 minutes", value: "60" }
-                                    ]
-                                    delegate: OptionSelectorDelegate { text: modelData.text }
-                                    selectedIndex: {
-                                        var saved = getAutoSyncSetting("sync_interval_minutes");
-                                        for (var i = 0; i < model.length; i++) {
-                                            if (model[i].value === saved) return i;
-                                        }
-                                        return 2; // Default to 15 minutes
+                                selectedIndex: {
+                                    var saved = getAutoSyncSetting("sync_interval_minutes");
+                                    for (var i = 0; i < model.length; i++) {
+                                        if (model[i].value === saved) return i;
                                     }
-                                    onSelectedIndexChanged: {
-                                        if (selectedIndex >= 0 && selectedIndex < model.length) {
-                                            saveAutoSyncSetting("sync_interval_minutes", model[selectedIndex].value);
-                                        }
+                                    return 2; // Default to 15 minutes
+                                }
+                                onSelectedIndexChanged: {
+                                    if (selectedIndex >= 0 && selectedIndex < model.length) {
+                                        saveAutoSyncSetting("sync_interval_minutes", model[selectedIndex].value);
                                     }
                                 }
                             }
 
                             // Sync Direction Selector
-                            Row {
-                                width: parent.width
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: units.gu(2)
-                                opacity: autoSyncSwitch.checked ? 1.0 : 0.5
-
-                                Text {
-                                    text: i18n.dtr("ubtms", "Sync Direction")
-                                    font.pixelSize: units.gu(2)
-                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width - syncDirectionCombo.width - units.gu(4)
+                            ListItem.ItemSelector {
+                                id: syncDirectionCombo
+                                text: i18n.dtr("ubtms", "Sync Direction")
+                                enabled: autoSyncSwitch.checked
+                                model: [
+                                    { text: "Both (Up & Down)", value: "both" },
+                                    { text: "Download Only", value: "download_only" },
+                                    { text: "Upload Only", value: "upload_only" }
+                                ]
+                                delegate: OptionSelectorDelegate { 
+                                    text: modelData.text 
                                 }
-
-                                OptionSelector {
-                                    id: syncDirectionCombo
-                                    width: units.gu(18)
-                                    enabled: autoSyncSwitch.checked
-                                    model: [
-                                        { text: "Both (Up & Down)", value: "both" },
-                                        { text: "Download Only", value: "download_only" },
-                                        { text: "Upload Only", value: "upload_only" }
-                                    ]
-                                    delegate: OptionSelectorDelegate { text: modelData.text }
-                                    selectedIndex: {
-                                        var saved = getAutoSyncSetting("sync_direction");
-                                        for (var i = 0; i < model.length; i++) {
-                                            if (model[i].value === saved) return i;
-                                        }
-                                        return 0; // Default to both
+                                selectedIndex: {
+                                    var saved = getAutoSyncSetting("sync_direction");
+                                    for (var i = 0; i < model.length; i++) {
+                                        if (model[i].value === saved) return i;
                                     }
-                                    onSelectedIndexChanged: {
-                                        if (selectedIndex >= 0 && selectedIndex < model.length) {
-                                            saveAutoSyncSetting("sync_direction", model[selectedIndex].value);
-                                        }
+                                    return 0; // Default to both
+                                }
+                                onSelectedIndexChanged: {
+                                    if (selectedIndex >= 0 && selectedIndex < model.length) {
+                                        saveAutoSyncSetting("sync_direction", model[selectedIndex].value);
                                     }
                                 }
                             }
