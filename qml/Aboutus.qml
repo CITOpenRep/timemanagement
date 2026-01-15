@@ -71,22 +71,22 @@ Page {
             id: contentContainer
             width: flick.width
             spacing: units.gu(1)
-            Label {
-                text: i18n.dtr("ubtms", "Time Management App - Beta")
-                font.bold: true
-                font.pixelSize: units.gu(2.5)
-            }
+            // Label {
+            //     text: i18n.dtr("ubtms", "Time Management App - Beta")
+            //     font.bold: true
+            //     font.pixelSize: units.gu(2.5)
+            // }
 
-            Label {
-                text: i18n.dtr("ubtms", "Version: ") + AppConst.version
-                font.pixelSize: units.gu(2)
-            }
+            // Label {
+            //     text: i18n.dtr("ubtms", "Version: ") + AppConst.version
+            //     font.pixelSize: units.gu(2)
+            // }
 
-            Label {
-                text: i18n.dtr("ubtms", "Release Notes: ")
-                font.bold: true
-                font.pixelSize: units.gu(2.2)
-            }
+            // Label {
+            //     text: i18n.dtr("ubtms", "Release Notes: ")
+            //     font.bold: true
+            //     font.pixelSize: units.gu(2.2)
+            // }
 
             Text {
                 text: releaseNotesHtml

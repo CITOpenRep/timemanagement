@@ -2,568 +2,149 @@
 <html>
    <head>
       <meta charset="UTF-8">
-      <title>Release Notes</title>
+      <title>About Us</title>
       <style>
          body {
-         font-family: Arial, sans-serif;
-         padding: 20px;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
          }
          h1 {
-         font-size: 24px;
+            font-size: 24px;
+            color: #2c3e50;
          }
          h2 {
-         font-size: 20px;
-         margin-top: 20px;
+            font-size: 20px;
+            margin-top: 25px;
+            color: #34495e;
+         }
+         h3 {
+            font-size: 18px;
+            margin-top: 20px;
+            color: #34495e;
          }
          ul {
-         margin-top: 5px;
+            margin-top: 5px;
          }
          ul li {
-            text-align: justify;    
-            
+            text-align: justify;
+            margin-bottom: 8px;
+         }
+         a {
+            color: #3498db;
+            text-decoration: none;
+         }
+         a:hover {
+            text-decoration: underline;
+         }
+         .version-badge {
+            background-color: #27ae60;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 15px;
+         }
+         .curq-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+         }
+         .links-section {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+         }
+         .link-item {
+            margin: 10px 0;
          }
       </style>
    </head>
    <body>
+      <h1>Time Management</h1>
+      <span class="version-badge">Version 1.2.2</span>
+      
       <p>
-         This native time-tracking and productivity application is built for Ubuntu Touch phones.
-         It allows users to manage projects, tasks, timesheets, and activities—both offline and online—
-         through seamless integration with Odoo.
+         <strong>Time Management</strong> is a native time-tracking and productivity application built exclusively for Ubuntu Touch phones.
+         It empowers users to manage projects, tasks, timesheets, and activities—both offline and online—through seamless integration with CURQ and Odoo servers.
       </p>
 
-      <h3>Change History : </h3>
-
-       <h4> 16-01-2026 : Version 1.2.2 </h4>
-
-      <h4>New Features and Improvements</h4>
-<ul>
-  <li><b>Deep Linking from Notifications:</b> Tap on system notifications to navigate directly to the specific record (project, task, activity, etc.). Includes delayed navigation on cold start to ensure UI components are fully loaded.</li>
-  <li><b>Push Notifications & Auto-Sync:</b>  Auto-sync from Odoo to device with configurable settings.</li>
-  <li><b>Activity Done Filter:</b> Added "Done" filter option in Activities page to view completed activities. Enhanced activity synchronization to preserve 'done' state and local records for better filter visibility.</li>
-  <li><b>Assignment Tracking:</b> Notifications now detect new task/project assignments post-sync using stable Odoo record IDs for consistency.</li>
-  <li><b>Bulk Notification Protection:</b> Implemented smart notification limiting to prevent notification spam during sync cycles, with summary for fresh syncs.</li>
-  <li><b>Project Stage Management:</b> View and update project stages directly from the app with a new stage selector dialog.</li>
-  <li><b>Project Updates Enhancements:</b> Added search and status filtering functionality in Project Updates page.</li>
-  <li><b>Improved Project Selection:</b> Enhanced account and project selection logic for creating new updates.</li>
-  <li><b>Option Selector Popover:</b> Replaced Selection Button Dialog Box with a cleaner OptionSelector Popover for better UX.</li>
-  <li><b>Draft Manager for Projects:</b> Added draft management support for project forms.</li>
-  <li><b>User Favorites Sync:</b> Added user_id field to projects and sync favorites with Odoo.</li>
-</ul>
-
-      <h4>Notification System Improvements</h4>
-<ul>
-  <li><b>Redesigned Notification Popup:</b> Enhanced header, empty state display, and improved overall layout.</li>
-  <li><b>Swipe-to-Delete:</b> Delete individual notifications by swiping them away.</li>
-  <li><b>Notification Deduplication:</b> Improved loading with deduplication to prevent duplicate notifications in database and UI.</li>
-  <li><b>Enhanced Notification Icons:</b> Better icons (project, task, activity, timesheet) and layout for improved user experience with active notification indicator.</li>
-  <li><b>Notification Management:</b> Added mark all as read, delete all read notifications, and unread count tracking.</li>
-  <li><b>Periodic Refresh:</b> Automatic notification tracking and periodic refresh in notification bell component.</li>
-</ul>
-
-      <h4>Bug Fixes and Technical Improvements</h4>
-<ul>
-  <li><b>Activity Race Conditions:</b> Fixed race conditions during activity creation and sync to prevent duplicate submissions.</li>
-  <li><b>DBus Reliability:</b> Enhanced DBus initialization with retry logic and configurable parameters for improved robustness.</li>
-  <li><b>Sync Logic:</b> Updated last check time handling in daemon to use maximum last_modified from synced data for accuracy.</li>
-  <li><b>Exception Handling:</b> Improved global exception handling and signal management in NotificationDaemon.</li>
-  <li><b>Account Selection:</b> Fixed account selection logic to properly handle default accounts and no-selection states.</li>
-  <li><b>AppArmor Updates:</b> Enhanced AppArmor policies for push notifications and daemon operation, removed unnecessary permissions.</li>
-</ul>
-
-       <h4> 08-12-2025 : Version 1.2.0 </h4>
-
-
-      <h4>New Features and Improvements</h4>
-<ul>
-  <li>Introducing Push notifications.</li>
-   <li>Introducing Auto-Sync from Odoo to Device.</li>
-   <li> Added "View Activity" Button in Task Form View. </li>
-   <li> Added "Create" and "View" Timesheet button in Task Form View. </li>
-</ul>
-
-
-
-      <h4> 01-12-2025 : Version 1.1.11 </h4>
-
-
-      <h4>Bug Fixes and Improvements</h4>
-<ul>
-  <li>Bug Fixes in Follow-up Activity ceation and Syncing Mechanism.</li>
-</ul>
-
-
-
-            <h4> 21-11-2025 : Version 1.1.10 </h4>
-
-<h4>New Features</h4>
-<ul>
-  <li><b>Activities </b>- Navigate to project/task detail view from the activity screen.</li>
-  <li><b>Project updates</b> - In-app edit option for Summary, description and overall progress.</li>
-  <li><b>Activities</b> - In-app editing for summary, description, activity type, date and WorkItemSelector Details. </li>
-  <li><b>Draft management</b> - in Activities and Project Updates - Edit option.</li>
-</ul>
-
-<h4>Bug Fixes and Improvements</h4>
-<ul>
-  <li>Improved UI in the Project Updates ListView.</li>
-  <li>Fixed Task Stages issues when using multiple instances.</li>
-  <li>Added two more connection types for Activities: Updates and Other.</li>
-</ul>
-
-
-
-            <h4> 31-10-2025 : Version 1.1.9 </h4>
-
-      <h4>New Features</h4>
-<ul>
-<li>Introdcing Draft Manager in Timesheets, Tasks form View, Activities, and Project Update Creation Form. Draft Manager will save your data in draft state in case of app crash or in case of Navigation to some other page. </li>
-<li>Introducing Weblates. Added Support for nl language.</li>
-<li> Adding Rich Text Editor support for Project Updates. </li>
-</ul>
-
-<p><strong>Note:</strong></p>
-<p>
-  Since there is currently no edit option available for project updates, the draft project update is shown only when the user reopens the same project and clicks Create Project Update. </p>
-
- <h4>Bug Fixes and Enhancement</h4>
-<ul>
-<li>Added Download Button in Attachments. </li>
-<li>Fixes in Project Search. </li>
-</ul>
-
-      <h4> 19-10-2025 : Version 1.1.8.1 </h4>
-
-      <h4>Bug Fixes and Enhancement</h4>
-<ul>
-<li>Added Text Consistency between WebView and TextArea for Rich Text Preview. Now text edited in Rich Text editor will be maintained even if you press back button. Do submit the form view , if you have made any changes. </li>
-<li>Improved UI and added few more options in Rich Text Editor.</li>
-</ul>
-
-
-
-          <h4>17-10-2025 : Version 1.1.8</h4>
-
-<p><strong>Note:</strong></p>
-<p>
-  Before using this update, click <strong>Reset Task Stage</strong> on the <strong>Settings</strong> page.<br>
-  This is required only for existing databases. New databases can skip this step.<br>
-  To reset: <strong>Settings → Page Header → Reset Action Button</strong>.
-</p>
-
-<h4>New Features</h4>
-<ul>
-  <li><strong>My Tasks:</strong> View tasks assigned to you. If multiple instances exist, tasks are shown from your <strong>Default Account</strong> or selected <strong>Instance Filter</strong>.</li>
-  <li><strong>Personal Stages:</strong> Filter tasks by your <strong>Personal Stages</strong> from Odoo.</li>
-  <li><strong>Task Stage Update:</strong> Change task stages directly from the <em>Task Detail View</em>.</li>
-  <li><strong>Personal Stage Update:</strong> Update your <strong>Personal Stages</strong> using the <em>Leading Action Button</em> in <em>My Tasks</em> view.</li>
-  <li><strong>Instance Filter:</strong> Easily switch between different accounts with the new <strong>Instance Filter</strong>. (Note: "All" Filter will be implememnted in Next release.)</li>
-</ul>
-
-<h4>Improvements & Fixes</h4>
-<ul>
-  <li><strong>Attachment Downloads:</strong> Files from Odoo now download directly to your device’s local storage.</li>
-  <li><strong>Task Button Layout:</strong> Fixed button alignment for a better interface.</li>
-  <li><strong>Task Creation Stage:</strong> Resolved an issue where tasks were created without a stage. </li>
-  <li> Users can now select a stage when creating a task.</li>
-   <li>Updated the App Icon.</li>
-</ul>
-
-      <h4>06-10-2025 : Version 1.1.7.1</h4>
-
-<h5>Fixes and Improvements</h5>
-<ul>
-  <li>Fixed the state management for Assignee Filter in Tasks and Activities. Now the Assignee Filter will remember the Assignees selected while moving to Task and Activity Detail Pages.</li>
-</ul>
-
-
-      <h4>03-10-2025 : Version 1.1.7</h4>
-
-<h5>New Features</h5>
-<ul>
-  <li>Added <b>Search functionality</b> in the Project List View.</li>
-  <li>Introduced <b> Timesheet Remark Description pop-up </b>. Timesheets can now be finalized directly using the "Finalise" button or saved as draft using the "Save as Draft" button.</li>
-  <li>Added <b>Task Create button </b> in the Project List View.</li>
-  <li>Added <b>Assignee Filter </b> in Task & Activity List View. It can be used from the Page Header. </li>
-</ul>
-
-<h5>Fixes and Improvements</h5>
-<ul>
-  <li>Fixed Duplicate Activity Creation issue and added a feedback mechanism to save or discard unsaved changes.</li>
-  <li>Fixed button layout arrangement in the Project Detailed View.</li>
-  <li>Reduced progress bar height in the Task List View.</li>
-  <li>Fix for Extra long Account Name in Project Detail card.</li>
-</ul>
-
-
-       <h4>24-09-2025 : Version 1.1.6.1</h4>
-
-<section>
-  <h3>Enhancement: Task Rescheduler</h3>
-  <p>
-    The Task Rescheduler has been enhanced to provide scheduling options with both Start and End Date. 
-    The available options include:
-  </p>
-  <ul>
-    <li>
-      <strong>Tomorrow</strong> – Automatically sets both the start date and end date to tomorrow’s date.
-    </li>
-    <li>
-      <strong>Next Week</strong> – Automatically sets the start date to the beginning of the upcoming week and 
-      the end date to the end of that week.
-    </li>
-    <li>
-      <strong>Next Month</strong> – Automatically sets the start date to the first day of the upcoming month 
-      and the end date to the last day of that month.
-    </li>
-    <li>
-      <strong>Custom</strong> – Allows users to manually define both start and end dates.
-    </li>
-  </ul>
-  <p>
-    Additionally, a <strong>Duration</strong> field dynamically calculates and displays the difference between 
-    the start and end dates, providing better visibility into task timelines.
-  </p>
-</section>
-
-
-      <h4>19-09-2025 : Version 1.1.6</h4>
-
-<h5>New Features</h5>
-<ul>
-  <li><strong>Enhanced Sync Messaging:</strong> Now powered by Backend Bridge for improved accuracy. Sync progress and details are communicated directly with the backend.</li>
-  <li><strong>Partial Sync Capability:</strong> Attachments are uploaded directly to the server automatically—no need to sync manually via the settings page.</li>
-  <li><strong>Project Update Access:</strong> A new "View Project Update" button has been added to the Project Detailed View, enabling drill-down into updates specific to each project.</li>
-  <li><strong>Rich Text Editor:</strong> Available on supported description fields (Activities, Tasks, Projects). Powered by a web engine and currently in development. Note: Please save your work before navigating away.</li>
-  <li><strong>Follow-Up Activities:</strong> Create follow-up activities seamlessly with a right-swipe gesture.</li>
-  <li><strong>Attachment Downloads:</strong> Users can now download attachments directly from Tasks and Projects.</li>
-</ul>
-
-<h5>Fixes and Improvements</h5>
-<ul>
-  <li>Resolved an issue in Tasks where incorrect parent assignments occurred with multiple instances.</li>
-  <li>Task sorting is now strictly aligned with End Date for consistent ordering.</li>
-  <li>The Activity Create button in Tasks is now visible in both Edit and View modes.</li>
-  <li>Stage labels have been simplified to plain text (removing background colors). Button colors in the Project Detailed View have also been updated.</li>
-</ul>
-
-<h5>In Progress</h5>
-<ul>
-
-  <li> Fix for activity creation from project updates page.</li>
-
-</ul>
-
-
-<br>
-
-<h4>05-09-2025 : Version 1.1.5</h4>
-
-<h5>New Features</h5>
-<ul>
-  <li>Introduced an <b>Attachment Viewer and Uploader</b> for both Tasks and Projects. In next release a Download button will be introduced to save the attachments locally. There are few known issues with attachments sync part, they will be also fixed in the next release.</li>
-  <li>Added <b>"View Tasks"</b> and <b>"View Activities"</b> buttons in the Project Detail view. These provide direct navigation to the Task List View or Activity List View, with results automatically filtered by the selected Project.</li>
-</ul>
-
-<h5>Fixes and Improvements</h5>
-<ul>
-  <li>Resolved the issue with the <b>"Last Sync Message"</b> not displaying in the Settings page.</li>
-  <li> Enhanced Search in Tasks. Child Task matching querry will be also fetched now. In All Filter , Even if child does not match filter it will be fetched. </li>
-  <li>Added a <b>custom field for Planned Hours</b> in Tasks. Users can now input hours manually or adjust them using dedicated plus/minus buttons.</li>
-</ul>
-<br>
-
-
-      <h4> 01-09-2025 : Version 1.1.4.2 </h4>
-       <h5> Fixes and Improvements </h5>
+      <h2>What Does This App Do?</h2>
+      <p>
+         This app is your all-in-one productivity companion on Ubuntu Touch. Whether you're a freelancer tracking billable hours, 
+         a project manager overseeing team tasks, or simply someone who wants to stay organized, Time Management has you covered.
+      </p>
+      
+      <h3>Key Features</h3>
       <ul>
-         <li> Added new Open Project filter for Projects, that will display only the Open Projects. This will be default filter. </li>
-         <li> Added strict filtering for Tasks so only Tasks matching the filter querry are displayed in Task List View. Tasks who are folded like Done stage or Cancelled stage task will only be displayed in Done and All Tasks filter respectively. </li>
-         <li> Added fallback for Overdue calculation for Tasks. If deadline is not present then overdue will be calculated based on End Date. </li>
-         <li> Fixed Sync Error log due to missing status field in Projects. Note : Only Warnings and Error are displayed in the sync logs. </li>
-      </ul>
-      
-      <h4> 29-08-2025 : Version 1.1.4.1 </h4>
-      <p><em>Note: Please remove the DB Instance and clean the cache using the tweak tool before using this update. Otherwise Task and Project Stages might not work properly.</em></p>
-      
-      <h5> New Features </h5>
-      <ul>
-         <li> Added Task Stages. Now Task Stages from Odoo can viewed on Device as labels in the Task List View.</li>
-         <li> Introducing Done Stage Filter for Tasks in Tabbed View. </li>
-         <li> Introducing Project Stages for Project ListView. Project Stage will be displayed as a label in the Project Detail Card in Project List View. </li>
-         <li> Introducing Stage based Filtering for Projects. These filters can be applied using the Floating Action at the bottom with the Filter Symbol. </li>
-         <li> Introducing On Demand Download in Projects and Tasks. Only Images will be downloaded automatically and stored in Cache and will be removed after closing the app. For Other File Types, only its Meta data is downloaded. </li>
+         <li><strong>Project Management:</strong> Create and organize projects with full hierarchy support (Projects → Subprojects → Tasks → Subtasks)</li>
+         <li><strong>Task Tracking:</strong> Manage tasks with deadlines, priorities, stages, and assignees</li>
+         <li><strong>Timesheet Logging:</strong> Track your work hours with built-in timers and sync to your server</li>
+         <li><strong>Activity Management:</strong> Log and schedule activities linked to projects and tasks</li>
+         <li><strong>Project Updates:</strong> Create and share project status updates with rich text support</li>
+         <li><strong>Push Notifications:</strong> Stay informed with real-time notifications for assignments and updates</li>
+         <li><strong>Auto-Sync:</strong> Automatic bidirectional synchronization with your CURQ/Odoo server</li>
+         <li><strong>Offline Support:</strong> Work offline and sync when connected</li>
+         <li><strong>Visual Dashboard:</strong> See where your time goes with charts and analytics</li>
+         <li><strong>Multi-Account:</strong> Connect to multiple server instances simultaneously</li>
+         <li><strong>Dark Mode:</strong> Full dark theme support for comfortable viewing</li>
       </ul>
 
-      <h5> Fixes and Improvements </h5>
-      <ul>
-         <li> Added Fix for Warning the user if User tries to finalise a Timesheet without a Task or Project. </li>
-         <li> Added Fix for Colors, where Tasks created from Child Project without a color not inheriting colors from Parent Project. </li>
-         <li> Removed OverDue Filter from Tasks. Now OverDue Tasks will be displayed in Today Tab. OverDue Calculation based strictly on Deadline. </li>
-      </ul>
-      
-     
- 
-       <ul>
-       <h4> 25-08-2025 : Version 1.1.4.0 </h4>
-         <h5> Fixes </h5>
-         <li> Fixed the New Task creation Sync Issue which were created with priority or Wrong Date Selection. Added Date Sanitization function to remove the end date in case it is smaller to start date. Corrected Task Priority Mapping to Odoo.</li>
-         <br>
-         <h4> 22-08-2025 : Version 1.1.4 </h4>
-         <h5> New Features </h5
-         <li> Added feature to Mark the Project Favourite. Sync from Device to Server is not working yet.</li>
-         <li> Added Feature to Set the Priority for Tasks. Sync from Device to Server is not working yet. </li>
-         <li> Added new Timer_Type in DB for Timesheets for remembering the Timer Type in Devices. </li>
-         <li> Introducing Sync Message using Global Timer Widget. Added a Progress bar based on Timer below the Sync Message Widget. </li>
-      </ul>
-      
-      <h5> Fixes and Improvements </h5>
-      <ul>
-         <li> Fixed the account uniqueness for all databases with case insensitive checking. </li>
-         <li> Fixed that finalizing the timer and the timesheet automatic move to draft status without requiring manual save. </li>
-         <li> Fixed the automatic timesheet entry that saving after timer finalization, now it will be autosaved when we finalize the timer. </li>
-         <li> Fixed that earlier the time gets reset to 0.00H, Now ,Timer state syncs correctly when reopening timesheet detail page. </li>
-         <li> Fixed the Date Range Selector to work properly even for Weekends. </li>
-         <li> Fixed for Timesheets, while finalising a timesheet from Draft Stage, it should move from Draft Stage. </li>
-         <li> Sorted Activities and Tasks based on the End Date instead of Last modified date. </li>
-         <li> Fixed for Timesheets subTask Issue, Now we should be able to create Timesheet for a subTask and sync to server. </li>
-      </ul>
-      
-      <h4> 09-08-2025 : Version 1.1.3 </h4>
-      <h5> New Features </h5>
-      <ul>
-         <li> Added feature to create Activity from Home Screen via FAB menu. </li>
-         <li> Added Multi-Selector Assignee , to Tasks. Now Multiple Users can be assigned to a Task from Device.  </li>
-         <li> Introducing Project Updates . Now User is able to create Project Updates from the Device, from the Project View Mode. </li>
-         <li> New Feature to create activity from Tasks and Project view mode has been added. </li>
-         <li> New Feature to reschedule activity and Tasks by Swiping from Left has been added. Activity and Tasks can rescheduled to "Tomorrow" , "Next Week" , "Next Month" and "Custom". Rescheduling to "Next Week" will add 1 extra week to existing End Date and rescheduling to "Next Month" will add an extra Month. Rescheduling to "Tomorrow" will reschedule the Task or Activity to "Tomorrow" . </li>
-         <li>The feature to swipe up from Home Screen and Create a New Timesheet has been added. </li>
-      </ul>
-      
-      <h5> Fixes and Improvements </h5>
-      <ul>
-         <li> Fixed the Project Missing Issue in Timesheet View Mode.</li>
-         <li> Fixed the Navigation Issue in Projects, Where the User was not able to view the details about a parent Project. </li>
-         <li> Fixed the Overflow Issue in Project Pie Chart, Global Timer Widget. </li>
-         <li> Fixed the Task Search issue where Task from Multiple Instance were returned. </li>
-         <li> Sorted the Activities and Tasks based on Last Modified Date. </li>
-         <li> Added Enhancement to set the TimeSheet Page , Account Page to View only Mode after Saving. The User will still have option to Edit it after clicking the Edit Icon from the top. </li>
-         <li>The enhancement to allow only unique name to Instance has been added. </li>
-         <li>The deletion of Parent Task and Child task not syncing back Issue has been resolved. </li>
-         <li>The Due Date of of the Tasks will be displayed based on the deadline strictly and not on End Date. The filters in the Task List View will follow the start and End Date range. </li>
-         <li>Timesheet Draft Stage Issue with Timesheets created from Tasks and Projects has been resolved. Now Every Timesheet will move to Draft Stage, and will not sync until you finalise it by swiping from right. </li>
-      </ul>
-      
-      <h4> 29-07-2025 : Version 1.1.2 </h4>
-      <h5> Fixes and Improvements </h5>
-      <ul>
-         <li> Activity List overview , Text Overflow Issue Fixed .</li>
-         <li>Timesheet List overview. Text Overflow Issue is Fixed. </li>
-         <li>RichText support from Timesheet is removed, as Odoo also does not support it. If you see HTML Tags in Your Timesheet Description , please remove it. It is happening due to RichText support it, in Previous release. </li>
-         <li>Enhancement in Read More Page. Now the Description page will remember the context even if you go back , without saving it. </li>
-         <li>Enhancement in Task-SubTask Hierarchy where the Child Task were not displaying in the Today Tab. Now if the Parent falls under Date filter , It will display the parent-child Hierarchy with all its Child Task properly. </li>
-      </ul>
-      
-      <h4> 25-07-2025 : Version 1.1.1 </h4>
-      <ul>
-         <li>Fixes in WorkItem Selectors for Activities, Timesheets, Tasks and Projects.</li>
-         <li>Added Edit Option in Timesheet View Mode to go to Edit Mode.</li>
-         <li>Fixes in Activities Notes , Now fully functional and supports richText. </li>
-         <li>Fixes in title in Timesheets and Tasks. </li>
-         <li>Added About us page in Convergence Mode Menu. </li>
-         <li>Fixed the Description Field in timesheets to be plainText. </li>
-      </ul>
-      
-      <h4> 23-07-2025 : Version 1.1.0 </h4>
-      <ul>
-         <li>Fixes for Sub-Project in Task missing after Sync, in Tasks. </li>
-         <li>Added Sync Animated Button, that will be displayed after clicking on Sync. </li>
-         <li>Fixes in Task Screen Crashing the app in Volla and FairPhone 4. </li>
-         <li>Fixes in Default Period Selection in Date Range Selector. Now by default "This Week" will be selected. </li>
-         <li>Added floating expand button for Description fields throughout the app. </li>
-         <li>UI Fixes in Project Screen, Date Range Selector. </li>
-         <li>Added "Next Week" and "Next Month" Period Selection in Date Range Selector. </li>
-         <li>Added the End Dates in Task and Project List Overview. </li>
-         <li>Added Radio buttons for Priority Selection in grid layout to Timesheet Screen. </li>
-         <li>Introducing Theme Preference Selection from the Settings Page. The theme preference you can set from the Settings Page and the app will remember your choice, also toggle from Dashboard screen can still be used to toggle between themes. </li>
-         <li>Added Smart Play Button for Timesheet in Project List Overview. </li>
-         <li>Enhanced visual identification by applying project-specific colors to related Tasks and Timesheets.</li>
-         <li>Added Project Progress bar in Project List Overview. Enhanced ProjectBar as its color will change to green when the Project is Completed. </li>
-         <li>Enabled content attachments from the server to be accessed within the app. File attachments are now viewable directly on-device in both Projects and Tasks.</li>
-         <li>Moved the ProgressBar From ProjectList View to Task ListView.  </li>
-         <li>Restricted Project creation for Local Account Only. Project Creation Page will be improved more in next release with special optimisation for Local profile. </li>
-         <li>Added new Read More Page for Description. It can be accessed by clicking on the expansion icon in both read and edit mode. </li>
-         <li>Known Issue in attachments feature. It might not work for all the Servers.  </li>
-      </ul>
-      
-      <h4> 11-07-2025 : Version 1.0.9 </h4>
-      <ul>
-         <li>Fixes in WorkItem Selectors for Activities, Timesheets, Tasks.</li>
-         <li>Removed the Button to Create Timesheet from the Tasks view and Edit Mode. Instead Timesheets can created from TaskListView trailing action by swiping from right. </li>
-         <li>Fixes in View Mode of Activities when connected to Project. </li>
-         <li>Fixes in Overflowing Text from the Selection buttons. Fixes in End Date Logic. Fixes in Navigation in Activities. </li>
-         <li>Fixed Fab Button to Navigate to New Timesheet. </li>
-      </ul>
-      
-      <h4> 08-07-2025 : Version 1.0.8 </h4>
-      <ul>
-         <li>Fixed Timer for Timesheets, Active Timesheets will be displayed in Active Tab and Timesheets which are not synced will move to Draft Stage. Only the Timesheets from All Tab will be Synced to Odoo.</li>
-         <li>Introduced new Filters and Methods to create Timesheets. "All" ,"Active" , "Draft" </li>
-         <li>Introduced swipe to left on Timesheets and Tasks to Play, Pause and stop a Timesheet. Finalise Button has been removed. </li>
-         <li>Fixes in WorkItem Selector throughout the application. Only relevant Tasks Will be Displayed , even in Edit Mode. </li>
-         <li>Fixes in UI for ListViews and Name and Description Field. Added Highlighting When Selected or in Use. </li>
-         <li>There are known Issues in Tasks. Like Creating a Task from Device and Then Trying to Create a Timesheet for It After Syncing gives an Error. The Known Issues in Tasks Will be fixed in next release. </li>
-      </ul>
-      
-      <h4> 05-07-2025 : Version 1.0.7 </h4>
-      <ul>
-         <li>Fixes in Labels for WorkItemSelectors.</li>
-         <li>Fixes in Timer for Active Timesheets. </li>
-         <li>Fixes in hierarchy of Task and Subtask in Task ListView. </li>
-      </ul>
-      
-      <h4> 04-07-2025 : Version 1.0.6 </h4>
-      <ul>
-         <li>Added "Timer" for Timesheets with a Filter to Display active timesheets which are not synced to Server.</li>
-         <li>Added Parent-Child Selector based Tree Selector for Projects and Tasks.</li>
-         <li>Improved Task Selection While Activity Creation. </li>
-         <li>Refactored Tabs for Filters in Tasks and Activities. Introduced Later Filter, which will contain all the Tasks which are later than this Month.</li>
-         <li>Added Edit Button in View Mode for Tasks to Navigate to Edit Task Page.</li>
-         <li>Added Trailing Action Button For Adding timesheets from Tasks List.</li>
-         <li>Added Option to Add TimeSheets from Tasks View Mode.</li>
-         <li>There is known issue in Tasks ListView, where the Parent and Subtask hierarchy are not correctly displayed.</li>
-      </ul>
-      
-      <h4> 27-06-2025 : Version 1.0.5 </h4>
-      <ul>
-         <li>Added OverDue Tab for Tasks. All the OverDue Tasks will be Displayed in the OverDue Tab.</li>
-         <li>Currently We are not handling the stages for a task, so Completed Tasks Will also be displayed in the OverDue Tab, which is a Known Issue. This issue is expected to be fixed in next releases.</li>
-      </ul>
-      
-      <h4> 27-06-2025 : Version 1.0.4 </h4>
-      <ul>
-         <li>Fixed Filtered Priority to Display Tasks in range from Start Date to End Date. Due Tasks will be displayed in Today Tab.</li>
-         <li>Activity Syncing Issue from Server to Device fixed. </li>
-      </ul>
-      
-      <h4> 24-06-2025 : Version 1.0.3 </h4>
-      <ul>
-         <li> Introduced Tabbed View Filters and Search Button for Tasks. Filtered Priority is Deadline > End Date > Start Date. Filters are "Today" , "This Week" , "Next Week" , "All" .</li>
-         <li> Changed UI of Tabbed View,List Header. The Selected Tab will be Highlighted and Displayed in Bold. Also repositioned the Search Field, which will be only displayed after clicking on Search Button from PageHeader.</li>
-         <li> Introduced Activity Creation Feature from Device to Odoo. </li>
-         <li> Added clear Button in SearchField. </li>
-         <li> Integration of Activity Syncing </li>
-         <li>Activity Syncing May Face some Sync Issue, due to TimeZone difference with Server. </li>
-      </ul>
-      
-      <h4> 19-06-2025 : Version 1.0.2 </h4>
-      <ul>
-         <li> Fixed Dashboard Screen Overflow issue </li>
-         <li> Changes in Sync Logs, It will only display Warnings and Errors now. </li>
-         <li> Fixed overflow of Notes in Activity Detail Card. </li>
-         <li> Introduced Tabbed View Filters in Activity Page with Search Field. </li>
-         <li> Introduced Info button for Eisenhower Priority Field in Timesheets. </li>
-         <li> Fixed TimeSheet Save Dialog, earlier it used to say Task Saved. </li>
-      </ul>
-      
-      <h4> 17-06-2025 : Version 1.0.1 </h4>
-      <ul>
-         <li> Activity List and view Basic Ui , Next release will have better UX </li>
-         <li> Introduction of a Notification mechanism </li>
-         <li> User is notified the sync errors through notifications </li>
-      </ul>
-      
-      <h4> 13-06-2025 : Version 1.0.0 </h4>
-      <ul>
-         <li> Updates on Eisenhower widget </li>
-         <li> Code optimization for better performance </li>
-         <li> UI fixes in New TreeSelector component for Project and Tasks, Dark Mode Compatibility for About and Sync Page Added.</li>
-         <li> Updates in project, task and assignee selector</li>
-      </ul>
-      
-      <h4> 12-06-2025 : Version 0.9 </h4>
-      <ul>
-         <li> Fixes in "Today" ,"This Week " ComboBox.</li>
-         <li> Fixes in Timesheet Details , Fixed Issue of Project Name Missing.</li>
-         <li> Fixes in Timesheet , Fixed issue , of when record date was not updated.</li>
-         <li> Better UX & Corrected Projects & Tasks menu</li>
-         <li>UI enhancements in New Timesheet Screen , Better ComboBoxes UI for better Visibility</li>
-         <li> This Version was not released to Open-Store due to Internal User Testing and Feedback. </li>
-      </ul>
-      
-      <h4> 11-06-2025 :  Version 0.8 </h4>
-      <ul>
-         <li> Default Account Selection Method Introduced</li>
-         <li> Remote user list to assign tasks to the users</li>
-         <li> Introduction of Color codes for Projects</li>
-         <li> Support for Local User and Local Project Creation</li>
-         <li> Full Support to Dark Mode with Theme toggle support</li>
-      </ul>
-      
-      <h4> 10-06-2025 : Version 0.6</h4>
-      <ul>
-         <li> Introduction of the Local Storage : Please remove your existing accounts from settings to use this release</li>
-         <li> Fixed the bugs in Timesheet & Updated Eisenhower matrix</li>
-         <li> Adapted theme support to few screens, full compatibility in the next release</li>
-         <li> Additional fields has been added to the project screen</li>
-      </ul>
-      
-      <h4> 07-06-2025 :  Version 0.5</h4>
-      <ul>
-         <li> Connect to Odoo servers to sync timesheets, tasks, and projects.</li>
-         <li> Login to multiple accounts and keep data in sync .</li>
-         <li> Visual dashboards to see where your time goes.</li>
-         <li> Project and task hierarchy support (Project → Subproject → Task → Subtask).</li>
-         <li> Background sync for timesheets, tasks, and projects</li>
-         <li> Create and manage tasks with deadlines and subtasks.</li>
-         <li>Fixed UI and Sync Issues after Testing and User Feedback. </li>
-      </ul>
-      
-      <h2>Known Issues</h2>
-      <ul>
-         <li>This app is currently in beta. Upcoming releases will focus on enhancing the user experience.</li>
-         <li>Overall user experience and design still require refinement.</li>
-         <li>Currently requires at least one Odoo server to function—local account support is not yet available.</li>
-      </ul>
-      
-      <h2>Key Features</h2>
-      <ul>
-         <li>Connect to multiple Odoo backends with credential-based login</li>
-         <li>If the database while connecting to an odoo instance can not be fetched automatically, user can manually enter it</li>
-         <li>Support for background sync and multiple accounts</li>
-         <li>Bidirectional sync for timesheets, projects, and tasks</li>
-         <li>Integrated dashboard to visualize workload and usage</li>
-      </ul>
-      
-      <h2>Coming Soon</h2>
-      <ul>
-         <li>Odoo Activity integration</li>
-         <li>Notification service</li>
-         <li>Translation Service using ubuntu touch integration</li>
-         <li>More standardisation of ubuntu touch gestures</li>
-         <li>Convergence Integration</li>
-         <li>Content Hub</li>
-         <li>Local account mode—use the app without Odoo connectivity</li>
-         <li>Refined UI for tasks, projects, and timesheets</li>
-         <li>Simplified and more intuitive workflows for end users</li>
-         <li>Improved selectors for users, projects, tasks, and activities</li>
-      </ul>
-      
+      <div class="curq-section">
+         <h2>🚀 Recommended Server: CURQ</h2>
+         <p>
+            <strong>CURQ</strong> is the all-in-one platform for your business, fully Open Source and tailored to your needs.
+         </p>
+         <p>
+            With CURQ you can effortlessly arrange your accounting, keep your stock up-to-date, send your quotations and invoices, 
+            and you always have insight into the progress of your projects. Everything you need for your business in one place. 
+            <strong>Completely open source and independent of the big players.</strong>
+         </p>
+         <p>
+            👉 <a href="https://curq.nl/prijs" target="_blank"><strong>Getting started with CURQ</strong></a>
+         </p>
+      </div>
+
+      <div class="links-section">
+         <h2>📚 Resources & Support</h2>
+         <div class="link-item">
+            📖 <a href="https://github.com/AbeelLab/timemanagement/releases" target="_blank"><strong>Release Notes</strong></a> - View all version updates and changelog
+         </div>
+         <div class="link-item">
+            🐛 <a href="https://github.com/AbeelLab/timemanagement/issues" target="_blank"><strong>Report an Issue</strong></a> - Found a bug? Let us know!
+         </div>
+         <div class="link-item">
+            💬 <a href="https://github.com/AbeelLab/timemanagement/discussions" target="_blank"><strong>Support & Discussions</strong></a> - Get help and connect with the community
+         </div>
+         <div class="link-item">
+            ⭐ <a href="https://github.com/AbeelLab/timemanagement" target="_blank"><strong>GitHub Repository</strong></a> - Star us and contribute!
+         </div>
+      </div>
+
       <h2>Functional Modules</h2>
       <ul>
-         <li><strong>Login & Accounts:</strong> Switch between Odoo and local modes</li>
-         <li><strong>Project & Task Management:</strong> Create and edit with support for hierarchy and deadlines</li>
-         <li><strong>Activity Logging:</strong> Record and view interactions and mail activities</li>
-         <li><strong>Timesheets:</strong> Log work and sync entries with Odoo</li>
-         <li><strong>Dashboard:</strong> View charts and time analytics for active projects</li>
-         <li><strong>Settings:</strong> Control sync intervals, themes, and preferences</li>
+         <li><strong>Accounts:</strong> Connect to CURQ/Odoo servers or use local mode</li>
+         <li><strong>Projects:</strong> Full project lifecycle management with stages and progress tracking</li>
+         <li><strong>Tasks:</strong> Personal stages, assignees, priorities, and deadline management</li>
+         <li><strong>Timesheets:</strong> Timer-based time tracking with Eisenhower priority matrix</li>
+         <li><strong>Activities:</strong> Schedule and track activities linked to your work items</li>
+         <li><strong>Dashboard:</strong> Visual analytics and charts for time insights</li>
+         <li><strong>Settings:</strong> Sync preferences, themes, and account management</li>
       </ul>
-      
-      <h2>Performance & UX Enhancements</h2>
-      <ul>
-         <li>More stable and reliable sync mechanisms (Odoo to/from Local)</li>
-         <li>Faster navigation and filtering in project/task views</li>
-         <li>Dark mode and theme support with improved visuals</li>
-         <li>Smoother transitions and optimized QML components</li>
-      </ul>
+
+      <h2>About the Developer</h2>
+      <p>
+         This app is developed and maintained by <strong>CIT Services</strong>.<br>
+         📧 Contact: <a href="mailto:info@cit-services.eu">info@cit-services.eu</a>
+      </p>
+
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+      <p style="font-size: 12px; color: #7f8c8d; text-align: center;">
+         Time Management for Ubuntu Touch • Version 1.2.2 • © 2025 CIT Services
+      </p>
    </body>
 </html>
