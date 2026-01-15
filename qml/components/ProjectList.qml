@@ -261,6 +261,7 @@ Item {
                 colorPallet: inheritedColor,
                 stage: row.stage,
                 isFavorite: row.favorites === 1,
+                hasDraft: row.has_draft === 1,
                 hasChildren: false
             };
 
@@ -672,6 +673,7 @@ Item {
                     description: model.description
                     colorPallet: model.colorPallet
                     isFavorite: model.isFavorite
+                    hasDraft: model.hasDraft
                     hasChildren: model.hasChildren
                     stage: model.stage
                     childCount: (model.hasChildren) ? model.childCount : 0
