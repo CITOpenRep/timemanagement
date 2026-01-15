@@ -516,515 +516,446 @@ Page {
 
     Flickable {
         id: projectDetailsPageFlickable
-        anchors.topMargin: units.gu(6)
         anchors.fill: parent
-        contentHeight: descriptionExpanded ? parent.height + units.gu(120) : parent.height + units.gu(120)
+        contentHeight: mainLayout.height + units.gu(5)
         flickableDirection: Flickable.VerticalFlick
-
         width: parent.width
 
-        Row {
-            id: myRow1a
-            anchors.left: parent.left
-            topPadding: units.gu(5)
+        Column {
+            id: mainLayout
+            width: parent.width
+            spacing: units.gu(2)
+            topPadding: units.gu(2)
+            bottomPadding: units.gu(5)
 
-            Column {
-                leftPadding: units.gu(1)
-
-                WorkItemSelector {
-                    id: workItem
-                    readOnly: isReadOnly
-                    restrictAccountToLocalOnly: recordid === 0  // Only restrict to local when creating new projects
-                    projectLabelText: "Parent Project"
-                    showTaskSelector: false
-                    showSubProjectSelector: false
-                    showAssigneeSelector: true
-                    showSubTaskSelector: false
-                    width: projectDetailsPageFlickable.width - units.gu(2)
-                    height: units.gu(10)
-                }
+            // Work Item Selector Section
+            WorkItemSelector {
+                id: workItem
+                readOnly: isReadOnly
+                restrictAccountToLocalOnly: recordid === 0
+                projectLabelText: "Parent Project"
+                showTaskSelector: false
+                showSubProjectSelector: false
+                showAssigneeSelector: true
+                showSubTaskSelector: false
+                width: parent.width - units.gu(2)
+                anchors.horizontalCenter: parent.horizontalCenter
             }
-        }
 
-        Row {
-            id: myRow1
-            anchors.top: myRow1a.bottom
-            anchors.left: parent.left
-            topPadding: units.gu(12)
-            Column {
-                id: myCol88
+            // Project Name Row
+            Row {
+                id: myRow1
+                width: parent.width
+                spacing: units.gu(2)
                 leftPadding: units.gu(1)
+
                 LomiriShape {
-                    width: units.gu(10)
+                    width: units.gu(12)
                     height: units.gu(5)
                     aspect: LomiriShape.Flat
                     Label {
                         id: project_label
-                        text:i18n.dtr("ubtms", "Project Name")  
+                        text: i18n.dtr("ubtms", "Project Name")
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
-            }
-            Column {
-                id: myCol99
-                leftPadding: units.gu(3)
+
                 TextField {
                     id: project_name
                     readOnly: isReadOnly
-                    width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(15) : projectDetailsPageFlickable.width - units.gu(10)
-                    anchors.centerIn: parent.centerIn
+                    width: parent.width - units.gu(16)
                     text: ""
 
                     Rectangle {
-                        // visible: !isReadOnly
                         anchors.fill: parent
                         color: "transparent"
                         radius: units.gu(0.5)
                         border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
                         border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                        // z: -1
                     }
                 }
             }
-        }
 
-        Row {
-            id: myRow9
-            anchors.top: (recordid > 0) ? myRow1.bottom : myRow1.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            topPadding: units.gu(5)
+            // Description Section
+            Item {
+                id: textAreaContainer
+                width: parent.width
+                height: description_text.height
 
-            Column {
-                id: myCol9
-
-                Item {
-                    id: textAreaContainer
-                    width: projectDetailsPageFlickable.width
-                    height: description_text.height
-
-                    RichTextPreview {
-                        id: description_text
-                        width: parent.width
-                        height: units.gu(20) // Start with collapsed height
-                        anchors.centerIn: parent.centerIn
-                        text: ""
-                        is_read_only: isReadOnly
-                        onClicked: {
-                            //set the data to a global Store and pass the key to the page
-                            Global.description_temporary_holder = getFormattedText();
-                            Global.description_context = "project_description";
-                            apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        // Current Stage Display Grid (similar to Tasks.qml)
-        Grid {
-            id: currentStageRow
-            visible: recordid !== 0
-            anchors.top: myRow9.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            anchors.topMargin: units.gu(1)
-            columns: 3
-            spacing: units.gu(1)
-
-            // Row: Current Stage
-            TSLabel {
-                text: i18n.dtr("ubtms", "Current Stage:")
-                width: (parent.width - (2 * parent.spacing)) / 3
-                height: units.gu(6)
-                horizontalAlignment: Text.AlignHLeft
-                verticalAlignment: Text.AlignVCenter
-                fontBold: true
-                color: "#f97316"
-            }
-
-            TSLabel {
-                text: project && project.stage ? Project.getProjectStageName(project.stage) : i18n.dtr("ubtms", "Not set")
-                width: (parent.width - (2 * parent.spacing)) / 3
-                height: units.gu(6)
-                fontBold: true
-                color: {
-                    if (!project || !project.stage) {
-                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
-                    }
-                    var stageName = Project.getProjectStageName(project.stage).toLowerCase();
-                    if (stageName === "completed" || stageName === "finished" || stageName === "closed" || stageName === "verified" || stageName === "done") {
-                        return "green";
-                    }
-                    return "#f97316";
-                }
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-            }
-
-            TSButton {
-                visible: recordid !== 0
-                bgColor: "#f3f4f6"
-                fgColor: "#1f2937"
-                hoverColor: '#d1d5db'
-                borderColor: "#d1d5db"
-                fontBold: true
-                iconName: "filters"
-                iconColor: "#1f2937"
-                width: (parent.width - (2 * parent.spacing)) / 3
-                height: units.gu(6)
-                text: i18n.dtr("ubtms", "Change")
-                onClicked: {
-                    if (!project || !project.id) {
-                        notifPopup.open("Error", "Project data not available", "error");
-                        return;
-                    }
-
-                    var dialog = PopupUtils.open(projectStageSelector, projectCreate, {
-                        projectId: project.id,
-                        accountId: project.account_id,
-                        currentStageOdooRecordId: project.stage || -1
-                    });
-                }
-            }
-        }
-
-        Grid {
-            id: myRow82
-            anchors.top: (recordid !== 0) ? currentStageRow.bottom : myRow9.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            columns: 3
-            spacing: units.gu(1)
-
-            // First Row - Activities
-            TSLabel {
-                visible: isReadOnly
-                text: i18n.dtr("ubtms","Activities")
-                width: (parent.width - units.gu(2)) / 3
-                height: units.gu(6)
-                horizontalAlignment: Text.AlignHLeft
-                verticalAlignment: Text.AlignVCenter
-                fontBold: true
-                color: "#f97316"
-            }
-
-            TSButton {
-                visible: isReadOnly
-                bgColor: "#fef1e7"
-                fgColor: "#f97316"
-                hoverColor: '#f3e0d1'
-                iconName: "add"
-                iconColor: "#f97316"
-
-                fontBold: true
-                width: (parent.width - units.gu(2)) / 3
-                text: i18n.dtr("ubtms","Create")
-                onClicked: {
-                    let project = Project.getProjectDetails(recordid);
-                    let result = Activity.createActivityFromProjectOrTask(true, project.account_id, project.odoo_record_id);
-                    if (result.success) {
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activities.qml"), {
-                            "recordid": result.record_id,
-                            "accountid": project.account_id,
-                            "isReadOnly": false
+                RichTextPreview {
+                    id: description_text
+                    width: parent.width - units.gu(2)
+                    height: units.gu(20)
+                    anchors.centerIn: parent
+                    text: ""
+                    is_read_only: isReadOnly
+                    onClicked: {
+                        Global.description_temporary_holder = getFormattedText();
+                        Global.description_context = "project_description";
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
+                            isReadOnly: isReadOnly
                         });
-                    } else {
-                        notifPopup.open("Failed", "Unable to create activity", "error");
                     }
                 }
             }
 
-            TSButton {
-                visible: isReadOnly && recordid > 0
-                bgColor: "#f3f4f6"
-                fgColor: "#1f2937"
-                hoverColor: '#d1d5db'
-                borderColor: "#d1d5db"
-                fontBold: true
-                iconName: "view-on"
-                iconColor: "#1f2937"
-                width: (parent.width - units.gu(2)) / 3
-               text: i18n.dtr("ubtms","View")
-                onClicked: {
-                    let project = Project.getProjectDetails(recordid);
-                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activity_Page.qml"), {
-                        "filterByProject": true,
-                        "projectOdooRecordId": project.odoo_record_id,
-                        "projectAccountId": project.account_id,
-                        "projectName": project.name
-                    });
+            // Current Stage Display
+            Grid {
+                id: currentStageRow
+                visible: recordid !== 0
+                width: parent.width - units.gu(2)
+                anchors.horizontalCenter: parent.horizontalCenter
+                columns: 3
+                spacing: units.gu(1)
+
+                TSLabel {
+                    text: i18n.dtr("ubtms", "Current Stage:")
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    height: units.gu(6)
+                    horizontalAlignment: Text.AlignHLeft
+                    verticalAlignment: Text.AlignVCenter
+                    fontBold: true
+                    color: "#f97316"
                 }
-            }
 
-            // Second Row - Tasks
-            TSLabel {
-                visible: isReadOnly
-                text: i18n.dtr("ubtms","Tasks")
-                width: (parent.width - units.gu(2)) / 3
-                height: units.gu(6)
-                horizontalAlignment: Text.AlignHLeft
-                verticalAlignment: Text.AlignVCenter
-                fontBold: true
-                color: "#f97316"
-            }
-
-            TSButton {
-                visible: isReadOnly
-                bgColor: "#fef1e7"
-                fgColor: "#f97316"
-                hoverColor: '#f3e0d1'
-                iconName: "add"
-                iconColor: "#f97316"
-                fontBold: true
-                width: (parent.width - units.gu(2)) / 3
-                text: i18n.dtr("ubtms","Create")
-                onClicked: {
-                    let project = Project.getProjectDetails(recordid);
-                    // Determine if this is a subproject and get parent project info
-                    let isSubProject = project.parent_id && project.parent_id > 0;
-                    let parentProjectId = isSubProject ? project.parent_id : -1;
-
-                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Tasks.qml"), {
-                        "recordid": 0  // 0 means creation mode
-                        ,
-                        "isReadOnly": false,
-                        "prefilledAccountId": project.account_id,
-                        "prefilledProjectId": isSubProject ? -1 : project.odoo_record_id  // Main project if not subproject
-                        ,
-                        "prefilledSubProjectId": isSubProject ? project.odoo_record_id : -1  // Subproject if it is one
-                        ,
-                        "prefilledParentProjectId": parentProjectId,
-                        "prefilledProjectName": project.name
-                    });
-                }
-            }
-
-            TSButton {
-                visible: isReadOnly && recordid > 0
-                bgColor: "#f3f4f6"
-                fgColor: "#1f2937"
-                hoverColor: '#d1d5db'
-                borderColor: "#d1d5db"
-                fontBold: true
-                width: (parent.width - units.gu(2)) / 3
-                iconName: "view-on"
-                iconColor: "#1f2937"
-               text: i18n.dtr("ubtms","View")
-                onClicked: {
-                    let project = Project.getProjectDetails(recordid);
-                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Task_Page.qml"), {
-                        "filterByProject": true,
-                        "projectOdooRecordId": project.odoo_record_id,
-                        "projectAccountId": project.account_id,
-                        "projectName": project.name
-                    });
-                }
-            }
-
-            // Third Row - Project Updates
-            TSLabel {
-                visible: isReadOnly
-                text: i18n.dtr("ubtms","Project Updates")
-                width: (parent.width - units.gu(2)) / 3
-                height: units.gu(6)
-                horizontalAlignment: Text.AlignHLeft
-                verticalAlignment: Text.AlignVCenter
-                fontBold: true
-                color: "#f97316"
-            }
-
-            TSButton {
-                visible: isReadOnly
-                bgColor: "#fef1e7"
-                fgColor: "#f97316"
-                hoverColor: '#f3e0d1'
-                iconName: "add"
-                iconColor: "#f97316"
-                fontBold: true
-                width: (parent.width - units.gu(2)) / 3
-                text: i18n.dtr("ubtms","Create")
-                onClicked: {
-                    let project = Project.getProjectDetails(recordid);
-                    
-                    // Store callback in Global for CreateUpdatePage to access
-                    Global.createUpdateCallback = function(updateData) {
-                        let result = Project.createUpdateSnapShot(updateData);
-                        if (result['is_success'] === false) {
-                            notifPopup.open("Failed", result['message'], "error");
-                        } else {
-                            notifPopup.open("Saved", "Project update has been saved", "success");
+                TSLabel {
+                    text: project && project.stage ? Project.getProjectStageName(project.stage) : i18n.dtr("ubtms", "Not set")
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    height: units.gu(6)
+                    fontBold: true
+                    color: {
+                        if (!project || !project.stage) {
+                            return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
                         }
-                        Global.createUpdateCallback = null;
-                    };
-                    
-                    // Open CreateUpdatePage
-                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("components/CreateUpdatePage.qml"), {
-                        "projectId": project.odoo_record_id,
-                        "accountId": project.account_id
-                    });
+                        var stageName = Project.getProjectStageName(project.stage).toLowerCase();
+                        if (stageName === "completed" || stageName === "finished" || stageName === "closed" || stageName === "verified" || stageName === "done") {
+                            return "green";
+                        }
+                        return "#f97316";
+                    }
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                TSButton {
+                    visible: recordid !== 0
+                    bgColor: "#f3f4f6"
+                    fgColor: "#1f2937"
+                    hoverColor: '#d1d5db'
+                    borderColor: "#d1d5db"
+                    fontBold: true
+                    iconName: "filters"
+                    iconColor: "#1f2937"
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    height: units.gu(6)
+                    text: i18n.dtr("ubtms", "Change")
+                    onClicked: {
+                        if (!project || !project.id) {
+                            notifPopup.open("Error", "Project data not available", "error");
+                            return;
+                        }
+
+                        var dialog = PopupUtils.open(projectStageSelector, projectCreate, {
+                            projectId: project.id,
+                            accountId: project.account_id,
+                            currentStageOdooRecordId: project.stage || -1
+                        });
+                    }
                 }
             }
 
-            TSButton {
-                visible: isReadOnly && recordid > 0
-                bgColor: "#f3f4f6"
-                fgColor: "#1f2937"
-                hoverColor: '#d1d5db'
-                borderColor: "#d1d5db"
-                fontBold: true
-                iconName: "view-on"
-                iconColor: "#1f2937"
-                width: (parent.width - units.gu(2)) / 3
-               text: i18n.dtr("ubtms","View")
-                onClicked: {
-                    let project = Project.getProjectDetails(recordid);
-                    apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Updates_Page.qml"), {
-                        "filterByProject": true,
-                        "projectOdooRecordId": project.odoo_record_id,
-                        "projectAccountId": project.account_id,
-                        "projectName": project.name
-                    });
-                }
-            }
-        }
+            // Action Buttons Grid
+            Grid {
+                id: myRow82
+                width: parent.width - units.gu(2)
+                anchors.horizontalCenter: parent.horizontalCenter
+                columns: 3
+                spacing: units.gu(1)
 
-        Row {
-            id: myRow4
-            anchors.top: myRow82.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(2)
-            topPadding: units.gu(1)
-
-            TSLabel {
-                id: hours_label
-               text: i18n.dtr("ubtms","Allocated Hours")
-                width: parent.width * 0.3
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            TextField {
-                id: hours_text
-                readOnly: isReadOnly
-                width: parent.width * 0.3
-                anchors.verticalCenter: parent.verticalCenter
-                text: "01:00"
-                placeholderText: "HH:MM (e.g., 1000:30 for large projects)"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                // Custom validation for HH:MM format (allowing 1000+ hours for project allocation)
-                property bool isValid: {
-                    if (!/^[0-9]{1,4}:[0-5][0-9]$/.test(text))
-                        return false;
-                    var parts = text.split(":");
-                    var hours = parseInt(parts[0]);
-                    var minutes = parseInt(parts[1]);
-                    return hours >= 0 && hours <= 9999 && minutes <= 59;
+                // Activities
+                TSLabel {
+                    visible: isReadOnly
+                    text: i18n.dtr("ubtms","Activities")
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    height: units.gu(6)
+                    horizontalAlignment: Text.AlignHLeft
+                    verticalAlignment: Text.AlignVCenter
+                    fontBold: true
+                    color: "#f97316"
                 }
 
-                // Visual feedback for invalid input
-                color: isValid ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black") : "red"
+                TSButton {
+                    visible: isReadOnly
+                    bgColor: "#fef1e7"
+                    fgColor: "#f97316"
+                    hoverColor: '#f3e0d1'
+                    iconName: "add"
+                    iconColor: "#f97316"
+                    fontBold: true
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    text: i18n.dtr("ubtms","Create")
+                    onClicked: {
+                        let project = Project.getProjectDetails(recordid);
+                        let result = Activity.createActivityFromProjectOrTask(true, project.account_id, project.odoo_record_id);
+                        if (result.success) {
+                            apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activities.qml"), {
+                                "recordid": result.record_id,
+                                "accountid": project.account_id,
+                                "isReadOnly": false
+                            });
+                        } else {
+                            notifPopup.open("Failed", "Unable to create activity", "error");
+                        }
+                    }
+                }
+
+                TSButton {
+                    visible: isReadOnly && recordid > 0
+                    bgColor: "#f3f4f6"
+                    fgColor: "#1f2937"
+                    hoverColor: '#d1d5db'
+                    borderColor: "#d1d5db"
+                    fontBold: true
+                    iconName: "view-on"
+                    iconColor: "#1f2937"
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    text: i18n.dtr("ubtms","View")
+                    onClicked: {
+                        let project = Project.getProjectDetails(recordid);
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activity_Page.qml"), {
+                            "filterByProject": true,
+                            "projectOdooRecordId": project.odoo_record_id,
+                            "projectAccountId": project.account_id,
+                            "projectName": project.name
+                        });
+                    }
+                }
+
+                // Tasks
+                TSLabel {
+                    visible: isReadOnly
+                    text: i18n.dtr("ubtms","Tasks")
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    height: units.gu(6)
+                    horizontalAlignment: Text.AlignHLeft
+                    verticalAlignment: Text.AlignVCenter
+                    fontBold: true
+                    color: "#f97316"
+                }
+
+                TSButton {
+                    visible: isReadOnly
+                    bgColor: "#fef1e7"
+                    fgColor: "#f97316"
+                    hoverColor: '#f3e0d1'
+                    iconName: "add"
+                    iconColor: "#f97316"
+                    fontBold: true
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    text: i18n.dtr("ubtms","Create")
+                    onClicked: {
+                        let project = Project.getProjectDetails(recordid);
+                        let isSubProject = project.parent_id && project.parent_id > 0;
+                        let parentProjectId = isSubProject ? project.parent_id : -1;
+
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Tasks.qml"), {
+                            "recordid": 0,
+                            "isReadOnly": false,
+                            "prefilledAccountId": project.account_id,
+                            "prefilledProjectId": isSubProject ? -1 : project.odoo_record_id,
+                            "prefilledSubProjectId": isSubProject ? project.odoo_record_id : -1,
+                            "prefilledParentProjectId": parentProjectId,
+                            "prefilledProjectName": project.name
+                        });
+                    }
+                }
+
+                TSButton {
+                    visible: isReadOnly && recordid > 0
+                    bgColor: "#f3f4f6"
+                    fgColor: "#1f2937"
+                    hoverColor: '#d1d5db'
+                    borderColor: "#d1d5db"
+                    fontBold: true
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    iconName: "view-on"
+                    iconColor: "#1f2937"
+                    text: i18n.dtr("ubtms","View")
+                    onClicked: {
+                        let project = Project.getProjectDetails(recordid);
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Task_Page.qml"), {
+                            "filterByProject": true,
+                            "projectOdooRecordId": project.odoo_record_id,
+                            "projectAccountId": project.account_id,
+                            "projectName": project.name
+                        });
+                    }
+                }
+
+                // Project Updates
+                TSLabel {
+                    visible: isReadOnly
+                    text: i18n.dtr("ubtms","Project Updates")
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    height: units.gu(6)
+                    horizontalAlignment: Text.AlignHLeft
+                    verticalAlignment: Text.AlignVCenter
+                    fontBold: true
+                    color: "#f97316"
+                }
+
+                TSButton {
+                    visible: isReadOnly
+                    bgColor: "#fef1e7"
+                    fgColor: "#f97316"
+                    hoverColor: '#f3e0d1'
+                    iconName: "add"
+                    iconColor: "#f97316"
+                    fontBold: true
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    text: i18n.dtr("ubtms","Create")
+                    onClicked: {
+                        let project = Project.getProjectDetails(recordid);
+                        Global.createUpdateCallback = function(updateData) {
+                            let result = Project.createUpdateSnapShot(updateData);
+                            if (result['is_success'] === false) {
+                                notifPopup.open("Failed", result['message'], "error");
+                            } else {
+                                notifPopup.open("Saved", "Project update has been saved", "success");
+                            }
+                            Global.createUpdateCallback = null;
+                        };
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("components/CreateUpdatePage.qml"), {
+                            "projectId": project.odoo_record_id,
+                            "accountId": project.account_id
+                        });
+                    }
+                }
+
+                TSButton {
+                    visible: isReadOnly && recordid > 0
+                    bgColor: "#f3f4f6"
+                    fgColor: "#1f2937"
+                    hoverColor: '#d1d5db'
+                    borderColor: "#d1d5db"
+                    fontBold: true
+                    iconName: "view-on"
+                    iconColor: "#1f2937"
+                    width: (parent.width - (2 * parent.spacing)) / 3
+                    text: i18n.dtr("ubtms","View")
+                    onClicked: {
+                        let project = Project.getProjectDetails(recordid);
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Updates_Page.qml"), {
+                            "filterByProject": true,
+                            "projectOdooRecordId": project.odoo_record_id,
+                            "projectAccountId": project.account_id,
+                            "projectName": project.name
+                        });
+                    }
+                }
+            }
+
+            // Allocated Hours
+            Row {
+                id: myRow4
+                width: parent.width - units.gu(2)
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: units.gu(2)
+
+                TSLabel {
+                    text: i18n.dtr("ubtms","Allocated Hours")
+                    width: parent.width * 0.4
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                TextField {
+                    id: hours_text
+                    readOnly: isReadOnly
+                    width: parent.width * 0.4
+                    text: "01:00"
+                    placeholderText: "HH:MM"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    property bool isValid: {
+                        if (!/^[0-9]{1,4}:[0-5][0-9]$/.test(text)) return false;
+                        var parts = text.split(":");
+                        var hours = parseInt(parts[0]);
+                        var minutes = parseInt(parts[1]);
+                        return hours >= 0 && hours <= 9999 && minutes <= 59;
+                    }
+                    color: isValid ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black") : "red"
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        radius: units.gu(0.5)
+                        border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
+                        border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                    }
+                }
+            }
+
+            // Color Picker Row
+            Row {
+                id: colorRow
+                width: parent.width - units.gu(2)
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: units.gu(2)
+
+                TSLabel {
+                    text: "Color"
+                    width: parent.width * 0.4
+                    anchors.verticalCenter: parent.verticalCenter
+                }
 
                 Rectangle {
-                    //  visible: !isReadOnly
-                    anchors.fill: parent
-                    color: "transparent"
+                    id: project_color_label
+                    width: units.gu(4)
+                    height: units.gu(4)
+                    color: "red"
                     radius: units.gu(0.5)
                     border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
                     border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                    // z: -1
-                }
-            }
-        }
-
-        Row {
-            id: colorRow
-            anchors.top: myRow4.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: units.gu(1)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(2)
-            topPadding: units.gu(1)
-
-            TSLabel {
-                id: color_Label
-                text: "Color"
-                width: parent.width * 0.3
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            Rectangle {
-                id: project_color_label
-                width: units.gu(4)
-                height: units.gu(4)
-                color: "red"
-                radius: units.gu(0.5)
-                border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
-                enabled: !isReadOnly
-                anchors.verticalCenter: parent.verticalCenter
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        colorpicker.open();
+                    enabled: !isReadOnly
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: colorpicker.open()
                     }
                 }
             }
-        }
 
-        Row {
-            id: myRow6
-            anchors.top: colorRow.bottom
-            anchors.left: parent.left
-            topPadding: units.gu(1)
-            height: units.gu(30)
+            // Date Range Section
             Column {
-                leftPadding: units.gu(1)
+                width: parent.width - units.gu(2)
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: units.gu(1)
+
+                TSLabel {
+                    text: i18n.dtr("ubtms", "Planned Dates")
+                    fontBold: true
+                }
+
                 DateRangeSelector {
                     id: date_range_widget
                     readOnly: isReadOnly
-                    width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(35) : projectDetailsPageFlickable.width - units.gu(30)
-                    height: units.gu(4)
-                    anchors.centerIn: parent.centerIn
+                    width: parent.width
+                    height: units.gu(5)
                 }
             }
-        }
 
-        Rectangle {
-            id: attachmentRow
-            anchors.top: myRow6.bottom
-            height: units.gu(50)
-            width: parent.width
-            anchors.margins: units.gu(0.1)
+            // Attachments Section
             AttachmentManager {
                 id: attachments_widget
-                anchors.fill: parent
-                // Provide context for upload:
-                resource_type: "project.project"   // keep as-is if that's your default
+                width: parent.width
+                height: units.gu(50)
+                resource_type: "project.project"
                 resource_id: project.odoo_record_id
                 account_id: project.account_id
                 notifier: infobar
-
                 onUploadCompleted: {
-                    //kinda refresh
                     attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id, project.account_id));
-                }
-
-                onItemClicked: function (rec) {
-                    // Open viewer / download / preview…
-                    console.log("Clicked attachment:", rec ? rec.name : rec);
                 }
             }
         }
