@@ -141,7 +141,7 @@
 
       <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
       <p style="font-size: 24px; color: #7f8c8d; text-align: center;">
-         Time Management for Ubuntu Touch • Version 1.2.2 • © 2025 CIT Services
+         Time Management for Ubuntu Touch • Version 1.2.2 • © 2026 CIT Services
       </p>
    </body>
 </html>
