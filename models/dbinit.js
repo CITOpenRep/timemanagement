@@ -382,8 +382,10 @@ function initializeDatabase() {
           create_date DATETIME,\
           write_date DATETIME,\
           __last_update DATETIME,\
-          -- helper flag: if the stage has no project_ids on Odoo
           is_global INTEGER DEFAULT 1,\
+          status TEXT,\
+          favorites INTEGER DEFAULT 0,\
+          has_draft INTEGER DEFAULT 0,\
           UNIQUE (odoo_record_id, account_id)\
       )',
       [
@@ -406,7 +408,10 @@ function initializeDatabase() {
         'create_date DATETIME',
         'write_date DATETIME',
         '__last_update DATETIME',
-        'is_global INTEGER'
+        'is_global INTEGER',
+        'status TEXT',
+        'favorites INTEGER DEFAULT 0',
+        'has_draft INTEGER DEFAULT 0'
       ]
     );
 
@@ -424,6 +429,9 @@ function initializeDatabase() {
           create_date DATETIME,\
           write_date DATETIME,\
           __last_update DATETIME,\
+          status TEXT,\
+          favorites INTEGER DEFAULT 0,\
+          has_draft INTEGER DEFAULT 0,\
           UNIQUE (odoo_record_id, account_id)\
       )',
       [
@@ -438,7 +446,10 @@ function initializeDatabase() {
         'active INTEGER',
         'create_date DATETIME',
         'write_date DATETIME',
-        '__last_update DATETIME'
+        '__last_update DATETIME',
+        'status TEXT',
+        'favorites INTEGER DEFAULT 0',
+        'has_draft INTEGER DEFAULT 0'
       ]
     );
 
