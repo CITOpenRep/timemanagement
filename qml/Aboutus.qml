@@ -96,6 +96,8 @@ Page {
                 font.pixelSize: units.gu(1.8)
 
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                
+                onLinkActivated: Qt.openUrlExternally(link)
             }
         }
     }
