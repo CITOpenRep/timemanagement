@@ -141,6 +141,8 @@ function saveDraft(params) {
                 var tableName = null;
                 if (draftType === "task") {
                     tableName = "project_task_app";
+                } else if (draftType === "project") {
+                    tableName = "project_project_app";
                 } else if (draftType === "timesheet") {
                     tableName = "account_analytic_line_app";
                 } else if (draftType === "project_update") {
@@ -299,6 +301,8 @@ function deleteDraft(draftId) {
                     var tableName = null;
                     if (draftType === "task") {
                         tableName = "project_task_app";
+                    } else if (draftType === "project") {
+                        tableName = "project_project_app";
                     } else if (draftType === "timesheet") {
                         tableName = "account_analytic_line_app";
                     } else if (draftType === "project_update") {
@@ -416,6 +420,8 @@ function deleteDrafts(params) {
                     var tableName = null;
                     if (draftType === "task") {
                         tableName = "project_task_app";
+                    } else if (draftType === "project") {
+                        tableName = "project_project_app";
                     } else if (draftType === "timesheet") {
                         tableName = "account_analytic_line_app";
                     } else if (draftType === "project_update") {

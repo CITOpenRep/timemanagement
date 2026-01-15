@@ -171,7 +171,12 @@ ListItem {
     }
 
     clip: true
-    trailingActions: ListItemActions {
+    // Disable all swipe actions for done activities
+    trailingActions: root.state === "done" ? null : _trailingActions
+    leadingActions: root.state === "done" ? null : _leadingActions
+
+    ListItemActions {
+        id: _trailingActions
         actions: [
             Action {
                 iconName: "edit"
@@ -197,7 +202,8 @@ ListItem {
         ]
     }
 
-    leadingActions: ListItemActions {
+    ListItemActions {
+        id: _leadingActions
         actions: [
             Action {
                 iconName: "reload"

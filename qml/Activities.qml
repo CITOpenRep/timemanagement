@@ -96,7 +96,7 @@ Page {
             },
             Action {
                 iconName: "edit"
-                visible: isReadOnly && recordid !== 0
+                visible: isReadOnly && recordid !== 0 && currentActivity.state !== "done"
                 text: i18n.dtr("ubtms", "Edit")
                 onTriggered: {
                     switchToEditMode();
@@ -945,7 +945,8 @@ Page {
 
     function switchToEditMode() {
         // Switch from read-only to edit mode
-        if (recordid !== 0) {
+        // Prevent editing activities marked as done
+        if (recordid !== 0 && currentActivity.state !== "done") {
             isReadOnly = false;
             
             // Initialize draft handler when switching from read-only to edit mode
