@@ -38,13 +38,10 @@
             text-decoration: underline;
          }
          .version-badge {
-            background-color: #27ae60;
-            color: white;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 14px;
-            display: inline-block;
-            margin-bottom: 15px;
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
          }
          .curq-section {
             background-color: #f8f9fa;
@@ -65,8 +62,8 @@
       </style>
    </head>
    <body>
-      <h1>Time Management</h1>
-      <span class="version-badge">Version 1.2.2</span>
+      <h2>Time Management - Alpha Draft</h2>
+      <div class="version-badge">Version 1.2.2</div>
       
       <p>
          <strong>Time Management</strong> is a native time-tracking and productivity application built exclusively for Ubuntu Touch phones.
@@ -95,7 +92,7 @@
       </ul>
 
       <div class="curq-section">
-         <h2>🚀 Recommended Server: CURQ</h2>
+         <h2>Recommended Server: CURQ</h2>
          <p>
             <strong>CURQ</strong> is the all-in-one platform for your business, fully Open Source and tailored to your needs.
          </p>
@@ -110,7 +107,7 @@
       </div>
 
       <div class="links-section">
-         <h2>📚 Resources & Support</h2>
+         <h2>Resources & Support</h2>
          <div class="link-item">
             📖 <a href="https://github.com/AbeelLab/timemanagement/releases" target="_blank"><strong>Release Notes</strong></a> - View all version updates and changelog
          </div>
