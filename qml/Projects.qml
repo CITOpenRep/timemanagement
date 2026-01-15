@@ -163,8 +163,13 @@ Page {
     // Track if form is fully initialized (to defer draft restoration)
     property bool formFullyInitialized: false
     
-    // Flag to suppress change tracking during draft restoration
     property bool isRestoringFromDraft: false
+
+    onProject_colorChanged: {
+        if (!isRestoringFromDraft) {
+            draftHandler.markFieldChanged("color", project_color);
+        }
+    }
 
     // Handle hardware back button presses
     Keys.onReleased: {
@@ -315,14 +320,12 @@ Page {
             return isNaN(num) ? -1 : num;
         }
         
-        if (draftData.accountId !== undefined || draftData.parentId !== undefined) {
+        if (draftData.accountId !== undefined || draftData.parentId !== undefined || draftData.assigneeId !== undefined) {
             var accountId = normalizeIdForRestore(draftData.accountId);
             var parentId = normalizeIdForRestore(draftData.parentId);
             var assigneeId = normalizeIdForRestore(draftData.assigneeId);
             
-            if (accountId >= 0 || parentId > 0) {
-                workItem.deferredLoadExistingRecordSet(accountId, parentId, -1, -1, -1, assigneeId);
-            }
+            workItem.deferredLoadExistingRecordSet(accountId, parentId, -1, -1, -1, assigneeId);
         }
         
         // Clear the restoration flag
@@ -358,14 +361,12 @@ Page {
             return isNaN(num) ? -1 : num;
         }
         
-        if (originalData.accountId !== undefined || originalData.parentId !== undefined) {
+        if (originalData.accountId !== undefined || originalData.parentId !== undefined || originalData.assigneeId !== undefined) {
             var accountId = normalizeIdForRestore(originalData.accountId);
             var parentId = normalizeIdForRestore(originalData.parentId);
             var assigneeId = normalizeIdForRestore(originalData.assigneeId);
             
-            if (accountId >= 0 || parentId > 0) {
-                workItem.deferredLoadExistingRecordSet(accountId, parentId, -1, -1, -1, assigneeId);
-            }
+            workItem.deferredLoadExistingRecordSet(accountId, parentId, -1, -1, -1, assigneeId);
         }
     }
     
@@ -542,6 +543,10 @@ Page {
                     showSubTaskSelector: false
                     width: projectDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(10)
+
+                    onSelectedAccountIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("accountId", selectedAccountId)
+                    onSelectedProjectIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("parentId", selectedProjectId)
+                    onSelectedAssigneeIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("assigneeId", selectedAssigneeId)
                 }
             }
         }
@@ -575,6 +580,7 @@ Page {
                     width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(15) : projectDetailsPageFlickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
                     text: ""
+                    onTextChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("name", text)
 
                     Rectangle {
                         // visible: !isReadOnly
@@ -611,12 +617,14 @@ Page {
                         anchors.centerIn: parent.centerIn
                         text: ""
                         is_read_only: isReadOnly
+                        onContentChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("description", content)
                         onClicked: {
                             //set the data to a global Store and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
                             Global.description_context = "project_description";
                             apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
+                                isReadOnly: isReadOnly,
+                                parentDraftHandler: draftHandler
                             });
                         }
                     }
@@ -920,6 +928,7 @@ Page {
                 width: parent.width * 0.3
                 anchors.verticalCenter: parent.verticalCenter
                 text: "01:00"
+                onTextChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("allocatedHours", text)
                 placeholderText: "HH:MM (e.g., 1000:30 for large projects)"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -998,6 +1007,12 @@ Page {
                     width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(35) : projectDetailsPageFlickable.width - units.gu(30)
                     height: units.gu(4)
                     anchors.centerIn: parent.centerIn
+                    onRangeChanged: {
+                        if (!isRestoringFromDraft) {
+                            draftHandler.markFieldChanged("startDate", formattedStartDate());
+                            draftHandler.markFieldChanged("endDate", formattedEndDate());
+                        }
+                    }
                 }
             }
         }
