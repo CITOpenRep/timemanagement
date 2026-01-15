@@ -579,7 +579,7 @@ Page {
                                     width: parent.width - syncIntervalCombo.width - units.gu(4)
                                 }
 
-                                ComboBox {
+                                OptionSelector {
                                     id: syncIntervalCombo
                                     width: units.gu(15)
                                     enabled: autoSyncSwitch.checked
@@ -590,17 +590,17 @@ Page {
                                         { text: "30 minutes", value: "30" },
                                         { text: "60 minutes", value: "60" }
                                     ]
-                                    textRole: "text"
-                                    currentIndex: {
+                                    delegate: OptionSelectorDelegate { text: modelData.text }
+                                    selectedIndex: {
                                         var saved = getAutoSyncSetting("sync_interval_minutes");
                                         for (var i = 0; i < model.length; i++) {
                                             if (model[i].value === saved) return i;
                                         }
                                         return 2; // Default to 15 minutes
                                     }
-                                    onCurrentIndexChanged: {
-                                        if (currentIndex >= 0 && currentIndex < model.length) {
-                                            saveAutoSyncSetting("sync_interval_minutes", model[currentIndex].value);
+                                    onSelectedIndexChanged: {
+                                        if (selectedIndex >= 0 && selectedIndex < model.length) {
+                                            saveAutoSyncSetting("sync_interval_minutes", model[selectedIndex].value);
                                         }
                                     }
                                 }
@@ -621,7 +621,7 @@ Page {
                                     width: parent.width - syncDirectionCombo.width - units.gu(4)
                                 }
 
-                                ComboBox {
+                                OptionSelector {
                                     id: syncDirectionCombo
                                     width: units.gu(18)
                                     enabled: autoSyncSwitch.checked
@@ -630,17 +630,17 @@ Page {
                                         { text: "Download Only", value: "download_only" },
                                         { text: "Upload Only", value: "upload_only" }
                                     ]
-                                    textRole: "text"
-                                    currentIndex: {
+                                    delegate: OptionSelectorDelegate { text: modelData.text }
+                                    selectedIndex: {
                                         var saved = getAutoSyncSetting("sync_direction");
                                         for (var i = 0; i < model.length; i++) {
                                             if (model[i].value === saved) return i;
                                         }
                                         return 0; // Default to both
                                     }
-                                    onCurrentIndexChanged: {
-                                        if (currentIndex >= 0 && currentIndex < model.length) {
-                                            saveAutoSyncSetting("sync_direction", model[currentIndex].value);
+                                    onSelectedIndexChanged: {
+                                        if (selectedIndex >= 0 && selectedIndex < model.length) {
+                                            saveAutoSyncSetting("sync_direction", model[selectedIndex].value);
                                         }
                                     }
                                 }
