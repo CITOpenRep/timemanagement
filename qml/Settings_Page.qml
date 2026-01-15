@@ -566,10 +566,11 @@ Page {
                             }
 
                             // Sync Interval Selector
-                            ListItem.ItemSelector {
+                            OptionSelector {
                                 id: syncIntervalCombo
                                 text: i18n.dtr("ubtms", "Sync Interval")
                                 enabled: autoSyncSwitch.checked
+                                containerHeight: units.gu(30)
                                 model: [
                                     { text: "1 minute", value: "1" },
                                     { text: "5 minutes", value: "5" },
@@ -580,13 +581,19 @@ Page {
                                 delegate: OptionSelectorDelegate { 
                                     text: modelData.text 
                                 }
-                                selectedIndex: {
+                                
+                                Component.onCompleted: {
                                     var saved = getAutoSyncSetting("sync_interval_minutes");
+                                    var foundIndex = 2; // Default to 15 minutes
                                     for (var i = 0; i < model.length; i++) {
-                                        if (model[i].value === saved) return i;
+                                        if (model[i].value === saved) {
+                                            foundIndex = i;
+                                            break;
+                                        }
                                     }
-                                    return 2; // Default to 15 minutes
+                                    selectedIndex = foundIndex;
                                 }
+                                
                                 onSelectedIndexChanged: {
                                     if (selectedIndex >= 0 && selectedIndex < model.length) {
                                         saveAutoSyncSetting("sync_interval_minutes", model[selectedIndex].value);
@@ -595,10 +602,11 @@ Page {
                             }
 
                             // Sync Direction Selector
-                            ListItem.ItemSelector {
+                            OptionSelector {
                                 id: syncDirectionCombo
                                 text: i18n.dtr("ubtms", "Sync Direction")
                                 enabled: autoSyncSwitch.checked
+                                containerHeight: units.gu(20)
                                 model: [
                                     { text: "Both (Up & Down)", value: "both" },
                                     { text: "Download Only", value: "download_only" },
@@ -607,13 +615,19 @@ Page {
                                 delegate: OptionSelectorDelegate { 
                                     text: modelData.text 
                                 }
-                                selectedIndex: {
+                                
+                                Component.onCompleted: {
                                     var saved = getAutoSyncSetting("sync_direction");
+                                    var foundIndex = 0; // Default to both
                                     for (var i = 0; i < model.length; i++) {
-                                        if (model[i].value === saved) return i;
+                                        if (model[i].value === saved) {
+                                            foundIndex = i;
+                                            break;
+                                        }
                                     }
-                                    return 0; // Default to both
+                                    selectedIndex = foundIndex;
                                 }
+                                
                                 onSelectedIndexChanged: {
                                     if (selectedIndex >= 0 && selectedIndex < model.length) {
                                         saveAutoSyncSetting("sync_direction", model[selectedIndex].value);
