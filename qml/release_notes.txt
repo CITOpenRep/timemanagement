@@ -63,7 +63,7 @@
    </head>
    <body>
       <h2>Time Management - Alpha Draft</h2>
-      <div class="version-badge">Version 1.2.2</div>
+      <div class="version-badge"> <a href="https://github.com/CITOpenRep/timemanagement/releases" target="_blank">Version 1.2.2</div>
       
       <p>
          <strong>Time Management</strong> is a native time-tracking and productivity application built exclusively for Ubuntu Touch phones.
