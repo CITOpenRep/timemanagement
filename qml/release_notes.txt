@@ -109,16 +109,16 @@
       <div class="links-section">
          <h2>Resources & Support</h2>
          <div class="link-item">
-            📖 <a href="https://github.com/AbeelLab/timemanagement/releases" target="_blank"><strong>Release Notes</strong></a> - View all version updates and changelog
+            📖 <a href="https://github.com/CITOpenRep/timemanagement/releases" target="_blank"><strong>Release Notes</strong></a> - View all version updates and changelog
          </div>
          <div class="link-item">
-            🐛 <a href="https://github.com/AbeelLab/timemanagement/issues" target="_blank"><strong>Report an Issue</strong></a> - Found a bug? Let us know!
+            🐛 <a href="https://github.com/CITOpenRep/timemanagement/issues" target="_blank"><strong>Report an Issue</strong></a> - Found a bug? Let us know!
          </div>
          <div class="link-item">
-            💬 <a href="https://github.com/AbeelLab/timemanagement/discussions" target="_blank"><strong>Support & Discussions</strong></a> - Get help and connect with the community
+            💬 <a href="https://github.com/CITOpenRep/timemanagement/discussions" target="_blank"><strong>Support & Discussions</strong></a> - Get help and connect with the community
          </div>
          <div class="link-item">
-            ⭐ <a href="https://github.com/AbeelLab/timemanagement" target="_blank"><strong>GitHub Repository</strong></a> - Star us and contribute!
+            ⭐ <a href="https://github.com/CITOpenRep/timemanagement" target="_blank"><strong>GitHub Repository</strong></a> - Star us and contribute!
          </div>
       </div>
 
@@ -140,7 +140,7 @@
       </p>
 
       <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-      <p style="font-size: 12px; color: #7f8c8d; text-align: center;">
+      <p style="font-size: 24px; color: #7f8c8d; text-align: center;">
          Time Management for Ubuntu Touch • Version 1.2.2 • © 2025 CIT Services
       </p>
    </body>
