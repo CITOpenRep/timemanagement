@@ -47,6 +47,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/manifest.json DESTINATION ${CMAKE_INST
 install(FILES ${PROJECT_NAME}.apparmor DESTINATION ${DATA_DIR})
 install(FILES ubtms-push.apparmor DESTINATION ${DATA_DIR})
 install(FILES ubtms-push-helper.json DESTINATION ${DATA_DIR})
+install(FILES ubtms-urls.json DESTINATION ${DATA_DIR})
 install(PROGRAMS push-helper.py DESTINATION ${DATA_DIR})
 install(PROGRAMS start-daemon.sh DESTINATION ${DATA_DIR})
 install(FILES ubtms-daemon.desktop DESTINATION ${DATA_DIR})

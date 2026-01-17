@@ -43,16 +43,28 @@ Page {
     title: i18n.dtr("ubtms", "Project")
     header: PageHeader {
         id: header
-        title: projectCreate.title
+        title: projectCreate.title + (draftHandler.hasUnsavedChanges ? " •" : "")
         StyleHints {
             foregroundColor: "white"
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        // Custom back button with unsaved changes check
+        leadingActionBar.actions: [
+            Action {
+                iconName: "back"
+                text: i18n.dtr("ubtms", "Back")
+                onTriggered: {
+                    handleBackNavigation();
+                }
+            }
+        ]
+
         trailingActionBar.actions: [
             Action {
-                iconSource: "images/save.svg" // New Save Icon
-                text: "Save"
+                iconSource: "images/save.svg"
+                text: i18n.dtr("ubtms", "Save")
                 visible: !isReadOnly
                 onTriggered: {
                     const ids = workItem.getIds();
@@ -69,6 +81,9 @@ Page {
                     }
 
                     // isReadOnly = !isReadOnly
+                    // Preserve existing favorites value when editing, default to 0 for new projects
+                    var currentFavorites = (project && project.favorites !== undefined) ? project.favorites : 0;
+                    
                     var project_data = {
                         'account_id': ids.account_id >= 0 ? ids.account_id : 0,
                         'name': project_name.text,
@@ -77,9 +92,10 @@ Page {
                         'parent_id': ids.project_id,
                         'allocated_hours': hours_text.text,
                         'description': description_text.text,
-                        'favorites': 0,
+                        'favorites': currentFavorites,
                         'color': project_color,
-                        'status': "updated"
+                        'status': "updated",
+                        'user_id': ids.assignee_id
                     };
                     //  console.log(JSON.stringify(project_data, null, 4));
 
@@ -98,6 +114,12 @@ Page {
                             if (recordid !== 0) {
                                 loadProjectData(recordid);
                             }
+                            
+                            // Clear draft after successful save
+                            draftHandler.clearDraft();
+                            
+                            // Switch back to read-only mode after saving
+                            isReadOnly = true;
                         } else {
                             notifPopup.open("Failed", response.message, "error");
                         }
@@ -105,32 +127,362 @@ Page {
                         notifPopup.open("Failed", "Unable to save project", "error");
                     }
                 }
+            },
+            Action {
+                iconName: "edit"
+                visible: isReadOnly && recordid !== 0
+                text: i18n.dtr("ubtms", "Edit")
+                onTriggered: {
+                    switchToEditMode();
+                }
+            },
+            Action {
+                iconName: "close"
+                text: i18n.dtr("ubtms", "Close")
+                visible: draftHandler.hasUnsavedChanges
+                onTriggered: {
+                    restoreFormToOriginal();
+                    draftHandler.clearDraft();
+                    Qt.callLater(navigateBack);
+                }
             }
         ]
     }
 
-    property bool isReadOnly: false
+    property bool isReadOnly: recordid != 0 // Set read-only immediately based on recordid
     property var recordid: 0
+    property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
     property int project_color: 0
     property var project: {}
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
+    
+    // Track if we're navigating to ReadMorePage to avoid showing save dialog
+    property bool navigatingToReadMore: false
+    
+    // Track if form is fully initialized (to defer draft restoration)
+    property bool formFullyInitialized: false
+    
+    property bool isRestoringFromDraft: false
+
+    onProject_colorChanged: {
+        if (!isRestoringFromDraft) {
+            draftHandler.markFieldChanged("color", project_color);
+        }
+    }
+
+    // Handle hardware back button presses
+    Keys.onReleased: {
+        if (event.key === Qt.Key_Back || event.key === Qt.Key_Escape) {
+            event.accepted = true;
+            handleBackNavigation();
+        }
+    }
+
+    // ==================== DRAFT HANDLER ====================
+    FormDraftHandler {
+        id: draftHandler
+        draftType: "project"
+        recordId: projectCreate.recordid
+        accountId: (project && project.account_id) ? project.account_id : 0
+        enabled: !isReadOnly
+        autoSaveInterval: 300000 // 5 minutes
+        
+        onDraftLoaded: {
+            // Only restore if form is fully initialized
+            if (formFullyInitialized) {
+                restoreFormFromDraft(draftData);
+                notifPopup.open("📂 Draft Found", 
+                    "Unsaved changes restored.", 
+                    "info");
+            } else {
+                // Defer restoration until form is ready
+                console.log("⏳ Deferring draft restoration until form is fully initialized...");
+                Qt.callLater(function() {
+                    if (formFullyInitialized) {
+                        restoreFormFromDraft(draftData);
+                        notifPopup.open("📂 Draft Restored", 
+                            "Unsaved changes restored.", 
+                            "info");
+                    }
+                });
+            }
+        }
+        
+        onUnsavedChangesWarning: {
+            console.log("⚠️ Unsaved changes detected");
+        }
+        
+        onDraftSaved: {
+            console.log("💾 Draft saved successfully (ID: " + draftId + ")");
+        }
+    }
+
+    SaveDiscardDialog {
+        id: saveDiscardDialog
+        onSaveRequested: {
+            console.log("💾 SaveDiscardDialog: Saving project...");
+            saveProjectData();
+        }
+        onDiscardRequested: {
+            console.log("🗑️ SaveDiscardDialog: Discarding changes...");
+            restoreFormToOriginal();
+            draftHandler.clearDraft();
+            Qt.callLater(navigateBack);
+        }
+        onCancelled: {
+            console.log("❌ User cancelled navigation - staying on page");
+        }
+    }
+
+    function handleBackNavigation() {
+        // Check if we're navigating to ReadMore page
+        if (navigatingToReadMore) {
+            navigateBack();
+            return;
+        }
+        
+        // Check if we have unsaved changes
+        if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+            console.log("⚠️ Unsaved changes detected on back navigation");
+            saveDiscardDialog.open();
+            return;
+        }
+        
+        // No unsaved changes, navigate back normally
+        navigateBack();
+    }
+
+    function navigateBack() {
+        console.log("🔙 Attempting to navigate back...");
+        
+        // Method 1: AdaptivePageLayout (primary method for this app)
+        try {
+            if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
+                console.log("✅ Navigating via apLayout.removePages()");
+                apLayout.removePages(projectCreate);
+                return;
+            }
+        } catch (e) {
+            console.error("❌ apLayout navigation error:", e);
+        }
+        
+        // Method 2: Standard pageStack
+        try {
+            if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
+                console.log("✅ Navigating via pageStack.pop()");
+                pageStack.pop();
+                return;
+            }
+        } catch (e) {
+            console.error("❌ Navigation error with pageStack:", e);
+        }
+
+        // Method 3: Parent pop
+        try {
+            if (parent && parent.pop) {
+                console.log("✅ Navigating via parent.pop()");
+                parent.pop();
+                return;
+            }
+        } catch (e) {
+            console.error("❌ Parent navigation error:", e);
+        }
+        
+        console.warn("⚠️ No navigation method found!");
+    }
+
+    function restoreFormFromDraft(draftData) {
+        console.log("🔄 Restoring form from draft data...");
+        
+        // Set flag to suppress tracking during restoration
+        isRestoringFromDraft = true;
+        
+        if (draftData.name) project_name.text = draftData.name;
+        if (draftData.description) description_text.setContent(draftData.description);
+        if (draftData.allocatedHours) hours_text.text = draftData.allocatedHours;
+        if (draftData.color !== undefined) {
+            project_color = draftData.color;
+            project_color_label.color = colorpicker.getColorByIndex(draftData.color);
+        }
+        
+        if (draftData.startDate || draftData.endDate) {
+            date_range_widget.setDateRange(
+                draftData.startDate || "", 
+                draftData.endDate || ""
+            );
+        }
+        
+        // Restore WorkItemSelector selections
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (draftData.accountId !== undefined || draftData.parentId !== undefined || draftData.assigneeId !== undefined) {
+            var accountId = normalizeIdForRestore(draftData.accountId);
+            var parentId = normalizeIdForRestore(draftData.parentId);
+            var assigneeId = normalizeIdForRestore(draftData.assigneeId);
+            
+            workItem.deferredLoadExistingRecordSet(accountId, parentId, -1, -1, -1, assigneeId);
+        }
+        
+        // Clear the restoration flag
+        Qt.callLater(function() {
+            isRestoringFromDraft = false;
+            console.log("✅ Draft restoration complete - tracking re-enabled");
+        });
+    }
+    
+    function restoreFormToOriginal() {
+        console.log("🔄 Restoring form to original values...");
+        
+        var originalData = draftHandler.originalData;
+        if (originalData.name !== undefined) project_name.text = originalData.name;
+        if (originalData.description !== undefined) description_text.setContent(originalData.description);
+        if (originalData.allocatedHours !== undefined) hours_text.text = originalData.allocatedHours;
+        if (originalData.color !== undefined) {
+            project_color = originalData.color;
+            project_color_label.color = colorpicker.getColorByIndex(originalData.color);
+        }
+        
+        if (originalData.startDate !== undefined || originalData.endDate !== undefined) {
+            date_range_widget.setDateRange(
+                originalData.startDate || "", 
+                originalData.endDate || ""
+            );
+        }
+        
+        // Restore WorkItemSelector to original selections
+        function normalizeIdForRestore(value) {
+            if (value === null || value === undefined) return -1;
+            var num = parseInt(value);
+            return isNaN(num) ? -1 : num;
+        }
+        
+        if (originalData.accountId !== undefined || originalData.parentId !== undefined || originalData.assigneeId !== undefined) {
+            var accountId = normalizeIdForRestore(originalData.accountId);
+            var parentId = normalizeIdForRestore(originalData.parentId);
+            var assigneeId = normalizeIdForRestore(originalData.assigneeId);
+            
+            workItem.deferredLoadExistingRecordSet(accountId, parentId, -1, -1, -1, assigneeId);
+        }
+    }
+    
+    function getCurrentFormData() {
+        const ids = workItem.getIds();
+        
+        var formData = {
+            name: project_name.text,
+            description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            allocatedHours: hours_text.text,
+            color: project_color,
+            startDate: date_range_widget.formattedStartDate ? date_range_widget.formattedStartDate() : "",
+            endDate: date_range_widget.formattedEndDate ? date_range_widget.formattedEndDate() : "",
+            accountId: ids.account_id,
+            parentId: ids.project_id,
+            assigneeId: ids.assignee_id
+        };
+        
+        return formData;
+    }
+
+    function switchToEditMode() {
+        // Switch from read-only to edit mode
+        if (recordid !== 0) {
+            isReadOnly = false;
+            
+            // Initialize draft handler when switching from read-only to edit mode
+            var originalProjectData = getCurrentFormData();
+            draftHandler.initialize(originalProjectData);
+        }
+    }
+
+    function saveProjectData() {
+        const ids = workItem.getIds();
+
+        if (!ids.assignee_id) {
+            notifPopup.open("Error", "Please select the assignee", "error");
+            return false;
+        }
+
+        // Validate hours format before saving
+        if (!hours_text.isValid) {
+            notifPopup.open("Error", "Please enter allocated hours in HH:MM format (e.g., 1000:30 for large projects)", "error");
+            return false;
+        }
+
+        // Preserve existing favorites value when editing, default to 0 for new projects
+        var currentFavorites = (project && project.favorites !== undefined) ? project.favorites : 0;
+
+        var project_data = {
+            'account_id': ids.account_id >= 0 ? ids.account_id : 0,
+            'name': project_name.text,
+            'planned_start_date': date_range_widget.formattedStartDate(),
+            'planned_end_date': date_range_widget.formattedEndDate(),
+            'parent_id': ids.project_id,
+            'allocated_hours': hours_text.text,
+            'description': description_text.text,
+            'favorites': currentFavorites,
+            'color': project_color,
+            'status': "updated",
+            'user_id': ids.assignee_id
+        };
+
+        var response = Project.createUpdateProject(project_data, recordid);
+        if (response) {
+            if (response.is_success) {
+                notifPopup.open("Saved", response.message, "success");
+
+                if (recordid === 0 && response.record_id) {
+                    recordid = response.record_id;
+                }
+
+                if (recordid !== 0) {
+                    loadProjectData(recordid);
+                }
+                
+                draftHandler.clearDraft();
+                isReadOnly = true;
+                return true;
+            } else {
+                notifPopup.open("Failed", response.message, "error");
+                return false;
+            }
+        } else {
+            notifPopup.open("Failed", "Unable to save project", "error");
+            return false;
+        }
+    }
 
     // Helper function to load project data
     function loadProjectData(projectId) {
-        project = Project.getProjectDetails(projectId);
+        // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
+        if (isOdooRecordId) {
+            // projectId is an odoo_record_id (stable, from notification deep link)
+            project = Project.getProjectDetailsByOdooId(projectId);
+            console.log("Projects: Loaded by odoo_record_id:", projectId, "found local id:", project ? project.id : "null");
+            // Update recordid to local id for subsequent operations
+            if (project && project.id) {
+                recordid = project.id;
+                isOdooRecordId = false; // Now we have the local id
+            }
+        } else {
+            // projectId is a local id (from normal navigation)
+            project = Project.getProjectDetails(projectId);
+        }
         if (project && Object.keys(project).length > 0) {
             // Set all fields with project details
-            // console.log("ACCOUNT id is ")
-            // console.log( project.account_id)
             let instanceId = (project.account_id !== undefined && project.account_id !== null) ? project.account_id : -1;
             let parentId = (project.parent_id !== undefined && project.parent_id !== null) ? project.parent_id : -1;
+            let userId = (project.user_id !== undefined && project.user_id !== null) ? project.user_id : -1;
 
-            // Set parent project selection
+            // Set parent project selection and assignee
             if (workItem.deferredLoadExistingRecordSet) {
-                workItem.deferredLoadExistingRecordSet(instanceId, parentId, -1, -1, -1, -1);
+                workItem.deferredLoadExistingRecordSet(instanceId, parentId, -1, -1, -1, userId);
             } else if (workItem.applyDeferredSelection) {
-                workItem.applyDeferredSelection(instanceId, parentId, -1);
+                workItem.applyDeferredSelection(instanceId, parentId, userId);
             }
 
             project_name.text = project.name || "";
@@ -191,6 +543,10 @@ Page {
                     showSubTaskSelector: false
                     width: projectDetailsPageFlickable.width - units.gu(2)
                     height: units.gu(10)
+
+                    onSelectedAccountIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("accountId", selectedAccountId)
+                    onSelectedProjectIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("parentId", selectedProjectId)
+                    onSelectedAssigneeIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("assigneeId", selectedAssigneeId)
                 }
             }
         }
@@ -224,6 +580,7 @@ Page {
                     width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(15) : projectDetailsPageFlickable.width - units.gu(10)
                     anchors.centerIn: parent.centerIn
                     text: ""
+                    onTextChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("name", text)
 
                     Rectangle {
                         // visible: !isReadOnly
@@ -260,21 +617,95 @@ Page {
                         anchors.centerIn: parent.centerIn
                         text: ""
                         is_read_only: isReadOnly
+                        onContentChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("description", content)
                         onClicked: {
                             //set the data to a global Store and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
                             Global.description_context = "project_description";
                             apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
+                                isReadOnly: isReadOnly,
+                                parentDraftHandler: draftHandler
                             });
                         }
                     }
                 }
             }
         }
+
+        // Current Stage Display Grid (similar to Tasks.qml)
+        Grid {
+            id: currentStageRow
+            visible: recordid !== 0
+            anchors.top: myRow9.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(1)
+            anchors.rightMargin: units.gu(1)
+            anchors.topMargin: units.gu(1)
+            columns: 3
+            spacing: units.gu(1)
+
+            // Row: Current Stage
+            TSLabel {
+                text: i18n.dtr("ubtms", "Current Stage:")
+                width: (parent.width - (2 * parent.spacing)) / 3
+                height: units.gu(6)
+                horizontalAlignment: Text.AlignHLeft
+                verticalAlignment: Text.AlignVCenter
+                fontBold: true
+                color: "#f97316"
+            }
+
+            TSLabel {
+                text: project && project.stage ? Project.getProjectStageName(project.stage) : i18n.dtr("ubtms", "Not set")
+                width: (parent.width - (2 * parent.spacing)) / 3
+                height: units.gu(6)
+                fontBold: true
+                color: {
+                    if (!project || !project.stage) {
+                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
+                    }
+                    var stageName = Project.getProjectStageName(project.stage).toLowerCase();
+                    if (stageName === "completed" || stageName === "finished" || stageName === "closed" || stageName === "verified" || stageName === "done") {
+                        return "green";
+                    }
+                    return "#f97316";
+                }
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+            }
+
+            TSButton {
+                visible: recordid !== 0
+                bgColor: "#f3f4f6"
+                fgColor: "#1f2937"
+                hoverColor: '#d1d5db'
+                borderColor: "#d1d5db"
+                fontBold: true
+                iconName: "filters"
+                iconColor: "#1f2937"
+                width: (parent.width - (2 * parent.spacing)) / 3
+                height: units.gu(6)
+                text: i18n.dtr("ubtms", "Change")
+                onClicked: {
+                    if (!project || !project.id) {
+                        notifPopup.open("Error", "Project data not available", "error");
+                        return;
+                    }
+
+                    var dialog = PopupUtils.open(projectStageSelector, projectCreate, {
+                        projectId: project.id,
+                        accountId: project.account_id,
+                        currentStageOdooRecordId: project.stage || -1
+                    });
+                }
+            }
+        }
+
         Grid {
             id: myRow82
-            anchors.top: myRow9.bottom
+            anchors.top: (recordid !== 0) ? currentStageRow.bottom : myRow9.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
@@ -497,6 +928,7 @@ Page {
                 width: parent.width * 0.3
                 anchors.verticalCenter: parent.verticalCenter
                 text: "01:00"
+                onTextChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("allocatedHours", text)
                 placeholderText: "HH:MM (e.g., 1000:30 for large projects)"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -575,6 +1007,12 @@ Page {
                     width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(35) : projectDetailsPageFlickable.width - units.gu(30)
                     height: units.gu(4)
                     anchors.centerIn: parent.centerIn
+                    onRangeChanged: {
+                        if (!isRestoringFromDraft) {
+                            draftHandler.markFieldChanged("startDate", formattedStartDate());
+                            draftHandler.markFieldChanged("endDate", formattedEndDate());
+                        }
+                    }
                 }
             }
         }
@@ -617,6 +1055,36 @@ Page {
         }
     }
 
+    // Project Stage Selector Component
+    Component {
+        id: projectStageSelector
+        ProjectStageSelector {
+            onStageSelected: handleStageChange(stageOdooRecordId, stageName)
+        }
+    }
+
+    // Handle project stage change
+    function handleStageChange(stageOdooRecordId, stageName) {
+        if (!project || !project.id) {
+            notifPopup.open("Error", "Project data not available", "error");
+            return;
+        }
+
+        var result = Project.updateProjectStage(project.id, stageOdooRecordId, project.account_id);
+
+        if (result.success) {
+            // Update local project data to reflect the change
+            project.stage = stageOdooRecordId;
+            
+            // Reload project data to ensure UI is updated
+            loadProjectData(recordid);
+            
+            notifPopup.open("Success", "Project stage changed to: " + stageName, "success");
+        } else {
+            notifPopup.open("Error", "Failed to update project stage: " + (result.error || "Unknown error"), "error");
+        }
+    }
+
     Component.onCompleted: {
         if (recordid !== 0) {
             if (!loadProjectData(recordid)) {
@@ -632,7 +1100,17 @@ Page {
                 workItem.applyDeferredSelection(0, -1, -1); // Use local account (id = 0)
             }
         }
+        
+        // Mark form as fully initialized
+        formFullyInitialized = true;
+        
+        // Initialize draft handler AFTER all form fields are populated
+        if (!isReadOnly) {
+            var originalProjectData = getCurrentFormData();
+            draftHandler.initialize(originalProjectData);
+        }
     }
+    
     onVisibleChanged: {
         if (visible) {
             if (Global.description_temporary_holder !== "" && Global.description_context === "project_description") {

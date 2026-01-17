@@ -1,5 +1,5 @@
 .import "database.js" as DBCommon
-.import QtQuick.LocalStorage 2.7 as Sql
+    .import QtQuick.LocalStorage 2.7 as Sql
 
 const TABLE_NAME = "notification";
 
@@ -38,6 +38,21 @@ function deleteNotification(id) {
         });
     } catch (e) {
         DBCommon.logException("deleteNotification", e);
+    }
+}
+
+/**
+ * Deletes all notifications (for testing/clearing).
+ */
+function deleteAllNotifications() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            tx.executeSql(`DELETE FROM ${TABLE_NAME}`);
+        });
+        console.log("All notifications deleted");
+    } catch (e) {
+        DBCommon.logException("deleteAllNotifications", e);
     }
 }
 

@@ -253,14 +253,20 @@ Page {
             for (let i = 0; i < allActivities.length; i++) {
                 var item = allActivities[i];
 
+                // QML ListModel roles are not created for null values.
+                // Normalize to sentinel values to avoid warnings and missing roles.
+                var safeTaskId = (typeof item.task_id !== "undefined" && item.task_id !== null) ? item.task_id : -1;
+                var safeResId = (typeof item.resId !== "undefined" && item.resId !== null) ? item.resId : 0;
+
                 // When filtering by project or task, still apply date and search filters
                 if ((filterByProject || filterByTasks) && !shouldIncludeItem(item)) {
                     continue;
                 }
 
-                var projectDetails = item.project_id ? getProjectDetails(item.project_id) : null;
+                var projectDetails = (item.project_id && item.project_id > 0) ? getProjectDetails(item.project_id) : null;
                 var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
-                var taskName = item.task_id ? getTaskDetails(item.task_id).name : "No Task";
+                var taskDetails = (safeTaskId && safeTaskId > 0) ? getTaskDetails(safeTaskId) : null;
+                var taskName = taskDetails && taskDetails.name ? taskDetails.name : "No Task";
                 var user = Accounts.getUserNameByOdooId(item.user_id);
 
                 filteredActivities.push({
@@ -270,13 +276,13 @@ Page {
                     notes: item.notes,
                     activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
                     state: item.state,
-                    task_id: item.task_id,
+                    task_id: safeTaskId,
                     task_name: taskName,
                     project_name: projectName,
                     odoo_record_id: item.odoo_record_id || 0,
                     user: user,
                     account_id: item.account_id,
-                    resId: item.resId,
+                    resId: safeResId,
                     resModel: item.resModel,
                     last_modified: item.last_modified,
                     color_pallet: item.color_pallet,
@@ -406,8 +412,8 @@ Page {
     */
 
     function passesDateFilter(dueDateStr, filter, currentDate) {
-        // Handle "all" filter - show everything
-        if (filter === "all") {
+        // Handle "all" and "done" filters - show everything (done activities are already filtered by state)
+        if (filter === "all" || filter === "done") {
             return true;
         }
 
@@ -518,7 +524,7 @@ Page {
         label4: i18n.dtr("ubtms", "Later")
         label5: i18n.dtr("ubtms", "OverDue")
         label6: i18n.dtr("ubtms", "All")
-        label7: ""
+        label7: i18n.dtr("ubtms", "Done")
         
         showSearchBox: false
         currentFilter: activity.currentFilter
@@ -529,7 +535,7 @@ Page {
         filter4: "later"
         filter5: "overdue"
         filter6: "all"
-        filter7: ""
+        filter7: "done"
 
         onFilterSelected: {
             activity.currentFilter = filterKey;
@@ -585,10 +591,12 @@ Page {
                     });
                 }
                 onEditRequested: function (accountid, recordid) {
+                    // Don't allow editing activities marked as done
+                    var isActivityDone = model.state === "done";
                     apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                         "recordid": recordid,
                         "accountid": accountid,
-                        "isReadOnly": false
+                        "isReadOnly": isActivityDone ? true : false
                     });
                 }
                 onViewRequested: function (accountid, recordid) {

@@ -599,6 +599,7 @@ function getTimeSheetDetails(record_id, accountId) {
                 console.log("getTimeSheetDetails: Raw user_id from DB:", row.user_id);
                 
                 timesheet_detail = {
+                    'id': row.id,
                     'instance_id': row.account_id,
                     'project_id': row.project_id,
                     'sub_project_id': row.sub_project_id,
@@ -610,7 +611,8 @@ function getTimeSheetDetails(record_id, accountId) {
                     'record_date': Utils.formatDate(new Date(row.record_date)),
                     'timer_type': row.timer_type || 'manual',
                     'user_id': row.user_id,
-                    'has_draft': row.has_draft || 0
+                    'has_draft': row.has_draft || 0,
+                    'odoo_record_id': row.odoo_record_id
                 };
                 
                 console.log("getTimeSheetDetails: Returning timesheet_detail:", JSON.stringify(timesheet_detail));
@@ -630,6 +632,64 @@ function getTimeSheetDetails(record_id, accountId) {
     } catch (e) {
         console.error("Error in getTimeSheetDetails:", e.message);
         DBCommon.logException("getTimeSheetDetails", e);
+    }
+    
+    return timesheet_detail;
+}
+
+/**
+ * Retrieves timesheet details by Odoo record ID (stable identifier).
+ * This is used for deep link navigation from notifications.
+ *
+ * @param {number} odoo_record_id - The Odoo record ID of the timesheet entry.
+ * @param {number} [accountId] - Optional account ID to narrow the search.
+ * @returns {Object} - A timesheet detail object, or an empty object if not found.
+ */
+function getTimeSheetDetailsByOdooId(odoo_record_id, accountId) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timesheet_detail = {};
+    
+    try {
+        db.transaction(function (tx) {
+            var query = 'SELECT * FROM account_analytic_line_app WHERE odoo_record_id = ?';
+            var params = [odoo_record_id];
+            
+            if (accountId !== undefined && accountId !== null && accountId > 0) {
+                query += ' AND account_id = ?';
+                params.push(accountId);
+            }
+            
+            query += ' LIMIT 1';
+            var timesheet = tx.executeSql(query, params);
+            
+            if (timesheet.rows.length) {
+                var row = timesheet.rows.item(0);
+                
+                timesheet_detail = {
+                    'id': row.id,
+                    'instance_id': row.account_id,
+                    'project_id': row.project_id,
+                    'sub_project_id': row.sub_project_id,
+                    'task_id': row.task_id,
+                    'sub_task_id': row.sub_task_id,
+                    'name': row.name,
+                    'spentHours': Utils.convertDecimalHoursToHHMM(row.unit_amount),
+                    'quadrant_id': row.quadrant_id,
+                    'record_date': Utils.formatDate(new Date(row.record_date)),
+                    'timer_type': row.timer_type || 'manual',
+                    'user_id': row.user_id,
+                    'has_draft': row.has_draft || 0,
+                    'odoo_record_id': row.odoo_record_id
+                };
+                
+                console.log("getTimeSheetDetailsByOdooId found timesheet id:", row.id, "for odoo_record_id:", odoo_record_id);
+            } else {
+                console.error("No timesheet found for odoo_record_id:", odoo_record_id);
+            }
+        });
+    } catch (e) {
+        console.error("Error in getTimeSheetDetailsByOdooId:", e.message);
+        DBCommon.logException("getTimeSheetDetailsByOdooId", e);
     }
     
     return timesheet_detail;

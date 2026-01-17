@@ -59,6 +59,105 @@ MainView {
 
     signal globalAccountChanged(int accountId, string accountName)
     signal accountDataRefreshRequested(int accountId)
+    
+    // Deep link handling for system notification navigation
+    // Pending navigation data (used when app needs to initialize first)
+    property var pendingNavigation: null
+    
+    // Handle incoming URI from system notifications
+    Connections {
+        target: UriHandler
+        onOpened: function(uris) {
+            console.log("UriHandler: Received URIs:", JSON.stringify(uris));
+            if (uris.length > 0) {
+                handleDeepLink(uris[0]);
+            }
+        }
+    }
+    
+    // Function to handle deep link navigation
+    function handleDeepLink(uri) {
+        console.log("handleDeepLink: Processing URI:", uri);
+        
+        try {
+            // Parse URI manually: ubtms://navigate?type=Task&id=123&account_id=1&odoo_id=1
+            // The URL object is not available in QML, so we parse manually
+            var queryStart = uri.indexOf("?");
+            if (queryStart === -1) {
+                console.log("handleDeepLink: No query parameters found");
+                return;
+            }
+            
+            var queryString = uri.substring(queryStart + 1);
+            var params = {};
+            var pairs = queryString.split("&");
+            for (var i = 0; i < pairs.length; i++) {
+                var pair = pairs[i].split("=");
+                if (pair.length === 2) {
+                    params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+                }
+            }
+            
+            var navType = params["type"] || "";
+            var recordId = parseInt(params["id"]) || -1;
+            var accountId = parseInt(params["account_id"]) || 0;
+            // Check if this is an odoo_record_id (stable ID) vs local id
+            var isOdooId = (params["odoo_id"] === "1");
+            
+            console.log("handleDeepLink: type=" + navType + ", recordId=" + recordId + ", accountId=" + accountId + ", isOdooId=" + isOdooId);
+            
+            if (!navType || recordId <= 0) {
+                console.log("handleDeepLink: Missing required parameters");
+                return;
+            }
+            
+            // Wait for app to be ready before navigating
+            if (init) {
+                pendingNavigation = {type: navType, id: recordId, accountId: accountId, isOdooId: isOdooId};
+                console.log("handleDeepLink: App not ready, queuing navigation");
+                return;
+            }
+            
+            navigateToRecord(navType, recordId, accountId, isOdooId);
+        } catch (e) {
+            console.error("handleDeepLink: Error parsing URI:", e);
+        }
+    }
+    
+    // Navigate to a specific record based on type
+    // isOdooId: if true, recordId is an odoo_record_id (stable), otherwise it's a local id
+    function navigateToRecord(navType, recordId, accountId, isOdooId) {
+        console.log("navigateToRecord: type=" + navType + ", id=" + recordId + ", isOdooId=" + isOdooId);
+        
+        if (navType === "Task" && recordId > 0) {
+            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("Tasks.qml"), {
+                "recordid": recordId,
+                "isOdooRecordId": isOdooId || false,
+                "isReadOnly": true
+            });
+        } else if (navType === "Activity" && recordId > 0) {
+            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("Activities.qml"), {
+                "recordid": recordId,
+                "accountid": accountId,
+                "isOdooRecordId": isOdooId || false,
+                "isReadOnly": true
+            });
+        } else if (navType === "Project" && recordId > 0) {
+            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("Projects.qml"), {
+                "recordid": recordId,
+                "isOdooRecordId": isOdooId || false,
+                "isReadOnly": true
+            });
+        } else if (navType === "Timesheet" && recordId > 0) {
+            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("Timesheet.qml"), {
+                "recordid": recordId,
+                "isOdooRecordId": isOdooId || false,
+                "isReadOnly": true
+            });
+        } else {
+            console.log("navigateToRecord: Unknown type or invalid recordId");
+        }
+    }
 
     NotificationHelper {
         id: notificationSystem
@@ -69,6 +168,9 @@ MainView {
         }
     }
     
+    // NOTE: PushClient removed - using Qt.application.arguments approach instead
+    // for handling notification click navigation
+    
     // Periodic daemon health check timer - check more frequently to catch crashes
     Timer {
         id: daemonHealthCheckTimer
@@ -78,6 +180,21 @@ MainView {
         onTriggered: {
             console.log("Checking daemon health...")
             notificationSystem.ensureDaemonRunning()
+        }
+    }
+    
+    // Timer for delayed deep link navigation on cold start
+    // This ensures all UI components are fully loaded before navigating
+    Timer {
+        id: delayedNavigationTimer
+        interval: 500  // 500ms delay to ensure pages are loaded
+        repeat: false
+        onTriggered: {
+            if (pendingNavigation) {
+                console.log("delayedNavigationTimer: Executing pending navigation - type:", pendingNavigation.type, "id:", pendingNavigation.id, "isOdooId:", pendingNavigation.isOdooId);
+                navigateToRecord(pendingNavigation.type, pendingNavigation.id, pendingNavigation.accountId, pendingNavigation.isOdooId);
+                pendingNavigation = null;
+            }
         }
     }
 
@@ -320,6 +437,13 @@ MainView {
                 break;
             }
             init = false;
+            
+            // Process any pending deep link navigation
+            // Use a Timer to ensure all UI components are fully loaded on cold start
+            if (pendingNavigation) {
+                console.log("setFirstScreen: Pending navigation detected, scheduling with delay");
+                delayedNavigationTimer.start();
+            }
         }
 
         function setCurrentPage(page) {
@@ -496,11 +620,32 @@ MainView {
         
         // Clean up drafts for deleted records
         cleanupDeletedRecordDrafts();
+        
+        // Check for deep link URL in command line arguments (notification click)
+        checkStartupArguments();
 
         Qt.callLater(function () {
             apLayout.setFirstScreen(); // Delay page setup until after DB init
 
         });
+    }
+    
+    // Check if app was launched with a deep link URL (via notification click)
+    function checkStartupArguments() {
+        var args = Qt.application.arguments;
+        console.log("Startup arguments:", JSON.stringify(args));
+        
+        for (var i = 0; i < args.length; i++) {
+            var arg = args[i];
+            console.log("Checking argument:", arg);
+            
+            // Check for ubtms:// or appid:// URLs
+            if (arg.indexOf("ubtms://") === 0) {
+                console.log("Found deep link URL:", arg);
+                handleDeepLink(arg);
+                return;
+            }
+        }
     }
     
     // Function to check if background sync daemon needs setup

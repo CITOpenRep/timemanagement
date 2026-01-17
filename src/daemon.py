@@ -97,10 +97,11 @@ if MISSING_DEPS:
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from config import get_all_accounts
+from config import get_all_accounts, get_setting, DEFAULT_SETTINGS
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
-from common import add_notification
+from sync_to_odoo import sync_all_to_odoo
+from common import add_notification, get_current_assignments_snapshot, detect_new_assignments
 from logger import setup_logger
 
 log = setup_logger()
@@ -131,7 +132,8 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
 sys.excepthook = global_exception_handler
 
 # Configuration
-SYNC_INTERVAL_MINUTES = 1
+# Default sync interval (can be overridden by database settings)
+DEFAULT_SYNC_INTERVAL_MINUTES = 15
 APP_ID = "ubtms_ubtms"
 # Dynamically determine paths from this script's location
 APP_ROOT = Path(__file__).resolve().parent.parent
@@ -147,7 +149,7 @@ def get_app_version():
         if Path(MANIFEST_PATH).exists():
             with open(MANIFEST_PATH, 'r') as f:
                 manifest = json.load(f)
-                return manifest.get('version', '1.2.1')
+                return manifest.get('version', '1.2.2')
         # Fallback to development path
         dev_manifest = Path(__file__).parent.parent / "manifest.json.in"
         if dev_manifest.exists():
@@ -160,7 +162,7 @@ def get_app_version():
                     return match.group(1)
     except Exception as e:
         log.error(f"[DAEMON] Failed to read app version: {e}")
-    return '1.2.1'  # Fallback version
+    return '1.2.2'  # Fallback version
 
 APP_VERSION = get_app_version()
 
@@ -176,12 +178,84 @@ class NotificationDaemon:
         self.running = True
         self.loop = None
         self.wakelock_cookie = None  # For suspend inhibition
+        self.sync_timer_id = None  # Track GLib timer for dynamic interval changes
+        self.current_sync_interval = DEFAULT_SYNC_INTERVAL_MINUTES  # Track current interval
+        self.started_version = APP_VERSION  # Track version at startup for auto-restart
         self._write_pid_file()
         self._setup_signal_handlers()
         self._protect_from_oom()  # Lower OOM priority to survive memory pressure
         self._init_dbus()
         self._request_wakelock()  # Request wakelock to survive device sleep
         self._setup_suspend_handler()  # Handle sleep/wake events
+    
+    def _get_sync_settings(self):
+        """
+        Read AutoSync settings from the database.
+        
+        Returns:
+            dict: Settings with keys:
+                - autosync_enabled (bool): Whether AutoSync is enabled
+                - sync_interval_minutes (int): Sync interval in minutes
+                - sync_direction (str): "both", "download_only", or "upload_only"
+        """
+        try:
+            autosync_enabled = get_setting(self.app_db, "autosync_enabled", "true")
+            sync_interval = get_setting(self.app_db, "sync_interval_minutes", "15")
+            sync_direction = get_setting(self.app_db, "sync_direction", "both")
+            
+            return {
+                "autosync_enabled": autosync_enabled.lower() == "true",
+                "sync_interval_minutes": max(1, int(sync_interval)),  # Minimum 1 minute
+                "sync_direction": sync_direction
+            }
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to read sync settings: {e}")
+            # Return safe defaults
+            return {
+                "autosync_enabled": True,
+                "sync_interval_minutes": DEFAULT_SYNC_INTERVAL_MINUTES,
+                "sync_direction": "both"
+            }
+    
+    def _check_version_and_restart(self):
+        """
+        Check if app version has changed and restart daemon if needed.
+        
+        This allows the daemon to pick up code changes after an app update
+        without requiring a device reboot.
+        
+        Returns:
+            bool: True if restart is needed (will not return if restarting)
+        """
+        try:
+            current_version = get_app_version()
+            if current_version != self.started_version:
+                log.info(f"[DAEMON] Version changed: {self.started_version} -> {current_version}")
+                log.info("[DAEMON] Restarting daemon to load new code...")
+                
+                # Save state before restart
+                self._save_last_check_times()
+                self._release_wakelock()
+                self._cleanup_pid_file()
+                
+                # Restart the daemon process
+                # os.execv replaces current process with new one
+                python_exe = sys.executable
+                script_path = os.path.abspath(__file__)
+                log.info(f"[DAEMON] Executing: {python_exe} {script_path}")
+                
+                # Flush logs before restart
+                import logging
+                for handler in logging.root.handlers:
+                    handler.flush()
+                
+                os.execv(python_exe, [python_exe, script_path])
+                # This line is never reached - execv replaces the process
+                
+            return False
+        except Exception as e:
+            log.error(f"[DAEMON] Version check failed: {e}")
+            return False
     
     def _load_last_check_times(self):
         """Load persisted last check timestamps from file."""
@@ -430,8 +504,8 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Post-wake sync failed: {e}")
         return False  # Don't repeat - one-shot callback
     
-    def send_notification(self, title, message):
-        """Send a system notification via DBus."""
+    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None):
+        """Send a system notification via DBus with optional deep link navigation."""
         # Retry DBus initialization if not available
         if not self.notification_interface:
             log.info("[DAEMON] Notification interface not available, attempting re-initialization...")
@@ -442,15 +516,31 @@ class NotificationDaemon:
             log.info("[DAEMON] DBus re-initialized successfully!")
         
         try:
-            # app_name, replaces_id, app_icon, summary, body, actions, hints, timeout
-            icon_path = str(APP_ROOT / "assets" / "logo.png")
+            # Type-specific icon mapping
+            icon_map = {
+                "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
+                "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
+                "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
+                "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
+            }
+            # Select icon based on notification type, fallback to logo
+            icon_path = icon_map.get(nav_type, str(APP_ROOT / "assets" / "logo.png"))
+            log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
             
-            # Hybrid approach:
-            # 1. Send Badge via Postal (Persistent badge)
-            # 2. Send Popup via Postal (Persistent popup via helper)
+            # Construct deep link URI for navigation (if navigation params provided)
+            # Use odoo_id=1 flag to indicate this is an odoo_record_id (stable across syncs)
+            if nav_type and record_id and record_id > 0:
+                action_uri = f"ubtms://navigate?type={nav_type}&id={record_id}&account_id={account_id or 0}&odoo_id=1"
+            else:
+                # Format: appid://package-name/hook-name/current-user-version
+                action_uri = "appid://ubtms/ubtms/current-user-version"
             
-            # 1. Badge via Postal - use unread notification count instead of total tasks
+            log.info(f"[DAEMON] Notification action URI: {action_uri}")
+            
+            # 1. Update Badge via Postal
             try:
+                # Postal path is based on package name (before underscore)
+                # For ubtms_ubtms, the package is "ubtms", so path is /com/lomiri/Postal/ubtms
                 postal_path = "/com/lomiri/Postal/ubtms"
                 postal = self.bus.get_object('com.lomiri.Postal', postal_path)
                 postal_iface = dbus.Interface(postal, 'com.lomiri.Postal')
@@ -463,23 +553,39 @@ class NotificationDaemon:
             except Exception as e:
                 log.error(f"[DAEMON] Failed to update badge: {e}")
 
-            # 2. Popup via Postal (using push helper)
+            # 2. Send notification popup via Postal Post method
+            # This simulates receiving a push notification locally
+            notification_sent = False
             try:
                 postal_path = "/com/lomiri/Postal/ubtms"
                 postal = self.bus.get_object('com.lomiri.Postal', postal_path)
                 postal_iface = dbus.Interface(postal, 'com.lomiri.Postal')
                 
                 # Construct JSON message for Postal
+                # Include navigation data so the app can navigate to the correct record
+                message_data = {
+                    "text": message,
+                    "type": nav_type or "",
+                    "id": record_id or -1,
+                    "account_id": account_id or 0
+                }
+                
+                # Use raw path (not file:// URI) - matches C++ NotificationHelper behavior
+                icon_file = str(APP_ROOT / "assets" / "logo.png")
+                
+                # Ubuntu Touch Postal notification format
+                # Note: vibrate can be true (use default) or an object with pattern
                 msg = {
-                    "message": message,
+                    "message": message_data,
                     "notification": {
+                        "tag": f"{nav_type or 'update'}_{record_id or 0}_{int(time.time())}",
                         "card": {
                             "summary": title,
                             "body": message,
                             "popup": True,
                             "persist": True,
-                            "icon": str(APP_ROOT / "assets" / "logo.png"),
-                            "actions": ["appid://ubtms/ubtms/current-user-version"]
+                            "icon": icon_file,
+                            "actions": [action_uri]
                         },
                         "sound": True,
                         "vibrate": True
@@ -487,28 +593,52 @@ class NotificationDaemon:
                 }
                 
                 json_str = json.dumps(msg)
+                log.info(f"[DAEMON] Postal JSON payload: {json_str}")
                 
                 # Use dynamic version from manifest
                 app_id_with_version = f"ubtms_ubtms_{APP_VERSION}"
-                postal_iface.Post(app_id_with_version, json_str)
+                log.info(f"[DAEMON] Calling Postal.Post with app_id={app_id_with_version}")
+                
+                # Call Post and check for errors
+                try:
+                    result = postal_iface.Post(app_id_with_version, json_str)
+                    log.info(f"[DAEMON] Postal.Post result: {result}")
+                except dbus.exceptions.DBusException as dbus_err:
+                    log.error(f"[DAEMON] DBus exception from Postal.Post: {dbus_err}")
+                    raise
+                    
                 log.info(f"[DAEMON] Notification sent via Postal: {title}")
+                notification_sent = True
                 
             except Exception as e:
-                log.error(f"[DAEMON] Failed to send Postal notification: {e}")
-                # Fallback to Standard Notifications if Postal fails
+                log.warning(f"[DAEMON] Postal notification failed: {e}")
+            
+            # 3. Fallback to Standard Freedesktop Notifications if Postal didn't work
+            if not notification_sent:
                 try:
                     hints = {
-                        "urgency": dbus.Byte(2),
-                        "resident": dbus.Boolean(True),
-                        "desktop-entry": f"ubtms_ubtms_{APP_VERSION}",
-                        "x-lomiri-snap-decisions": dbus.String("true")
+                        "urgency": dbus.Byte(2),  # Critical urgency
+                        "desktop-entry": dbus.String("ubtms_ubtms"),
+                        "x-canonical-snap-decisions": dbus.String("true"),
+                        "x-canonical-private-button-tint": dbus.Boolean(True),
                     }
+                    # Add action for clickable notification
+                    actions = ["default", "Open", action_uri, "View"]
+                    
                     notification_id = self.notification_interface.Notify(
-                        "Time Management", 0, icon_path, title, message, [], hints, -1
+                        "Time Management",  # App name
+                        0,  # Replace ID (0 = new notification)
+                        icon_path,  # Icon path
+                        title,  # Summary
+                        message,  # Body
+                        actions,  # Actions
+                        hints,  # Hints
+                        -1  # Timeout (-1 = default)
                     )
-                    log.info(f"[DAEMON] Fallback notification sent via freedesktop (ID: {notification_id}): {title}")
+                    log.info(f"[DAEMON] Notification sent via freedesktop (ID: {notification_id}): {title}")
                 except Exception as fallback_error:
-                    log.error(f"[DAEMON] Fallback notification also failed: {fallback_error}")
+                    log.error(f"[DAEMON] Freedesktop notification also failed: {fallback_error}")
+                    
         except Exception as e:
             log.error(f"[DAEMON] Failed to send notification: {e}")
     
@@ -531,232 +661,282 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Failed to get current user ID: {e}")
             return None
 
-    def check_for_updates(self, account_id, account_name, username):
-        """Check for new tasks, activities, and projects since last check."""
+    def check_for_new_assignments(self, account_id, account_name, current_user_id, pre_sync_snapshot):
+        """
+        Check for NEW assignments only by comparing pre-sync and post-sync state.
         
-        # Convert account_id to string for consistent JSON key handling
-        account_key = str(account_id)
+        This method only sends notifications when:
+        - Tasks: User was NEWLY assigned (not in pre-sync snapshot, now assigned)
+        - Activities: User was NEWLY assigned
+        - Projects: User became manager or favorited (not previously)
+        - Timesheets: New timesheet entries for this user
         
-        # Initialize last check time if not set (default to now, so we only catch future updates)
-        # Use Odoo-compatible format (YYYY-MM-DD HH:MM:SS)
-        # We subtract 5 minutes to catch items synced in the current cycle (or just before daemon start)
-        if account_key not in self.last_check_time:
-            start_time = datetime.now(timezone.utc) - timedelta(minutes=5)
-            self.last_check_time[account_key] = start_time.strftime("%Y-%m-%d %H:%M:%S")
-            self._save_last_check_times()
-            # Don't return here! Proceed to check updates using this slightly backdated timestamp.
-            # This ensures we catch the tasks that were just synced in the current cycle.
-
-        last_check = self.last_check_time[account_key]
-        current_user_id = self.get_current_user_id(account_id, username)
+        This prevents notification spam from:
+        - Daemon restarts (existing assignments don't trigger notifications)
+        - General updates to records (only assignment changes matter)
         
-        log.info(f"[DAEMON] Checking updates for {account_name} since {last_check} (User ID: {current_user_id})")
+        BULK NOTIFICATION PROTECTION:
+        - Maximum of 5 notifications per sync cycle per type
+        - If more than 10 total new items detected, likely a fresh sync/data migration
+          and we show a single summary notification instead of individual ones
         
-        # Debug: Log total count of activities for this account
-        try:
-            debug_conn = sqlite3.connect(self.app_db)
-            debug_cursor = debug_conn.cursor()
-            debug_cursor.execute("SELECT COUNT(*) FROM mail_activity_app WHERE account_id = ?", (account_id,))
-            total_activities = debug_cursor.fetchone()[0]
-            debug_cursor.execute("SELECT COUNT(*) FROM mail_activity_app WHERE account_id = ? AND user_id = ?", (account_id, current_user_id))
-            user_activities = debug_cursor.fetchone()[0]
-            debug_cursor.execute("SELECT COUNT(*) FROM mail_activity_app WHERE account_id = ? AND last_modified > ?", (account_id, last_check))
-            new_activities_count = debug_cursor.fetchone()[0]
-            debug_conn.close()
-            log.info(f"[DAEMON] Activity stats: total={total_activities}, for_user={user_activities}, new_since_check={new_activities_count}")
-        except Exception as e:
-            log.error(f"[DAEMON] Debug activity query failed: {e}")
+        Args:
+            account_id: Account ID
+            account_name: Account name for logging
+            current_user_id: The Odoo user ID for this account
+            pre_sync_snapshot: Snapshot from get_current_assignments_snapshot() taken BEFORE sync
+        """
+        if not current_user_id:
+            log.warning(f"[DAEMON] No user ID for {account_name}, skipping assignment check")
+            return
         
-        # Debug: Log task stats similar to activity stats
-        try:
-            debug_conn = sqlite3.connect(self.app_db)
-            debug_cursor = debug_conn.cursor()
-            debug_cursor.execute("SELECT COUNT(*) FROM project_task_app WHERE account_id = ?", (account_id,))
-            total_tasks = debug_cursor.fetchone()[0]
-            debug_cursor.execute("SELECT COUNT(*) FROM project_task_app WHERE account_id = ? AND last_modified > ?", (account_id, last_check))
-            new_tasks_count = debug_cursor.fetchone()[0]
-            # Check with user_id pattern
-            user_id_pattern = f"%,{current_user_id},%"
-            debug_cursor.execute(
-                "SELECT COUNT(*) FROM project_task_app WHERE account_id = ? AND (',' || user_id || ',') LIKE ? AND last_modified > ?",
-                (account_id, user_id_pattern, last_check)
-            )
-            new_tasks_for_user = debug_cursor.fetchone()[0]
-            # Sample a recent task to see user_id format
-            debug_cursor.execute("SELECT id, name, user_id, last_modified FROM project_task_app WHERE account_id = ? ORDER BY last_modified DESC LIMIT 1", (account_id,))
-            sample_task = debug_cursor.fetchone()
-            debug_conn.close()
-            log.info(f"[DAEMON] Task stats: total={total_tasks}, new_since_check={new_tasks_count}, for_user={new_tasks_for_user}")
-            if sample_task:
-                log.info(f"[DAEMON] Sample task: id={sample_task[0]}, name={sample_task[1]}, user_id='{sample_task[2]}', modified={sample_task[3]}")
-                log.info(f"[DAEMON] Pattern used: '{user_id_pattern}', last_check: '{last_check}'")
-        except Exception as e:
-            log.error(f"[DAEMON] Debug task query failed: {e}")
+        log.info(f"[DAEMON] Checking for new assignments for {account_name} (User ID: {current_user_id})")
         
-        try:
-            conn = sqlite3.connect(self.app_db)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+        # Detect new assignments by comparing current DB state with pre-sync snapshot
+        new_assignments = detect_new_assignments(
+            self.app_db, account_id, current_user_id, pre_sync_snapshot
+        )
+        
+        # =================================================================
+        # BULK NOTIFICATION PROTECTION
+        # =================================================================
+        # If too many "new" items detected, this is likely a fresh install,
+        # database reset, or first sync - NOT actual new assignments.
+        # In this case, show a single summary instead of spamming notifications.
+        MAX_NOTIFICATIONS_PER_TYPE = 5
+        BULK_THRESHOLD = 10  # Total items that triggers bulk mode
+        
+        total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
+                     len(new_assignments['new_projects']) + len(new_assignments['new_timesheets']))
+        
+        if total_new > BULK_THRESHOLD:
+            log.warning(f"[DAEMON] Bulk notification protection triggered: {total_new} new items detected")
+            log.warning(f"[DAEMON] This appears to be a fresh sync or data migration - sending summary only")
             
-            # 1. New/Updated Tasks Assigned to User
-            # user_id can be a single ID or CSV string of IDs (Many2many)
-            if current_user_id:
-                # Match both single ID and CSV patterns
-                cursor.execute(
-                    """
-                    SELECT name, project_id FROM project_task_app 
-                    WHERE account_id = ? 
-                    AND (
-                        user_id = ? 
-                        OR user_id = ?
-                        OR (',' || user_id || ',') LIKE ?
-                    )
-                    AND last_modified > ?
-                    """,
-                    (account_id, current_user_id, str(current_user_id), f"%,{current_user_id},%", last_check)
-                )
-                new_tasks = cursor.fetchall()
-                if new_tasks:
-                    log.info(f"[DAEMON] Found {len(new_tasks)} new tasks for user {current_user_id}")
-                
-                for task in new_tasks:
-                    # Send system notification
-                    self.send_notification(
-                        "Task Update",
-                        f"Task '{task['name']}' has been updated or assigned to you."
-                    )
-                    # Persist notification to database for frontend display
-                    # Note: sqlite3.Row doesn't have .get(), use bracket notation with try/except
-                    try:
-                        project_id = task['project_id']
-                    except (KeyError, IndexError):
-                        project_id = None
-                    add_notification(
-                        self.app_db,
-                        account_id,
-                        "Task",
-                        f"Task '{task['name']}' has been updated or assigned to you.",
-                        {"task_name": task['name'], "project_id": project_id}
-                    )
-
-            # 2. New/Updated Activities Assigned to User
-            # user_id in mail_activity_app could be integer or stored as first element of tuple
-            if current_user_id:
-                # Try both exact match and string match for flexibility
-                cursor.execute(
-                    """
-                    SELECT summary, due_date FROM mail_activity_app 
-                    WHERE account_id = ? 
-                    AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
-                    AND last_modified > ?
-                    """,
-                    (account_id, current_user_id, str(current_user_id), str(current_user_id), last_check)
-                )
-                new_activities = cursor.fetchall()
-                if new_activities:
-                    log.info(f"[DAEMON] Found {len(new_activities)} new activities for user {current_user_id}")
-                for activity in new_activities:
-                    summary = activity['summary'] or "New Activity"
-                    # Send system notification
-                    self.send_notification(
-                        "Activity Assigned",
-                        f"{summary} (Due: {activity['due_date']})"
-                    )
-                    # Persist notification to database for frontend display
-                    add_notification(
-                        self.app_db,
-                        account_id,
-                        "Activity",
-                        f"{summary} (Due: {activity['due_date']})",
-                        {"summary": summary, "due_date": activity['due_date']}
-                    )
-
-            # 3. Project Updates (General)
-            # Maybe filter by favorites or membership if possible, for now notify all project updates
-            cursor.execute(
-                """
-                SELECT name FROM project_project_app 
-                WHERE account_id = ? 
-                AND last_modified > ?
-                """,
-                (account_id, last_check)
+            # Send a single summary notification instead of individual ones
+            summary_parts = []
+            if new_assignments['new_tasks']:
+                summary_parts.append(f"{len(new_assignments['new_tasks'])} tasks")
+            if new_assignments['new_activities']:
+                summary_parts.append(f"{len(new_assignments['new_activities'])} activities")
+            if new_assignments['new_projects']:
+                summary_parts.append(f"{len(new_assignments['new_projects'])} projects")
+            if new_assignments['new_timesheets']:
+                summary_parts.append(f"{len(new_assignments['new_timesheets'])} timesheets")
+            
+            summary_msg = f"Synced {', '.join(summary_parts)} for {account_name}"
+            self.send_notification(
+                "Sync Complete",
+                summary_msg,
+                nav_type=None,
+                record_id=None,
+                account_id=account_id
             )
-            new_projects = cursor.fetchall()
-            for project in new_projects:
-                # Send system notification
-                self.send_notification(
-                    "Project Update",
-                    f"Project '{project['name']}' has been updated."
-                )
-                # Persist notification to database for frontend display
+            
+            # Still add individual notifications to the DB (for history) but don't send popups
+            # This ensures the notification center has the full list
+            for task in new_assignments['new_tasks']:
                 add_notification(
-                    self.app_db,
-                    account_id,
-                    "Project",
-                    f"Project '{project['name']}' has been updated.",
-                    {"project_name": project['name']}
+                    self.app_db, account_id, "Task",
+                    f"You've been assigned to task '{task.get('name', 'Unknown Task')}'.",
+                    {"task_name": task.get('name'), "project_id": task.get('project_id'), 
+                     "id": task.get('id'), "odoo_record_id": task.get('odoo_record_id'), 
+                     "is_new_assignment": True, "bulk_sync": True}
                 )
-
-            # 4. Timesheet Updates
-            cursor.execute(
-                """
-                SELECT name, unit_amount FROM account_analytic_line_app 
-                WHERE account_id = ? 
-                AND last_modified > ?
-                """,
-                (account_id, last_check)
-            )
-            new_timesheets = cursor.fetchall()
-            for timesheet in new_timesheets:
-                ts_name = timesheet['name'] or "Timesheet Entry"
-                # Send system notification
-                self.send_notification(
-                    "Timesheet Update",
-                    f"Timesheet '{ts_name}' ({timesheet['unit_amount']}h) has been updated."
-                )
-                # Persist notification to database for frontend display
+            for activity in new_assignments['new_activities']:
                 add_notification(
-                    self.app_db,
-                    account_id,
-                    "Timesheet",
-                    f"Timesheet '{ts_name}' ({timesheet['unit_amount']}h) has been updated.",
-                    {"timesheet_name": ts_name, "hours": timesheet['unit_amount']}
+                    self.app_db, account_id, "Activity",
+                    f"New activity: {activity.get('summary') or 'New Activity'} (Due: {activity.get('due_date', 'No date')})",
+                    {"summary": activity.get('summary'), "due_date": activity.get('due_date'),
+                     "id": activity.get('id'), "odoo_record_id": activity.get('odoo_record_id'),
+                     "is_new_assignment": True, "bulk_sync": True}
                 )
-
-            # Get the maximum last_modified from all synced tables to use as next last_check
-            # This ensures we don't miss records due to time sync differences
-            max_modified = last_check  # Default to current last_check
-            try:
-                cursor.execute("""
-                    SELECT MAX(last_modified) FROM (
-                        SELECT MAX(last_modified) as last_modified FROM project_task_app WHERE account_id = ?
-                        UNION ALL
-                        SELECT MAX(last_modified) FROM mail_activity_app WHERE account_id = ?
-                        UNION ALL
-                        SELECT MAX(last_modified) FROM project_project_app WHERE account_id = ?
-                        UNION ALL
-                        SELECT MAX(last_modified) FROM account_analytic_line_app WHERE account_id = ?
-                    )
-                """, (account_id, account_id, account_id, account_id))
-                result = cursor.fetchone()
-                if result and result[0]:
-                    max_modified = result[0]
-                    log.info(f"[DAEMON] Max last_modified from DB: {max_modified}")
-            except Exception as e:
-                log.error(f"[DAEMON] Failed to get max last_modified: {e}")
-
-            conn.close()
             
-            # Update last check time using the max modified time from synced data
-            # This ensures we don't miss records due to clock differences between server and device
-            self.last_check_time[str(account_id)] = max_modified
-            self._save_last_check_times()
+            log.info(f"[DAEMON] Bulk sync summary notification sent for {account_name}")
+            return  # Skip individual notifications
+        
+        # =================================================================
+        # 1. TASKS: Notify only for NEW assignments (max 5 notifications)
+        # =================================================================
+        tasks_to_notify = new_assignments['new_tasks'][:MAX_NOTIFICATIONS_PER_TYPE]
+        tasks_overflow = len(new_assignments['new_tasks']) - len(tasks_to_notify)
+        
+        for task in tasks_to_notify:
+            task_id = task.get('id')
+            task_name = task.get('name', 'Unknown Task')
+            project_id = task.get('project_id')
+            odoo_record_id = task.get('odoo_record_id')
             
-        except Exception as e:
-            log.error(f"[DAEMON] Failed to check for updates: {e}")
-    
-    def sync_account(self, account):
-        """Sync a single account and check for updates."""
+            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
+            self.send_notification(
+                "Task Assigned",
+                f"You've been assigned to task '{task_name}'.",
+                nav_type="Task",
+                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
+                account_id=account_id
+            )
+            add_notification(
+                self.app_db,
+                account_id,
+                "Task",
+                f"You've been assigned to task '{task_name}'.",
+                {"task_name": task_name, "project_id": project_id, "id": task_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+            )
+        
+        # Add remaining tasks to DB without sending popups
+        for task in new_assignments['new_tasks'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            add_notification(
+                self.app_db, account_id, "Task",
+                f"You've been assigned to task '{task.get('name', 'Unknown Task')}'.",
+                {"task_name": task.get('name'), "project_id": task.get('project_id'), 
+                 "id": task.get('id'), "odoo_record_id": task.get('odoo_record_id'), 
+                 "is_new_assignment": True, "notification_suppressed": True}
+            )
+        
+        if new_assignments['new_tasks']:
+            log.info(f"[DAEMON] Notified {len(tasks_to_notify)} NEW task assignments" + 
+                     (f" ({tasks_overflow} more added to history)" if tasks_overflow > 0 else ""))
+        
+        # =================================================================
+        # 2. ACTIVITIES: Notify only for NEW assignments (max 5 notifications)
+        # =================================================================
+        activities_to_notify = new_assignments['new_activities'][:MAX_NOTIFICATIONS_PER_TYPE]
+        activities_overflow = len(new_assignments['new_activities']) - len(activities_to_notify)
+        
+        for activity in activities_to_notify:
+            activity_id = activity.get('id')
+            summary = activity.get('summary') or "New Activity"
+            due_date = activity.get('due_date', 'No date')
+            odoo_record_id = activity.get('odoo_record_id')
+            
+            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
+            self.send_notification(
+                "Activity Assigned",
+                f"New activity: {summary} (Due: {due_date})",
+                nav_type="Activity",
+                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
+                account_id=account_id
+            )
+            add_notification(
+                self.app_db,
+                account_id,
+                "Activity",
+                f"New activity: {summary} (Due: {due_date})",
+                {"summary": summary, "due_date": due_date, "id": activity_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+            )
+        
+        # Add remaining activities to DB without sending popups
+        for activity in new_assignments['new_activities'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            add_notification(
+                self.app_db, account_id, "Activity",
+                f"New activity: {activity.get('summary') or 'New Activity'} (Due: {activity.get('due_date', 'No date')})",
+                {"summary": activity.get('summary'), "due_date": activity.get('due_date'),
+                 "id": activity.get('id'), "odoo_record_id": activity.get('odoo_record_id'),
+                 "is_new_assignment": True, "notification_suppressed": True}
+            )
+        
+        if new_assignments['new_activities']:
+            log.info(f"[DAEMON] Notified {len(activities_to_notify)} NEW activity assignments" +
+                     (f" ({activities_overflow} more added to history)" if activities_overflow > 0 else ""))
+        
+        # =================================================================
+        # 3. PROJECTS: Notify for newly managed/favorited projects (max 5 notifications)
+        # =================================================================
+        projects_to_notify = new_assignments['new_projects'][:MAX_NOTIFICATIONS_PER_TYPE]
+        projects_overflow = len(new_assignments['new_projects']) - len(projects_to_notify)
+        
+        for project in projects_to_notify:
+            local_project_id = project.get('id')
+            project_name = project.get('name', 'Unknown Project')
+            odoo_record_id = project.get('odoo_record_id')
+            
+            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
+            self.send_notification(
+                "Project Added",
+                f"You now have access to project '{project_name}'.",
+                nav_type="Project",
+                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
+                account_id=account_id
+            )
+            add_notification(
+                self.app_db,
+                account_id,
+                "Project",
+                f"You now have access to project '{project_name}'.",
+                {"project_name": project_name, "id": local_project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+            )
+        
+        # Add remaining projects to DB without sending popups
+        for project in new_assignments['new_projects'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            add_notification(
+                self.app_db, account_id, "Project",
+                f"You now have access to project '{project.get('name', 'Unknown Project')}'.",
+                {"project_name": project.get('name'), "id": project.get('id'), 
+                 "odoo_record_id": project.get('odoo_record_id'),
+                 "is_new_assignment": True, "notification_suppressed": True}
+            )
+        
+        if new_assignments['new_projects']:
+            log.info(f"[DAEMON] Notified {len(projects_to_notify)} NEW project assignments" +
+                     (f" ({projects_overflow} more added to history)" if projects_overflow > 0 else ""))
+        
+        # =================================================================
+        # 4. TIMESHEETS: Notify for new timesheet entries (max 5 notifications)
+        # =================================================================
+        timesheets_to_notify = new_assignments['new_timesheets'][:MAX_NOTIFICATIONS_PER_TYPE]
+        timesheets_overflow = len(new_assignments['new_timesheets']) - len(timesheets_to_notify)
+        
+        for timesheet in timesheets_to_notify:
+            timesheet_id = timesheet.get('id')
+            ts_name = timesheet.get('name') or "Timesheet Entry"
+            hours = timesheet.get('unit_amount', 0)
+            odoo_record_id = timesheet.get('odoo_record_id')
+            
+            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
+            self.send_notification(
+                "Timesheet Added",
+                f"New timesheet '{ts_name}' ({hours}h) synced.",
+                nav_type="Timesheet",
+                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
+                account_id=account_id
+            )
+            add_notification(
+                self.app_db,
+                account_id,
+                "Timesheet",
+                f"New timesheet '{ts_name}' ({hours}h) synced.",
+                {"timesheet_name": ts_name, "hours": hours, "id": timesheet_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+            )
+        
+        # Add remaining timesheets to DB without sending popups
+        for timesheet in new_assignments['new_timesheets'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            add_notification(
+                self.app_db, account_id, "Timesheet",
+                f"New timesheet '{timesheet.get('name') or 'Timesheet Entry'}' ({timesheet.get('unit_amount', 0)}h) synced.",
+                {"timesheet_name": timesheet.get('name'), "hours": timesheet.get('unit_amount'),
+                 "id": timesheet.get('id'), "odoo_record_id": timesheet.get('odoo_record_id'),
+                 "is_new_assignment": True, "notification_suppressed": True}
+            )
+        
+        if new_assignments['new_timesheets']:
+            log.info(f"[DAEMON] Notified {len(timesheets_to_notify)} NEW timesheet entries" +
+                     (f" ({timesheets_overflow} more added to history)" if timesheets_overflow > 0 else ""))
+        
+        # Summary log
+        total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
+                     len(new_assignments['new_projects']) + len(new_assignments['new_timesheets']))
+        if total_new == 0:
+            log.info(f"[DAEMON] No new assignments detected for {account_name}")
+        else:
+            log.info(f"[DAEMON] Total {total_new} new assignment notifications sent for {account_name}")
+
+    def sync_account(self, account, sync_direction="both"):
+        """Sync a single account and check for updates.
+        
+        Args:
+            account: Account dictionary with connection details
+            sync_direction: "both", "download_only", or "upload_only"
+        """
         account_id = account["id"]
         account_name = account.get("name", "Unknown")
         
@@ -772,8 +952,16 @@ class NotificationDaemon:
             log.info(f"[DAEMON] Skipping local/invalid account: {account_name}")
             return
 
+        # Get current user ID for assignment tracking
+        current_user_id = self.get_current_user_id(account_id, account_user)
+        
+        # CRITICAL: Capture assignment snapshot BEFORE sync
+        # This allows us to detect NEW assignments by comparing pre/post sync state
+        pre_sync_snapshot = get_current_assignments_snapshot(self.app_db, account_id, current_user_id)
+        log.info(f"[DAEMON] Pre-sync snapshot captured for {account_name}")
+
         try:
-            log.info(f"[DAEMON] Syncing account: {account_name} (ID: {account_id})")
+            log.info(f"[DAEMON] Syncing account: {account_name} (ID: {account_id}) [direction: {sync_direction}]")
             
             # Update heartbeat before creating client
             self._update_heartbeat()
@@ -790,30 +978,50 @@ class NotificationDaemon:
             # Update heartbeat after client creation
             self._update_heartbeat()
             
-            # Sync data from Odoo
-            try:
-                log.info(f"[DAEMON] Starting sync_all_from_odoo for {account_name}")
-                self._update_heartbeat()
-                
-                sync_all_from_odoo(client, account_id, self.settings_db)
-                
-                self._update_heartbeat()
-                log.info(f"[DAEMON] sync_all_from_odoo completed for {account_name}")
-                
-                # Clean up memory after sync to reduce footprint
-                self._cleanup_memory()
-                
-            except Exception as sync_error:
-                log.error(f"[DAEMON] sync_all_from_odoo failed: {sync_error}")
-                log.error(f"[DAEMON] Sync error traceback: {traceback.format_exc()}")
-                # Continue with notification check using existing data
+            # UPLOAD FIRST: Sync local changes to Odoo (prevents overwrites)
+            if sync_direction in ("both", "upload_only"):
+                try:
+                    log.info(f"[DAEMON] Starting sync_all_to_odoo for {account_name}")
+                    self._update_heartbeat()
+                    
+                    sync_all_to_odoo(client, account_id, self.settings_db)
+                    
+                    self._update_heartbeat()
+                    log.info(f"[DAEMON] sync_all_to_odoo completed for {account_name}")
+                    
+                    # Clean up memory after upload sync
+                    self._cleanup_memory()
+                    
+                except Exception as upload_error:
+                    log.error(f"[DAEMON] sync_all_to_odoo failed: {upload_error}")
+                    log.error(f"[DAEMON] Upload sync error traceback: {traceback.format_exc()}")
+                    # Continue with download sync
+            
+            # DOWNLOAD: Sync data from Odoo to device
+            if sync_direction in ("both", "download_only"):
+                try:
+                    log.info(f"[DAEMON] Starting sync_all_from_odoo for {account_name}")
+                    self._update_heartbeat()
+                    
+                    sync_all_from_odoo(client, account_id, self.settings_db)
+                    
+                    self._update_heartbeat()
+                    log.info(f"[DAEMON] sync_all_from_odoo completed for {account_name}")
+                    
+                    # Clean up memory after download sync
+                    self._cleanup_memory()
+                    
+                except Exception as sync_error:
+                    log.error(f"[DAEMON] sync_all_from_odoo failed: {sync_error}")
+                    log.error(f"[DAEMON] Sync error traceback: {traceback.format_exc()}")
+                    # Continue with notification check using existing data
             
             # Update heartbeat after sync
             self._update_heartbeat()
             
-            # Check for new tasks and notify
-            log.info(f"[DAEMON] Checking for updates for {account_name}")
-            self.check_for_updates(account_id, account_name, account_user)
+            # Check for NEW assignments only (compare post-sync with pre-sync snapshot)
+            log.info(f"[DAEMON] Checking for new assignments for {account_name}")
+            self.check_for_new_assignments(account_id, account_name, current_user_id, pre_sync_snapshot)
             
             log.info(f"[DAEMON] Sync completed for {account_name}")
             
@@ -823,16 +1031,23 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Error syncing account {account_name}: {e}")
             log.error(f"[DAEMON] Error traceback: {traceback.format_exc()}")
-            # Still try to check for updates with existing data
+            # On sync error, we still have the pre_sync_snapshot, so we can check for any
+            # assignments that might have been partially synced
             try:
-                self.check_for_updates(account_id, account_name, account_user)
+                self.check_for_new_assignments(account_id, account_name, current_user_id, pre_sync_snapshot)
             except Exception as e2:
-                log.error(f"[DAEMON] Failed to check updates after error: {e2}")
-                log.error(f"[DAEMON] Updates error traceback: {traceback.format_exc()}")
+                log.error(f"[DAEMON] Failed to check assignments after error: {e2}")
     
     def sync_all_accounts(self):
-        """Sync all configured accounts."""
+        """Sync all configured accounts using current settings."""
         try:
+            # Read current sync settings from database
+            settings = self._get_sync_settings()
+            sync_direction = settings["sync_direction"]
+            
+            log.info(f"[DAEMON] Sync settings: enabled={settings['autosync_enabled']}, "
+                     f"interval={settings['sync_interval_minutes']}min, direction={sync_direction}")
+            
             accounts = get_all_accounts(self.settings_db)
             
             if not accounts:
@@ -842,7 +1057,7 @@ class NotificationDaemon:
             log.info(f"[DAEMON] Starting sync for {len(accounts)} account(s)")
             
             for account in accounts:
-                self.sync_account(account)
+                self.sync_account(account, sync_direction=sync_direction)
                 # Update heartbeat between accounts
                 self._update_heartbeat()
             
@@ -851,11 +1066,32 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Error in sync_all_accounts: {e}")
     
+    def _schedule_sync_timer(self, interval_minutes):
+        """Schedule the sync timer with the given interval."""
+        # Remove existing timer if any
+        if self.sync_timer_id:
+            GLib.source_remove(self.sync_timer_id)
+            self.sync_timer_id = None
+        
+        # Schedule new timer
+        self.current_sync_interval = interval_minutes
+        self.sync_timer_id = GLib.timeout_add_seconds(
+            interval_minutes * 60,
+            self._periodic_sync
+        )
+        log.info(f"[DAEMON] Sync timer scheduled: every {interval_minutes} minutes")
+    
     def run(self):
         """Main daemon loop with robust keep-alive mechanism."""
+        # Read initial settings
+        settings = self._get_sync_settings()
+        initial_interval = settings["sync_interval_minutes"]
+        
         log.info(f"[DAEMON] Starting TimeManagement background daemon")
         log.info(f"[DAEMON] App Version: {APP_VERSION}")
-        log.info(f"[DAEMON] Sync interval: {SYNC_INTERVAL_MINUTES} minutes")
+        log.info(f"[DAEMON] AutoSync enabled: {settings['autosync_enabled']}")
+        log.info(f"[DAEMON] Sync interval: {initial_interval} minutes")
+        log.info(f"[DAEMON] Sync direction: {settings['sync_direction']}")
         log.info(f"[DAEMON] Settings DB: {self.settings_db}")
         log.info(f"[DAEMON] App DB: {self.app_db}")
         log.info(f"[DAEMON] PID: {os.getpid()}")
@@ -863,17 +1099,17 @@ class NotificationDaemon:
         # Update heartbeat on start
         self._update_heartbeat()
         
-        # Initial sync with exception handling
-        try:
-            self.sync_all_accounts()
-        except Exception as e:
-            log.error(f"[DAEMON] Initial sync failed: {e}")
+        # Initial sync with exception handling (if AutoSync is enabled)
+        if settings["autosync_enabled"]:
+            try:
+                self.sync_all_accounts()
+            except Exception as e:
+                log.error(f"[DAEMON] Initial sync failed: {e}")
+        else:
+            log.info("[DAEMON] AutoSync disabled, skipping initial sync")
         
-        # Schedule periodic sync using GLib
-        GLib.timeout_add_seconds(
-            SYNC_INTERVAL_MINUTES * 60,
-            self._periodic_sync
-        )
+        # Schedule periodic sync using GLib with dynamic interval
+        self._schedule_sync_timer(initial_interval)
         
         # Schedule heartbeat update every 30 seconds
         GLib.timeout_add_seconds(30, self._heartbeat_callback)
@@ -908,7 +1144,29 @@ class NotificationDaemon:
     def _periodic_sync(self):
         """Callback for periodic sync."""
         try:
+            # Check if app was updated and restart if needed
+            self._check_version_and_restart()
+            
+            # Read current settings on each sync cycle
+            settings = self._get_sync_settings()
+            
             log.info(f"[DAEMON] Periodic sync triggered at {datetime.now()}")
+            
+            # Check if AutoSync is still enabled
+            if not settings["autosync_enabled"]:
+                log.info("[DAEMON] AutoSync is disabled, skipping sync")
+                # Keep the timer running so we can resume when re-enabled
+                return True
+            
+            # Check if interval changed and reschedule if needed
+            new_interval = settings["sync_interval_minutes"]
+            if new_interval != self.current_sync_interval:
+                log.info(f"[DAEMON] Sync interval changed: {self.current_sync_interval} -> {new_interval} minutes")
+                # Reschedule timer with new interval (will take effect after this sync)
+                self._schedule_sync_timer(new_interval)
+                # Return False to cancel current timer (new one is already scheduled)
+                return False
+            
             # Reschedule wakeup for next sync cycle
             self._schedule_wakeup()
             # Refresh wakelock to ensure it's still active
@@ -918,7 +1176,7 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Periodic sync failed: {e}")
             log.error(f"[DAEMON] Periodic sync traceback: {traceback.format_exc()}")
-        return True  # Always continue the timer
+        return True  # Continue the timer
     
     def get_unread_notification_count(self):
         """Get count of unread notifications for badge display."""

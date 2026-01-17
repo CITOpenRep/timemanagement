@@ -18,6 +18,7 @@ Page {
     id: activityDetailsPage
     title: i18n.dtr("ubtms", "Activity")
     property var recordid: 0
+    property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
     property var currentActivity: {
@@ -95,7 +96,7 @@ Page {
             },
             Action {
                 iconName: "edit"
-                visible: isReadOnly && recordid !== 0
+                visible: isReadOnly && recordid !== 0 && currentActivity.state !== "done"
                 text: i18n.dtr("ubtms", "Edit")
                 onTriggered: {
                     switchToEditMode();
@@ -845,7 +846,21 @@ Page {
         isInitializing = true;
 
         if (recordid != 0) {
-            currentActivity = Activity.getActivityById(recordid, accountid);
+            // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
+            if (isOdooRecordId) {
+                // recordid is an odoo_record_id (stable, from notification deep link)
+                currentActivity = Activity.getActivityByOdooId(recordid, accountid);
+                console.log("Activities: Loaded by odoo_record_id:", recordid, "found local id:", currentActivity ? currentActivity.id : "null");
+                // Update recordid to local id for subsequent operations
+                if (currentActivity && currentActivity.id) {
+                    recordid = currentActivity.id;
+                    accountid = currentActivity.account_id;
+                    isOdooRecordId = false; // Now we have the local id
+                }
+            } else {
+                // recordid is a local id (from normal navigation)
+                currentActivity = Activity.getActivityById(recordid, accountid);
+            }
             currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
 
             let instanceId = currentActivity.account_id;
@@ -930,7 +945,8 @@ Page {
 
     function switchToEditMode() {
         // Switch from read-only to edit mode
-        if (recordid !== 0) {
+        // Prevent editing activities marked as done
+        if (recordid !== 0 && currentActivity.state !== "done") {
             isReadOnly = false;
             
             // Initialize draft handler when switching from read-only to edit mode
@@ -1085,11 +1101,11 @@ Page {
             } else if (ids.project_id && ids.project_id !== -1 && ids.project_id !== null) {
                 linkid = ids.project_id;
             }
-            resId = Accounts.getOdooModelId(ids.account_id, "Project");
+            resId = Accounts.getOdooModelId(ids.account_id, "project.project") || 0;
             resModel = "project.project";
             
             // Validate that project connection is valid
-            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
+            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || !resId || resId <= 0) {
                 notifPopup.open("Error", "Activity must be connected to a valid project", "error");
                 return;
             }
@@ -1100,11 +1116,11 @@ Page {
             } else if (ids.task_id && ids.task_id !== -1 && ids.task_id !== null) {
                 linkid = ids.task_id;
             }
-            resId = Accounts.getOdooModelId(ids.account_id, "Task");
+            resId = Accounts.getOdooModelId(ids.account_id, "project.task") || 0;
             resModel = "project.task";
             
             // Validate that task connection is valid
-            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || resId === 0) {
+            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || !resId || resId <= 0) {
                 notifPopup.open("Error", "Activity must be connected to a valid task", "error");
                 return;
             }
@@ -1153,11 +1169,11 @@ Page {
             updatedDate: date_widget.formattedDate(),
             updatedNote: Utils.cleanText(notes.text),
             resModel: resModel,
-            resId: resId,
+            resId: (resId || 0),
             link_id: linkid,
-            task_id: null,
+            task_id: (resModel === "project.task") ? linkid : ((currentActivity && typeof currentActivity.task_id !== "undefined" && currentActivity.task_id !== null) ? currentActivity.task_id : -1),
             state: "planned",
-            project_id: null,
+            project_id: (resModel === "project.project") ? linkid : ((currentActivity && typeof currentActivity.project_id !== "undefined" && currentActivity.project_id !== null) ? currentActivity.project_id : -1),
             status: "updated"
         };
 

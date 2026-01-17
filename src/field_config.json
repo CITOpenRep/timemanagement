@@ -12,6 +12,7 @@
         "stage_id":"stage",
         "write_date": "last_modified",
         "is_favorite": "favorites",
+        "user_id": "user_id",
         "id": "odoo_record_id"
     },
     "project.task": {

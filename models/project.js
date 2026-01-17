@@ -99,6 +99,7 @@ function getProjectDetails(project_id) {
                     planned_end_date: row.planned_end_date ? Utils.formatDate(new Date(row.planned_end_date)) : "",
                     allocated_hours: Utils.convertDecimalHoursToHHMM(row.allocated_hours),
                     favorites: row.favorites || 0,
+                    user_id: row.user_id || null,
                     last_update_status: row.last_update_status,
                     description: row.description || "",
                     last_modified: row.last_modified,
@@ -107,6 +108,66 @@ function getProjectDetails(project_id) {
                     status: row.status || "",
                     odoo_record_id: row.odoo_record_id
                 };
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+    return project_detail;
+}
+
+/**
+ * Retrieves project details by Odoo record ID (stable identifier).
+ * This is used for deep link navigation from notifications.
+ *
+ * @param {number} odoo_record_id - The Odoo record ID of the project.
+ * @param {number} [account_id] - Optional account ID to narrow the search.
+ * @returns {Object} - An object containing project details, or empty object if not found.
+ */
+function getProjectDetailsByOdooId(odoo_record_id, account_id) {
+    var project_detail = {};
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var sql = 'SELECT * FROM project_project_app WHERE odoo_record_id = ?';
+            var params = [odoo_record_id];
+            
+            if (account_id !== undefined && account_id !== null && account_id > 0) {
+                sql += ' AND account_id = ?';
+                params.push(account_id);
+            }
+            
+            sql += ' LIMIT 1';
+            var result = tx.executeSql(sql, params);
+
+            if (result.rows.length > 0) {
+                var row = result.rows.item(0);
+
+                project_detail = {
+                    id: row.id,
+                    name: row.name,
+                    account_id: row.account_id,
+                    parent_id: row.parent_id,
+                    planned_start_date: row.planned_start_date ? Utils.formatDate(new Date(row.planned_start_date)) : "",
+                    planned_end_date: row.planned_end_date ? Utils.formatDate(new Date(row.planned_end_date)) : "",
+                    allocated_hours: Utils.convertDecimalHoursToHHMM(row.allocated_hours),
+                    favorites: row.favorites || 0,
+                    user_id: row.user_id || null,
+                    last_update_status: row.last_update_status,
+                    description: row.description || "",
+                    last_modified: row.last_modified,
+                    color_pallet: row.color_pallet || "#FFFFFF",
+                    stage: row.stage || 0,
+                    status: row.status || "",
+                    odoo_record_id: row.odoo_record_id
+                };
+                
+                console.log("getProjectDetailsByOdooId found project:", row.id, "for odoo_record_id:", odoo_record_id);
+            } else {
+                console.error("No project found for odoo_record_id:", odoo_record_id);
             }
         });
 
@@ -291,6 +352,37 @@ function getAllProjectStages() {
 }
 
 /**
+ * Retrieve project stages for a specific account from the local DB.
+ * @param {number} accountId - The account ID to filter stages by
+ * @returns {Array} Array of stage objects for the specified account
+ */
+function getProjectStagesForAccount(accountId) {
+    var stages = [];
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var query = "SELECT id, account_id, odoo_record_id, name, sequence, active, fold FROM project_project_stage_app WHERE account_id = ? ORDER BY sequence ASC, name COLLATE NOCASE ASC";
+            var result = tx.executeSql(query, [accountId]);
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                stages.push({
+                    id: row.id,
+                    account_id: row.account_id,
+                    odoo_record_id: row.odoo_record_id,
+                    name: row.name,
+                    sequence: row.sequence,
+                    active: row.active,
+                    fold: row.fold
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getProjectStagesForAccount failed:", e);
+    }
+    return stages;
+}
+
+/**
  * Retrieve only open project stages (where fold = 0) from the local DB.
  * Returns an array of stage objects for filtering open projects.
  */
@@ -319,6 +411,54 @@ function getOpenProjectStages() {
     }
     return openStages;
 }
+
+/**
+ * Updates the stage of a project
+ * @param {number} projectId - The local ID of the project
+ * @param {number} stageOdooRecordId - The odoo_record_id of the new stage
+ * @param {number} accountId - The account ID
+ * @returns {Object} Success/error result
+ */
+function updateProjectStage(projectId, stageOdooRecordId, accountId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var timestamp = Utils.getFormattedTimestampUTC();
+        
+        db.transaction(function (tx) {
+            // Verify the project exists and belongs to the account
+            var projectCheck = tx.executeSql(
+                'SELECT id FROM project_project_app WHERE id = ? AND account_id = ?',
+                [projectId, accountId]
+            );
+            
+            if (projectCheck.rows.length === 0) {
+                throw "Project not found or does not belong to this account";
+            }
+            
+            // Verify the stage exists
+            var stageCheck = tx.executeSql(
+                'SELECT id FROM project_project_stage_app WHERE odoo_record_id = ?',
+                [stageOdooRecordId]
+            );
+            
+            if (stageCheck.rows.length === 0) {
+                throw "Stage not found";
+            }
+            
+            // Update the project's stage
+            tx.executeSql(
+                'UPDATE project_project_app SET stage = ?, last_modified = ?, status = ? WHERE id = ?',
+                [stageOdooRecordId, timestamp, "updated", projectId]
+            );
+        });
+        
+        return { success: true };
+    } catch (e) {
+        console.error("updateProjectStage failed:", e);
+        return { success: false, error: e.message || e };
+    }
+}
+
 /**
  * Retrieves all attachments for a given project and account.
  *
@@ -550,11 +690,11 @@ function createUpdateProject(project_data, recordid) {
             if (recordid === 0) {
                 tx.executeSql('INSERT INTO project_project_app \
                             (account_id, name, parent_id, planned_start_date, planned_end_date, \
-                            allocated_hours, favorites, description, last_modified, color_pallet,status)\
-                            Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)',
+                            allocated_hours, favorites, description, last_modified, color_pallet, status, user_id)\
+                            Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                               [project_data.account_id, project_data.name, project_data.parent_id,
                                project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status]);
+                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null]);
                 
                 // Get the ID of the newly inserted project
                 var result = tx.executeSql("SELECT last_insert_rowid() as id");
@@ -564,11 +704,11 @@ function createUpdateProject(project_data, recordid) {
             } else {
                 tx.executeSql('UPDATE project_project_app SET \
                             account_id = ?, name = ?, parent_id = ?, planned_start_date = ?, planned_end_date = ?, \
-                            allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?, status=?\
+                            allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?, status = ?, user_id = ?\
                             where id = ?',
                               [project_data.account_id, project_data.name, project_data.parent_id,
                                project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, recordid]);
+                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null, recordid]);
             }
             messageObj['is_success'] = true;
             messageObj['message'] = 'Project saved Successfully!';
@@ -862,6 +1002,7 @@ function getProjectName(projectId, accountId) {
     }
 }
 
+
 /**
  * Toggles the favorite status of a project in the local database.
  *
@@ -877,8 +1018,8 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         db.transaction(function (tx) {
             var favoriteValue = isFavorite ? 1 : 0;
             var updateResult = tx.executeSql(
-                'UPDATE project_project_app SET favorites = ?, last_modified = ? WHERE id = ?',
-                [favoriteValue, new Date().toISOString(), projectId]
+                'UPDATE project_project_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
+                [favoriteValue, new Date().toISOString(), "updated", projectId]
             );
 
             if (updateResult.rowsAffected > 0) {

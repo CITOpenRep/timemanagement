@@ -1,9 +1,9 @@
 .import QtQuick.LocalStorage 2.7 as Sql
-.import "database.js" as DBCommon
-.import "utils.js" as Utils
-.import "task.js" as Task
-.import "project.js" as Project
-.import "accounts.js" as Accounts
+    .import "database.js" as DBCommon
+        .import "utils.js" as Utils
+            .import "task.js" as Task
+                .import "project.js" as Project
+                    .import "accounts.js" as Accounts
 
 /**
  * Retrieves all activity records from the `mail_activity_app` table.
@@ -75,6 +75,77 @@ function getAllActivities() {
 
     } catch (e) {
         DBCommon.logException("getAllActivities", e);
+    }
+
+    return activityList;
+}
+
+/**
+ * Retrieves all activity records from the `mail_activity_app` table that are marked as done.
+ *
+ * This function opens a read-only SQLite transaction using the DBCommon configuration,
+ * executes a query to fetch all rows from the `mail_activity_app` table where state = 'done',
+ * and returns the results as a list of objects.
+ *
+ * Each row is converted into a plain JavaScript object using `DBCommon.rowToObject`.
+ *
+ * @function
+ * @returns {Array<Object>} A list of all done activities stored in the local database, sorted by `due_date` descending (most recent first).
+ */
+function getDoneActivities() {
+    var activityList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
+
+        db.transaction(function (tx) {
+            // Step 1: Build project color map
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var row = projectResult.rows.item(j);
+                projectColorMap[row.odoo_record_id] = row.color_pallet;
+            }
+
+            // Step 2: Fetch done activities
+            var rs = tx.executeSql(`
+                SELECT * FROM mail_activity_app
+                WHERE state = 'done'
+                ORDER BY due_date DESC
+            `);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(row);
+
+                // Step 3: Determine color_pallet
+                let inheritedColor = 0;
+
+                if (activity.resModel === "project.project" && activity.link_id) {
+                    inheritedColor = projectColorMap[activity.link_id] || 0;
+
+                } else if (activity.resModel === "project.task" && activity.link_id) {
+                    // Fetch task's project_id
+                    var taskRs = tx.executeSql(
+                        "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [activity.link_id]
+                    );
+
+                    if (taskRs.rows.length > 0) {
+                        var taskProjectId = taskRs.rows.item(0).project_id;
+                        inheritedColor = projectColorMap[taskProjectId] || 0;
+                    }
+                }
+
+                // Convert to integer safely
+                activity.color_pallet = parseInt(inheritedColor) || 0;
+
+                activityList.push(activity);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getDoneActivities", e);
     }
 
     return activityList;
@@ -157,6 +228,68 @@ function getActivityById(record_id, account_id) {
     return activity;
 }
 
+/**
+ * Retrieves an activity by its Odoo record ID (stable identifier).
+ * This is used for deep link navigation from notifications.
+ *
+ * @param {number} odoo_record_id - The Odoo record ID of the activity.
+ * @param {number} [account_id] - Optional account ID to narrow the search.
+ * @returns {Object|null} Enriched activity object or null if not found.
+ */
+function getActivityByOdooId(odoo_record_id, account_id) {
+    var activity = null;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var sql = 'SELECT * FROM mail_activity_app WHERE odoo_record_id = ?';
+            var params = [odoo_record_id];
+
+            if (account_id !== undefined && account_id !== null && account_id > 0) {
+                sql += ' AND account_id = ?';
+                params.push(account_id);
+            }
+
+            sql += ' LIMIT 1';
+            var rs = tx.executeSql(sql, params);
+
+            if (rs.rows.length > 0) {
+                activity = DBCommon.rowToObject(rs.rows.item(0));
+                initializeEnrichmentDefaults(activity);
+
+                if (activity.resModel === "project.task" && activity.link_id) {
+                    let linkage = resolveActivityLinkage(tx, activity.link_id, activity.account_id);
+                    activity.task_id = linkage.task_id;
+                    activity.sub_task_id = linkage.sub_task_id;
+                    activity.project_id = linkage.project_id;
+                    activity.sub_project_id = linkage.sub_project_id;
+                    activity.linkedType = "task";
+                } else if (activity.resModel === "project.project" && activity.link_id) {
+                    let linkage = resolveProjectLinkage(tx, activity.link_id, activity.account_id);
+                    activity.task_id = linkage.task_id;
+                    activity.sub_task_id = linkage.sub_task_id;
+                    activity.project_id = linkage.project_id;
+                    activity.sub_project_id = linkage.sub_project_id;
+                    activity.linkedType = "project";
+                } else if (activity.resModel === "project.update" && activity.link_id) {
+                    activity.update_id = activity.link_id;
+                    activity.linkedType = "update";
+                }
+
+                console.log("getActivityByOdooId found activity id:", activity.id, "for odoo_record_id:", odoo_record_id);
+            } else {
+                console.error("No activity found for odoo_record_id:", odoo_record_id);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getActivityByOdooId", e);
+    }
+
+    return activity;
+}
+
 
 function initializeEnrichmentDefaults(activity) {
     activity.project_id = -1;
@@ -215,7 +348,7 @@ function resolveActivityLinkage(tx, link_id, account_id) {
 
     try {
         console.log("resolveActivityLinkage: Starting with link_id:", link_id, "account_id:", account_id);
-        
+
         // Step 1: Determine if link_id is subtask or task
         let rs_task = tx.executeSql(
             `SELECT odoo_record_id, parent_id, project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
@@ -242,25 +375,25 @@ function resolveActivityLinkage(tx, link_id, account_id) {
                 resolved_task_id = parent_id;
                 resolved_sub_task_id = row_task.odoo_record_id;
                 console.log("resolveActivityLinkage: Identified as SUBTASK. Parent task_id:", resolved_task_id, "Sub task_id:", resolved_sub_task_id);
-                
+
                 // For subtask, we need to get project_id from the parent task
                 let rs_parent_task = tx.executeSql(
                     `SELECT project_id, odoo_record_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
                     [resolved_task_id, account_id]
                 );
-                
+
                 if (rs_parent_task.rows.length > 0) {
                     task_project_id = sanitizeId(rs_parent_task.rows.item(0).project_id);
                     console.log("resolveActivityLinkage: Found parent task with odoo_record_id:", rs_parent_task.rows.item(0).odoo_record_id, "project_id:", task_project_id);
                 } else {
                     console.warn("resolveActivityLinkage: Parent task not found for resolved_task_id:", resolved_task_id);
-                    
+
                     // Fallback: try to find parent task by local database id (in case parent_id references local id instead of odoo_record_id)
                     let rs_parent_by_id = tx.executeSql(
                         `SELECT project_id, odoo_record_id FROM project_task_app WHERE id = ? AND account_id = ? LIMIT 1`,
                         [resolved_task_id, account_id]
                     );
-                    
+
                     if (rs_parent_by_id.rows.length > 0) {
                         task_project_id = sanitizeId(rs_parent_by_id.rows.item(0).project_id);
                         console.log("resolveActivityLinkage: Found parent task by local id:", resolved_task_id, "odoo_record_id:", rs_parent_by_id.rows.item(0).odoo_record_id, "project_id:", task_project_id);
@@ -273,7 +406,7 @@ function resolveActivityLinkage(tx, link_id, account_id) {
                             `SELECT project_id, odoo_record_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
                             [resolved_task_id, account_id]
                         );
-                        
+
                         if (rs_parent_negative.rows.length > 0) {
                             task_project_id = sanitizeId(rs_parent_negative.rows.item(0).project_id);
                             console.log("resolveActivityLinkage: Found parent task with negative odoo_record_id:", resolved_task_id, "project_id:", task_project_id);
@@ -343,18 +476,18 @@ function sanitizeId(value) {
     if (value === null || value === undefined || value === '') {
         return -1;
     }
-    
+
     // Special case: 0 is valid for parent_id (means "no parent")
     if (value === 0) {
         return 0;
     }
-    
+
     const numValue = typeof value === 'string' ? parseInt(value, 10) : Number(value);
     // Allow negative values (for locally created records) and positive values, but not NaN
     if (isNaN(numValue)) {
         return -1;
     }
-    
+
     // Return the value if it's a valid number (positive, negative, or zero)
     return numValue;
 }
@@ -428,7 +561,7 @@ function markAsDone(accountId, id) {
             WHERE account_id = ? AND id = ?
             `;
             tx.executeSql(query, [accountId, id]);
-         //   console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
+            //   console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
         });
 
     } catch (e) {
@@ -494,7 +627,7 @@ function getActivityIconForType(typeName) {
         return "activity_mail.png";
     } else if (normalized.includes("call")) {
         return "activity_call.png";
-    }else if (normalized.includes("meeting")) {
+    } else if (normalized.includes("meeting")) {
         return "activity_meeting.png";
     }
     else {
@@ -654,9 +787,9 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
     try {
         var resModel = isProject ? "project.project" : "project.task";
         var timestamp = Utils.getFormattedTimestampUTC();
-         var createDate = timestamp.split(" ")[0];
+        var createDate = timestamp.split(" ")[0];
 
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             tx.executeSql(
                 `INSERT INTO mail_activity_app (
                     account_id, activity_type_id, summary, user_id, due_date,
@@ -677,7 +810,7 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
                     link_id,
                     "planned",        // default activity state
                     timestamp,
-                    ""             // mark as unsynced/new
+                    "updated"         // mark for sync (must be 'updated' for sync_to_odoo to pick it up)
                 ]
             );
 
@@ -697,7 +830,7 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
     }
 }
 
-function createFollowupActivity(account_id,activityId) {
+function createFollowupActivity(account_id, activityId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var newRecordId = 0;
 
@@ -705,7 +838,7 @@ function createFollowupActivity(account_id,activityId) {
         var timestamp = Utils.getFormattedTimestampUTC();
         var createDate = timestamp.split(" ")[0];
 
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             // 1. Fetch the existing activity
             var result = tx.executeSql(
                 "SELECT * FROM mail_activity_app WHERE id = ? AND account_id = ?",
@@ -982,8 +1115,8 @@ function isActivityUnsaved(accountId, recordId) {
                 // 2. Notes is "No Notes" or empty  
                 // 3. No activity type selected (null or empty)
                 isUnsaved = (summary === "Untitled" || summary === "") &&
-                           (notes === "No Notes" || notes === "") &&
-                           (activityTypeId === null || activityTypeId === "");
+                    (notes === "No Notes" || notes === "") &&
+                    (activityTypeId === null || activityTypeId === "");
             }
         });
 
@@ -1001,106 +1134,191 @@ function isActivityUnsaved(accountId, recordId) {
 */
 function getActivitiesForAccount(accountId) {
     var activityList = [];
- 
+
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var projectColorMap = {};
- 
+
         db.transaction(function (tx) {
-           
+
             var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?", [accountId]);
             for (var j = 0; j < projectResult.rows.length; j++) {
                 var row = projectResult.rows.item(j);
                 projectColorMap[row.odoo_record_id] = row.color_pallet;
             }
- 
-           
+
+
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
                 WHERE state != 'done' AND account_id = ?
                 ORDER BY due_date ASC
             `, [accountId]);
- 
+
             for (var i = 0; i < rs.rows.length; i++) {
                 var row = rs.rows.item(i);
                 var activity = DBCommon.rowToObject(row);
- 
-               
+
+
                 let inheritedColor = 0;
- 
+
                 if (activity.resModel === "project.project" && activity.link_id) {
                     inheritedColor = projectColorMap[activity.link_id] || 0;
- 
+
                 } else if (activity.resModel === "project.task" && activity.link_id) {
-                   
+
                     var taskRs = tx.executeSql(
                         "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
                         [activity.link_id, accountId]
                     );
- 
+
                     if (taskRs.rows.length > 0) {
                         var taskProjectId = taskRs.rows.item(0).project_id;
                         inheritedColor = projectColorMap[taskProjectId] || 0;
                     }
                 }
- 
-            
+
+
                 activity.color_pallet = parseInt(inheritedColor) || 0;
- 
+
                 activityList.push(activity);
             }
         });
- 
+
     } catch (e) {
         DBCommon.logException("getActivitiesForAccount", e);
     }
- 
+
     return activityList;
 }
- 
+
+/**
+* Retrieves done activities for a specific account
+* @param {number} accountId - The account identifier
+* @returns {Array<Object>} Array of done activity records for the specified account
+*/
+function getDoneActivitiesForAccount(accountId) {
+    var activityList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
+
+        db.transaction(function (tx) {
+
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?", [accountId]);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var row = projectResult.rows.item(j);
+                projectColorMap[row.odoo_record_id] = row.color_pallet;
+            }
+
+
+            var rs = tx.executeSql(`
+                SELECT * FROM mail_activity_app
+                WHERE state = 'done' AND account_id = ?
+                ORDER BY due_date DESC
+            `, [accountId]);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(row);
+
+
+                let inheritedColor = 0;
+
+                if (activity.resModel === "project.project" && activity.link_id) {
+                    inheritedColor = projectColorMap[activity.link_id] || 0;
+
+                } else if (activity.resModel === "project.task" && activity.link_id) {
+
+                    var taskRs = tx.executeSql(
+                        "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
+                        [activity.link_id, accountId]
+                    );
+
+                    if (taskRs.rows.length > 0) {
+                        var taskProjectId = taskRs.rows.item(0).project_id;
+                        inheritedColor = projectColorMap[taskProjectId] || 0;
+                    }
+                }
+
+
+                activity.color_pallet = parseInt(inheritedColor) || 0;
+
+                activityList.push(activity);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getDoneActivitiesForAccount", e);
+    }
+
+    return activityList;
+}
+
 /**
 * Gets filtered activities with optional account filtering
 * Similar to Task.getFilteredTasks() but for activities
-* @param {string} filterType - The filter type: "today", "week", "month", "later", "overdue", "all"
+* @param {string} filterType - The filter type: "today", "week", "month", "later", "overdue", "all", "done"
 * @param {string} searchQuery - The search query string
 * @param {number} accountId - Optional account ID to filter by
 * @returns {Array<Object>} Filtered list of activities
 */
 function getFilteredActivities(filterType, searchQuery, accountId) {
     var allActivities;
-    
- 
+
+    // Handle "done" filter separately since done activities are excluded from normal queries
+    if (filterType === "done") {
+        if (accountId !== undefined && accountId >= 0) {
+            allActivities = getDoneActivitiesForAccount(accountId);
+        } else {
+            allActivities = getDoneActivities(); // Assuming getDoneActivities() exists for all accounts
+        }
+
+        // For done activities, only apply search filter (no date filter needed)
+        if (!searchQuery || searchQuery.trim() === "") {
+            return allActivities;
+        }
+
+        var filteredDoneActivities = [];
+        for (var i = 0; i < allActivities.length; i++) {
+            if (passesActivitySearchFilter(allActivities[i], searchQuery)) {
+                filteredDoneActivities.push(allActivities[i]);
+            }
+        }
+        return filteredDoneActivities;
+    }
+
     if (accountId !== undefined && accountId >= 0) {
         allActivities = getActivitiesForAccount(accountId);
     } else {
         allActivities = getAllActivities();
     }
-    
+
     var filteredActivities = [];
     var currentDate = new Date();
-    
+
     for (var i = 0; i < allActivities.length; i++) {
         var activity = allActivities[i];
         var passesFilter = true;
-        
-      
+
+
         if (!passesActivityDateFilter(activity, filterType, currentDate)) {
             passesFilter = false;
         }
-        
-    
+
+
         if (passesFilter && searchQuery && !passesActivitySearchFilter(activity, searchQuery)) {
             passesFilter = false;
         }
-        
+
         if (passesFilter) {
             filteredActivities.push(activity);
         }
     }
-    
+
     return filteredActivities;
 }
- 
+
 /**
 * Gets account statistics for activities (similar to Task.getAccountsWithTaskCounts)
 * @returns {Array<Object>} Array of account objects with activity counts
@@ -1108,10 +1326,10 @@ function getFilteredActivities(filterType, searchQuery, accountId) {
 function getAccountsWithActivityCounts() {
     var accounts = [];
     console.log("🔍 getAccountsWithActivityCounts called");
-    
+
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        
+
         db.transaction(function (tx) {
             var query = `
                 SELECT
@@ -1122,10 +1340,10 @@ function getAccountsWithActivityCounts() {
                 GROUP BY a.account_id
                 ORDER BY a.account_id ASC
             `;
-            
+
             var result = tx.executeSql(query);
             console.log("📊 Found", result.rows.length, "accounts with activities in database");
-            
+
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
                 console.log("📝 DB Account:", row.account_id, "Total activities:", row.activity_count, "Active activities:", row.active_activity_count);
@@ -1140,11 +1358,11 @@ function getAccountsWithActivityCounts() {
     } catch (e) {
         console.error("❌ getAccountsWithActivityCounts failed:", e);
     }
-    
+
     console.log("📊 Returning", accounts.length, "accounts with activities");
     return accounts;
 }
- 
+
 /**
 * Helper function to check if activity passes date filter
 * @param {Object} activity - The activity object
@@ -1153,56 +1371,56 @@ function getAccountsWithActivityCounts() {
 * @returns {boolean} True if activity passes the filter
 */
 function passesActivityDateFilter(activity, filter, currentDate) {
- 
+
     if (filter === "all") {
         return true;
     }
- 
- 
+
+
     if (!activity.due_date) {
         return false;
     }
- 
+
     var dueDate = new Date(activity.due_date);
     var today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
     var itemDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
- 
- 
+
+
     var isOverdue = itemDate < today;
- 
+
     switch (filter) {
-    case "today":
-       
-        return itemDate.getTime() <= today.getTime();
-    case "week":
-        var weekStart = new Date(today);
-        
-        weekStart.setDate(today.getDate() - today.getDay());
-        var weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
- 
-      
-        return (itemDate >= weekStart && itemDate <= weekEnd) && !isOverdue;
-    case "month":
-        var isThisMonth = itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
- 
-    
-        return isThisMonth && !isOverdue;
-    case "later":
-      
-        var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
-        var monthEndDay = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate());
- 
-     
-        return itemDate > monthEndDay && !isOverdue;
-    case "overdue":
- 
-        return isOverdue;
-    default:
-        return true;
+        case "today":
+
+            return itemDate.getTime() <= today.getTime();
+        case "week":
+            var weekStart = new Date(today);
+
+            weekStart.setDate(today.getDate() - today.getDay());
+            var weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+
+
+            return (itemDate >= weekStart && itemDate <= weekEnd) && !isOverdue;
+        case "month":
+            var isThisMonth = itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
+
+
+            return isThisMonth && !isOverdue;
+        case "later":
+
+            var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
+            var monthEndDay = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate());
+
+
+            return itemDate > monthEndDay && !isOverdue;
+        case "overdue":
+
+            return isOverdue;
+        default:
+            return true;
     }
 }
- 
+
 /**
 * Helper function to check if activity passes search filter
 * @param {Object} activity - The activity object
@@ -1213,25 +1431,25 @@ function passesActivitySearchFilter(activity, searchQuery) {
     if (!searchQuery || searchQuery.trim() === "") {
         return true;
     }
- 
+
     var query = searchQuery.toLowerCase().trim();
- 
- 
+
+
     if (activity.summary && activity.summary.toLowerCase().indexOf(query) >= 0) {
         return true;
     }
- 
- 
+
+
     if (activity.notes && activity.notes.toLowerCase().indexOf(query) >= 0) {
         return true;
     }
- 
- 
+
+
     var activityTypeName = getActivityTypeName(activity.activity_type_id);
     if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
         return true;
     }
- 
+
     return false;
 }
 
@@ -1242,14 +1460,14 @@ function passesActivitySearchFilter(activity, searchQuery) {
  */
 function getAllActivityAssignees(accountId) {
     var assignees = [];
-    
+
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        
+
         db.transaction(function (tx) {
             // Get all unique user IDs from activities
             var activityQuery, activityParams;
-            
+
             if (accountId === -1) {
                 // Get from all accounts
                 activityQuery = `
@@ -1267,24 +1485,24 @@ function getAllActivityAssignees(accountId) {
                 `;
                 activityParams = [accountId];
             }
-            
+
             var activityResult = tx.executeSql(activityQuery, activityParams);
-            
+
             var userAccountMap = {}; // Map user_id -> account_id for users
-            
+
             // Parse user IDs from all activities
             for (var i = 0; i < activityResult.rows.length; i++) {
                 var row = activityResult.rows.item(i);
                 var userIdField = row.user_id;
                 var activityAccountId = row.account_id;
-                
+
                 if (userIdField && parseInt(userIdField) > 0) {
                     userAccountMap[parseInt(userIdField)] = activityAccountId;
                 }
             }
-            
-            var allUserIds = Object.keys(userAccountMap).map(function(key) { return parseInt(key); });
-            
+
+            var allUserIds = Object.keys(userAccountMap).map(function (key) { return parseInt(key); });
+
             if (allUserIds.length > 0) {
                 // Group user IDs by account for efficient querying
                 var accountUserMap = {};
@@ -1295,12 +1513,12 @@ function getAllActivityAssignees(accountId) {
                     }
                     accountUserMap[userAccountId].push(parseInt(userId));
                 }
-                
+
                 // Query each account's users
                 for (var acctId in accountUserMap) {
                     var userIds = accountUserMap[acctId];
-                    var placeholders = userIds.map(function() { return '?'; }).join(',');
-                    
+                    var placeholders = userIds.map(function () { return '?'; }).join(',');
+
                     var userQuery = `
                         SELECT u.id, u.odoo_record_id, u.name, u.account_id, a.name as account_name
                         FROM res_users_app u
@@ -1308,10 +1526,10 @@ function getAllActivityAssignees(accountId) {
                         WHERE u.account_id = ? AND u.odoo_record_id IN (${placeholders})
                         ORDER BY u.name COLLATE NOCASE ASC
                     `;
-                    
+
                     var queryParams = [acctId].concat(userIds);
                     var userResult = tx.executeSql(userQuery, queryParams);
-                    
+
                     for (var k = 0; k < userResult.rows.length; k++) {
                         var userRow = userResult.rows.item(k);
                         console.log("Loading activity assignee:", userRow.name, "Account:", userRow.account_name, "ID:", userRow.odoo_record_id);
@@ -1329,7 +1547,7 @@ function getAllActivityAssignees(accountId) {
     } catch (e) {
         console.error("getAllActivityAssignees failed:", e);
     }
-    
+
     return assignees;
 }
 
@@ -1343,30 +1561,30 @@ function getAllActivityAssignees(accountId) {
  */
 function getFilteredActivitiesWithAssignees(filterType, searchQuery, accountId, assigneeIds) {
     var allActivities;
-    
+
     if (accountId !== undefined && accountId >= 0) {
         allActivities = getActivitiesForAccount(accountId);
     } else {
         allActivities = getAllActivities();
     }
-    
+
     var filteredActivities = [];
     var currentDate = new Date();
-    
+
     for (var i = 0; i < allActivities.length; i++) {
         var activity = allActivities[i];
         var passesFilter = true;
-        
+
         // Apply date filter
         if (!passesActivityDateFilter(activity, filterType, currentDate)) {
             passesFilter = false;
         }
-        
+
         // Apply search filter
         if (passesFilter && searchQuery && !passesActivitySearchFilter(activity, searchQuery)) {
             passesFilter = false;
         }
-        
+
         // Apply assignee filter
         if (passesFilter && assigneeIds && assigneeIds.length > 0) {
             var activityUserId = parseInt(activity.user_id);
@@ -1374,11 +1592,11 @@ function getFilteredActivitiesWithAssignees(filterType, searchQuery, accountId, 
                 passesFilter = false;
             }
         }
-        
+
         if (passesFilter) {
             filteredActivities.push(activity);
         }
     }
-    
+
     return filteredActivities;
 }

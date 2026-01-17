@@ -142,7 +142,7 @@ function get_task_name(task_id) {
  * @param {Object} [options={}] - Optional parameters.
  * @param {string|false} [options.group_by=false] - Column name to group results by (e.g., 'project_id').
  * @param {string|false} [options.dateFilter=false] - ISO date string (YYYY-MM-DD) to filter records after this date.
- * @param {number} account_id - Account ID to filter spent hours for.
+ * @param {number} account_id - Account ID to filter spent hours for. Use -1 to include all accounts.
  * @returns {Array<Object>} List of spent-hour objects.
  */
 function get_spent_hours({ group_by = false, dateFilter = false } = {}, account_id) {
@@ -157,23 +157,34 @@ function get_spent_hours({ group_by = false, dateFilter = false } = {}, account_
         );
 
         db.transaction(function (tx) {
-            var params = [account_id];
+            var params = [];
             var query = "";
+            var whereClause = "";
+
+            // Build account filter - if account_id is -1 (All Accounts), don't filter by account
+            if (account_id !== -1 && account_id !== undefined && account_id !== null) {
+                whereClause = "WHERE account_id = ?";
+                params.push(account_id);
+            }
 
             // Base query
             if (group_by) {
                 query = `SELECT ${group_by}, SUM(unit_amount) AS total
                          FROM account_analytic_line_app
-                         WHERE account_id = ?`;
+                         ${whereClause}`;
             } else {
                 query = `SELECT *
                          FROM account_analytic_line_app
-                         WHERE account_id = ?`;
+                         ${whereClause}`;
             }
 
             // Optional date filter
             if (dateFilter) {
-                query += ` AND record_date >= ?`;
+                if (whereClause) {
+                    query += ` AND record_date >= ?`;
+                } else {
+                    query += ` WHERE record_date >= ?`;
+                }
                 params.push(dateFilter);
             }
 
