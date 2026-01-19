@@ -1,6 +1,5 @@
 [
     {
-        "protocol": "ubtms",
-        "domain-suffix": ""
+        "protocol": "ubtms"
     }
 ]

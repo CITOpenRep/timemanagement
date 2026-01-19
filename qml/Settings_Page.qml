@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
+import Lomiri.Components.ListItems 1.3 as ListItem
 import io.thp.pyotherside 1.4
 import "../models/utils.js" as Utils
 import "../models/accounts.js" as Accounts
@@ -565,83 +566,71 @@ Page {
                             }
 
                             // Sync Interval Selector
-                            Row {
-                                width: parent.width
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: units.gu(2)
-                                opacity: autoSyncSwitch.checked ? 1.0 : 0.5
-
-                                Text {
-                                    text: i18n.dtr("ubtms", "Sync Interval")
-                                    font.pixelSize: units.gu(2)
-                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width - syncIntervalCombo.width - units.gu(4)
+                            OptionSelector {
+                                id: syncIntervalCombo
+                                text: i18n.dtr("ubtms", "Sync Interval")
+                                enabled: autoSyncSwitch.checked
+                                containerHeight: units.gu(30)
+                                model: [
+                                    { text: "1 minute", value: "1" },
+                                    { text: "5 minutes", value: "5" },
+                                    { text: "15 minutes", value: "15" },
+                                    { text: "30 minutes", value: "30" },
+                                    { text: "60 minutes", value: "60" }
+                                ]
+                                delegate: OptionSelectorDelegate { 
+                                    text: modelData.text 
                                 }
-
-                                ComboBox {
-                                    id: syncIntervalCombo
-                                    width: units.gu(15)
-                                    enabled: autoSyncSwitch.checked
-                                    model: [
-                                        { text: "1 minute", value: "1" },
-                                        { text: "5 minutes", value: "5" },
-                                        { text: "15 minutes", value: "15" },
-                                        { text: "30 minutes", value: "30" },
-                                        { text: "60 minutes", value: "60" }
-                                    ]
-                                    textRole: "text"
-                                    currentIndex: {
-                                        var saved = getAutoSyncSetting("sync_interval_minutes");
-                                        for (var i = 0; i < model.length; i++) {
-                                            if (model[i].value === saved) return i;
+                                
+                                Component.onCompleted: {
+                                    var saved = getAutoSyncSetting("sync_interval_minutes");
+                                    var foundIndex = 2; // Default to 15 minutes
+                                    for (var i = 0; i < model.length; i++) {
+                                        if (model[i].value === saved) {
+                                            foundIndex = i;
+                                            break;
                                         }
-                                        return 2; // Default to 15 minutes
                                     }
-                                    onCurrentIndexChanged: {
-                                        if (currentIndex >= 0 && currentIndex < model.length) {
-                                            saveAutoSyncSetting("sync_interval_minutes", model[currentIndex].value);
-                                        }
+                                    selectedIndex = foundIndex;
+                                }
+                                
+                                onSelectedIndexChanged: {
+                                    if (selectedIndex >= 0 && selectedIndex < model.length) {
+                                        saveAutoSyncSetting("sync_interval_minutes", model[selectedIndex].value);
                                     }
                                 }
                             }
 
                             // Sync Direction Selector
-                            Row {
-                                width: parent.width
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: units.gu(2)
-                                opacity: autoSyncSwitch.checked ? 1.0 : 0.5
-
-                                Text {
-                                    text: i18n.dtr("ubtms", "Sync Direction")
-                                    font.pixelSize: units.gu(2)
-                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width - syncDirectionCombo.width - units.gu(4)
+                            OptionSelector {
+                                id: syncDirectionCombo
+                                text: i18n.dtr("ubtms", "Sync Direction")
+                                enabled: autoSyncSwitch.checked
+                                containerHeight: units.gu(20)
+                                model: [
+                                    { text: "Both (Up & Down)", value: "both" },
+                                    { text: "Download Only", value: "download_only" },
+                                    { text: "Upload Only", value: "upload_only" }
+                                ]
+                                delegate: OptionSelectorDelegate { 
+                                    text: modelData.text 
                                 }
-
-                                ComboBox {
-                                    id: syncDirectionCombo
-                                    width: units.gu(18)
-                                    enabled: autoSyncSwitch.checked
-                                    model: [
-                                        { text: "Both (Up & Down)", value: "both" },
-                                        { text: "Download Only", value: "download_only" },
-                                        { text: "Upload Only", value: "upload_only" }
-                                    ]
-                                    textRole: "text"
-                                    currentIndex: {
-                                        var saved = getAutoSyncSetting("sync_direction");
-                                        for (var i = 0; i < model.length; i++) {
-                                            if (model[i].value === saved) return i;
+                                
+                                Component.onCompleted: {
+                                    var saved = getAutoSyncSetting("sync_direction");
+                                    var foundIndex = 0; // Default to both
+                                    for (var i = 0; i < model.length; i++) {
+                                        if (model[i].value === saved) {
+                                            foundIndex = i;
+                                            break;
                                         }
-                                        return 0; // Default to both
                                     }
-                                    onCurrentIndexChanged: {
-                                        if (currentIndex >= 0 && currentIndex < model.length) {
-                                            saveAutoSyncSetting("sync_direction", model[currentIndex].value);
-                                        }
+                                    selectedIndex = foundIndex;
+                                }
+                                
+                                onSelectedIndexChanged: {
+                                    if (selectedIndex >= 0 && selectedIndex < model.length) {
+                                        saveAutoSyncSetting("sync_direction", model[selectedIndex].value);
                                     }
                                 }
                             }

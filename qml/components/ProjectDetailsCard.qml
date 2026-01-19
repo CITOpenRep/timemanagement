@@ -55,6 +55,7 @@ ListItem {
     property int stage: 0
     property bool timer_on: false
     property bool timer_paused: false
+    property bool hasDraft: false
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
     signal timesheetRequested(int localId)
@@ -322,6 +323,27 @@ ListItem {
                                 font.pixelSize: units.gu(1.75)
                                 font.bold: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? true : false
                             }
+
+                               Rectangle {
+                            id: draftIndicator
+                            visible: hasDraft
+                            width: draftLabel.width + units.gu(1.2)
+                            height: units.gu(2)
+                            radius: height / 2
+                            color: "#FFF3E0"
+                            border.color: "#FF9800"
+                            border.width: units.gu(0.15)
+                            anchors.left: parent.left
+
+                            Text {
+                                id: draftLabel
+                                text: i18n.dtr("ubtms", "DRAFT")
+                                font.pixelSize: units.gu(1.1)
+                                font.bold: true
+                                color: "#F57C00"
+                                anchors.centerIn: parent
+                            }
+                        }
                         }
                     }
                 }
