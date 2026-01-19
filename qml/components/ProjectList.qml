@@ -127,6 +127,9 @@ Item {
     property string searchQuery: ""
     property bool showSearchBox: false
 
+    // View mode properties
+    property bool flatViewMode: false
+
     // Signals
     signal projectSelected(int recordId)
     signal projectEditRequested(int recordId)
@@ -175,6 +178,21 @@ Item {
         searchQuery = "";
 
         populateProjectChildrenMap();
+    }
+
+    function toggleFlatView() {
+        flatViewMode = !flatViewMode;
+        
+        // Reset navigation when switching modes
+        if (flatViewMode) {
+            navigationStackModel.clear();
+            currentParentId = -1;
+        }
+        
+        // Refresh the model
+        if (childrenMapReady) {
+            projectListView.model = getCurrentModel();
+        }
     }
 
     // Search functions
@@ -306,6 +324,34 @@ Item {
     }
 
     function getCurrentModel() {
+        // Flat view mode: return all projects in a single flat list
+        if (flatViewMode) {
+            var flatModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
+            var allFlatProjects = [];
+            
+            // Collect all projects from childrenMap
+            for (var key in childrenMap) {
+                var model = childrenMap[key];
+                for (var i = 0; i < model.count; i++) {
+                    allFlatProjects.push(model.get(i));
+                }
+            }
+            
+            // Sort alphabetically by project name
+            allFlatProjects.sort(function(a, b) {
+                return a.projectName.localeCompare(b.projectName);
+            });
+            
+            // Apply filters and add to model
+            allFlatProjects.forEach(function(project) {
+                if (matchesStageFilter(project) && matchesSearchQuery(project)) {
+                    flatModel.append(project);
+                }
+            });
+            
+            return flatModel;
+        }
+        
         // Helper function to check if a project matches the stage filter
         function matchesStageFilter(project) {
             if (!stageFilter.enabled) {
@@ -636,7 +682,7 @@ Item {
             text: "← Back"
             width: parent.width
             height: units.gu(4)
-            visible: navigationStackModel.count
+            visible: !flatViewMode && navigationStackModel.count
             onClicked: {
                 if (navigationStackModel.count > 0) {
                     var last = navigationStackModel.get(navigationStackModel.count - 1);
@@ -674,7 +720,8 @@ Item {
                     colorPallet: model.colorPallet
                     isFavorite: model.isFavorite
                     hasDraft: model.hasDraft
-                    hasChildren: model.hasChildren
+                    // Hide children navigation in flat view mode
+                    hasChildren: flatViewMode ? false : (model.hasChildren || false)
                     stage: model.stage
                     childCount: (model.hasChildren) ? model.childCount : 0
                     localId: model.local_id
@@ -693,8 +740,11 @@ Item {
                     }
 
                     onNavigationRequested: (projectId, accountId) => {
-                        console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
-                        navigateToProject(projectId, accountId);
+                        // Disable navigation in flat view mode
+                        if (!flatViewMode) {
+                            console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
+                            navigateToProject(projectId, accountId);
+                        }
                     }
                     onTimesheetRequested: localId => {
                         // Forward the signal to the parent page

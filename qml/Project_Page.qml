@@ -61,6 +61,13 @@ Page {
                 }
             },
             Action {
+                iconName: projectlist.flatViewMode ? "view-list-symbolic" : "view-grid-symbolic"
+                text: projectlist.flatViewMode ? i18n.dtr("ubtms", "Tree View") : i18n.dtr("ubtms", "Flat View")
+                onTriggered: {
+                    projectlist.toggleFlatView();
+                }
+            },
+            Action {
                 iconName: "search"
                 text: i18n.dtr("ubtms", "Search")
                 onTriggered: {
