@@ -3,109 +3,57 @@ import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import "../../models/constants.js" as AppConst
 
+/**
+ * SelectionButton - Inline option selector wrapper
+ * 
+ * Uses InlineOptionSelector to display options directly on the page
+ * without any popup dialog.
+ */
 Item {
     id: selectionButton
     width: parent.width
-    height: units.gu(6)
+    height: inlineSelector.height
 
     // Public API
     property string selectorType: ""             // "Account", "Project", etc.
     property string labelText: "Label"
     property bool enabledState: true
     property bool readOnly: false
-    property var modelData: []                   // Data to display in dialog
+    property var modelData: []                   // Data to display in selector
     property int selectedId: -1
     signal selectionMade(int id, string name, string selectorType)
 
-    // Styling properties (reference TSButton)
+    // Styling properties (kept for compatibility)
     property color bgColor: enabledState ? AppConst.Colors.Button : AppConst.Colors.ButtonDisabled
     property color fgColor: AppConst.Colors.ButtonText
     property color hoverColor: AppConst.Colors.ButtonHover
     property int radius: units.gu(0.8)
 
     function update_label(text) {
-        entity_btn_label.text = text;
-    }
-
-    // Internal OptionSelectorPopover - Direct list selection without intermediate dialog
-    OptionSelectorPopover {
-        id: optionSelectorPopover
-
-        onSelectionMade: {
-            // console.log("[SelectionButton] Selected:", id, name, "for", selectorType);
-            selectionButton.selectedId = id;
-            entity_btn_label.text = name;
-            selectionButton.selectionMade(id, name, selectorType);
-        }
-    }
-
-    Row {
-        anchors.fill: parent
-        spacing: units.gu(1)
-
-        TSLabel {
-            text: labelText
-            width: parent.width * 0.4
-            height: units.gu(5)
-            verticalAlignment: Text.AlignVCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            maximumLineCount: 2
-        }
-
-        // Custom styled button (reference TSButton)
-        Item {
-            id: entity_btn
-            width: parent.width * 0.5
-            height: units.gu(5)
-            property alias text: entity_btn_label.text
-            clip: true
-
-            Rectangle {
-                id: buttonRect
-                anchors.fill: parent
-                anchors.margins: units.gu(0.25)
-                radius: selectionButton.radius
-                color: mouseArea.containsMouse && selectionButton.enabledState ? selectionButton.hoverColor : selectionButton.bgColor
-                opacity: selectionButton.enabledState ? 1.0 : 0.6
-                clip: true
-
-                Text {
-                    id: entity_btn_label
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: units.gu(1.0)
-                    anchors.rightMargin: units.gu(1.0)
-                    color: selectionButton.fgColor
-                    font.bold: false
-                    font.pixelSize: units.gu(1.5)
-                    text: "Select"
-                    elide: Text.ElideRight
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    wrapMode: Text.NoWrap
-                    clip: true
-                    maximumLineCount: 1
-                }
-
-                MouseArea {
-                    id: mouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    enabled: selectionButton.enabledState && !selectionButton.readOnly
-                    onClicked: {
-                        if (!selectionButton.enabledState || selectionButton.readOnly) {
-                            return;
-                        }
-                        if (modelData.length === 0) {
-                            // console.log("[SelectionButton] No data set for", selectorType);
-                            return;
-                        }
-                        optionSelectorPopover.open(labelText, modelData, entity_btn);
-                    }
-                }
+        // Find and select item matching text (no signal emission)
+        for (var i = 0; i < modelData.length; i++) {
+            if (modelData[i].name === text) {
+                inlineSelector.applyDeferredSelection(modelData[i].id, false);
+                selectionButton.selectedId = modelData[i].id;
+                return;
             }
+        }
+    }
+
+    InlineOptionSelector {
+        id: inlineSelector
+        anchors.left: parent.left
+        anchors.right: parent.right
+        
+        labelText: selectionButton.labelText
+        selectorType: selectionButton.selectorType
+        modelData: selectionButton.modelData
+        enabledState: selectionButton.enabledState
+        readOnly: selectionButton.readOnly
+        
+        onSelectionMade: {
+            selectionButton.selectedId = id;
+            selectionButton.selectionMade(id, name, selectorType);
         }
     }
 
@@ -123,25 +71,11 @@ Item {
         }
     }
 
-    function applyDeferredSelection(selectedId) {
-        if (!modelData || modelData.length === 0) {
-            //  console.log("[SelectionButton] No model data loaded for applyDeferredSelection for", selectorType);
-            return;
+    function applyDeferredSelection(selId, emitSignal) {
+        // Default: don't emit signal during deferred selection to prevent loops
+        var shouldEmit = (emitSignal === true);
+        if (inlineSelector.applyDeferredSelection(selId, shouldEmit)) {
+            selectionButton.selectedId = selId;
         }
-
-        for (var i = 0; i < modelData.length; i++) {
-            if (modelData[i].id === selectedId) {
-                entity_btn.text = modelData[i].name;
-                selectionButton.selectedId = selectedId;
-                
-                // Emit selectionMade signal so draft tracking works during deferred loading
-                selectionButton.selectionMade(selectedId, modelData[i].name, selectorType);
-                
-                //  console.log("[SelectionButton] Deferred selection applied for", selectorType, ":", selectedId, modelData[i].name);
-                return;
-            }
-        }
-
-    //  console.log("[SelectionButton] ID", selectedId, "not found in modelData for", selectorType);
     }
 }
