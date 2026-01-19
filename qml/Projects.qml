@@ -541,22 +541,10 @@ Page {
                 showSubTaskSelector: false
                 width: parent.width - units.gu(2)
                 anchors.horizontalCenter: parent.horizontalCenter
-                WorkItemSelector {
-                    id: workItem
-                    readOnly: isReadOnly
-                    restrictAccountToLocalOnly: recordid === 0  // Only restrict to local when creating new projects
-                    projectLabelText: "Parent Project"
-                    showTaskSelector: false
-                    showSubProjectSelector: false
-                    showAssigneeSelector: true
-                    showSubTaskSelector: false
-                    width: projectDetailsPageFlickable.width - units.gu(2)
-                    height: units.gu(10)
 
-                    onSelectedAccountIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("accountId", selectedAccountId)
-                    onSelectedProjectIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("parentId", selectedProjectId)
-                    onSelectedAssigneeIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("assigneeId", selectedAssigneeId)
-                }
+                onSelectedAccountIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("accountId", selectedAccountId)
+                onSelectedProjectIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("parentId", selectedProjectId)
+                onSelectedAssigneeIdChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("assigneeId", selectedAssigneeId)
             }
 
             // Project Name Row
@@ -565,17 +553,13 @@ Page {
                 width: parent.width
                 spacing: units.gu(2)
                 leftPadding: units.gu(1)
+                rightPadding: units.gu(1)
 
-                LomiriShape {
+                TSLabel {
+                    text: i18n.dtr("ubtms", "Project Name")
                     width: units.gu(12)
                     height: units.gu(5)
-                    aspect: LomiriShape.Flat
-                    Label {
-                        id: project_label
-                        text: i18n.dtr("ubtms", "Project Name")
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+                    verticalAlignment: Text.AlignVCenter
                 }
 
                 TextField {
@@ -608,37 +592,15 @@ Page {
                     anchors.centerIn: parent
                     text: ""
                     is_read_only: isReadOnly
+                    onContentChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("description", content)
                     onClicked: {
                         Global.description_temporary_holder = getFormattedText();
                         Global.description_context = "project_description";
+                        navigatingToReadMore = true;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                            isReadOnly: isReadOnly
+                            isReadOnly: isReadOnly,
+                            parentDraftHandler: draftHandler
                         });
-            Column {
-                id: myCol9
-
-                Item {
-                    id: textAreaContainer
-                    width: projectDetailsPageFlickable.width
-                    height: description_text.height
-
-                    RichTextPreview {
-                        id: description_text
-                        width: parent.width
-                        height: units.gu(20) // Start with collapsed height
-                        anchors.centerIn: parent.centerIn
-                        text: ""
-                        is_read_only: isReadOnly
-                        onContentChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("description", content)
-                        onClicked: {
-                            //set the data to a global Store and pass the key to the page
-                            Global.description_temporary_holder = getFormattedText();
-                            Global.description_context = "project_description";
-                            apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly,
-                                parentDraftHandler: draftHandler
-                            });
-                        }
                     }
                 }
             }
@@ -917,8 +879,10 @@ Page {
                     id: hours_text
                     readOnly: isReadOnly
                     width: parent.width * 0.4
+                    anchors.verticalCenter: parent.verticalCenter
                     text: "01:00"
-                    placeholderText: "HH:MM"
+                    onTextChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("allocatedHours", text)
+                    placeholderText: "HH:MM (e.g., 1000:30)"
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     property bool isValid: {
@@ -951,37 +915,22 @@ Page {
                     text: "Color"
                     width: parent.width * 0.4
                     anchors.verticalCenter: parent.verticalCenter
-            TextField {
-                id: hours_text
-                readOnly: isReadOnly
-                width: parent.width * 0.3
-                anchors.verticalCenter: parent.verticalCenter
-                text: "01:00"
-                onTextChanged: if (!isRestoringFromDraft) draftHandler.markFieldChanged("allocatedHours", text)
-                placeholderText: "HH:MM (e.g., 1000:30 for large projects)"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                // Custom validation for HH:MM format (allowing 1000+ hours for project allocation)
-                property bool isValid: {
-                    if (!/^[0-9]{1,4}:[0-5][0-9]$/.test(text))
-                        return false;
-                    var parts = text.split(":");
-                    var hours = parseInt(parts[0]);
-                    var minutes = parseInt(parts[1]);
-                    return hours >= 0 && hours <= 9999 && minutes <= 59;
                 }
 
                 Rectangle {
                     id: project_color_label
                     width: units.gu(4)
                     height: units.gu(4)
+                    anchors.verticalCenter: parent.verticalCenter
                     color: "red"
                     radius: units.gu(0.5)
-                    border.width: parent.activeFocus ? units.gu(0.2) : units.gu(0.1)
-                    border.color: parent.activeFocus ? LomiriColors.orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999")
+                    border.width: units.gu(0.2)
+                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
                     enabled: !isReadOnly
+                    
                     MouseArea {
                         anchors.fill: parent
+                        enabled: !isReadOnly
                         onClicked: colorpicker.open()
                     }
                 }
@@ -1003,9 +952,6 @@ Page {
                     readOnly: isReadOnly
                     width: parent.width
                     height: units.gu(5)
-                    width: projectDetailsPageFlickable.width < units.gu(361) ? projectDetailsPageFlickable.width - units.gu(35) : projectDetailsPageFlickable.width - units.gu(30)
-                    height: units.gu(4)
-                    anchors.centerIn: parent.centerIn
                     onRangeChanged: {
                         if (!isRestoringFromDraft) {
                             draftHandler.markFieldChanged("startDate", formattedStartDate());
