@@ -526,7 +526,7 @@ Page {
             id: mainLayout
             width: parent.width
             spacing: units.gu(2)
-            topPadding: units.gu(2)
+            topPadding: units.gu(10)
             bottomPadding: units.gu(5)
 
             // Work Item Selector Section
