@@ -551,12 +551,14 @@ Rectangle {
         // An orphan child is a task whose parent_id points to a task the user doesn't have access to
         let accessibleTaskIds = new Set();
         for (let i = 0; i < rawTasks.length; i++) {
-            let id = rawTasks[i].odoo_record_id;
+            // Use local id for local account, odoo_record_id for remote accounts
+            let id = (accountId === 0) ? rawTasks[i].id : rawTasks[i].odoo_record_id;
             accessibleTaskIds.add(id);
         }
 
         for (let i = 0; i < rawTasks.length; i++) {
-            let id = rawTasks[i].odoo_record_id;
+            // Use local id for local account, odoo_record_id for remote accounts
+            let id = (accountId === 0) ? rawTasks[i].id : rawTasks[i].odoo_record_id;
             let name = rawTasks[i].name;
             let projectParentId = rawTasks[i].project_id;
             let subProjectParentId = rawTasks[i].sub_project_id;
@@ -620,7 +622,8 @@ Rectangle {
         let default_name = "Select";
 
         for (let i = 0; i < rawTasks.length; i++) {
-            let id = rawTasks[i].odoo_record_id;   // always use remote_id
+            // Use local id for local account, odoo_record_id for remote accounts
+            let id = (accountId === 0) ? rawTasks[i].id : rawTasks[i].odoo_record_id;
             let name = rawTasks[i].name;
             let parentId = rawTasks[i].parent_id;  // Subtasks link via parent_id to their parent task
 
