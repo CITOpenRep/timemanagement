@@ -128,7 +128,7 @@ Item {
     property bool showSearchBox: false
 
     // View mode properties
-    property bool flatViewMode: false
+    property bool flatViewMode: true
 
     // Signals
     signal projectSelected(int recordId)
