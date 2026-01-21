@@ -58,6 +58,9 @@ Item {
     // Property to indicate if we're in MyTasks context
     property bool isMyTasksContext: false
 
+    // View mode properties
+    property bool flatViewMode: false
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
@@ -362,6 +365,21 @@ Item {
         refreshWithFilter();
     }
 
+    function toggleFlatView() {
+        flatViewMode = !flatViewMode;
+        
+        // Reset navigation when switching modes
+        if (flatViewMode) {
+            navigationStackModel.clear();
+            currentParentId = -1;
+        }
+        
+        // Refresh the model
+        if (childrenMapReady) {
+            taskListView.model = getCurrentModel();
+        }
+    }
+
     // Function to remove a task from the displayed list
     function removeTaskFromList(localId) {
         // Find the task in the current parent's children
@@ -545,6 +563,38 @@ Item {
     }
 
     function getCurrentModel() {
+        // Flat view mode: return all tasks in a single flat list
+        if (flatViewMode) {
+            var flatModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
+            var allFlatTasks = [];
+            
+            // Collect all tasks from childrenMap
+            for (var key in childrenMap) {
+                var model = childrenMap[key];
+                for (var i = 0; i < model.count; i++) {
+                    allFlatTasks.push(model.get(i));
+                }
+            }
+            
+            // Sort by end date (most recent first), then alphabetically by name
+            allFlatTasks.sort(function(a, b) {
+                if (a.endDate && b.endDate) {
+                    return new Date(a.endDate) - new Date(b.endDate);
+                }
+                if (a.endDate && !b.endDate) return -1;
+                if (!a.endDate && b.endDate) return 1;
+                return a.taskName.localeCompare(b.taskName);
+            });
+            
+            // Add all tasks to the flat model
+            allFlatTasks.forEach(function(task) {
+                flatModel.append(task);
+            });
+            
+            return flatModel;
+        }
+        
+        // Hierarchical view: return tasks for current parent
         var model = childrenMap[currentParentId];
         return model || Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
     }
@@ -558,7 +608,7 @@ Item {
             text: "← Back"
             width: parent.width
             height: units.gu(4)
-            visible: navigationStackModel.count
+            visible: !flatViewMode && navigationStackModel.count
             onClicked: {
                 if (navigationStackModel.count > 0) {
                     var last = navigationStackModel.get(navigationStackModel.count - 1).parentId;
@@ -593,8 +643,9 @@ Item {
                     endDate: model.endDate
                     description: model.description
                     priority: model.priority // Use priority instead of isFavorite
-                    hasChildren: model.hasChildren
-                    childCount: model.childCount
+                    // Hide children navigation in flat view mode
+                    hasChildren: flatViewMode ? false : (model.hasChildren || false)
+                    childCount: flatViewMode ? 0 : (model.childCount || 0)
                     projectName: model.project
                     colorPallet: model.color_pallet
                     stage: model.stage
@@ -629,7 +680,10 @@ Item {
                         anchors.leftMargin: units.gu(15)  // Skip the star area
                         enabled: !taskCard.starInteractionActive
                         onClicked: {
-                            if (model.hasChildren) {
+                            // In flat view mode, always go to task view (no navigation)
+                            if (flatViewMode) {
+                                taskCard.viewRequested(model.local_id);
+                            } else if (model.hasChildren) {
                                 navigationStackModel.append({
                                     parentId: currentParentId
                                 });
