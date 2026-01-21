@@ -335,13 +335,22 @@ def sync_model(
         log.info(f"[SYNC] Completed sync for '{model_name}' -> '{table_name}' ({len(fetched_odoo_ids)} records processed)")
     except Exception as e:
         log.error(f"[ERROR] Failed to sync model '{model_name}': {e}")
-        add_notification(
-            db_path=db_path,
-            account_id=account_id,
-            notif_type="Sync",
-            message=f"Sync failed for model '{model_name}'",
-            payload={}
-        )
+        
+        # Only show notification for user-facing models, not system/technical models
+        # System models like ir.model, ir.attachment are informational and not critical
+        critical_models = [
+            "project.project", "project.task", "account.analytic.line", 
+            "mail.activity", "mail.activity.type", "res.users"
+        ]
+        
+        if model_name in critical_models:
+            add_notification(
+                db_path=db_path,
+                account_id=account_id,
+                notif_type="Sync",
+                message=f"Sync failed for {model_name.replace('.', ' ').title()}",
+                payload={"model": model_name, "error": str(e)}
+            )
 
 
 def prepare_field_mapping(client, model_name, config_path):
