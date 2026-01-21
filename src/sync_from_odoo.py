@@ -244,14 +244,22 @@ def insert_record(
         safe_sql_execute(db_path, sql, values)
     except Exception as e:
         display_name = get_record_display_name(record, model_name)
-        log.error(f"[ERROR] Failed to insert {model_name} record {display_name}: {e}")
+        error_msg = str(e)
+        log.error(f"[ERROR] Failed to insert {model_name} record {display_name}: {error_msg}")
+        
+        # Provide additional context for common errors
+        if "no such column" in error_msg.lower():
+            log.error(f"[CONFIG] Database schema mismatch - local database may need migration or field_config.json update.")
+        elif "constraint" in error_msg.lower():
+            log.error(f"[CONFIG] Database constraint violation - check if required fields have valid values.")
+        
         record_name = record.get('name') or record.get('summary') or f"Record #{record.get('id')}"
         add_notification(
             db_path=db_path,
             account_id=account_id,
             notif_type="Sync",
             message=f"Failed to sync {model_name}: {record_name}",
-            payload={"record_id": record.get("id"), "record_name": record_name}
+            payload={"record_id": record.get("id"), "record_name": record_name, "error": error_msg}
         )
 
 
@@ -277,7 +285,10 @@ def get_model_fields(client, model_name):
             {"attributes": ["string", "type"]},
         ).keys()
     except Exception as e:
-        log.debug(f"[ERROR] Failed to fetch fields for model '{model_name}': {e}")
+        log.error(
+            f"[ERROR] Failed to fetch fields for model '{model_name}': {e}. "
+            f"Please check the model exists, is accessible, and your connection is active."
+        )
         return []
 
 
@@ -349,13 +360,22 @@ def prepare_field_mapping(client, model_name, config_path):
     all_model_fields = get_model_fields(client, model_name)
 
     valid_field_map = {}
+    missing_fields = []
     for field, sqlite_field in field_map.items():
         if field in all_model_fields:
             valid_field_map[field] = sqlite_field
         else:
-            log.warning(
-                f"[WARN] Field '{field}' not found in Odoo model '{model_name}', skipping."
-            )
+            missing_fields.append(field)
+    
+    # If there are missing fields, provide helpful guidance in a single message
+    if missing_fields:
+        fields_str = ', '.join(missing_fields)
+        log.warning(
+            f"[CONFIG] Model '{model_name}' is missing {len(missing_fields)} field(s): {fields_str}. "
+            f"Please configure these fields in your Odoo instance or install required modules, "
+            f"or remove them from field_config.json if not needed."
+        )
+    
     return valid_field_map
 
 

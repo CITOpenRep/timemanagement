@@ -293,7 +293,10 @@ def fetch_odoo_field_info(client, model_name):
     try:
         return client.call(model_name, "fields_get", [], {"attributes": ["type"]})
     except Exception as e:
-        log.error(f"[ERROR] Could not fetch field types for {model_name}: {e}")
+        log.error(
+            f"[ERROR] Could not fetch field types for model '{model_name}': {e}. "
+            f"Please verify the model exists, you have access rights, and required modules are installed."
+        )
         return {}
 
 
@@ -595,11 +598,17 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
     field_map = load_field_mapping(model_name, config_path)
     field_info = fetch_odoo_field_info(client, model_name)
 
+    missing_fields = []
     for field in field_map.keys():
         if field not in field_info:
-            log.warning(
-                f"[WARN] Field '{field}' not found in Odoo model '{model_name}', skipping."
-            )
+            missing_fields.append(field)
+    
+    if missing_fields:
+        fields_str = ', '.join(missing_fields)
+        log.warning(
+            f"[CONFIG] Model '{model_name}' is missing {len(missing_fields)} field(s): {fields_str}. "
+            f"Please configure these fields in your Odoo instance or update field_config.json."
+        )
 
     if record.get("odoo_record_id"):
         try:
