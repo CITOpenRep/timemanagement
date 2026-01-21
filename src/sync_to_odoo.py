@@ -764,18 +764,20 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                 
                 # Validate res_model and res_id are set
                 if not res_model or not res_id or res_id <= 0:
-                    log.error(f"[ERROR] Activity '{activity_summary}' (id={record.get('id')}) cannot be synced - not linked to any document.")
-                    log.error(f"[ERROR]   → res_model={res_model or '(empty)'}, res_id={res_id or '(empty)'}")
-                    log.error(f"[ERROR]   → Activities must be linked to a Task, Project, or other document.")
-                    log.error(f"[ERROR]   → Please edit or delete this activity in the app and link it to a valid document.")
+                    log.error(
+                        f"[ERROR] Activity '{activity_summary}' (id={record.get('id')}) cannot be synced - not linked to any document. "
+                        f"res_model={res_model or '(empty)'}, res_id={res_id or '(empty)'}. "
+                        f"Activities must be linked to a Task, Project, or other document. Please edit or delete this activity in the app."
+                    )
                     return None
                 
                 # Look up res_model_id from ir_model_app table
                 res_model_id = get_res_model_id(record["db_path"], record["account_id"], res_model)
                 if not res_model_id:
-                    log.error(f"[ERROR] Activity '{activity_summary}' (id={record.get('id')}) references unknown model '{res_model}'.")
-                    log.error(f"[ERROR]   → The model '{res_model}' was not found in the local database.")
-                    log.error(f"[ERROR]   → Please sync from Odoo first to download model information, then try again.")
+                    log.error(
+                        f"[ERROR] Activity '{activity_summary}' (id={record.get('id')}) references unknown model '{res_model}'. "
+                        f"Model not found in local database - please sync FROM Odoo first to download model information, then try syncing TO Odoo again."
+                    )
                     return None
                 
                 # Add res_model_id to the Odoo data
