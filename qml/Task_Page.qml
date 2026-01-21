@@ -55,6 +55,8 @@ Page {
             return titleParts.join(" - ");
         }
 
+        trailingActionBar.numberOfSlots: 4
+
         trailingActionBar.actions: [
             Action {
                 iconName: "add"
@@ -64,6 +66,13 @@ Page {
                         "recordid": 0,
                         "isReadOnly": false
                     });
+                }
+            },
+             Action {
+                iconName: tasklist.flatViewMode ? "view-list-symbolic" : "view-grid-symbolic"
+                text: tasklist.flatViewMode ? i18n.dtr("ubtms", "Tree View") : i18n.dtr("ubtms", "Flat View")
+                onTriggered: {
+                    tasklist.toggleFlatView();
                 }
             },
             Action {
@@ -80,13 +89,7 @@ Page {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
                 }
             }
-            // Action {
-            //     iconName: "account"
-            //     onTriggered: {
-            //         accountFilterVisible = !accountFilterVisible;
-            //     }
-            // }
-
+          
 
         ]
     }
