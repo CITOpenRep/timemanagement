@@ -49,6 +49,8 @@ Page {
         }
         title: myTasksPage.title
 
+        trailingActionBar.numberOfSlots: 4
+
         trailingActionBar.actions: [
             Action {
                 iconName: "add"
@@ -58,6 +60,13 @@ Page {
                         "recordid": 0,
                         "isReadOnly": false
                     });
+                }
+            },
+                Action {
+                iconName: myTasksList.flatViewMode ? "view-list-symbolic" : "view-grid-symbolic"
+                text: myTasksList.flatViewMode ? i18n.dtr("ubtms", "Tree View") : i18n.dtr("ubtms", "Flat View")
+                onTriggered: {
+                    myTasksList.toggleFlatView();
                 }
             },
             Action {
