@@ -429,25 +429,44 @@ Rectangle {
             parent_id: null
         });
 
+        // Build a set of all accessible project IDs to detect "orphan" child projects
+        // An orphan child is a project whose parent_id points to a project the user doesn't have access to
+        let accessibleProjectIds = new Set();
+        for (let i = 0; i < rawProjects.length; i++) {
+            let id = (accountId === 0) ? rawProjects[i].id : rawProjects[i].odoo_record_id;
+            accessibleProjectIds.add(id);
+        }
+
         for (let i = 0; i < rawProjects.length; i++) {
             let id = (accountId === 0) ? rawProjects[i].id : rawProjects[i].odoo_record_id;
             let name = rawProjects[i].name;
             let parentId = rawProjects[i].parent_id;
 
-            if (parentId === null || parentId === 0) {
+            // Include project in main list if:
+            // 1. It's a root project (no parent), OR
+            // 2. It's an "orphan" child - its parent is not in accessible projects list
+            //    (This handles the case where user has access to child but not parent due to access rights)
+            let isRootProject = (parentId === null || parentId === 0);
+            let isOrphanChild = (parentId !== null && parentId !== 0 && !accessibleProjectIds.has(parentId));
+
+            if (isRootProject || isOrphanChild) {
+                // Add visual indicator for orphan child projects to show they are nested
+                let displayName = isOrphanChild ? "↳ " + name : name;
+
                 projectList.push({
                     id: id,
-                    name: name,
-                    parent_id: parentId
+                    name: displayName,
+                    parent_id: parentId,
+                    isOrphanChild: isOrphanChild  // Flag for potential future use
                 });
 
                 if (selectedId === id) {
                     default_id = id;
-                    default_name = name;
+                    default_name = displayName;
                 }
             } else if (selectedId !== -1 && selectedId === id) {
                 // Special case: if this project matches selectedId but is a sub-project,
-                // still add it so it can be displayed.
+                // still add it so it can be displayed (deferred loading scenario).
                 // console.log("Warning: Selected project", id, "is a sub-project. Adding to list for display.");
                 projectList.push({
                     id: id,
@@ -528,25 +547,46 @@ Rectangle {
         let default_name = "Select";
         let filteredCount = 0;
 
+        // Build a set of all accessible task IDs to detect "orphan" child tasks
+        // An orphan child is a task whose parent_id points to a task the user doesn't have access to
+        let accessibleTaskIds = new Set();
         for (let i = 0; i < rawTasks.length; i++) {
-            let id = rawTasks[i].odoo_record_id;
+            // Use local id for local account, odoo_record_id for remote accounts
+            let id = (accountId === 0) ? rawTasks[i].id : rawTasks[i].odoo_record_id;
+            accessibleTaskIds.add(id);
+        }
+
+        for (let i = 0; i < rawTasks.length; i++) {
+            // Use local id for local account, odoo_record_id for remote accounts
+            let id = (accountId === 0) ? rawTasks[i].id : rawTasks[i].odoo_record_id;
             let name = rawTasks[i].name;
             let projectParentId = rawTasks[i].project_id;
             let subProjectParentId = rawTasks[i].sub_project_id;
             let parentId = rawTasks[i].parent_id;
 
-            // Apply filtering regardless of selectedId to ensure only relevant tasks are shown
-            if ((projectParentId === projectIdOrSubprojectId || subProjectParentId === projectIdOrSubprojectId) && (parentId === null || parentId === 0)) {
+            // Check if task belongs to the selected project/subproject
+            let belongsToSelectedProject = (projectParentId === projectIdOrSubprojectId || subProjectParentId === projectIdOrSubprojectId);
+
+            // Check if this is a root task (no parent task) or an orphan child task
+            let isRootTask = (parentId === null || parentId === 0);
+            let isOrphanChildTask = (parentId !== null && parentId !== 0 && !accessibleTaskIds.has(parentId));
+
+            // Include task if it belongs to selected project AND is either root or orphan child
+            if (belongsToSelectedProject && (isRootTask || isOrphanChildTask)) {
+                // Add visual indicator for orphan child tasks
+                let displayName = isOrphanChildTask ? "↳ " + name : name;
+
                 taskList.push({
                     id: id,
-                    name: name,
-                    parent_id: projectParentId || subProjectParentId
+                    name: displayName,
+                    parent_id: projectParentId || subProjectParentId,
+                    isOrphanChild: isOrphanChildTask
                 });
                 filteredCount++;
 
                 if (selectedId === id) {
                     default_id = id;
-                    default_name = name;
+                    default_name = displayName;
                 }
             } else if (selectedId !== -1 && selectedId === id) {
                 // Special case: if this task matches selectedId but doesn't match current filter,
@@ -582,7 +622,8 @@ Rectangle {
         let default_name = "Select";
 
         for (let i = 0; i < rawTasks.length; i++) {
-            let id = rawTasks[i].odoo_record_id;   // always use remote_id
+            // Use local id for local account, odoo_record_id for remote accounts
+            let id = (accountId === 0) ? rawTasks[i].id : rawTasks[i].odoo_record_id;
             let name = rawTasks[i].name;
             let parentId = rawTasks[i].parent_id;  // Subtasks link via parent_id to their parent task
 
