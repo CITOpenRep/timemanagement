@@ -35,6 +35,40 @@ from bus import send
 log = logging.getLogger("odoo_sync")
 
 
+def get_record_display_name(record, model_name=None):
+    """
+    Get a human-readable display name for a record based on its model type.
+    
+    Args:
+        record (dict): The record dictionary containing fields
+        model_name (str): Optional model name to determine which fields to use
+        
+    Returns:
+        str: A human-readable identifier string like "'Task Name' (id=123)"
+    """
+    record_id = record.get('id') or record.get('odoo_record_id') or 'unknown'
+    odoo_id = record.get('odoo_record_id')
+    
+    # Try common name fields in order of preference
+    name_fields = ['name', 'summary', 'display_name', 'title', 'subject']
+    name = None
+    
+    for field in name_fields:
+        if record.get(field):
+            name = record.get(field)
+            break
+    
+    # Build the display string
+    if name and odoo_id:
+        return f"'{name}' (local_id={record_id}, odoo_id={odoo_id})"
+    elif name:
+        return f"'{name}' (id={record_id})"
+    elif odoo_id:
+        return f"id={record_id}, odoo_id={odoo_id}"
+    else:
+        return f"id={record_id}"
+
+
 def load_field_mapping(model_name, config_path="field_config.json"):
     """
     Load field mapping configuration for a specific Odoo model.
@@ -163,7 +197,11 @@ def cleanup_corrupted_activities(db_path, account_id):
         corrupted_records = safe_sql_execute(db_path, detail_query, (account_id_int,), fetch=True, commit=False)
         
         for record in corrupted_records:
-            log.warning(f"[CLEANUP] Removing corrupted activity: id={record[0]}, summary='{record[1]}', resModel={record[2]}, link_id={record[3]}")
+            summary = record[1] or '(no summary)'
+            res_model = record[2] or '(not linked to any model)'
+            link_id = record[3]
+            link_issue = "not linked to any document" if not link_id or link_id <= 0 else f"linked to {res_model} id={link_id}"
+            log.warning(f"[CLEANUP] Removing corrupted activity: '{summary}' (id={record[0]}) - Issue: {link_issue}")
         
         # Delete the corrupted records
         delete_query = """
@@ -255,7 +293,10 @@ def fetch_odoo_field_info(client, model_name):
     try:
         return client.call(model_name, "fields_get", [], {"attributes": ["type"]})
     except Exception as e:
-        log.error(f"[ERROR] Could not fetch field types for {model_name}: {e}")
+        log.error(
+            f"[ERROR] Could not fetch field types for model '{model_name}': {e}. "
+            f"Please verify the model exists, you have access rights, and required modules are installed."
+        )
         return {}
 
 
@@ -414,17 +455,19 @@ def sync_project_favorite(client, record, db_path):
         )
         
         if not existing:
-            log.warning(f"[SKIP] Project {odoo_record_id} not found in Odoo")
+            project_name = record.get('name') or '(unknown project)'
+            log.warning(f"[SKIP] Project '{project_name}' (odoo_id={odoo_record_id}) not found in Odoo")
             return False
         
         existing_data = existing[0]
         remote_is_favorite = existing_data.get("is_favorite", False)
+        project_name = record.get('name') or existing_data.get('name') or '(unknown project)'
         
-        log.debug(f"[FAVORITE] Project {odoo_record_id}: local={is_local_favorite}, remote={remote_is_favorite}")
+        log.debug(f"[FAVORITE] Project '{project_name}' (odoo_id={odoo_record_id}): local_favorite={is_local_favorite}, remote_favorite={remote_is_favorite}")
         
         # Only sync if there's a difference
         if is_local_favorite == remote_is_favorite:
-            log.debug(f"[SKIP] Favorite status already in sync for project {odoo_record_id}")
+            log.debug(f"[SKIP] Favorite status already in sync for project '{project_name}' (odoo_id={odoo_record_id})")
             return True
         
         # Get current user ID from the client
@@ -437,7 +480,7 @@ def sync_project_favorite(client, record, db_path):
                 "write",
                 [[odoo_record_id], {"favorite_user_ids": [(4, current_user_id)]}]
             )
-            log.debug(f"[FAVORITE] Added user {current_user_id} to favorites for project {odoo_record_id}")
+            log.info(f"[FAVORITE] Added project '{project_name}' (odoo_id={odoo_record_id}) to favorites")
         else:
             # Remove current user from favorite_user_ids using (3, id) command
             client.call(
@@ -445,12 +488,13 @@ def sync_project_favorite(client, record, db_path):
                 "write",
                 [[odoo_record_id], {"favorite_user_ids": [(3, current_user_id)]}]
             )
-            log.debug(f"[FAVORITE] Removed user {current_user_id} from favorites for project {odoo_record_id}")
+            log.info(f"[FAVORITE] Removed project '{project_name}' (odoo_id={odoo_record_id}) from favorites")
         
         return True
         
     except Exception as e:
-        log.error(f"[ERROR] Failed to sync project favorite: {e}")
+        project_name = record.get('name') or '(unknown project)'
+        log.error(f"[ERROR] Failed to sync favorite for project '{project_name}' (odoo_id={record.get('odoo_record_id')}): {e}")
         return False
 
 
@@ -554,20 +598,27 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
     field_map = load_field_mapping(model_name, config_path)
     field_info = fetch_odoo_field_info(client, model_name)
 
+    missing_fields = []
     for field in field_map.keys():
         if field not in field_info:
-            log.warning(
-                f"[WARN] Field '{field}' not found in Odoo model '{model_name}', skipping."
-            )
+            missing_fields.append(field)
+    
+    if missing_fields:
+        fields_str = ', '.join(missing_fields)
+        log.warning(
+            f"[CONFIG] Model '{model_name}' is missing {len(missing_fields)} field(s): {fields_str}. "
+            f"Please configure these fields in your Odoo instance or update field_config.json."
+        )
 
     if record.get("odoo_record_id"):
         try:
             # XXXX Special Case: Mark mail.activity as done XXXXX
             if model_name == "mail.activity" and record.get("state") == "done":
-                log.info(f"[ACTIVITY_SYNC_TO] Detected done activity: id={record['id']}, odoo_id={record['odoo_record_id']}, state={record.get('state')}")
+                activity_name = record.get('summary') or '(no summary)'
+                log.info(f"[ACTIVITY_SYNC_TO] Marking activity as done: '{activity_name}' (local_id={record['id']}, odoo_id={record['odoo_record_id']})")
                 try:
                     client.call("mail.activity", "action_done", [[record["odoo_record_id"]]])
-                    log.info(f"[ACTIVITY_SYNC_TO] Activity {record['odoo_record_id']} marked as done on server using action_done.")
+                    log.info(f"[ACTIVITY_SYNC_TO] Activity '{activity_name}' (odoo_id={record['odoo_record_id']}) marked as done on server.")
 
                     # Keep the record locally with status cleared (not pending sync)
                     # This allows the Done filter to show completed activities
@@ -576,11 +627,11 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                         f"UPDATE {record['table_name']} SET status = '' WHERE id = ? AND account_id = ?",
                         (record["id"], record["account_id"])
                     )
-                    log.info(f"[ACTIVITY_SYNC_TO] Kept local Activity record {record['id']} with state=done, status cleared")
+                    log.info(f"[ACTIVITY_SYNC_TO] Kept local activity '{activity_name}' (id={record['id']}) with state=done")
 
                     return record["odoo_record_id"]
                 except Exception as e:
-                    log.error(f"[ERROR] Failed to mark activity as done using action_done: {e}")
+                    log.error(f"[ERROR] Failed to mark activity '{activity_name}' (odoo_id={record['odoo_record_id']}) as done: {e}")
                     return None
 
             valid_fields = [f for f in field_map.keys() if f in field_info]
@@ -595,8 +646,9 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                 {"fields": valid_fields},
             )
             if not existing:
+                display_name = get_record_display_name(record, model_name)
                 log.warning(
-                    f"[SKIP] No record found in Odoo for ID {record['odoo_record_id']}."
+                    f"[SKIP] Record {display_name} not found in Odoo - may have been deleted on server."
                 )
                 return None
 
@@ -642,8 +694,9 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
 
             if changes:
                 client.call(model_name, "write", [[record["odoo_record_id"]], changes])
-                log.debug(
-                    f"[UPDATE] {model_name} id={record['odoo_record_id']} updated with merged fields."
+                display_name = get_record_display_name(record, model_name)
+                log.info(
+                    f"[UPDATE] {model_name}: {display_name} updated with fields: {list(changes.keys())}"
                 )
                 # Atomic status reset: only clear if status is still 'updated' to prevent race conditions
                 # where user makes changes during sync and those changes would be lost
@@ -663,8 +716,9 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             return record["odoo_record_id"]
 
         except Exception as e:
+            display_name = get_record_display_name(record, model_name)
             log.error(
-                f"[ERROR] Failed to merge/update record to Odoo '{model_name}': {e}"
+                f"[ERROR] Failed to update {model_name} record {display_name}: {e}"
             )
             return None
 
@@ -706,19 +760,24 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             if model_name == "mail.activity":
                 res_model = odoo_data.get("res_model")
                 res_id = odoo_data.get("res_id")
+                activity_summary = record.get('summary') or '(no summary)'
                 
                 # Validate res_model and res_id are set
                 if not res_model or not res_id or res_id <= 0:
-                    log.error(f"[ERROR] Activity id={record.get('id')} missing required res_model or res_id. res_model={res_model}, res_id={res_id}")
-                    log.error(f"[ERROR] Activities must be linked to a document (project.task, project.project, sale.order, crm.lead, etc.)")
-                    log.error(f"[ERROR] Skipping this activity. It may need to be deleted or re-linked in the app.")
+                    log.error(
+                        f"[ERROR] Activity '{activity_summary}' (id={record.get('id')}) cannot be synced - not linked to any document. "
+                        f"res_model={res_model or '(empty)'}, res_id={res_id or '(empty)'}. "
+                        f"Activities must be linked to a Task, Project, or other document. Please edit or delete this activity in the app."
+                    )
                     return None
                 
                 # Look up res_model_id from ir_model_app table
                 res_model_id = get_res_model_id(record["db_path"], record["account_id"], res_model)
                 if not res_model_id:
-                    log.error(f"[ERROR] Could not find ir.model record for '{res_model}' in account {record['account_id']}")
-                    log.error(f"[ERROR] Please sync from Odoo first to populate ir.model data, then try syncing activities again.")
+                    log.error(
+                        f"[ERROR] Activity '{activity_summary}' (id={record.get('id')}) references unknown model '{res_model}'. "
+                        f"Model not found in local database - please sync FROM Odoo first to download model information, then try syncing TO Odoo again."
+                    )
                     return None
                 
                 # Add res_model_id to the Odoo data
@@ -726,7 +785,8 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                 log.debug(f"[ACTIVITY] Resolved res_model_id={res_model_id} for res_model='{res_model}'")
 
             new_id = client.call(model_name, "create", [odoo_data])
-            log.debug(f"[CREATE] {model_name} new record created with id={new_id}.")
+            display_name = get_record_display_name(record, model_name)
+            log.info(f"[CREATE] {model_name}: {display_name} created successfully (new odoo_id={new_id})")
 
             # Atomic status reset: only clear if status is still 'updated' to prevent race conditions
             # where user makes changes during sync and those changes would be lost
@@ -741,8 +801,12 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             return new_id
 
         except Exception as e:
-            log.error(f"[ERROR] Failed to create record in Odoo '{model_name}': {e} , Record is below")
-            log.error(json.dumps(record, indent=2))
+            display_name = get_record_display_name(record, model_name)
+            log.error(f"[ERROR] Failed to create {model_name} record {display_name}: {e}")
+            # Log key fields for debugging
+            key_fields = {k: v for k, v in record.items() if k in ['name', 'summary', 'display_name', 'id', 'odoo_record_id', 'res_model', 'res_id', 'project_id', 'task_id']}
+            if key_fields:
+                log.error(f"[ERROR]   → Key fields: {key_fields}")
             return None
 
 def normalized_status(record):
@@ -814,16 +878,17 @@ def sync_to_odoo(
 
     # Handle explicitly deleted records
     for record in deleted_records:
+        display_name = get_record_display_name(record, model_name)
         try:
             if record.get("odoo_record_id"):
                 client.call(model_name, "unlink", [[record["odoo_record_id"]]])
-                log.debug(f"[DELETE] {model_name} id={record['odoo_record_id']} deleted from Odoo.")
+                log.info(f"[DELETE] {model_name}: {display_name} deleted from Odoo")
         except Exception as e:
             if "does not exist or has been deleted" in str(e):
-                log.warning(f"[SKIP] {model_name} id={record['odoo_record_id']} already deleted on Odoo.")
+                log.warning(f"[SKIP] {model_name}: {display_name} was already deleted on Odoo")
             else:
-                log.error(f"[ERROR] Failed to delete {model_name} id={record.get('odoo_record_id')}: {e}")
-                return  # Exit early — don’t delete locally
+                log.error(f"[ERROR] Failed to delete {model_name}: {display_name} - {e}")
+                return  # Exit early — don't delete locally
 
         # Always delete locally if we're here
         safe_sql_execute(
@@ -831,7 +896,7 @@ def sync_to_odoo(
             f"DELETE FROM {table_name} WHERE id = ?",
             (record["id"],)
         )
-        log.debug(f"[CLEANUP] Local record removed: {table_name} id={record['id']}")
+        log.debug(f"[CLEANUP] Local record removed: {display_name}")
 
     for record in local_records:
         record["db_path"] = db_path
@@ -840,13 +905,16 @@ def sync_to_odoo(
         try:
             push_record_to_odoo(client, model_name, record, config_path)
         except Exception as e:
-            log.error(f"[ERROR] Failed to push record to {model_name} id={record.get('odoo_record_id')}: {e}")
+            display_name = get_record_display_name(record, model_name)
+            log.error(f"[ERROR] Failed to sync {model_name}: {display_name} - {e}")
+            # Create user-friendly notification message
+            record_name = record.get('name') or record.get('summary') or f"Record #{record.get('id')}"
             add_notification(
                 db_path=db_path,
                 account_id=account_id,
                 notif_type="Sync",
-                message=f"Failed to push record to {model_name} id={record.get('odoo_record_id')}",
-                payload={"record_id": record.get("id")}
+                message=f"Failed to sync {model_name}: {record_name}",
+                payload={"record_id": record.get("id"), "record_name": record_name}
             )
 
     log.info(
