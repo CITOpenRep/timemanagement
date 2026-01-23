@@ -182,11 +182,13 @@ def insert_record(
             val = record.get(odoo_field)
 
             # Convert one2many or many2many fields to comma-separated string of IDs
+            # Also handles many2one fields which return [id, "name"] tuples
             if isinstance(val, list) and val:
                 if all(isinstance(v, (int, int)) for v in val):
                     val = ",".join(str(v) for v in val)
                 else:
-                     val = val[0]
+                    # many2one field: [id, "name"] - extract just the ID
+                    val = val[0]
                 #     # Handles case like [[id, "name"], [id, "name"]] (Odoo returns tuples)
                 #     val = ",".join(str(v[0]) if isinstance(v, (list, tuple)) else str(v) for v in val)
 
@@ -476,6 +478,28 @@ def process_odoo_records(
                     table_name, model_name, account_id, rec, db_path, config_path
                 )
             else:
+                # For mail.activity, backfill resId if it's missing (migration for existing records)
+                if table_name == "mail_activity_app":
+                    res_model_id = rec.get("res_model_id")
+                    if res_model_id and isinstance(res_model_id, list) and len(res_model_id) > 0:
+                        model_id = res_model_id[0]
+                        # Check if local record is missing resId
+                        check_result = safe_sql_execute(
+                            db_path,
+                            "SELECT resId FROM mail_activity_app WHERE odoo_record_id = ? AND account_id = ?",
+                            (odoo_id, account_id),
+                            commit=False, fetch=True
+                        )
+                        if check_result and (check_result[0][0] is None or check_result[0][0] == 0 or check_result[0][0] == ''):
+                            # Backfill the missing resId
+                            safe_sql_execute(
+                                db_path,
+                                "UPDATE mail_activity_app SET resId = ? WHERE odoo_record_id = ? AND account_id = ?",
+                                (model_id, odoo_id, account_id),
+                                commit=True, fetch=False
+                            )
+                            log.info(f"[MIGRATION] Backfilled resId={model_id} for activity odoo_id={odoo_id}")
+                
                 log.debug(
                     f"[SKIP] {model_name} id={odoo_id} unchanged (local is newer or equal)."
                 )
