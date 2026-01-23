@@ -103,17 +103,24 @@ def load_field_mapping(model_name, config_path="field_config.json"):
         return {}
 
 
-def get_res_model_id(db_path, account_id, res_model):
+def get_res_model_id(db_path, account_id, res_model, client=None):
     """
-    Look up the Odoo model ID (res_model_id) from the ir_model_app table.
+    Look up the Odoo model ID (res_model_id) using multiple fallback strategies.
+    
+    Strategy:
+    1. Check local ir_model_app table
+    2. Infer from existing synced activities (activities synced from Odoo have res_model_id)
+    3. Try Odoo API if client provided (may fail due to permissions)
+    4. Query the target model directly for its metadata
     
     Args:
         db_path (str): Path to SQLite database file
         account_id: Account ID to filter by
         res_model (str): The technical model name (e.g., "project.task", "sale.order")
+        client: Optional OdooClient instance for API fallback
         
     Returns:
-        int or None: The odoo_record_id from ir_model_app if found, None otherwise
+        int or None: The model ID if found, None otherwise
     """
     if not res_model:
         return None
@@ -122,12 +129,207 @@ def get_res_model_id(db_path, account_id, res_model):
         # Ensure account_id is an integer (it might be a float like 3.0)
         account_id_int = int(account_id) if account_id is not None else None
         
+        # Strategy 1: Check local ir_model_app table
         query = "SELECT odoo_record_id FROM ir_model_app WHERE account_id = ? AND technical_name = ?"
         rows = safe_sql_execute(db_path, query, (account_id_int, res_model), fetch=True, commit=False)
         
         if rows and len(rows) > 0:
-            log.debug(f"[ACTIVITY] Found res_model_id={rows[0][0]} for model '{res_model}' in account {account_id_int}")
+            log.debug(f"[ACTIVITY] Found res_model_id={rows[0][0]} for model '{res_model}' in ir_model_app")
             return rows[0][0]
+        
+        # Strategy 2: Infer from existing synced activities
+        # Activities that were synced FROM Odoo already have the correct resId (model ID)
+        log.info(f"[ACTIVITY] Attempting to infer model ID for '{res_model}' from existing activities...")
+        activity_query = """
+            SELECT DISTINCT resId FROM mail_activity_app 
+            WHERE account_id = ? AND resModel = ? AND resId > 0 AND odoo_record_id IS NOT NULL
+            LIMIT 1
+        """
+        activity_rows = safe_sql_execute(db_path, activity_query, (account_id_int, res_model), fetch=True, commit=False)
+        
+        if activity_rows and len(activity_rows) > 0 and activity_rows[0][0]:
+            model_id = activity_rows[0][0]
+            log.info(f"[ACTIVITY] ✅ Inferred model ID from existing activities: {model_id} for '{res_model}'")
+            
+            # Cache it for future use in ir_model_app table
+            try:
+                insert_query = """
+                    INSERT OR REPLACE INTO ir_model_app 
+                    (account_id, technical_name, odoo_record_id, status)
+                    VALUES (?, ?, ?, '')
+                """
+                safe_sql_execute(db_path, insert_query, 
+                               (account_id_int, res_model, model_id), 
+                               fetch=False, commit=True)
+                log.debug(f"[ACTIVITY] Cached inferred model ID {model_id} for '{res_model}'")
+            except Exception as cache_error:
+                log.warning(f"[WARN] Could not cache model ID: {cache_error}")
+            
+            return model_id
+        
+        # Strategy 3: Try to fetch from Odoo API if client is provided
+        if client:
+            try:
+                log.info(f"[ACTIVITY] Attempting to fetch model ID for '{res_model}' from Odoo API...")
+                model_ids = client.call('ir.model', 'search_read', 
+                                       [[['model', '=', res_model]]], 
+                                       {'fields': ['id', 'model'], 'limit': 1})
+                if model_ids and len(model_ids) > 0:
+                    model_id = model_ids[0]['id']
+                    log.info(f"[ACTIVITY] ✅ Fetched model ID from Odoo API: {model_id} for '{res_model}'")
+                    
+                    # Cache it in local database for future use
+                    try:
+                        insert_query = """
+                            INSERT OR REPLACE INTO ir_model_app 
+                            (account_id, technical_name, odoo_record_id, status, last_modified)
+                            VALUES (?, ?, ?, '', datetime('now'))
+                        """
+                        safe_sql_execute(db_path, insert_query, 
+                                       (account_id_int, res_model, model_id), 
+                                       fetch=False, commit=True)
+                        log.debug(f"[ACTIVITY] Cached model ID {model_id} for '{res_model}' in local database")
+                    except Exception as cache_error:
+                        log.warning(f"[WARN] Could not cache model ID: {cache_error}")
+                    
+                    return model_id
+                else:
+                    log.warning(f"[WARN] Model '{res_model}' not found in Odoo API")
+            except Exception as api_error:
+                log.warning(f"[WARN] Failed to fetch model ID from Odoo API: {api_error}")
+        
+        # Strategy 4: Query existing Odoo activities for the model ID
+        # This works because we DO have permission to read mail.activity records
+        if client:
+            try:
+                log.warning(f"[ACTIVITY] Strategy 4: Querying existing Odoo activities for model '{res_model}'...")
+                # Query mail.activity records that reference this model
+                # Use context to include archived/done activities
+                activities = client.call('mail.activity', 'search_read',
+                                       [[['res_model', '=', res_model]]], 
+                                       {'fields': ['res_model_id'], 'limit': 1, 'context': {'active_test': False}})
+                log.warning(f"[ACTIVITY] Strategy 4: Got {len(activities) if activities else 0} activities, data: {activities}")
+                if activities and len(activities) > 0:
+                    res_model_id_field = activities[0].get('res_model_id')
+                    log.warning(f"[ACTIVITY] Strategy 4: res_model_id field = {res_model_id_field}, type = {type(res_model_id_field)}")
+                    if res_model_id_field:
+                        # res_model_id is a many2one field, returned as [id, name] tuple
+                        model_id = res_model_id_field[0] if isinstance(res_model_id_field, (list, tuple)) else res_model_id_field
+                        log.warning(f"[ACTIVITY] ✅ Strategy 4 SUCCESS: Fetched model ID {model_id} for '{res_model}'")
+                        
+                        # Cache it
+                        try:
+                            insert_query = """
+                                INSERT OR REPLACE INTO ir_model_app 
+                                (account_id, technical_name, odoo_record_id, status, last_modified)
+                                VALUES (?, ?, ?, '', datetime('now'))
+                            """
+                            safe_sql_execute(db_path, insert_query, 
+                                           (account_id_int, res_model, model_id), 
+                                           fetch=False, commit=True)
+                            log.debug(f"[ACTIVITY] Cached model ID {model_id} for '{res_model}'")
+                        except Exception as cache_error:
+                            log.warning(f"[WARN] Could not cache model ID: {cache_error}")
+                        
+                        return model_id
+                    else:
+                        log.warning(f"[ACTIVITY] Strategy 4: res_model_id field is empty/None")
+                else:
+                    log.warning(f"[ACTIVITY] Strategy 4: No activities found for model '{res_model}'")
+            except Exception as indirect_error:
+                log.warning(f"[WARN] Strategy 4 failed with exception: {indirect_error}")
+        
+        # Strategy 5: Use hardcoded model IDs for common models as last resort
+        # These are the standard Odoo model IDs that rarely change
+        # We query Odoo's data model to get these dynamically using ir.model.data
+        if client and res_model in ['project.task', 'project.project', 'account.analytic.line', 'sale.order', 'crm.lead']:
+            try:
+                log.warning(f"[ACTIVITY] Strategy 5: Trying to get model ID via ir.model.data for '{res_model}'...")
+                # Try to get model record via ir.model.data which might be accessible
+                xml_id = f"base.model_{res_model.replace('.', '_')}"
+                model_data = client.call('ir.model.data', 'search_read',
+                                        [[['module', '=', 'base'], ['name', '=', f"model_{res_model.replace('.', '_')}"]]],
+                                        {'fields': ['res_id'], 'limit': 1})
+                if model_data and model_data[0].get('res_id'):
+                    model_id = model_data[0]['res_id']
+                    log.warning(f"[ACTIVITY] ✅ Strategy 5 SUCCESS: Got model ID {model_id} for '{res_model}' via ir.model.data")
+                    
+                    # Cache it
+                    try:
+                        insert_query = """
+                            INSERT OR REPLACE INTO ir_model_app 
+                            (account_id, technical_name, odoo_record_id, status, last_modified)
+                            VALUES (?, ?, ?, '', datetime('now'))
+                        """
+                        safe_sql_execute(db_path, insert_query, 
+                                       (account_id_int, res_model, model_id), 
+                                       fetch=False, commit=True)
+                    except Exception as cache_error:
+                        log.warning(f"[WARN] Could not cache model ID: {cache_error}")
+                    
+                    return model_id
+            except Exception as strategy5_error:
+                log.warning(f"[WARN] Strategy 5 failed: {strategy5_error}")
+        
+        # Strategy 6: Create a temporary activity to discover the model ID, then delete it
+        # This is the ultimate fallback - we create an activity, read its res_model_id, then delete it
+        if client and res_model in ['project.task', 'project.project']:
+            try:
+                log.warning(f"[ACTIVITY] Strategy 6: Creating temporary activity to discover model ID for '{res_model}'...")
+                
+                # Find a record of this model type to link the temporary activity to
+                records = client.call(res_model, 'search', [[]], {'limit': 1})
+                if records and len(records) > 0:
+                    target_record_id = records[0]
+                    
+                    # Get activity types available
+                    activity_types = client.call('mail.activity.type', 'search', [[]], {'limit': 1})
+                    activity_type_id = activity_types[0] if activity_types else False
+                    
+                    # Create a temporary activity
+                    temp_activity_data = {
+                        'res_model': res_model,
+                        'res_id': target_record_id,
+                        'summary': '__TEMP_MODEL_DISCOVERY__',
+                        'activity_type_id': activity_type_id,
+                    }
+                    
+                    temp_activity_id = client.call('mail.activity', 'create', [temp_activity_data])
+                    log.warning(f"[ACTIVITY] Strategy 6: Created temp activity id={temp_activity_id}")
+                    
+                    # Read the activity to get res_model_id
+                    temp_activity = client.call('mail.activity', 'read', [[temp_activity_id]], {'fields': ['res_model_id']})
+                    
+                    if temp_activity and temp_activity[0].get('res_model_id'):
+                        res_model_id_field = temp_activity[0]['res_model_id']
+                        model_id = res_model_id_field[0] if isinstance(res_model_id_field, (list, tuple)) else res_model_id_field
+                        log.warning(f"[ACTIVITY] ✅ Strategy 6 SUCCESS: Discovered model ID {model_id} for '{res_model}'")
+                        
+                        # Delete the temporary activity
+                        try:
+                            client.call('mail.activity', 'unlink', [[temp_activity_id]])
+                            log.warning(f"[ACTIVITY] Strategy 6: Deleted temp activity id={temp_activity_id}")
+                        except Exception as del_error:
+                            log.warning(f"[WARN] Could not delete temp activity: {del_error}")
+                        
+                        # Cache the discovered model ID
+                        try:
+                            insert_query = """
+                                INSERT OR REPLACE INTO ir_model_app 
+                                (account_id, technical_name, odoo_record_id, status, last_modified)
+                                VALUES (?, ?, ?, '', datetime('now'))
+                            """
+                            safe_sql_execute(db_path, insert_query, 
+                                           (account_id_int, res_model, model_id), 
+                                           fetch=False, commit=True)
+                        except Exception as cache_error:
+                            log.warning(f"[WARN] Could not cache model ID: {cache_error}")
+                        
+                        return model_id
+                else:
+                    log.warning(f"[ACTIVITY] Strategy 6: No {res_model} records found to link temp activity")
+            except Exception as strategy6_error:
+                log.warning(f"[WARN] Strategy 6 failed: {strategy6_error}")
         
         # Debug: List available models in this account
         debug_query = "SELECT technical_name, odoo_record_id FROM ir_model_app WHERE account_id = ? LIMIT 20"
@@ -136,7 +338,7 @@ def get_res_model_id(db_path, account_id, res_model):
             available_models = [row[0] for row in debug_rows if row[0]]
             log.debug(f"[DEBUG] Available models in account {account_id_int}: {available_models[:10]}...")
         else:
-            log.warning(f"[WARN] No ir.model records found for account {account_id_int}. Run sync from Odoo first.")
+            log.warning(f"[WARN] No ir.model records found for account {account_id_int}.")
         
         return None
     except Exception as e:
@@ -771,12 +973,13 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                     )
                     return None
                 
-                # Look up res_model_id from ir_model_app table
-                res_model_id = get_res_model_id(record["db_path"], record["account_id"], res_model)
+                # Look up res_model_id from ir_model_app table, with API fallback
+                res_model_id = get_res_model_id(record["db_path"], record["account_id"], res_model, client)
                 if not res_model_id:
                     log.error(
                         f"[ERROR] Activity '{activity_summary}' (id={record.get('id')}) references unknown model '{res_model}'. "
-                        f"Model not found in local database - please sync FROM Odoo first to download model information, then try syncing TO Odoo again."
+                        f"Model not found in local database and could not be fetched from Odoo API. "
+                        f"Please check your Odoo permissions or sync FROM Odoo first."
                     )
                     return None
                 

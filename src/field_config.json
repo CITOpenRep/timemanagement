@@ -56,6 +56,7 @@
         "id": "odoo_record_id",
         "res_id": "link_id",
         "res_model": "resModel",
+        "res_model_id": "resId",
         "state": "state"
     },
     "res.users": {

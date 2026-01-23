@@ -1119,6 +1119,7 @@ Page {
             resModel = "project.task";
             
             // Validate that task connection is valid
+            // Note: resId may be 0 if ir.model not synced - backend will fetch from API
             if (typeof linkid === "undefined" || linkid === null || linkid <= 0) {
                 notifPopup.open("Error", "Activity must be connected to a valid task", "error");
                 return;
