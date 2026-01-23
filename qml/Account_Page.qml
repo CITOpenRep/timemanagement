@@ -33,7 +33,7 @@ import "components"
 
 Page {
     id: createAccountPage
-    title: i18n.dtr("ubtms", "Create Account")
+    title: accountId !== -1 ? i18n.dtr("ubtms", "Edit Account") : i18n.dtr("ubtms", "Create Account")
 
     property bool isTextInputVisible: false
     property bool isTextMenuVisible: false
@@ -47,6 +47,7 @@ Page {
     property bool isManualDbMode: false
 
     property bool isReadOnly: false
+    property int accountId: -1  // -1 means create mode, otherwise edit mode
 
     header: PageHeader {
         id: pageHeader
@@ -119,25 +120,103 @@ Page {
             if (result && result['status'] === 'pass' && result['database']) {
                 let apikey = passwordInput.text;
 
-                var accountResult = Accounts.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
-
-                if (accountResult.duplicateFound) {
-                    if (accountResult.duplicateType === "name") {
-                        notifPopup.open("Error", "Account name '" + accountNameInput.text + "' already exists. Please choose a different name.", "error");
-                    } else if (accountResult.duplicateType === "connection") {
-                        notifPopup.open("Error", "An account with this server connection already exists.", "error");
+                var accountResult;
+                if (accountId !== -1) {
+                    // Edit mode - update existing account
+                    accountResult = Accounts.updateAccount(accountId, accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
+                    
+                    if (!accountResult.success) {
+                        if (accountResult.duplicateType === "name") {
+                            notifPopup.open("Error", "Account name '" + accountNameInput.text + "' already exists. Please choose a different name.", "error");
+                        } else if (accountResult.duplicateType === "connection") {
+                            notifPopup.open("Error", "An account with this server connection already exists.", "error");
+                        } else {
+                            notifPopup.open("Error", accountResult.message || "Unable to update account.", "error");
+                        }
                     } else {
-                        notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
+                        notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been updated successfully!"), "success");
+                        isReadOnly = true;
+                        // Signal to refresh accounts list in Settings_Page
+                        if (typeof settings !== 'undefined') {
+                            settings.fetch_accounts();
+                        }
                     }
                 } else {
-                    notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been saved, Enjoy using the app !"), "success");
+                    // Create mode - create new account
+                    accountResult = Accounts.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
 
-                    isReadOnly = true;
+                    if (accountResult.duplicateFound) {
+                        if (accountResult.duplicateType === "name") {
+                            notifPopup.open("Error", "Account name '" + accountNameInput.text + "' already exists. Please choose a different name.", "error");
+                        } else if (accountResult.duplicateType === "connection") {
+                            notifPopup.open("Error", "An account with this server connection already exists.", "error");
+                        } else {
+                            notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
+                        }
+                    } else {
+                        notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been saved, Enjoy using the app !"), "success");
+                        isReadOnly = true;
+                    }
                 }
             } else {
                 notifPopup.open("Error", "Unable to save the account. Please check the URL, database name, or your credentials.", "error");
             }
         });
+    }
+
+    function loadAccountForEdit(accId) {
+        console.log("Loading account for edit:", accId);
+        accountId = accId;
+        
+        var accountsList = Accounts.getAccountsList();
+        for (var i = 0; i < accountsList.length; i++) {
+            if (accountsList[i].id === accId) {
+                var account = accountsList[i];
+                console.log("Found account:", account.name);
+                
+                // Populate form fields
+                accountNameInput.text = account.name;
+                linkInput.text = account.link;
+                usernameInput.text = account.username;
+                passwordInput.text = account.api_key || "";
+                selectedconnectwithId = account.connectwith_id || 1;
+                
+                // Fetch databases for this URL
+                python.call("backend.list_databases", [account.link], function(databases) {
+                    if (databases && databases.length > 0) {
+                        databaseListModel.clear();
+                        for (var j = 0; j < databases.length; j++) {
+                            databaseListModel.append({"name": databases[j]});
+                        }
+                        
+                        // Set the current database as selected
+                        for (var k = 0; k < databases.length; k++) {
+                            if (databases[k] === account.database) {
+                                database_combo.currentIndex = k;
+                                break;
+                            }
+                        }
+                    } else {
+                        // No databases found or error, enable manual mode
+                        isManualDbMode = true;
+                        manualDbInput.text = account.database;
+                    }
+                });
+                
+                // Set read-only mode initially
+                isReadOnly = true;
+                activeBackendAccount = true;
+                
+                break;
+            }
+        }
+    }
+    
+    Component.onCompleted: {
+        // If accountId is set (edit mode), load the account data
+        if (accountId !== -1) {
+            loadAccountForEdit(accountId);
+        }
     }
 
     function clearForm() {
@@ -148,6 +227,7 @@ Page {
         manualDbInput.text = "";
         databaseListModel.clear();
         activeBackendAccount = false;
+        accountId = -1;
         isManualDbMode = false;
         database_combo.currentIndex = -1;
     }
