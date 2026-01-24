@@ -37,6 +37,35 @@ from bus import send
 log = logging.getLogger("odoo_sync")
 
 
+def get_record_display_name(record, model_name=None):
+    """
+    Get a human-readable display name for a record based on its model type.
+    
+    Args:
+        record (dict): The record dictionary containing fields
+        model_name (str): Optional model name to determine which fields to use
+        
+    Returns:
+        str: A human-readable identifier string like "'Task Name' (id=123)"
+    """
+    record_id = record.get('id') or record.get('odoo_record_id') or 'unknown'
+    
+    # Try common name fields in order of preference
+    name_fields = ['name', 'summary', 'display_name', 'title', 'subject']
+    name = None
+    
+    for field in name_fields:
+        if record.get(field):
+            name = record.get(field)
+            break
+    
+    # Build the display string
+    if name:
+        return f"'{name}' (id={record_id})"
+    else:
+        return f"id={record_id}"
+
+
 def load_field_mapping(model_name, config_path="field_config.json"):
     """
     Load field mapping configuration for a specific Odoo model.
@@ -144,7 +173,8 @@ def insert_record(
                         existing_state = result[0][2]
                     # DEBUG: Log activity sync decisions
                     if table_name == "mail_activity_app":
-                        log.info(f"[ACTIVITY_SYNC] odoo_id={odoo_record_id}: existing_status={existing_status}, existing_state={existing_state}, server_state={record.get('state')}")
+                        activity_name = record.get('summary') or '(no summary)'
+                        log.info(f"[ACTIVITY_SYNC] Activity '{activity_name}' (odoo_id={odoo_record_id}): local_status={existing_status}, local_state={existing_state}, server_state={record.get('state')}")
             except Exception as e:
                 log.debug(f"[DEBUG] Could not check existing status: {e}")
         
@@ -152,11 +182,13 @@ def insert_record(
             val = record.get(odoo_field)
 
             # Convert one2many or many2many fields to comma-separated string of IDs
+            # Also handles many2one fields which return [id, "name"] tuples
             if isinstance(val, list) and val:
                 if all(isinstance(v, (int, int)) for v in val):
                     val = ",".join(str(v) for v in val)
                 else:
-                     val = val[0]
+                    # many2one field: [id, "name"] - extract just the ID
+                    val = val[0]
                 #     # Handles case like [[id, "name"], [id, "name"]] (Odoo returns tuples)
                 #     val = ",".join(str(v[0]) if isinstance(v, (list, tuple)) else str(v) for v in val)
 
@@ -189,7 +221,8 @@ def insert_record(
             if sqlite_field == "state" and table_name == "mail_activity_app" and existing_status in ("updated", "created"):
                 if existing_state:
                     val = existing_state
-                    log.info(f"[ACTIVITY_SYNC] PRESERVING local state={val} for odoo_id={odoo_record_id} (status={existing_status}, would be overwritten with server_state={record.get('state')})")
+                    activity_name = record.get('summary') or '(no summary)'
+                    log.info(f"[ACTIVITY_SYNC] Preserving local state='{val}' for activity '{activity_name}' (odoo_id={odoo_record_id}) - has pending changes (status={existing_status})")
             
             if sqlite_field == "account_id":
                 continue  # Already manually handled
@@ -212,13 +245,23 @@ def insert_record(
 
         safe_sql_execute(db_path, sql, values)
     except Exception as e:
-        log.debug(f"[ERROR] Failed to insert record into '{table_name}': {e}")
+        display_name = get_record_display_name(record, model_name)
+        error_msg = str(e)
+        log.error(f"[ERROR] Failed to insert {model_name} record {display_name}: {error_msg}")
+        
+        # Provide additional context for common errors
+        if "no such column" in error_msg.lower():
+            log.error(f"[CONFIG] Database schema mismatch - local database may need migration or field_config.json update.")
+        elif "constraint" in error_msg.lower():
+            log.error(f"[CONFIG] Database constraint violation - check if required fields have valid values.")
+        
+        record_name = record.get('name') or record.get('summary') or f"Record #{record.get('id')}"
         add_notification(
             db_path=db_path,
             account_id=account_id,
             notif_type="Sync",
-            message=f"Failed to insert record in '{model_name}'",
-            payload={"record_id": record.get("id")}
+            message=f"Failed to sync {model_name}: {record_name}",
+            payload={"record_id": record.get("id"), "record_name": record_name, "error": error_msg}
         )
 
 
@@ -244,7 +287,10 @@ def get_model_fields(client, model_name):
             {"attributes": ["string", "type"]},
         ).keys()
     except Exception as e:
-        log.debug(f"[ERROR] Failed to fetch fields for model '{model_name}': {e}")
+        log.error(
+            f"[ERROR] Failed to fetch fields for model '{model_name}': {e}. "
+            f"Please check the model exists, is accessible, and your connection is active."
+        )
         return []
 
 
@@ -271,16 +317,16 @@ def sync_model(
         Performs complete sync including fetching records, updating local database,
         and removing orphaned records. Adds notification on failure.
     """
-    log.debug(f"[INFO] Fetching '{model_name}' records from Odoo...")
+    log.info(f"[SYNC] Fetching '{model_name}' records from Odoo...")
     field_map = prepare_field_mapping(client, model_name, config_path)
     odoo_fields = list(field_map.keys())
     if not odoo_fields:
-        log.debug(f"No valid fields found for model '{model_name}'. Skipping.")
+        log.warning(f"[WARN] No valid fields found for model '{model_name}'. Skipping sync.")
         return
 
     try:
         records = fetch_odoo_records(client, model_name, odoo_fields)
-        log.debug(f"[INFO] {len(records)} records fetched for model '{model_name}'.")
+        log.info(f"[SYNC] Downloaded {len(records)} records for '{model_name}'.")
         fetched_odoo_ids = process_odoo_records(
             records, table_name, model_name, account_id, config_path, db_path
         )
@@ -288,16 +334,25 @@ def sync_model(
             fetched_odoo_ids, table_name, model_name, account_id, db_path
         )
 
-        log.debug(f"Synced '{model_name}' to table '{table_name}' with deletion check.")
+        log.info(f"[SYNC] Completed sync for '{model_name}' -> '{table_name}' ({len(fetched_odoo_ids)} records processed)")
     except Exception as e:
-        log.debug(f"[ERROR] Failed to sync model '{model_name}': {e}")
-        add_notification(
-            db_path=db_path,
-            account_id=account_id,
-            notif_type="Sync",
-            message=f"Sync failed for model '{model_name}'",
-            payload={}
-        )
+        log.error(f"[ERROR] Failed to sync model '{model_name}': {e}")
+        
+        # Only show notification for user-facing models, not system/technical models
+        # System models like ir.model, ir.attachment are informational and not critical
+        critical_models = [
+            "project.project", "project.task", "account.analytic.line", 
+            "mail.activity", "mail.activity.type", "res.users"
+        ]
+        
+        if model_name in critical_models:
+            add_notification(
+                db_path=db_path,
+                account_id=account_id,
+                notif_type="Sync",
+                message=f"Sync failed for {model_name.replace('.', ' ').title()}",
+                payload={"model": model_name, "error": str(e)}
+            )
 
 
 def prepare_field_mapping(client, model_name, config_path):
@@ -316,13 +371,22 @@ def prepare_field_mapping(client, model_name, config_path):
     all_model_fields = get_model_fields(client, model_name)
 
     valid_field_map = {}
+    missing_fields = []
     for field, sqlite_field in field_map.items():
         if field in all_model_fields:
             valid_field_map[field] = sqlite_field
         else:
-            log.warning(
-                f"[WARN] Field '{field}' not found in Odoo model '{model_name}', skipping."
-            )
+            missing_fields.append(field)
+    
+    # If there are missing fields, provide helpful guidance in a single message
+    if missing_fields:
+        fields_str = ', '.join(missing_fields)
+        log.warning(
+            f"[CONFIG] Model '{model_name}' is missing {len(missing_fields)} field(s): {fields_str}. "
+            f"Please configure these fields in your Odoo instance or install required modules, "
+            f"or remove them from field_config.json if not needed."
+        )
+    
     return valid_field_map
 
 
@@ -414,6 +478,28 @@ def process_odoo_records(
                     table_name, model_name, account_id, rec, db_path, config_path
                 )
             else:
+                # For mail.activity, backfill resId if it's missing (migration for existing records)
+                if table_name == "mail_activity_app":
+                    res_model_id = rec.get("res_model_id")
+                    if res_model_id and isinstance(res_model_id, list) and len(res_model_id) > 0:
+                        model_id = res_model_id[0]
+                        # Check if local record is missing resId
+                        check_result = safe_sql_execute(
+                            db_path,
+                            "SELECT resId FROM mail_activity_app WHERE odoo_record_id = ? AND account_id = ?",
+                            (odoo_id, account_id),
+                            commit=False, fetch=True
+                        )
+                        if check_result and (check_result[0][0] is None or check_result[0][0] == 0 or check_result[0][0] == ''):
+                            # Backfill the missing resId
+                            safe_sql_execute(
+                                db_path,
+                                "UPDATE mail_activity_app SET resId = ? WHERE odoo_record_id = ? AND account_id = ?",
+                                (model_id, odoo_id, account_id),
+                                commit=True, fetch=False
+                            )
+                            log.info(f"[MIGRATION] Backfilled resId={model_id} for activity odoo_id={odoo_id}")
+                
                 log.debug(
                     f"[SKIP] {model_name} id={odoo_id} unchanged (local is newer or equal)."
                 )
@@ -471,12 +557,12 @@ def remove_orphaned_local_records(
         if odoo_id not in fetched_odoo_ids:
             # Skip deletion if record has pending local changes
             if status in ("updated", "created"):
-                log.info(f"[SKIP_DELETE] {model_name} local id={local_id} (odoo_id={odoo_id}) has pending changes (status={status}) - NOT deleting")
+                log.info(f"[SKIP_DELETE] {model_name}: local_id={local_id}, odoo_id={odoo_id} has pending local changes (status={status}) - keeping record")
                 continue
             
             # Skip deletion for done activities - they were intentionally kept locally
             if table_name == "mail_activity_app" and state == "done":
-                log.info(f"[SKIP_DELETE] Activity local id={local_id} (odoo_id={odoo_id}) has state=done - preserving for Done filter")
+                log.info(f"[SKIP_DELETE] Activity: local_id={local_id}, odoo_id={odoo_id} is marked as done - preserving for history")
                 continue
                 
             safe_sql_execute(
@@ -485,8 +571,8 @@ def remove_orphaned_local_records(
                 (local_id,),
                 commit=True,
             )
-            log.debug(
-                f"[DELETE] {model_name} local id={local_id} (odoo_id={odoo_id}) removed; not found in Odoo."
+            log.info(
+                f"[DELETE] {model_name}: local_id={local_id}, odoo_id={odoo_id} removed - no longer exists on server."
             )
 
 

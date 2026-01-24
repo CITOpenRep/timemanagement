@@ -1095,7 +1095,6 @@ Page {
 
         if (projectRadio.checked) {
             // Use subproject if it's valid and not -1/null, otherwise use main project
-            // Check if subproject_id is a valid value (not -1, not null, not undefined)
             if (ids.subproject_id && ids.subproject_id !== -1 && ids.subproject_id !== null) {
                 linkid = ids.subproject_id;
             } else if (ids.project_id && ids.project_id !== -1 && ids.project_id !== null) {
@@ -1105,7 +1104,7 @@ Page {
             resModel = "project.project";
             
             // Validate that project connection is valid
-            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || !resId || resId <= 0) {
+            if (typeof linkid === "undefined" || linkid === null || linkid <= 0) {
                 notifPopup.open("Error", "Activity must be connected to a valid project", "error");
                 return;
             }
@@ -1120,7 +1119,8 @@ Page {
             resModel = "project.task";
             
             // Validate that task connection is valid
-            if (typeof linkid === "undefined" || linkid === null || linkid <= 0 || !resId || resId <= 0) {
+            // Note: resId may be 0 if ir.model not synced - backend will fetch from API
+            if (typeof linkid === "undefined" || linkid === null || linkid <= 0) {
                 notifPopup.open("Error", "Activity must be connected to a valid task", "error");
                 return;
             }

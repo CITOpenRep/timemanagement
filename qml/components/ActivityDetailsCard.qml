@@ -78,9 +78,15 @@ ListItem {
                 ,
                 text: i18n.dtr("ubtms", "TODAY")
             };
+        } else if (state === "done") {
+            return {
+                color: '#28753c'  // Blue
+                ,
+                text: i18n.dtr("ubtms", "DONE")
+            };
         } else {
             return {
-                color: "#2196F3"  // Blue
+                color: '#2196F3'  // Blue
                 ,
                 text: i18n.dtr("ubtms", "PLANNED")
             };
