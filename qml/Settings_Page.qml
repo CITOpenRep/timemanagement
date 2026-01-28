@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
+import Lomiri.Components.Popups 1.3
 import Lomiri.Components.ListItems 1.3 as ListItemOld
 import io.thp.pyotherside 1.4
 import "../models/utils.js" as Utils
@@ -101,6 +102,47 @@ Page {
     property var lastSyncStatuses: ({})
 
     property bool visibleMigrationSection: false
+    property int accountToDelete: -1
+    property int accountIndexToDelete: -1
+
+    // Confirmation Dialog for Account Deletion
+    Component {
+        id: deleteConfirmationDialogComponent
+        Dialog {
+            id: deleteConfirmationDialog
+            title: i18n.dtr("ubtms", "Delete Account")
+            
+            Label {
+                text: i18n.dtr("ubtms", "Are you sure you want to delete this account? This will permanently remove the account and all associated data including projects, tasks, and timesheets.")
+                wrapMode: Text.WordWrap
+            }
+            
+            Button {
+                text: i18n.dtr("ubtms", "Cancel")
+                onClicked: {
+                    PopupUtils.close(deleteConfirmationDialog);
+                    accountToDelete = -1;
+                    accountIndexToDelete = -1;
+                }
+            }
+            
+            Button {
+                text: i18n.dtr("ubtms", "Delete")
+                color: LomiriColors.red
+                onClicked: {
+                    if (accountToDelete !== -1) {
+                        Accounts.deleteAccountAndRelatedData(accountToDelete);
+                        if (accountIndexToDelete !== -1) {
+                            accountListModel.remove(accountIndexToDelete);
+                        }
+                        accountToDelete = -1;
+                        accountIndexToDelete = -1;
+                    }
+                    PopupUtils.close(deleteConfirmationDialog);
+                }
+            }
+        }
+    }
 
     // Simplified timeout timer - only resets local state, GlobalTimerWidget handles its own timeout
     Timer {
@@ -940,8 +982,9 @@ Page {
                                                 fontSize: units.gu(1.5)
                                                 text: Utils.truncateText(i18n.dtr("ubtms", "Delete"),10)
                                                 onClicked: {
-                                                    Accounts.deleteAccountAndRelatedData(model.id);
-                                                    accountListModel.remove(index);
+                                                    accountToDelete = model.id;
+                                                    accountIndexToDelete = index;
+                                                    PopupUtils.open(deleteConfirmationDialogComponent);
                                                 }
                                             }
                                             TSButton {
