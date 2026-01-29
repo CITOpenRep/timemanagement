@@ -142,6 +142,120 @@ function updateOdooUsers(model) {
     });
 }
 
+/**
+ * Get user information by their Odoo record ID.
+ * Useful for looking up who assigned a task/activity.
+ *
+ * @param {int} accountId - The account ID
+ * @param {int} odooUserId - The Odoo user ID (odoo_record_id in res_users_app)
+ * @returns {object|null} User info with name, avatar_128, login, job_title or null if not found
+ */
+function getUserInfoByOdooId(accountId, odooUserId) {
+    if (!odooUserId) {
+        return null;
+    }
+    
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var userInfo = null;
+
+    db.transaction(function (tx) {
+        var rs = tx.executeSql(
+            'SELECT name, avatar_128, odoo_record_id, login, job_title FROM res_users_app WHERE account_id = ? AND odoo_record_id = ?',
+            [accountId, odooUserId]
+        );
+        if (rs.rows.length > 0) {
+            var row = rs.rows.item(0);
+            userInfo = {
+                name: row.name,
+                avatar_128: row.avatar_128,
+                odoo_record_id: row.odoo_record_id,
+                login: row.login,
+                job_title: row.job_title
+            };
+        }
+    });
+
+    return userInfo;
+}
+
+/**
+ * Get the assigner name for a task by looking up the create_uid.
+ *
+ * @param {int} accountId - The account ID
+ * @param {int} taskId - The local task ID
+ * @returns {string|null} The name of the user who created/assigned the task, or null
+ */
+function getTaskAssignerName(accountId, taskId) {
+    if (!taskId) {
+        return null;
+    }
+    
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var assignerName = null;
+
+    db.transaction(function (tx) {
+        // First get the create_uid from the task
+        var taskRs = tx.executeSql(
+            'SELECT create_uid FROM project_task_app WHERE id = ? AND account_id = ?',
+            [taskId, accountId]
+        );
+        if (taskRs.rows.length > 0 && taskRs.rows.item(0).create_uid) {
+            var createUid = taskRs.rows.item(0).create_uid;
+            // Now look up the user name
+            var userRs = tx.executeSql(
+                'SELECT name FROM res_users_app WHERE account_id = ? AND odoo_record_id = ?',
+                [accountId, createUid]
+            );
+            if (userRs.rows.length > 0) {
+                assignerName = userRs.rows.item(0).name;
+            }
+        }
+    });
+
+    return assignerName;
+}
+
+/**
+ * Get the assigner info for an activity by looking up the create_uid.
+ *
+ * @param {int} accountId - The account ID
+ * @param {int} activityId - The local activity ID
+ * @returns {object|null} Object with name and avatar_128, or null
+ */
+function getActivityAssignerInfo(accountId, activityId) {
+    if (!activityId) {
+        return null;
+    }
+    
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var assignerInfo = null;
+
+    db.transaction(function (tx) {
+        // First get the create_uid from the activity
+        var activityRs = tx.executeSql(
+            'SELECT create_uid FROM mail_activity_app WHERE id = ? AND account_id = ?',
+            [activityId, accountId]
+        );
+        if (activityRs.rows.length > 0 && activityRs.rows.item(0).create_uid) {
+            var createUid = activityRs.rows.item(0).create_uid;
+            // Now look up the user info
+            var userRs = tx.executeSql(
+                'SELECT name, avatar_128 FROM res_users_app WHERE account_id = ? AND odoo_record_id = ?',
+                [accountId, createUid]
+            );
+            if (userRs.rows.length > 0) {
+                var row = userRs.rows.item(0);
+                assignerInfo = {
+                    name: row.name,
+                    avatar_128: row.avatar_128
+                };
+            }
+        }
+    });
+
+    return assignerInfo;
+}
+
 function fetch_subtasks(instance_id, parent_task_id) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var subtaskList = [];

@@ -266,6 +266,49 @@ def add_notification(db_path, account_id, notif_type, message, payload):
     )
 
 
+def get_user_info_by_odoo_id(db_path, account_id, odoo_user_id):
+    """
+    Look up user information (name, avatar) by their Odoo user ID.
+
+    Args:
+        db_path (str): Path to the SQLite database file
+        account_id (int): The account ID
+        odoo_user_id (int or str): The Odoo user ID (odoo_record_id in res_users_app)
+
+    Returns:
+        dict: User info with keys 'name', 'avatar_128', 'odoo_record_id', or None if not found
+    """
+    if not odoo_user_id:
+        return None
+    
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT name, avatar_128, odoo_record_id, login, job_title 
+            FROM res_users_app 
+            WHERE account_id = ? AND odoo_record_id = ?
+        """, (account_id, int(odoo_user_id)))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return {
+                'name': row['name'],
+                'avatar_128': row['avatar_128'],
+                'odoo_record_id': row['odoo_record_id'],
+                'login': row['login'],
+                'job_title': row['job_title']
+            }
+        return None
+    except Exception as e:
+        log.warning(f"[COMMON] Failed to get user info for odoo_id={odoo_user_id}: {e}")
+        return None
+
+
 # =============================================================================
 # Assignment Tracking - For detecting assignment changes vs general updates
 # =============================================================================
@@ -390,7 +433,7 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         
         # Get current tasks assigned to user - compare by odoo_record_id
         cursor.execute("""
-            SELECT id, name, project_id, odoo_record_id FROM project_task_app 
+            SELECT id, name, project_id, odoo_record_id, create_uid FROM project_task_app 
             WHERE account_id = ? 
             AND odoo_record_id IS NOT NULL
             AND (
@@ -407,7 +450,7 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         
         # Get current activities assigned to user
         cursor.execute("""
-            SELECT id, summary, due_date, odoo_record_id FROM mail_activity_app 
+            SELECT id, summary, due_date, odoo_record_id, create_uid FROM mail_activity_app 
             WHERE account_id = ? 
             AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
