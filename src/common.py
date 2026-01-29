@@ -26,9 +26,15 @@ import json
 import sqlite3
 import time
 import threading
+import base64
+import os
+from pathlib import Path
 from logger import setup_logger
 
 log = setup_logger()
+
+# Avatar cache directory
+AVATAR_CACHE_DIR = Path.home() / ".cache" / "ubtms" / "avatars"
 
 # Optional: Global lock if multithreaded write access is expected
 db_lock = threading.Lock()
@@ -276,7 +282,8 @@ def get_user_info_by_odoo_id(db_path, account_id, odoo_user_id):
         odoo_user_id (int or str): The Odoo user ID (odoo_record_id in res_users_app)
 
     Returns:
-        dict: User info with keys 'name', 'avatar_128', 'odoo_record_id', or None if not found
+        dict: User info with keys 'name', 'avatar_128', 'avatar_path', 'odoo_record_id', or None if not found
+              avatar_path is the file path to the cached avatar image (for system notifications)
     """
     if not odoo_user_id:
         return None
@@ -296,9 +303,17 @@ def get_user_info_by_odoo_id(db_path, account_id, odoo_user_id):
         conn.close()
         
         if row:
+            avatar_path = None
+            avatar_128 = row['avatar_128']
+            
+            # If avatar exists, save to cache and get file path
+            if avatar_128:
+                avatar_path = save_avatar_to_cache(account_id, row['odoo_record_id'], avatar_128)
+            
             return {
                 'name': row['name'],
-                'avatar_128': row['avatar_128'],
+                'avatar_128': avatar_128,
+                'avatar_path': avatar_path,
                 'odoo_record_id': row['odoo_record_id'],
                 'login': row['login'],
                 'job_title': row['job_title']
@@ -306,6 +321,62 @@ def get_user_info_by_odoo_id(db_path, account_id, odoo_user_id):
         return None
     except Exception as e:
         log.warning(f"[COMMON] Failed to get user info for odoo_id={odoo_user_id}: {e}")
+        return None
+
+
+def save_avatar_to_cache(account_id, user_id, avatar_base64):
+    """
+    Save a base64-encoded avatar image to the cache directory.
+    
+    Args:
+        account_id (int): The account ID
+        user_id (int): The user's Odoo record ID
+        avatar_base64 (str): Base64-encoded image data
+        
+    Returns:
+        str: File path to the saved avatar, or None on error
+    """
+    if not avatar_base64:
+        return None
+    
+    try:
+        # Ensure cache directory exists
+        AVATAR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        
+        # Create unique filename based on account and user
+        filename = f"avatar_{account_id}_{user_id}.png"
+        filepath = AVATAR_CACHE_DIR / filename
+        
+        # Decode and save the image
+        image_data = base64.b64decode(avatar_base64)
+        with open(filepath, 'wb') as f:
+            f.write(image_data)
+        
+        return str(filepath)
+    except Exception as e:
+        log.warning(f"[COMMON] Failed to save avatar to cache: {e}")
+        return None
+
+
+def get_cached_avatar_path(account_id, user_id):
+    """
+    Get the path to a cached avatar if it exists.
+    
+    Args:
+        account_id (int): The account ID
+        user_id (int): The user's Odoo record ID
+        
+    Returns:
+        str: File path to the cached avatar, or None if not cached
+    """
+    try:
+        filename = f"avatar_{account_id}_{user_id}.png"
+        filepath = AVATAR_CACHE_DIR / filename
+        
+        if filepath.exists():
+            return str(filepath)
+        return None
+    except Exception as e:
         return None
 
 

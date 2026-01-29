@@ -504,11 +504,19 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Post-wake sync failed: {e}")
         return False  # Don't repeat - one-shot callback
     
-    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None):
+    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None, avatar_path=None):
         """Send a system notification via DBus with optional deep link navigation.
         
         Respects user's notification schedule settings - notifications are only
         sent during the user's configured active hours in their timezone.
+        
+        Args:
+            title (str): Notification title
+            message (str): Notification body
+            nav_type (str): Type for navigation (Task, Activity, etc.)
+            record_id (int): Record ID for navigation
+            account_id (int): Account ID
+            avatar_path (str): Optional path to assigner's avatar image for notification icon
         """
         # Check if notification should be sent based on schedule settings
         should_send, reason = should_send_notification(self.app_db)
@@ -529,16 +537,21 @@ class NotificationDaemon:
             log.info("[DAEMON] DBus re-initialized successfully!")
         
         try:
-            # Type-specific icon mapping
-            icon_map = {
-                "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
-                "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
-                "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
-                "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
-            }
-            # Select icon based on notification type, fallback to logo
-            icon_path = icon_map.get(nav_type, str(APP_ROOT / "assets" / "logo.png"))
-            log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
+            # Use avatar if provided, otherwise fall back to type-specific icon
+            if avatar_path and Path(avatar_path).exists():
+                icon_path = avatar_path
+                log.info(f"[DAEMON] Using assigner avatar for notification: {icon_path}")
+            else:
+                # Type-specific icon mapping
+                icon_map = {
+                    "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
+                    "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
+                    "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
+                    "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
+                }
+                # Select icon based on notification type, fallback to logo
+                icon_path = icon_map.get(nav_type, str(APP_ROOT / "assets" / "logo.png"))
+                log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
             
             # Construct deep link URI for navigation (if navigation params provided)
             # Use odoo_id=1 flag to indicate this is an odoo_record_id (stable across syncs)
@@ -583,8 +596,9 @@ class NotificationDaemon:
                     "account_id": account_id or 0
                 }
                 
-                # Use raw path (not file:// URI) - matches C++ NotificationHelper behavior
-                icon_file = str(APP_ROOT / "assets" / "logo.png")
+                # Use avatar path if available, otherwise fall back to app logo
+                # icon_path was already set above (avatar or type icon)
+                icon_file = icon_path
                 
                 # Ubuntu Touch Postal notification format
                 # Note: vibrate can be true (use default) or an object with pattern
@@ -784,10 +798,12 @@ class NotificationDaemon:
             # Get assigner info if available
             assigner_info = None
             assigner_name = None
+            avatar_path = None
             if create_uid:
                 assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid)
                 if assigner_info:
                     assigner_name = assigner_info.get('name')
+                    avatar_path = assigner_info.get('avatar_path')
             
             # Build notification message with assigner info
             if assigner_name:
@@ -801,7 +817,8 @@ class NotificationDaemon:
                 notification_msg,
                 nav_type="Task",
                 record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
-                account_id=account_id
+                account_id=account_id,
+                avatar_path=avatar_path  # Show assigner's avatar in system notification
             )
             add_notification(
                 self.app_db,
@@ -868,10 +885,12 @@ class NotificationDaemon:
             # Get assigner info if available
             assigner_info = None
             assigner_name = None
+            avatar_path = None
             if create_uid:
                 assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid)
                 if assigner_info:
                     assigner_name = assigner_info.get('name')
+                    avatar_path = assigner_info.get('avatar_path')
             
             # Build notification message with assigner info
             if assigner_name:
@@ -885,7 +904,8 @@ class NotificationDaemon:
                 notification_msg,
                 nav_type="Activity",
                 record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
-                account_id=account_id
+                account_id=account_id,
+                avatar_path=avatar_path  # Show assigner's avatar in system notification
             )
             add_notification(
                 self.app_db,
