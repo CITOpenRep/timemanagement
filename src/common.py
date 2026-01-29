@@ -638,16 +638,26 @@ def get_system_timezone():
     Returns:
         str: Timezone name (e.g., "America/New_York") or "UTC" if detection fails
     """
+    import os
+    import subprocess
+    
     try:
-        # Try to read from /etc/timezone (common on Linux/Ubuntu Touch)
-        import os
-        if os.path.exists('/etc/timezone'):
-            with open('/etc/timezone', 'r') as f:
-                tz = f.read().strip()
-                if tz:
+        # Primary method: Use timedatectl (most reliable on Ubuntu Touch/Linux)
+        # This correctly detects the timezone even when /etc/timezone is wrong
+        try:
+            result = subprocess.run(
+                ['timedatectl', 'show', '--value', '-p', 'Timezone'],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                tz = result.stdout.strip()
+                if tz and tz != "n/a":
+                    log.debug(f"[COMMON] Timezone from timedatectl: {tz}")
                     return tz
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass  # timedatectl not available, try other methods
         
-        # Try to read from /etc/localtime symlink
+        # Secondary: Try to read from /etc/localtime symlink
         if os.path.islink('/etc/localtime'):
             link_target = os.readlink('/etc/localtime')
             # Extract timezone from path like /usr/share/zoneinfo/America/New_York
@@ -655,6 +665,14 @@ def get_system_timezone():
                 parts = link_target.split('zoneinfo/')
                 if len(parts) > 1:
                     return parts[1]
+        
+        # Tertiary: Try to read from /etc/timezone (may be outdated on Ubuntu Touch)
+        if os.path.exists('/etc/timezone'):
+            with open('/etc/timezone', 'r') as f:
+                tz = f.read().strip()
+                # Skip if it's just "Etc/UTC" as this is often a default/wrong value
+                if tz and tz not in ("Etc/UTC", "UTC"):
+                    return tz
         
         # Fallback: try using Python's time module
         import time
