@@ -454,3 +454,304 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         log.error(f"[COMMON] Failed to detect new assignments: {e}")
     
     return result
+
+
+# =============================================================================
+# TIMEZONE AND NOTIFICATION SCHEDULE UTILITIES
+# =============================================================================
+
+def get_available_timezones():
+    """
+    Get a list of common timezones for user selection.
+    
+    Returns:
+        list: List of timezone strings (e.g., "America/New_York", "Europe/London")
+    """
+    # Common timezones organized by region
+    common_timezones = [
+        # UTC
+        "UTC",
+        # Americas
+        "America/New_York",
+        "America/Chicago",
+        "America/Denver",
+        "America/Los_Angeles",
+        "America/Toronto",
+        "America/Vancouver",
+        "America/Mexico_City",
+        "America/Sao_Paulo",
+        "America/Buenos_Aires",
+        # Europe
+        "Europe/London",
+        "Europe/Paris",
+        "Europe/Berlin",
+        "Europe/Madrid",
+        "Europe/Rome",
+        "Europe/Amsterdam",
+        "Europe/Brussels",
+        "Europe/Vienna",
+        "Europe/Warsaw",
+        "Europe/Moscow",
+        # Asia
+        "Asia/Dubai",
+        "Asia/Kolkata",
+        "Asia/Mumbai",
+        "Asia/Bangkok",
+        "Asia/Singapore",
+        "Asia/Hong_Kong",
+        "Asia/Shanghai",
+        "Asia/Tokyo",
+        "Asia/Seoul",
+        "Asia/Jakarta",
+        # Oceania
+        "Australia/Sydney",
+        "Australia/Melbourne",
+        "Australia/Perth",
+        "Pacific/Auckland",
+        # Africa
+        "Africa/Cairo",
+        "Africa/Johannesburg",
+        "Africa/Lagos",
+        "Africa/Nairobi",
+    ]
+    return common_timezones
+
+
+def get_system_timezone():
+    """
+    Get the system's current timezone.
+    
+    Returns:
+        str: Timezone name (e.g., "America/New_York") or "UTC" if detection fails
+    """
+    try:
+        # Try to read from /etc/timezone (common on Linux/Ubuntu Touch)
+        import os
+        if os.path.exists('/etc/timezone'):
+            with open('/etc/timezone', 'r') as f:
+                tz = f.read().strip()
+                if tz:
+                    return tz
+        
+        # Try to read from /etc/localtime symlink
+        if os.path.islink('/etc/localtime'):
+            link_target = os.readlink('/etc/localtime')
+            # Extract timezone from path like /usr/share/zoneinfo/America/New_York
+            if 'zoneinfo' in link_target:
+                parts = link_target.split('zoneinfo/')
+                if len(parts) > 1:
+                    return parts[1]
+        
+        # Fallback: try using Python's time module
+        import time
+        tz_name = time.tzname[0]
+        if tz_name:
+            return tz_name
+            
+    except Exception as e:
+        log.warning(f"[COMMON] Failed to detect system timezone: {e}")
+    
+    return "UTC"
+
+
+def get_current_time_in_timezone(timezone_str):
+    """
+    Get the current time in a specific timezone.
+    
+    Args:
+        timezone_str: Timezone string (e.g., "America/New_York", "Europe/London")
+        
+    Returns:
+        datetime: Current time in the specified timezone, or UTC if timezone is invalid
+    """
+    from datetime import timezone as tz
+    
+    try:
+        # Try using zoneinfo (Python 3.9+)
+        try:
+            from zoneinfo import ZoneInfo
+            now = datetime.now(ZoneInfo(timezone_str))
+            return now
+        except ImportError:
+            pass
+        
+        # Fallback: try using pytz if available
+        try:
+            import pytz
+            tz_obj = pytz.timezone(timezone_str)
+            now = datetime.now(tz_obj)
+            return now
+        except ImportError:
+            pass
+        
+        # Last fallback: use UTC
+        log.warning(f"[COMMON] No timezone library available, using UTC")
+        return datetime.now(tz.utc)
+        
+    except Exception as e:
+        log.error(f"[COMMON] Failed to get time in timezone {timezone_str}: {e}")
+        return datetime.now(tz.utc)
+
+
+def parse_time_string(time_str):
+    """
+    Parse a time string in HH:MM format to hours and minutes.
+    
+    Args:
+        time_str: Time string in "HH:MM" format
+        
+    Returns:
+        tuple: (hour, minute) as integers, or (0, 0) if parsing fails
+    """
+    try:
+        parts = time_str.strip().split(':')
+        if len(parts) >= 2:
+            hour = int(parts[0])
+            minute = int(parts[1])
+            # Validate ranges
+            if 0 <= hour <= 23 and 0 <= minute <= 59:
+                return (hour, minute)
+    except Exception as e:
+        log.warning(f"[COMMON] Failed to parse time string '{time_str}': {e}")
+    
+    return (0, 0)
+
+
+def is_within_active_hours(timezone_str, active_start, active_end):
+    """
+    Check if the current time is within the user's active notification hours.
+    
+    This function supports schedules that wrap around midnight.
+    For example, active_start="22:00" and active_end="06:00" means 
+    notifications are allowed from 10 PM to 6 AM.
+    
+    Args:
+        timezone_str: User's timezone (e.g., "America/New_York") or empty for system default
+        active_start: Start time of active hours in "HH:MM" format
+        active_end: End time of active hours in "HH:MM" format
+        
+    Returns:
+        bool: True if current time is within active hours, False otherwise
+    """
+    try:
+        # Get effective timezone
+        effective_tz = timezone_str if timezone_str else get_system_timezone()
+        
+        # Get current time in user's timezone
+        current_time = get_current_time_in_timezone(effective_tz)
+        current_hour = current_time.hour
+        current_minute = current_time.minute
+        
+        # Parse start and end times
+        start_hour, start_minute = parse_time_string(active_start)
+        end_hour, end_minute = parse_time_string(active_end)
+        
+        # Convert to minutes since midnight for easier comparison
+        current_mins = current_hour * 60 + current_minute
+        start_mins = start_hour * 60 + start_minute
+        end_mins = end_hour * 60 + end_minute
+        
+        # Handle normal case (start < end) and overnight case (start > end)
+        if start_mins <= end_mins:
+            # Normal case: e.g., 09:00 to 18:00
+            is_active = start_mins <= current_mins <= end_mins
+        else:
+            # Overnight case: e.g., 22:00 to 06:00
+            # Active if current time is after start OR before end
+            is_active = current_mins >= start_mins or current_mins <= end_mins
+        
+        log.debug(f"[COMMON] Active hours check: tz={effective_tz}, current={current_hour:02d}:{current_minute:02d}, "
+                  f"range={active_start}-{active_end}, is_active={is_active}")
+        
+        return is_active
+        
+    except Exception as e:
+        log.error(f"[COMMON] Failed to check active hours: {e}")
+        # On error, default to allowing notifications
+        return True
+
+
+def get_notification_schedule_settings(db_path):
+    """
+    Get all notification schedule settings from the database.
+    
+    Args:
+        db_path: Path to the SQLite database
+        
+    Returns:
+        dict: Settings with keys:
+            - schedule_enabled (bool): Whether notification scheduling is enabled
+            - timezone (str): User's preferred timezone
+            - active_start (str): Start of active hours in HH:MM format
+            - active_end (str): End of active hours in HH:MM format
+    """
+    from config import get_setting, DEFAULT_SETTINGS
+    
+    try:
+        schedule_enabled = get_setting(db_path, "notification_schedule_enabled", 
+                                        DEFAULT_SETTINGS.get("notification_schedule_enabled", "false"))
+        timezone = get_setting(db_path, "notification_timezone", 
+                               DEFAULT_SETTINGS.get("notification_timezone", ""))
+        active_start = get_setting(db_path, "notification_active_start", 
+                                   DEFAULT_SETTINGS.get("notification_active_start", "09:00"))
+        active_end = get_setting(db_path, "notification_active_end", 
+                                 DEFAULT_SETTINGS.get("notification_active_end", "18:00"))
+        
+        return {
+            "schedule_enabled": schedule_enabled.lower() == "true",
+            "timezone": timezone,
+            "active_start": active_start,
+            "active_end": active_end
+        }
+    except Exception as e:
+        log.error(f"[COMMON] Failed to get notification schedule settings: {e}")
+        return {
+            "schedule_enabled": False,
+            "timezone": "",
+            "active_start": "09:00",
+            "active_end": "18:00"
+        }
+
+
+def should_send_notification(db_path):
+    """
+    Determine if a notification should be sent based on current schedule settings.
+    
+    This is the main function that the daemon should call before sending any notification.
+    It checks if notification scheduling is enabled, and if so, whether the current time
+    falls within the user's active hours in their preferred timezone.
+    
+    Args:
+        db_path: Path to the SQLite database
+        
+    Returns:
+        tuple: (should_send: bool, reason: str)
+            - should_send: True if notification should be sent
+            - reason: Human-readable explanation for the decision
+    """
+    try:
+        settings = get_notification_schedule_settings(db_path)
+        
+        # If scheduling is disabled, always send notifications
+        if not settings["schedule_enabled"]:
+            return (True, "Notification scheduling is disabled")
+        
+        # Check if current time is within active hours
+        is_active = is_within_active_hours(
+            settings["timezone"],
+            settings["active_start"],
+            settings["active_end"]
+        )
+        
+        if is_active:
+            return (True, f"Current time is within active hours ({settings['active_start']}-{settings['active_end']})")
+        else:
+            effective_tz = settings["timezone"] if settings["timezone"] else get_system_timezone()
+            current_time = get_current_time_in_timezone(effective_tz)
+            return (False, f"Outside active hours. Current time: {current_time.strftime('%H:%M')} ({effective_tz}), "
+                          f"Active: {settings['active_start']}-{settings['active_end']}")
+        
+    except Exception as e:
+        log.error(f"[COMMON] Error checking notification schedule: {e}")
+        # On error, default to sending notifications
+        return (True, f"Error checking schedule: {e}")

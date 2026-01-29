@@ -49,6 +49,11 @@ DEFAULT_SETTINGS = {
     "autosync_enabled": "true",
     "sync_interval_minutes": "15",
     "sync_direction": "both",  # "both", "download_only", "upload_only"
+    # Notification Schedule settings
+    "notification_schedule_enabled": "false",  # Enable/disable scheduled notifications
+    "notification_timezone": "",  # User's preferred timezone (empty = system default)
+    "notification_active_start": "09:00",  # Start of active hours (HH:MM format)
+    "notification_active_end": "18:00",  # End of active hours (HH:MM format)
 }
 
 
