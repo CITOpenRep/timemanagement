@@ -147,9 +147,14 @@ Item {
      * Set the HTML document content
      * @param doc - HTML string to set
      */
-    function setDocument(doc) { 
-        var escapedDoc = doc.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
-        wv.runJavaScript("window.editor.setHTML('" + escapedDoc + "');"); 
+    function setDocument(doc) {
+        // Clean the content - remove leading/trailing whitespace while preserving HTML structure
+        var cleanedDoc = doc ? doc.trim() : "";
+        console.log("[RichTextEditor] setDocument called with:", cleanedDoc ? cleanedDoc.substring(0, 100) : "empty");
+        
+        // Use JSON.stringify for proper escaping to avoid issues with quotes and special characters
+        var jsCode = "window.editor.setHTML(" + JSON.stringify(cleanedDoc) + ");";
+        wv.runJavaScript(jsCode);
     }
 
     /** Move cursor to start of document */
@@ -167,7 +172,7 @@ Item {
      * @param src - Image source URL
      */
     function insertImage(src) {
-        wv.runJavaScript("window.editor.insertImage('" + src + "');");
+        wv.runJavaScript("window.editor.insertImage('" + src + "'); void 0;");
     }
 
     /**
@@ -192,24 +197,24 @@ Item {
 
     /** Increase current quote level by 1 */
     function increaseQuoteLevel() { 
-        wv.runJavaScript("window.editor.increaseQuoteLevel();"); 
+        wv.runJavaScript("window.editor.increaseQuoteLevel(); void 0;"); 
     }
 
     /** Decrease current quote level by 1 */
     function decreaseQuoteLevel() { 
-        wv.runJavaScript("window.editor.decreaseQuoteLevel();"); 
+        wv.runJavaScript("window.editor.decreaseQuoteLevel(); void 0;"); 
     }
 
     /** Create an unordered list */
     function makeUnorderedList() { 
         console.log("[RichTextEditor] makeUnorderedList called");
-        wv.runJavaScript("window.editor.focus(); window.editor.makeUnorderedList();");
+        wv.runJavaScript("window.editor.focus(); window.editor.makeUnorderedList(); void 0;");
     }
 
     /** Create an ordered list */
     function makeOrderedList() { 
         console.log("[RichTextEditor] makeOrderedList called");
-        wv.runJavaScript("window.editor.focus(); window.editor.makeOrderedList();");
+        wv.runJavaScript("window.editor.focus(); window.editor.makeOrderedList(); void 0;");
     }
 
     /**
@@ -217,7 +222,7 @@ Item {
      * @param size - Size string like "12pt" or "16px"
      */
     function setFontSize(size) { 
-        wv.runJavaScript("window.editor.focus(); window.editor.setFontSize('" + size + "');");
+        wv.runJavaScript("window.editor.focus(); window.editor.setFontSize('" + size + "'); void 0;");
     }
 
     /**
@@ -225,7 +230,7 @@ Item {
      * @param color - Color string like "#FF0000"
      */
     function setTextColor(color) { 
-        wv.runJavaScript("window.editor.focus(); window.editor.setTextColour('" + color + "');");
+        wv.runJavaScript("window.editor.focus(); window.editor.setTextColour('" + color + "'); void 0;");
     }
 
     /**
@@ -233,12 +238,12 @@ Item {
      * @param color - Color string like "#FFFF00"
      */
     function setHighlightColor(color) { 
-        wv.runJavaScript("window.editor.focus(); window.editor.setHighlightColour('" + color + "');");
+        wv.runJavaScript("window.editor.focus(); window.editor.setHighlightColour('" + color + "'); void 0;");
     }
 
     /** Remove all formatting from selected text */
     function removeAllFormatting() { 
-        wv.runJavaScript("window.editor.focus(); window.editor.removeAllFormatting();");
+        wv.runJavaScript("window.editor.focus(); window.editor.removeAllFormatting(); void 0;");
     }
 
     /**
@@ -270,10 +275,15 @@ Item {
      */
     function getText(callback) {
         if (_isLoaded) {
-            var callId = _replyCounter++;
-            _pendingReplies[callId] = callback;
-            wv.runJavaScript("qtBridge.processMessageWithReply('getHTML', {}, " + callId + ");");
+            console.log("[RichTextEditor] getText called");
+            wv.runJavaScript("window.editor.getHTML();", function(result) {
+                console.log("[RichTextEditor] getText result:", result ? result.substring(0, 100) : "empty");
+                if (callback) {
+                    callback(result || "");
+                }
+            });
         } else if (callback) {
+            console.log("[RichTextEditor] getText called but not loaded");
             callback("");
         }
     }
