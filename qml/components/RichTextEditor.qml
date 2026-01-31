@@ -112,12 +112,14 @@ Item {
 
     /** Undo user action */
     function undo() {
-        wv.runJavaScript("window.editor.undo();");
+        console.log("[RichTextEditor] undo called");
+        wv.runJavaScript("window.editor.focus(); window.editor.undo();");
     }
 
     /** Redo user action */
     function redo() {
-        wv.runJavaScript("window.editor.redo();");
+        console.log("[RichTextEditor] redo called");
+        wv.runJavaScript("window.editor.focus(); window.editor.redo();");
     }
 
     /**

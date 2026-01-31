@@ -279,8 +279,10 @@ Rectangle {
                 text: "↶"
                 font.pixelSize: units.gu(2)
                 color: darkMode ? "#555555" : "#F0F0F0"
-                enabled: editor ? editor.canUndo : false
-                onClicked: if (editor) editor.undo()
+                onClicked: {
+                    console.log("[Toolbar] Undo clicked");
+                    if (editor) editor.undo()
+                }
             }
 
             // Redo
@@ -290,8 +292,10 @@ Rectangle {
                 text: "↷"
                 font.pixelSize: units.gu(2)
                 color: darkMode ? "#555555" : "#F0F0F0"
-                enabled: editor ? editor.canRedo : false
-                onClicked: if (editor) editor.redo()
+                onClicked: {
+                    console.log("[Toolbar] Redo clicked");
+                    if (editor) editor.redo()
+                }
             }
 
             ToolbarSeparator {}
