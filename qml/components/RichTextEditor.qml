@@ -1,29 +1,341 @@
+/* Copyright (C) 2016 - 2018 Dan Chapman <dpniel@ubuntu.com>
+   Copyright (C) 2025 Dekko Project - QtWebEngine Migration
+   Adapted for timemanagement project
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2 of
+   the License or (at your option) version 3
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtWebEngine 1.5
 
 Item {
-    id: richTextEditor
+    id: editor
 
-    // Public properties
+    // ============ PUBLIC PROPERTIES (preserving original API) ============
+    
+    /** The HTML content of the editor */
     property string text: ""
+    
+    /** Whether the editor is in read-only mode */
     property bool readOnly: false
+    
+    /** Font size in pixels */
     property int fontSize: 13
+    
+    /** Placeholder text when editor is empty */
     property string placeholder: "Write something amazing..."
+    
+    /** Dark mode state - auto-detected from theme */
     property bool darkMode: theme.name === "Ubuntu.Components.Themes.SuruDark"
+    
+    /** Border color for the editor wrapper */
     property color borderColor: "#dee2e6"
+    
+    /** Focus highlight color */
     property color focusColor: "#714B67"
 
-    // Signals
-    signal contentChanged(string newText)
-    signal contentLoaded
+    /** Focused state of the editor */
+    readonly property bool focused: p.focused
 
-    // Private properties
+    /** Undo state of the document */
+    readonly property bool canUndo: p.undoState ? p.undoState['canUndo'] : false
+
+    /** Redo state of the document */
+    readonly property bool canRedo: p.undoState ? p.undoState['canRedo'] : false
+
+    /**
+     * Font formatting state object
+     * Contains: bold, italic, underline, size, textColor, highlightColor
+     */
+    property alias font: p.font
+
+    // ============ SIGNALS (preserving original API) ============
+    
+    /** Emitted when content changes */
+    signal contentChanged(string newText)
+    
+    /** Emitted when editor has finished loading */
+    signal contentLoaded()
+    
+    /** Emitted when the formatting path changes */
+    signal pathChanged(string path)
+    
+    /** Emitted when text is selected */
+    signal textSelected(string text)
+    
+    /** Emitted when document is ready (in response to requestDocument) */
+    signal documentReady(string document)
+    
+    /** Emitted when cursor position changes */
+    signal cursorPositionChanged(var rect)
+
+    // ============ PRIVATE PROPERTIES ============
+    
     property bool _isLoaded: false
     property string _pendingText: ""
-    property bool _internalUpdate: false  // Flag to prevent feedback loop
+    property bool _internalUpdate: false
+    property int _replyCounter: 0
+    property var _pendingReplies: ({})
 
-    // Odoo-style wrapper
+    // ============ PUBLIC FUNCTIONS (preserving original API) ============
+
+    /** Toggle bold formatting */
+    function toggleBold() {
+        wv.runJavaScript("(function() { var e = window.editor; if (e.hasFormat('B') || e.hasFormat('STRONG')) { e.removeBold(); } else { e.bold(); } })();");
+    }
+
+    /** Toggle italic formatting */
+    function toggleItalic() {
+        wv.runJavaScript("(function() { var e = window.editor; if (e.hasFormat('I') || e.hasFormat('EM')) { e.removeItalic(); } else { e.italic(); } })();");
+    }
+
+    /** Toggle underline formatting */
+    function toggleUnderline() {
+        wv.runJavaScript("(function() { var e = window.editor; if (e.hasFormat('U')) { e.removeUnderline(); } else { e.underline(); } })();");
+    }
+
+    /** Undo user action */
+    function undo() {
+        wv.runJavaScript("window.editor.undo();");
+    }
+
+    /** Redo user action */
+    function redo() {
+        wv.runJavaScript("window.editor.redo();");
+    }
+
+    /**
+     * Focus or blur the editor
+     * @param shouldFocus - true to focus, false to blur
+     */
+    function focusEditor(shouldFocus) {
+        if (shouldFocus) {
+            wv.forceActiveFocus();
+            wv.runJavaScript("window.editor.focus();");
+        } else {
+            wv.runJavaScript("window.editor.blur();");
+        }
+    }
+
+    /**
+     * Request the current HTML document content
+     * Emits documentReady signal when ready
+     */
+    function requestDocument() { 
+        p.getHTML(); 
+    }
+
+    /**
+     * Set the HTML document content
+     * @param doc - HTML string to set
+     */
+    function setDocument(doc) { 
+        var escapedDoc = doc.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+        wv.runJavaScript("window.editor.setHTML('" + escapedDoc + "');"); 
+    }
+
+    /** Move cursor to start of document */
+    function moveCursorToStart() { 
+        wv.runJavaScript("window.editor.moveCursorToStart();"); 
+    }
+
+    /** Move cursor to end of document */
+    function moveCursorToEnd() { 
+        wv.runJavaScript("window.editor.moveCursorToEnd();"); 
+    }
+
+    /**
+     * Insert an image at cursor position
+     * @param src - Image source URL
+     */
+    function insertImage(src) {
+        wv.runJavaScript("window.editor.insertImage('" + src + "');");
+    }
+
+    /**
+     * Create a link from selected text
+     * @param url - Link URL
+     * @param attrs - Optional attributes object
+     */
+    function insertLink(url, attrs) {
+        wv.runJavaScript("window.editor.makeLink('" + url + "');");
+    }
+
+    /**
+     * Insert a link with custom text
+     * @param url - Link URL
+     * @param text - Link display text
+     * @param attrs - Optional attributes object
+     */
+    function insertLinkWithText(url, text, attrs) {
+        // Insert text then make it a link
+        wv.runJavaScript("window.editor.insertHTML('<a href=\"" + url + "\">" + text + "</a>');");
+    }
+
+    /** Increase current quote level by 1 */
+    function increaseQuoteLevel() { 
+        wv.runJavaScript("window.editor.increaseQuoteLevel();"); 
+    }
+
+    /** Decrease current quote level by 1 */
+    function decreaseQuoteLevel() { 
+        wv.runJavaScript("window.editor.decreaseQuoteLevel();"); 
+    }
+
+    /** Create an unordered list */
+    function makeUnorderedList() { 
+        wv.runJavaScript("window.editor.makeUnorderedList();");
+    }
+
+    /** Create an ordered list */
+    function makeOrderedList() { 
+        wv.runJavaScript("window.editor.makeOrderedList();");
+    }
+
+    /**
+     * Set font size
+     * @param size - Size string like "12pt" or "16px"
+     */
+    function setFontSize(size) { 
+        wv.runJavaScript("window.editor.setFontSize('" + size + "');");
+    }
+
+    /**
+     * Set text color
+     * @param color - Color string like "#FF0000"
+     */
+    function setTextColor(color) { 
+        wv.runJavaScript("window.editor.setTextColour('" + color + "');");
+    }
+
+    /**
+     * Set highlight/background color
+     * @param color - Color string like "#FFFF00"
+     */
+    function setHighlightColor(color) { 
+        wv.runJavaScript("window.editor.setHighlightColour('" + color + "');");
+    }
+
+    /** Remove all formatting from selected text */
+    function removeAllFormatting() { 
+        wv.runJavaScript("window.editor.removeAllFormatting();");
+    }
+
+    /**
+     * Set text alignment
+     * @param alignment - Qt.AlignLeft, Qt.AlignCenter, Qt.AlignRight, or Qt.AlignJustify
+     */
+    function setTextAlignment(alignment) { 
+        p.textAlignment = alignment; 
+    }
+
+    // ============ LEGACY API FUNCTIONS (for backward compatibility) ============
+
+    /**
+     * Set text content (legacy API)
+     * @param htmlText - HTML string to set
+     */
+    function setText(htmlText) {
+        console.log("RichTextEditor.setText called with:", htmlText ? htmlText.substring(0, 100) : "empty");
+        if (_isLoaded) {
+            setDocument(htmlText || "");
+        } else {
+            _pendingText = htmlText || "";
+        }
+    }
+
+    /**
+     * Get text content asynchronously (legacy API)
+     * @param callback - Function to call with result
+     */
+    function getText(callback) {
+        if (_isLoaded) {
+            var callId = _replyCounter++;
+            _pendingReplies[callId] = callback;
+            wv.runJavaScript("qtBridge.processMessageWithReply('getHTML', {}, " + callId + ");");
+        } else if (callback) {
+            callback("");
+        }
+    }
+
+    /**
+     * Set read-only mode (legacy API)
+     * @param isReadOnly - true to enable read-only
+     */
+    function setReadOnly(isReadOnly) {
+        if (_isLoaded) {
+            wv.runJavaScript("document.body.contentEditable = " + (!isReadOnly).toString() + ";");
+        }
+    }
+
+    /**
+     * Check if content has changed (legacy API)
+     * @param callback - Function to call with boolean result
+     */
+    function hasChanged(callback) {
+        // For now, always return true since we don't track initial state
+        if (callback) {
+            callback(true);
+        }
+    }
+
+    /**
+     * Force sync current content (legacy API)
+     */
+    function syncContent() {
+        if (_isLoaded && !readOnly) {
+            getText(function(content) {
+                if (content !== editor.text) {
+                    _internalUpdate = true;
+                    editor.text = content;
+                    editor.contentChanged(content);
+                    _internalUpdate = false;
+                }
+            });
+        }
+    }
+
+    // ============ PROPERTY CHANGE HANDLERS ============
+
+    onTextChanged: {
+        if (!_internalUpdate && _isLoaded) {
+            setText(text);
+        }
+    }
+
+    onReadOnlyChanged: {
+        if (_isLoaded) {
+            setReadOnly(readOnly);
+        }
+    }
+
+    onDarkModeChanged: {
+        if (_isLoaded) {
+            wv.reload();
+        }
+    }
+
+    onFocusChanged: {
+        if (!focus) focusEditor(false);
+    }
+
+    onPathChanged: {
+        p.parseFormatFromPath(path);
+    }
+
+    // ============ EDITOR WRAPPER ============
+
     Rectangle {
         id: editorWrapper
         anchors.fill: parent
@@ -32,233 +344,240 @@ Item {
         border.color: darkMode ? "#495057" : borderColor
         radius: 4
 
-        // Add subtle shadow effect
-        Rectangle {
-            anchors.fill: parent
-            anchors.margins: -1
-            color: "transparent"
-            border.width: 1
-            border.color: parent.border.color
-            radius: parent.radius
-            opacity: 0.1
-            z: -1
-        }
-
         WebEngineView {
-            id: webView
+            id: wv
             anchors.fill: parent
-           anchors.margins: units.gu(-1.5)
+            anchors.margins: units.gu(0.5)
+            
+            // High DPI zoom factor - adjust as needed for your device
+          //  zoomFactor: 2.52
+            
+            url: Qt.resolvedUrl("js/editor.html") + "?darkMode=" + darkMode + 
+                 "&readonly=" + readOnly + 
+                 "&placeholder=" + encodeURIComponent(placeholder)
 
-            // Set a default zoom factor to make content larger on high-DPI screens (Please uncomment while building on a real device.)
-            zoomFactor: 2.52
+            settings.javascriptEnabled: true
+            settings.localContentCanAccessRemoteUrls: false
+            settings.localContentCanAccessFileUrls: true
 
-            // Load the Quill.js HTML file
-            url: Qt.resolvedUrl("quill-editor.html") + "?" + (readOnly ? "readonly=true" : "readonly=false") + "&darkMode=" + darkMode
+            // Helper function to call JS functions without expecting a reply
+            function callFuncNoReply(funcName, payload) {
+                var payloadStr;
+                if (payload === undefined || payload === null) {
+                    payloadStr = '{}';
+                } else if (typeof payload === 'string') {
+                    payloadStr = JSON.stringify(payload);
+                } else {
+                    payloadStr = JSON.stringify(payload);
+                }
+                var jsCode = "qtBridge.processMessage('" + funcName + "', " + payloadStr + ");";
+                console.log("[RichTextEditor] Calling JS:", jsCode);
+                runJavaScript(jsCode);
+            }
 
-            // Handle page load completion
+            // Helper function to call JS functions with a reply
+            function callFuncWithReply(funcName, payload, callback) {
+                var callId = editor._replyCounter++;
+                editor._pendingReplies[callId] = callback;
+                var payloadStr = payload ? JSON.stringify(payload) : '{}';
+                runJavaScript("qtBridge.processMessageWithReply('" + funcName + "', " + payloadStr + ", " + callId + ");");
+            }
+
             onLoadingChanged: {
                 if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
+                    console.log("[RichTextEditor] WebEngine loaded successfully");
                     _isLoaded = true;
-                    contentLoaded();
-
-                    // Set initial content if there was pending text
+                    
+                    // Set pending text if any
                     if (_pendingText !== "") {
                         setText(_pendingText);
                         _pendingText = "";
+                    } else if (editor.text !== "") {
+                        setText(editor.text);
                     }
-
-                    // Set read-only mode
+                    
+                    // Apply read-only state
                     setReadOnly(readOnly);
+                    
+                    // Emit contentLoaded signal
+                    editor.contentLoaded();
+                } else if (loadRequest.status === WebEngineView.LoadFailedStatus) {
+                    console.error("[RichTextEditor] Failed to load editor:", loadRequest.errorString);
                 }
             }
 
-            // Handle JavaScript messages from the web page
+            onJavaScriptConsoleMessage: {
+                console.log("[Editor JS]", message);
+            }
+
+            // Handle URL fragment changes for bridge communication
+            onUrlChanged: {
+                var urlStr = url.toString();
+                var hashIndex = urlStr.indexOf('#');
+                if (hashIndex === -1) return;
+                
+                var hash = urlStr.substring(hashIndex + 1);
+                
+                // Handle events from JS
+                if (hash.indexOf('qtevent:') === 0) {
+                    var parts = hash.substring(8).split(':');
+                    var eventType = parts[0];
+                    var payload = {};
+                    if (parts.length > 1) {
+                        try {
+                            payload = JSON.parse(decodeURIComponent(parts[1]));
+                        } catch (e) {
+                            console.warn("[RichTextEditor] Failed to parse event payload:", e);
+                        }
+                    }
+                    p.handleEvent(eventType, payload);
+                }
+                // Handle replies from JS
+                else if (hash.indexOf('qtreply:') === 0) {
+                    var replyParts = hash.substring(8).split(':');
+                    var callId = parseInt(replyParts[0]);
+                    var replyData = null;
+                    if (replyParts.length > 1) {
+                        try {
+                            var decoded = JSON.parse(decodeURIComponent(replyParts[1]));
+                            replyData = decoded.data;
+                        } catch (e) {
+                            console.warn("[RichTextEditor] Failed to parse reply:", e);
+                        }
+                    }
+                    
+                    if (editor._pendingReplies[callId]) {
+                        editor._pendingReplies[callId](replyData);
+                        delete editor._pendingReplies[callId];
+                    }
+                }
+            }
+
             onNewViewRequested: {
-                // Handle any navigation requests if needed
                 request.action = WebEngineView.IgnoreRequest;
             }
-
-        onJavaScriptConsoleMessage: {
-            console.log("WebView Console:", message);
         }
+    }
 
-            // Enable JavaScript
-            settings.javascriptEnabled: true
-        }
-    }    // Function to clean Qt HTML and convert it to standard HTML
-    function cleanQtHtml(qtHtml) {
-        if (!qtHtml || qtHtml.trim() === "") {
-            return "";
-        }
+    // ============ PRIVATE IMPLEMENTATION ============
 
-        var cleaned = qtHtml;
+    QtObject {
+        id: p
 
-        // Remove DOCTYPE declaration and HTML wrapper if present
-        if (cleaned.indexOf("<!DOCTYPE") !== -1) {
-            // Extract content from body tag
-            var bodyStart = cleaned.indexOf("<body");
-            var bodyEnd = cleaned.indexOf("</body>");
-
-            if (bodyStart !== -1 && bodyEnd !== -1) {
-                // Find the end of the opening body tag
-                var bodyTagEnd = cleaned.indexOf(">", bodyStart);
-                if (bodyTagEnd !== -1) {
-                    cleaned = cleaned.substring(bodyTagEnd + 1, bodyEnd);
+        property bool focused: false
+        property var undoState: null
+        property string template: ""
+        
+        property QtObject font: QtObject {
+            property bool bold: false
+            property bool italic: false
+            property bool underline: false
+            property int size: 13
+            property color textColor: "black"
+            property color highlightColor: "white"
+            
+            onBoldChanged: {
+                if (bold) {
+                    wv.runJavaScript("window.editor.bold();");
+                } else {
+                    wv.runJavaScript("window.editor.removeBold();");
+                }
+            }
+            onItalicChanged: {
+                if (italic) {
+                    wv.runJavaScript("window.editor.italic();");
+                } else {
+                    wv.runJavaScript("window.editor.removeItalic();");
+                }
+            }
+            onUnderlineChanged: {
+                if (underline) {
+                    wv.runJavaScript("window.editor.underline();");
+                } else {
+                    wv.runJavaScript("window.editor.removeUnderline();");
                 }
             }
         }
+        
+        property int textAlignment: Qt.AlignLeft
+        property string selectedText: ""
 
-        // Convert Qt's CSS-based formatting to Quill-friendly HTML tags
-        // Convert font-weight:600 to <strong> tags
-        cleaned = cleaned.replace(/<span style="([^"]*?)font-weight:\s*600;([^"]*?)">(.*?)<\/span>/g, function (match, beforeStyle, afterStyle, content) {
-            var newStyle = (beforeStyle + afterStyle).replace(/;\s*;/g, ';').replace(/^;|;$/g, '');
-            if (newStyle.trim() === '') {
-                return '<strong>' + content + '</strong>';
-            } else {
-                return '<strong><span style="' + newStyle + '">' + content + '</span></strong>';
+        onTextAlignmentChanged: {
+            var alignStr = "left";
+            switch (textAlignment) {
+                case Qt.AlignLeft:
+                    alignStr = "left";
+                    break;
+                case Qt.AlignHCenter:
+                    alignStr = "center";
+                    break;
+                case Qt.AlignRight:
+                    alignStr = "right";
+                    break;
+                case Qt.AlignJustify:
+                    alignStr = "justify";
+                    break;
             }
-        });
+            wv.runJavaScript("window.editor.setTextAlignment('" + alignStr + "');");
+        }
 
-        // Convert text-decoration: underline to <u> tags
-        cleaned = cleaned.replace(/<span style="([^"]*?)text-decoration:\s*underline;([^"]*?)">(.*?)<\/span>/g, function (match, beforeStyle, afterStyle, content) {
-            var newStyle = (beforeStyle + afterStyle).replace(/;\s*;/g, ';').replace(/^;|;$/g, '');
-            if (newStyle.trim() === '') {
-                return '<u>' + content + '</u>';
-            } else {
-                return '<u><span style="' + newStyle + '">' + content + '</span></u>';
+        function getHTML() {
+            wv.runJavaScript("window.editor.getHTML();", function(html) {
+                editor.documentReady(html || "");
+            });
+        }
+
+        function handleEvent(eventType, payload) {
+            switch (eventType) {
+                case 'editorReady':
+                    console.log("[RichTextEditor] Editor ready");
+                    break;
+                case 'contentChanged':
+                    if (!editor._internalUpdate) {
+                        editor._internalUpdate = true;
+                        editor.text = payload.content || "";
+                        editor.contentChanged(payload.content || "");
+                        editor._internalUpdate = false;
+                    }
+                    break;
+                case 'pathChanged':
+                    editor.pathChanged(payload.path || "");
+                    break;
+                case 'textSelected':
+                    p.selectedText = payload.text || "";
+                    editor.textSelected(payload.text || "");
+                    break;
+                case 'cursorPositionChanged':
+                    editor.cursorPositionChanged(payload);
+                    break;
+                case 'undoStateChanged':
+                    p.undoState = payload;
+                    break;
+                case 'focus':
+                    p.focused = true;
+                    break;
+                case 'blur':
+                    p.focused = false;
+                    break;
             }
-        });
+        }
 
-        // Convert text-decoration: line-through to <s> tags
-        cleaned = cleaned.replace(/<span style="([^"]*?)text-decoration:\s*line-through;([^"]*?)">(.*?)<\/span>/g, function (match, beforeStyle, afterStyle, content) {
-            var newStyle = (beforeStyle + afterStyle).replace(/;\s*;/g, ';').replace(/^;|;$/g, '');
-            if (newStyle.trim() === '') {
-                return '<s>' + content + '</s>';
-            } else {
-                return '<s><span style="' + newStyle + '">' + content + '</span></s>';
-            }
-        });
-
-        // Clean up Qt-specific attributes and styles
-        cleaned = cleaned
-        // Remove Qt-specific CSS properties
-        .replace(/-qt-block-indent:\s*\d+;\s*/g, "").replace(/-qt-list-indent:\s*\d+;\s*/g, "").replace(/text-indent:\s*0px;\s*/g, "")
-        // Remove layout-specific margin styles
-        .replace(/margin-top:\s*\d+px;\s*/g, "").replace(/margin-bottom:\s*\d+px;\s*/g, "").replace(/margin-left:\s*0px;\s*/g, "").replace(/margin-right:\s*0px;\s*/g, "")
-        // Remove meta tags and head content if any remain
-        .replace(/<meta[^>]*>/g, "").replace(/<style[^>]*>[\s\S]*?<\/style>/g, "")
-        // Clean up empty style attributes
-        .replace(/style="\s*"/g, "").replace(/style=''/g, "");
-
-        console.log("Original Qt HTML:", qtHtml.substring(0, 300) + "...");
-        console.log("Cleaned HTML:", cleaned.substring(0, 300) + "...");
-
-        return cleaned.trim();
-    }
-
-    // Function to set text content
-    function setText(htmlText) {
-        console.log("RichTextEditor.setText called with:", htmlText);
-        if (_isLoaded) {
-            // Clean Qt HTML before setting
-            var cleanedText = cleanQtHtml(htmlText || "");
-            console.log("Cleaned HTML:", cleanedText);
-
-            // Use JSON.stringify to properly escape the content for JavaScript
-            var escapedText = JSON.stringify(cleanedText);
-            console.log("Calling setContent with escaped text:", escapedText);
-            webView.runJavaScript("window.quillEditor.setContent(" + escapedText + ");");
-        } else {
-            _pendingText = htmlText;
+        function parseFormatFromPath(path) {
+            // Parse path string to update font formatting state
+            // Path format: "DIV>B>I" or "DIV>SPAN[fontSize=14pt]"
+            var hasBold = path.indexOf('>B') !== -1 || path.indexOf('>STRONG') !== -1;
+            var hasItalic = path.indexOf('>I') !== -1 || path.indexOf('>EM') !== -1;
+            var hasUnderline = path.indexOf('>U') !== -1;
+            
+            // Update without triggering change handlers
+            if (font.bold !== hasBold) font.bold = hasBold;
+            if (font.italic !== hasItalic) font.italic = hasItalic;
+            if (font.underline !== hasUnderline) font.underline = hasUnderline;
         }
     }
 
-    // Function to get text content
-    function getText(callback) {
-        if (_isLoaded) {
-            webView.runJavaScript("window.quillEditor.getContent();", function (result) {
-                if (callback) {
-                    callback(result);
-                }
-            });
-        } else if (callback) {
-            callback("");
-        }
-    }
+    // ============ LOADING INDICATOR ============
 
-    // Function to set read-only mode
-    function setReadOnly(isReadOnly) {
-        if (_isLoaded) {
-            webView.runJavaScript("window.quillEditor.setReadOnly(" + isReadOnly + ");");
-        }
-    }
-
-    // Function to check if content has changed
-    function hasChanged(callback) {
-        if (_isLoaded) {
-            webView.runJavaScript("window.quillEditor.hasContentChanged();", function (result) {
-                if (callback) {
-                    callback(result);
-                }
-            });
-        } else if (callback) {
-            callback(false);
-        }
-    }
-
-    // Function to force sync current content (useful before page navigation)
-    function syncContent() {
-        if (_isLoaded && !readOnly) {
-            getText(function (content) {
-                if (content !== richTextEditor.text) {
-                    _internalUpdate = true;  // Set flag before updating
-                    richTextEditor.text = content;
-                    richTextEditor.contentChanged(content);
-                    _internalUpdate = false;  // Reset flag after updating
-                }
-            });
-        }
-    }
-
-    // Watch for property changes
-    onTextChanged: {
-        // Only call setText if this is an external update, not from our timer
-        if (!_internalUpdate) {
-            setText(text);
-        }
-    }
-
-    onReadOnlyChanged: {
-        setReadOnly(readOnly);
-    }
-
-    onDarkModeChanged: {
-        // Reload the editor with new theme when dark mode changes
-        if (_isLoaded) {
-            webView.reload();
-        }
-    }
-
-    // Periodic content sync - ENABLED for autosave functionality
-    Timer {
-        id: contentSyncTimer
-        interval: 500 // Check every 500ms
-        running: _isLoaded && !readOnly
-        repeat: true
-
-        onTriggered: {
-            getText(function (content) {
-                if (content !== richTextEditor.text) {
-                    _internalUpdate = true;  // Set flag before updating
-                    richTextEditor.text = content;
-                    richTextEditor.contentChanged(content);
-                    _internalUpdate = false;  // Reset flag after updating
-                }
-            });
-        }
-    }
-
-    // Loading indicator
     ActivityIndicator {
         id: loadingIndicator
         anchors.centerIn: parent
@@ -266,12 +585,13 @@ Item {
         visible: running
     }
 
-    // Error handling
+    // ============ ERROR HANDLING ============
+
     Rectangle {
         id: errorMessage
         anchors.fill: parent
-        color: "#f5f5f5"
-        visible: webView.loading === false && webView.url.toString() === ""
+        color: darkMode ? "#3d3d3d" : "#f5f5f5"
+        visible: !wv.loading && _isLoaded === false && wv.loadProgress === 100
 
         Column {
             anchors.centerIn: parent
@@ -294,7 +614,7 @@ Item {
                 text: "Retry"
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: {
-                    webView.reload();
+                    wv.reload();
                 }
             }
         }

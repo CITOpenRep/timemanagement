@@ -57,12 +57,13 @@ Page {
         spacing: units.gu(1)
         padding: units.gu(2)
 
-        // Rich Text Editor - shown when useRichText is true
-        RichTextEditor {
+        // Rich Text Editor with Toolbar - shown when useRichText is true
+        HtmlEditorContainer {
             id: editor
             visible: useRichText
             text: Global.description_temporary_holder
             readOnly: isReadOnly
+            showToolbar: !isReadOnly
             width: parent.width - units.gu(4)
             height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
 
