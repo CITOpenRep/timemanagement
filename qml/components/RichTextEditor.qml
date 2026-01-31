@@ -290,12 +290,12 @@ Item {
 
     /**
      * Get formatted text synchronously (API compatible with RichTextPreview)
-     * WARNING: This returns the cached 'text' property, which may not be up-to-date.
-     * For reliable content, use getText(callback) instead.
+     * Returns the cached 'text' property which is kept up-to-date via contentChanged events.
      * @return Current text property value
      */
     function getFormattedText() {
-        console.log("[RichTextEditor] getFormattedText called (sync) - returning cached text");
+        // The text property is updated whenever contentChanged event fires from the JS editor
+        // This should be reliable for sync access
         return editor.text || "";
     }
 
@@ -322,10 +322,15 @@ Item {
 
     /**
      * Force sync current content (legacy API)
+     * This updates the text property from the WebEngine editor synchronously if possible,
+     * otherwise returns the current cached text property.
      */
     function syncContent() {
+        console.log("[RichTextEditor] syncContent called - _isLoaded:", _isLoaded, "readOnly:", readOnly);
         if (_isLoaded && !readOnly) {
+            // Get current content and update text property
             getText(function(content) {
+                console.log("[RichTextEditor] syncContent got content length:", content ? content.length : 0);
                 if (content !== editor.text) {
                     _internalUpdate = true;
                     editor.text = content;
@@ -334,6 +339,8 @@ Item {
                 }
             });
         }
+        // Always return current cached text for immediate sync needs
+        return editor.text || "";
     }
 
     // ============ PROPERTY CHANGE HANDLERS ============
@@ -464,7 +471,9 @@ Item {
                     var payload = {};
                     if (parts.length > 1) {
                         try {
-                            payload = JSON.parse(decodeURIComponent(parts[1]));
+                            var decoded = JSON.parse(decodeURIComponent(parts[1]));
+                            // The bridge wraps in {type, payload}, extract the nested payload
+                            payload = decoded.payload || decoded;
                         } catch (e) {
                             console.warn("[RichTextEditor] Failed to parse event payload:", e);
                         }
@@ -580,6 +589,7 @@ Item {
                     console.log("[RichTextEditor] Editor ready");
                     break;
                 case 'contentChanged':
+                    console.log("[RichTextEditor] contentChanged event received, content length:", payload.content ? payload.content.length : 0);
                     if (!editor._internalUpdate) {
                         editor._internalUpdate = true;
                         editor.text = payload.content || "";

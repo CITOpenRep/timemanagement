@@ -60,12 +60,13 @@ Rectangle {
     }
 
     /**
-     * Sync content (API compatible with RichTextEditor - no-op for RichTextPreview)
+     * Sync content (API compatible with RichTextEditor)
+     * Returns the current content for immediate sync needs
      */
     function syncContent() {
-        // RichTextPreview is synchronous, so this is a no-op
-        // Just ensure originalHtmlContent is up to date
+        // RichTextPreview is synchronous, so just return current content
         originalHtmlContent = previewText.text;
+        return originalHtmlContent;
     }
 
     // Override the text property setter to also store HTML

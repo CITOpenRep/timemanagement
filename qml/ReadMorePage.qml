@@ -136,17 +136,19 @@ Page {
         if (!visible && !isReadOnly) {
             // Page is being hidden, ensure we save the current content
             if (useRichText && editor) {
-                // Force immediate sync before page closes
-                editor.syncContent();
-                // Also get content as backup
-                editor.getText(function (content) {
-                    Global.description_temporary_holder = content;
-                    // Save draft when leaving ReadMore page
-                    if (parentDraftHandler) {
-                        parentDraftHandler.markFieldChanged("description", content);
-                        parentDraftHandler.saveDraft();
-                    }
-                });
+                // Use syncContent which returns the cached text immediately
+                // The text property is kept in sync via contentChanged events
+                var currentContent = editor.syncContent();
+                console.log("[ReadMorePage] onVisibleChanged - saving content length:", currentContent ? currentContent.length : 0);
+                
+                // Use the cached text property which is updated via contentChanged
+                Global.description_temporary_holder = currentContent || editor.text || "";
+                
+                // Save draft when leaving ReadMore page
+                if (parentDraftHandler) {
+                    parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
+                    parentDraftHandler.saveDraft();
+                }
             } else if (!useRichText && simpleEditor) {
                 Global.description_temporary_holder = simpleEditor.text;
                 // Save draft when leaving ReadMore page
@@ -171,13 +173,16 @@ Page {
         // Save content when page is destroyed
         if (!isReadOnly) {
             if (useRichText && editor) {
-                editor.syncContent();
+                // Use the cached text property which is kept in sync via contentChanged
+                var currentContent = editor.getFormattedText();
+                console.log("[ReadMorePage] onDestruction - saving content length:", currentContent ? currentContent.length : 0);
+                Global.description_temporary_holder = currentContent;
             } else if (!useRichText && simpleEditor) {
                 Global.description_temporary_holder = simpleEditor.text;
             }
             
             // Save draft one last time before page is destroyed
-            if (parentDraftHandler) {
+            if (parentDraftHandler && Global.description_temporary_holder) {
                 parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
                 parentDraftHandler.saveDraft();
             }

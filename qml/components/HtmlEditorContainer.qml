@@ -120,8 +120,7 @@ Column {
 
     /**
      * Get formatted text synchronously (API compatible with RichTextPreview)
-     * WARNING: This returns the cached 'text' property, which may not be up-to-date.
-     * For reliable content, use getText(callback) instead.
+     * Returns the cached 'text' property which is kept up-to-date via contentChanged events.
      * @return Current text property value
      */
     function getFormattedText() {
@@ -133,9 +132,14 @@ Column {
         htmlEditor.setText(htmlText)
     }
 
-    /** Sync content immediately */
+    /** 
+     * Sync content immediately
+     * Also returns the current cached text for immediate sync needs
+     */
     function syncContent() {
-        htmlEditor.syncContent()
+        var result = htmlEditor.syncContent()
+        // Return our cached text which is kept in sync via contentChanged
+        return htmlEditorContainer.text || "";
     }
 
     // ============ LAYOUT ============
