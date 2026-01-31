@@ -118,6 +118,16 @@ Column {
         htmlEditor.getText(callback)
     }
 
+    /**
+     * Get formatted text synchronously (API compatible with RichTextPreview)
+     * WARNING: This returns the cached 'text' property, which may not be up-to-date.
+     * For reliable content, use getText(callback) instead.
+     * @return Current text property value
+     */
+    function getFormattedText() {
+        return htmlEditorContainer.text || "";
+    }
+
     /** Set text content */
     function setText(htmlText) {
         htmlEditor.setText(htmlText)

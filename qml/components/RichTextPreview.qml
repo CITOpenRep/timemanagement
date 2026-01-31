@@ -26,10 +26,46 @@ Rectangle {
         return originalHtmlContent;
     }
 
+    /**
+     * Get text content asynchronously (API compatible with RichTextEditor)
+     * @param callback - Function to call with the HTML content
+     */
+    function getText(callback) {
+        var content = getFormattedText();
+        if (callback) {
+            callback(content);
+        }
+    }
+
     // Function to set content with HTML preservation
     function setContent(htmlContent) {
         originalHtmlContent = htmlContent || "";
         previewText.text = htmlContent || "";
+    }
+
+    /**
+     * Set HTML document content (API compatible with RichTextEditor)
+     * @param doc - HTML string to set
+     */
+    function setDocument(doc) {
+        setContent(doc);
+    }
+
+    /**
+     * Set text content (API compatible with RichTextEditor)
+     * @param htmlText - HTML string to set
+     */
+    function setText(htmlText) {
+        setContent(htmlText);
+    }
+
+    /**
+     * Sync content (API compatible with RichTextEditor - no-op for RichTextPreview)
+     */
+    function syncContent() {
+        // RichTextPreview is synchronous, so this is a no-op
+        // Just ensure originalHtmlContent is up to date
+        originalHtmlContent = previewText.text;
     }
 
     // Override the text property setter to also store HTML

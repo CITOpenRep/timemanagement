@@ -289,6 +289,17 @@ Item {
     }
 
     /**
+     * Get formatted text synchronously (API compatible with RichTextPreview)
+     * WARNING: This returns the cached 'text' property, which may not be up-to-date.
+     * For reliable content, use getText(callback) instead.
+     * @return Current text property value
+     */
+    function getFormattedText() {
+        console.log("[RichTextEditor] getFormattedText called (sync) - returning cached text");
+        return editor.text || "";
+    }
+
+    /**
      * Set read-only mode (legacy API)
      * @param isReadOnly - true to enable read-only
      */
@@ -328,8 +339,14 @@ Item {
     // ============ PROPERTY CHANGE HANDLERS ============
 
     onTextChanged: {
-        if (!_internalUpdate && _isLoaded) {
-            setText(text);
+        console.log("[RichTextEditor] onTextChanged - _internalUpdate:", _internalUpdate, "_isLoaded:", _isLoaded, "text length:", text ? text.length : 0);
+        if (!_internalUpdate) {
+            if (_isLoaded) {
+                setText(text);
+            } else {
+                // Store as pending text to be set when editor loads
+                _pendingText = text || "";
+            }
         }
     }
 
@@ -408,10 +425,13 @@ Item {
                     _isLoaded = true;
                     
                     // Set pending text if any
+                    console.log("[RichTextEditor] Checking pending text - _pendingText length:", _pendingText ? _pendingText.length : 0, "editor.text length:", editor.text ? editor.text.length : 0);
                     if (_pendingText !== "") {
+                        console.log("[RichTextEditor] Setting pending text:", _pendingText ? _pendingText.substring(0, 100) : "empty");
                         setText(_pendingText);
                         _pendingText = "";
                     } else if (editor.text !== "") {
+                        console.log("[RichTextEditor] Setting editor.text:", editor.text ? editor.text.substring(0, 100) : "empty");
                         setText(editor.text);
                     }
                     
