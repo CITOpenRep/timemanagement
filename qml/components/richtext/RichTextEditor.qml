@@ -46,6 +46,15 @@ Item {
      */
     property alias font: p.font
 
+    /** Current font size at cursor position (e.g., "12pt", "16px") */
+    property string currentFontSize: "12pt"
+    
+    /** Current text color at cursor position */
+    property color currentTextColor: "#000000"
+    
+    /** Current highlight/background color at cursor position */
+    property color currentHighlightColor: "transparent"
+
     // ============ SIGNALS ============
     
     /** Emitted when content changes */
@@ -455,6 +464,7 @@ Item {
         }
 
         function parseFormatFromPath(path) {
+            // Parse formatting tags
             var hasBold = path.indexOf('>B') !== -1 || path.indexOf('>STRONG') !== -1;
             var hasItalic = path.indexOf('>I') !== -1 || path.indexOf('>EM') !== -1;
             var hasUnderline = path.indexOf('>U') !== -1;
@@ -462,6 +472,26 @@ Item {
             if (font.bold !== hasBold) font.bold = hasBold;
             if (font.italic !== hasItalic) font.italic = hasItalic;
             if (font.underline !== hasUnderline) font.underline = hasUnderline;
+            
+            // Parse font size [fontSize=12pt]
+            var fontSizeMatch = path.match(/\[fontSize=([^\]]+)\]/);
+            if (fontSizeMatch && fontSizeMatch[1]) {
+                editor.currentFontSize = fontSizeMatch[1];
+            }
+            
+            // Parse text color [color=rgb(0,0,0)] or [color=#000000]
+            var colorMatch = path.match(/\[color=([^\]]+)\]/);
+            if (colorMatch && colorMatch[1]) {
+                editor.currentTextColor = colorMatch[1];
+            }
+            
+            // Parse highlight/background color [backgroundColor=rgb(255,255,0)]
+            var bgColorMatch = path.match(/\[backgroundColor=([^\]]+)\]/);
+            if (bgColorMatch && bgColorMatch[1]) {
+                editor.currentHighlightColor = bgColorMatch[1];
+            } else {
+                editor.currentHighlightColor = "transparent";
+            }
         }
     }
 

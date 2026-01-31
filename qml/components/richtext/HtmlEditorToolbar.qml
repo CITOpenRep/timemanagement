@@ -25,9 +25,11 @@ Rectangle {
     id: toolbar
 
     property var editor: null
-    property string currentFontSize: "12pt"
-    property color currentTextColor: "#000000"
-    property color currentHighlightColor: "transparent"
+    
+    // Dynamic properties - bound to editor when available
+    property string currentFontSize: editor ? editor.currentFontSize : "12pt"
+    property color currentTextColor: editor ? editor.currentTextColor : "#000000"
+    property color currentHighlightColor: editor ? editor.currentHighlightColor : "transparent"
     property bool darkMode: theme.name === "Ubuntu.Components.Themes.SuruDark"
 
     signal fontSizeClicked()
