@@ -13,6 +13,7 @@ import "../models/task.js" as Task
 import "../models/project.js" as Project
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: activityDetailsPage

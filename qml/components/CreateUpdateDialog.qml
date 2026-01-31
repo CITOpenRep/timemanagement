@@ -17,6 +17,7 @@ import QtQuick.Layouts 1.3
 import "../../models/accounts.js" as Accounts
 import "../../models/global.js" as Global
 import "../components" as Components
+import "richtext"
 
 Item {
     id: popupWrapper

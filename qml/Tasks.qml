@@ -39,6 +39,7 @@ import "../models/accounts.js" as Accounts
 import "../models/timer_service.js" as TimerService
 
 import "components"
+import "components/richtext"
 
 Page {
     id: taskCreate
@@ -603,7 +604,7 @@ Page {
                 deadline: deadline_text.text !== "Not set" ? deadline_text.text : "",
                 priority: (priority != null ? priority.toString() : "0"),
                 plannedHours: Utils.convertDurationToFloat(hours_input.text),
-                description: description_text.text,
+                description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
                 assigneeUserId: ids.assignee_id,
                 status: "updated"
             };
@@ -1148,6 +1149,7 @@ Page {
                         is_read_only: isReadOnly
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
+                            navigatingToReadMore = true;
                             Global.description_temporary_holder = getFormattedText();
                             apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
@@ -1783,6 +1785,7 @@ Page {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
+                navigatingToReadMore = false; // Reset the flag after coming back
                 
                 // Track description change for draft
                 if (draftHandler.enabled) {
@@ -1790,7 +1793,10 @@ Page {
                 }
             }
         } else {
-            Global.description_temporary_holder = "";
+            // Only clear the holder if we're not navigating to ReadMore
+            if (!navigatingToReadMore) {
+                Global.description_temporary_holder = "";
+            }
         }
         }
     }

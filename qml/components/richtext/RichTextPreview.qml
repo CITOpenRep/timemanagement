@@ -20,10 +20,11 @@ Rectangle {
 
     // Function to get the raw text content with formatting preserved
     function getFormattedText() {
-        // Always get the most current content from the TextArea
-        // Update originalHtmlContent first to ensure we have the latest content
-        originalHtmlContent = previewText.text;
-        return originalHtmlContent;
+        // Return the stored original HTML content, not the Qt-converted text
+        // Qt's TextArea converts HTML when using Text.RichText format,
+        // which adds DOCTYPE and <html> tags - we want to preserve the original
+        console.log("[RichTextPreview] getFormattedText returning:", originalHtmlContent ? originalHtmlContent.substring(0, 100) : "(empty)");
+        return originalHtmlContent || "";
     }
 
     /**
@@ -37,10 +38,38 @@ Rectangle {
         }
     }
 
+    /**
+     * Check if content is valid HTML content (not corrupted editor internals)
+     * @param content - HTML string to validate
+     * @return true if content is valid, false if it contains editor internals
+     */
+    function isValidContent(content) {
+        if (!content) return true; // Empty is valid
+        // Check for signs that this is the raw editor.html body
+        if (content.indexOf('<script>') !== -1) return false;
+        if (content.indexOf('window.editor') !== -1) return false;
+        if (content.indexOf('oxide.sendMessage') !== -1) return false;
+        if (content.indexOf('squire-raw.js') !== -1) return false;
+        return true;
+    }
+
     // Function to set content with HTML preservation
     function setContent(htmlContent) {
+        console.log("[RichTextPreview] setContent called with:", htmlContent ? htmlContent.substring(0, 100) : "(empty)");
+        
+        // Validate content - reject if it contains editor internals
+        if (!isValidContent(htmlContent)) {
+            console.warn("[RichTextPreview] Ignoring corrupted content (contains editor internals)");
+            return;
+        }
+        
+        // Store the original HTML before setting to TextArea
         originalHtmlContent = htmlContent || "";
+        
+        // Prevent onTextChanged from overwriting originalHtmlContent
+        _settingContent = true;
         previewText.text = htmlContent || "";
+        _settingContent = false;
     }
 
     /**
@@ -64,19 +93,13 @@ Rectangle {
      * Returns the current content for immediate sync needs
      */
     function syncContent() {
-        // RichTextPreview is synchronous, so just return current content
-        originalHtmlContent = previewText.text;
-        return originalHtmlContent;
+        // RichTextPreview is synchronous - return the stored original HTML
+        // Do NOT use previewText.text as Qt adds DOCTYPE and <html> tags
+        return originalHtmlContent || "";
     }
 
-    // Override the text property setter to also store HTML
-    onTextChanged: {
-        // Only store as originalHtmlContent if it's not already set
-        // This prevents overwriting HTML content with processed text
-        if (originalHtmlContent === "" && text !== "") {
-            originalHtmlContent = text;
-        }
-    }
+    // Property to track if content was set programmatically
+    property bool _settingContent: false
 
     Column {
         id: column
@@ -113,10 +136,15 @@ Rectangle {
 
                 // Update originalHtmlContent when user types
                 onTextChanged: {
-                    if (!is_read_only) {
-                        originalHtmlContent = text;
-                        // Emit signal for draft tracking
-                        root.contentChanged(text);
+                    // Only update if user is typing (not read-only) and we're not setting content programmatically
+                    // Also reject Qt-processed HTML with DOCTYPE (comes from reading .text property back)
+                    if (!is_read_only && !_settingContent) {
+                        // Don't save Qt-processed HTML back to originalHtmlContent
+                        if (text.indexOf("<!DOCTYPE") === -1 && text.indexOf("<html") === -1) {
+                            originalHtmlContent = text;
+                            // Emit signal for draft tracking
+                            root.contentChanged(text);
+                        }
                     }
                 }
 
@@ -149,7 +177,7 @@ Rectangle {
                         Image {
                             id: expansionIcon
 
-                            source: "../images/expansion.png"
+                            source: "../../images/expansion.png"
                             width: units.gu(1.5)
                             height: units.gu(1.5)
                             // anchors.right: parent.right

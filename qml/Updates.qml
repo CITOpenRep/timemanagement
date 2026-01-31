@@ -35,6 +35,7 @@ import "../models/project.js" as Project
 import "../models/accounts.js" as Accounts
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: updateDetailsPage

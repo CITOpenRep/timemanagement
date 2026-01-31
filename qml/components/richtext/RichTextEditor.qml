@@ -195,13 +195,29 @@ Item {
     }
 
     /**
+     * Check if content is valid HTML content (not the raw editor page)
+     * @param content - HTML string to validate
+     * @return true if content is valid, false if it contains editor internals
+     */
+    function isValidContent(content) {
+        if (!content) return true; // Empty is valid
+        // Check for signs that this is the raw editor.html body
+        if (content.indexOf('<script>') !== -1) return false;
+        if (content.indexOf('window.editor') !== -1) return false;
+        if (content.indexOf('oxide.sendMessage') !== -1) return false;
+        if (content.indexOf('squire-raw.js') !== -1) return false;
+        return true;
+    }
+
+    /**
      * Force sync current content
      * Returns the current cached text for immediate sync needs.
      */
     function syncContent() {
         if (_isLoaded && !readOnly) {
             getText(function(content) {
-                if (content !== editor.text) {
+                // Only update if content is valid (not corrupted editor HTML)
+                if (isValidContent(content) && content !== editor.text) {
                     _internalUpdate = true;
                     editor.text = content;
                     editor.contentChanged(content);
@@ -262,12 +278,15 @@ Item {
             onLoadingChanged: {
                 if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                     _isLoaded = true;
+                    console.log("[RichTextEditor] Loaded. text=", editor.text ? editor.text.substring(0, 100) : "(empty)", "_pendingText=", _pendingText ? _pendingText.substring(0, 100) : "(empty)");
                     
                     // Set pending text if any
                     if (_pendingText !== "") {
+                        console.log("[RichTextEditor] Setting pending text");
                         setText(_pendingText);
                         _pendingText = "";
                     } else if (editor.text !== "") {
+                        console.log("[RichTextEditor] Setting editor.text");
                         setText(editor.text);
                     }
                     
@@ -275,6 +294,20 @@ Item {
                     if (readOnly) {
                         wv.runJavaScript("document.body.contentEditable = false;");
                     }
+                    
+                    // Sync content after a short delay to ensure Squire has processed the HTML
+                    // This updates editor.text with Squire's normalized HTML output
+                    Qt.callLater(function() {
+                        wv.runJavaScript("window.editor.getHTML();", function(result) {
+                            console.log("[RichTextEditor] Synced from Squire:", result ? result.substring(0, 100) : "(empty)");
+                            // Only update if content is valid (not corrupted editor HTML)
+                            if (result && isValidContent(result) && result !== editor.text) {
+                                _internalUpdate = true;
+                                editor.text = result;
+                                _internalUpdate = false;
+                            }
+                        });
+                    });
                     
                     // Emit contentLoaded signal
                     editor.contentLoaded();
@@ -380,10 +413,16 @@ Item {
             switch (eventType) {
                 case 'contentChanged':
                     if (!editor._internalUpdate) {
-                        editor._internalUpdate = true;
-                        editor.text = payload.content || "";
-                        editor.contentChanged(payload.content || "");
-                        editor._internalUpdate = false;
+                        var content = payload.content || "";
+                        // Validate content before accepting it
+                        if (isValidContent(content)) {
+                            editor._internalUpdate = true;
+                            editor.text = content;
+                            editor.contentChanged(content);
+                            editor._internalUpdate = false;
+                        } else {
+                            console.warn("[RichTextEditor] Ignoring invalid content (contains editor internals)");
+                        }
                     }
                     break;
                 case 'pathChanged':

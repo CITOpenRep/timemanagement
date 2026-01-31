@@ -11,6 +11,7 @@ import Lomiri.Components.Popups 1.3
 import QtQuick.Layouts 1.3
 import "../../models/accounts.js" as Accounts
 import "../../models/global.js" as Global
+import "richtext"
 
 Page {
     id: createUpdatePage

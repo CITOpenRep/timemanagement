@@ -37,6 +37,7 @@ import "../models/timer_service.js" as TimerService
 import "../models/utils.js" as Utils
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: timeSheet
@@ -149,7 +150,7 @@ Page {
             'task': correctTaskId,
             'subTask': correctSubTaskId,
             'subprojectId': ids.subproject_id,
-            'description': description_text.text,
+            'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
