@@ -93,6 +93,20 @@ Rectangle {
                 }
             }
 
+            // Strikethrough
+            Button {
+                width: units.gu(5)
+                height: units.gu(4)
+                text: "S"
+                font.strikeout: true
+                color: editor && editor.font.strikethrough ? LomiriColors.orange : (darkMode ? "#555555" : "#F0F0F0")
+                onClicked: {
+                    if (editor) {
+                        editor.toggleStrikethrough()
+                    }
+                }
+            }
+
             ToolbarSeparator {}
 
             // Font Size
@@ -225,7 +239,10 @@ Rectangle {
                 text: "•"
                 font.pixelSize: units.gu(2)
                 color: darkMode ? "#555555" : "#F0F0F0"
-                onClicked: if (editor) editor.makeUnorderedList()
+                onClicked: {
+                    console.log("[Toolbar] Unordered list clicked, editor:", editor ? "exists" : "null");
+                    if (editor) editor.makeUnorderedList()
+                }
             }
 
             // Ordered List
@@ -235,7 +252,10 @@ Rectangle {
                 text: "1."
                 font.pixelSize: units.gu(1.5)
                 color: darkMode ? "#555555" : "#F0F0F0"
-                onClicked: if (editor) editor.makeOrderedList()
+                onClicked: {
+                    console.log("[Toolbar] Ordered list clicked, editor:", editor ? "exists" : "null");
+                    if (editor) editor.makeOrderedList()
+                }
             }
 
             ToolbarSeparator {}

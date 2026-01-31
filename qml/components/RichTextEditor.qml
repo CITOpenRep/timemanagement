@@ -49,10 +49,10 @@ Item {
     readonly property bool focused: p.focused
 
     /** Undo state of the document */
-    readonly property bool canUndo: p.undoState ? p.undoState['canUndo'] : false
+    readonly property bool canUndo: p.undoState && p.undoState['canUndo'] === true
 
     /** Redo state of the document */
-    readonly property bool canRedo: p.undoState ? p.undoState['canRedo'] : false
+    readonly property bool canRedo: p.undoState && p.undoState['canRedo'] === true
 
     /**
      * Font formatting state object
@@ -103,6 +103,11 @@ Item {
     /** Toggle underline formatting */
     function toggleUnderline() {
         wv.runJavaScript("(function() { var e = window.editor; if (e.hasFormat('U')) { e.removeUnderline(); } else { e.underline(); } })();");
+    }
+
+    /** Toggle strikethrough formatting */
+    function toggleStrikethrough() {
+        wv.runJavaScript("(function() { var e = window.editor; if (e.hasFormat('S')) { e.removeStrikethrough(); } else { e.strikethrough(); } })();");
     }
 
     /** Undo user action */
@@ -195,12 +200,14 @@ Item {
 
     /** Create an unordered list */
     function makeUnorderedList() { 
-        wv.runJavaScript("window.editor.makeUnorderedList();");
+        console.log("[RichTextEditor] makeUnorderedList called");
+        wv.runJavaScript("window.editor.focus(); window.editor.makeUnorderedList();");
     }
 
     /** Create an ordered list */
     function makeOrderedList() { 
-        wv.runJavaScript("window.editor.makeOrderedList();");
+        console.log("[RichTextEditor] makeOrderedList called");
+        wv.runJavaScript("window.editor.focus(); window.editor.makeOrderedList();");
     }
 
     /**
@@ -208,7 +215,7 @@ Item {
      * @param size - Size string like "12pt" or "16px"
      */
     function setFontSize(size) { 
-        wv.runJavaScript("window.editor.setFontSize('" + size + "');");
+        wv.runJavaScript("window.editor.focus(); window.editor.setFontSize('" + size + "');");
     }
 
     /**
@@ -216,7 +223,7 @@ Item {
      * @param color - Color string like "#FF0000"
      */
     function setTextColor(color) { 
-        wv.runJavaScript("window.editor.setTextColour('" + color + "');");
+        wv.runJavaScript("window.editor.focus(); window.editor.setTextColour('" + color + "');");
     }
 
     /**
@@ -224,12 +231,12 @@ Item {
      * @param color - Color string like "#FFFF00"
      */
     function setHighlightColor(color) { 
-        wv.runJavaScript("window.editor.setHighlightColour('" + color + "');");
+        wv.runJavaScript("window.editor.focus(); window.editor.setHighlightColour('" + color + "');");
     }
 
     /** Remove all formatting from selected text */
     function removeAllFormatting() { 
-        wv.runJavaScript("window.editor.removeAllFormatting();");
+        wv.runJavaScript("window.editor.focus(); window.editor.removeAllFormatting();");
     }
 
     /**
@@ -472,6 +479,7 @@ Item {
             property bool bold: false
             property bool italic: false
             property bool underline: false
+            property bool strikethrough: false
             property int size: 13
             property color textColor: "black"
             property color highlightColor: "white"
@@ -495,6 +503,13 @@ Item {
                     wv.runJavaScript("window.editor.underline();");
                 } else {
                     wv.runJavaScript("window.editor.removeUnderline();");
+                }
+            }
+            onStrikethroughChanged: {
+                if (strikethrough) {
+                    wv.runJavaScript("window.editor.strikethrough();");
+                } else {
+                    wv.runJavaScript("window.editor.removeStrikethrough();");
                 }
             }
         }
