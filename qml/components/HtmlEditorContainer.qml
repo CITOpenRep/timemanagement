@@ -193,10 +193,6 @@ Column {
             htmlEditorContainer.text = newText
             htmlEditorContainer.contentChanged(newText)
         }
-
-        onPathChanged: {
-            htmlEditorContainer.parsePathForFormatting(path)
-        }
     }
 
     // ============ DIALOG COMPONENTS ============
