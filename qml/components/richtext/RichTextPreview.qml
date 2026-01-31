@@ -1,5 +1,6 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
+import "js/html-sanitizer.js" as HtmlSanitizer
 
 Rectangle {
     id: root
@@ -23,7 +24,8 @@ Rectangle {
         // Return the stored original HTML content, not the Qt-converted text
         // Qt's TextArea converts HTML when using Text.RichText format,
         // which adds DOCTYPE and <html> tags - we want to preserve the original
-        console.log("[RichTextPreview] getFormattedText returning:", originalHtmlContent ? originalHtmlContent.substring(0, 100) : "(empty)");
+        console.log("[RichTextPreview] getFormattedText returning, full content:");
+        console.log(originalHtmlContent);
         return originalHtmlContent || "";
     }
 
@@ -40,22 +42,42 @@ Rectangle {
 
     /**
      * Check if content is valid HTML content (not corrupted editor internals)
+     * Uses the centralized HtmlSanitizer validation.
      * @param content - HTML string to validate
      * @return true if content is valid, false if it contains editor internals
      */
     function isValidContent(content) {
         if (!content) return true; // Empty is valid
-        // Check for signs that this is the raw editor.html body
-        if (content.indexOf('<script>') !== -1) return false;
-        if (content.indexOf('window.editor') !== -1) return false;
-        if (content.indexOf('oxide.sendMessage') !== -1) return false;
-        if (content.indexOf('squire-raw.js') !== -1) return false;
-        return true;
+        var validation = HtmlSanitizer.validate(content);
+        if (!validation.isValid) {
+            console.log("[RichTextPreview] Invalid content:", validation.issues.join(", "));
+        }
+        return validation.isValid;
+    }
+
+    /**
+     * Sanitize HTML content using the centralized HtmlSanitizer.
+     * Handles Qt wrappers, Odoo HTML, and Squire output.
+     * @param content - HTML string that may need sanitization
+     * @return Clean HTML content
+     */
+    function sanitizeHtml(content) {
+        if (!content) return "";
+        
+        // Check if sanitization is needed
+        if (HtmlSanitizer.needsSanitization(content)) {
+            console.log("[RichTextPreview] Sanitizing HTML content");
+            var result = HtmlSanitizer.sanitize(content);
+            console.log("[RichTextPreview] Sanitized result:", result ? result.substring(0, 100) : "(empty)");
+            return result;
+        }
+        
+        return content;
     }
 
     // Function to set content with HTML preservation
     function setContent(htmlContent) {
-        console.log("[RichTextPreview] setContent called with:", htmlContent ? htmlContent.substring(0, 100) : "(empty)");
+        console.log("[RichTextPreview] setContent called with length:", htmlContent ? htmlContent.length : 0);
         
         // Validate content - reject if it contains editor internals
         if (!isValidContent(htmlContent)) {
@@ -63,12 +85,15 @@ Rectangle {
             return;
         }
         
-        // Store the original HTML before setting to TextArea
-        originalHtmlContent = htmlContent || "";
+        // Sanitize the HTML to remove Qt wrapper if present
+        var cleanContent = sanitizeHtml(htmlContent || "");
+        
+        // Store the clean HTML
+        originalHtmlContent = cleanContent;
         
         // Prevent onTextChanged from overwriting originalHtmlContent
         _settingContent = true;
-        previewText.text = htmlContent || "";
+        previewText.text = cleanContent;
         _settingContent = false;
     }
 

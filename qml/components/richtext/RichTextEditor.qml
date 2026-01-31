@@ -18,6 +18,7 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtWebEngine 1.5
+import "js/html-sanitizer.js" as HtmlSanitizer
 
 Item {
     id: editor
@@ -156,16 +157,38 @@ Item {
     }
 
     /**
+     * Sanitize HTML content using the centralized HtmlSanitizer.
+     * Handles Qt wrappers, Odoo HTML, and ensures clean content for Squire.
+     * @param content - HTML string that may need sanitization
+     * @return Clean HTML content
+     */
+    function sanitizeHtml(content) {
+        if (!content) return "";
+        
+        // Check if sanitization is needed
+        if (HtmlSanitizer.needsSanitization(content)) {
+            console.log("[RichTextEditor] Sanitizing HTML content");
+            var result = HtmlSanitizer.sanitize(content);
+            console.log("[RichTextEditor] Sanitized result:", result ? result.substring(0, 100) : "(empty)");
+            return result;
+        }
+        
+        return content;
+    }
+
+    /**
      * Set text content
      * @param htmlText - HTML string to set
      */
     function setText(htmlText) {
+        // Sanitize the HTML to remove Qt wrapper if present
+        var cleanedDoc = sanitizeHtml(htmlText ? htmlText.trim() : "");
+        
         if (_isLoaded) {
-            var cleanedDoc = htmlText ? htmlText.trim() : "";
             var jsCode = "window.editor.setHTML(" + JSON.stringify(cleanedDoc) + ");";
             wv.runJavaScript(jsCode);
         } else {
-            _pendingText = htmlText || "";
+            _pendingText = cleanedDoc;
         }
     }
 
@@ -196,17 +219,17 @@ Item {
 
     /**
      * Check if content is valid HTML content (not the raw editor page)
+     * Uses the centralized HtmlSanitizer validation.
      * @param content - HTML string to validate
      * @return true if content is valid, false if it contains editor internals
      */
     function isValidContent(content) {
         if (!content) return true; // Empty is valid
-        // Check for signs that this is the raw editor.html body
-        if (content.indexOf('<script>') !== -1) return false;
-        if (content.indexOf('window.editor') !== -1) return false;
-        if (content.indexOf('oxide.sendMessage') !== -1) return false;
-        if (content.indexOf('squire-raw.js') !== -1) return false;
-        return true;
+        var validation = HtmlSanitizer.validate(content);
+        if (!validation.isValid) {
+            console.log("[RichTextEditor] Invalid content:", validation.issues.join(", "));
+        }
+        return validation.isValid;
     }
 
     /**

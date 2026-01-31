@@ -69,7 +69,8 @@ Page {
             height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
 
             onContentChanged: {
-                console.log("[ReadMorePage] onContentChanged:", newText ? newText.substring(0, 100) : "(empty)");
+                console.log("[ReadMorePage] onContentChanged, full content:");
+                console.log(newText);
                 Global.description_temporary_holder = newText;
                 
                 // Track changes in parent form's draft handler
@@ -80,7 +81,8 @@ Page {
 
             onContentLoaded: {
                 // Set initial content once the editor is loaded
-                console.log("[ReadMorePage] onContentLoaded, holder:", Global.description_temporary_holder ? Global.description_temporary_holder.substring(0, 100) : "(empty)");
+                console.log("[ReadMorePage] onContentLoaded, holder full content:");
+                console.log(Global.description_temporary_holder);
                 if (Global.description_temporary_holder) {
                     editor.text = Global.description_temporary_holder;
                 }

@@ -1150,7 +1150,11 @@ Page {
                         onClicked: {
                             //set the data to a global Slore and pass the key to the page
                             navigatingToReadMore = true;
-                            Global.description_temporary_holder = getFormattedText();
+                            var contentToPass = getFormattedText();
+                            console.log("[Tasks] onClicked - originalHtmlContent:", description_text.originalHtmlContent);
+                            console.log("[Tasks] onClicked - passing to holder, full content:");
+                            console.log(contentToPass);
+                            Global.description_temporary_holder = contentToPass;
                             apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 parentDraftHandler: draftHandler // Pass draft handler reference
@@ -1682,6 +1686,7 @@ Page {
             workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
             name_text.text = currentTask.name || "";
+            console.log("[Tasks] loadTask - setting description, currentTask.description:", currentTask.description);
             description_text.setContent(currentTask.description || "");
 
             // Handle planned hours more carefully
