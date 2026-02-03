@@ -297,7 +297,7 @@ Item {
         WebEngineView {
             id: wv
             anchors.fill: parent
-            anchors.margins: units.gu(0.5)
+            anchors.margins: units.gu(0.1)
             
             url: Qt.resolvedUrl("js/editor.html") + "?darkMode=" + darkMode + 
                  "&readonly=" + readOnly + 

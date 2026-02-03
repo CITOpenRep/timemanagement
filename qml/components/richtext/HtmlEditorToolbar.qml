@@ -164,10 +164,10 @@ Rectangle {
                 Column {
                     anchors.centerIn: parent
                     spacing: 2
-                    Rectangle { width: units.gu(3); height: units.dp(2); color: "#333"; anchors.left: parent.left }
-                    Rectangle { width: units.gu(2); height: units.dp(2); color: "#333"; anchors.left: parent.left }
-                    Rectangle { width: units.gu(2.5); height: units.dp(2); color: "#333"; anchors.left: parent.left }
-                    Rectangle { width: units.gu(1.5); height: units.dp(2); color: "#333"; anchors.left: parent.left }
+                    Rectangle { width: units.gu(3); height: units.dp(2); color:darkMode ? "#CCCCCC" : "#333333"; anchors.left: parent.left }
+                    Rectangle { width: units.gu(2); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.left: parent.left }
+                    Rectangle { width: units.gu(2.5); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.left: parent.left }
+                    Rectangle { width: units.gu(1.5); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.left: parent.left }
 
                 }
                 onClicked: if (editor) editor.setTextAlignment(Qt.AlignLeft)
@@ -196,10 +196,10 @@ Rectangle {
                 Column {
                     anchors.centerIn: parent
                     spacing: 2
-                     Rectangle { width: units.gu(3); height: units.dp(2); color: "#333"; anchors.right: parent.right }
-                    Rectangle { width: units.gu(2); height: units.dp(2); color: "#333"; anchors.right: parent.right }
-                    Rectangle { width: units.gu(2.5); height: units.dp(2); color: "#333"; anchors.right: parent.right }
-                    Rectangle { width: units.gu(1.5); height: units.dp(2); color: "#333"; anchors.right: parent.right }
+                     Rectangle { width: units.gu(3); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.right: parent.right }
+                    Rectangle { width: units.gu(2); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.right: parent.right }
+                    Rectangle { width: units.gu(2.5); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.right: parent.right }
+                    Rectangle { width: units.gu(1.5); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.right: parent.right }
 
                 }
                 onClicked: if (editor) editor.setTextAlignment(Qt.AlignRight)
