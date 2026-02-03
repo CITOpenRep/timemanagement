@@ -266,7 +266,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                text: "🔗"
+                iconName:"insert-link"
                 font.pixelSize: units.gu(1.5)
                 color: darkMode ? "#555555" : "#F0F0F0"
                 onClicked: toolbar.linkClicked()
@@ -278,7 +278,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                text: "↶"
+                iconName: "edit-undo"
                 font.pixelSize: units.gu(2)
                 color: darkMode ? "#555555" : "#F0F0F0"
                 onClicked: {
@@ -291,7 +291,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                text: "↷"
+                iconName: "edit-redo"
                 font.pixelSize: units.gu(2)
                 color: darkMode ? "#555555" : "#F0F0F0"
                 onClicked: {
@@ -306,7 +306,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                text: "Tx"
+                iconName: "edit-clear"
                 font.pixelSize: units.gu(1.5)
                 color: darkMode ? "#555555" : "#F0F0F0"
                 onClicked: if (editor) editor.removeAllFormatting()
