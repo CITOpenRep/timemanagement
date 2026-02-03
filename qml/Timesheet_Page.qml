@@ -53,6 +53,9 @@ Page {
     property int taskAccountId: -1
     property string taskName: ""
 
+    // Loading state property
+    property bool isLoading: false
+
     header: PageHeader {
         id: timesheetsheader
         title: filterByTask ? i18n.dtr("ubtms", "Timesheets") + " - " + taskName : timesheets.title
@@ -165,7 +168,23 @@ Page {
         id: timesheetModel
     }
 
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: loadingTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doLoadTimesheets()
+    }
+
     function fetch_timesheets_list() {
+        isLoading = true;
+        timesheetModel.clear();
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        loadingTimer.start();
+    }
+
+    function _doLoadTimesheets() {
         // Use selectedAccountId for filtering (from account selector)
         var filterAccountId = selectedAccountId;
         console.log("Filtering timesheets for account:", filterAccountId, "filter:", currentFilter);
@@ -187,8 +206,6 @@ Page {
             console.log("Account selector: Single account selected — fetching timesheets for account", filterAccountId);
             timesheets_list = Model.fetchTimesheetsByStatus(currentFilter, filterAccountId);
         }
-
-        timesheetModel.clear();
 
         if (!timesheets_list || !timesheets_list.length) {
             console.log("No timesheets returned from model (length 0 or undefined).");
@@ -218,6 +235,7 @@ Page {
         }
 
         console.log("Populated timesheetModel with", timesheetModel.count, "items");
+        isLoading = false;
     }
 
     ListView {
@@ -313,5 +331,12 @@ Page {
         // Initialize default account
         defaultAccountId = accountPicker.selectedAccountId;
         selectedAccountId = accountPicker.selectedAccountId;
+    }
+
+    // Loading indicator overlay
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: isLoading
+        message: i18n.dtr("ubtms", "Loading timesheets...")
     }
 }

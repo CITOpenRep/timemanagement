@@ -101,10 +101,21 @@ Page {
     property var selectedAssigneeIds: []
     property var availableAssignees: []
 
+    // Loading state property
+    property bool isLoading: false
+
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
+    }
+
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: loadingTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doLoadActivities()
     }
 
     Connections {
@@ -143,6 +154,7 @@ Page {
         loadAssignees();
 
         // Refresh the activity list
+        isLoading = true;
         get_activity_list();
     }
 
@@ -179,8 +191,16 @@ Page {
     }
 
     function get_activity_list() {
+        console.log("Starting get_activity_list - setting isLoading to true");
+        isLoading = true;
         activityListModel.clear();
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        loadingTimer.start();
+    }
 
+    function _doLoadActivities() {
+        console.log("_doLoadActivities - starting data fetch");
         try {
             var allActivities = [];
             var currentAccountId = selectedAccountId;
@@ -303,8 +323,10 @@ Page {
             }
 
             console.log("Populated activityListModel with", activityListModel.count, "items");
+            isLoading = false;
         } catch (e) {
             console.error("Error in get_activity_list():", e);
+            isLoading = false;
         }
     }
 
@@ -806,5 +828,12 @@ Page {
         assigneeFilterMenu.selectedAssigneeIds = [];
 
         get_activity_list();
+    }
+
+    // Loading indicator overlay
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: isLoading
+        message: i18n.dtr("ubtms", "Loading activities...")
     }
 }

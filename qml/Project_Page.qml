@@ -116,4 +116,11 @@ Page {
             projectlist.refresh();
         }
     }
+
+    // Loading indicator - forward state from ProjectList
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: projectlist.isLoading
+        message: i18n.dtr("ubtms", "Loading projects...")
+    }
 }

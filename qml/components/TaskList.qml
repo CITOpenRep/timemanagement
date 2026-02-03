@@ -61,6 +61,9 @@ Item {
     // View mode properties
     property bool flatViewMode: false
 
+    // Loading state property
+    property bool isLoading: false
+
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
     signal taskDeleteRequested(int recordId)
@@ -315,8 +318,22 @@ Item {
         return filteredTasks;
     }
 
-    function refreshWithFilter() {
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: refreshTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doRefreshWithFilter()
+    }
 
+    function refreshWithFilter() {
+        isLoading = true;
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        refreshTimer.start();
+    }
+
+    function _doRefreshWithFilter() {
         // Restore from global state if assignee filter is enabled but IDs are missing
         if (filterByAssignees && selectedAssigneeIds.length === 0)
         // Try to restore from global state - we need to access the Global object from TaskList
@@ -341,12 +358,12 @@ Item {
             }
             updateDisplayedTasks(accountTasks);
         } else if (currentFilter === "all" && !currentSearchQuery) {
-            populateTaskChildrenMap();
+            _doPopulateTaskChildrenMap();
         } else if (currentFilter && currentFilter !== "" || currentSearchQuery) {
             var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
             updateDisplayedTasks(filteredTasks);
         } else {
-            populateTaskChildrenMap();
+            _doPopulateTaskChildrenMap();
         }
     }
 
@@ -483,9 +500,11 @@ Item {
         }
 
         childrenMapReady = true;
+        isLoading = false;
     }
 
     function refresh() {
+        isLoading = true;
         navigationStackModel.clear();
         currentParentId = -1;
         currentFilter = "today";  // Reset to default filter
@@ -493,7 +512,23 @@ Item {
         refreshWithFilter();  // Use refreshWithFilter to apply the default filter
     }
 
+    // Timer for populating task children map
+    Timer {
+        id: populateTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doPopulateTaskChildrenMap()
+    }
+
     function populateTaskChildrenMap() {
+        isLoading = true;
+        childrenMap = {};
+        childrenMapReady = false;
+        // Use Timer to defer the actual data loading
+        populateTimer.start();
+    }
+
+    function _doPopulateTaskChildrenMap() {
         childrenMap = {};
         childrenMapReady = false;
 
@@ -501,6 +536,7 @@ Item {
 
         if (allTasks.length === 0) {
             childrenMapReady = true;
+            isLoading = false;
             return;
         }
 
@@ -560,6 +596,7 @@ Item {
         }
 
         childrenMapReady = true;
+        isLoading = false;
     }
 
     function getCurrentModel() {

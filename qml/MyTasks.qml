@@ -517,4 +517,11 @@ Page {
             }
         }
     }
+
+    // Loading indicator - forward state from TaskList
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: myTasksList.isLoading
+        message: i18n.dtr("ubtms", "Loading tasks...")
+    }
 }

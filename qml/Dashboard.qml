@@ -45,6 +45,15 @@ Page {
     anchors.fill: parent
     property bool isMultiColumn: apLayout.columns > 1
     property var page: 0
+    property bool isLoading: false
+
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: loadingTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doRefreshData()
+    }
 
     onVisibleChanged: {
         if (visible) {
@@ -255,7 +264,14 @@ Page {
     }
 
     function refreshData() {
-        //  console.log("🔄 Refreshing Dashboard data...");
+        console.log("🔄 Refreshing Dashboard data...");
+        isLoading = true;
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        loadingTimer.start();
+    }
+
+    function _doRefreshData() {
         get_project_chart_data();
         get_task_chart_data();
         // Refresh project chart using the account selector's selection (not default account)
@@ -263,6 +279,7 @@ Page {
             var selected = accountPicker.selectedAccountId;
             projectchart.refreshForAccount(selected);
         }
+        isLoading = false;
     }
 
     DialerMenu {
@@ -512,5 +529,14 @@ Page {
         console.log("Dashboard status is: " + mainPage.status);
         // Load notifications on startup
         notificationBell.loadNotifications();
+        // Trigger initial data load with loading indicator
+        refreshData();
+    }
+
+    // Loading indicator overlay
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: isLoading
+        message: i18n.dtr("ubtms", "Loading dashboard...")
     }
 }
