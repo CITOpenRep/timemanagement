@@ -214,35 +214,30 @@ Page {
             var currentAccountId = selectedAccountId;
             var isPaginated = false;
 
-            // Determine if we can use pagination
+            // Use pagination for all standard scenarios (except project/task specific views)
             var canPaginate = !filterByProject && !filterByTasks && 
-                              (!currentSearchQuery || currentSearchQuery === "") && 
-                              (!assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0) &&
-                              (currentFilter === "all" || currentFilter === "done");
+                              (!assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0);
 
             if (canPaginate) {
                 isPaginated = true;
                 var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
                 
-                if (currentFilter === "done") {
-                    if (accountIdForFilter === -1) {
-                        allActivities = Activity.getAllDoneActivitiesPaginated(pageSize, currentOffset);
-                    } else {
-                        allActivities = Activity.getDoneActivitiesForAccountPaginated(accountIdForFilter, pageSize, currentOffset);
-                    }
-                } else { // "all"
-                    if (accountIdForFilter === -1) {
-                        allActivities = Activity.getAllActivitiesPaginated(pageSize, currentOffset);
-                    } else {
-                        allActivities = Activity.getActivitiesForAccountPaginated(accountIdForFilter, pageSize, currentOffset);
-                    }
-                }
+                // Use the new paginated function that handles all filters with date filtering
+                var result = Activity.getFilteredActivitiesPaginated(
+                    currentFilter, 
+                    currentSearchQuery, 
+                    accountIdForFilter, 
+                    pageSize, 
+                    currentOffset
+                );
                 
-                console.log("Retrieved", allActivities.length, "paginated activities");
-                if (allActivities.length < pageSize) hasMoreItems = false;
+                allActivities = result.activities;
+                hasMoreItems = result.hasMore && allActivities.length >= pageSize;
+                
+                console.log("Retrieved", allActivities.length, "paginated activities for filter:", currentFilter);
                 
             } else {
-                // Legacy / Full Load path
+                // Legacy / Full Load path for project/task specific views
                 hasMoreItems = false; 
                 
                 if (filterByProject) {
@@ -250,16 +245,9 @@ Page {
                 } else if (filterByTasks) {
                     allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
                 } else {
-                    if (currentFilter && currentFilter !== "" || currentSearchQuery) {
-                        var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
-                        allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
-                    } else {
-                        if (filterByAccount && currentAccountId >= 0) {
-                            allActivities = Activity.getActivitiesForAccount(currentAccountId);
-                        } else {
-                            allActivities = Activity.getAllActivities();
-                        }
-                    }
+                    // This path is for assignee filtering
+                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                    allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
                 }
             }
 
@@ -344,9 +332,11 @@ Page {
 
             console.log("Populated activityListModel with", activityListModel.count, "items");
             isLoading = false;
+            isLoadingMore = false;
         } catch (e) {
             console.error("Error in _doLoadActivities:", e);
             isLoading = false;
+            isLoadingMore = false;
         }
     }
 

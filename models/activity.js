@@ -1442,6 +1442,161 @@ function getFilteredActivities(filterType, searchQuery, accountId) {
 }
 
 /**
+ * Paginated version of getFilteredActivities for infinite scroll with date/search filtering.
+ * Fetches activities in batches, applies JS-based filtering, and returns paginated results.
+ * 
+ * @param {string} filterType - The filter type: "today", "this_week", "overdue", etc.
+ * @param {string} searchQuery - The search query string
+ * @param {number} accountId - Account ID to filter activities (-1 for all accounts)
+ * @param {number} limit - Maximum number of filtered items to return
+ * @param {number} offset - Number of filtered items to skip (virtual offset)
+ * @returns {Object} { activities: Array, hasMore: boolean }
+ */
+function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limit, offset) {
+    limit = limit || 30;
+    offset = offset || 0;
+
+    // Handle "done" filter separately
+    if (filterType === "done") {
+        // For done activities, use a simplified approach since they're a smaller subset
+        var doneActivities;
+        if (accountId !== undefined && accountId >= 0) {
+            doneActivities = getDoneActivitiesForAccountPaginated(accountId, limit, offset);
+        } else {
+            doneActivities = getAllDoneActivitiesPaginated(limit, offset);
+        }
+
+        // Apply search filter if needed
+        if (searchQuery && searchQuery.trim() !== "") {
+            var searchFiltered = [];
+            for (var i = 0; i < doneActivities.length; i++) {
+                if (passesActivitySearchFilter(doneActivities[i], searchQuery)) {
+                    searchFiltered.push(doneActivities[i]);
+                }
+            }
+            return {
+                activities: searchFiltered,
+                hasMore: doneActivities.length >= limit
+            };
+        }
+
+        return {
+            activities: doneActivities,
+            hasMore: doneActivities.length >= limit
+        };
+    }
+
+    var filteredActivities = [];
+    var currentDate = new Date();
+    var batchSize = limit * 3; // Fetch 3x more raw items to account for filtering
+    var dbOffset = 0;
+    var skipped = 0;
+    var hasMore = true;
+    var maxIterations = 10; // Safety limit
+    var iteration = 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        while (filteredActivities.length < limit && hasMore && iteration < maxIterations) {
+            iteration++;
+            var rawActivities = [];
+
+            db.transaction(function (tx) {
+                var query = "SELECT * FROM mail_activity_app WHERE state != 'done'";
+                var params = [];
+
+                if (accountId !== undefined && accountId >= 0) {
+                    query += " AND account_id = ?";
+                    params.push(accountId);
+                }
+
+                query += " ORDER BY due_date ASC LIMIT ? OFFSET ?";
+                params.push(batchSize, dbOffset);
+
+                var result = tx.executeSql(query, params);
+                for (var i = 0; i < result.rows.length; i++) {
+                    rawActivities.push(DBCommon.rowToObject(result.rows.item(i)));
+                }
+            });
+
+            // If we got fewer items than batch size, no more data in DB
+            if (rawActivities.length < batchSize) {
+                hasMore = false;
+            }
+
+            // Apply JS-based filtering
+            for (var i = 0; i < rawActivities.length; i++) {
+                var activity = rawActivities[i];
+                var passesFilter = true;
+
+                // Apply date filter using existing logic
+                if (filterType && filterType !== "all" && !passesActivityDateFilter(activity, filterType, currentDate)) {
+                    passesFilter = false;
+                }
+
+                // Apply search filter
+                if (passesFilter && searchQuery && !passesActivitySearchFilter(activity, searchQuery)) {
+                    passesFilter = false;
+                }
+
+                if (passesFilter) {
+                    if (skipped < offset) {
+                        // Skip items until we reach the offset
+                        skipped++;
+                    } else if (filteredActivities.length < limit) {
+                        // Add to results
+                        filteredActivities.push(activity);
+                    } else {
+                        // We have enough items
+                        break;
+                    }
+                }
+            }
+
+            dbOffset += rawActivities.length;
+        }
+
+        // Add project colors to filtered activities
+        db.transaction(function (tx) {
+            var projectColorMap = {};
+            var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+            var projectResult = tx.executeSql(projectQuery);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                projectColorMap[projectResult.rows.item(j).odoo_record_id] = projectResult.rows.item(j).color_pallet;
+            }
+
+            for (var i = 0; i < filteredActivities.length; i++) {
+                var activity = filteredActivities[i];
+
+                // Inherit color from project
+                var inheritedColor = 0;
+                if (activity.resModel === "project.project" && activity.link_id) {
+                    inheritedColor = projectColorMap[activity.link_id] || 0;
+                } else if (activity.resModel === "project.task" && activity.link_id) {
+                    var taskRs = tx.executeSql(
+                        "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [activity.link_id]
+                    );
+                    if (taskRs.rows.length > 0 && taskRs.rows.item(0).project_id) {
+                        inheritedColor = projectColorMap[taskRs.rows.item(0).project_id] || 0;
+                    }
+                }
+                activity.color_pallet = inheritedColor;
+            }
+        });
+
+    } catch (e) {
+        console.error("getFilteredActivitiesPaginated failed:", e);
+    }
+
+    return {
+        activities: filteredActivities,
+        hasMore: hasMore || filteredActivities.length >= limit
+    };
+}
+
+/**
 * Gets account statistics for activities (similar to Task.getAccountsWithTaskCounts)
 * @returns {Array<Object>} Array of account objects with activity counts
 */
