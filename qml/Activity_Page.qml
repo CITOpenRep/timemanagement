@@ -362,15 +362,6 @@ Page {
         get_activity_list();
     }
 
-    function clearAccountFilter() {
-        console.log("Activity_Page.clearAccountFilter called");
-
-        filterByAccount = false;
-        selectedAccountId = -1;
-
-        get_activity_list();
-    }
-
     // Function to load available assignees for the current account
     function loadAssignees() {
         try {

@@ -402,13 +402,6 @@ Item {
         refreshWithFilter();
     }
 
-    function clearAccountFilter() {
-        filterByAccount = false;
-        selectedAccountId = accountPicker.selectedAccountId;
-
-        refreshWithFilter();
-    }
-
     function toggleFlatView() {
         flatViewMode = !flatViewMode;
         
