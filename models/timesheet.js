@@ -1,8 +1,8 @@
 .import QtQuick.LocalStorage 2.7 as Sql
-.import "database.js" as DBCommon
-.import "utils.js" as Utils
-.import "accounts.js" as Accounts
-.import "draft_manager.js" as DraftManager
+    .import "database.js" as DBCommon
+        .import "utils.js" as Utils
+            .import "accounts.js" as Accounts
+                .import "draft_manager.js" as DraftManager
 
 
 /**
@@ -30,7 +30,7 @@ function fetchTimesheetsByStatus(status, accountId) {
             var query = "";
             var params = [];
 
-           
+
             if (!status || status.toLowerCase() === "all") {
                 query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
                 params = [accountId];
@@ -49,7 +49,7 @@ function fetchTimesheetsByStatus(status, accountId) {
                 var quadrantMap = {
                     0: "Unknown",
                     1: "Do",
-                    2: "Plan", 
+                    2: "Plan",
                     3: "Delegate",
                     4: "Delete"
                 };
@@ -158,9 +158,9 @@ function fetchTimesheetsForAllAccounts(status) {
                 params = [status];
             }
 
-           // console.log("Executing fetchTimesheetsForAllAccounts query:", query, "with params:", params);
+            // console.log("Executing fetchTimesheetsForAllAccounts query:", query, "with params:", params);
             var result = tx.executeSql(query, params);
-           // console.log("Found", result.rows.length, "timesheets for all accounts");
+            // console.log("Found", result.rows.length, "timesheets for all accounts");
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -168,7 +168,7 @@ function fetchTimesheetsForAllAccounts(status) {
                 var quadrantMap = {
                     0: "Unknown",
                     1: "Do",
-                    2: "Plan", 
+                    2: "Plan",
                     3: "Delegate",
                     4: "Delete"
                 };
@@ -253,6 +253,203 @@ function fetchTimesheetsForAllAccounts(status) {
 }
 
 /**
+ * Paginated version of fetchTimesheetsByStatus for infinite scroll.
+ * 
+ * @param {string} status - Status filter: 'all', 'active', 'draft', etc.
+ * @param {number} accountId - Account ID to filter by.
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Array<Object>} - A list of enriched timesheet entries.
+ */
+function fetchTimesheetsByStatusPaginated(status, accountId, limit, offset) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timesheetList = [];
+    limit = limit || 10;
+    offset = offset || 0;
+
+    try {
+        db.transaction(function (tx) {
+            var projectColorMap = {};
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            var query = "";
+            var params = [];
+
+            if (!status || status.toLowerCase() === "all") {
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                params = [accountId, limit, offset];
+            } else {
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                params = [accountId, status, limit, offset];
+            }
+
+            var result = tx.executeSql(query, params);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                var quadrantMap = { 0: "Unknown", 1: "Do", 2: "Plan", 3: "Delegate", 4: "Delete" };
+
+                var projectName = "Unknown Project";
+                var inheritedColor = 0;
+                if (row.project_id) {
+                    var rs_project = tx.executeSql("SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1", [row.project_id]);
+                    if (rs_project.rows.length > 0) {
+                        var project_row = rs_project.rows.item(0);
+                        if (project_row.parent_id && project_row.parent_id > 0) {
+                            var rs_parent = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1", [project_row.parent_id]);
+                            projectName = rs_parent.rows.length > 0 ? rs_parent.rows.item(0).name + " / " + project_row.name : project_row.name;
+                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
+                        } else {
+                            projectName = project_row.name;
+                            inheritedColor = projectColorMap[row.project_id] || 0;
+                        }
+                    }
+                }
+
+                var taskName = "Unknown Task";
+                if (row.task_id) {
+                    var rs_task = tx.executeSql("SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1", [row.task_id]);
+                    if (rs_task.rows.length > 0) taskName = rs_task.rows.item(0).name;
+                }
+
+                var instanceName = "", userName = "";
+                if (row.account_id) {
+                    var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
+                    if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
+                }
+                if (row.user_id) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                    if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
+                }
+
+                timesheetList.push({
+                    id: row.id,
+                    instance: instanceName,
+                    name: row.name || '',
+                    spentHours: Utils.convertDecimalHoursToHHMM(row.unit_amount),
+                    project: projectName,
+                    quadrant: quadrantMap[row.quadrant_id] || "Unknown",
+                    date: row.record_date,
+                    status: row.status,
+                    task: taskName,
+                    user: userName,
+                    timer_type: row.timer_type || 'manual',
+                    color_pallet: parseInt(inheritedColor) || 0,
+                    has_draft: row.has_draft || 0
+                });
+            }
+        });
+    } catch (e) {
+        console.error("Error in fetchTimesheetsByStatusPaginated:", e.message);
+        DBCommon.logException("fetchTimesheetsByStatusPaginated", e);
+    }
+
+    return timesheetList;
+}
+
+/**
+ * Paginated version of fetchTimesheetsForAllAccounts for infinite scroll.
+ * 
+ * @param {string} status - Status filter: 'all', 'active', 'draft', etc.
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Array<Object>} - A list of enriched timesheet entries.
+ */
+function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timesheetList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        db.transaction(function (tx) {
+            var projectColorMap = {};
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            var query = "";
+            var params = [];
+
+            if (!status || status.toLowerCase() === "all") {
+                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                params = [limit, offset];
+            } else {
+                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                params = [status, limit, offset];
+            }
+
+            var result = tx.executeSql(query, params);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                var quadrantMap = { 0: "Unknown", 1: "Do", 2: "Plan", 3: "Delegate", 4: "Delete" };
+
+                var projectName = "Unknown Project";
+                var inheritedColor = 0;
+                if (row.project_id) {
+                    var rs_project = tx.executeSql("SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1", [row.project_id]);
+                    if (rs_project.rows.length > 0) {
+                        var project_row = rs_project.rows.item(0);
+                        if (project_row.parent_id && project_row.parent_id > 0) {
+                            var rs_parent = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1", [project_row.parent_id]);
+                            projectName = rs_parent.rows.length > 0 ? rs_parent.rows.item(0).name + " / " + project_row.name : project_row.name;
+                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
+                        } else {
+                            projectName = project_row.name;
+                            inheritedColor = projectColorMap[row.project_id] || 0;
+                        }
+                    }
+                }
+
+                var taskName = "Unknown Task";
+                if (row.task_id) {
+                    var rs_task = tx.executeSql("SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1", [row.task_id]);
+                    if (rs_task.rows.length > 0) taskName = rs_task.rows.item(0).name;
+                }
+
+                var instanceName = "", userName = "";
+                if (row.account_id) {
+                    var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
+                    if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
+                }
+                if (row.user_id) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                    if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
+                }
+
+                timesheetList.push({
+                    id: row.id,
+                    instance: instanceName,
+                    name: row.name || '',
+                    spentHours: Utils.convertDecimalHoursToHHMM(row.unit_amount),
+                    project: projectName,
+                    quadrant: quadrantMap[row.quadrant_id] || "Unknown",
+                    date: row.record_date,
+                    status: row.status,
+                    task: taskName,
+                    user: userName,
+                    timer_type: row.timer_type || 'manual',
+                    color_pallet: parseInt(inheritedColor) || 0,
+                    has_draft: row.has_draft || 0
+                });
+            }
+        });
+    } catch (e) {
+        console.error("Error in fetchTimesheetsForAllAccountsPaginated:", e.message);
+        DBCommon.logException("fetchTimesheetsForAllAccountsPaginated", e);
+    }
+
+    return timesheetList;
+}
+
+/**
  * Retrieves all non-deleted timesheet entries for a specific task from the local SQLite database.
  *
  * @param {number} taskOdooRecordId - The Odoo record ID of the task.
@@ -306,7 +503,7 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
                 var quadrantMap = {
                     0: "Unknown",
                     1: "Do",
-                    2: "Plan", 
+                    2: "Plan",
                     3: "Delegate",
                     4: "Delete"
                 };
@@ -454,7 +651,7 @@ function isTimesheetReadyToRecord(timesheetId) {
     var ready = false;
 
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             var rs = tx.executeSql(
                 "SELECT project_id, sub_project_id, task_id, sub_task_id FROM account_analytic_line_app WHERE id = ? LIMIT 1",
                 [timesheetId]
@@ -462,16 +659,16 @@ function isTimesheetReadyToRecord(timesheetId) {
 
             if (rs.rows.length > 0) {
                 var row = rs.rows.item(0);
-              //  console.log("Project id " +row.project_id)
-              //  console.log("SubProject id " + row.sub_project_id)
-              //  console.log("Task id " +row.task_id  )
-              //  console.log("SubTask id " +row.sub_task_id)
+                //  console.log("Project id " +row.project_id)
+                //  console.log("SubProject id " + row.sub_project_id)
+                //  console.log("Task id " +row.task_id  )
+                //  console.log("SubTask id " +row.sub_task_id)
 
                 var hasProjectOrSubproject = (row.project_id && row.project_id > 0) ||
-                                             (row.sub_project_id && row.sub_project_id > 0);
+                    (row.sub_project_id && row.sub_project_id > 0);
 
                 var hasTaskOrSubtask = (row.task_id && row.task_id > 0) ||
-                                       (row.sub_task_id && row.sub_task_id > 0);
+                    (row.sub_task_id && row.sub_task_id > 0);
 
                 // Both project and task are mandatory for sync to prevent sync errors
                 ready = hasProjectOrSubproject && hasTaskOrSubtask;
@@ -498,7 +695,7 @@ function isTimesheetReadyToStartTimer(timesheetId) {
     var ready = false;
 
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             var rs = tx.executeSql(
                 "SELECT project_id, sub_project_id FROM account_analytic_line_app WHERE id = ? LIMIT 1",
                 [timesheetId]
@@ -506,9 +703,9 @@ function isTimesheetReadyToStartTimer(timesheetId) {
 
             if (rs.rows.length > 0) {
                 var row = rs.rows.item(0);
-                
+
                 var hasProjectOrSubproject = (row.project_id && row.project_id > 0) ||
-                                             (row.sub_project_id && row.sub_project_id > 0);
+                    (row.sub_project_id && row.sub_project_id > 0);
 
                 // Only project is required for timer start - task can be selected later
                 ready = hasProjectOrSubproject;
@@ -539,13 +736,13 @@ function markTimesheetAsDeleted(taskId) {
 
         db.transaction(function (tx) {
             tx.executeSql(
-                        "UPDATE account_analytic_line_app SET status = 'deleted' WHERE id = ?",
-                        [taskId]
-                        );
+                "UPDATE account_analytic_line_app SET status = 'deleted' WHERE id = ?",
+                [taskId]
+            );
         });
 
         DBCommon.log("Timesheet marked as deleted (id: " + taskId + ")");
-        
+
         // Clean up any drafts for this deleted timesheet
         try {
             DraftManager.cleanupDraftsForDeletedRecords("timesheet", [taskId]);
@@ -553,7 +750,7 @@ function markTimesheetAsDeleted(taskId) {
             console.warn("⚠️  Failed to cleanup timesheet draft:", draftError);
             // Don't fail the deletion if draft cleanup fails
         }
-        
+
         return { success: true, message: "Timesheet marked as deleted." };
 
     } catch (e) {
@@ -574,12 +771,12 @@ function markTimesheetAsDeleted(taskId) {
 function getTimeSheetDetails(record_id, accountId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheet_detail = {};
-    
+
     try {
         db.transaction(function (tx) {
             var query = 'SELECT * FROM account_analytic_line_app WHERE id = ?';
             var params = [record_id];
-            
+
 
             if (accountId !== undefined && accountId !== null && accountId !== -1) {
                 query += ' AND account_id = ?';
@@ -588,16 +785,16 @@ function getTimeSheetDetails(record_id, accountId) {
             } else {
                 console.log("WARNING: No account filter applied - this may be a security risk");
             }
-            
+
             console.log("Executing query:", query, "with params:", params);
-            
+
             var timesheet = tx.executeSql(query, params);
-            
+
             if (timesheet.rows.length) {
                 var row = timesheet.rows.item(0);
                 console.log("Found record with account_id:", row.account_id);
                 console.log("getTimeSheetDetails: Raw user_id from DB:", row.user_id);
-                
+
                 timesheet_detail = {
                     'id': row.id,
                     'instance_id': row.account_id,
@@ -614,16 +811,16 @@ function getTimeSheetDetails(record_id, accountId) {
                     'has_draft': row.has_draft || 0,
                     'odoo_record_id': row.odoo_record_id
                 };
-                
+
                 console.log("getTimeSheetDetails: Returning timesheet_detail:", JSON.stringify(timesheet_detail));
             } else {
                 console.log("No matching record found for id:", record_id, "accountId:", accountId);
-                
-                
+
+
                 var debugCheck = tx.executeSql('SELECT account_id FROM account_analytic_line_app WHERE id = ?', [record_id]);
                 if (debugCheck.rows.length) {
-                    console.log("Record exists but has account_id:", debugCheck.rows.item(0).account_id, 
-                              "Expected:", accountId);
+                    console.log("Record exists but has account_id:", debugCheck.rows.item(0).account_id,
+                        "Expected:", accountId);
                 } else {
                     console.log("Record with id", record_id, "does not exist in database");
                 }
@@ -633,7 +830,7 @@ function getTimeSheetDetails(record_id, accountId) {
         console.error("Error in getTimeSheetDetails:", e.message);
         DBCommon.logException("getTimeSheetDetails", e);
     }
-    
+
     return timesheet_detail;
 }
 
@@ -648,23 +845,23 @@ function getTimeSheetDetails(record_id, accountId) {
 function getTimeSheetDetailsByOdooId(odoo_record_id, accountId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheet_detail = {};
-    
+
     try {
         db.transaction(function (tx) {
             var query = 'SELECT * FROM account_analytic_line_app WHERE odoo_record_id = ?';
             var params = [odoo_record_id];
-            
+
             if (accountId !== undefined && accountId !== null && accountId > 0) {
                 query += ' AND account_id = ?';
                 params.push(accountId);
             }
-            
+
             query += ' LIMIT 1';
             var timesheet = tx.executeSql(query, params);
-            
+
             if (timesheet.rows.length) {
                 var row = timesheet.rows.item(0);
-                
+
                 timesheet_detail = {
                     'id': row.id,
                     'instance_id': row.account_id,
@@ -681,7 +878,7 @@ function getTimeSheetDetailsByOdooId(odoo_record_id, accountId) {
                     'has_draft': row.has_draft || 0,
                     'odoo_record_id': row.odoo_record_id
                 };
-                
+
                 console.log("getTimeSheetDetailsByOdooId found timesheet id:", row.id, "for odoo_record_id:", odoo_record_id);
             } else {
                 console.error("No timesheet found for odoo_record_id:", odoo_record_id);
@@ -691,7 +888,7 @@ function getTimeSheetDetailsByOdooId(odoo_record_id, accountId) {
         console.error("Error in getTimeSheetDetailsByOdooId:", e.message);
         DBCommon.logException("getTimeSheetDetailsByOdooId", e);
     }
-    
+
     return timesheet_detail;
 }
 
@@ -737,22 +934,22 @@ function saveTimesheet(data) {
                           user_id = ?,
                           has_draft = 0
                           WHERE id = ?`,
-                          [
-                              data.instance_id || null,
-                              data.record_date || Utils.getToday(),
-                              data.project || null,
-                              data.task || null,
-                              data.description || "",
-                              data.subprojectId || null,
-                              data.subTask || null,
-                              data.quadrant || null,
-                              data.unit_amount || 0,
-                              timestamp,
-                              data.status || "draft",
-                              data.timer_type || "manual",
-                              (data.user_id !== undefined && data.user_id !== null) ? data.user_id : null,
-                              data.id
-                          ]);
+                [
+                    data.instance_id || null,
+                    data.record_date || Utils.getToday(),
+                    data.project || null,
+                    data.task || null,
+                    data.description || "",
+                    data.subprojectId || null,
+                    data.subTask || null,
+                    data.quadrant || null,
+                    data.unit_amount || 0,
+                    timestamp,
+                    data.status || "draft",
+                    data.timer_type || "manual",
+                    (data.user_id !== undefined && data.user_id !== null) ? data.user_id : null,
+                    data.id
+                ]);
 
             result.success = true;
             result.id = data.id;
@@ -764,7 +961,7 @@ function saveTimesheet(data) {
     return result;
 }
 
-function createTimesheet(instance_id,userid) {
+function createTimesheet(instance_id, userid) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
     var result = { success: false, error: "", id: null };
@@ -774,7 +971,7 @@ function createTimesheet(instance_id,userid) {
         result.error = "Invalid instance_id provided";
         return result;
     }
-    
+
     if (!userid || userid <= 0) {
         result.error = "Invalid user_id provided";
         return result;
@@ -786,21 +983,21 @@ function createTimesheet(instance_id,userid) {
                           (account_id, record_date, project_id, task_id, name, sub_project_id,
                           sub_task_id, quadrant_id, unit_amount, last_modified, status, timer_type, user_id, has_draft)
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
-                          [
-                              instance_id,               // account_id
-                              Utils.getToday(),      // record_date, fallback to today
-                              null,                      // project_id
-                              null,                      // task_id
-                              "",                        // name/description
-                              null,                      // sub_project_id
-                              null,                      // sub_task_id
-                              0,                      // quadrant_id
-                              0,                         // unit_amount
-                              timestamp,                 // last_modified
-                              "draft",                   // status
-                              "manual",                  // timer_type - default to manual
-                              userid                       // user_id
-                          ]);
+                [
+                    instance_id,               // account_id
+                    Utils.getToday(),      // record_date, fallback to today
+                    null,                      // project_id
+                    null,                      // task_id
+                    "",                        // name/description
+                    null,                      // sub_project_id
+                    null,                      // sub_task_id
+                    0,                      // quadrant_id
+                    0,                         // unit_amount
+                    timestamp,                 // last_modified
+                    "draft",                   // status
+                    "manual",                  // timer_type - default to manual
+                    userid                       // user_id
+                ]);
 
             // Retrieve the last inserted ID
             var rs = tx.executeSql("SELECT last_insert_rowid() as id");
@@ -827,98 +1024,98 @@ function createTimesheet(instance_id,userid) {
  * @param {number} taskRecordId - The ID of the task to link to the new timesheet.
  * @returns {Object} - { success: boolean, id: number | null, error: string }
  */function createTimesheetFromTask(taskRecordId) {
-     console.log("Creating time sheet for " + taskRecordId);
-     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-     var result = { success: false, id: null, error: "" };
+    console.log("Creating time sheet for " + taskRecordId);
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var result = { success: false, id: null, error: "" };
 
-     try {
-         if (!taskRecordId || taskRecordId <= 0) {
-             result.error = "Invalid taskRecordId provided.";
-             return result;
-         }
+    try {
+        if (!taskRecordId || taskRecordId <= 0) {
+            result.error = "Invalid taskRecordId provided.";
+            return result;
+        }
 
-         var task = null;
-         db.readTransaction(function(tx) {
-             var rs = tx.executeSql("SELECT * FROM project_task_app WHERE odoo_record_id = ?", [taskRecordId]);
-             if (rs.rows.length > 0) {
-                 task = rs.rows.item(0);
-             }
-         });
+        var task = null;
+        db.readTransaction(function (tx) {
+            var rs = tx.executeSql("SELECT * FROM project_task_app WHERE odoo_record_id = ?", [taskRecordId]);
+            if (rs.rows.length > 0) {
+                task = rs.rows.item(0);
+            }
+        });
 
-         if (!task) {
-             result.error = "Task not found in local DB." +taskRecordId;
-             return result;
-         }
+        if (!task) {
+            result.error = "Task not found in local DB." + taskRecordId;
+            return result;
+        }
 
-         if (!task.project_id || !task.account_id) {
-             result.error = "Task missing required project/account linkage.";
-             return result;
-         }
+        if (!task.project_id || !task.account_id) {
+            result.error = "Task missing required project/account linkage.";
+            return result;
+        }
 
-         // Always use the current logged-in user for timesheet creation
-         // Even if task has an assigned user, the timesheet should belong to who is creating it
-         var userId = Accounts.getCurrentUserOdooId(task.account_id);
-         if (!userId || userId <= 0) {
-             result.error = "Unable to determine current user for account " + task.account_id;
-             return result;
-         }
-         console.log("Creating timesheet for current user:", userId);
+        // Always use the current logged-in user for timesheet creation
+        // Even if task has an assigned user, the timesheet should belong to who is creating it
+        var userId = Accounts.getCurrentUserOdooId(task.account_id);
+        if (!userId || userId <= 0) {
+            result.error = "Unable to determine current user for account " + task.account_id;
+            return result;
+        }
+        console.log("Creating timesheet for current user:", userId);
 
-         // Use createTimesheet(instance_id, user_id) to create the empty record
-         var tsResult = createTimesheet(task.account_id, userId);
+        // Use createTimesheet(instance_id, user_id) to create the empty record
+        var tsResult = createTimesheet(task.account_id, userId);
 
-         if (!tsResult.success) {
-             result.error = tsResult.error || "Failed to create base timesheet record.";
-             return result;
-         }
+        if (!tsResult.success) {
+            result.error = tsResult.error || "Failed to create base timesheet record.";
+            return result;
+        }
 
-         var timesheetId = tsResult.id;
+        var timesheetId = tsResult.id;
 
-         // Now update the created empty timesheet with project, task, description, etc.
-         var today = Utils.getToday(); // ensure "yyyy-MM-dd"
+        // Now update the created empty timesheet with project, task, description, etc.
+        var today = Utils.getToday(); // ensure "yyyy-MM-dd"
 
-         var timesheet_data = {
-             id: timesheetId,
-             instance_id: task.account_id,
-             record_date: today,
-             project: task.project_id,
-             task: task.odoo_record_id || null,
-             subprojectId: task.sub_project_id || null,
-             subTask: null,
-             description: "Timesheet (" + today + ") " + (task.name || ""),
-             unit_amount: 0,
-             timer_type: "manual", // Default to manual when created from task
-             status: "draft",
-             user_id: userId  // Use the resolved user ID
-         };
+        var timesheet_data = {
+            id: timesheetId,
+            instance_id: task.account_id,
+            record_date: today,
+            project: task.project_id,
+            task: task.odoo_record_id || null,
+            subprojectId: task.sub_project_id || null,
+            subTask: null,
+            description: "Timesheet (" + today + ") " + (task.name || ""),
+            unit_amount: 0,
+            timer_type: "manual", // Default to manual when created from task
+            status: "draft",
+            user_id: userId  // Use the resolved user ID
+        };
 
-         console.log("Updating created timesheet ID " + timesheetId + " with task data.");
+        console.log("Updating created timesheet ID " + timesheetId + " with task data.");
 
-         var updateResult = saveTimesheet(timesheet_data);
+        var updateResult = saveTimesheet(timesheet_data);
 
-         if (updateResult.success) {
-             result.success = true;
-             result.id = timesheetId;
-         } else {
-             result.error = updateResult.error || "Failed to update timesheet with task data.";
-         }
+        if (updateResult.success) {
+            result.success = true;
+            result.id = timesheetId;
+        } else {
+            result.error = updateResult.error || "Failed to update timesheet with task data.";
+        }
 
-     } catch (e) {
-         result.error = e.toString();
-     }
+    } catch (e) {
+        result.error = e.toString();
+    }
 
-     return result;
- }
+    return result;
+}
 
 
 function createTimesheetFromProject(projectRecordId) {
     console.log("Creating timesheet for project " + projectRecordId);
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var result = { success: false, id: null, error: "" };
-    
+
     try {
         var project = null;
-        db.readTransaction(function(tx) {
+        db.readTransaction(function (tx) {
             var rs = tx.executeSql("SELECT * FROM project_project_app WHERE odoo_record_id = ?", [projectRecordId]);
             if (rs.rows.length > 0) {
                 project = rs.rows.item(0);
@@ -956,7 +1153,7 @@ function createTimesheetFromProject(projectRecordId) {
 
         var timesheetId = tsResult.id;
         var today = Utils.getToday();
-        
+
         // Update timesheet with project data
         var timesheet_data = {
             id: timesheetId,
@@ -992,9 +1189,9 @@ function createTimesheetFromProject(projectRecordId) {
 function doesProjectIdMatchSheetInActive(projectId, sheetId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var matches = false;
-    
+
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             var rs = tx.executeSql(
                 "SELECT id FROM account_analytic_line_app WHERE id = ? AND status = ? AND project_id = ? LIMIT 1",
                 [sheetId, "active", projectId]
@@ -1006,7 +1203,7 @@ function doesProjectIdMatchSheetInActive(projectId, sheetId) {
     } catch (e) {
         console.log("doesProjectIdMatchSheetInActive failed:", e);
     }
-    
+
     return matches;
 }
 
@@ -1017,7 +1214,7 @@ function doesTaskIdMatchSheetInActive(taskId, sheetId) {
     var matches = false;
 
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             var rs = tx.executeSql(
                 "SELECT id FROM account_analytic_line_app WHERE id = ? AND status = ? AND (task_id = ? OR sub_task_id = ?) LIMIT 1",
                 [sheetId, "active", taskId, taskId]
@@ -1041,16 +1238,16 @@ function updateTimesheetWithDuration(timesheetId, durationHours) {
 
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
-    var time_taken=Utils.convertHHMMtoDecimalHours(durationHours)
-    console.log("Updating duration : "+time_taken)
+    var time_taken = Utils.convertHHMMtoDecimalHours(durationHours)
+    console.log("Updating duration : " + time_taken)
 
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             // Only update duration and timestamp, preserve existing status
             tx.executeSql(
-                        "UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ? WHERE id = ?",
-                        [time_taken, timestamp, timesheetId]
-                        );
+                "UPDATE account_analytic_line_app SET unit_amount = ?, last_modified = ? WHERE id = ?",
+                [time_taken, timestamp, timesheetId]
+            );
         });
     } catch (e) {
         console.log("updateTimesheetWithDuration failed:", e);
@@ -1064,11 +1261,11 @@ function markTimesheetAsActiveById(timesheetId) {
     var timestamp = Utils.getFormattedTimestampUTC();
 
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             tx.executeSql(
-                        "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
-                        [timestamp, "active", timesheetId]
-                        );
+                "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
+                [timestamp, "active", timesheetId]
+            );
         });
         console.log("Timesheet " + timesheetId + " marked as draft successfully.");
     } catch (e) {
@@ -1085,24 +1282,24 @@ function markTimesheetAsActiveById(timesheetId) {
  */
 function markTimesheetAsReadyById(timesheetId) {
     var result = { success: false, error: "", id: null };
-    
-    if(!isTimesheetReadyToRecord(timesheetId)) {
+
+    if (!isTimesheetReadyToRecord(timesheetId)) {
         result.success = false;
         result.error = "Timesheet not ready - both project and task must be selected";
         return result;
     }
- 
+
     console.log("Marking timesheet " + timesheetId + " as updated for sync");
- 
+
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
- 
+
     try {
-        db.transaction(function(tx) {
-            
+        db.transaction(function (tx) {
+
             tx.executeSql(
                 "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
-                [timestamp, "updated", timesheetId]  
+                [timestamp, "updated", timesheetId]
             );
         });
         console.log("Timesheet " + timesheetId + " marked as updated successfully.");
@@ -1114,7 +1311,7 @@ function markTimesheetAsReadyById(timesheetId) {
     }
     return result;
 }
- 
+
 /**
  * Marks a timesheet as draft by setting its status to "draft".
  * This is typically used when stopping a timer to reset the timesheet status.
@@ -1131,9 +1328,9 @@ function markTimesheetAsReadyById(timesheetId) {
 function isTimesheetFinalized(timesheetId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var isFinalized = false;
-    
+
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             var result = tx.executeSql("SELECT status FROM account_analytic_line_app WHERE id = ?", [timesheetId]);
             if (result.rows.length > 0) {
                 var status = result.rows.item(0).status;
@@ -1144,23 +1341,23 @@ function isTimesheetFinalized(timesheetId) {
     } catch (e) {
         console.error("Error checking timesheet finalization status:", e);
     }
-    
+
     return isFinalized;
 }
 
 function markTimesheetAsDraftById(timesheetId) {
     var result = { success: false, error: "", id: null };
-    
+
     console.log("Marking timesheet " + timesheetId + " as draft");
- 
+
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
- 
+
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             tx.executeSql(
                 "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
-                [timestamp, "draft", timesheetId]  
+                [timestamp, "draft", timesheetId]
             );
         });
         console.log("Timesheet " + timesheetId + " marked as draft successfully.");
@@ -1177,7 +1374,7 @@ function getTimesheetUnitAmount(timesheetId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var unitAmount = 0;
     try {
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             var rs = tx.executeSql("SELECT unit_amount FROM account_analytic_line_app WHERE id = ?", [timesheetId]);
             if (rs.rows.length > 0 && rs.rows.item(0).unit_amount !== null) {
                 unitAmount = parseFloat(rs.rows.item(0).unit_amount);

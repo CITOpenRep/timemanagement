@@ -56,6 +56,12 @@ Page {
     // Loading state property
     property bool isLoading: false
 
+    // Pagination properties
+    property int pageSize: 30
+    property int currentOffset: 0
+    property bool hasMoreItems: true
+    property bool isLoadingMore: false
+
     header: PageHeader {
         id: timesheetsheader
         title: filterByTask ? i18n.dtr("ubtms", "Timesheets") + " - " + taskName : timesheets.title
@@ -178,6 +184,8 @@ Page {
 
     function fetch_timesheets_list() {
         isLoading = true;
+        currentOffset = 0;  // Reset offset for fresh load
+        hasMoreItems = true; // Reset hasMore flag
         timesheetModel.clear();
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
@@ -196,21 +204,24 @@ Page {
         if (filterByTask && taskOdooRecordId > 0) {
             console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId, "status:", currentFilter);
             timesheets_list = Model.getTimesheetsForTask(taskOdooRecordId, taskAccountId, currentFilter);
+            hasMoreItems = false; // Task-specific view doesn't paginate
         }
-        // Use different fetch method depending on account selector choice
-        // strict comparison to string "-1" so "-1" and -1 mismatch issues are avoided
+        // Use paginated fetch method depending on account selector choice
         else if (filterAccountId === "-1") {
-            console.log("Account selector: All accounts selected — fetching all timesheets");
-            timesheets_list = Model.fetchTimesheetsForAllAccounts(currentFilter);
+            console.log("Account selector: All accounts selected — fetching paginated timesheets");
+            timesheets_list = Model.fetchTimesheetsForAllAccountsPaginated(currentFilter, pageSize, currentOffset);
         } else {
-            console.log("Account selector: Single account selected — fetching timesheets for account", filterAccountId);
-            timesheets_list = Model.fetchTimesheetsByStatus(currentFilter, filterAccountId);
+            console.log("Account selector: Single account selected — fetching paginated timesheets for account", filterAccountId);
+            timesheets_list = Model.fetchTimesheetsByStatusPaginated(currentFilter, filterAccountId, pageSize, currentOffset);
         }
 
         if (!timesheets_list || !timesheets_list.length) {
             console.log("No timesheets returned from model (length 0 or undefined).");
+            hasMoreItems = false;
         } else {
             console.log("Retrieved", timesheets_list.length, "timesheets");
+            // If we got fewer items than pageSize, there are no more items
+            hasMoreItems = timesheets_list.length >= pageSize;
         }
 
         for (var timesheet = 0; timesheet < (timesheets_list ? timesheets_list.length : 0); timesheet++) {
@@ -236,6 +247,16 @@ Page {
 
         console.log("Populated timesheetModel with", timesheetModel.count, "items");
         isLoading = false;
+        isLoadingMore = false;
+    }
+
+    // Function to load more items for infinite scroll
+    function loadMoreTimesheets() {
+        if (isLoadingMore || !hasMoreItems) return;
+        isLoadingMore = true;
+        currentOffset += pageSize;
+        console.log("Loading more timesheets, offset:", currentOffset);
+        _doLoadTimesheets();
     }
 
     ListView {
@@ -247,6 +268,20 @@ Page {
         anchors.topMargin: units.gu(1)
         model: timesheetModel
         clip: true
+
+        footer: LoadMoreFooter {
+            isLoading: isLoadingMore
+            hasMore: hasMoreItems
+            onLoadMore: loadMoreTimesheets()
+        }
+
+        onAtYEndChanged: {
+            if (timesheetlist.atYEnd && !isLoadingMore && hasMoreItems) {
+                console.log("Reached end of list, loading more timesheets...");
+                loadMoreTimesheets();
+            }
+        }
+
         delegate: TimeSheetDetailsCard {
             width: parent.width
             name: model.name
