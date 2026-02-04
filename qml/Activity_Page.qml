@@ -147,11 +147,8 @@ Page {
             idNum = -1;
         }
 
-        // If -1, use default account instead (like MyTasks and other pages)
-        if (idNum === -1) {
-            idNum = Accounts.getDefaultAccountId();
-            console.log("Activity_Page: Account ID was -1, using default account:", idNum);
-        }
+        // -1 means "All Accounts" - don't fall back to default, keep it as -1
+        // This is consistent with how the Tasks page handles All Accounts
 
         selectedAccountId = idNum;
         filterByAccount = (idNum >= 0);
@@ -353,8 +350,14 @@ Page {
     function applyAccountFilter(accountId) {
         console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
 
-        filterByAccount = true;
-        selectedAccountId = accountId;
+        // When accountId is -1, it means "All Accounts" - clear the filter
+        if (accountId === -1 || accountId < 0) {
+            filterByAccount = false;
+            selectedAccountId = -1;
+        } else {
+            filterByAccount = true;
+            selectedAccountId = accountId;
+        }
 
         get_activity_list();
     }
@@ -845,11 +848,11 @@ Page {
             }
         }
 
-        // Final fallback: use default account (like MyTasks does)
+        // If still -1 after all checks, that's fine - it means "All Accounts"
+        // No need to fall back to default account, -1 is a valid selection
         if (selectedAccountId === -1) {
-            selectedAccountId = Accounts.getDefaultAccountId();
-            filterByAccount = (selectedAccountId >= 0);
-            console.log("Activity_Page: No account selection found, using default account:", selectedAccountId);
+            filterByAccount = false;
+            console.log("Activity_Page: Using All Accounts (no account filter)");
         }
 
         // Load assignees for the assignee filter
