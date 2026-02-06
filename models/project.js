@@ -1,7 +1,7 @@
 .import QtQuick.LocalStorage 2.7 as Sql
-.import "database.js" as DBCommon
-.import "utils.js" as Utils
-.import "accounts.js" as Account
+    .import "database.js" as DBCommon
+        .import "utils.js" as Utils
+            .import "accounts.js" as Account
 
 /**
  * Get local project ID from Odoo record ID
@@ -11,16 +11,16 @@
  */
 function getLocalIdFromOdooId(odooRecordId, accountId) {
     var localId = -1;
-    
+
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        
-        db.transaction(function(tx) {
+
+        db.transaction(function (tx) {
             var result = tx.executeSql(
                 'SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
                 [odooRecordId, accountId]
             );
-            
+
             if (result.rows.length > 0) {
                 localId = result.rows.item(0).id;
             } else {
@@ -30,7 +30,7 @@ function getLocalIdFromOdooId(odooRecordId, accountId) {
     } catch (e) {
         console.error("getLocalIdFromOdooId failed:", e);
     }
-    
+
     return localId;
 }
 
@@ -42,16 +42,16 @@ function getLocalIdFromOdooId(odooRecordId, accountId) {
  */
 function getUpdateLocalIdFromOdooId(odooRecordId, accountId) {
     var localId = -1;
-    
+
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        
-        db.transaction(function(tx) {
+
+        db.transaction(function (tx) {
             var result = tx.executeSql(
                 'SELECT id FROM project_update_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
                 [odooRecordId, accountId]
             );
-            
+
             if (result.rows.length > 0) {
                 localId = result.rows.item(0).id;
             } else {
@@ -61,7 +61,7 @@ function getUpdateLocalIdFromOdooId(odooRecordId, accountId) {
     } catch (e) {
         console.error("getUpdateLocalIdFromOdooId failed:", e);
     }
-    
+
     return localId;
 }
 
@@ -134,12 +134,12 @@ function getProjectDetailsByOdooId(odoo_record_id, account_id) {
         db.transaction(function (tx) {
             var sql = 'SELECT * FROM project_project_app WHERE odoo_record_id = ?';
             var params = [odoo_record_id];
-            
+
             if (account_id !== undefined && account_id !== null && account_id > 0) {
                 sql += ' AND account_id = ?';
                 params.push(account_id);
             }
-            
+
             sql += ' LIMIT 1';
             var result = tx.executeSql(sql, params);
 
@@ -164,7 +164,7 @@ function getProjectDetailsByOdooId(odoo_record_id, account_id) {
                     status: row.status || "",
                     odoo_record_id: row.odoo_record_id
                 };
-                
+
                 console.log("getProjectDetailsByOdooId found project:", row.id, "for odoo_record_id:", odoo_record_id);
             } else {
                 console.error("No project found for odoo_record_id:", odoo_record_id);
@@ -219,14 +219,14 @@ function getAllProjectUpdates(accountId) {
 
         db.transaction(function (tx) {
             var query, result;
-            
+
             if (accountId !== undefined && accountId !== null && accountId !== -1) {
-               
+
                 query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND account_id = ? ORDER BY date DESC";
                 result = tx.executeSql(query, [accountId]);
                 console.log("Fetching project updates for account:", accountId);
             } else {
-              
+
                 query = "SELECT * FROM project_update_app WHERE status != 'deleted' ORDER BY date DESC";
                 result = tx.executeSql(query);
                 console.log("Fetching all project updates (no account filter)");
@@ -423,35 +423,35 @@ function updateProjectStage(projectId, stageOdooRecordId, accountId) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var timestamp = Utils.getFormattedTimestampUTC();
-        
+
         db.transaction(function (tx) {
             // Verify the project exists and belongs to the account
             var projectCheck = tx.executeSql(
                 'SELECT id FROM project_project_app WHERE id = ? AND account_id = ?',
                 [projectId, accountId]
             );
-            
+
             if (projectCheck.rows.length === 0) {
                 throw "Project not found or does not belong to this account";
             }
-            
+
             // Verify the stage exists
             var stageCheck = tx.executeSql(
                 'SELECT id FROM project_project_stage_app WHERE odoo_record_id = ?',
                 [stageOdooRecordId]
             );
-            
+
             if (stageCheck.rows.length === 0) {
                 throw "Stage not found";
             }
-            
+
             // Update the project's stage
             tx.executeSql(
                 'UPDATE project_project_app SET stage = ?, last_modified = ?, status = ? WHERE id = ?',
                 [stageOdooRecordId, timestamp, "updated", projectId]
             );
         });
-        
+
         return { success: true };
     } catch (e) {
         console.error("updateProjectStage failed:", e);
@@ -468,7 +468,7 @@ function updateProjectStage(projectId, stageOdooRecordId, accountId) {
  * @param {int} odooRecordId - Odoo record ID of the project.
  * @returns {Array<Object>} A list of attachment objects.
  */
-function getAttachmentsForProject(odooRecordId,accountId) {
+function getAttachmentsForProject(odooRecordId, accountId) {
     var attachmentList = [];
 
     try {
@@ -606,6 +606,77 @@ function getProjectsForAccount(accountId) {
 }
 
 /**
+ * Paginated version of getProjectsForAccount for infinite scroll.
+ * 
+ * @param {number} accountId - The account ID to filter projects by.
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Array<Object>} A list of project objects.
+ */
+function getProjectsForAccountPaginated(accountId, limit, offset) {
+    var projectList = [];
+    limit = limit || 10;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_project_app WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC LIMIT ? OFFSET ?";
+            var result = tx.executeSql(query, [accountId, limit, offset]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                projectList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("getProjectsForAccountPaginated failed:", e);
+    }
+
+    return projectList;
+}
+
+/**
+ * Paginated version of getAllProjectUpdates for infinite scroll.
+ * 
+ * @param {number} [accountId] - Optional account ID to filter by. If not provided, returns all updates.
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Array<Object>} A list of project update objects.
+ */
+function getAllProjectUpdatesPaginated(accountId, limit, offset) {
+    var updateList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query, result;
+
+            if (accountId !== undefined && accountId !== null && accountId !== -1) {
+                query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND account_id = ? ORDER BY date DESC LIMIT ? OFFSET ?";
+                result = tx.executeSql(query, [accountId, limit, offset]);
+            } else {
+                query = "SELECT * FROM project_update_app WHERE status != 'deleted' ORDER BY date DESC LIMIT ? OFFSET ?";
+                result = tx.executeSql(query, [limit, offset]);
+            }
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                updateList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("getAllProjectUpdatesPaginated failed:", e);
+    }
+
+    return updateList;
+}
+
+/**
  * Gets accounts that have projects, with project counts
  * Similar to getAccountsWithTaskCounts() in task.js but for projects
  * 
@@ -614,10 +685,10 @@ function getProjectsForAccount(accountId) {
 function getAccountsWithProjectCounts() {
     var accounts = [];
     console.log("🔍 getAccountsWithProjectCounts called");
-    
+
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        
+
         db.transaction(function (tx) {
             var query = `
                 SELECT 
@@ -628,10 +699,10 @@ function getAccountsWithProjectCounts() {
                 GROUP BY p.account_id
                 ORDER BY p.account_id ASC
             `;
-            
+
             var result = tx.executeSql(query);
             console.log("📊 Found", result.rows.length, "accounts with projects in database");
-            
+
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
                 console.log("📝 DB Account:", row.account_id, "Total projects:", row.project_count, "Active projects:", row.active_project_count);
@@ -663,7 +734,7 @@ function getAccountsWithProjectCounts() {
     } catch (e) {
         console.error("❌ getAccountsWithProjectCounts failed:", e);
     }
-    
+
     console.log("📊 Returning", accounts.length, "accounts with projects");
     return accounts;
 }
@@ -684,7 +755,7 @@ function createUpdateProject(project_data, recordid) {
     var messageObj = {};
     var timestamp = Utils.getFormattedTimestampUTC();
     var newRecordId = recordid; // Keep track of the record ID
-    
+
     db.transaction(function (tx) {
         try {
             if (recordid === 0) {
@@ -692,10 +763,10 @@ function createUpdateProject(project_data, recordid) {
                             (account_id, name, parent_id, planned_start_date, planned_end_date, \
                             allocated_hours, favorites, description, last_modified, color_pallet, status, user_id)\
                             Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                              [project_data.account_id, project_data.name, project_data.parent_id,
-                               project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null]);
-                
+                    [project_data.account_id, project_data.name, project_data.parent_id,
+                    project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
+                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null]);
+
                 // Get the ID of the newly inserted project
                 var result = tx.executeSql("SELECT last_insert_rowid() as id");
                 if (result.rows.length > 0) {
@@ -706,9 +777,9 @@ function createUpdateProject(project_data, recordid) {
                             account_id = ?, name = ?, parent_id = ?, planned_start_date = ?, planned_end_date = ?, \
                             allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?, status = ?, user_id = ?\
                             where id = ?',
-                              [project_data.account_id, project_data.name, project_data.parent_id,
-                               project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                               project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null, recordid]);
+                    [project_data.account_id, project_data.name, project_data.parent_id,
+                    project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
+                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null, recordid]);
             }
             messageObj['is_success'] = true;
             messageObj['message'] = 'Project saved Successfully!';
@@ -764,7 +835,7 @@ function createUpdateSnapShot(update_data, recordid) {
                 if (result.rows.length > 0) {
                     newRecordId = result.rows.item(0).id;
                 }
-                
+
                 messageObj.message = "Project Update created successfully!";
             } else {
                 // UPDATE existing project update
@@ -786,7 +857,7 @@ function createUpdateSnapShot(update_data, recordid) {
                         recordid
                     ]
                 );
-                
+
                 messageObj.message = "Project Update updated successfully!";
             }
 
@@ -1025,7 +1096,7 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
             if (updateResult.rowsAffected > 0) {
                 result.success = true;
                 result.message = isFavorite ? "Project marked as favorite" : "Project removed from favorites";
-              //  console.log("✅ Project favorite status updated:", projectId, "favorite:", isFavorite);
+                //  console.log("✅ Project favorite status updated:", projectId, "favorite:", isFavorite);
             } else {
                 result.message = "Project not found or no changes made";
                 console.warn("⚠️ No project updated with ID:", projectId);

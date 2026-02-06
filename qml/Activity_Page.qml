@@ -101,10 +101,27 @@ Page {
     property var selectedAssigneeIds: []
     property var availableAssignees: []
 
+    // Loading state property
+    property bool isLoading: false
+
+    // Pagination properties
+    property int pageSize: 30
+    property int currentOffset: 0
+    property bool hasMoreItems: true
+    property bool isLoadingMore: false
+
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
+    }
+
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: loadingTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doLoadActivities()
     }
 
     Connections {
@@ -130,11 +147,8 @@ Page {
             idNum = -1;
         }
 
-        // If -1, use default account instead (like MyTasks and other pages)
-        if (idNum === -1) {
-            idNum = Accounts.getDefaultAccountId();
-            console.log("Activity_Page: Account ID was -1, using default account:", idNum);
-        }
+        // -1 means "All Accounts" - don't fall back to default, keep it as -1
+        // This is consistent with how the Tasks page handles All Accounts
 
         selectedAccountId = idNum;
         filterByAccount = (idNum >= 0);
@@ -143,6 +157,7 @@ Page {
         loadAssignees();
 
         // Refresh the activity list
+        isLoading = true;
         get_activity_list();
     }
 
@@ -179,61 +194,75 @@ Page {
     }
 
     function get_activity_list() {
+        console.log("Starting get_activity_list - setting isLoading to true");
+        isLoading = true;
+        currentOffset = 0;
+        hasMoreItems = true;
         activityListModel.clear();
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        loadingTimer.start();
+    }
 
+    function _doLoadActivities() {
+        console.log("_doLoadActivities - starting data fetch, offset:", currentOffset);
         try {
             var allActivities = [];
             var currentAccountId = selectedAccountId;
+            var isPaginated = false;
 
-            console.log("Fetching activities - filterByProject:", filterByProject, "projectOdooRecordId:", projectOdooRecordId, "account:", currentAccountId, "filter:", currentFilter);
+            // Use pagination for all standard scenarios (except project/task specific views)
+            var canPaginate = !filterByProject && !filterByTasks && 
+                              (!assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0);
 
-            if (filterByProject) {
-                // When filtering by project, get activities for that specific project
-                allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
-                console.log("Retrieved", allActivities.length, "activities for project:", projectOdooRecordId);
-
-            } 
-  else if (filterByTasks) {
-                // When filtering by task, get activities for that specific task
-                allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
-                console.log("Retrieved", allActivities.length, "activities for task:", taskOdooRecordId);
-
-  }          
-            else {
-                // Normal account-based filtering
-                if (currentFilter && currentFilter !== "" || currentSearchQuery) {
-                    // Pass currentAccountId only if filterByAccount is true and selectedAccountId >= 0
+            if (canPaginate) {
+                isPaginated = true;
+                var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                
+                // Use the new paginated function that handles all filters with date filtering
+                var result = Activity.getFilteredActivitiesPaginated(
+                    currentFilter, 
+                    currentSearchQuery, 
+                    accountIdForFilter, 
+                    pageSize, 
+                    currentOffset
+                );
+                
+                allActivities = result.activities;
+                hasMoreItems = result.hasMore && allActivities.length >= pageSize;
+                
+                console.log("Retrieved", allActivities.length, "paginated activities for filter:", currentFilter);
+                
+            } else {
+                // Legacy / Full Load path for project/task specific views
+                hasMoreItems = false; 
+                
+                if (filterByProject) {
+                    allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
+                } else if (filterByTasks) {
+                    allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
+                } else {
+                    // This path is for assignee filtering
                     var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
                     allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
-                } else {
-                    if (filterByAccount && currentAccountId >= 0) {
-                        allActivities = Activity.getActivitiesForAccount(currentAccountId);
-                    } else {
-                        allActivities = Activity.getAllActivities();
-                    }
                 }
-                console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId >= 0 ? currentAccountId : "all");
             }
 
-            // Apply assignee filtering if enabled
+            // Apply assignee filtering if enabled (Only for legacy path)
             var menuSelectedIds = assigneeFilterMenu.selectedAssigneeIds || [];
-            if (filterByAssignees && menuSelectedIds && menuSelectedIds.length > 0) {
+            if (!isPaginated && filterByAssignees && menuSelectedIds && menuSelectedIds.length > 0) {
                 var assigneeFilteredActivities = [];
                 for (let i = 0; i < allActivities.length; i++) {
                     var item = allActivities[i];
-                    // Check if the activity matches any selected assignee (considering both user_id and account_id)
                     var matchesSelectedAssignee = false;
                     for (let j = 0; j < menuSelectedIds.length; j++) {
                         var selectedId = menuSelectedIds[j];
-                        // Handle both simple ID (old format) and composite format
                         if (typeof selectedId === 'object') {
-                            // New format: {user_id: X, account_id: Y}
                             if (item.user_id && item.account_id && parseInt(item.user_id) === selectedId.user_id && parseInt(item.account_id) === selectedId.account_id) {
                                 matchesSelectedAssignee = true;
                                 break;
                             }
                         } else {
-                            // Legacy format: just user_id (for backward compatibility)
                             if (item.user_id && parseInt(item.user_id) === parseInt(selectedId)) {
                                 matchesSelectedAssignee = true;
                                 break;
@@ -249,16 +278,13 @@ Page {
 
             var filteredActivities = [];
 
-            // Apply additional filtering (date/search) when using project or task filtering
+            // Main processing loop
             for (let i = 0; i < allActivities.length; i++) {
                 var item = allActivities[i];
 
-                // QML ListModel roles are not created for null values.
-                // Normalize to sentinel values to avoid warnings and missing roles.
                 var safeTaskId = (typeof item.task_id !== "undefined" && item.task_id !== null) ? item.task_id : -1;
                 var safeResId = (typeof item.resId !== "undefined" && item.resId !== null) ? item.resId : 0;
 
-                // When filtering by project or task, still apply date and search filters
                 if ((filterByProject || filterByTasks) && !shouldIncludeItem(item)) {
                     continue;
                 }
@@ -294,7 +320,6 @@ Page {
                 if (!a.due_date || !b.due_date) {
                     return (a.summary || "").localeCompare(b.summary || "");
                 }
-                // Sort in acending order (oldest first)
                 return new Date(a.due_date) - new Date(b.due_date);
             });
 
@@ -303,16 +328,36 @@ Page {
             }
 
             console.log("Populated activityListModel with", activityListModel.count, "items");
+            isLoading = false;
+            isLoadingMore = false;
         } catch (e) {
-            console.error("Error in get_activity_list():", e);
+            console.error("Error in _doLoadActivities:", e);
+            isLoading = false;
+            isLoadingMore = false;
         }
+    }
+
+    function loadMoreActivities() {
+        if (isLoadingMore || !hasMoreItems) return;
+        
+        console.log("Loading more activities, offset:", currentOffset + pageSize);
+        isLoadingMore = true;
+        currentOffset += pageSize;
+        _doLoadActivities();
+        // Note: isLoadingMore will be reset in _doLoadActivities
     }
 
     function applyAccountFilter(accountId) {
         console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
 
-        filterByAccount = true;
-        selectedAccountId = accountId;
+        // When accountId is -1, it means "All Accounts" - clear the filter
+        if (accountId === -1 || accountId < 0) {
+            filterByAccount = false;
+            selectedAccountId = -1;
+        } else {
+            filterByAccount = true;
+            selectedAccountId = accountId;
+        }
 
         get_activity_list();
     }
@@ -567,6 +612,19 @@ Page {
             anchors.fill: parent
             clip: true
             model: activityListModel
+            
+            footer: LoadMoreFooter {
+                isLoading: isLoadingMore
+                hasMore: hasMoreItems
+                onLoadMore: loadMoreActivities()
+            }
+
+            onAtYEndChanged: {
+                if (activitylist.atYEnd && !isLoadingMore && hasMoreItems) {
+                    loadMoreActivities();
+                }
+            }
+
             delegate: ActivityDetailsCard {
                 id: activityCard
                 // Use model.id for local database ID (used for navigation to Activities.qml)
@@ -790,11 +848,11 @@ Page {
             }
         }
 
-        // Final fallback: use default account (like MyTasks does)
+        // If still -1 after all checks, that's fine - it means "All Accounts"
+        // No need to fall back to default account, -1 is a valid selection
         if (selectedAccountId === -1) {
-            selectedAccountId = Accounts.getDefaultAccountId();
-            filterByAccount = (selectedAccountId >= 0);
-            console.log("Activity_Page: No account selection found, using default account:", selectedAccountId);
+            filterByAccount = false;
+            console.log("Activity_Page: Using All Accounts (no account filter)");
         }
 
         // Load assignees for the assignee filter
@@ -806,5 +864,12 @@ Page {
         assigneeFilterMenu.selectedAssigneeIds = [];
 
         get_activity_list();
+    }
+
+    // Loading indicator overlay
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: isLoading
+        message: i18n.dtr("ubtms", "Loading activities...")
     }
 }

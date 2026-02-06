@@ -8,6 +8,7 @@ import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import "../../models/accounts.js" as Accounts
+import "."
 
 Item {
     id: root
@@ -115,6 +116,7 @@ Item {
                     model: internalInstanceModel
 
                     function loadAccounts() {
+                        isLoadingAccounts = true;
                         internalInstanceModel.clear();
 
                         // Add "All" option first (ID = -1)
@@ -146,9 +148,13 @@ Item {
                             Qt.callLater(() => {
                                 selectAccountById(deferredAccountId);
                                 deferredAccountId = -2;  // Use -2 as "no deferred selection" marker
+                                isLoadingAccounts = false;
                             });
                         } else {
-                            Qt.callLater(() => selectDefaultAccount());
+                            Qt.callLater(() => {
+                                selectDefaultAccount();
+                                isLoadingAccounts = false;
+                            });
                         }
                     }
 
@@ -262,6 +268,16 @@ Item {
                         StyleHints { backgroundColor: LomiriColors.orange; foregroundColor: "white" }
                     }
                 }
+            }
+
+            // Loading state property
+            property bool isLoadingAccounts: false
+
+            // Loading indicator for account list
+            ActivityIndicator {
+                anchors.centerIn: parent
+                running: isLoadingAccounts
+                visible: running
             }
 
             onVisibleChanged: {

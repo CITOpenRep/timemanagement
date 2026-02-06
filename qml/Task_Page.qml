@@ -504,4 +504,11 @@ Page {
             tasklist.applyFilter(currentFilter);
         }
     }
+
+    // Loading indicator - forward state from TaskList
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: tasklist.isLoading
+        message: i18n.dtr("ubtms", "Loading tasks...")
+    }
 }

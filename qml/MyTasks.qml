@@ -94,13 +94,64 @@ Page {
 
     // Properties for filter and search state
     property var personalStages: []
-    property var currentPersonalStageId: undefined  // undefined = not initialized, null = "All", 0 = "No Stage", >0 = specific stage
+    property var currentPersonalStageId: undefined
+    property var allStageTasks: [] // Cache for pagination  // undefined = not initialized, null = "All", 0 = "No Stage", >0 = specific stage
     property string currentSearchQuery: ""
     property bool showFoldedTasks: false  // Toggle for showing closed/folded tasks
 
     // Properties for current user filtering
     property int currentUserOdooId: -1
     property int selectedAccountId: -1  // Tracks the currently selected account, -1 means use default
+
+    // Loading state property
+    property bool isLoading: false
+
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: loadingTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        property var loadingCallback: null
+        onTriggered: {
+            if (loadingCallback) {
+                loadingCallback();
+                loadingCallback = null;
+            }
+            isLoading = false;
+        }
+    }
+
+    // Helper function to load tasks with loading indicator
+    function loadTasksWithIndicator(callback) {
+        isLoading = true;
+        loadingTimer.loadingCallback = callback;
+        loadingTimer.start();
+    }
+
+    function startPagination(tasks) {
+        allStageTasks = tasks;
+        myTasksList.currentOffset = 0;
+        myTasksList.hasMoreItems = (tasks.length > 0);
+        myTasksList.isLoadingMore = false;
+        loadPersonalStagesDelegate(myTasksList.pageSize, 0);
+    }
+    
+    function loadPersonalStagesDelegate(limit, offset) {
+         if (offset >= allStageTasks.length) {
+             myTasksList.hasMoreItems = false;
+             myTasksList.isLoadingMore = false;
+             return;
+         }
+         var slice = allStageTasks.slice(offset, offset + limit);
+         if (offset + limit >= allStageTasks.length) {
+             myTasksList.hasMoreItems = false;
+         } else {
+             myTasksList.hasMoreItems = true;
+         }
+         var isAppend = (offset > 0);
+         myTasksList.updateDisplayedTasks(slice, isAppend);
+         myTasksList.isLoadingMore = false;
+    }
 
     // Function to get the effective account ID (handles -1 for "All Accounts")
     function getEffectiveAccountId() {
@@ -217,7 +268,7 @@ Page {
         if (currentUserOdooId > 0 && personalStages.length > 0 && currentPersonalStageId !== undefined) {
             var effectiveAccountId = getEffectiveAccountId();
             var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
-            myTasksList.updateDisplayedTasks(stageTasks);
+            startPagination(stageTasks);
         }
     }
 
@@ -255,9 +306,11 @@ Page {
             if (currentUserOdooId > 0) {
                 // Get tasks by personal stage, respecting folded task filter
                 var effectiveAccountId = getEffectiveAccountId();
-                var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
-                console.log("onFilterSelected: stageTasks.length =", stageTasks.length);        // Update the task list directly
-                myTasksList.updateDisplayedTasks(stageTasks);
+                loadTasksWithIndicator(function() {
+                    var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
+                    console.log("onFilterSelected: stageTasks.length =", stageTasks.length);        // Update the task list directly
+                    startPagination(stageTasks);
+                });
             }
         }
 
@@ -270,15 +323,17 @@ Page {
             if (currentUserOdooId > 0) {
                 // For search, show all tasks (personal stage = null) that match search, respecting folded task filter
                 var effectiveAccountId = getEffectiveAccountId();
-                var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], effectiveAccountId, showFoldedTasks);        // Apply search filter
-                if (query && query.trim() !== "") {
-                    var searchLower = query.toLowerCase();
-                    stageTasks = stageTasks.filter(function (task) {
-                        return (task.name && task.name.toLowerCase().indexOf(searchLower) >= 0) || (task.description && task.description.toLowerCase().indexOf(searchLower) >= 0);
-                    });
-                }
+                loadTasksWithIndicator(function() {
+                    var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], effectiveAccountId, showFoldedTasks);        // Apply search filter
+                    if (query && query.trim() !== "") {
+                        var searchLower = query.toLowerCase();
+                        stageTasks = stageTasks.filter(function (task) {
+                            return (task.name && task.name.toLowerCase().indexOf(searchLower) >= 0) || (task.description && task.description.toLowerCase().indexOf(searchLower) >= 0);
+                        });
+                    }
 
-                myTasksList.updateDisplayedTasks(stageTasks);
+                    myTasksList.updateDisplayedTasks(stageTasks);
+                });
             }
         }
     }
@@ -329,6 +384,9 @@ Page {
             id: myTasksList
             anchors.fill: parent
             clip: true
+            
+            // Delegate for pagination
+            loadDelegate: loadPersonalStagesDelegate
 
             // MyTasks does NOT filter by account selection
             // It ALWAYS uses the default account set in Settings
@@ -468,8 +526,9 @@ Page {
             // Apply current personal stage filter
             if (currentUserOdooId > 0) {
                 var effectiveAccountId = getEffectiveAccountId();
+                var effectiveAccountId = getEffectiveAccountId();
                 var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
-                myTasksList.updateDisplayedTasks(stageTasks);
+                startPagination(stageTasks);
             }
         }
     }
@@ -511,10 +570,19 @@ Page {
             if (personalStages.length > 0 && currentPersonalStageId !== undefined) {
                 console.log("MyTasks initial load: currentPersonalStageId =", currentPersonalStageId);
                 var effectiveAccountId = getEffectiveAccountId();
-                var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
-                console.log("MyTasks initial load: stageTasks.length =", stageTasks.length);
-                myTasksList.updateDisplayedTasks(stageTasks);
+                loadTasksWithIndicator(function() {
+                    var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
+                    console.log("MyTasks initial load: stageTasks.length =", stageTasks.length);
+                    startPagination(stageTasks);
+                });
             }
         }
+    }
+
+    // Loading indicator
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: isLoading
+        message: i18n.dtr("ubtms", "Loading tasks...")
     }
 }

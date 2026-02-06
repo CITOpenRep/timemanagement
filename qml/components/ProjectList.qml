@@ -130,6 +130,9 @@ Item {
     // View mode properties
     property bool flatViewMode: true
 
+    // Loading state property
+    property bool isLoading: false
+
     // Signals
     signal projectSelected(int recordId)
     signal projectEditRequested(int recordId)
@@ -219,7 +222,24 @@ Item {
         }
     }
 
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: populateTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doPopulateProjectChildrenMap()
+    }
+
     function populateProjectChildrenMap() {
+        isLoading = true;
+        childrenMap = {};
+        childrenMapReady = false;
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        populateTimer.start();
+    }
+
+    function _doPopulateProjectChildrenMap() {
         childrenMap = {};
         childrenMapReady = false;
 
@@ -235,6 +255,7 @@ Item {
 
         if (allProjects.length === 0) {
             childrenMapReady = true;
+            isLoading = false;
             return;
         }
 
@@ -320,6 +341,7 @@ Item {
         }
 
         childrenMapReady = true;
+        isLoading = false;
         console.log("Project children map populated for account filter:", currentAccountId);
     }
 

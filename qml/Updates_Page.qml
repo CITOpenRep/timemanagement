@@ -50,6 +50,9 @@ Page {
     property string currentSearchQuery: ""
     property string currentStatusFilter: "all"
 
+    // Loading state property
+    property bool isLoading: false
+
     header: PageHeader {
         id: updatesheader
         title: filterByProject ? "Updates - " + projectName : updates.title
@@ -214,7 +217,23 @@ Page {
         return update.project_status === statusFilter;
     }
 
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: loadingTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doLoadUpdates()
+    }
+
     function fetchupdates() {
+        isLoading = true;
+        updatesModel.clear();
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        loadingTimer.start();
+    }
+
+    function _doLoadUpdates() {
         var updates_list = [];
         try {
             if (filterByProject && projectOdooRecordId && projectAccountId >= 0) {
@@ -227,8 +246,6 @@ Page {
             console.error("Error fetching updates:", e);
             updates_list = [];
         }
-
-        updatesModel.clear();
         
         for (var index = 0; index < updates_list.length; index++) {
             var u = updates_list[index] || {};
@@ -256,6 +273,7 @@ Page {
                 'hasDraft': u.has_draft
             });
         }
+        isLoading = false;
     }
     
     // ListHeader for search and status filtering
@@ -368,5 +386,12 @@ Page {
 
         // Load initial updates list filtered by the account selector
         fetchupdates();
+    }
+
+    // Loading indicator overlay
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: isLoading
+        message: i18n.dtr("ubtms", "Loading updates...")
     }
 }

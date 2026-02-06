@@ -38,6 +38,21 @@ Item {
     property ListModel navigationStackModel: ListModel {}
     property var childrenMap: ({})
     property bool childrenMapReady: false
+    
+    // Pagination properties
+    property int pageSize: 30
+    property int currentOffset: 0
+    property bool hasMoreItems: true
+    property bool isLoadingMore: false
+
+    onCurrentParentIdChanged: {
+        currentOffset = 0;
+        hasMoreItems = true;
+        _doPopulateTaskChildrenMap();
+    }
+
+    // Optional delegate for external data loading (function(limit, offset))
+    property var loadDelegate: null
 
     // Add properties for filtering and searching
     property string currentFilter: "today"  // Set default filter to "today"
@@ -60,6 +75,9 @@ Item {
 
     // View mode properties
     property bool flatViewMode: false
+
+    // Loading state property
+    property bool isLoading: false
 
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
@@ -315,39 +333,65 @@ Item {
         return filteredTasks;
     }
 
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: refreshTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doRefreshWithFilter()
+    }
+
     function refreshWithFilter() {
+        isLoading = true;
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        refreshTimer.start();
+    }
 
+    function _doRefreshWithFilter() {
         // Restore from global state if assignee filter is enabled but IDs are missing
-        if (filterByAssignees && selectedAssigneeIds.length === 0)
-        // Try to restore from global state - we need to access the Global object from TaskList
-        // Since TaskList doesn't import Global, we'll let Task_Page handle this restoration
+        if (filterByAssignees && selectedAssigneeIds.length === 0) {
+            // Try to restore from global state - we need to access the Global object from TaskList
+            // Since TaskList doesn't import Global, we'll let Task_Page handle this restoration
+        }
 
-        {}
+        // Use paginated loading for all standard scenarios (except assignee filtering which is complex)
+        var canUsePagination = !filterByAssignees || selectedAssigneeIds.length === 0;
 
         if (filterByAssignees && selectedAssigneeIds.length > 0) {
-            // Filter by assignees with hierarchical support
+            // Filter by assignees with hierarchical support (non-paginated for now)
             var assigneeTasks;
             var accountParam = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1;
 
             assigneeTasks = Task.getTasksByAssigneesHierarchical(selectedAssigneeIds, accountParam, currentFilter, currentSearchQuery);
-
+            hasMoreItems = false; // No pagination for assignee filter
             updateDisplayedTasks(assigneeTasks);
-        } else if (filterByAccount && selectedAccountId >= 0) {
-            var accountTasks;
-            if (currentFilter === "all" && !currentSearchQuery) {
-                accountTasks = Task.getTasksForAccount(selectedAccountId);
-            } else {
-                accountTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery, selectedAccountId);
-            }
-            updateDisplayedTasks(accountTasks);
-        } else if (currentFilter === "all" && !currentSearchQuery) {
-            populateTaskChildrenMap();
-        } else if (currentFilter && currentFilter !== "" || currentSearchQuery) {
-            var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
-            updateDisplayedTasks(filteredTasks);
         } else {
-            populateTaskChildrenMap();
+            // Use paginated loading with proper date/search filtering for all other cases
+            _doPaginatedLoad();
         }
+    }
+
+    // New function for paginated loading with date/search filtering
+    function _doPaginatedLoad() {
+        // Use delegate if provided
+        if (loadDelegate) {
+            loadDelegate(pageSize, currentOffset);
+            return;
+        }
+
+        var acc = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : (accountPicker.selectedAccountId >= 0 ? accountPicker.selectedAccountId : -1);
+        
+        // Use the new paginated function that handles date/search filtering correctly
+        var result = Task.getFilteredTasksPaginated(currentFilter, currentSearchQuery, acc, pageSize, currentOffset);
+        
+        var tasks = result.tasks;
+        hasMoreItems = result.hasMore && tasks.length >= pageSize;
+        
+        // Pass isLoadingMore as 'append' argument
+        updateDisplayedTasks(tasks, isLoadingMore);
+        
+        isLoadingMore = false;
     }
 
     function applyAccountFilter(accountId) {
@@ -405,12 +449,15 @@ Item {
     }
 
     // New function to update displayed tasks with filtered data
-    function updateDisplayedTasks(tasks) {
-        childrenMap = {};
-        childrenMapReady = false;
+    function updateDisplayedTasks(tasks, append) {
+        if (!append) {
+            childrenMap = {};
+            childrenMapReady = false;
+        }
 
         if (tasks.length === 0) {
-            childrenMapReady = true;
+            if (!append) childrenMapReady = true;
+            isLoading = false;
             return;
         }
 
@@ -473,93 +520,125 @@ Item {
             });
         }
 
-        // Create QML ListModels
+        // Create or Update QML ListModels
         for (var key in tempMap) {
-            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
+            var model = childrenMap[key];
+            if (!model) {
+                model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
+                childrenMap[key] = model;
+            }
             tempMap[key].forEach(function (entry) {
                 model.append(entry);
             });
-            childrenMap[key] = model;
         }
 
         childrenMapReady = true;
+        
+        // Force update of the ListView model binding
+        taskListView.model = getCurrentModel();
+        
+        isLoading = false;
     }
 
     function refresh() {
+        isLoading = true;
         navigationStackModel.clear();
         currentParentId = -1;
+        
+        // Reset pagination
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
+
         currentFilter = "today";  // Reset to default filter
         currentSearchQuery = "";
         refreshWithFilter();  // Use refreshWithFilter to apply the default filter
     }
 
+    // Timer for populating task children map
+    Timer {
+        id: populateTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doPopulateTaskChildrenMap()
+    }
+
     function populateTaskChildrenMap() {
+        isLoading = true;
         childrenMap = {};
         childrenMapReady = false;
+        // Use Timer to defer the actual data loading
+        populateTimer.start();
+    }
 
-        var allTasks = Task.getAllTasksForAccount(accountPicker.selectedAccountId); // import tasks.js as Task
+    function loadMoreTasks() {
+        if (isLoadingMore || !hasMoreItems) return;
+        isLoadingMore = true;
+        currentOffset += pageSize;
+        _doPaginatedLoad();
+    }
 
-        if (allTasks.length === 0) {
-            childrenMapReady = true;
+    function _doPopulateTaskChildrenMap() {
+        // If not loading more, we are resetting/refreshing
+        // updateDisplayedTasks will handle clearing if append=false
+        
+        // Use delegate if provided
+        if (loadDelegate) {
+            loadDelegate(pageSize, currentOffset);
+            // Delegate is responsible for calling updateDisplayedTasks and managing hasMoreItems/isLoading flags
             return;
         }
+        
+        var tasks = [];
+        // This function is now only called for "all" filter or when no date filter is active
+        // So we can always paginate when we reach this point
+        var canPaginate = !currentSearchQuery && (!selectedAssigneeIds || selectedAssigneeIds.length === 0) && !filterByProject;
 
-        // Tasks are already sorted by last_modified in the Task.getAllTasks() SQL query
-
-        var tempMap = {};
-
-        allTasks.forEach(function (row) {
-            var odooId = row.odoo_record_id;
-            var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
-
-            var projectName = Project.getProjectName(row.project_id, row.account_id); // import projects.js as Project
-
-            var item = {
-                id_val: odooId,
-                local_id: row.id,
-                account_id: row.account_id,
-                project: projectName,
-                parent_id: parentOdooId,
-                name: row.name || "Untitled",
-                taskName: row.name || "Untitled",
-                recordId: odooId,
-                allocatedHours: row.initial_planned_hours ? row.initial_planned_hours : 0,
-                spentHours: row.spent_hours ? row.spent_hours : 0,
-                startDate: row.start_date || "",
-                endDate: row.end_date || "",
-                deadline: row.deadline || "",
-                description: row.description || "",
-                hasChildren: false,
-                stage: row.state || -1,
-                color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
-                last_modified: row.last_modified || "",
-                has_draft: row.has_draft === 1
-            };
-
-            if (!tempMap[parentOdooId])
-                tempMap[parentOdooId] = [];
-            tempMap[parentOdooId].push(item);
-        });
-
-        // Mark children
-        for (var parent in tempMap) {
-            tempMap[parent].forEach(function (child) {
-                var children = tempMap[child.id_val];
-                child.hasChildren = !!children;
-                child.childCount = children ? children.length : 0;
-            });
+        if (canPaginate) {
+             // Pagination Logic - no date filter needed since we only paginate for "all" filter
+             if (flatViewMode) {
+                 var acc = accountPicker.selectedAccountId;
+                 if (acc >= 0) tasks = Task.getAllTasksForAccountPaginated(acc, pageSize, currentOffset);
+                 else tasks = Task.getAllTasksPaginated(pageSize, currentOffset);
+             } else {
+                 var acc = accountPicker.selectedAccountId;
+                 if (typeof acc === "undefined") acc = -1;
+                 // Handle Parent ID
+                 var pid = currentParentId;
+                 tasks = Task.getTasksByParentIdPaginated(pid, acc, pageSize, currentOffset);
+             }
+             
+             if (tasks.length < pageSize) hasMoreItems = false;
+             
+             // Pass isLoadingMore as 'append' argument
+             updateDisplayedTasks(tasks, isLoadingMore);
+             
+             // If we loaded a page and got NOTHING, but we are supposed to be paginating...
+             // It implies empty folder or empty account.
+             // hasMoreItems set to false correctly.
+             
+        } else {
+             // Legacy / Full Load path
+             hasMoreItems = false;
+             
+             // Revert to original logic: Load all tasks for account (or all accounts)
+             // Note: Original code used Task.getAllTasksForAccount(accountPicker.selectedAccountId)
+             // But we suspect it might have issues with -1. We'll use the robust logic from Task.js
+             
+             var allTasks;
+             var acc = accountPicker.selectedAccountId;
+             
+             if (acc >= 0) {
+                 allTasks = Task.getAllTasksForAccount(acc);
+             } else {
+                 allTasks = Task.getAllTasks();
+             }
+             
+             updateDisplayedTasks(allTasks, false); // Always reset in legacy mode
         }
-
-        // Create QML ListModels
-        for (var key in tempMap) {
-            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
-            tempMap[key].forEach(function (entry) {
-                model.append(entry);
-            });
-            childrenMap[key] = model;
-        }
-
-        childrenMapReady = true;
+        
+        isLoadingMore = false;
+        // isLoading = false; // handled in updateDisplayedTasks
     }
 
     function getCurrentModel() {
@@ -624,6 +703,18 @@ Item {
             height: parent.height - backbutton.height
             clip: true
             model: getCurrentModel()
+
+            footer: LoadMoreFooter {
+                isLoading: isLoadingMore
+                hasMore: hasMoreItems
+                onLoadMore: loadMoreTasks()
+            }
+
+            onAtYEndChanged: {
+                if (taskListView.atYEnd && !isLoadingMore && hasMoreItems) {
+                    loadMoreTasks();
+                }
+            }
 
             delegate: Item {
                 width: parent.width
@@ -707,11 +798,7 @@ Item {
         }
     }
 
-    onCurrentParentIdChanged: {
-        if (childrenMapReady) {
-            taskListView.model = getCurrentModel();
-        }
-    }
+
 
     Component.onCompleted: {
         if (filterByProject && projectOdooRecordId !== -1) {
