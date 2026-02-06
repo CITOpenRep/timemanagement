@@ -101,7 +101,7 @@ from config import get_all_accounts, get_setting, DEFAULT_SETTINGS
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
 from sync_to_odoo import sync_all_to_odoo
-from common import add_notification, get_current_assignments_snapshot, detect_new_assignments, should_send_notification
+from common import add_notification, get_current_assignments_snapshot, detect_new_assignments, should_send_notification, get_user_info_by_odoo_id
 from logger import setup_logger
 
 log = setup_logger()
@@ -504,11 +504,19 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Post-wake sync failed: {e}")
         return False  # Don't repeat - one-shot callback
     
-    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None):
+    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None, avatar_path=None):
         """Send a system notification via DBus with optional deep link navigation.
         
         Respects user's notification schedule settings - notifications are only
         sent during the user's configured active hours in their timezone.
+        
+        Args:
+            title (str): Notification title
+            message (str): Notification body
+            nav_type (str): Type for navigation (Task, Activity, etc.)
+            record_id (int): Record ID for navigation
+            account_id (int): Account ID
+            avatar_path (str): Optional path to assigner's avatar image for notification icon
         """
         # Check if notification should be sent based on schedule settings
         should_send, reason = should_send_notification(self.app_db)
@@ -529,16 +537,21 @@ class NotificationDaemon:
             log.info("[DAEMON] DBus re-initialized successfully!")
         
         try:
-            # Type-specific icon mapping
-            icon_map = {
-                "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
-                "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
-                "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
-                "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
-            }
-            # Select icon based on notification type, fallback to logo
-            icon_path = icon_map.get(nav_type, str(APP_ROOT / "assets" / "logo.png"))
-            log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
+            # Use avatar if provided, otherwise fall back to type-specific icon
+            if avatar_path and Path(avatar_path).exists():
+                icon_path = avatar_path
+                log.info(f"[DAEMON] Using assigner avatar for notification: {icon_path}")
+            else:
+                # Type-specific icon mapping
+                icon_map = {
+                    "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
+                    "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
+                    "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
+                    "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
+                }
+                # Select icon based on notification type, fallback to logo
+                icon_path = icon_map.get(nav_type, str(APP_ROOT / "assets" / "logo.png"))
+                log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
             
             # Construct deep link URI for navigation (if navigation params provided)
             # Use odoo_id=1 flag to indicate this is an odoo_record_id (stable across syncs)
@@ -583,8 +596,9 @@ class NotificationDaemon:
                     "account_id": account_id or 0
                 }
                 
-                # Use raw path (not file:// URI) - matches C++ NotificationHelper behavior
-                icon_file = str(APP_ROOT / "assets" / "logo.png")
+                # Use avatar path if available, otherwise fall back to app logo
+                # icon_path was already set above (avatar or type icon)
+                icon_file = icon_path
                 
                 # Ubuntu Touch Postal notification format
                 # Note: vibrate can be true (use default) or an object with pattern
@@ -779,31 +793,76 @@ class NotificationDaemon:
             task_name = task.get('name', 'Unknown Task')
             project_id = task.get('project_id')
             odoo_record_id = task.get('odoo_record_id')
+            create_uid = task.get('create_uid')
+            
+            # Get assigner info if available
+            assigner_info = None
+            assigner_name = None
+            avatar_path = None
+            if create_uid:
+                assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid)
+                if assigner_info:
+                    assigner_name = assigner_info.get('name')
+                    avatar_path = assigner_info.get('avatar_path')
+            
+            # Build notification message with assigner info
+            if assigner_name:
+                notification_msg = f"{assigner_name} assigned you task '{task_name}'"
+            else:
+                notification_msg = f"You've been assigned to task '{task_name}'"
             
             # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
                 "Task Assigned",
-                f"You've been assigned to task '{task_name}'.",
+                notification_msg,
                 nav_type="Task",
                 record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
-                account_id=account_id
+                account_id=account_id,
+                avatar_path=avatar_path  # Show assigner's avatar in system notification
             )
             add_notification(
                 self.app_db,
                 account_id,
                 "Task",
-                f"You've been assigned to task '{task_name}'.",
-                {"task_name": task_name, "project_id": project_id, "id": task_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+                notification_msg,
+                {
+                    "task_name": task_name, 
+                    "project_id": project_id, 
+                    "id": task_id, 
+                    "odoo_record_id": odoo_record_id, 
+                    "is_new_assignment": True,
+                    "create_uid": create_uid,
+                    "assigner_name": assigner_name,
+                    "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
+                }
             )
         
         # Add remaining tasks to DB without sending popups
         for task in new_assignments['new_tasks'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            create_uid = task.get('create_uid')
+            assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid) if create_uid else None
+            assigner_name = assigner_info.get('name') if assigner_info else None
+            task_name = task.get('name', 'Unknown Task')
+            
+            if assigner_name:
+                msg = f"{assigner_name} assigned you task '{task_name}'"
+            else:
+                msg = f"You've been assigned to task '{task_name}'"
+            
             add_notification(
                 self.app_db, account_id, "Task",
-                f"You've been assigned to task '{task.get('name', 'Unknown Task')}'.",
-                {"task_name": task.get('name'), "project_id": task.get('project_id'), 
-                 "id": task.get('id'), "odoo_record_id": task.get('odoo_record_id'), 
-                 "is_new_assignment": True, "notification_suppressed": True}
+                msg,
+                {
+                    "task_name": task_name, 
+                    "project_id": task.get('project_id'), 
+                    "id": task.get('id'), 
+                    "odoo_record_id": task.get('odoo_record_id'), 
+                    "is_new_assignment": True, 
+                    "notification_suppressed": True,
+                    "create_uid": create_uid,
+                    "assigner_name": assigner_name,
+                    "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
+                }
             )
         
         if new_assignments['new_tasks']:
@@ -821,31 +880,77 @@ class NotificationDaemon:
             summary = activity.get('summary') or "New Activity"
             due_date = activity.get('due_date', 'No date')
             odoo_record_id = activity.get('odoo_record_id')
+            create_uid = activity.get('create_uid')
+            
+            # Get assigner info if available
+            assigner_info = None
+            assigner_name = None
+            avatar_path = None
+            if create_uid:
+                assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid)
+                if assigner_info:
+                    assigner_name = assigner_info.get('name')
+                    avatar_path = assigner_info.get('avatar_path')
+            
+            # Build notification message with assigner info
+            if assigner_name:
+                notification_msg = f"{assigner_name} assigned you activity: {summary}"
+            else:
+                notification_msg = f"New activity: {summary} (Due: {due_date})"
             
             # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
                 "Activity Assigned",
-                f"New activity: {summary} (Due: {due_date})",
+                notification_msg,
                 nav_type="Activity",
                 record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
-                account_id=account_id
+                account_id=account_id,
+                avatar_path=avatar_path  # Show assigner's avatar in system notification
             )
             add_notification(
                 self.app_db,
                 account_id,
                 "Activity",
-                f"New activity: {summary} (Due: {due_date})",
-                {"summary": summary, "due_date": due_date, "id": activity_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+                notification_msg,
+                {
+                    "summary": summary, 
+                    "due_date": due_date, 
+                    "id": activity_id, 
+                    "odoo_record_id": odoo_record_id, 
+                    "is_new_assignment": True,
+                    "create_uid": create_uid,
+                    "assigner_name": assigner_name,
+                    "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
+                }
             )
         
         # Add remaining activities to DB without sending popups
         for activity in new_assignments['new_activities'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            create_uid = activity.get('create_uid')
+            assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid) if create_uid else None
+            assigner_name = assigner_info.get('name') if assigner_info else None
+            summary = activity.get('summary') or 'New Activity'
+            due_date = activity.get('due_date', 'No date')
+            
+            if assigner_name:
+                msg = f"{assigner_name} assigned you activity: {summary}"
+            else:
+                msg = f"New activity: {summary} (Due: {due_date})"
+            
             add_notification(
                 self.app_db, account_id, "Activity",
-                f"New activity: {activity.get('summary') or 'New Activity'} (Due: {activity.get('due_date', 'No date')})",
-                {"summary": activity.get('summary'), "due_date": activity.get('due_date'),
-                 "id": activity.get('id'), "odoo_record_id": activity.get('odoo_record_id'),
-                 "is_new_assignment": True, "notification_suppressed": True}
+                msg,
+                {
+                    "summary": summary, 
+                    "due_date": due_date,
+                    "id": activity.get('id'), 
+                    "odoo_record_id": activity.get('odoo_record_id'),
+                    "is_new_assignment": True, 
+                    "notification_suppressed": True,
+                    "create_uid": create_uid,
+                    "assigner_name": assigner_name,
+                    "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
+                }
             )
         
         if new_assignments['new_activities']:
