@@ -702,17 +702,8 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
-            // Sync with mainView's current account (primary source of truth)
-            if (typeof mainView !== 'undefined' && mainView !== null) {
-                if (typeof mainView.currentAccountId !== 'undefined') {
-                    var acctId = mainView.currentAccountId;
-                    if (acctId !== selectedAccountId && acctId >= -1) {
-                        console.log("Activity_Page: Syncing with mainView.currentAccountId on visible:", acctId);
-                        handleAccountChange(acctId);
-                        return; // handleAccountChange will refresh everything
-                    }
-                }
-            }
+            // Note: Account is determined by accountPicker (same pattern as Task_Page)
+            // Do NOT sync with mainView.currentAccountId here - it causes "All Accounts" override
 
             // Check if we're coming from an activity-related page
             var previousPage = Global.getLastVisitedPage();
@@ -799,52 +790,11 @@ Page {
         }
     }
 
-    Connections {
-        target: typeof accountFilter !== 'undefined' ? accountFilter : null
 
-        function onAccountChanged(accountId, accountName) {
-            console.log("Activity_Page: Account changed via AccountFilter to:", accountId, accountName);
-            if (activity.visible) {
-                handleAccountChange(accountId);
-            }
-        }
-    }
     Component.onCompleted: {
-        // Primary source: accountPicker (direct initialization like Timesheet_Page and Projects)
-        if (typeof accountPicker !== 'undefined' && accountPicker !== null) {
-            selectedAccountId = accountPicker.selectedAccountId;
-            filterByAccount = (selectedAccountId >= 0);
-            console.log("Activity_Page: Initialized with accountPicker.selectedAccountId:", selectedAccountId);
-        }
-
-        // Fallback: try mainView
-        if (selectedAccountId === -1) {
-            if (typeof mainView !== 'undefined' && mainView !== null) {
-                if (typeof mainView.currentAccountId !== 'undefined') {
-                    selectedAccountId = mainView.currentAccountId;
-                    filterByAccount = (selectedAccountId >= 0);
-                    console.log("Activity_Page: Using mainView.currentAccountId:", selectedAccountId);
-                }
-            }
-        }
-
-        // Fallback: try accountFilter
-        if (selectedAccountId === -1) {
-            if (typeof accountFilter !== 'undefined' && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== 'undefined') {
-                    selectedAccountId = accountFilter.selectedAccountId;
-                    filterByAccount = (selectedAccountId >= 0);
-                    console.log("Activity_Page: Using accountFilter.selectedAccountId:", selectedAccountId);
-                }
-            }
-        }
-
-        // If still -1 after all checks, that's fine - it means "All Accounts"
-        // No need to fall back to default account, -1 is a valid selection
-        if (selectedAccountId === -1) {
-            filterByAccount = false;
-            console.log("Activity_Page: Using All Accounts (no account filter)");
-        }
+        // Simple single assignment - same pattern as Task_Page.qml
+        selectedAccountId = accountPicker.selectedAccountId;
+        filterByAccount = (selectedAccountId >= 0);
 
         // Load assignees for the assignee filter
         loadAssignees();
