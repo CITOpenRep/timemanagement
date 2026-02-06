@@ -707,7 +707,7 @@ class NotificationDaemon:
         BULK_THRESHOLD = 10  # Total items that triggers bulk mode
         
         total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
-                     len(new_assignments['new_projects']) + len(new_assignments['new_timesheets']))
+                     len(new_assignments['new_projects']))
         
         if total_new > BULK_THRESHOLD:
             log.warning(f"[DAEMON] Bulk notification protection triggered: {total_new} new items detected")
@@ -721,8 +721,7 @@ class NotificationDaemon:
                 summary_parts.append(f"{len(new_assignments['new_activities'])} activities")
             if new_assignments['new_projects']:
                 summary_parts.append(f"{len(new_assignments['new_projects'])} projects")
-            if new_assignments['new_timesheets']:
-                summary_parts.append(f"{len(new_assignments['new_timesheets'])} timesheets")
+
             
             summary_msg = f"Synced {', '.join(summary_parts)} for {account_name}"
             self.send_notification(
@@ -880,51 +879,10 @@ class NotificationDaemon:
             log.info(f"[DAEMON] Notified {len(projects_to_notify)} NEW project assignments" +
                      (f" ({projects_overflow} more added to history)" if projects_overflow > 0 else ""))
         
-        # =================================================================
-        # 4. TIMESHEETS: Notify for new timesheet entries (max 5 notifications)
-        # =================================================================
-        timesheets_to_notify = new_assignments['new_timesheets'][:MAX_NOTIFICATIONS_PER_TYPE]
-        timesheets_overflow = len(new_assignments['new_timesheets']) - len(timesheets_to_notify)
-        
-        for timesheet in timesheets_to_notify:
-            timesheet_id = timesheet.get('id')
-            ts_name = timesheet.get('name') or "Timesheet Entry"
-            hours = timesheet.get('unit_amount', 0)
-            odoo_record_id = timesheet.get('odoo_record_id')
-            
-            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
-            self.send_notification(
-                "Timesheet Added",
-                f"New timesheet '{ts_name}' ({hours}h) synced.",
-                nav_type="Timesheet",
-                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
-                account_id=account_id
-            )
-            add_notification(
-                self.app_db,
-                account_id,
-                "Timesheet",
-                f"New timesheet '{ts_name}' ({hours}h) synced.",
-                {"timesheet_name": ts_name, "hours": hours, "id": timesheet_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
-            )
-        
-        # Add remaining timesheets to DB without sending popups
-        for timesheet in new_assignments['new_timesheets'][MAX_NOTIFICATIONS_PER_TYPE:]:
-            add_notification(
-                self.app_db, account_id, "Timesheet",
-                f"New timesheet '{timesheet.get('name') or 'Timesheet Entry'}' ({timesheet.get('unit_amount', 0)}h) synced.",
-                {"timesheet_name": timesheet.get('name'), "hours": timesheet.get('unit_amount'),
-                 "id": timesheet.get('id'), "odoo_record_id": timesheet.get('odoo_record_id'),
-                 "is_new_assignment": True, "notification_suppressed": True}
-            )
-        
-        if new_assignments['new_timesheets']:
-            log.info(f"[DAEMON] Notified {len(timesheets_to_notify)} NEW timesheet entries" +
-                     (f" ({timesheets_overflow} more added to history)" if timesheets_overflow > 0 else ""))
-        
+
         # Summary log
         total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
-                     len(new_assignments['new_projects']) + len(new_assignments['new_timesheets']))
+                     len(new_assignments['new_projects']))
         if total_new == 0:
             log.info(f"[DAEMON] No new assignments detected for {account_name}")
         else:
