@@ -42,6 +42,16 @@ Page {
         // Top spacer
         Item { width: parent.width; height: units.gu(1) }
 
+
+         SettingsListItem {
+            iconName: "contact-group"
+            iconColor: "#2980b9"
+            text: i18n.dtr("ubtms", "Connected Accounts")
+            onClicked: {
+                apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_Accounts.qml'));
+            }
+        }
+
         SettingsListItem {
             iconName: "reminder"
             iconColor: "#e67e22"
@@ -60,14 +70,7 @@ Page {
             }
         }
 
-        SettingsListItem {
-            iconName: "contact-group"
-            iconColor: "#2980b9"
-            text: i18n.dtr("ubtms", "Connected Accounts")
-            onClicked: {
-                apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_Accounts.qml'));
-            }
-        }
+       
 
         SettingsListItem {
             iconName: "preferences-desktop-theme"
