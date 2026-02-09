@@ -31,19 +31,20 @@ import "../components/settings"
 
 Page {
     id: notificationSettingsPage
-    title: i18n.dtr("ubtms", "Notification Schedule")
+    title: i18n.dtr("ubtms", "Notifications")
 
     header: SettingsHeader {
         id: pageHeader
         title: notificationSettingsPage.title
     }
 
-    // AutoSync Settings Helper Functions (Used for Notification Settings too)
+    // Settings Helper Functions
     function getAutoSyncSetting(key) {
         var defaultValues = {
             "autosync_enabled": "true",
             "sync_interval_minutes": "15",
-            "sync_direction": "both"
+            "sync_direction": "both",
+            "notifications_enabled": "true"
         };
 
         try {
@@ -85,6 +86,12 @@ Page {
         }
     }
 
+    // Derived state: is sync direction "upload_only"?
+    readonly property bool isSyncUploadOnly: getAutoSyncSetting("sync_direction", "both") === "upload_only"
+
+    // Notification enabled (persisted)
+    property bool notificationsEnabled: getAutoSyncSetting("notifications_enabled", "true") === "true"
+
     Rectangle {
         anchors.top: pageHeader.bottom
         anchors.left: parent.left
@@ -99,6 +106,84 @@ Page {
             anchors.topMargin: units.gu(2)
             spacing: units.gu(2)
 
+            // Master Notification Toggle Section
+            Rectangle {
+                width: parent.width
+                height: masterNotificationSection.height + units.gu(2)
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
+                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
+                border.width: 1
+                radius: units.gu(1)
+
+                Column {
+                    id: masterNotificationSection
+                    width: parent.width - units.gu(2)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: units.gu(1)
+                    spacing: units.gu(1.5)
+
+                    // Header
+                    Text {
+                        text: i18n.dtr("ubtms", "Push Notifications")
+                        font.pixelSize: units.gu(2.5)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Receive push notifications for task updates and reminders")
+                        font.pixelSize: units.gu(1.5)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        wrapMode: Text.WordWrap
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    // Enable Notifications Toggle
+                    Row {
+                        width: parent.width
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: units.gu(2)
+                        opacity: notificationSettingsPage.isSyncUploadOnly ? 0.5 : 1.0
+
+                        Text {
+                            text: i18n.dtr("ubtms", "Enable Notifications")
+                            font.pixelSize: units.gu(2)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - notificationMasterSwitch.width - units.gu(4)
+                        }
+
+                        Switch {
+                            id: notificationMasterSwitch
+                            checked: notificationSettingsPage.notificationsEnabled && !notificationSettingsPage.isSyncUploadOnly
+                            enabled: !notificationSettingsPage.isSyncUploadOnly
+                            anchors.verticalCenter: parent.verticalCenter
+                            onClicked: {
+                                notificationSettingsPage.notificationsEnabled = checked;
+                                saveAutoSyncSetting("notifications_enabled", checked ? "true" : "false");
+                            }
+                        }
+                    }
+
+                    // Info text when disabled due to sync direction
+                    Text {
+                        visible: notificationSettingsPage.isSyncUploadOnly
+                        text: i18n.dtr("ubtms", "⚠ Notifications are disabled when Background Sync is set to Upload Only")
+                        font.pixelSize: units.gu(1.3)
+                        font.italic: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e67e22" : "#e67e22"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        wrapMode: Text.WordWrap
+                        width: parent.width - units.gu(2)
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+            }
+
             // Notification Schedule Settings Section
             Rectangle {
                 width: parent.width
@@ -107,6 +192,7 @@ Page {
                 border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
                 border.width: 1
                 radius: units.gu(1)
+                opacity: (notificationSettingsPage.notificationsEnabled && !notificationSettingsPage.isSyncUploadOnly) ? 1.0 : 0.5
 
                 Column {
                     id: notificationScheduleSection
@@ -152,6 +238,7 @@ Page {
                         Switch {
                             id: notificationScheduleSwitch
                             checked: getAutoSyncSetting("notification_schedule_enabled") === "true"
+                            enabled: notificationSettingsPage.notificationsEnabled && !notificationSettingsPage.isSyncUploadOnly
                             anchors.verticalCenter: parent.verticalCenter
                             onCheckedChanged: {
                                 saveAutoSyncSetting("notification_schedule_enabled", checked ? "true" : "false");
@@ -164,7 +251,7 @@ Page {
                         width: parent.width
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: units.gu(2)
-                        opacity: notificationScheduleSwitch.checked ? 1.0 : 0.5
+                        opacity: (notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled) ? 1.0 : 0.5
 
                         Text {
                             text: i18n.dtr("ubtms", "Timezone")
@@ -177,7 +264,7 @@ Page {
                         ComboBox {
                             id: timezoneCombo
                             width: units.gu(22)
-                            enabled: notificationScheduleSwitch.checked
+                            enabled: notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled
                             model: [
                                 { text: "System Default", value: "" },
                                 { text: "UTC", value: "UTC" },
@@ -233,7 +320,7 @@ Page {
                         font.bold: true
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
                         anchors.horizontalCenter: parent.horizontalCenter
-                        opacity: notificationScheduleSwitch.checked ? 1.0 : 0.5
+                        opacity: (notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled) ? 1.0 : 0.5
                     }
 
                     // Start Time Row
@@ -241,7 +328,7 @@ Page {
                         width: parent.width
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: units.gu(2)
-                        opacity: notificationScheduleSwitch.checked ? 1.0 : 0.5
+                        opacity: (notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled) ? 1.0 : 0.5
 
                         Text {
                             text: i18n.dtr("ubtms", "From")
@@ -271,7 +358,7 @@ Page {
 
                             MouseArea {
                                 anchors.fill: parent
-                                enabled: notificationScheduleSwitch.checked
+                                enabled: notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled
                                 onClicked: {
                                     var parts = startTimeButton.timeValue.split(":");
                                     var hour = parseInt(parts[0]) || 9;
@@ -309,7 +396,7 @@ Page {
 
                             MouseArea {
                                 anchors.fill: parent
-                                enabled: notificationScheduleSwitch.checked
+                                enabled: notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled
                                 onClicked: {
                                     var parts = endTimeButton.timeValue.split(":");
                                     var hour = parseInt(parts[0]) || 18;
@@ -353,6 +440,14 @@ Page {
                     }
                 }
             }
+        }
+    }
+
+    // Re-read sync direction and notifications when page becomes visible
+    onVisibleChanged: {
+        if (visible) {
+            isSyncUploadOnlyChanged();
+            notificationsEnabled = getAutoSyncSetting("notifications_enabled", "true") === "true";
         }
     }
 }
