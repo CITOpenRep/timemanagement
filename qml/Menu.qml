@@ -362,7 +362,7 @@ Page {
                     }
                 }
                 onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Settings_Page.qml"));
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("settings/Settings_Page.qml"));
                     page = 6;
                     apLayout.setCurrentPage(page);
                 }

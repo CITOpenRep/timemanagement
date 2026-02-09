@@ -26,7 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
-import "components/settings"
+import "../components/settings"
 
 Page {
     id: themeSettingsPage

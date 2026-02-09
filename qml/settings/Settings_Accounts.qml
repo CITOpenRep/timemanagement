@@ -29,10 +29,10 @@ import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components.ListItems 1.3 as ListItemOld
 import io.thp.pyotherside 1.4
-import "../models/utils.js" as Utils
-import "../models/accounts.js" as Accounts
-import "components"
-import "components/settings"
+import "../../models/utils.js" as Utils
+import "../../models/accounts.js" as Accounts
+import "../components"
+import "../components/settings"
 
 Page {
     id: accountsSettingsPage
@@ -45,7 +45,7 @@ Page {
             Action {
                 iconName: "add"
                 onTriggered: {
-                    apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'));
+                    apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('../Account_Page.qml'));
                 }
             }
         ]
@@ -267,7 +267,7 @@ Page {
                             enabled: model.id !== 0  // Disabled for local accounts
                             onTriggered: {
                                 console.log("Edit account:", model.id);
-                                apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'), {
+                                apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('../Account_Page.qml'), {
                                     "accountId": model.id
                                 });
                             }
@@ -380,7 +380,7 @@ Page {
                                 fontSize: units.gu(1.5)
                                 text: Utils.truncateText(i18n.dtr("ubtms", "Show Log"),10)
                                 onClicked: {
-                                    apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl("SyncLog.qml"), {
+                                    apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl("../SyncLog.qml"), {
                                         "recordid": model.id
                                     });
                                 }

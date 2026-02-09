@@ -33,6 +33,7 @@ import "../models/notifications.js" as Notifications
 import Pparent.Notifications 1.0
 import "components"
 import "."
+import "settings"
 
 /*
 Todo: Need to Visit this Page Again and Refactor it.

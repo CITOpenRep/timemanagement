@@ -25,11 +25,47 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
-import "components/settings"
+import QtQuick.LocalStorage 2.7 as Sql
+import "../components/settings"
 
 Page {
     id: settings
     title: i18n.dtr("ubtms", "Settings")
+
+    // ── Settings DB helpers ──────────────────────────────────────────
+    function getAppSetting(key, defaultValue) {
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var result = defaultValue || "";
+            db.transaction(function (tx) {
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+                var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', [key]);
+                if (rs.rows.length > 0) result = rs.rows.item(0).value;
+            });
+            return result;
+        } catch (e) {
+            console.warn("Error reading setting:", key, e);
+            return defaultValue || "";
+        }
+    }
+
+    function saveAppSetting(key, value) {
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            db.transaction(function (tx) {
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+                tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', [key, value]);
+            });
+        } catch (e) {
+            console.warn("Error saving setting:", key, e);
+        }
+    }
+
+    // Derived state: is sync direction "upload_only"?
+    readonly property bool isSyncUploadOnly: getAppSetting("sync_direction", "both") === "upload_only"
+
+    // Notification enabled (persisted)
+    property bool notificationsEnabled: getAppSetting("notifications_enabled", "true") === "true"
 
     header: SettingsHeader {
         id: pageHeader
@@ -42,13 +78,27 @@ Page {
         // Top spacer
         Item { width: parent.width; height: units.gu(1) }
 
-
-         SettingsListItem {
+        SettingsListItem {
             iconName: "contact-group"
             iconColor: "#2980b9"
             text: i18n.dtr("ubtms", "Connected Accounts")
             onClicked: {
                 apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_Accounts.qml'));
+            }
+        }
+
+        SettingsToggleItem {
+            iconName: "notification"
+            iconColor: "#e74c3c"
+            text: i18n.dtr("ubtms", "Notifications")
+            description: settings.isSyncUploadOnly
+                ? i18n.dtr("ubtms", "Disabled when sync is Upload Only")
+                : i18n.dtr("ubtms", "Receive push notifications for updates")
+            checked: settings.notificationsEnabled && !settings.isSyncUploadOnly
+            enabled: !settings.isSyncUploadOnly
+            onToggled: function (value) {
+                settings.notificationsEnabled = value;
+                saveAppSetting("notifications_enabled", value ? "true" : "false");
             }
         }
 
@@ -70,8 +120,6 @@ Page {
             }
         }
 
-       
-
         SettingsListItem {
             iconName: "preferences-desktop-theme"
             iconColor: "#8e44ad"
@@ -84,5 +132,13 @@ Page {
 
         // Bottom spacer
         Item { width: parent.width; height: units.gu(1) }
+    }
+
+    // Re-read sync direction when page becomes visible (user may have changed it)
+    onVisibleChanged: {
+        if (visible) {
+            isSyncUploadOnlyChanged();
+            notificationsEnabled = getAppSetting("notifications_enabled", "true") === "true";
+        }
     }
 }
