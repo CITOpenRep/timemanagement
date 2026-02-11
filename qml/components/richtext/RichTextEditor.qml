@@ -446,15 +446,19 @@ Item {
                 case 'contentChanged':
                     if (!editor._internalUpdate) {
                         var content = payload.content || "";
-                        // Validate content before accepting it
-                        if (isValidContent(content)) {
-                            editor._internalUpdate = true;
-                            editor.text = content;
-                            editor.contentChanged(content);
-                            editor._internalUpdate = false;
-                        } else {
-                            console.warn("[RichTextEditor] Ignoring invalid content (contains editor internals)");
+                        // Reject content that contains <script> tags — this only happens
+                        // during the initial page load when Squire returns the full body
+                        // HTML including the bridge/setup scripts. Normal user content
+                        // never contains script tags.
+                        if (content.indexOf("<script") !== -1) {
+                           // console.log("[RichTextEditor] Skipping contentChanged with script tags (initial load artifact)");
+                            return;
                         }
+                      //  console.log("[RichTextEditor] contentChanged from Squire, length:", content.length);
+                        editor._internalUpdate = true;
+                        editor.text = content;
+                        editor.contentChanged(content);
+                        editor._internalUpdate = false;
                     }
                     break;
                 case 'pathChanged':

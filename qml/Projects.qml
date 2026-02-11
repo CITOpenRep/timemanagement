@@ -598,6 +598,7 @@ Page {
                         Global.description_temporary_holder = getFormattedText();
                         Global.description_context = "project_description";
                         navigatingToReadMore = true;
+                        description_text.liveSyncActive = true;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                             isReadOnly: isReadOnly,
                             parentDraftHandler: draftHandler
@@ -1046,6 +1047,8 @@ Page {
     
     onVisibleChanged: {
         if (visible) {
+            // Stop live sync — content is already up-to-date via the timer
+            description_text.liveSyncActive = false;
             if (Global.description_temporary_holder !== "" && Global.description_context === "project_description") {
                 //Check if you are coming back from the ReadMore page for project description
                 description_text.setContent(Global.description_temporary_holder);

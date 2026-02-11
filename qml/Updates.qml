@@ -518,6 +518,7 @@ Page {
                                 Global.description_temporary_holder = description_text.getFormattedText();
                                 Global.description_context = "update_description";
                                 navigatingToReadMore = true;
+                                description_text.liveSyncActive = true;
                                 apLayout.addPageToNextColumn(updateDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
                                     isReadOnly: isReadOnly
                                 });
@@ -740,6 +741,9 @@ Page {
         if (visible) {
             Global.setLastVisitedPage("Updates");
             navigatingToReadMore = false;
+
+            // Stop live sync — content is already up-to-date via the timer
+            description_text.liveSyncActive = false;
             
             if (recordid != 0) {
                 currentUpdate = Project.getProjectUpdateById(recordid, accountid);

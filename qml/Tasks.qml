@@ -1151,10 +1151,11 @@ Page {
                             //set the data to a global Slore and pass the key to the page
                             navigatingToReadMore = true;
                             var contentToPass = getFormattedText();
-                            console.log("[Tasks] onClicked - originalHtmlContent:", description_text.originalHtmlContent);
-                            console.log("[Tasks] onClicked - passing to holder, full content:");
-                            console.log(contentToPass);
+                           // console.log("[Tasks] onClicked - originalHtmlContent:", description_text.originalHtmlContent);
+                        //    console.log("[Tasks] onClicked - passing to holder, full content:");
+                         //   console.log(contentToPass);
                             Global.description_temporary_holder = contentToPass;
+                            description_text.liveSyncActive = true;
                             apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 parentDraftHandler: draftHandler // Pass draft handler reference
@@ -1786,6 +1787,9 @@ Page {
             // Update navigation tracking when Tasks detail page becomes visible
             Global.setLastVisitedPage("Tasks");
 
+            // Stop live sync — content is already up-to-date via the timer
+            description_text.liveSyncActive = false;
+
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
@@ -1803,5 +1807,5 @@ Page {
                 Global.description_temporary_holder = "";
             }
         }
-        }
     }
+}

@@ -188,43 +188,26 @@ Page {
         height: units.gu(80)
     }
 
-    // Monitor visibility to reload content from Global when returning from ReadMorePage
+    // Monitor visibility to manage live sync with ReadMorePage
     onVisibleChanged: {
         if (visible) {
             // Skip loading on initial visibility (let Component.onCompleted handle it)
             if (isInitialLoad) {
                 isInitialLoad = false;
-                contentUpdateTimer.start();
                 return;
             }
             
+            // Stop live sync — content is already up-to-date via the timer
+            descriptionField.liveSyncActive = false;
+
             // Check if content was updated in ReadMorePage
             if (Global.description_temporary_holder !== "" && 
                 Global.description_temporary_holder !== lastKnownContent) {
                 descriptionField.setContent(Global.description_temporary_holder);
                 lastKnownContent = Global.description_temporary_holder;
             }
-            contentUpdateTimer.start();
         } else {
-            contentUpdateTimer.stop();
-        }
-    }
-
-    // Timer to periodically check for content updates from ReadMorePage
-    Timer {
-        id: contentUpdateTimer
-        interval: 500  // Check every 500ms
-        repeat: true
-        running: false
-        onTriggered: {
-            if (Global.description_temporary_holder !== "" && 
-                Global.description_temporary_holder !== createUpdatePage.lastKnownContent) {
-                descriptionField.setContent(Global.description_temporary_holder);
-                createUpdatePage.lastKnownContent = Global.description_temporary_holder;
-                
-                // Also update the draft with the new description
-                draftHandler.markFieldChanged("description", Global.description_temporary_holder);
-            }
+            // Live sync timer is managed by descriptionField.liveSyncActive
         }
     }
 
@@ -347,6 +330,7 @@ Page {
                 
                 onClicked: {
                     Global.description_temporary_holder = descriptionField.getFormattedText();
+                    descriptionField.liveSyncActive = true;
                     
                     if (typeof apLayout !== "undefined" && apLayout) {
                         apLayout.addPageToNextColumn(createUpdatePage, Qt.resolvedUrl("../ReadMorePage.qml"), {
