@@ -44,7 +44,12 @@ Page {
             "autosync_enabled": "true",
             "sync_interval_minutes": "15",
             "sync_direction": "both",
-            "notifications_enabled": "true"
+            "notifications_enabled": "true",
+            "notification_schedule_enabled": "false",
+            "notification_timezone": "",
+            "notification_active_start": "09:00",
+            "notification_active_end": "18:00",
+            "notification_working_days": "1,2,3,4,5"
         };
 
         try {
@@ -86,27 +91,85 @@ Page {
         }
     }
 
-    // Derived state: is sync direction "upload_only"?
-    readonly property bool isSyncUploadOnly: getAutoSyncSetting("sync_direction", "both") === "upload_only"
+    // --- State properties (mutable, refreshed on page load) ---
 
-    // Notification enabled (persisted)
-    property bool notificationsEnabled: getAutoSyncSetting("notifications_enabled", "true") === "true"
+    // Is sync direction "upload_only"?  (regular property — re-assigned in reloadSettings)
+    property bool isSyncUploadOnly: false
 
-    Rectangle {
+    // Master notification toggle (persisted)
+    property bool notificationsEnabled: true
+
+    // Helper: whether notification sub-controls should be interactive
+    readonly property bool notificationsEffectivelyEnabled:
+        notificationsEnabled && !isSyncUploadOnly
+
+    // Load / reload all settings from DB
+    function reloadSettings() {
+        isSyncUploadOnly = (getAutoSyncSetting("sync_direction") === "upload_only");
+        notificationsEnabled = (getAutoSyncSetting("notifications_enabled") === "true");
+    }
+
+    Component.onCompleted: reloadSettings()
+
+    // ── Working-day helpers  (day indices: 0=Sun, 1=Mon … 6=Sat) ──
+    function getWorkingDays() {
+        var str = getAutoSyncSetting("notification_working_days");
+        if (!str || str.length === 0) return [1,2,3,4,5]; // default Mon-Fri
+        var arr = [];
+        var parts = str.split(",");
+        for (var i = 0; i < parts.length; i++) {
+            var v = parseInt(parts[i].trim());
+            if (!isNaN(v) && v >= 0 && v <= 6) arr.push(v);
+        }
+        return arr;
+    }
+
+    function saveWorkingDays(daysArray) {
+        saveAutoSyncSetting("notification_working_days", daysArray.join(","));
+    }
+
+    function isDaySelected(dayIndex) {
+        var days = getWorkingDays();
+        return days.indexOf(dayIndex) !== -1;
+    }
+
+    function toggleDay(dayIndex) {
+        var days = getWorkingDays();
+        var idx = days.indexOf(dayIndex);
+        if (idx !== -1) {
+            days.splice(idx, 1);
+        } else {
+            days.push(dayIndex);
+        }
+        days.sort();
+        saveWorkingDays(days);
+    }
+
+    // ── Scrollable content ──
+    Flickable {
         anchors.top: pageHeader.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
+        contentHeight: mainColumn.height + units.gu(4)
+        clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
+        }
 
         Column {
+            id: mainColumn
             width: parent.width - units.gu(4)
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             anchors.topMargin: units.gu(2)
             spacing: units.gu(2)
 
-            // Master Notification Toggle Section
+            // ──────────────────────────────────────────────────
+            // 1. Master Notification Toggle Section
+            // ──────────────────────────────────────────────────
             Rectangle {
                 width: parent.width
                 height: masterNotificationSection.height + units.gu(2)
@@ -175,7 +238,7 @@ Page {
                         text: i18n.dtr("ubtms", "⚠ Notifications are disabled when Background Sync is set to Upload Only")
                         font.pixelSize: units.gu(1.3)
                         font.italic: true
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e67e22" : "#e67e22"
+                        color: "#e67e22"
                         anchors.horizontalCenter: parent.horizontalCenter
                         wrapMode: Text.WordWrap
                         width: parent.width - units.gu(2)
@@ -184,7 +247,9 @@ Page {
                 }
             }
 
-            // Notification Schedule Settings Section
+            // ──────────────────────────────────────────────────
+            // 2. Notification Schedule Settings Section
+            // ──────────────────────────────────────────────────
             Rectangle {
                 width: parent.width
                 height: notificationScheduleSection.height + units.gu(2)
@@ -192,7 +257,7 @@ Page {
                 border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
                 border.width: 1
                 radius: units.gu(1)
-                opacity: (notificationSettingsPage.notificationsEnabled && !notificationSettingsPage.isSyncUploadOnly) ? 1.0 : 0.5
+                opacity: notificationSettingsPage.notificationsEffectivelyEnabled ? 1.0 : 0.5
 
                 Column {
                     id: notificationScheduleSection
@@ -212,7 +277,7 @@ Page {
                     }
 
                     Text {
-                        text: i18n.dtr("ubtms", "Set your timezone and active hours to receive notifications only during work time")
+                        text: i18n.dtr("ubtms", "Set your timezone, working days and active hours to receive notifications only during work time")
                         font.pixelSize: units.gu(1.5)
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -238,20 +303,23 @@ Page {
                         Switch {
                             id: notificationScheduleSwitch
                             checked: getAutoSyncSetting("notification_schedule_enabled") === "true"
-                            enabled: notificationSettingsPage.notificationsEnabled && !notificationSettingsPage.isSyncUploadOnly
+                            enabled: notificationSettingsPage.notificationsEffectivelyEnabled
                             anchors.verticalCenter: parent.verticalCenter
-                            onCheckedChanged: {
+                            onClicked: {
                                 saveAutoSyncSetting("notification_schedule_enabled", checked ? "true" : "false");
                             }
                         }
                     }
+
+                    // Helper: are schedule sub-controls active?
+                    property bool scheduleActive: notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled
 
                     // Timezone Selector
                     Row {
                         width: parent.width
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: units.gu(2)
-                        opacity: (notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled) ? 1.0 : 0.5
+                        opacity: notificationScheduleSection.scheduleActive ? 1.0 : 0.5
 
                         Text {
                             text: i18n.dtr("ubtms", "Timezone")
@@ -264,7 +332,7 @@ Page {
                         ComboBox {
                             id: timezoneCombo
                             width: units.gu(22)
-                            enabled: notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled
+                            enabled: notificationScheduleSection.scheduleActive
                             model: [
                                 { text: "System Default", value: "" },
                                 { text: "UTC", value: "UTC" },
@@ -313,22 +381,121 @@ Page {
                         }
                     }
 
-                    // Active Hours Label
+                    // ──────────────────────────────────
+                    // Working Days Selector
+                    // ──────────────────────────────────
                     Text {
-                        text: i18n.dtr("ubtms", "Active Hours (notifications allowed)")
+                        text: i18n.dtr("ubtms", "Working Days")
                         font.pixelSize: units.gu(1.8)
                         font.bold: true
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
                         anchors.horizontalCenter: parent.horizontalCenter
-                        opacity: (notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled) ? 1.0 : 0.5
+                        opacity: notificationScheduleSection.scheduleActive ? 1.0 : 0.5
                     }
 
-                    // Start Time Row
+                    Text {
+                        text: i18n.dtr("ubtms", "Notifications will only be sent on selected days")
+                        font.pixelSize: units.gu(1.3)
+                        font.italic: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#888"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        wrapMode: Text.WordWrap
+                        width: parent.width - units.gu(2)
+                        horizontalAlignment: Text.AlignHCenter
+                        opacity: notificationScheduleSection.scheduleActive ? 1.0 : 0.5
+                    }
+
+                    // Day buttons row
+                    Row {
+                        id: dayButtonsRow
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: units.gu(0.5)
+                        opacity: notificationScheduleSection.scheduleActive ? 1.0 : 0.5
+
+                        // Refresh counter to force button re-evaluation after toggle
+                        property int refreshCounter: 0
+
+                        Repeater {
+                            // Model: ordered Mon–Sun; dayIndex uses 0=Sun,1=Mon…6=Sat
+                            model: [
+                                { dayIndex: 1, label: "Mon" },
+                                { dayIndex: 2, label: "Tue" },
+                                { dayIndex: 3, label: "Wed" },
+                                { dayIndex: 4, label: "Thu" },
+                                { dayIndex: 5, label: "Fri" },
+                                { dayIndex: 6, label: "Sat" },
+                                { dayIndex: 0, label: "Sun" }
+                            ]
+
+                            delegate: Rectangle {
+                                id: dayButton
+                                width: units.gu(5)
+                                height: units.gu(4.5)
+                                radius: units.gu(0.5)
+                                border.width: 1
+
+                                property bool isSelected: {
+                                    // Reference refreshCounter so binding re-evaluates on toggle
+                                    var _unused = dayButtonsRow.refreshCounter;
+                                    return isDaySelected(modelData.dayIndex);
+                                }
+
+                                color: {
+                                    if (!notificationScheduleSection.scheduleActive)
+                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "#e0e0e0";
+                                    if (isSelected)
+                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d7d46" : "#4CAF50";
+                                    return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#fff";
+                                }
+
+                                border.color: {
+                                    if (isSelected && notificationScheduleSection.scheduleActive)
+                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#388E3C";
+                                    return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#ccc";
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: i18n.dtr("ubtms", modelData.label)
+                                    font.pixelSize: units.gu(1.5)
+                                    font.bold: dayButton.isSelected
+                                    color: {
+                                        if (dayButton.isSelected && notificationScheduleSection.scheduleActive)
+                                            return "#fff";
+                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#555";
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: notificationScheduleSection.scheduleActive
+                                    onClicked: {
+                                        toggleDay(modelData.dayIndex);
+                                        dayButtonsRow.refreshCounter++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ──────────────────────────────────
+                    // Working Hours
+                    // ──────────────────────────────────
+                    Text {
+                        text: i18n.dtr("ubtms", "Working Hours (notifications allowed)")
+                        font.pixelSize: units.gu(1.8)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        opacity: notificationScheduleSection.scheduleActive ? 1.0 : 0.5
+                    }
+
+                    // Start / End Time Row
                     Row {
                         width: parent.width
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: units.gu(2)
-                        opacity: (notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled) ? 1.0 : 0.5
+                        opacity: notificationScheduleSection.scheduleActive ? 1.0 : 0.5
 
                         Text {
                             text: i18n.dtr("ubtms", "From")
@@ -358,7 +525,7 @@ Page {
 
                             MouseArea {
                                 anchors.fill: parent
-                                enabled: notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled
+                                enabled: notificationScheduleSection.scheduleActive
                                 onClicked: {
                                     var parts = startTimeButton.timeValue.split(":");
                                     var hour = parseInt(parts[0]) || 9;
@@ -396,7 +563,7 @@ Page {
 
                             MouseArea {
                                 anchors.fill: parent
-                                enabled: notificationScheduleSwitch.checked && notificationScheduleSwitch.enabled
+                                enabled: notificationScheduleSection.scheduleActive
                                 onClicked: {
                                     var parts = endTimeButton.timeValue.split(":");
                                     var hour = parseInt(parts[0]) || 18;
@@ -409,7 +576,7 @@ Page {
 
                     // Info text
                     Text {
-                        text: i18n.dtr("ubtms", "Push notifications will only be sent during active hours. Overnight schedules (e.g., 22:00 to 06:00) are supported.")
+                        text: i18n.dtr("ubtms", "Push notifications will only be sent during working hours on working days. Overnight schedules (e.g., 22:00 to 06:00) are supported.")
                         font.pixelSize: units.gu(1.3)
                         font.italic: true
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#888"
@@ -443,11 +610,10 @@ Page {
         }
     }
 
-    // Re-read sync direction and notifications when page becomes visible
+    // Re-read settings when page becomes visible (e.g. navigating back from Sync settings)
     onVisibleChanged: {
         if (visible) {
-            isSyncUploadOnlyChanged();
-            notificationsEnabled = getAutoSyncSetting("notifications_enabled", "true") === "true";
+            reloadSettings();
         }
     }
 }
