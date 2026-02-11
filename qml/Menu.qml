@@ -146,27 +146,15 @@ Page {
                             iconName: "calendar"
                             iconColor: "#e74c3c"
                             text: i18n.dtr("ubtms", "Activities")
-                            showDivider: false
+                          
                             onClicked: {
                                 apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Activity_Page.qml"));
                                 page = 2;
                                 apLayout.setCurrentPage(page);
                             }
                         }
-                    }
-                }
 
-    
-                Rectangle {
-                    width: parent.width
-                    height: workSection.height
-                    color: isDark ? "#1e1e1e" : "#ffffff"
-
-                    Column {
-                        id: workSection
-                        width: parent.width
-
-                        SettingsListItem {
+                                             SettingsListItem {
                             iconName: "scope-manager"
                             iconColor: "#2ecc71"
                             text: i18n.dtr("ubtms", "My Tasks")
@@ -203,26 +191,16 @@ Page {
                             iconName: "history"
                             iconColor: "#f39c12"
                             text: i18n.dtr("ubtms", "Project Updates")
-                            showDivider: false
                             onClicked: {
                                 apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Updates_Page.qml"));
                                 page = 4;
                                 apLayout.setCurrentPage(page);
                             }
                         }
-                    }
-                }
-
+            
             
 
-                Rectangle {
-                    width: parent.width
-                    height: appSection.height
-                    color: isDark ? "#1e1e1e" : "#ffffff"
-
-                    Column {
-                        id: appSection
-                        width: parent.width
+           
 
                         SettingsListItem {
                             iconName: "info"
@@ -239,15 +217,20 @@ Page {
                             iconName: "settings"
                             iconColor: "#7f8c8d"
                             text: i18n.dtr("ubtms", "Settings")
-                            showDivider: false
+                            
                             onClicked: {
                                 apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("settings/Settings_Page.qml"));
                                 page = 6;
                                 apLayout.setCurrentPage(page);
                             }
                         }
+               
                     }
                 }
+
+    
+               
+   
             }
         }
     }
