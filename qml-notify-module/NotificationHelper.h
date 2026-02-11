@@ -23,6 +23,9 @@ public:
     // Start the background daemon
     Q_INVOKABLE void startDaemon();
     
+    // Kill and restart the background daemon
+    Q_INVOKABLE void restartDaemon();
+    
     // Check if daemon is running and healthy
     Q_INVOKABLE bool isDaemonHealthy();
     

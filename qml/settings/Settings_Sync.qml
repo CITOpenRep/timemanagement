@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
+import Pparent.Notifications 1.0
 import "../components/settings"
 
 Page {
@@ -36,6 +37,12 @@ Page {
         id: pageHeader
         title: syncSettingsPage.title
     }
+
+    NotificationHelper {
+        id: daemonHelper
+    }
+
+    property bool isRestarting: false
 
     // AutoSync Settings Helper Functions
     function getAutoSyncSetting(key) {
@@ -225,6 +232,53 @@ Page {
                             if (selectedIndex >= 0 && selectedIndex < model.length) {
                                 saveAutoSyncSetting("sync_direction", model[selectedIndex].value);
                             }
+                        }
+                    }
+
+                    // Sync interval recommendation
+                    Rectangle {
+                        width: parent.width - units.gu(2)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        height: recommendationText.implicitHeight + units.gu(2)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a2a1a" : "#eaf7ea"
+                        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d5a2d" : "#b5d9b5"
+                        border.width: 1
+                        radius: units.gu(0.5)
+
+                        Text {
+                            id: recommendationText
+                            text: i18n.dtr("ubtms", "\u2728 Recommended: Set sync interval to 5 or 15 minutes for the best balance of performance and battery life.")
+                            font.pixelSize: units.gu(1.4)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#a0d0a0" : "#2d7a2d"
+                            anchors.centerIn: parent
+                            wrapMode: Text.WordWrap
+                            width: parent.width - units.gu(2)
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                    }
+
+                    // Restart Daemon Button
+                    Button {
+                        id: restartDaemonButton
+                        text: isRestarting ? i18n.dtr("ubtms", "Restarting...") : i18n.dtr("ubtms", "Restart Background Daemon")
+                        width: parent.width - units.gu(2)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        enabled: !isRestarting
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? LomiriColors.orange : LomiriColors.orange
+
+                        onClicked: {
+                            isRestarting = true;
+                            daemonHelper.restartDaemon();
+                            restartCompleteTimer.start();
+                        }
+                    }
+
+                    Timer {
+                        id: restartCompleteTimer
+                        interval: 3000
+                        repeat: false
+                        onTriggered: {
+                            isRestarting = false;
                         }
                     }
 

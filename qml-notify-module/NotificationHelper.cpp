@@ -268,6 +268,40 @@ void NotificationHelper::startDaemon()
     }
 }
 
+void NotificationHelper::restartDaemon()
+{
+    qDebug() << "Restarting daemon...";
+    
+    // Kill existing daemon process
+    QProcess kill;
+    kill.start("pkill", QStringList() << "-f" << "python3.*daemon.py");
+    kill.waitForFinished(5000);
+    qDebug() << "Kill exit code:" << kill.exitCode();
+    
+    // Also try stopping via systemd
+    QString uid = QString::number(getuid());
+    QString dbusAddr = QString("unix:path=/run/user/%1/bus").arg(uid);
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("DBUS_SESSION_BUS_ADDRESS", dbusAddr);
+    
+    QProcess systemctlStop;
+    systemctlStop.setProcessEnvironment(env);
+    systemctlStop.start("systemctl", QStringList() << "--user" << "stop" << "ubtms-daemon");
+    systemctlStop.waitForFinished(5000);
+    qDebug() << "Systemctl stop exit code:" << systemctlStop.exitCode();
+    
+    // Clean up stale PID and heartbeat files
+    QFile::remove(getPidFilePath());
+    QFile::remove(getHeartbeatFilePath());
+    
+    // Wait for process to fully terminate
+    QThread::msleep(1500);
+    
+    // Start daemon fresh
+    startDaemon();
+    qDebug() << "Daemon restarted successfully";
+}
+
 bool NotificationHelper::isDaemonHealthy()
 {
     // First check if process is running
