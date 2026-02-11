@@ -213,16 +213,7 @@ Page {
                     }
                 }
 
-                // Section: App
-                Text {
-                    text: i18n.dtr("ubtms", "APP")
-                    font.pixelSize: units.gu(1.4)
-                    font.weight: Font.DemiBold
-                    color: isDark ? "#888" : "#6d6d72"
-                    leftPadding: units.gu(2)
-                    topPadding: units.gu(2)
-                    bottomPadding: units.gu(0.5)
-                }
+            
 
                 Rectangle {
                     width: parent.width
