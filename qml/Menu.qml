@@ -217,7 +217,7 @@ Page {
                             iconName: "settings"
                             iconColor: "#7f8c8d"
                             text: i18n.dtr("ubtms", "Settings")
-                            
+                            showDivider: false
                             onClicked: {
                                 apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("settings/Settings_Page.qml"));
                                 page = 6;
