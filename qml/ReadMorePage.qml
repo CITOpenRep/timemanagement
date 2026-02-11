@@ -2,6 +2,7 @@ import QtQuick 2.7
 import Lomiri.Components 1.3
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: readmepage
@@ -68,6 +69,8 @@ Page {
             height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
 
             onContentChanged: {
+                console.log("[ReadMorePage] onContentChanged, full content:");
+                console.log(newText);
                 Global.description_temporary_holder = newText;
                 
                 // Track changes in parent form's draft handler
@@ -78,6 +81,8 @@ Page {
 
             onContentLoaded: {
                 // Set initial content once the editor is loaded
+                console.log("[ReadMorePage] onContentLoaded, holder full content:");
+                console.log(Global.description_temporary_holder);
                 if (Global.description_temporary_holder) {
                     editor.text = Global.description_temporary_holder;
                 }

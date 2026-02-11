@@ -25,9 +25,11 @@ Rectangle {
     id: toolbar
 
     property var editor: null
-    property string currentFontSize: "12pt"
-    property color currentTextColor: "#000000"
-    property color currentHighlightColor: "transparent"
+    
+    // Dynamic properties - bound to editor when available
+    property string currentFontSize: editor ? editor.currentFontSize : "12pt"
+    property color currentTextColor: editor ? editor.currentTextColor : "#000000"
+    property color currentHighlightColor: editor ? editor.currentHighlightColor : "transparent"
     property bool darkMode: theme.name === "Ubuntu.Components.Themes.SuruDark"
 
     signal fontSizeClicked()
@@ -162,14 +164,11 @@ Rectangle {
                 Column {
                     anchors.centerIn: parent
                     spacing: 2
-                    Repeater {
-                        model: 3
-                        Rectangle {
-                            width: units.gu(2)
-                            height: 2
-                            color: darkMode ? "#CCCCCC" : "#333333"
-                        }
-                    }
+                    Rectangle { width: units.gu(3); height: units.dp(2); color:darkMode ? "#CCCCCC" : "#333333"; anchors.left: parent.left }
+                    Rectangle { width: units.gu(2); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.left: parent.left }
+                    Rectangle { width: units.gu(2.5); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.left: parent.left }
+                    Rectangle { width: units.gu(1.5); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.left: parent.left }
+
                 }
                 onClicked: if (editor) editor.setTextAlignment(Qt.AlignLeft)
             }
@@ -197,15 +196,11 @@ Rectangle {
                 Column {
                     anchors.centerIn: parent
                     spacing: 2
-                    Repeater {
-                        model: 3
-                        Rectangle {
-                            width: units.gu(2)
-                            height: 2
-                            color: darkMode ? "#CCCCCC" : "#333333"
-                            anchors.right: parent.right
-                        }
-                    }
+                     Rectangle { width: units.gu(3); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.right: parent.right }
+                    Rectangle { width: units.gu(2); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.right: parent.right }
+                    Rectangle { width: units.gu(2.5); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.right: parent.right }
+                    Rectangle { width: units.gu(1.5); height: units.dp(2); color: darkMode ? "#CCCCCC" : "#333333"; anchors.right: parent.right }
+
                 }
                 onClicked: if (editor) editor.setTextAlignment(Qt.AlignRight)
             }
@@ -264,7 +259,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                text: "🔗"
+                iconName:"insert-link"
                 font.pixelSize: units.gu(1.5)
                 color: darkMode ? "#555555" : "#F0F0F0"
                 onClicked: toolbar.linkClicked()
@@ -276,7 +271,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                text: "↶"
+                iconName: "edit-undo"
                 font.pixelSize: units.gu(2)
                 color: darkMode ? "#555555" : "#F0F0F0"
                 onClicked: {
@@ -289,7 +284,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                text: "↷"
+                iconName: "edit-redo"
                 font.pixelSize: units.gu(2)
                 color: darkMode ? "#555555" : "#F0F0F0"
                 onClicked: {
@@ -304,7 +299,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                text: "Tx"
+                iconName: "edit-clear"
                 font.pixelSize: units.gu(1.5)
                 color: darkMode ? "#555555" : "#F0F0F0"
                 onClicked: if (editor) editor.removeAllFormatting()

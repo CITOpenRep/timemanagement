@@ -1815,7 +1815,7 @@
             }
         },
         fontWeight: {
-            regexp: /^bold|^700/i,
+            regexp: /^bold|^[5-9]00/i,
             replace: function (doc) {
                 return createElement(doc, 'B');
             }

@@ -1,5 +1,6 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
+import "js/html-sanitizer.js" as HtmlSanitizer
 
 Rectangle {
     id: root
@@ -20,10 +21,12 @@ Rectangle {
 
     // Function to get the raw text content with formatting preserved
     function getFormattedText() {
-        // Always get the most current content from the TextArea
-        // Update originalHtmlContent first to ensure we have the latest content
-        originalHtmlContent = previewText.text;
-        return originalHtmlContent;
+        // Return the stored original HTML content, not the Qt-converted text
+        // Qt's TextArea converts HTML when using Text.RichText format,
+        // which adds DOCTYPE and <html> tags - we want to preserve the original
+        console.log("[RichTextPreview] getFormattedText returning, full content:");
+        console.log(originalHtmlContent);
+        return originalHtmlContent || "";
     }
 
     /**
@@ -37,10 +40,61 @@ Rectangle {
         }
     }
 
+    /**
+     * Check if content is valid HTML content (not corrupted editor internals)
+     * Uses the centralized HtmlSanitizer validation.
+     * @param content - HTML string to validate
+     * @return true if content is valid, false if it contains editor internals
+     */
+    function isValidContent(content) {
+        if (!content) return true; // Empty is valid
+        var validation = HtmlSanitizer.validate(content);
+        if (!validation.isValid) {
+            console.log("[RichTextPreview] Invalid content:", validation.issues.join(", "));
+        }
+        return validation.isValid;
+    }
+
+    /**
+     * Sanitize HTML content using the centralized HtmlSanitizer.
+     * Handles Qt wrappers, Odoo HTML, and Squire output.
+     * @param content - HTML string that may need sanitization
+     * @return Clean HTML content
+     */
+    function sanitizeHtml(content) {
+        if (!content) return "";
+        
+        // Check if sanitization is needed
+        if (HtmlSanitizer.needsSanitization(content)) {
+            console.log("[RichTextPreview] Sanitizing HTML content");
+            var result = HtmlSanitizer.sanitize(content);
+            console.log("[RichTextPreview] Sanitized result:", result ? result.substring(0, 100) : "(empty)");
+            return result;
+        }
+        
+        return content;
+    }
+
     // Function to set content with HTML preservation
     function setContent(htmlContent) {
-        originalHtmlContent = htmlContent || "";
-        previewText.text = htmlContent || "";
+        console.log("[RichTextPreview] setContent called with length:", htmlContent ? htmlContent.length : 0);
+        
+        // Validate content - reject if it contains editor internals
+        if (!isValidContent(htmlContent)) {
+            console.warn("[RichTextPreview] Ignoring corrupted content (contains editor internals)");
+            return;
+        }
+        
+        // Sanitize the HTML to remove Qt wrapper if present
+        var cleanContent = sanitizeHtml(htmlContent || "");
+        
+        // Store the clean HTML
+        originalHtmlContent = cleanContent;
+        
+        // Prevent onTextChanged from overwriting originalHtmlContent
+        _settingContent = true;
+        previewText.text = cleanContent;
+        _settingContent = false;
     }
 
     /**
@@ -64,19 +118,13 @@ Rectangle {
      * Returns the current content for immediate sync needs
      */
     function syncContent() {
-        // RichTextPreview is synchronous, so just return current content
-        originalHtmlContent = previewText.text;
-        return originalHtmlContent;
+        // RichTextPreview is synchronous - return the stored original HTML
+        // Do NOT use previewText.text as Qt adds DOCTYPE and <html> tags
+        return originalHtmlContent || "";
     }
 
-    // Override the text property setter to also store HTML
-    onTextChanged: {
-        // Only store as originalHtmlContent if it's not already set
-        // This prevents overwriting HTML content with processed text
-        if (originalHtmlContent === "" && text !== "") {
-            originalHtmlContent = text;
-        }
-    }
+    // Property to track if content was set programmatically
+    property bool _settingContent: false
 
     Column {
         id: column
@@ -113,10 +161,15 @@ Rectangle {
 
                 // Update originalHtmlContent when user types
                 onTextChanged: {
-                    if (!is_read_only) {
-                        originalHtmlContent = text;
-                        // Emit signal for draft tracking
-                        root.contentChanged(text);
+                    // Only update if user is typing (not read-only) and we're not setting content programmatically
+                    // Also reject Qt-processed HTML with DOCTYPE (comes from reading .text property back)
+                    if (!is_read_only && !_settingContent) {
+                        // Don't save Qt-processed HTML back to originalHtmlContent
+                        if (text.indexOf("<!DOCTYPE") === -1 && text.indexOf("<html") === -1) {
+                            originalHtmlContent = text;
+                            // Emit signal for draft tracking
+                            root.contentChanged(text);
+                        }
                     }
                 }
 
@@ -149,7 +202,7 @@ Rectangle {
                         Image {
                             id: expansionIcon
 
-                            source: "../images/expansion.png"
+                            source: "../../images/expansion.png"
                             width: units.gu(1.5)
                             height: units.gu(1.5)
                             // anchors.right: parent.right

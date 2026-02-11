@@ -1,0 +1,11 @@
+# Rich Text Editor Components
+# This module provides rich text editing and preview components
+
+RichTextEditor 1.0 RichTextEditor.qml
+RichTextPreview 1.0 RichTextPreview.qml
+HtmlEditorContainer 1.0 HtmlEditorContainer.qml
+HtmlEditorToolbar 1.0 HtmlEditorToolbar.qml
+FontSizeDialog 1.0 FontSizeDialog.qml
+ColorPickerDialog 1.0 ColorPickerDialog.qml
+LinkDialog 1.0 LinkDialog.qml
+ToolbarSeparator 1.0 ToolbarSeparator.qml

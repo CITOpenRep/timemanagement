@@ -37,6 +37,7 @@ import "../models/activity.js" as Activity
 import "../models/project.js" as Project
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: projectCreate
@@ -91,7 +92,7 @@ Page {
                         'planned_end_date': date_range_widget.formattedEndDate(),
                         'parent_id': ids.project_id,
                         'allocated_hours': hours_text.text,
-                        'description': description_text.text,
+                        'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
                         'favorites': currentFavorites,
                         'color': project_color,
                         'status': "updated",
@@ -423,7 +424,7 @@ Page {
             'planned_end_date': date_range_widget.formattedEndDate(),
             'parent_id': ids.project_id,
             'allocated_hours': hours_text.text,
-            'description': description_text.text,
+            'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             'favorites': currentFavorites,
             'color': project_color,
             'status': "updated",
