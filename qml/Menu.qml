@@ -107,10 +107,10 @@ Page {
                 id: menuColumn
                 width: parent.width
                 anchors.top: parent.top
-                anchors.topMargin: units.gu(2)
+               // anchors.topMargin: units.gu(2)
 
-             
-
+            
+          
                 Rectangle {
                     width: parent.width
                     height: mainSection.height
