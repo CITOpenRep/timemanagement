@@ -28,6 +28,7 @@ import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
 import Pparent.Notifications 1.0
 import "../components/settings"
+import "../components"
 
 Page {
     id: syncSettingsPage
@@ -43,6 +44,10 @@ Page {
     }
 
     property bool isRestarting: false
+
+    NotificationPopup {
+        id: daemonPopup
+    }
 
     // AutoSync Settings Helper Functions
     function getAutoSyncSetting(key) {
@@ -279,6 +284,19 @@ Page {
                         repeat: false
                         onTriggered: {
                             isRestarting = false;
+                            if (daemonHelper.isDaemonHealthy()) {
+                                daemonPopup.open(
+                                    i18n.dtr("ubtms", "Daemon Restarted"),
+                                    i18n.dtr("ubtms", "The background sync daemon has been successfully restarted and is running."),
+                                    "success"
+                                );
+                            } else {
+                                daemonPopup.open(
+                                    i18n.dtr("ubtms", "Daemon Restart"),
+                                    i18n.dtr("ubtms", "The daemon restart was initiated. It may take a few moments to fully start. If sync issues persist, try again."),
+                                    "warning"
+                                );
+                            }
                         }
                     }
 
