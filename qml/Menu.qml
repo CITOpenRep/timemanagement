@@ -30,6 +30,7 @@ import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
 import "../models/timesheet.js" as TimesheetModel
 import "../models/accounts.js" as Account
+import "components/settings"
 
 Page {
     id: listpage
@@ -86,286 +87,150 @@ Page {
         ]
     }
 
+    readonly property bool isDark: theme.name === "Ubuntu.Components.Themes.SuruDark"
+
     property var page: 0
-    LomiriShape {
+
+    Rectangle {
         anchors.top: header.bottom
-        width: parent.width
-        height: parent.height
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        color: isDark ? "#111" : "#f2f2f7"
 
-        Column {
+        Flickable {
             anchors.fill: parent
-            ListItem {
-                height: units.gu(6)
+            contentHeight: menuColumn.height + units.gu(4)
+            clip: true
+
+            Column {
+                id: menuColumn
+                width: parent.width
+                anchors.top: parent.top
+               // anchors.topMargin: units.gu(2)
+
+            
+          
                 Rectangle {
-                    color: "transparent"
-                    anchors.fill: parent
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(3)
+                    width: parent.width
+                    height: mainSection.height
+                    color: isDark ? "#1e1e1e" : "#ffffff"
 
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: units.gu(2)
+                    Column {
+                        id: mainSection
+                        width: parent.width
 
-                        Icon {
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            name: "home"
+                        SettingsListItem {
+                            iconName: "home"
+                            iconColor: "#3498db"
+                            text: i18n.dtr("ubtms", "Dashboard")
+                            onClicked: {
+                                page = 0;
+                                apLayout.setCurrentPage(page);
+                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Dashboard.qml"));
+                            }
                         }
 
-                        Label {
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
-                            text: i18n.dtr("ubtms","Dashboard")
+                        SettingsListItem {
+                            iconName: "alarm-clock"
+                            iconColor: "#e67e22"
+                            text: i18n.dtr("ubtms", "Timesheet")
+                            onClicked: {
+                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet_Page.qml"));
+                                page = 1;
+                                apLayout.setCurrentPage(page);
+                            }
                         }
+
+                        SettingsListItem {
+                            iconName: "calendar"
+                            iconColor: "#e74c3c"
+                            text: i18n.dtr("ubtms", "Activities")
+                          
+                            onClicked: {
+                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Activity_Page.qml"));
+                                page = 2;
+                                apLayout.setCurrentPage(page);
+                            }
+                        }
+
+                                             SettingsListItem {
+                            iconName: "scope-manager"
+                            iconColor: "#2ecc71"
+                            text: i18n.dtr("ubtms", "My Tasks")
+                            onClicked: {
+                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("MyTasks.qml"));
+                                page = 3;
+                                apLayout.setCurrentPage(page);
+                            }
+                        }
+
+                        SettingsListItem {
+                            iconName: "view-list-symbolic"
+                            iconColor: "#1abc9c"
+                            text: i18n.dtr("ubtms", "All Tasks")
+                            onClicked: {
+                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Task_Page.qml"));
+                                page = 3;
+                                apLayout.setCurrentPage(page);
+                            }
+                        }
+
+                        SettingsListItem {
+                            iconName: "folder-symbolic"
+                            iconColor: "#9b59b6"
+                            text: i18n.dtr("ubtms", "Projects")
+                            onClicked: {
+                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Project_Page.qml"));
+                                page = 4;
+                                apLayout.setCurrentPage(page);
+                            }
+                        }
+
+                        SettingsListItem {
+                            iconName: "history"
+                            iconColor: "#f39c12"
+                            text: i18n.dtr("ubtms", "Project Updates")
+                            onClicked: {
+                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Updates_Page.qml"));
+                                page = 4;
+                                apLayout.setCurrentPage(page);
+                            }
+                        }
+            
+            
+
+           
+
+                        SettingsListItem {
+                            iconName: "info"
+                            iconColor: "#2980b9"
+                            text: i18n.dtr("ubtms", "About Us")
+                            onClicked: {
+                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Aboutus.qml"));
+                                page = 5;
+                                apLayout.setCurrentPage(page);
+                            }
+                        }
+
+                        SettingsListItem {
+                            iconName: "settings"
+                            iconColor: "#7f8c8d"
+                            text: i18n.dtr("ubtms", "Settings")
+                            showDivider: false
+                            onClicked: {
+                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("settings/Settings_Page.qml"));
+                                page = 6;
+                                apLayout.setCurrentPage(page);
+                            }
+                        }
+               
                     }
                 }
-                onClicked: {
-                    page = 0;
-                    apLayout.setCurrentPage(page);
-                    var incubator = apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Dashboard.qml"));
-                }
-            }
-            ListItem {
-                height: units.gu(6)
-                Rectangle {
-                    color: "transparent"
-                    anchors.fill: parent
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(3)
 
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: units.gu(2)
-
-                        Icon {
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            name: "alarm-clock"
-                        }
-
-                        Label {
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
-                            text: i18n.dtr("ubtms","Timesheet")
-                        }
-                    }
-                }
-                onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet_Page.qml"));
-                    page = 1;
-                    apLayout.setCurrentPage(page);
-                }
-            }
-            ListItem {
-                height: units.gu(6)
-                Rectangle {
-                    color: "transparent"
-                    anchors.fill: parent
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(3)
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: units.gu(2)
-                        Icon {
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            name: "calendar"
-                        }
-                        Label {
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
-                            text: i18n.dtr("ubtms","Activities")
-                        }
-                    }
-                }
-                onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Activity_Page.qml"));
-                    page = 2;
-                    apLayout.setCurrentPage(page);
-                }
-            }
-            ListItem {
-                height: units.gu(6)
-                Rectangle {
-                    color: "transparent"
-                    anchors.fill: parent
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(3)
-
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: units.gu(2)
-
-                        Icon {
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            name: "scope-manager"
-                        }
-
-                        Label {
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
-                            text: i18n.dtr("ubtms","My Tasks")
-                        }
-                    }
-                }
-                onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("MyTasks.qml"));
-                    page = 3;
-                    apLayout.setCurrentPage(page);
-                }
-            }
-            ListItem {
-                height: units.gu(6)
-                Rectangle {
-                    color: "transparent"
-                    anchors.fill: parent
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(3)
-
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: units.gu(2)
-
-                        Icon {
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            name: "view-list-symbolic"
-                        }
-
-                        Label {
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
-                            text: i18n.dtr("ubtms","All Tasks")
-                        }
-                    }
-                }
-                onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Task_Page.qml"));
-                    page = 3;
-                    apLayout.setCurrentPage(page);
-                }
-            }
-            ListItem {
-                height: units.gu(6)
-                Rectangle {
-                    color: "transparent"
-                    anchors.fill: parent
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(3)
-
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: units.gu(2)
-
-                        Icon {
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            name: "folder-symbolic"
-                        }
-
-                        Label {
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
-                            text: i18n.dtr("ubtms","Projects")
-                        }
-                    }
-                }
-                onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Project_Page.qml"));
-                    page = 4;
-                    apLayout.setCurrentPage(page);
-                }
-            }
-            ListItem {
-                height: units.gu(6)
-                Rectangle {
-                    color: "transparent"
-                    anchors.fill: parent
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(3)
-
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: units.gu(2)
-
-                        Icon {
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            name: "history"
-                        }
-
-                        Label {
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
-                            text: i18n.dtr("ubtms","Project Updates")
-                        }
-                    }
-                }
-                onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Updates_Page.qml"));
-                    page = 4;
-                    apLayout.setCurrentPage(page);
-                }
-            }
-            ListItem {
-                height: units.gu(6)
-                Rectangle {
-                    color: "transparent"
-                    anchors.fill: parent
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(3)
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: units.gu(2)
-                        Icon {
-                            width: 20
-                            height: 20
-                            name: "info"
-                        }
-                        Label {
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
-                            text: i18n.dtr("ubtms","About Us")
-                        }
-                    }
-                }
-                onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Aboutus.qml"));
-                    page = 5;
-                    apLayout.setCurrentPage(page);
-                }
-            }
-            ListItem {
-                height: units.gu(6)
-                Rectangle {
-                    color: "transparent"
-                    anchors.fill: parent
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(3)
-
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: units.gu(2)
-
-                        Icon {
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            name: "settings"
-                        }
-
-                        Label {
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
-                            text: i18n.dtr("ubtms","Settings")
-                        }
-                    }
-                }
-                onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("settings/Settings_Page.qml"));
-                    page = 6;
-                    apLayout.setCurrentPage(page);
-                }
+    
+               
+   
             }
         }
     }
