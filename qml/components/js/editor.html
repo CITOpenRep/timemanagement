@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Rich Text Editor</title>
+    <style>
+        /* CSS Variables for theming - matching Odoo style */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --focus-color: #714B67;
+            --placeholder-color: #6c757d;
+            --selection-bg: rgba(113, 75, 103, 0.2);
+        }
+
+        /* Dark mode variables */
+        .dark-mode {
+            --bg-color: #2d2d2d;
+            --text-color: #f8f9fa;
+            --border-color: #495057;
+            --focus-color: #ce9be7;
+            --placeholder-color: #adb5bd;
+            --selection-bg: rgba(206, 155, 231, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 8px 12px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Ubuntu", "Helvetica Neue", Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            outline: none;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        
+        /* Ensure DIV elements (Squire's default block) don't have extra spacing */
+        body > div:first-child {
+            margin-top: 0;
+            padding-top: 0;
+        }
+        
+        body > div, body > p {
+            margin: 0 0 0.5em 0;
+        }
+        
+        body > div:last-child, body > p:last-child {
+            margin-bottom: 0;
+        }
+
+        body:empty:before {
+            content: attr(data-placeholder);
+            color: var(--placeholder-color);
+            pointer-events: none;
+        }
+
+        body:focus {
+            outline: none;
+        }
+
+        /* Selection styling */
+        ::selection {
+            background: var(--selection-bg);
+        }
+
+        /* Link styling */
+        a {
+            color: var(--focus-color);
+            text-decoration: underline;
+        }
+
+        a:hover {
+            text-decoration: none;
+        }
+
+        /* List styling */
+        ul, ol {
+            margin-left: 20px;
+            padding-left: 10px;
+        }
+
+        li {
+            margin-bottom: 4px;
+        }
+
+        /* Blockquote styling */
+        blockquote {
+            border-left: 4px solid var(--focus-color);
+            margin: 8px 0;
+            padding-left: 16px;
+            color: var(--placeholder-color);
+            font-style: italic;
+        }
+
+        /* Code block styling */
+        pre {
+            background: #f4f4f4;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: "Ubuntu Mono", "Consolas", monospace;
+        }
+
+        .dark-mode pre {
+            background: #1e1e1e;
+        }
+
+        /* Custom scrollbar */
+        body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        body::-webkit-scrollbar-thumb:hover {
+            background: var(--placeholder-color);
+        }
+    </style>
+</head>
+<body contenteditable="true" data-placeholder="Write something...">
+    <!-- Load the QtWebEngine bridge first -->
+    <script src="squire-qtwebengine-bridge.js"></script>
+    
+    <!-- Load Squire.js - this initializes window.editor on document.body and registers all handlers -->
+    <script src="squire-raw.js"></script>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // Parse URL parameters for configuration
+            function getUrlParams() {
+                var params = {};
+                var search = window.location.search.substring(1);
+                if (search) {
+                    var pairs = search.split('&');
+                    for (var i = 0; i < pairs.length; i++) {
+                        var pair = pairs[i].split('=');
+                        params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+                    }
+                }
+                return params;
+            }
+
+            var params = getUrlParams();
+
+            // Apply dark mode if specified
+            if (params.darkMode === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+
+            // Apply placeholder if specified
+            if (params.placeholder) {
+                document.body.setAttribute('data-placeholder', params.placeholder);
+            }
+
+            // Set initial readonly state
+            if (params.readonly === 'true') {
+                document.body.contentEditable = false;
+            }
+
+            // Wait for editor to be available (initialized by squire-raw.js)
+            function setupEditorEvents() {
+                if (typeof window.editor === 'undefined') {
+                    console.log('[Editor] Waiting for Squire editor...');
+                    setTimeout(setupEditorEvents, 50);
+                    return;
+                }
+
+                console.log('[Editor] Squire editor found, setting up events');
+
+                // Track content changes
+                var lastContent = '';
+                
+                window.editor.addEventListener('input', function() {
+                    var content = window.editor.getHTML();
+                    if (content !== lastContent) {
+                        lastContent = content;
+                        oxide.sendMessage('contentChanged', { content: content });
+                    }
+                });
+
+                // Track path changes (formatting state)
+                window.editor.addEventListener('pathChange', function(e) {
+                    oxide.sendMessage('pathChanged', { path: e.path || '' });
+                });
+
+                // Track selection changes
+                window.editor.addEventListener('select', function() {
+                    var selection = window.getSelection();
+                    if (selection && selection.toString()) {
+                        oxide.sendMessage('textSelected', { text: selection.toString() });
+                    }
+                });
+
+                // Track cursor position
+                window.editor.addEventListener('cursor', function() {
+                    try {
+                        var selection = window.getSelection();
+                        if (selection.rangeCount > 0) {
+                            var range = selection.getRangeAt(0);
+                            var rect = range.getBoundingClientRect();
+                            oxide.sendMessage('cursorPositionChanged', {
+                                x: rect.left,
+                                y: rect.top,
+                                width: rect.width,
+                                height: rect.height
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('[Editor] Could not get cursor position:', e);
+                    }
+                });
+
+                // Track undo state
+                window.editor.addEventListener('undoStateChange', function(e) {
+                    oxide.sendMessage('undoStateChanged', {
+                        canUndo: e.canUndo,
+                        canRedo: e.canRedo
+                    });
+                });
+
+                // Register additional handlers not in squire-raw.js
+                oxide.addMessageHandler('setReadOnly', function(msg) {
+                    var readOnly = msg.payload.readOnly !== undefined ? msg.payload.readOnly : msg.payload;
+                    document.body.contentEditable = !readOnly;
+                });
+
+                oxide.addMessageHandler('moveCursorToStart', function(msg) {
+                    window.editor.moveCursorToStart();
+                });
+
+                oxide.addMessageHandler('moveCursorToEnd', function(msg) {
+                    window.editor.moveCursorToEnd();
+                });
+
+                // Notify QML that editor is ready
+                oxide.sendMessage('editorReady', {});
+
+                console.log('[Editor] Squire editor setup complete');
+            }
+
+            // Start setup
+            setupEditorEvents();
+        })();
+    </script>
+</body>
+</html>
