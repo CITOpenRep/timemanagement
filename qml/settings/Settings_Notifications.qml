@@ -85,7 +85,7 @@ Page {
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', [key, value]);
             });
 
-            console.log("Setting saved:", key, "=", value);
+            //console.log("Setting saved:", key, "=", value);
         } catch (e) {
             console.warn("Error saving setting:", e);
         }

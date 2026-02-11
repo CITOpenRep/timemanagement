@@ -72,10 +72,10 @@ Page {
 
         onMessageReceived: function (data) {
             if (data.event === "sync_progress") {
-                console.log("Progress is " + data.payload);
+                //console.log("Progress is " + data.payload);
                 //Show Progress Bar
             } else if (data.event === "sync_message") {
-                console.log("Sync message is " + data.payload);
+                //console.log("Sync message is " + data.payload);
                 //Show the message in UI
             } else if (data.event === "sync_completed")
             //Close the Sync uI
@@ -144,7 +144,7 @@ Page {
                 syncingAccountId = -1;
                 syncStatusChecker.stop(); // Stop status checker
                 accountDisplayRefreshTimer.stop(); // Stop display refresh
-                console.log("🕐 Settings page: Local sync state timed out for account:", timeoutAccountId);
+                //console.log("🕐 Settings page: Local sync state timed out for account:", timeoutAccountId);
             }
         }
     }
@@ -170,7 +170,7 @@ Page {
                     // If sync completed (successful or failed), only refresh accounts list
                     // Let GlobalTimerWidget handle its own timeout and display lifecycle
                     if (currentStatus.indexOf("Successful") !== -1 || currentStatus.indexOf("Failed") !== -1) {
-                        console.log("✅ Sync completed for account:", syncingAccountId, "Status:", currentStatus);
+                        //console.log("✅ Sync completed for account:", syncingAccountId, "Status:", currentStatus);
 
                         // Only reset local sync state and refresh accounts - don't stop GlobalTimerWidget
                         var completedAccountId = syncingAccountId;
@@ -266,7 +266,7 @@ Page {
                             iconName: "edit"
                             enabled: model.id !== 0  // Disabled for local accounts
                             onTriggered: {
-                                console.log("Edit account:", model.id);
+                                //console.log("Edit account:", model.id);
                                 apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('../Account_Page.qml'), {
                                     "accountId": model.id
                                 });
@@ -401,7 +401,7 @@ Page {
                                     fontSize: units.gu(1.5)
                                     text: Utils.truncateText(i18n.dtr("ubtms", "Sync"),10)
                                     onClicked: {
-                                        console.log("Starting sync for account:", model.id, "(" + model.name + ")");
+                                        //console.log("Starting sync for account:", model.id, "(" + model.name + ")");
                                         syncingAccountId = model.id;
                                         syncTimeoutTimer.start(); // Start timeout timer
                                         syncStatusChecker.start(); // Start status checking
@@ -414,7 +414,7 @@ Page {
 
                                         backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                                             if (path === "") {
-                                                console.warn("DB not found.");
+                                                //console.warn("DB not found.");
                                                 syncingAccountId = -1;
                                                 syncTimeoutTimer.stop();
                                                 syncStatusChecker.stop();
@@ -425,7 +425,7 @@ Page {
                                             } else {
                                                 backend_bridge.call("backend.start_sync_in_background", [path, model.id], function (result) {
                                                     if (result) {
-                                                        console.log("Background sync started for account:", model.id);
+                                                        //console.log("Background sync started for account:", model.id);
                                                         // Keep syncing = true, will be set to false when sync completes or times out
                                                     } else {
                                                         console.warn("Failed to start sync for account:", model.id);
