@@ -215,7 +215,7 @@ Page {
                 iconName: "settings"
                 text: i18n.dtr("ubtms", "Settings")
                 onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Settings_Page.qml"));
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("settings/Settings_Page.qml"));
                     page = 6;
                     apLayout.setCurrentPage(page);
                 }

@@ -812,14 +812,18 @@ def get_notification_schedule_settings(db_path):
         
     Returns:
         dict: Settings with keys:
+            - notifications_enabled (bool): Master notification toggle
             - schedule_enabled (bool): Whether notification scheduling is enabled
             - timezone (str): User's preferred timezone
             - active_start (str): Start of active hours in HH:MM format
             - active_end (str): End of active hours in HH:MM format
+            - working_days (list[int]): List of working day numbers (0=Sun,1=Mon,...,6=Sat)
     """
     from config import get_setting, DEFAULT_SETTINGS
     
     try:
+        notifications_enabled = get_setting(db_path, "notifications_enabled",
+                                            DEFAULT_SETTINGS.get("notifications_enabled", "true"))
         schedule_enabled = get_setting(db_path, "notification_schedule_enabled", 
                                         DEFAULT_SETTINGS.get("notification_schedule_enabled", "false"))
         timezone = get_setting(db_path, "notification_timezone", 
@@ -828,20 +832,32 @@ def get_notification_schedule_settings(db_path):
                                    DEFAULT_SETTINGS.get("notification_active_start", "09:00"))
         active_end = get_setting(db_path, "notification_active_end", 
                                  DEFAULT_SETTINGS.get("notification_active_end", "18:00"))
+        working_days_str = get_setting(db_path, "notification_working_days",
+                                       DEFAULT_SETTINGS.get("notification_working_days", "1,2,3,4,5"))
+        
+        # Parse working days CSV string to list of ints
+        try:
+            working_days = [int(d.strip()) for d in working_days_str.split(",") if d.strip()]
+        except (ValueError, AttributeError):
+            working_days = [1, 2, 3, 4, 5]  # Default Mon-Fri
         
         return {
+            "notifications_enabled": notifications_enabled.lower() == "true",
             "schedule_enabled": schedule_enabled.lower() == "true",
             "timezone": timezone,
             "active_start": active_start,
-            "active_end": active_end
+            "active_end": active_end,
+            "working_days": working_days
         }
     except Exception as e:
         log.error(f"[COMMON] Failed to get notification schedule settings: {e}")
         return {
+            "notifications_enabled": True,
             "schedule_enabled": False,
             "timezone": "",
             "active_start": "09:00",
-            "active_end": "18:00"
+            "active_end": "18:00",
+            "working_days": [1, 2, 3, 4, 5]
         }
 
 
@@ -850,8 +866,10 @@ def should_send_notification(db_path):
     Determine if a notification should be sent based on current schedule settings.
     
     This is the main function that the daemon should call before sending any notification.
-    It checks if notification scheduling is enabled, and if so, whether the current time
-    falls within the user's active hours in their preferred timezone.
+    It checks:
+    1. Whether notifications are enabled (master toggle)
+    2. If scheduling is enabled, whether the current day is a working day
+    3. If scheduling is enabled, whether the current time falls within active hours
     
     Args:
         db_path: Path to the SQLite database
@@ -864,9 +882,29 @@ def should_send_notification(db_path):
     try:
         settings = get_notification_schedule_settings(db_path)
         
+        # Check master notification toggle first
+        if not settings["notifications_enabled"]:
+            return (False, "Notifications are disabled by user")
+        
         # If scheduling is disabled, always send notifications
         if not settings["schedule_enabled"]:
             return (True, "Notification scheduling is disabled")
+        
+        # Get effective timezone and current time for day-of-week check
+        effective_tz = settings["timezone"] if settings["timezone"] else get_system_timezone()
+        current_time = get_current_time_in_timezone(effective_tz)
+        
+        # Check if today is a working day
+        # Python weekday(): Mon=0..Sun=6 -> We store as 0=Sun,1=Mon,...,6=Sat
+        # Convert Python weekday to our format: (py_weekday + 1) % 7 maps Mon=1,Tue=2,...,Sun=0
+        py_weekday = current_time.weekday()  # Mon=0, Tue=1, ..., Sun=6
+        our_day = (py_weekday + 1) % 7       # Sun=0, Mon=1, ..., Sat=6
+        
+        if our_day not in settings["working_days"]:
+            day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+            working_day_names = [day_names[d] for d in sorted(settings["working_days"]) if 0 <= d <= 6]
+            return (False, f"Today is {day_names[our_day]}, not a working day. "
+                          f"Working days: {', '.join(working_day_names)}")
         
         # Check if current time is within active hours
         is_active = is_within_active_hours(
@@ -878,8 +916,6 @@ def should_send_notification(db_path):
         if is_active:
             return (True, f"Current time is within active hours ({settings['active_start']}-{settings['active_end']})")
         else:
-            effective_tz = settings["timezone"] if settings["timezone"] else get_system_timezone()
-            current_time = get_current_time_in_timezone(effective_tz)
             return (False, f"Outside active hours. Current time: {current_time.strftime('%H:%M')} ({effective_tz}), "
                           f"Active: {settings['active_start']}-{settings['active_end']}")
         
