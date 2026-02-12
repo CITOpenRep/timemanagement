@@ -305,6 +305,7 @@ Item {
     WebEngineView {
         id: wv
         anchors.fill: parent
+        zoomFactor: 2.52
         backgroundColor: darkMode ? "#2d2d2d" : "#ffffff"
         
         url: Qt.resolvedUrl("js/editor.html") + "?darkMode=" + darkMode + 
