@@ -48,6 +48,11 @@ WorkingDirectory={CLICK_PATH}
 Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus"
 Restart=always
 RestartSec=10
+TimeoutStopSec=15
+KillMode=mixed
+KillSignal=SIGTERM
+StartLimitIntervalSec=300
+StartLimitBurst=10
 StandardOutput=append:{log_file}
 StandardError=append:{log_file}
 
