@@ -40,6 +40,15 @@ Rectangle {
     height: units.gu(6)
     color: darkMode ? "#3d3d3d" : "#f5f5f5"
 
+    // Bottom border line for visual separation
+    Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: units.dp(1)
+        color: darkMode ? "#555555" : "#dee2e6"
+    }
+
     Flickable {
         anchors.fill: parent
         contentWidth: toolbarRow.width + units.gu(2)

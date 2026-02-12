@@ -21,7 +21,7 @@ import QtQuick 2.7
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 
-Column {
+Item {
     id: htmlEditorContainer
 
     // ============ PUBLIC PROPERTIES ============
@@ -40,6 +40,9 @@ Column {
     
     /** Whether to show the formatting toolbar */
     property bool showToolbar: true
+
+    /** Whether the toolbar is currently expanded (user toggle) */
+    property bool toolbarExpanded: true
 
     /** Direct access to the editor component */
     property alias editor: htmlEditor
@@ -144,12 +147,12 @@ Column {
 
     // ============ LAYOUT ============
 
-    spacing: 0
-
     HtmlEditorToolbar {
         id: htmlToolbar
-        width: parent.width
-        visible: showToolbar && !readOnly
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        visible: showToolbar && !readOnly && toolbarExpanded
         editor: htmlEditor
         darkMode: htmlEditorContainer.darkMode
         currentFontSize: htmlEditorContainer.currentFontSize
@@ -177,8 +180,10 @@ Column {
 
     RichTextEditor {
         id: htmlEditor
-        width: parent.width
-        height: parent.height - (htmlToolbar.visible ? htmlToolbar.height : 0)
+        anchors.top: (htmlToolbar.visible) ? htmlToolbar.bottom : parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         
         text: htmlEditorContainer.text
         readOnly: htmlEditorContainer.readOnly

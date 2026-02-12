@@ -36,6 +36,14 @@ Page {
 
         trailingActionBar.actions: [
             Action {
+                visible: !isReadOnly && useRichText
+                iconName: editor.toolbarExpanded ? "view-collapse" : "view-expand"
+                text: editor.toolbarExpanded ? i18n.dtr("ubtms", "Hide Toolbar") : i18n.dtr("ubtms", "Show Toolbar")
+                onTriggered: {
+                    editor.toolbarExpanded = !editor.toolbarExpanded
+                }
+            },
+            Action {
                 visible: !isReadOnly
                 iconName: "tick"
                 onTriggered: {
@@ -53,13 +61,11 @@ Page {
         ]
     }
 
-    Column {
+    Item {
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: units.gu(1)
-        padding: units.gu(2)
 
         // Rich Text Editor with Toolbar - shown when useRichText is true
         HtmlEditorContainer {
@@ -68,8 +74,7 @@ Page {
             text: Global.description_temporary_holder
             readOnly: isReadOnly
             showToolbar: !isReadOnly
-            width: parent.width - units.gu(4)
-            height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
+            anchors.fill: parent
 
             onContentChanged: {
              //   console.log("[ReadMorePage] onContentChanged - PUSHING to Global, length:", newText.length);
@@ -104,8 +109,7 @@ Page {
             font.pixelSize: units.gu(2)
             wrapMode: TextArea.Wrap
             selectByMouse: true
-            width: parent.width - units.gu(4)
-            height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
+            anchors.fill: parent
             clip: true
 
             onTextChanged: {

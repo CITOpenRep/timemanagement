@@ -37,8 +37,7 @@ Item {
     /** Dark mode state - auto-detected from theme */
     property bool darkMode: theme.name === "Ubuntu.Components.Themes.SuruDark"
     
-    /** Border color for the editor wrapper */
-    property color borderColor: "#dee2e6"
+
 
     /**
      * Font formatting state object
@@ -284,98 +283,92 @@ Item {
         }
     }
 
-    // ============ EDITOR WRAPPER ============
+    // ============ EDITOR AREA ============
 
+    // Background behind WebView to prevent any white flash
     Rectangle {
-        id: editorWrapper
         anchors.fill: parent
         color: darkMode ? "#2d2d2d" : "#ffffff"
-        border.width: 1
-        border.color: darkMode ? "#495057" : borderColor
-        radius: 4
+        z: -1
+    }
 
-        WebEngineView {
-            id: wv
-            anchors.fill: parent
-            anchors.margins: units.gu(0.1)
-            
-            url: Qt.resolvedUrl("js/editor.html") + "?darkMode=" + darkMode + 
-                 "&readonly=" + readOnly + 
-                 "&placeholder=" + encodeURIComponent(placeholder)
+    WebEngineView {
+        id: wv
+        anchors.fill: parent
+        backgroundColor: darkMode ? "#2d2d2d" : "#ffffff"
+        
+        url: Qt.resolvedUrl("js/editor.html") + "?darkMode=" + darkMode + 
+             "&readonly=" + readOnly + 
+             "&placeholder=" + encodeURIComponent(placeholder)
 
-            settings.javascriptEnabled: true
-            settings.localContentCanAccessRemoteUrls: false
-            settings.localContentCanAccessFileUrls: true
+        settings.javascriptEnabled: true
+        settings.localContentCanAccessRemoteUrls: false
+        settings.localContentCanAccessFileUrls: true
 
-            onLoadingChanged: {
-                if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
-                    _isLoaded = true;
-                    console.log("[RichTextEditor] Loaded. text=", editor.text ? editor.text.substring(0, 100) : "(empty)", "_pendingText=", _pendingText ? _pendingText.substring(0, 100) : "(empty)");
-                    
-                    // Set pending text if any
-                    if (_pendingText !== "") {
-                        console.log("[RichTextEditor] Setting pending text");
-                        setText(_pendingText);
-                        _pendingText = "";
-                    } else if (editor.text !== "") {
-                        console.log("[RichTextEditor] Setting editor.text");
-                        setText(editor.text);
-                    }
-                    
-                    // Apply read-only state
-                    if (readOnly) {
-                        wv.runJavaScript("document.body.contentEditable = false;");
-                    }
-                    
-                    // Sync content after a short delay to ensure Squire has processed the HTML
-                    // This updates editor.text with Squire's normalized HTML output
-                    Qt.callLater(function() {
-                        wv.runJavaScript("window.editor.getHTML();", function(result) {
-                            console.log("[RichTextEditor] Synced from Squire:", result ? result.substring(0, 100) : "(empty)");
-                            // Only update if content is valid (not corrupted editor HTML)
-                            if (result && isValidContent(result) && result !== editor.text) {
-                                _internalUpdate = true;
-                                editor.text = result;
-                                _internalUpdate = false;
-                            }
-                        });
-                    });
-                    
-                    // Emit contentLoaded signal
-                    editor.contentLoaded();
-                } else if (loadRequest.status === WebEngineView.LoadFailedStatus) {
-                    console.error("[RichTextEditor] Failed to load editor:", loadRequest.errorString);
+        onLoadingChanged: {
+            if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
+                _isLoaded = true;
+                console.log("[RichTextEditor] Loaded. text=", editor.text ? editor.text.substring(0, 100) : "(empty)", "_pendingText=", _pendingText ? _pendingText.substring(0, 100) : "(empty)");
+                
+                // Set pending text if any
+                if (_pendingText !== "") {
+                    console.log("[RichTextEditor] Setting pending text");
+                    setText(_pendingText);
+                    _pendingText = "";
+                } else if (editor.text !== "") {
+                    console.log("[RichTextEditor] Setting editor.text");
+                    setText(editor.text);
                 }
-            }
-
-            // Handle URL fragment changes for bridge communication
-            onUrlChanged: {
-                var urlStr = url.toString();
-                var hashIndex = urlStr.indexOf('#');
-                if (hashIndex === -1) return;
                 
-                var hash = urlStr.substring(hashIndex + 1);
+                // Apply read-only state
+                if (readOnly) {
+                    wv.runJavaScript("document.body.contentEditable = false;");
+                }
                 
-                // Handle events from JS
-                if (hash.indexOf('qtevent:') === 0) {
-                    var parts = hash.substring(8).split(':');
-                    var eventType = parts[0];
-                    var payload = {};
-                    if (parts.length > 1) {
-                        try {
-                            var decoded = JSON.parse(decodeURIComponent(parts[1]));
-                            payload = decoded.payload || decoded;
-                        } catch (e) {
-                            // Silently ignore parse errors
+                // Sync content after a short delay to ensure Squire has processed the HTML
+                Qt.callLater(function() {
+                    wv.runJavaScript("window.editor.getHTML();", function(result) {
+                        console.log("[RichTextEditor] Synced from Squire:", result ? result.substring(0, 100) : "(empty)");
+                        if (result && isValidContent(result) && result !== editor.text) {
+                            _internalUpdate = true;
+                            editor.text = result;
+                            _internalUpdate = false;
                         }
-                    }
-                    p.handleEvent(eventType, payload);
-                }
+                    });
+                });
+                
+                editor.contentLoaded();
+            } else if (loadRequest.status === WebEngineView.LoadFailedStatus) {
+                console.error("[RichTextEditor] Failed to load editor:", loadRequest.errorString);
             }
+        }
 
-            onNewViewRequested: {
-                request.action = WebEngineView.IgnoreRequest;
+        // Handle URL fragment changes for bridge communication
+        onUrlChanged: {
+            var urlStr = url.toString();
+            var hashIndex = urlStr.indexOf('#');
+            if (hashIndex === -1) return;
+            
+            var hash = urlStr.substring(hashIndex + 1);
+            
+            if (hash.indexOf('qtevent:') === 0) {
+                var parts = hash.substring(8).split(':');
+                var eventType = parts[0];
+                var payload = {};
+                if (parts.length > 1) {
+                    try {
+                        var decoded = JSON.parse(decodeURIComponent(parts[1]));
+                        payload = decoded.payload || decoded;
+                    } catch (e) {
+                        // Silently ignore parse errors
+                    }
+                }
+                p.handleEvent(eventType, payload);
             }
+        }
+
+        onNewViewRequested: {
+            request.action = WebEngineView.IgnoreRequest;
         }
     }
 

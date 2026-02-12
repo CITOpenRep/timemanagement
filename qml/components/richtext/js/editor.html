@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Rich Text Editor</title>
+    <script>
+        // Apply dark mode to <html> IMMEDIATELY before first paint to prevent white flash
+        (function() {
+            var search = window.location.search.substring(1);
+            if (search.indexOf('darkMode=true') !== -1) {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
     <style>
         /* CSS Variables for theming - matching Odoo style */
         :root {
@@ -31,7 +40,15 @@
             padding: 0;
         }
 
-        html, body {
+        html {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+        }
+
+        body {
             height: 100%;
             width: 100%;
             margin: 0;
@@ -167,6 +184,7 @@
 
             // Apply dark mode if specified
             if (params.darkMode === 'true') {
+                document.documentElement.classList.add('dark-mode');
                 document.body.classList.add('dark-mode');
             }
 
