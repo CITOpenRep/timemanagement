@@ -149,9 +149,7 @@ def get_app_version():
         if Path(MANIFEST_PATH).exists():
             with open(MANIFEST_PATH, 'r') as f:
                 manifest = json.load(f)
-                version = manifest.get('version')
-                if version:
-                    return version
+                return manifest.get('version', '1.2.4')
         # Fallback to development path
         dev_manifest = Path(__file__).parent.parent / "manifest.json.in"
         if dev_manifest.exists():
@@ -162,13 +160,9 @@ def get_app_version():
                 match = re.search(r'"version":\s*"([^"]+)"', content)
                 if match:
                     return match.group(1)
-        # Fallback to VERSION file if present
-        version_file = Path(__file__).resolve().parent.parent / "VERSION"
-        if version_file.exists():
-            return version_file.read_text(encoding="utf-8").strip()
     except Exception as e:
         log.error(f"[DAEMON] Failed to read app version: {e}")
-    return "unknown"  # Fallback version
+    return "1.2.4"  # Fallback version
 
 APP_VERSION = get_app_version()
 
@@ -300,22 +294,26 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Failed to remove PID file: {e}")
     
     def _setup_signal_handlers(self):
-        """Setup signal handlers for graceful shutdown."""
-        # Ignore SIGTERM to prevent being killed by app lifecycle
-        # Only respond to SIGINT (Ctrl+C) for intentional shutdown
-        signal.signal(signal.SIGTERM, self._handle_sigterm_ignore)
+        """Setup signal handlers for graceful shutdown.
+        
+        The daemon runs as a systemd service with Restart=always.
+        We respond to SIGTERM gracefully so systemd can stop/restart us cleanly.
+        Systemd will automatically restart the daemon after a clean shutdown.
+        """
+        signal.signal(signal.SIGTERM, self._handle_shutdown)
         signal.signal(signal.SIGINT, self._handle_shutdown)
         signal.signal(signal.SIGHUP, self._handle_reload)
     
-    def _handle_sigterm_ignore(self, signum, frame):
-        """Ignore SIGTERM to stay alive when app closes."""
-        log.info(f"[DAEMON] Ignoring SIGTERM (signal {signum}) - daemon will continue running")
-        # Do NOT shutdown - just log and continue
-    
     def _handle_shutdown(self, signum, frame):
-        """Handle shutdown signals gracefully (only SIGINT)."""
-        log.info(f"[DAEMON] Received signal {signum}, shutting down...")
+        """Handle shutdown signals gracefully (SIGTERM and SIGINT).
+        
+        Systemd sends SIGTERM to stop the service. We comply and shut down
+        cleanly. Systemd's Restart=always policy will restart us automatically.
+        """
+        sig_name = 'SIGTERM' if signum == signal.SIGTERM else 'SIGINT' if signum == signal.SIGINT else str(signum)
+        log.info(f"[DAEMON] Received {sig_name} (signal {signum}), shutting down gracefully...")
         self.running = False
+        self._save_last_check_times()
         self._release_wakelock()  # Release wakelock before exiting
         self._cleanup_pid_file()
         if self.loop:
