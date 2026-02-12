@@ -68,6 +68,16 @@ Item {
     property string _pendingText: ""
     property bool _internalUpdate: false
 
+    /**
+     * Strip <script>...</script> tags from Squire's getHTML() output.
+     * Squire returns the full body HTML including bridge/setup scripts;
+     * we only want the actual user content.
+     */
+    function stripScriptTags(html) {
+        if (!html) return "";
+        return html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/^\s+|\s+$/g, "");
+    }
+
     // ============ PUBLIC FUNCTIONS ============
 
     /** Toggle bold formatting */
@@ -328,10 +338,12 @@ Item {
                 // Sync content after a short delay to ensure Squire has processed the HTML
                 Qt.callLater(function() {
                     wv.runJavaScript("window.editor.getHTML();", function(result) {
-                        console.log("[RichTextEditor] Synced from Squire:", result ? result.substring(0, 100) : "(empty)");
-                        if (result && isValidContent(result) && result !== editor.text) {
+                        // Strip script tags that Squire includes from its body HTML
+                        var cleanResult = stripScriptTags(result);
+                        console.log("[RichTextEditor] Synced from Squire:", cleanResult ? cleanResult.substring(0, 100) : "(empty)");
+                        if (cleanResult && cleanResult !== editor.text) {
                             _internalUpdate = true;
-                            editor.text = result;
+                            editor.text = cleanResult;
                             _internalUpdate = false;
                         }
                     });
@@ -439,15 +451,10 @@ Item {
                 case 'contentChanged':
                     if (!editor._internalUpdate) {
                         var content = payload.content || "";
-                        // Reject content that contains <script> tags — this only happens
-                        // during the initial page load when Squire returns the full body
-                        // HTML including the bridge/setup scripts. Normal user content
-                        // never contains script tags.
-                        if (content.indexOf("<script") !== -1) {
-                           // console.log("[RichTextEditor] Skipping contentChanged with script tags (initial load artifact)");
-                            return;
-                        }
-                      //  console.log("[RichTextEditor] contentChanged from Squire, length:", content.length);
+                        // Strip script tags — Squire's getHTML() returns the full body
+                        // HTML including bridge/setup scripts
+                        content = editor.stripScriptTags(content);
+                        console.log("[RichTextEditor] contentChanged from Squire, length:", content.length);
                         editor._internalUpdate = true;
                         editor.text = content;
                         editor.contentChanged(content);
