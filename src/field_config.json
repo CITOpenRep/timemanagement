@@ -5,14 +5,15 @@
         "date_start": "planned_start_date",
         "date": "planned_end_date",
         "allocated_hours": "allocated_hours",
-        "remaining_hours":"remaining_hours",
+        "remaining_hours": "remaining_hours",
         "description": "description",
         "color": "color_pallet",
         "last_update_status": "last_update_status",
-        "stage_id":"stage",
+        "stage_id": "stage",
         "write_date": "last_modified",
         "is_favorite": "favorites",
         "user_id": "user_id",
+        "create_uid": "create_uid",
         "id": "odoo_record_id"
     },
     "project.task": {
@@ -24,7 +25,7 @@
         "planned_date_end": "end_date",
         "date_deadline": "deadline",
         "planned_hours": "initial_planned_hours",
-        "stage_id":"state",
+        "stage_id": "state",
         "personal_stage_type_id": "personal_stage",
         "priority": "priority",
         "description": "description",
@@ -35,10 +36,10 @@
     },
     "account.analytic.line": {
         "project_id": "project_id",
-        "user_id" :"user_id",
+        "user_id": "user_id",
         "task_id": "task_id",
         "name": "name",
-        "date":"record_date",
+        "date": "record_date",
         "unit_amount": "unit_amount",
         "write_date": "last_modified",
         "id": "odoo_record_id"
@@ -66,11 +67,11 @@
         "share": "share",
         "active": "active",
         "id": "odoo_record_id",
-        "login":"login",
-        "job_title":"job_title",
-        "mobile_phone":"mobile_phone",
-        "work_email":"work_email",
-        "company_id":"company_id",
+        "login": "login",
+        "job_title": "job_title",
+        "mobile_phone": "mobile_phone",
+        "work_email": "work_email",
+        "company_id": "company_id",
         "avatar_128": "avatar_128"
     },
     "ir.model": {
@@ -102,10 +103,10 @@
         "description": "description",
         "date": "date",
         "project_id": "project_id",
+        "create_uid": "create_uid",
         "id": "odoo_record_id",
-        "write_date":"last_modified"
+        "write_date": "last_modified"
     },
-
     "project.task.type": {
         "id": "odoo_record_id",
         "name": "name",
@@ -121,20 +122,17 @@
         "__last_update": "__last_update",
         "project_ids": "is_global",
         "user_id": "user_id"
-      },
-
-      "project.project.stage": {
-         "id": "odoo_record_id",
-         "name": "name",
-         "sequence": "sequence",
-         "fold": "fold",
-         "mail_template_id": "mail_template_id",
-         "sms_template_id": "sms_template_id",
-         "active": "active",
-         "create_date": "create_date",
-         "write_date": "write_date",
-         "__last_update": "__last_update"
-       }
-
-
+    },
+    "project.project.stage": {
+        "id": "odoo_record_id",
+        "name": "name",
+        "sequence": "sequence",
+        "fold": "fold",
+        "mail_template_id": "mail_template_id",
+        "sms_template_id": "sms_template_id",
+        "active": "active",
+        "create_date": "create_date",
+        "write_date": "write_date",
+        "__last_update": "__last_update"
+    }
 }

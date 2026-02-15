@@ -406,7 +406,8 @@ def get_current_assignments_snapshot(db_path, account_id, user_id):
         'tasks': set(),
         'activities': set(),
         'projects': set(),
-        'timesheets': set()
+        'timesheets': set(),
+        'project_updates': set()
     }
     
     if not user_id:
@@ -457,10 +458,18 @@ def get_current_assignments_snapshot(db_path, account_id, user_id):
         """, (account_id, user_id, str(user_id)))
         snapshot['timesheets'] = {row[0] for row in cursor.fetchall() if row[0]}
         
+        # Project Updates: all updates for projects in this account
+        cursor.execute("""
+            SELECT odoo_record_id FROM project_update_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+        """, (account_id,))
+        snapshot['project_updates'] = {row[0] for row in cursor.fetchall() if row[0]}
+        
         conn.close()
         log.info(f"[COMMON] Assignment snapshot (by odoo_record_id): tasks={len(snapshot['tasks'])}, "
                  f"activities={len(snapshot['activities'])}, projects={len(snapshot['projects'])}, "
-                 f"timesheets={len(snapshot['timesheets'])}")
+                 f"timesheets={len(snapshot['timesheets'])}, project_updates={len(snapshot['project_updates'])}")
         
     except Exception as e:
         log.error(f"[COMMON] Failed to get assignment snapshot: {e}")
@@ -478,6 +487,8 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
     IMPORTANT: Compares by odoo_record_id (not local id) since INSERT OR REPLACE
     changes local id on every sync, but odoo_record_id is stable.
     
+    Also detects new project updates for projects in the account.
+    
     Args:
         db_path (str): Path to the SQLite database file
         account_id (int): Account ID
@@ -491,7 +502,8 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         'new_tasks': [],
         'new_activities': [],
         'new_projects': [],
-        'new_timesheets': []
+        'new_timesheets': [],
+        'new_project_updates': []
     }
     
     if not user_id:
@@ -534,7 +546,7 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         
         # Get current projects (managed or favorited)
         cursor.execute("""
-            SELECT id, name, odoo_record_id FROM project_project_app 
+            SELECT id, name, odoo_record_id, create_uid FROM project_project_app 
             WHERE account_id = ? 
             AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ? OR favorites = 1)
@@ -558,11 +570,26 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
             if odoo_id and odoo_id not in pre_sync_snapshot['timesheets']:
                 result['new_timesheets'].append(dict(timesheet))
         
+        # Get new project updates (by anyone, filtering by creator is done in daemon)
+        cursor.execute("""
+            SELECT pu.id, pu.name, pu.odoo_record_id, pu.create_uid, pu.project_id,
+                   pp.name as project_name
+            FROM project_update_app pu
+            LEFT JOIN project_project_app pp ON pu.project_id = pp.odoo_record_id AND pp.account_id = ?
+            WHERE pu.account_id = ? 
+            AND pu.odoo_record_id IS NOT NULL
+        """, (account_id, account_id))
+        
+        for update in cursor.fetchall():
+            odoo_id = update['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot.get('project_updates', set()):
+                result['new_project_updates'].append(dict(update))
+        
         conn.close()
         
         log.info(f"[COMMON] New assignments detected (by odoo_record_id): tasks={len(result['new_tasks'])}, "
                  f"activities={len(result['new_activities'])}, projects={len(result['new_projects'])}, "
-                 f"timesheets={len(result['new_timesheets'])}")
+                 f"timesheets={len(result['new_timesheets'])}, project_updates={len(result['new_project_updates'])}")
         
     except Exception as e:
         log.error(f"[COMMON] Failed to detect new assignments: {e}")
