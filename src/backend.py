@@ -358,7 +358,7 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
     if attachment_id <=0:
         send("ondemand_upload_completed",False)
     send("ondemand_upload_message","Syncing to local device .. ")
-    sync_ondemand_tables_from_odoo(client, selected["id"], settings_db)
+    sync_ondemand_tables_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
     send("ondemand_upload_completed",True)
     return attachment_id
 
@@ -394,7 +394,7 @@ def sync(settings_db, account_id):
     )
     send("progress",20)
     log.debug("Syncing from oddo from server" + selected["link"])
-    sync_all_from_odoo(client, selected["id"], settings_db)
+    sync_all_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
 
     log.debug("Syncing to odoo")
     send("progress",50)
@@ -460,7 +460,7 @@ def sync_background(settings_db, account_id):
             )
             send("sync_progress",30)
             log.debug("Syncing from oddo : ID Is " + selected["link"])
-            sync_all_from_odoo(client, account_id, settings_db)
+            sync_all_from_odoo(client, account_id, settings_db, account_name=selected.get("name", ""))
             send("sync_progress",50)
             log.debug("Syncing to odoo")
             sync_all_to_odoo(client, account_id, settings_db)
