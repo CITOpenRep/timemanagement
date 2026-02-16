@@ -1083,7 +1083,7 @@ class NotificationDaemon:
                     log.info(f"[DAEMON] Starting sync_all_from_odoo for {account_name}")
                     self._update_heartbeat()
                     
-                    sync_all_from_odoo(client, account_id, self.settings_db)
+                    sync_all_from_odoo(client, account_id, self.settings_db, account_name=account_name)
                     
                     self._update_heartbeat()
                     log.info(f"[DAEMON] sync_all_from_odoo completed for {account_name}")
