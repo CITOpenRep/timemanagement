@@ -113,7 +113,7 @@ def should_update_local(odoo_write_date: str, local_last_modified: str) -> bool:
             odoo_dt = odoo_dt.replace(tzinfo=timezone.utc)
 
         # Normalize local time (assume it's stored in UTC, or naive)
-        local_dt = datetime.fromisoformat(local_last_modified)
+        local_dt = datetime.fromisoformat(local_last_modified.replace("Z", "+00:00"))
         if local_dt.tzinfo is None:
             local_dt = local_dt.replace(tzinfo=timezone.utc)
 

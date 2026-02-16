@@ -94,6 +94,7 @@ function initializeDatabase() {
             has_draft INTEGER DEFAULT 0,\
             odoo_record_id INTEGER,\
             user_id INTEGER,\
+            create_uid INTEGER,\
             UNIQUE (odoo_record_id, account_id)\
         )',
         [
@@ -114,7 +115,8 @@ function initializeDatabase() {
             'status TEXT DEFAULT ""',
             'has_draft INTEGER DEFAULT 0',
             'odoo_record_id INTEGER',
-            'user_id INTEGER'
+            'user_id INTEGER',
+            'create_uid INTEGER'
         ]
     );
 
@@ -346,6 +348,7 @@ function initializeDatabase() {
             "last_modified datetime," +
             "status TEXT DEFAULT ''," +   // local sync status
             "has_draft INTEGER DEFAULT 0," +
+            "create_uid INTEGER," +
             "UNIQUE (odoo_record_id, account_id)" +
         ")",
         [
@@ -361,7 +364,8 @@ function initializeDatabase() {
             "odoo_record_id INTEGER",
             "last_modified datetime",
             "status TEXT DEFAULT ''",
-            "has_draft INTEGER DEFAULT 0"
+            "has_draft INTEGER DEFAULT 0",
+            "create_uid INTEGER"
         ]
     );
 
