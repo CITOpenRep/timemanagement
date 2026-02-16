@@ -738,7 +738,7 @@ class NotificationDaemon:
         BULK_THRESHOLD = 10  # Total items that triggers bulk mode
         
         total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
-                     len(new_assignments['new_projects']))
+                     len(new_assignments['new_projects']) + len(new_assignments.get('new_project_updates', [])))
         
         if total_new > BULK_THRESHOLD:
             log.warning(f"[DAEMON] Bulk notification protection triggered: {total_new} new items detected")
@@ -797,6 +797,11 @@ class NotificationDaemon:
             project_id = task.get('project_id')
             odoo_record_id = task.get('odoo_record_id')
             create_uid = task.get('create_uid')
+            
+            # Skip self-created tasks (user assigned task to themselves)
+            if create_uid and str(create_uid) == str(current_user_id):
+                log.info(f"[DAEMON] Skipping self-created task '{task_name}' (create_uid={create_uid})")
+                continue
             
             # Get assigner info if available
             assigner_info = None
@@ -885,6 +890,11 @@ class NotificationDaemon:
             odoo_record_id = activity.get('odoo_record_id')
             create_uid = activity.get('create_uid')
             
+            # Skip self-created activities (user assigned activity to themselves)
+            if create_uid and str(create_uid) == str(current_user_id):
+                log.info(f"[DAEMON] Skipping self-created activity '{summary}' (create_uid={create_uid})")
+                continue
+            
             # Get assigner info if available
             assigner_info = None
             assigner_name = None
@@ -970,6 +980,12 @@ class NotificationDaemon:
             local_project_id = project.get('id')
             project_name = project.get('name', 'Unknown Project')
             odoo_record_id = project.get('odoo_record_id')
+            create_uid = project.get('create_uid')
+            
+            # Skip self-created projects
+            if create_uid and str(create_uid) == str(current_user_id):
+                log.info(f"[DAEMON] Skipping self-created project '{project_name}' (create_uid={create_uid})")
+                continue
             
             # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
@@ -984,7 +1000,7 @@ class NotificationDaemon:
                 account_id,
                 "Project",
                 f"You now have access to project '{project_name}'.",
-                {"project_name": project_name, "id": local_project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+                {"project_name": project_name, "id": local_project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True, "create_uid": create_uid}
             )
         
         # Add remaining projects to DB without sending popups
@@ -1001,10 +1017,101 @@ class NotificationDaemon:
             log.info(f"[DAEMON] Notified {len(projects_to_notify)} NEW project assignments" +
                      (f" ({projects_overflow} more added to history)" if projects_overflow > 0 else ""))
         
+        # =================================================================
+        # 4. PROJECT UPDATES: Notify for new updates by OTHER users
+        # =================================================================
+        project_updates_to_notify = new_assignments.get('new_project_updates', [])[:MAX_NOTIFICATIONS_PER_TYPE]
+        project_updates_overflow = len(new_assignments.get('new_project_updates', [])) - len(project_updates_to_notify)
+        
+        for update in project_updates_to_notify:
+            update_name = update.get('name', 'Project Update')
+            odoo_record_id = update.get('odoo_record_id')
+            create_uid = update.get('create_uid')
+            project_name = update.get('project_name') or 'Unknown Project'
+            project_id = update.get('project_id')
+            
+            # Skip self-created project updates
+            if create_uid and str(create_uid) == str(current_user_id):
+                log.info(f"[DAEMON] Skipping self-created project update '{update_name}' (create_uid={create_uid})")
+                continue
+            
+            # Get author info if available
+            author_info = None
+            author_name = None
+            avatar_path = None
+            if create_uid:
+                author_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid)
+                if author_info:
+                    author_name = author_info.get('name')
+                    avatar_path = author_info.get('avatar_path')
+            
+            # Build notification message
+            if author_name:
+                notification_msg = f"{author_name} posted an update on project '{project_name}'"
+            else:
+                notification_msg = f"New update on project '{project_name}': {update_name}"
+            
+            self.send_notification(
+                "Project Update",
+                notification_msg,
+                nav_type="Project",
+                record_id=project_id,  # Navigate to the project
+                account_id=account_id,
+                avatar_path=avatar_path
+            )
+            add_notification(
+                self.app_db,
+                account_id,
+                "Project",
+                notification_msg,
+                {
+                    "update_name": update_name,
+                    "project_name": project_name,
+                    "project_id": project_id,
+                    "odoo_record_id": odoo_record_id,
+                    "create_uid": create_uid,
+                    "author_name": author_name,
+                    "author_avatar": author_info.get('avatar_128') if author_info else None
+                }
+            )
+        
+        # Add remaining project updates to DB without sending popups
+        for update in new_assignments.get('new_project_updates', [])[MAX_NOTIFICATIONS_PER_TYPE:]:
+            create_uid = update.get('create_uid')
+            # Skip self-created
+            if create_uid and str(create_uid) == str(current_user_id):
+                continue
+            author_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid) if create_uid else None
+            author_name = author_info.get('name') if author_info else None
+            project_name = update.get('project_name') or 'Unknown Project'
+            update_name = update.get('name', 'Project Update')
+            
+            if author_name:
+                msg = f"{author_name} posted an update on project '{project_name}'"
+            else:
+                msg = f"New update on project '{project_name}': {update_name}"
+            
+            add_notification(
+                self.app_db, account_id, "Project",
+                msg,
+                {
+                    "update_name": update_name,
+                    "project_name": project_name,
+                    "project_id": update.get('project_id'),
+                    "odoo_record_id": update.get('odoo_record_id'),
+                    "create_uid": create_uid,
+                    "author_name": author_name,
+                    "notification_suppressed": True
+                }
+            )
+        
+        if new_assignments.get('new_project_updates'):
+            log.info(f"[DAEMON] Notified {len(project_updates_to_notify)} NEW project updates" +
+                     (f" ({project_updates_overflow} more added to history)" if project_updates_overflow > 0 else ""))
 
         # Summary log
         total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
-                     len(new_assignments['new_projects']))
+                     len(new_assignments['new_projects']) + len(new_assignments.get('new_project_updates', [])))
         if total_new == 0:
             log.info(f"[DAEMON] No new assignments detected for {account_name}")
         else:
