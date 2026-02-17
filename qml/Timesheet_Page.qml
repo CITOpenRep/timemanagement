@@ -190,31 +190,31 @@ Page {
     function _doLoadTimesheets() {
         // Use selectedAccountId for filtering (from account selector)
         var filterAccountId = selectedAccountId;
-        console.log("Filtering timesheets for account:", filterAccountId, "filter:", currentFilter);
-        console.log("Default account for creation:", defaultAccountId);
+        //console.log("Filtering timesheets for account:", filterAccountId, "filter:", currentFilter);
+        //console.log("Default account for creation:", defaultAccountId);
 
         var timesheets_list = [];
 
         // Check if we're filtering by task
         if (filterByTask && taskOdooRecordId > 0) {
-            console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId, "status:", currentFilter);
+            //console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId, "status:", currentFilter);
             timesheets_list = Model.getTimesheetsForTask(taskOdooRecordId, taskAccountId, currentFilter);
             hasMoreItems = false; // Task-specific view doesn't paginate
         }
         // Use paginated fetch method depending on account selector choice
         else if (filterAccountId === "-1") {
-            console.log("Account selector: All accounts selected — fetching paginated timesheets");
+            //console.log("Account selector: All accounts selected — fetching paginated timesheets");
             timesheets_list = Model.fetchTimesheetsForAllAccountsPaginated(currentFilter, pageSize, currentOffset);
         } else {
-            console.log("Account selector: Single account selected — fetching paginated timesheets for account", filterAccountId);
+            //console.log("Account selector: Single account selected — fetching paginated timesheets for account", filterAccountId);
             timesheets_list = Model.fetchTimesheetsByStatusPaginated(currentFilter, filterAccountId, pageSize, currentOffset);
         }
 
         if (!timesheets_list || !timesheets_list.length) {
-            console.log("No timesheets returned from model (length 0 or undefined).");
+            //console.log("No timesheets returned from model (length 0 or undefined).");
             hasMoreItems = false;
         } else {
-            console.log("Retrieved", timesheets_list.length, "timesheets");
+            //console.log("Retrieved", timesheets_list.length, "timesheets");
             // If we got fewer items than pageSize, there are no more items
             hasMoreItems = timesheets_list.length >= pageSize;
         }
@@ -240,7 +240,7 @@ Page {
             });
         }
 
-        console.log("Populated timesheetModel with", timesheetModel.count, "items");
+        //console.log("Populated timesheetModel with", timesheetModel.count, "items");
         isLoading = false;
         isLoadingMore = false;
     }
@@ -250,7 +250,7 @@ Page {
         if (isLoadingMore || !hasMoreItems) return;
         isLoadingMore = true;
         currentOffset += pageSize;
-        console.log("Loading more timesheets, offset:", currentOffset);
+        //console.log("Loading more timesheets, offset:", currentOffset);
         _doLoadTimesheets();
     }
 
@@ -272,7 +272,7 @@ Page {
 
         onAtYEndChanged: {
             if (timesheetlist.atYEnd && !isLoadingMore && hasMoreItems) {
-                console.log("Reached end of list, loading more timesheets...");
+                //console.log("Reached end of list, loading more timesheets...");
                 loadMoreTimesheets();
             }
         }

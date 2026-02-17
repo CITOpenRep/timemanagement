@@ -122,13 +122,13 @@ Page {
         target: accountPicker
 
         onAccepted: function (id, name) {
-            console.log("Activity_Page: Account picker selection changed to", id, name);
+            //console.log("Activity_Page: Account picker selection changed to", id, name);
             handleAccountChange(id);
         }
     }
 
     function handleAccountChange(accountId) {
-        console.log("Activity_Page: Account changed to", accountId);
+        //console.log("Activity_Page: Account changed to", accountId);
 
         // Normalize account ID to number
         var idNum = -1;
@@ -188,7 +188,7 @@ Page {
     }
 
     function get_activity_list() {
-        console.log("Starting get_activity_list - setting isLoading to true");
+        //console.log("Starting get_activity_list - setting isLoading to true");
         isLoading = true;
         currentOffset = 0;
         hasMoreItems = true;
@@ -199,7 +199,7 @@ Page {
     }
 
     function _doLoadActivities() {
-        console.log("_doLoadActivities - starting data fetch, offset:", currentOffset);
+        //console.log("_doLoadActivities - starting data fetch, offset:", currentOffset);
         try {
             var allActivities = [];
             var currentAccountId = selectedAccountId;
@@ -225,7 +225,7 @@ Page {
                 allActivities = result.activities;
                 hasMoreItems = result.hasMore && allActivities.length >= pageSize;
                 
-                console.log("Retrieved", allActivities.length, "paginated activities for filter:", currentFilter);
+                //console.log("Retrieved", allActivities.length, "paginated activities for filter:", currentFilter);
                 
             } else {
                 // Legacy / Full Load path for project/task specific views
@@ -321,7 +321,7 @@ Page {
                 activityListModel.append(filteredActivities[j]);
             }
 
-            console.log("Populated activityListModel with", activityListModel.count, "items");
+            //console.log("Populated activityListModel with", activityListModel.count, "items");
             isLoading = false;
             isLoadingMore = false;
         } catch (e) {
@@ -334,7 +334,7 @@ Page {
     function loadMoreActivities() {
         if (isLoadingMore || !hasMoreItems) return;
         
-        console.log("Loading more activities, offset:", currentOffset + pageSize);
+        //console.log("Loading more activities, offset:", currentOffset + pageSize);
         isLoadingMore = true;
         currentOffset += pageSize;
         _doLoadActivities();
@@ -641,7 +641,7 @@ Page {
                     get_activity_list();
                 }
                 onDateChanged: function (accountid, recordid, newDate) {
-                    console.log("Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
+                    //console.log("Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
                     Activity.updateActivityDate(accountid, recordid, newDate);
                     get_activity_list();
                 }
@@ -651,7 +651,7 @@ Page {
                     Activity.markAsDone(accountid, recordid);
                     var result = Activity.createFollowupActivity(accountid, recordid);
                     if (result.success === true) {
-                        console.log("Followup activity has been created");
+                        //console.log("Followup activity has been created");
                         apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                             "recordid": result.record_id,
                             "accountid": accountid,
@@ -690,13 +690,13 @@ Page {
             var previousPage = Global.getLastVisitedPage();
             var shouldPreserve = Global.shouldPreserveAssigneeFilter("Activity_Page", previousPage);
 
-            console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
+            //console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
 
             if (shouldPreserve) {
                 // Restore assignee filter from global state when returning from Activities detail page
                 restoreAssigneeFilterState();
 
-                console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
+                //console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
             } else {
                 // Clear filter when coming from non-activity pages (Dashboard, Tasks, etc.)
                 activity.filterByAssignees = false;
@@ -704,7 +704,7 @@ Page {
                 assigneeFilterMenu.selectedAssigneeIds = [];
                 Global.clearAssigneeFilter();
 
-                console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
+                //console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
             }
 
             // Update navigation tracking
@@ -723,28 +723,28 @@ Page {
         onFilterApplied: function (assigneeIds) {
             // Read directly from AssigneeFilterMenu to avoid timing issues
             var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
-            console.log("Activity_Page: Assignee filter applied - Reading directly from AssigneeFilterMenu");
-            console.log("   Passed parameter:", JSON.stringify(assigneeIds));
-            console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
+            //console.log("Activity_Page: Assignee filter applied - Reading directly from AssigneeFilterMenu");
+            //console.log("   Passed parameter:", JSON.stringify(assigneeIds));
+            //console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
 
             selectedAssigneeIds = actualSelectedIds;
             filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
             // Save to global state for persistence across navigation
             Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
-            console.log("Activity_Page: Assignee filter saved to global state - enabled:", filterByAssignees);
+            //console.log("Activity_Page: Assignee filter saved to global state - enabled:", filterByAssignees);
 
             get_activity_list();
         }
 
         onFilterCleared: function () {
-            console.log("Activity_Page: Assignee filter cleared");
+            //console.log("Activity_Page: Assignee filter cleared");
             selectedAssigneeIds = [];
             filterByAssignees = false;
 
             // Clear global state
             Global.clearAssigneeFilter();
-            console.log("Activity_Page: Assignee filter cleared from global state");
+            //console.log("Activity_Page: Assignee filter cleared from global state");
 
             get_activity_list();
         }
@@ -757,14 +757,14 @@ Page {
         target: mainView
 
         onAccountDataRefreshRequested: function (accountId) {
-            console.log("Activity_Page: Account data refresh requested for:", accountId);
+            //console.log("Activity_Page: Account data refresh requested for:", accountId);
             if (activity.visible && accountId >= -1) {
                 handleAccountChange(accountId);
             }
         }
 
         onGlobalAccountChanged: function (accountId, accountName) {
-            console.log("Activity_Page: Global account changed to:", accountId, accountName);
+            //console.log("Activity_Page: Global account changed to:", accountId, accountName);
             if (activity.visible && accountId >= -1) {
                 handleAccountChange(accountId);
             }
