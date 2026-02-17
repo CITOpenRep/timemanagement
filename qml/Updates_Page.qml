@@ -158,14 +158,7 @@ Page {
         }
     }
 
-    // Also listen to accountFilter so the page initializes and updates from the selector's current selection
-    Connections {
-        target: accountPicker
-        onAccepted: function (accountId, accountName) {
-            selectedAccountId = accountId;
-            fetchupdates();
-        }
-    }
+ 
 
     NotificationPopup {
         id: notifPopup

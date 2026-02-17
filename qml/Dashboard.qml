@@ -127,13 +127,7 @@ Page {
         trailingActionBar.numberOfSlots: 4
 
         trailingActionBar.actions: [
-            // Action {
-            //     iconName: "account"
-            //     onTriggered: {
-            //         accountFilterVisible = !accountFilterVisible
-            //     }
-            // },
-
+         
             Action {
                 iconName: "account"
                 text: i18n.dtr("ubtms", "Switch Accounts")

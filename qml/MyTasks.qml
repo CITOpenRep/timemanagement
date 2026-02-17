@@ -473,15 +473,7 @@ Page {
         }
     }
 
-    // Connection to handle account selection changes from AccountFilter
-    Connections {
-        target: typeof accountFilter !== 'undefined' ? accountFilter : null
 
-        function onAccountChanged(accountId, accountName) {
-            // console.log("🔄 MyTasks: Account changed via AccountFilter to:", accountId, accountName);
-            handleAccountChange(accountId);
-        }
-    }
 
     // Also listen to TSApp signals for when MyTasks is already visible
     Connections {
@@ -542,15 +534,7 @@ Page {
             }
         }
 
-        // Fallback: try accountFilter
-        if (selectedAccountId === -1) {
-            if (typeof accountFilter !== 'undefined' && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== 'undefined') {
-                    selectedAccountId = accountFilter.selectedAccountId;
-                    //console.log("MyTasks: Using accountFilter.selectedAccountId:", selectedAccountId);
-                }
-            }
-        }
+     
 
         // Final fallback: use default account
         if (selectedAccountId === -1) {

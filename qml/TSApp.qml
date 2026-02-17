@@ -596,13 +596,7 @@ MainView {
         }
     }
 
-    function openAccountDrawer() {
-        if (accountFilter && typeof accountFilter.refreshAccounts === 'function') {
-            accountFilter.refreshAccounts();
-        } else {
-            console.warn("⚠️  accountFilter.refreshAccounts function not available");
-        }
-    }
+ 
 
     Component.onCompleted: {
         DbInit.initializeDatabase();

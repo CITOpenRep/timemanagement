@@ -71,13 +71,7 @@ Page {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
                 }
             }
-            // Action {
-            //     iconName: "account"
-            //     text: "Filter by Account"
-            //     onTriggered: {
-            //         accountFilter.expanded = !accountFilter.expanded;
-            //     }
-            // }
+    
 
 
         ]
@@ -347,20 +341,7 @@ Page {
         // Note: isLoadingMore will be reset in _doLoadActivities
     }
 
-    function applyAccountFilter(accountId) {
-        console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
-
-        // When accountId is -1, it means "All Accounts" - clear the filter
-        if (accountId === -1 || accountId < 0) {
-            filterByAccount = false;
-            selectedAccountId = -1;
-        } else {
-            filterByAccount = true;
-            selectedAccountId = accountId;
-        }
-
-        get_activity_list();
-    }
+  
 
     // Function to load available assignees for the current account
     function loadAssignees() {
