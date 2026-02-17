@@ -123,6 +123,12 @@ Item {
     property var stageList: []
     property var openStagesList: []
 
+    // Pagination properties
+    property int pageSize: 30
+    property int currentOffset: 0
+    property bool hasMoreItems: true
+    property bool isLoadingMore: false
+
     // Search properties
     property string searchQuery: ""
     property bool showSearchBox: false
@@ -171,6 +177,11 @@ Item {
         navigationStackModel.clear();
         currentParentId = -1;
         currentAccountId = accountPicker.selectedAccountId;
+
+        // Reset pagination
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
 
         // Reset to default "Open" filter
         stageFilter.enabled = true;
@@ -234,27 +245,62 @@ Item {
         isLoading = true;
         childrenMap = {};
         childrenMapReady = false;
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
         populateTimer.start();
+    }
+
+    function loadMoreProjects() {
+        if (isLoadingMore || !hasMoreItems) return;
+        isLoadingMore = true;
+        currentOffset += pageSize;
+        _doPaginatedProjectLoad();
+    }
+
+    function _doPaginatedProjectLoad() {
+        var allProjects;
+
+        if (currentAccountId >= 0) {
+            allProjects = Project.getProjectsForAccountPaginated(currentAccountId, pageSize, currentOffset);
+        } else {
+            allProjects = Project.getAllProjectsPaginated(pageSize, currentOffset);
+        }
+
+        if (allProjects.length < pageSize) {
+            hasMoreItems = false;
+        }
+
+        if (allProjects.length === 0) {
+            isLoadingMore = false;
+            isLoading = false;
+            if (!childrenMapReady) childrenMapReady = true;
+            return;
+        }
+
+        _processProjectsIntoMap(allProjects, isLoadingMore);
+        isLoadingMore = false;
+        isLoading = false;
     }
 
     function _doPopulateProjectChildrenMap() {
         childrenMap = {};
         childrenMapReady = false;
 
-        var allProjects;
+        // Use paginated loading
+        _doPaginatedProjectLoad();
+    }
 
-        if (currentAccountId >= 0) {
-            allProjects = Project.getProjectsForAccount(currentAccountId);
-            console.log("Loading projects from default account", currentAccountId + ":", allProjects.length, "projects");
-        } else {
-            allProjects = Project.getAllProjects();
-            console.log("Loading projects from all accounts:", allProjects.length, "projects");
+    function _processProjectsIntoMap(allProjects, append) {
+        if (!append) {
+            childrenMap = {};
+            childrenMapReady = false;
         }
 
         if (allProjects.length === 0) {
-            childrenMapReady = true;
+            if (!append) childrenMapReady = true;
             isLoading = false;
             return;
         }
@@ -325,9 +371,13 @@ Item {
             });
         }
 
-        // Convert to QML ListModels with sorting
+        // Create or Update QML ListModels with sorting
         for (var key in tempMap) {
-            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
+            var model = childrenMap[key];
+            if (!model) {
+                model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
+                childrenMap[key] = model;
+            }
 
             // Sort the projects by name before adding to model
             tempMap[key].sort(function (a, b) {
@@ -337,12 +387,14 @@ Item {
             tempMap[key].forEach(function (entry) {
                 model.append(entry);
             });
-            childrenMap[key] = model;
         }
 
         childrenMapReady = true;
+        
+        // Force update of the ListView model binding
+        projectListView.model = getCurrentModel();
+        
         isLoading = false;
-        console.log("Project children map populated for account filter:", currentAccountId);
     }
 
     function getCurrentModel() {
@@ -720,6 +772,18 @@ Item {
             height: parent.height - (backbutton.visible ? units.gu(4) : 0) - (showSearchBox ? units.gu(6) : 0) // Account for back button and search field heights
             clip: true
             model: getCurrentModel()
+
+            footer: LoadMoreFooter {
+                isLoading: isLoadingMore
+                hasMore: hasMoreItems
+                onLoadMore: loadMoreProjects()
+            }
+
+            onAtYEndChanged: {
+                if (projectListView.atYEnd && !isLoadingMore && hasMoreItems) {
+                    loadMoreProjects();
+                }
+            }
 
             delegate: Item {
                 width: parent.width

@@ -50,6 +50,12 @@ Page {
     property string currentSearchQuery: ""
     property string currentStatusFilter: "all"
 
+    // Pagination properties
+    property int pageSize: 30
+    property int currentOffset: 0
+    property bool hasMoreItems: true
+    property bool isLoadingMore: false
+
     // Loading state property
     property bool isLoading: false
 
@@ -221,25 +227,38 @@ Page {
     function fetchupdates() {
         isLoading = true;
         updatesModel.clear();
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
         loadingTimer.start();
     }
 
-    function _doLoadUpdates() {
+    function loadMoreUpdates() {
+        if (isLoadingMore || !hasMoreItems) return;
+        isLoadingMore = true;
+        currentOffset += pageSize;
+        _doLoadUpdatesPage();
+    }
+
+    function _doLoadUpdatesPage() {
         var updates_list = [];
         try {
             if (filterByProject && projectOdooRecordId && projectAccountId >= 0) {
-                updates_list = Project.getProjectUpdatesByProject(projectOdooRecordId, projectAccountId) || [];
+                updates_list = Project.getProjectUpdatesByProjectPaginated(projectOdooRecordId, projectAccountId, pageSize, currentOffset) || [];
             } else {
-                // selectedAccountId is numeric -1 for all accounts, otherwise numeric account id
-                updates_list = Project.getAllProjectUpdates(selectedAccountId) || [];
+                updates_list = Project.getAllProjectUpdatesPaginated(selectedAccountId, pageSize, currentOffset) || [];
             }
         } catch (e) {
-            console.error("Error fetching updates:", e);
+            console.error("Error fetching updates page:", e);
             updates_list = [];
         }
-        
+
+        if (updates_list.length < pageSize) {
+            hasMoreItems = false;
+        }
+
         for (var index = 0; index < updates_list.length; index++) {
             var u = updates_list[index] || {};
             
@@ -266,7 +285,13 @@ Page {
                 'hasDraft': u.has_draft
             });
         }
+        isLoadingMore = false;
         isLoading = false;
+    }
+
+    function _doLoadUpdates() {
+        // Initial load uses paginated path
+        _doLoadUpdatesPage();
     }
     
     // ListHeader for search and status filtering
@@ -317,6 +342,19 @@ Page {
         anchors.topMargin: units.gu(1)
         model: updatesModel
         clip: true
+
+        footer: LoadMoreFooter {
+            isLoading: isLoadingMore
+            hasMore: hasMoreItems
+            onLoadMore: loadMoreUpdates()
+        }
+
+        onAtYEndChanged: {
+            if (timesheetlist.atYEnd && !isLoadingMore && hasMoreItems) {
+                loadMoreUpdates();
+            }
+        }
+
         delegate: UpdatesDetailsCard {
             width: parent.width
             name: model.name

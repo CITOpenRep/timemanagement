@@ -638,6 +638,70 @@ function getProjectsForAccountPaginated(accountId, limit, offset) {
 }
 
 /**
+ * Paginated version of getAllProjects for infinite scroll (all accounts).
+ * 
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Array<Object>} A list of project objects.
+ */
+function getAllProjectsPaginated(limit, offset) {
+    var projectList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_project_app ORDER BY name COLLATE NOCASE ASC LIMIT ? OFFSET ?";
+            var result = tx.executeSql(query, [limit, offset]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                projectList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("getAllProjectsPaginated failed:", e);
+    }
+
+    return projectList;
+}
+
+/**
+ * Paginated version of getProjectUpdatesByProject for infinite scroll.
+ * 
+ * @param {string} projectOdooRecordId - The project's Odoo record ID.
+ * @param {number} accountId - The account ID.
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Array<Object>} A list of project update objects.
+ */
+function getProjectUpdatesByProjectPaginated(projectOdooRecordId, accountId, limit, offset) {
+    var updateList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND project_id = ? AND account_id = ? ORDER BY date DESC LIMIT ? OFFSET ?";
+            var result = tx.executeSql(query, [projectOdooRecordId, accountId, limit, offset]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                updateList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("getProjectUpdatesByProjectPaginated failed:", e);
+    }
+
+    return updateList;
+}
+
+/**
  * Paginated version of getAllProjectUpdates for infinite scroll.
  * 
  * @param {number} [accountId] - Optional account ID to filter by. If not provided, returns all updates.
