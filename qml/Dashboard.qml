@@ -132,7 +132,7 @@ Page {
                 iconName: "account"
                 text: i18n.dtr("ubtms", "Switch Accounts")
                 onTriggered: {
-                    accountPicker.open(0);
+                    accountPicker.open(accountPicker.selectedAccountId);
                 }
             },
             Action {

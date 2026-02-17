@@ -282,14 +282,23 @@ Item {
 
             onVisibleChanged: {
                 if (visible) {
-                    // refresh list
-                    accountCombo.refreshAndSelectDefault()
-                    // apply deferred initial id from root.open()
+                    // Prefer explicit initial selection passed to open(); otherwise
+                    // keep showing the currently applied filter selection.
+                    let preferredAccountId = -2
                     if (root._initialAccountId >= -1) {
-                        accountCombo.shouldDeferSelection = true
-                        accountCombo.deferredAccountId = root._initialAccountId
+                        preferredAccountId = root._initialAccountId
                         root._initialAccountId = -2
+                    } else if (root.selectedAccountId >= -1) {
+                        preferredAccountId = root.selectedAccountId
                     }
+
+                    if (preferredAccountId >= -1) {
+                        accountCombo.shouldDeferSelection = true
+                        accountCombo.deferredAccountId = preferredAccountId
+                    }
+
+                    // refresh list and apply preferred selection if available
+                    accountCombo.refreshAndSelectDefault()
                 }
             }
         }
