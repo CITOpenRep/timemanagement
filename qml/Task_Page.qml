@@ -254,11 +254,11 @@ Page {
             tasklist.filterByAssignees = task.filterByAssignees;
             tasklist.selectedAssigneeIds = task.selectedAssigneeIds;
 
-            console.log("   Final TaskList state for search - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
+            //console.log("   Final TaskList state for search - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
 
             // Apply search with assignee filtering
             if (filterByProject) {
-                console.log("   Applying project and search filter:", query);
+                //console.log("   Applying project and search filter:", query);
                 tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, query);
             } else {
                 tasklist.applySearch(query);
@@ -374,22 +374,22 @@ Page {
         onFilterApplied: function (assigneeIds) {
             // Read directly from AssigneeFilterMenu to avoid timing issues
             var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
-            console.log("Assignee filter applied - Reading directly from AssigneeFilterMenu");
-            console.log("   Passed parameter:", JSON.stringify(assigneeIds));
-            console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
+            //console.log("Assignee filter applied - Reading directly from AssigneeFilterMenu");
+            //console.log("   Passed parameter:", JSON.stringify(assigneeIds));
+            //console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
 
             selectedAssigneeIds = actualSelectedIds;
             filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
             // Save to global state for persistence across navigation
             Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
-            console.log("Assignee filter saved to global state - enabled:", filterByAssignees);
+            //console.log("Assignee filter saved to global state - enabled:", filterByAssignees);
 
             // Update TaskList properties
             tasklist.filterByAssignees = filterByAssignees;
             tasklist.selectedAssigneeIds = actualSelectedIds;
 
-            console.log("TaskList properties updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
+            //console.log("TaskList properties updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
 
             // Refresh task list with assignee filter
             if (filterByProject) {
@@ -408,13 +408,13 @@ Page {
         }
 
         onFilterCleared: function () {
-            console.log("Assignee filter cleared");
+            //console.log("Assignee filter cleared");
             selectedAssigneeIds = [];
             filterByAssignees = false;
 
             // Clear global state
             Global.clearAssigneeFilter();
-            console.log("Assignee filter cleared from global state");
+            //console.log("Assignee filter cleared from global state");
 
             // Update TaskList properties
             tasklist.filterByAssignees = false;
@@ -443,7 +443,7 @@ Page {
             var previousPage = Global.getLastVisitedPage();
             var shouldPreserve = Global.shouldPreserveAssigneeFilter("Task_Page", previousPage);
 
-            console.log("Task_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
+            //console.log("Task_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
 
             if (shouldPreserve) {
                 // Restore assignee filter from global state when returning from Tasks detail page
@@ -452,7 +452,7 @@ Page {
                 // Update the AssigneeFilterMenu to reflect current state
                 assigneeFilterMenu.selectedAssigneeIds = task.selectedAssigneeIds;
 
-                console.log("Task_Page: Restored assignee filter - enabled:", task.filterByAssignees);
+                //console.log("Task_Page: Restored assignee filter - enabled:", task.filterByAssignees);
             } else {
                 // Clear filter when coming from non-task pages (Dashboard, Home, etc.)
                 task.filterByAssignees = false;
@@ -462,7 +462,7 @@ Page {
                 assigneeFilterMenu.selectedAssigneeIds = [];
                 Global.clearAssigneeFilter();
 
-                console.log("Task_Page: Cleared assignee filter (coming from non-task page)");
+                //console.log("Task_Page: Cleared assignee filter (coming from non-task page)");
             }
 
             // Update navigation tracking
