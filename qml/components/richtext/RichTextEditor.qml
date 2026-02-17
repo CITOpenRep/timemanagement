@@ -23,6 +23,8 @@ import "js/html-sanitizer.js" as HtmlSanitizer
 Item {
     id: editor
 
+    property bool isMultiColumn: apLayout.columns > 1
+
     // ============ PUBLIC PROPERTIES ============
     
     /** The HTML content of the editor */
@@ -305,7 +307,7 @@ Item {
     WebEngineView {
         id: wv
         anchors.fill: parent
-        zoomFactor: 2.52
+        zoomFactor: isMultiColumn ? 1.0 : 2.52
         backgroundColor: darkMode ? "#2d2d2d" : "#ffffff"
         
         url: Qt.resolvedUrl("js/editor.html") + "?darkMode=" + darkMode + 
