@@ -1653,7 +1653,7 @@ Page {
             if (isOdooRecordId) {
                 // recordid is an odoo_record_id (stable, from notification deep link)
                 currentTask = Task.getTaskDetailsByOdooId(recordid);
-                console.log("loadTask: Loaded by odoo_record_id:", recordid, "found local id:", currentTask.id);
+                //console.log("loadTask: Loaded by odoo_record_id:", recordid, "found local id:", currentTask.id);
                 // Update recordid to local id for subsequent operations
                 if (currentTask && currentTask.id) {
                     recordid = currentTask.id;

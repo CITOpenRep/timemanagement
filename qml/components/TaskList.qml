@@ -125,9 +125,9 @@ Item {
 
         // Apply assignee filtering if enabled (with hierarchy support)
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            console.log("TaskList applyProjectFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees:", JSON.stringify(selectedAssigneeIds));
+            //console.log("TaskList applyProjectFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees:", JSON.stringify(selectedAssigneeIds));
             projectTasks = applyAssigneeFilterWithHierarchy(projectTasks, selectedAssigneeIds);
-            console.log("TaskList applyProjectFilter: Final filtered tasks count:", projectTasks.length);
+            //console.log("TaskList applyProjectFilter: Final filtered tasks count:", projectTasks.length);
         }
 
         updateDisplayedTasks(projectTasks);
@@ -164,9 +164,9 @@ Item {
 
         // Apply assignee filtering if enabled (with hierarchy support)
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            console.log("TaskList applyProjectAndTimeFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
+            //console.log("TaskList applyProjectAndTimeFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
             filteredProjectTasks = applyAssigneeFilterWithHierarchy(filteredProjectTasks, selectedAssigneeIds);
-            console.log("TaskList applyProjectAndTimeFilter: Final filtered tasks count:", filteredProjectTasks.length);
+            //console.log("TaskList applyProjectAndTimeFilter: Final filtered tasks count:", filteredProjectTasks.length);
         }
 
         updateDisplayedTasks(filteredProjectTasks);
@@ -203,9 +203,9 @@ Item {
 
         // Apply assignee filtering if enabled (with hierarchy support)
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            console.log("TaskList applyProjectAndSearchFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
+            //console.log("TaskList applyProjectAndSearchFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
             searchedProjectTasks = applyAssigneeFilterWithHierarchy(searchedProjectTasks, selectedAssigneeIds);
-            console.log("TaskList applyProjectAndSearchFilter: Final filtered tasks count:", searchedProjectTasks.length);
+            //console.log("TaskList applyProjectAndSearchFilter: Final filtered tasks count:", searchedProjectTasks.length);
         }
 
         updateDisplayedTasks(searchedProjectTasks);
@@ -296,7 +296,7 @@ Item {
             if (matchesSelectedAssignee) {
                 var compositeId = task.odoo_record_id + "_" + task.account_id;
                 matchingTaskIds.add(compositeId);
-                console.log("TaskList: Direct match found for task:", task.name, "ID:", compositeId);
+                //console.log("TaskList: Direct match found for task:", task.name, "ID:", compositeId);
             }
         }
 
@@ -313,7 +313,7 @@ Item {
                 if (parentTask && !matchingTaskIds.has(parentCompositeId)) {
                     matchingTaskIds.add(parentCompositeId);
                     toProcess.push(parentCompositeId); // Continue up the hierarchy
-                    console.log("TaskList: Adding parent task for hierarchy:", parentTask.name, "ID:", parentCompositeId);
+                    //console.log("TaskList: Adding parent task for hierarchy:", parentTask.name, "ID:", parentCompositeId);
                 }
             }
         }
@@ -329,7 +329,7 @@ Item {
             }
         }
 
-        console.log("TaskList: Hierarchical filter result - matched tasks:", matchingTaskIds.size, "final count:", filteredTasks.length);
+        //console.log("TaskList: Hierarchical filter result - matched tasks:", matchingTaskIds.size, "final count:", filteredTasks.length);
         return filteredTasks;
     }
 
