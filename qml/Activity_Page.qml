@@ -211,8 +211,15 @@ Page {
                     && ((currentFilter && currentFilter !== "all")
                     || (currentSearchQuery && currentSearchQuery.trim() !== ""));
 
+                    // Done/search are expected to be globally accurate on first attempt.
+                    // Keep them on full-load path to avoid pagination edge cases.
+                    var hasActiveSearch = currentSearchQuery && currentSearchQuery.trim() !== "";
+                    var isDoneFilter = currentFilter === "done";
+
                 // Keep pagination only when assignee filtering is not active and scoped client-side filters are not active.
                 var canPaginate = (!hasClientSideScopedFilters)
+                        && (!hasActiveSearch)
+                        && (!isDoneFilter)
                     && (!filterByAssignees || !assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0);
 
             if (canPaginate) {
@@ -247,7 +254,7 @@ Page {
                 }
                 
             } else {
-                // Full-load path when assignee filtering or scoped client-side filters are active
+                // Full-load path when assignee/scoped filters, done filter, or active search are used
                 hasMoreItems = false; 
 
                 if (filterByProject) {
@@ -580,16 +587,10 @@ Page {
 
             activity.currentFilter = nextFilter;
 
-            // Restore assignee filter state from global storage
-            restoreAssigneeFilterState();
-
             get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
-
-            // Restore assignee filter state from global storage
-            restoreAssigneeFilterState();
 
             get_activity_list();
         }

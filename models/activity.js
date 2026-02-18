@@ -39,7 +39,7 @@ function getAllActivities() {
             // Step 2: Fetch activities
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state != 'done'
+                WHERE LOWER(TRIM(COALESCE(state, ''))) != 'done'
                 ORDER BY due_date ASC
             `);
 
@@ -110,7 +110,7 @@ function getDoneActivities() {
             // Step 2: Fetch done activities
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state = 'done'
+                WHERE LOWER(TRIM(COALESCE(state, ''))) = 'done'
                 ORDER BY due_date DESC
             `);
 
@@ -930,7 +930,7 @@ function getActivitiesForProject(projectOdooRecordId, accountId) {
             var rs = tx.executeSql(`
                 SELECT DISTINCT a.* FROM mail_activity_app a
                 WHERE a.account_id = ? 
-                AND a.state != 'done'
+                AND LOWER(TRIM(COALESCE(a.state, ''))) != 'done'
                 AND (
                     (a.resModel = 'project.project' AND a.link_id = ?)
                     OR 
@@ -1018,7 +1018,7 @@ function getActivitiesForProjectPaginated(projectOdooRecordId, accountId, limit,
             var rs = tx.executeSql(`
                 SELECT DISTINCT a.* FROM mail_activity_app a
                 WHERE a.account_id = ? 
-                AND a.state != 'done'
+                AND LOWER(TRIM(COALESCE(a.state, ''))) != 'done'
                 AND (
                     (a.resModel = 'project.project' AND a.link_id = ?)
                     OR 
@@ -1109,7 +1109,7 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
                 SELECT * FROM mail_activity_app
                 WHERE resModel = 'project.task' 
                 AND link_id = ?
-                AND state != 'done'
+                AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
                 AND (status IS NULL OR status != 'deleted')
                 ORDER BY due_date ASC`;
             var params = [taskOdooRecordId];
@@ -1121,7 +1121,7 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
                     WHERE resModel = 'project.task' 
                     AND link_id = ?
                     AND account_id = ?
-                    AND state != 'done'
+                    AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
                     AND (status IS NULL OR status != 'deleted')
                     ORDER BY due_date ASC`;
                 params = [taskOdooRecordId, accountId];
@@ -1198,7 +1198,7 @@ function getActivitiesForTaskPaginated(taskOdooRecordId, accountId, limit, offse
                     WHERE resModel = 'project.task' 
                     AND link_id = ?
                     AND account_id = ?
-                    AND state != 'done'
+                    AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
                     AND (status IS NULL OR status != 'deleted')
                     ORDER BY due_date ASC
                     LIMIT ? OFFSET ?`;
@@ -1208,7 +1208,7 @@ function getActivitiesForTaskPaginated(taskOdooRecordId, accountId, limit, offse
                     SELECT * FROM mail_activity_app
                     WHERE resModel = 'project.task' 
                     AND link_id = ?
-                    AND state != 'done'
+                    AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
                     AND (status IS NULL OR status != 'deleted')
                     ORDER BY due_date ASC
                     LIMIT ? OFFSET ?`;
@@ -1332,7 +1332,7 @@ function getActivitiesForAccount(accountId) {
 
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state != 'done' AND account_id = ?
+                WHERE LOWER(TRIM(COALESCE(state, ''))) != 'done' AND account_id = ?
                 ORDER BY due_date ASC
             `, [accountId]);
 
@@ -1396,7 +1396,7 @@ function getDoneActivitiesForAccount(accountId) {
 
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state = 'done' AND account_id = ?
+                WHERE LOWER(TRIM(COALESCE(state, ''))) = 'done' AND account_id = ?
                 ORDER BY due_date DESC
             `, [accountId]);
 
@@ -1463,7 +1463,7 @@ function getDoneActivitiesForAccountPaginated(accountId, limit, offset) {
 
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state = 'done' AND account_id = ?
+                WHERE LOWER(TRIM(COALESCE(state, ''))) = 'done' AND account_id = ?
                 ORDER BY due_date ASC
                 LIMIT ? OFFSET ?
             `, [accountId, limit, offset]);
@@ -1603,7 +1603,7 @@ function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limi
             var rawActivities = [];
 
             db.transaction(function (tx) {
-                var query = "SELECT * FROM mail_activity_app WHERE state != 'done'";
+                var query = "SELECT * FROM mail_activity_app WHERE LOWER(TRIM(COALESCE(state, ''))) != 'done'";
                 var params = [];
 
                 if (accountId !== undefined && accountId >= 0) {
@@ -1719,7 +1719,7 @@ function getAccountsWithActivityCounts() {
                 SELECT
                     a.account_id,
                     COUNT(a.id) as activity_count,
-                    COUNT(CASE WHEN a.state != 'done' THEN 1 END) as active_activity_count
+                    COUNT(CASE WHEN LOWER(TRIM(COALESCE(a.state, ''))) != 'done' THEN 1 END) as active_activity_count
                 FROM mail_activity_app a
                 GROUP BY a.account_id
                 ORDER BY a.account_id ASC
@@ -1832,6 +1832,41 @@ function passesActivitySearchFilter(activity, searchQuery) {
     var activityTypeName = getActivityTypeName(activity.activity_type_id);
     if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
         return true;
+    }
+
+    // Search in assignee/user name
+    try {
+        var userName = Accounts.getUserNameByOdooId(activity.user_id);
+        if (userName && userName.toLowerCase().indexOf(query) >= 0) {
+            return true;
+        }
+    } catch (e) {
+    }
+
+    // Search in project name
+    try {
+        if (activity.project_id && parseInt(activity.project_id) > 0) {
+            var projectDetails = Project.getProjectDetails(activity.project_id);
+            if (projectDetails && projectDetails.name && projectDetails.name.toLowerCase().indexOf(query) >= 0) {
+                return true;
+            }
+        }
+    } catch (e) {
+    }
+
+    // Search in task name
+    try {
+        var taskId = activity.task_id;
+        if ((!taskId || parseInt(taskId) <= 0) && activity.resModel === "project.task") {
+            taskId = activity.link_id;
+        }
+        if (taskId && parseInt(taskId) > 0) {
+            var taskDetails = Task.getTaskDetails(taskId);
+            if (taskDetails && taskDetails.name && taskDetails.name.toLowerCase().indexOf(query) >= 0) {
+                return true;
+            }
+        }
+    } catch (e) {
     }
 
     return false;
@@ -2010,7 +2045,7 @@ function getAllDoneActivitiesPaginated(limit, offset) {
 
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state = 'done'
+                WHERE LOWER(TRIM(COALESCE(state, ''))) = 'done'
                 ORDER BY due_date ASC
                 LIMIT ? OFFSET ?
             `, [limit, offset]);

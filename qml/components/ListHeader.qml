@@ -123,6 +123,9 @@ Rectangle {
     // Add function to toggle search visibility
     function toggleSearchVisibility() {
         showSearchBox = !showSearchBox;
+        if (!showSearchBox) {
+            clearSearch();
+        }
     }
 
     // Add function to clear search and reset filters
