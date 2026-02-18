@@ -205,8 +205,15 @@ Page {
             var currentAccountId = selectedAccountId;
             var isPaginated = false;
 
-            // Use pagination for all scenarios including project/task views
-            var canPaginate = !filterByAssignees || !assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0;
+                // Avoid paginating project/task views when client-side date/search filters are active,
+                // otherwise matches outside the current page can be missed.
+                var hasClientSideScopedFilters = (filterByProject || filterByTasks)
+                    && ((currentFilter && currentFilter !== "all")
+                    || (currentSearchQuery && currentSearchQuery.trim() !== ""));
+
+                // Keep pagination only when assignee filtering is not active and scoped client-side filters are not active.
+                var canPaginate = (!hasClientSideScopedFilters)
+                    && (!filterByAssignees || !assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0);
 
             if (canPaginate) {
                 isPaginated = true;
@@ -240,11 +247,17 @@ Page {
                 }
                 
             } else {
-                // Legacy / Full Load path for assignee filtering only
+                // Full-load path when assignee filtering or scoped client-side filters are active
                 hasMoreItems = false; 
-                
-                var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
-                allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
+
+                if (filterByProject) {
+                    allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
+                } else if (filterByTasks) {
+                    allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
+                } else {
+                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                    allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
+                }
             }
 
             // Apply assignee filtering if enabled (Only for legacy path)
@@ -560,7 +573,12 @@ Page {
         filter7: "done"
 
         onFilterSelected: {
-            activity.currentFilter = filterKey;
+            var nextFilter = (filterKey && filterKey !== "") ? filterKey : (activity.currentFilter || "all");
+            if (activity.currentFilter === nextFilter) {
+                return;
+            }
+
+            activity.currentFilter = nextFilter;
 
             // Restore assignee filter state from global storage
             restoreAssigneeFilterState();

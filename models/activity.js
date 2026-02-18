@@ -1579,31 +1579,12 @@ function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limi
 
     // Handle "done" filter separately
     if (filterType === "done") {
-        // For done activities, use a simplified approach since they're a smaller subset
-        var doneActivities;
-        if (accountId !== undefined && accountId >= 0) {
-            doneActivities = getDoneActivitiesForAccountPaginated(accountId, limit, offset);
-        } else {
-            doneActivities = getAllDoneActivitiesPaginated(limit, offset);
-        }
-
-        // Apply search filter if needed
-        if (searchQuery && searchQuery.trim() !== "") {
-            var searchFiltered = [];
-            for (var i = 0; i < doneActivities.length; i++) {
-                if (passesActivitySearchFilter(doneActivities[i], searchQuery)) {
-                    searchFiltered.push(doneActivities[i]);
-                }
-            }
-            return {
-                activities: searchFiltered,
-                hasMore: doneActivities.length >= limit
-            };
-        }
-
+        // Ensure search is applied before pagination so matches are not missed.
+        var doneActivities = getFilteredActivities("done", searchQuery, accountId);
+        var donePage = doneActivities.slice(offset, offset + limit);
         return {
-            activities: doneActivities,
-            hasMore: doneActivities.length >= limit
+            activities: donePage,
+            hasMore: (offset + limit) < doneActivities.length
         };
     }
 
@@ -1612,15 +1593,13 @@ function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limi
     var batchSize = limit * 3; // Fetch 3x more raw items to account for filtering
     var dbOffset = 0;
     var skipped = 0;
+    var foundAfterOffset = 0;
     var hasMore = true;
-    var maxIterations = 10; // Safety limit
-    var iteration = 0;
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
-        while (filteredActivities.length < limit && hasMore && iteration < maxIterations) {
-            iteration++;
+        while (hasMore && foundAfterOffset < (limit + 1)) {
             var rawActivities = [];
 
             db.transaction(function (tx) {
@@ -1665,11 +1644,16 @@ function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limi
                     if (skipped < offset) {
                         // Skip items until we reach the offset
                         skipped++;
-                    } else if (filteredActivities.length < limit) {
-                        // Add to results
-                        filteredActivities.push(activity);
                     } else {
-                        // We have enough items
+                        foundAfterOffset++;
+                        // Collect only up to limit + 1 to derive hasMore correctly.
+                        if (filteredActivities.length < (limit + 1)) {
+                            filteredActivities.push(activity);
+                        }
+                    }
+
+                    if (foundAfterOffset >= (limit + 1)) {
+                        // We have enough items to build page + hasMore.
                         break;
                     }
                 }
@@ -1687,7 +1671,8 @@ function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limi
                 projectColorMap[projectResult.rows.item(j).odoo_record_id] = projectResult.rows.item(j).color_pallet;
             }
 
-            for (var i = 0; i < filteredActivities.length; i++) {
+            var pageSize = Math.min(filteredActivities.length, limit);
+            for (var i = 0; i < pageSize; i++) {
                 var activity = filteredActivities[i];
 
                 // Inherit color from project
@@ -1711,9 +1696,10 @@ function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limi
         console.error("getFilteredActivitiesPaginated failed:", e);
     }
 
+    var pageActivities = filteredActivities.slice(0, limit);
     return {
-        activities: filteredActivities,
-        hasMore: hasMore || filteredActivities.length >= limit
+        activities: pageActivities,
+        hasMore: foundAfterOffset > limit
     };
 }
 
