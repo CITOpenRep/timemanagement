@@ -860,18 +860,18 @@ Page {
                             // This ensures we track the actual change even if getIds() hasn't updated yet
                             var changedId = data.id || null;
                             
-                            //console.log("📝 Tracking WorkItemSelector changes:", JSON.stringify({
-                                state: newState,
-                                changedId: changedId,
-                                currentIds: {
-                                    account: idsForDraft.account_id,
-                                    project: idsForDraft.project_id,
-                                    subproject: idsForDraft.subproject_id,
-                                    task: idsForDraft.task_id,
-                                    subtask: idsForDraft.subtask_id,
-                                    assignee: idsForDraft.assignee_id
-                                }
-                            }));
+                            // console.log("📝 Tracking WorkItemSelector changes:", JSON.stringify({
+                            //     state: newState,
+                            //     changedId: changedId,
+                            //     currentIds: {
+                            //         account: idsForDraft.account_id,
+                            //         project: idsForDraft.project_id,
+                            //         subproject: idsForDraft.subproject_id,
+                            //         task: idsForDraft.task_id,
+                            //         subtask: idsForDraft.subtask_id,
+                            //         assignee: idsForDraft.assignee_id
+                            //     }
+                            // }));
                             
                             // Track the field that actually changed
                             if (newState === "AccountSelected") {
