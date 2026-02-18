@@ -821,6 +821,87 @@ function getAllProjectUpdatesPaginated(accountId, limit, offset) {
 }
 
 /**
+ * Paginated project updates with SQL-level search and status filtering.
+ *
+ * @param {Object} options
+ * @param {number}  options.accountId       - Account to filter by (-1 = all)
+ * @param {number}  [options.projectId]     - Filter to a specific project odoo_record_id (optional)
+ * @param {string}  [options.searchQuery]   - Free-text search against name/description/status
+ * @param {string}  [options.statusFilter]  - project_status value, e.g. 'on_track' ('all' or '' = no filter)
+ * @param {number}  options.limit
+ * @param {number}  options.offset
+ * @returns {{ updates: Array, hasMore: boolean }}
+ */
+function getProjectUpdatesFilteredPaginated(options) {
+    var updateList = [];
+    var limit = options.limit || 30;
+    var offset = options.offset || 0;
+    var hasMore = false;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var whereClauses = ["u.status != 'deleted'"];
+            var params = [];
+            var needsJoin = false;
+
+            // Account filter
+            if (options.accountId !== undefined && options.accountId !== null && options.accountId >= 0) {
+                whereClauses.push("u.account_id = ?");
+                params.push(options.accountId);
+            }
+
+            // Project filter (when viewing updates for a specific project)
+            if (options.projectId !== undefined && options.projectId !== null && options.projectId > 0) {
+                whereClauses.push("u.project_id = ?");
+                params.push(options.projectId);
+            }
+
+            // Status filter
+            if (options.statusFilter && options.statusFilter !== "" && options.statusFilter !== "all") {
+                whereClauses.push("u.project_status = ?");
+                params.push(options.statusFilter);
+            }
+
+            // Search filter (name, description, project_status, and project name via JOIN)
+            if (options.searchQuery && options.searchQuery.trim() !== "") {
+                needsJoin = true;
+                var searchLower = "%" + options.searchQuery.toLowerCase() + "%";
+                whereClauses.push("(LOWER(u.name) LIKE ? OR LOWER(u.description) LIKE ? OR LOWER(u.project_status) LIKE ? OR LOWER(p.name) LIKE ?)");
+                params.push(searchLower, searchLower, searchLower, searchLower);
+            }
+
+            var query = "SELECT u.* FROM project_update_app u";
+            if (needsJoin) {
+                query += " LEFT JOIN project_project_app p ON u.project_id = p.odoo_record_id AND u.account_id = p.account_id";
+            }
+            if (whereClauses.length > 0) {
+                query += " WHERE " + whereClauses.join(" AND ");
+            }
+            query += " ORDER BY u.date DESC LIMIT ? OFFSET ?";
+            params.push(limit + 1, offset);
+
+            var result = tx.executeSql(query, params);
+
+            hasMore = result.rows.length > limit;
+            var count = Math.min(result.rows.length, limit);
+
+            for (var i = 0; i < count; i++) {
+                updateList.push(DBCommon.rowToObject(result.rows.item(i)));
+            }
+        });
+    } catch (e) {
+        console.error("getProjectUpdatesFilteredPaginated failed:", e);
+    }
+
+    return {
+        updates: updateList,
+        hasMore: hasMore
+    };
+}
+
+/**
  * Gets accounts that have projects, with project counts
  * Similar to getAccountsWithTaskCounts() in task.js but for projects
  * 

@@ -50,12 +50,6 @@ Page {
     property string currentSearchQuery: ""
     property string currentStatusFilter: "all"
 
-    // Pagination properties
-    property int pageSize: 30
-    property int currentOffset: 0
-    property bool hasMoreItems: true
-    property bool isLoadingMore: false
-
     // Loading state property
     property bool isLoading: false
 
@@ -176,46 +170,6 @@ Page {
         id: updatesModel
     }
     
-    // Helper function to check if an update passes the search filter
-    function passesSearchFilter(update, query) {
-        if (!query || query.trim() === "") {
-            return true;
-        }
-        
-        var searchLower = query.toLowerCase().trim();
-        
-        // Search in name
-        if (update.name && update.name.toLowerCase().indexOf(searchLower) !== -1) {
-            return true;
-        }
-        
-        // Search in description
-        if (update.description && update.description.toLowerCase().indexOf(searchLower) !== -1) {
-            return true;
-        }
-        
-        // Search in project name
-        var projectName = Project.getProjectName(update.project_id, update.account_id) || "";
-        if (projectName.toLowerCase().indexOf(searchLower) !== -1) {
-            return true;
-        }
-        
-        // Search in status
-        if (update.project_status && update.project_status.toLowerCase().indexOf(searchLower) !== -1) {
-            return true;
-        }
-        
-        return false;
-    }
-    
-    // Helper function to check if an update passes the status filter
-    function passesStatusFilter(update, statusFilter) {
-        if (!statusFilter || statusFilter === "all") {
-            return true;
-        }
-        return update.project_status === statusFilter;
-    }
-
     // Timer for deferred loading - gives UI time to render loading indicator
     Timer {
         id: loadingTimer
@@ -227,51 +181,50 @@ Page {
     function fetchupdates() {
         isLoading = true;
         updatesModel.clear();
-        currentOffset = 0;
-        hasMoreItems = true;
-        isLoadingMore = false;
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
         loadingTimer.start();
     }
 
-    function loadMoreUpdates() {
-        if (isLoadingMore || !hasMoreItems) return;
-        isLoadingMore = true;
-        currentOffset += pageSize;
-        _doLoadUpdatesPage();
-    }
-
-    function _doLoadUpdatesPage() {
+    function _doLoadUpdates() {
         var updates_list = [];
+        var filterAccountId = (filterByProject && projectAccountId >= 0) ? projectAccountId : selectedAccountId;
+
         try {
-            if (filterByProject && projectOdooRecordId && projectAccountId >= 0) {
-                updates_list = Project.getProjectUpdatesByProjectPaginated(projectOdooRecordId, projectAccountId, pageSize, currentOffset) || [];
+            if (filterByProject && projectOdooRecordId && filterAccountId >= 0) {
+                updates_list = Project.getProjectUpdatesByProject(projectOdooRecordId, filterAccountId);
             } else {
-                updates_list = Project.getAllProjectUpdatesPaginated(selectedAccountId, pageSize, currentOffset) || [];
+                updates_list = Project.getAllProjectUpdates(filterAccountId);
             }
         } catch (e) {
-            console.error("Error fetching updates page:", e);
+            console.error("Error fetching updates:", e);
             updates_list = [];
         }
 
-        if (updates_list.length < pageSize) {
-            hasMoreItems = false;
-        }
+        var statusFilter = currentStatusFilter || "all";
+        var searchQuery = (currentSearchQuery || "").toLowerCase().trim();
 
         for (var index = 0; index < updates_list.length; index++) {
             var u = updates_list[index] || {};
-            
-            // Apply search filter
-            if (!passesSearchFilter(u, currentSearchQuery)) {
+
+            if (statusFilter !== "all" && u.project_status !== statusFilter) {
                 continue;
             }
-            
-            // Apply status filter
-            if (!passesStatusFilter(u, currentStatusFilter)) {
-                continue;
+
+            if (searchQuery !== "") {
+                var nameText = (u.name || "").toLowerCase();
+                var descText = (u.description || "").toLowerCase();
+                var statusText = (u.project_status || "").toLowerCase();
+                var projectNameText = (Project.getProjectName(u.project_id, u.account_id) || "").toLowerCase();
+
+                if (nameText.indexOf(searchQuery) === -1
+                        && descText.indexOf(searchQuery) === -1
+                        && statusText.indexOf(searchQuery) === -1
+                        && projectNameText.indexOf(searchQuery) === -1) {
+                    continue;
+                }
             }
-            
+
             updatesModel.append({
                 'name': u.name,
                 'id': u.id,
@@ -285,13 +238,8 @@ Page {
                 'hasDraft': u.has_draft
             });
         }
-        isLoadingMore = false;
-        isLoading = false;
-    }
 
-    function _doLoadUpdates() {
-        // Initial load uses paginated path
-        _doLoadUpdatesPage();
+        isLoading = false;
     }
     
     // ListHeader for search and status filtering
@@ -343,18 +291,6 @@ Page {
         model: updatesModel
         clip: true
 
-        footer: LoadMoreFooter {
-            isLoading: isLoadingMore
-            hasMore: hasMoreItems
-            onLoadMore: loadMoreUpdates()
-        }
-
-        onAtYEndChanged: {
-            if (timesheetlist.atYEnd && !isLoadingMore && hasMoreItems) {
-                loadMoreUpdates();
-            }
-        }
-
         delegate: UpdatesDetailsCard {
             width: parent.width
             name: model.name
@@ -403,7 +339,6 @@ Page {
             }
         }
 
-        Component.onCompleted: fetchupdates()
     }
 
     onVisibleChanged: {
@@ -414,8 +349,6 @@ Page {
 
     Component.onCompleted: {
         selectedAccountId = accountPicker.selectedAccountId;
-
-        // Load initial updates list filtered by the account selector
         fetchupdates();
     }
 
