@@ -218,19 +218,15 @@ Item {
         searchField.text = "";
         searchQuery = "";
         customSearch("");
-        // Reload the original list by refreshing the model
-        if (childrenMapReady) {
-            projectListView.model = getCurrentModel();
-        }
+        // Reload from DB without search filter
+        populateProjectChildrenMap();
     }
 
     function performSearch(query) {
         searchQuery = query;
         customSearch(query);
-        // Refresh the model with search filter applied
-        if (childrenMapReady) {
-            projectListView.model = getCurrentModel();
-        }
+        // Reload from DB with search filter applied at SQL level
+        populateProjectChildrenMap();
     }
 
     // Timer for deferred loading - gives UI time to render loading indicator
@@ -260,18 +256,33 @@ Item {
         _doPaginatedProjectLoad();
     }
 
+    // Helper to build the array of open stage IDs for SQL filtering
+    function _getOpenStageIds() {
+        var ids = [];
+        for (var i = 0; i < openStagesList.length; i++) {
+            ids.push(openStagesList[i].odoo_record_id);
+        }
+        return ids;
+    }
+
     function _doPaginatedProjectLoad() {
-        var allProjects;
-
-        if (currentAccountId >= 0) {
-            allProjects = Project.getProjectsForAccountPaginated(currentAccountId, pageSize, currentOffset);
-        } else {
-            allProjects = Project.getAllProjectsPaginated(pageSize, currentOffset);
+        // Determine which stage filter to pass to SQL
+        var sqlStageId = undefined; // undefined = no stage filter
+        if (stageFilter.enabled) {
+            sqlStageId = stageFilter.odoo_record_id; // -2 = open, >=0 = specific
         }
 
-        if (allProjects.length < pageSize) {
-            hasMoreItems = false;
-        }
+        var result = Project.getProjectsFilteredPaginated({
+            accountId: currentAccountId,
+            searchQuery: searchQuery || "",
+            stageId: sqlStageId,
+            openStageIds: _getOpenStageIds(),
+            limit: pageSize,
+            offset: currentOffset
+        });
+
+        var allProjects = result.projects;
+        hasMoreItems = result.hasMore;
 
         if (allProjects.length === 0) {
             isLoadingMore = false;
@@ -416,11 +427,9 @@ Item {
                 return a.projectName.localeCompare(b.projectName);
             });
             
-            // Apply filters and add to model
+            // Data is already filtered at SQL level — just add all to model
             allFlatProjects.forEach(function(project) {
-                if (matchesStageFilter(project) && matchesSearchQuery(project)) {
-                    flatModel.append(project);
-                }
+                flatModel.append(project);
             });
             
             return flatModel;
@@ -911,8 +920,8 @@ Item {
                 stageFilter.name = selectedItem.label;
             }
 
-            // Refresh listView model
-            projectListView.model = getCurrentModel();
+            // Reload from DB with new stage filter at SQL level
+            populateProjectChildrenMap();
         }
 
         onFilterCleared: {
@@ -920,7 +929,8 @@ Item {
             stageFilter.enabled = true;
             stageFilter.odoo_record_id = -2;
             stageFilter.name = "Open";
-            projectListView.model = getCurrentModel();
+            // Reload from DB with restored default filter
+            populateProjectChildrenMap();
         }
     }
 

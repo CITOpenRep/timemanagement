@@ -669,6 +669,86 @@ function getAllProjectsPaginated(limit, offset) {
 }
 
 /**
+ * Paginated project query with optional search, stage, and account filters at SQL level.
+ *
+ * @param {Object} options
+ * @param {number}  options.accountId      - Account ID (-1 for all)
+ * @param {string}  [options.searchQuery]  - Search string for name/description
+ * @param {number}  [options.stageId]      - Specific stage odoo_record_id (-2 = open stages, -1/undefined = all)
+ * @param {Array}   [options.openStageIds] - Array of odoo_record_ids that count as "open" (used when stageId === -2)
+ * @param {number}  options.limit
+ * @param {number}  options.offset
+ * @returns {{projects: Array, hasMore: boolean}}
+ */
+function getProjectsFilteredPaginated(options) {
+    var projectList = [];
+    var limit = options.limit || 30;
+    var offset = options.offset || 0;
+    var hasMore = false;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var whereClauses = [];
+            var params = [];
+
+            // Account filter
+            if (options.accountId !== undefined && options.accountId >= 0) {
+                whereClauses.push("account_id = ?");
+                params.push(options.accountId);
+            }
+
+            // Stage filter
+            if (options.stageId !== undefined && options.stageId !== null) {
+                if (options.stageId === -2 && options.openStageIds && options.openStageIds.length > 0) {
+                    // "Open" filter — match any of the open stage IDs
+                    var placeholders = options.openStageIds.map(function () { return "?"; }).join(",");
+                    whereClauses.push("stage IN (" + placeholders + ")");
+                    for (var s = 0; s < options.openStageIds.length; s++) {
+                        params.push(options.openStageIds[s]);
+                    }
+                } else if (options.stageId >= 0) {
+                    // Specific stage
+                    whereClauses.push("stage = ?");
+                    params.push(options.stageId);
+                }
+                // stageId === -1 means "All" → no stage filter needed
+            }
+
+            // Search filter
+            if (options.searchQuery && options.searchQuery.trim() !== "") {
+                var searchLower = "%" + options.searchQuery.toLowerCase() + "%";
+                whereClauses.push("(LOWER(name) LIKE ? OR LOWER(description) LIKE ?)");
+                params.push(searchLower, searchLower);
+            }
+
+            var query = "SELECT * FROM project_project_app";
+            if (whereClauses.length > 0) {
+                query += " WHERE " + whereClauses.join(" AND ");
+            }
+            query += " ORDER BY name COLLATE NOCASE ASC LIMIT ? OFFSET ?";
+            params.push(limit + 1, offset);
+
+            var result = tx.executeSql(query, params);
+
+            hasMore = result.rows.length > limit;
+            var count = Math.min(result.rows.length, limit);
+
+            for (var i = 0; i < count; i++) {
+                projectList.push(DBCommon.rowToObject(result.rows.item(i)));
+            }
+        });
+    } catch (e) {
+        console.error("getProjectsFilteredPaginated failed:", e);
+    }
+
+    return {
+        projects: projectList,
+        hasMore: hasMore
+    };
+}
+/**
  * Paginated version of getProjectUpdatesByProject for infinite scroll.
  * 
  * @param {string} projectOdooRecordId - The project's Odoo record ID.
