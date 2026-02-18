@@ -380,6 +380,11 @@ Item {
     }
 
     function _doRefreshWithFilter() {
+        // Reset pagination state for a fresh load (filter/search changed)
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
+
         // Restore from global state if assignee filter is enabled but IDs are missing
         if (filterByAssignees && selectedAssigneeIds.length === 0) {
             // Try to restore from global state - we need to access the Global object from TaskList
@@ -537,6 +542,42 @@ Item {
                 tempMap[parentOdooId] = [];
             tempMap[parentOdooId].push(item);
         });
+
+        // Build a set of all task IDs present in this batch (and existing data for append)
+        var knownTaskIds = {};
+        for (var parentKey in tempMap) {
+            tempMap[parentKey].forEach(function (item) {
+                knownTaskIds[item.id_val] = true;
+            });
+        }
+        if (append) {
+            // In append mode, parents from previous pages are already in childrenMap
+            for (var existingKey in childrenMap) {
+                var existingModel = childrenMap[existingKey];
+                for (var m = 0; m < existingModel.count; m++) {
+                    knownTaskIds[existingModel.get(m).id_val] = true;
+                }
+            }
+        }
+
+        // Promote orphaned children to root level:
+        // If a task's parent is not in the known set, display it at root (-1)
+        var orphanedParentKeys = [];
+        for (var pKey in tempMap) {
+            var numKey = parseInt(pKey);
+            if (numKey !== -1 && !knownTaskIds[numKey]) {
+                orphanedParentKeys.push(pKey);
+            }
+        }
+        for (var oi = 0; oi < orphanedParentKeys.length; oi++) {
+            var opKey = orphanedParentKeys[oi];
+            if (!tempMap[-1]) tempMap[-1] = [];
+            for (var ci = 0; ci < tempMap[opKey].length; ci++) {
+                tempMap[opKey][ci].parent_id = -1;
+                tempMap[-1].push(tempMap[opKey][ci]);
+            }
+            delete tempMap[opKey];
+        }
 
         // Mark children
         for (var parent in tempMap) {

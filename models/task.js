@@ -2602,7 +2602,7 @@ function getTasksForProjectPaginated(projectOdooRecordId, accountId, limit, offs
     var taskList = [];
     limit = limit || 30;
     offset = offset || 0;
-    var hasMore = false;
+    var hasMore = true;
 
     // If we have date/search filters, we need the JS-based filter approach since date logic is complex
     var needsJSFilter = (filterType && filterType !== "" && filterType !== "all") || (searchQuery && searchQuery.trim() !== "");
