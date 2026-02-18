@@ -195,11 +195,10 @@ Page {
 
         var timesheets_list = [];
 
-        // Check if we're filtering by task
+        // Check if we're filtering by task - now uses paginated version
         if (filterByTask && taskOdooRecordId > 0) {
             //console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId, "status:", currentFilter);
-            timesheets_list = Model.getTimesheetsForTask(taskOdooRecordId, taskAccountId, currentFilter);
-            hasMoreItems = false; // Task-specific view doesn't paginate
+            timesheets_list = Model.getTimesheetsForTaskPaginated(taskOdooRecordId, taskAccountId, currentFilter, pageSize, currentOffset);
         }
         // Use paginated fetch method depending on account selector choice
         else if (filterAccountId === "-1") {

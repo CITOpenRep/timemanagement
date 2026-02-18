@@ -121,16 +121,23 @@ Item {
         filterByProject = true;
         projectOdooRecordId = projectOdooId;
         projectAccountId = projectAccountId;
-        var projectTasks = getTasksForProject(projectOdooId, projectAccountId);
+        currentFilter = "all";
+        currentSearchQuery = "";
 
-        // Apply assignee filtering if enabled (with hierarchy support)
+        // Reset pagination and use paginated project loading
+        isLoading = true;
+        currentOffset = 0;
+        hasMoreItems = true;
+
+        // Apply assignee filtering if enabled (non-paginated path since it's complex)
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            //console.log("TaskList applyProjectFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees:", JSON.stringify(selectedAssigneeIds));
+            var projectTasks = getTasksForProject(projectOdooId, projectAccountId);
             projectTasks = applyAssigneeFilterWithHierarchy(projectTasks, selectedAssigneeIds);
-            //console.log("TaskList applyProjectFilter: Final filtered tasks count:", projectTasks.length);
+            hasMoreItems = false;
+            updateDisplayedTasks(projectTasks);
+        } else {
+            _doPaginatedProjectLoad();
         }
-
-        updateDisplayedTasks(projectTasks);
     }
 
     // Add combined project and time filter method
@@ -139,37 +146,41 @@ Item {
         projectOdooRecordId = projectOdooId;
         projectAccountId = accountId;
         currentFilter = timeFilter;
+        currentSearchQuery = "";
 
-        // Get project tasks first, then apply filtering
-        var projectTasks = getTasksForProject(projectOdooId, accountId);
+        // Reset pagination
+        isLoading = true;
+        currentOffset = 0;
+        hasMoreItems = true;
 
-        // Create a map for quick lookup
-        var projectTasksMap = {};
-        for (var i = 0; i < projectTasks.length; i++) {
-            var key = projectTasks[i].odoo_record_id + "_" + projectTasks[i].account_id;
-            projectTasksMap[key] = projectTasks[i];
-        }
-
-        // Get filtered tasks and intersect with project tasks
-        var allFilteredTasks = Task.getFilteredTasks(timeFilter, "");
-        var filteredProjectTasks = [];
-
-        for (var j = 0; j < allFilteredTasks.length; j++) {
-            var filteredTask = allFilteredTasks[j];
-            var taskKey = filteredTask.odoo_record_id + "_" + filteredTask.account_id;
-            if (projectTasksMap[taskKey]) {
-                filteredProjectTasks.push(filteredTask);
-            }
-        }
-
-        // Apply assignee filtering if enabled (with hierarchy support)
+        // Apply assignee filtering if enabled (non-paginated path since it's complex)
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            //console.log("TaskList applyProjectAndTimeFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
-            filteredProjectTasks = applyAssigneeFilterWithHierarchy(filteredProjectTasks, selectedAssigneeIds);
-            //console.log("TaskList applyProjectAndTimeFilter: Final filtered tasks count:", filteredProjectTasks.length);
-        }
+            var projectTasks = getTasksForProject(projectOdooId, accountId);
 
-        updateDisplayedTasks(filteredProjectTasks);
+            // Create a map for quick lookup
+            var projectTasksMap = {};
+            for (var i = 0; i < projectTasks.length; i++) {
+                var key = projectTasks[i].odoo_record_id + "_" + projectTasks[i].account_id;
+                projectTasksMap[key] = projectTasks[i];
+            }
+
+            // Get filtered tasks and intersect with project tasks
+            var allFilteredTasks = Task.getFilteredTasks(timeFilter, "");
+            var filteredProjectTasks = [];
+            for (var j = 0; j < allFilteredTasks.length; j++) {
+                var filteredTask = allFilteredTasks[j];
+                var taskKey = filteredTask.odoo_record_id + "_" + filteredTask.account_id;
+                if (projectTasksMap[taskKey]) {
+                    filteredProjectTasks.push(filteredTask);
+                }
+            }
+
+            filteredProjectTasks = applyAssigneeFilterWithHierarchy(filteredProjectTasks, selectedAssigneeIds);
+            hasMoreItems = false;
+            updateDisplayedTasks(filteredProjectTasks);
+        } else {
+            _doPaginatedProjectLoad();
+        }
     }
 
     // Add combined project and search filter method
@@ -179,36 +190,56 @@ Item {
         projectAccountId = accountId;
         currentSearchQuery = searchQuery;
 
-        // Get project tasks first, then apply search filtering
-        var projectTasks = getTasksForProject(projectOdooId, accountId);
+        // Reset pagination
+        isLoading = true;
+        currentOffset = 0;
+        hasMoreItems = true;
 
-        // Create a map for quick lookup
-        var projectTasksMap = {};
-        for (var i = 0; i < projectTasks.length; i++) {
-            var key = projectTasks[i].odoo_record_id + "_" + projectTasks[i].account_id;
-            projectTasksMap[key] = projectTasks[i];
-        }
-
-        // Get search filtered tasks and intersect with project tasks
-        var allSearchedTasks = Task.getFilteredTasks("all", searchQuery);
-        var searchedProjectTasks = [];
-
-        for (var j = 0; j < allSearchedTasks.length; j++) {
-            var searchedTask = allSearchedTasks[j];
-            var taskKey = searchedTask.odoo_record_id + "_" + searchedTask.account_id;
-            if (projectTasksMap[taskKey]) {
-                searchedProjectTasks.push(searchedTask);
-            }
-        }
-
-        // Apply assignee filtering if enabled (with hierarchy support)
+        // Apply assignee filtering if enabled (non-paginated path since it's complex)
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            //console.log("TaskList applyProjectAndSearchFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
-            searchedProjectTasks = applyAssigneeFilterWithHierarchy(searchedProjectTasks, selectedAssigneeIds);
-            //console.log("TaskList applyProjectAndSearchFilter: Final filtered tasks count:", searchedProjectTasks.length);
-        }
+            var projectTasks = getTasksForProject(projectOdooId, accountId);
 
-        updateDisplayedTasks(searchedProjectTasks);
+            // Create a map for quick lookup
+            var projectTasksMap = {};
+            for (var i = 0; i < projectTasks.length; i++) {
+                var key = projectTasks[i].odoo_record_id + "_" + projectTasks[i].account_id;
+                projectTasksMap[key] = projectTasks[i];
+            }
+
+            // Get search filtered tasks and intersect with project tasks
+            var allSearchedTasks = Task.getFilteredTasks("all", searchQuery);
+            var searchedProjectTasks = [];
+            for (var j = 0; j < allSearchedTasks.length; j++) {
+                var searchedTask = allSearchedTasks[j];
+                var taskKey = searchedTask.odoo_record_id + "_" + searchedTask.account_id;
+                if (projectTasksMap[taskKey]) {
+                    searchedProjectTasks.push(searchedTask);
+                }
+            }
+
+            searchedProjectTasks = applyAssigneeFilterWithHierarchy(searchedProjectTasks, selectedAssigneeIds);
+            hasMoreItems = false;
+            updateDisplayedTasks(searchedProjectTasks);
+        } else {
+            _doPaginatedProjectLoad();
+        }
+    }
+
+    // Paginated loading function for project-filtered tasks
+    function _doPaginatedProjectLoad() {
+        var filterType = (currentFilter && currentFilter !== "") ? currentFilter : "all";
+        var searchQuery = (currentSearchQuery && currentSearchQuery.trim() !== "") ? currentSearchQuery : "";
+
+        var result = Task.getTasksForProjectPaginated(
+            projectOdooRecordId, projectAccountId, pageSize, currentOffset,
+            filterType, searchQuery);
+        
+        var tasks = result.tasks;
+        hasMoreItems = result.hasMore;
+
+        updateDisplayedTasks(tasks, isLoadingMore);
+        isLoadingMore = false;
+        isLoading = false;
     }
 
     // New function to get tasks for a specific project
@@ -366,6 +397,9 @@ Item {
             assigneeTasks = Task.getTasksByAssigneesHierarchical(selectedAssigneeIds, accountParam, currentFilter, currentSearchQuery);
             hasMoreItems = false; // No pagination for assignee filter
             updateDisplayedTasks(assigneeTasks);
+        } else if (filterByProject) {
+            // Use paginated project loading
+            _doPaginatedProjectLoad();
         } else {
             // Use paginated loading with proper date/search filtering for all other cases
             _doPaginatedLoad();
@@ -568,7 +602,12 @@ Item {
         if (isLoadingMore || !hasMoreItems) return;
         isLoadingMore = true;
         currentOffset += pageSize;
-        _doPaginatedLoad();
+        // Route to proper paginated loader based on context
+        if (filterByProject && !(filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0)) {
+            _doPaginatedProjectLoad();
+        } else {
+            _doPaginatedLoad();
+        }
     }
 
     function _doPopulateTaskChildrenMap() {

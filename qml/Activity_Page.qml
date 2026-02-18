@@ -205,41 +205,46 @@ Page {
             var currentAccountId = selectedAccountId;
             var isPaginated = false;
 
-            // Use pagination for all standard scenarios (except project/task specific views)
-            var canPaginate = !filterByProject && !filterByTasks && 
-                              (!assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0);
+            // Use pagination for all scenarios including project/task views
+            var canPaginate = !filterByAssignees || !assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0;
 
             if (canPaginate) {
                 isPaginated = true;
-                var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
-                
-                // Use the new paginated function that handles all filters with date filtering
-                var result = Activity.getFilteredActivitiesPaginated(
-                    currentFilter, 
-                    currentSearchQuery, 
-                    accountIdForFilter, 
-                    pageSize, 
-                    currentOffset
-                );
-                
-                allActivities = result.activities;
-                hasMoreItems = result.hasMore && allActivities.length >= pageSize;
-                
-                //console.log("Retrieved", allActivities.length, "paginated activities for filter:", currentFilter);
-                
-            } else {
-                // Legacy / Full Load path for project/task specific views
-                hasMoreItems = false; 
                 
                 if (filterByProject) {
-                    allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
+                    // Paginated project-filtered activities
+                    var result = Activity.getActivitiesForProjectPaginated(
+                        projectOdooRecordId, projectAccountId, pageSize, currentOffset);
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
                 } else if (filterByTasks) {
-                    allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
+                    // Paginated task-filtered activities
+                    var result = Activity.getActivitiesForTaskPaginated(
+                        taskOdooRecordId, projectAccountId, pageSize, currentOffset);
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
                 } else {
-                    // This path is for assignee filtering
                     var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
-                    allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
+                    
+                    // Use the paginated function that handles all filters with date filtering
+                    var result = Activity.getFilteredActivitiesPaginated(
+                        currentFilter, 
+                        currentSearchQuery, 
+                        accountIdForFilter, 
+                        pageSize, 
+                        currentOffset
+                    );
+                    
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
                 }
+                
+            } else {
+                // Legacy / Full Load path for assignee filtering only
+                hasMoreItems = false; 
+                
+                var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
             }
 
             // Apply assignee filtering if enabled (Only for legacy path)

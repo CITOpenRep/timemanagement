@@ -2586,6 +2586,177 @@ function getTasksForProject(projectOdooRecordId, accountId) {
 }
 
 /**
+ * Paginated version of getTasksForProject for infinite scroll.
+ * Fetches tasks in batches with SQL-level LIMIT/OFFSET.
+ * Supports optional date filtering and search query at the SQL level.
+ *
+ * @param {number} projectOdooRecordId - The odoo_record_id of the project
+ * @param {number} accountId - The account ID
+ * @param {number} limit - Maximum number of items to return
+ * @param {number} offset - Number of items to skip
+ * @param {string} [filterType] - Optional date filter: "today", "this_week", "this_month", "later", "done", "all"
+ * @param {string} [searchQuery] - Optional search query for name/description
+ * @returns {Object} { tasks: Array, hasMore: boolean }
+ */
+function getTasksForProjectPaginated(projectOdooRecordId, accountId, limit, offset, filterType, searchQuery) {
+    var taskList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+    var hasMore = false;
+
+    // If we have date/search filters, we need the JS-based filter approach since date logic is complex
+    var needsJSFilter = (filterType && filterType !== "" && filterType !== "all") || (searchQuery && searchQuery.trim() !== "");
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        if (!needsJSFilter) {
+            // Simple case: no date/search filter, pure SQL pagination
+            db.transaction(function (tx) {
+                var query = "SELECT * FROM project_task_app WHERE project_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                var result = tx.executeSql(query, [projectOdooRecordId, accountId, limit + 1, offset]);
+
+                hasMore = result.rows.length > limit;
+                var count = Math.min(result.rows.length, limit);
+
+                var projectColorMap = {};
+                var pcQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?";
+                var pcResult = tx.executeSql(pcQuery, [accountId]);
+                for (var j = 0; j < pcResult.rows.length; j++) {
+                    var pRow = pcResult.rows.item(j);
+                    projectColorMap[pRow.odoo_record_id] = pRow.color_pallet;
+                }
+
+                for (var i = 0; i < count; i++) {
+                    var row = result.rows.item(i);
+                    var spentQuery = "SELECT COALESCE(SUM(unit_amount), 0) as spent_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)";
+                    var spentResult = tx.executeSql(spentQuery, [row.odoo_record_id, accountId]);
+                    var spentHours = spentResult.rows.length > 0 ? spentResult.rows.item(0).spent_hours : 0;
+
+                    var projectIdToCheck = row.project_id || row.sub_project_id;
+                    var inheritedColor = resolveProjectColor(projectIdToCheck, projectColorMap, tx);
+
+                    taskList.push({
+                        id: row.id,
+                        odoo_record_id: row.odoo_record_id,
+                        account_id: row.account_id,
+                        name: row.name,
+                        description: row.description,
+                        project_id: row.project_id,
+                        sub_project_id: row.sub_project_id,
+                        parent_id: row.parent_id,
+                        user_id: row.user_id,
+                        start_date: row.start_date,
+                        end_date: row.end_date,
+                        deadline: row.deadline,
+                        initial_planned_hours: row.initial_planned_hours,
+                        state: row.state,
+                        priority: row.priority,
+                        last_modified: row.last_modified,
+                        status: row.status,
+                        color_pallet: inheritedColor,
+                        spent_hours: spentHours,
+                        has_draft: row.has_draft || 0
+                    });
+                }
+            });
+        } else {
+            // Complex case: date/search filter needs JS-level filtering on project-scoped tasks
+            // Use batched approach similar to getFilteredTasksPaginated
+            var currentDate = new Date();
+            var batchSize = limit * 3;
+            var dbOffset = 0;
+            var skipped = 0;
+            var maxIterations = 10;
+            var iteration = 0;
+
+            while (taskList.length < limit && hasMore !== false && iteration < maxIterations) {
+                iteration++;
+                var rawTasks = [];
+
+                db.transaction(function (tx) {
+                    var query = "SELECT * FROM project_task_app WHERE project_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                    var result = tx.executeSql(query, [projectOdooRecordId, accountId, batchSize, dbOffset]);
+                    for (var i = 0; i < result.rows.length; i++) {
+                        rawTasks.push(DBCommon.rowToObject(result.rows.item(i)));
+                    }
+                    if (result.rows.length < batchSize) {
+                        hasMore = false;
+                    }
+                });
+
+                if (rawTasks.length === 0) {
+                    hasMore = false;
+                    break;
+                }
+
+                for (var i = 0; i < rawTasks.length; i++) {
+                    var task = rawTasks[i];
+                    var passesFilter = true;
+
+                    if (filterType && filterType !== "all" && !passesDateFilter(task, filterType, currentDate)) {
+                        passesFilter = false;
+                    }
+                    if (passesFilter && searchQuery && !passesSearchFilter(task, searchQuery)) {
+                        passesFilter = false;
+                    }
+
+                    if (passesFilter) {
+                        if (skipped < offset) {
+                            skipped++;
+                        } else if (taskList.length < limit) {
+                            taskList.push(task);
+                        } else {
+                            hasMore = true;
+                            break;
+                        }
+                    }
+                }
+
+                dbOffset += rawTasks.length;
+            }
+
+            // Enrich with project colors and spent hours
+            db.transaction(function (tx) {
+                var projectColorMap = {};
+                var pcQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?";
+                var pcResult = tx.executeSql(pcQuery, [accountId]);
+                for (var j = 0; j < pcResult.rows.length; j++) {
+                    var pRow = pcResult.rows.item(j);
+                    projectColorMap[pRow.odoo_record_id] = pRow.color_pallet;
+                }
+
+                for (var i = 0; i < taskList.length; i++) {
+                    var task = taskList[i];
+                    var inheritedColor = 0;
+                    if (task.sub_project_id) inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                    if (!inheritedColor && task.project_id) inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                    task.color_pallet = inheritedColor;
+
+                    var timeQuery = "SELECT COALESCE(SUM(unit_amount), 0) as total_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)";
+                    var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, task.account_id]);
+                    task.spent_hours = (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null) ? timeResult.rows.item(0).total_hours : 0;
+                }
+            });
+
+            // If loop ended and we still haven't set hasMore, check
+            if (hasMore !== false && taskList.length >= limit) {
+                hasMore = true;
+            } else if (hasMore !== true) {
+                hasMore = false;
+            }
+        }
+    } catch (e) {
+        console.error("getTasksForProjectPaginated failed:", e);
+    }
+
+    return {
+        tasks: taskList,
+        hasMore: hasMore
+    };
+}
+
+/**
  * Gets all unique assignees who have been assigned to tasks in the given account
  * @param {number} accountId - The account ID to filter assignees by (use -1 for all accounts)
  * @returns {Array} Array of assignee objects with id, name, and odoo_record_id
@@ -3084,4 +3255,208 @@ function getTasksByPersonalStage(personalStageOdooRecordId, assigneeIds, account
     }
 
     return filteredTasks;
+}
+
+/**
+ * Paginated version of getTasksByPersonalStage.
+ * Pushes filtering into SQL (account, personal_stage, assignee, fold status)
+ * and then resolves parent hierarchy for the paginated batch.
+ *
+ * @param {number|null} personalStageOdooRecordId - null for "All", 0 for "No Stage", >0 for specific stage
+ * @param {Array<number>} assigneeIds - Array of user odoo_record_ids
+ * @param {number} accountId - Account ID (-1 for all)
+ * @param {boolean} includeFoldedTasks - Whether to include tasks in folded stages
+ * @param {string|null} searchQuery - Optional search query to filter by name/description
+ * @param {number} limit - Page size
+ * @param {number} offset - Items to skip
+ * @returns {{tasks: Array, hasMore: boolean}}
+ */
+function getTasksByPersonalStagePaginated(personalStageOdooRecordId, assigneeIds, accountId, includeFoldedTasks, searchQuery, limit, offset) {
+    if (includeFoldedTasks === undefined) {
+        includeFoldedTasks = false;
+    }
+    limit = limit || 30;
+    offset = offset || 0;
+
+    var taskList = [];
+    var hasMore = false;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            // --- Build SQL query with all filters pushed to DB level ---
+            var query = "SELECT t.* FROM project_task_app t";
+            var params = [];
+            var whereClauses = ["(t.status IS NULL OR t.status != 'deleted')"];
+
+            // Account filter
+            if (accountId !== undefined && accountId >= 0) {
+                whereClauses.push("t.account_id = ?");
+                params.push(accountId);
+            }
+
+            // Personal stage filter
+            if (personalStageOdooRecordId === 0) {
+                // "No Stage"
+                whereClauses.push("(t.personal_stage IS NULL OR t.personal_stage = 0)");
+            } else if (personalStageOdooRecordId !== null && personalStageOdooRecordId !== undefined) {
+                // Specific stage
+                whereClauses.push("CAST(t.personal_stage AS INTEGER) = ?");
+                params.push(parseInt(personalStageOdooRecordId));
+            }
+            // null = "All" → no stage filter
+
+            // Assignee filter using LIKE for comma-separated user_id field
+            if (assigneeIds && assigneeIds.length > 0) {
+                var assigneeClauses = [];
+                for (var a = 0; a < assigneeIds.length; a++) {
+                    var uid = assigneeIds[a];
+                    // Match: exact value, start of list, end of list, or middle of list
+                    assigneeClauses.push("(t.user_id = ? OR t.user_id LIKE ? OR t.user_id LIKE ? OR t.user_id LIKE ?)");
+                    params.push(String(uid));
+                    params.push(uid + ",%");
+                    params.push("%," + uid);
+                    params.push("%," + uid + ",%");
+                }
+                whereClauses.push("(" + assigneeClauses.join(" OR ") + ")");
+            }
+
+            // Fold filter: exclude tasks in folded stages unless includeFoldedTasks
+            if (!includeFoldedTasks) {
+                // Get all folded stage IDs
+                var foldedStageIds = [];
+                var foldQuery = "SELECT odoo_record_id FROM project_task_type_app WHERE fold = 1";
+                var foldResult = tx.executeSql(foldQuery);
+                for (var f = 0; f < foldResult.rows.length; f++) {
+                    foldedStageIds.push(foldResult.rows.item(f).odoo_record_id);
+                }
+                if (foldedStageIds.length > 0) {
+                    var placeholders = foldedStageIds.map(function() { return "?"; }).join(",");
+                    whereClauses.push("(t.state IS NULL OR t.state NOT IN (" + placeholders + "))");
+                    for (var fi = 0; fi < foldedStageIds.length; fi++) {
+                        params.push(foldedStageIds[fi]);
+                    }
+                }
+            }
+
+            // Search filter
+            if (searchQuery && searchQuery.trim() !== "") {
+                var searchLower = "%" + searchQuery.toLowerCase() + "%";
+                whereClauses.push("(LOWER(t.name) LIKE ? OR LOWER(t.description) LIKE ?)");
+                params.push(searchLower, searchLower);
+            }
+
+            query += " WHERE " + whereClauses.join(" AND ");
+            query += " ORDER BY t.last_modified DESC";
+            query += " LIMIT ? OFFSET ?";
+            params.push(limit + 1, offset); // fetch one extra to detect hasMore
+
+            var result = tx.executeSql(query, params);
+
+            // Collect matched task rows
+            var matchedCount = Math.min(result.rows.length, limit);
+            hasMore = result.rows.length > limit;
+
+            var matchedTasks = [];
+            var matchedTaskKeys = {};
+            for (var i = 0; i < matchedCount; i++) {
+                var row = DBCommon.rowToObject(result.rows.item(i));
+                matchedTasks.push(row);
+                matchedTaskKeys[row.odoo_record_id + "_" + row.account_id] = true;
+            }
+
+            // --- Resolve parent hierarchy: fetch parent tasks that aren't already in the batch ---
+            var parentsToFetch = [];
+            for (var i = 0; i < matchedTasks.length; i++) {
+                var t = matchedTasks[i];
+                if (t.parent_id && t.parent_id > 0) {
+                    var parentKey = t.parent_id + "_" + t.account_id;
+                    if (!matchedTaskKeys[parentKey]) {
+                        parentsToFetch.push({ odoo_record_id: t.parent_id, account_id: t.account_id });
+                        matchedTaskKeys[parentKey] = true; // avoid duplicates
+                    }
+                }
+            }
+
+            // Iteratively fetch ancestors until we reach root
+            var maxDepth = 10; // safety limit
+            var depth = 0;
+            while (parentsToFetch.length > 0 && depth < maxDepth) {
+                depth++;
+                var nextParentsToFetch = [];
+                for (var p = 0; p < parentsToFetch.length; p++) {
+                    var pInfo = parentsToFetch[p];
+                    var parentQuery = "SELECT * FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') LIMIT 1";
+                    var parentResult = tx.executeSql(parentQuery, [pInfo.odoo_record_id, pInfo.account_id]);
+                    if (parentResult.rows.length > 0) {
+                        var parentRow = DBCommon.rowToObject(parentResult.rows.item(0));
+                        matchedTasks.push(parentRow);
+                        // Check if this parent also has a parent
+                        if (parentRow.parent_id && parentRow.parent_id > 0) {
+                            var grandparentKey = parentRow.parent_id + "_" + parentRow.account_id;
+                            if (!matchedTaskKeys[grandparentKey]) {
+                                nextParentsToFetch.push({ odoo_record_id: parentRow.parent_id, account_id: parentRow.account_id });
+                                matchedTaskKeys[grandparentKey] = true;
+                            }
+                        }
+                    }
+                }
+                parentsToFetch = nextParentsToFetch;
+            }
+
+            // --- Also include parent tasks whose children are in the batch ---
+            // (parent might not match the filter but should be shown for hierarchy)
+            var childParentIds = {};
+            for (var i = 0; i < matchedTasks.length; i++) {
+                var t = matchedTasks[i];
+                // Check if any task in the DB lists this task as a child
+                // We already have parents handled above; now check: does this task have children IN the batch?
+                // This is handled by updateDisplayedTasks in QML, so we skip here.
+            }
+
+            // --- Enrich tasks with project colors and spent hours ---
+            var projectColorMap = {};
+            var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+            if (accountId !== undefined && accountId >= 0) {
+                projectQuery += " WHERE account_id = ?";
+                var projectResult = tx.executeSql(projectQuery, [accountId]);
+            } else {
+                var projectResult = tx.executeSql(projectQuery);
+            }
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var pRow = projectResult.rows.item(j);
+                projectColorMap[pRow.odoo_record_id] = pRow.color_pallet;
+            }
+
+            for (var i = 0; i < matchedTasks.length; i++) {
+                var task = matchedTasks[i];
+
+                // Inherit color
+                var inheritedColor = 0;
+                if (task.sub_project_id) {
+                    inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                }
+                if (!inheritedColor && task.project_id) {
+                    inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                }
+                task.color_pallet = inheritedColor;
+
+                // Calculate spent hours
+                var timeQuery = "SELECT COALESCE(SUM(unit_amount), 0) as total_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)";
+                var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, task.account_id]);
+                task.spent_hours = (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null)
+                    ? timeResult.rows.item(0).total_hours : 0;
+
+                taskList.push(task);
+            }
+        });
+    } catch (e) {
+        console.error("getTasksByPersonalStagePaginated failed:", e);
+    }
+
+    return {
+        tasks: taskList,
+        hasMore: hasMore
+    };
 }
