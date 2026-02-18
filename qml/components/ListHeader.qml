@@ -235,7 +235,6 @@ Rectangle {
                             if (topFilterBar.currentFilter === modelData.filterKey) {
                                 return;
                             }
-                            topFilterBar.currentFilter = modelData.filterKey;
                             topFilterBar.filterSelected(modelData.filterKey);
                         }
                     }

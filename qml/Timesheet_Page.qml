@@ -190,6 +190,12 @@ Page {
     function _doLoadTimesheets() {
         // Use selectedAccountId for filtering (from account selector)
         var filterAccountId = selectedAccountId;
+        if (filterAccountId === undefined || filterAccountId === null || String(filterAccountId) === "") {
+            filterAccountId = accountPicker.selectedAccountId;
+        }
+        if (currentFilter === undefined || currentFilter === null || String(currentFilter) === "") {
+            currentFilter = "all";
+        }
         //console.log("Filtering timesheets for account:", filterAccountId, "filter:", currentFilter);
         //console.log("Default account for creation:", defaultAccountId);
 
@@ -318,7 +324,6 @@ Page {
             }
         }
 
-        Component.onCompleted: fetch_timesheets_list()
     }
 
     DialerMenu {
@@ -360,6 +365,8 @@ Page {
         // Initialize default account
         defaultAccountId = accountPicker.selectedAccountId;
         selectedAccountId = accountPicker.selectedAccountId;
+        currentFilter = "all";
+        fetch_timesheets_list();
     }
 
     // Loading indicator overlay

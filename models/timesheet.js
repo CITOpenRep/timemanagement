@@ -32,10 +32,10 @@ function fetchTimesheetsByStatus(status, accountId) {
 
 
             if (!status || status.toLowerCase() === "all") {
-                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                 params = [accountId];
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY last_modified DESC";
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                 params = [accountId, status];
             }
 
@@ -151,10 +151,10 @@ function fetchTimesheetsForAllAccounts(status) {
             var params = [];
 
             if (!status || status.toLowerCase() === "all") {
-                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY last_modified DESC";
+                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                 params = [];
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC";
+                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                 params = [status];
             }
 
@@ -280,10 +280,10 @@ function fetchTimesheetsByStatusPaginated(status, accountId, limit, offset) {
             var params = [];
 
             if (!status || status.toLowerCase() === "all") {
-                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                 params = [accountId, limit, offset];
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                 params = [accountId, status, limit, offset];
             }
 
@@ -378,10 +378,10 @@ function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
             var params = [];
 
             if (!status || status.toLowerCase() === "all") {
-                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                 params = [limit, offset];
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                 params = [status, limit, offset];
             }
 
@@ -477,18 +477,18 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
             // Build query based on status and accountId
             if (!status || status.toLowerCase() === "all") {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, accountId];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId];
                 }
             } else {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY last_modified DESC";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, accountId, status];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY last_modified DESC";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, status];
                 }
             }
@@ -622,18 +622,18 @@ function getTimesheetsForTaskPaginated(taskOdooRecordId, accountId, status, limi
             // Build query based on status and accountId with LIMIT/OFFSET
             if (!status || status.toLowerCase() === "all") {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                     params = [taskOdooRecordId, accountId, limit, offset];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                     params = [taskOdooRecordId, limit, offset];
                 }
             } else {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                     params = [taskOdooRecordId, accountId, status, limit, offset];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                     params = [taskOdooRecordId, status, limit, offset];
                 }
             }
