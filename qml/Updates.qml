@@ -520,7 +520,8 @@ Page {
                                 navigatingToReadMore = true;
                                 description_text.liveSyncActive = true;
                                 apLayout.addPageToNextColumn(updateDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                    isReadOnly: isReadOnly
+                                    isReadOnly: isReadOnly,
+                                    parentDraftHandler: draftHandler
                                 });
                             }
                             onContentChanged: function(content) {

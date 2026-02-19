@@ -181,6 +181,11 @@ Rectangle {
                // console.log("[RichTextPreview] External change detected - PULLING from Global, length:", holderContent.length);
                 root._lastSyncedContent = holderContent;
                 root.setContent(holderContent);
+                // Emit contentChanged so parent page's draft handler gets notified.
+                // setContent() suppresses the TextArea.onTextChanged signal to avoid
+                // feedback loops, but the parent page needs to know content changed
+                // in order to track it in the draft system.
+                root.contentChanged(root.originalHtmlContent);
             }
         }
     }
