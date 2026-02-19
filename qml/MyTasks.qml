@@ -293,6 +293,9 @@ Page {
         currentFilter: ""
 
         onFilterSelected: {
+            // Update the ListHeader's currentFilter so the UI highlight moves
+            myTaskListHeader.currentFilter = filterKey;
+
             // Parse filterKey to get personal stage ID
             // filterKey is string: "null" for All, "0" for No Stage, or actual stage ID
             var stageId;
