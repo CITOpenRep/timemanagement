@@ -2021,6 +2021,373 @@ function getTasksByAssigneesHierarchical(assigneeIds, accountId, filterType, sea
 }
 
 /**
+ * Paginated version of getTasksByAssigneesHierarchical.
+ * Pushes assignee, date, search, and optional project filtering into SQL
+ * with LIMIT/OFFSET, then resolves parent hierarchy for the returned batch.
+ *
+ * @param {Array} assigneeIds - Array of assignee IDs (plain ints or {user_id, account_id} objects)
+ * @param {number} accountId - Account ID (-1 for all)
+ * @param {string} filterType - Date filter type (optional)
+ * @param {string} searchQuery - Search query (optional)
+ * @param {number} limit - Page size
+ * @param {number} offset - Items to skip
+ * @param {number} [projectOdooRecordId] - Optional project odoo_record_id to filter by
+ * @returns {{tasks: Array, hasMore: boolean}}
+ */
+function getTasksByAssigneesPaginated(assigneeIds, accountId, filterType, searchQuery, limit, offset, projectOdooRecordId) {
+    limit = limit || 30;
+    offset = offset || 0;
+
+    var taskList = [];
+    var hasMore = false;
+
+    if (!assigneeIds || assigneeIds.length === 0) {
+        return { tasks: [], hasMore: false };
+    }
+
+    // Separate assignee IDs by format and extract user_id + account_id pairs
+    var assigneeFilters = [];
+    for (var a = 0; a < assigneeIds.length; a++) {
+        var sel = assigneeIds[a];
+        if (typeof sel === 'object' && sel !== null && sel.user_id !== undefined) {
+            assigneeFilters.push({ user_id: parseInt(sel.user_id), account_id: parseInt(sel.account_id) });
+        } else {
+            assigneeFilters.push({ user_id: parseInt(sel), account_id: null });
+        }
+    }
+
+    // Complex date filters need JS-level filtering (date range logic is complex)
+    var needsJSDateFilter = (filterType && filterType !== "" && filterType !== "all");
+    var currentDate = new Date();
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        if (!needsJSDateFilter) {
+            // ---- Simple path: no date filter, pure SQL pagination ----
+            db.transaction(function (tx) {
+                var query = "SELECT t.* FROM project_task_app t";
+                var params = [];
+                var whereClauses = ["(t.status IS NULL OR t.status != 'deleted')"];
+
+                // Account filter
+                if (accountId !== undefined && accountId >= 0) {
+                    whereClauses.push("t.account_id = ?");
+                    params.push(accountId);
+                }
+
+                // Project filter
+                if (projectOdooRecordId !== undefined && projectOdooRecordId > 0) {
+                    whereClauses.push("t.project_id = ?");
+                    params.push(projectOdooRecordId);
+                }
+
+                // Assignee filter using LIKE for comma-separated user_id field
+                var assigneeClauses = [];
+                for (var a = 0; a < assigneeFilters.length; a++) {
+                    var af = assigneeFilters[a];
+                    var uid = String(af.user_id);
+                    var uidClause = "(t.user_id = ? OR t.user_id LIKE ? OR t.user_id LIKE ? OR t.user_id LIKE ?)";
+                    var uidParams = [uid, uid + ",%", "%," + uid, "%," + uid + ",%"];
+
+                    if (af.account_id !== null) {
+                        // Composite: also match account
+                        assigneeClauses.push("(" + uidClause + " AND t.account_id = ?)");
+                        params = params.concat(uidParams);
+                        params.push(af.account_id);
+                    } else {
+                        assigneeClauses.push(uidClause);
+                        params = params.concat(uidParams);
+                    }
+                }
+                if (assigneeClauses.length > 0) {
+                    whereClauses.push("(" + assigneeClauses.join(" OR ") + ")");
+                }
+
+                // Search filter
+                if (searchQuery && searchQuery.trim() !== "") {
+                    var searchLower = "%" + searchQuery.toLowerCase() + "%";
+                    whereClauses.push("(LOWER(t.name) LIKE ? OR LOWER(t.description) LIKE ?)");
+                    params.push(searchLower, searchLower);
+                }
+
+                query += " WHERE " + whereClauses.join(" AND ");
+                query += " ORDER BY t.end_date ASC, t.name COLLATE NOCASE ASC";
+                query += " LIMIT ? OFFSET ?";
+                params.push(limit + 1, offset); // fetch one extra to detect hasMore
+
+                var result = tx.executeSql(query, params);
+
+                var matchedCount = Math.min(result.rows.length, limit);
+                hasMore = result.rows.length > limit;
+
+                var matchedTasks = [];
+                var matchedTaskKeys = {};
+                for (var i = 0; i < matchedCount; i++) {
+                    var row = DBCommon.rowToObject(result.rows.item(i));
+                    matchedTasks.push(row);
+                    matchedTaskKeys[row.odoo_record_id + "_" + row.account_id] = true;
+                }
+
+                // Resolve parent hierarchy: fetch parent tasks not already in the batch
+                var parentsToFetch = [];
+                for (var i = 0; i < matchedTasks.length; i++) {
+                    var t = matchedTasks[i];
+                    if (t.parent_id && t.parent_id > 0) {
+                        var parentKey = t.parent_id + "_" + t.account_id;
+                        if (!matchedTaskKeys[parentKey]) {
+                            parentsToFetch.push({ odoo_record_id: t.parent_id, account_id: t.account_id });
+                            matchedTaskKeys[parentKey] = true;
+                        }
+                    }
+                }
+
+                // Iteratively fetch ancestors until root
+                var maxDepth = 10;
+                var depth = 0;
+                while (parentsToFetch.length > 0 && depth < maxDepth) {
+                    depth++;
+                    var nextParentsToFetch = [];
+                    for (var p = 0; p < parentsToFetch.length; p++) {
+                        var pInfo = parentsToFetch[p];
+                        var parentQuery = "SELECT * FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') LIMIT 1";
+                        var parentResult = tx.executeSql(parentQuery, [pInfo.odoo_record_id, pInfo.account_id]);
+                        if (parentResult.rows.length > 0) {
+                            var parentRow = DBCommon.rowToObject(parentResult.rows.item(0));
+                            matchedTasks.push(parentRow);
+                            if (parentRow.parent_id && parentRow.parent_id > 0) {
+                                var grandparentKey = parentRow.parent_id + "_" + parentRow.account_id;
+                                if (!matchedTaskKeys[grandparentKey]) {
+                                    nextParentsToFetch.push({ odoo_record_id: parentRow.parent_id, account_id: parentRow.account_id });
+                                    matchedTaskKeys[grandparentKey] = true;
+                                }
+                            }
+                        }
+                    }
+                    parentsToFetch = nextParentsToFetch;
+                }
+
+                // Enrich with project colors and spent hours
+                var projectColorMap = {};
+                var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+                if (accountId !== undefined && accountId >= 0) {
+                    projectQuery += " WHERE account_id = ?";
+                    var projectResult = tx.executeSql(projectQuery, [accountId]);
+                } else {
+                    var projectResult = tx.executeSql(projectQuery);
+                }
+                for (var j = 0; j < projectResult.rows.length; j++) {
+                    var pRow = projectResult.rows.item(j);
+                    projectColorMap[pRow.odoo_record_id] = pRow.color_pallet;
+                }
+
+                for (var i = 0; i < matchedTasks.length; i++) {
+                    var task = matchedTasks[i];
+                    var inheritedColor = 0;
+                    if (task.sub_project_id) {
+                        inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                    }
+                    if (!inheritedColor && task.project_id) {
+                        inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                    }
+                    task.color_pallet = inheritedColor;
+
+                    var timeQuery = "SELECT COALESCE(SUM(unit_amount), 0) as total_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)";
+                    var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, task.account_id]);
+                    task.spent_hours = (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null)
+                        ? timeResult.rows.item(0).total_hours : 0;
+
+                    taskList.push(task);
+                }
+            });
+
+        } else {
+            // ---- Complex path: date filter needs JS-level filtering ----
+            var batchSize = limit * 3;
+            var dbOffset = 0;
+            var skipped = 0;
+            var maxIterations = 10;
+            var iteration = 0;
+            var dbHasMore = true;
+
+            while (taskList.length < limit && dbHasMore && iteration < maxIterations) {
+                iteration++;
+                var rawTasks = [];
+
+                db.transaction(function (tx) {
+                    var query = "SELECT t.* FROM project_task_app t";
+                    var params = [];
+                    var whereClauses = ["(t.status IS NULL OR t.status != 'deleted')"];
+
+                    if (accountId !== undefined && accountId >= 0) {
+                        whereClauses.push("t.account_id = ?");
+                        params.push(accountId);
+                    }
+
+                    if (projectOdooRecordId !== undefined && projectOdooRecordId > 0) {
+                        whereClauses.push("t.project_id = ?");
+                        params.push(projectOdooRecordId);
+                    }
+
+                    // Assignee filter
+                    var assigneeClauses = [];
+                    for (var a = 0; a < assigneeFilters.length; a++) {
+                        var af = assigneeFilters[a];
+                        var uid = String(af.user_id);
+                        var uidClause = "(t.user_id = ? OR t.user_id LIKE ? OR t.user_id LIKE ? OR t.user_id LIKE ?)";
+                        var uidParams = [uid, uid + ",%", "%," + uid, "%," + uid + ",%"];
+
+                        if (af.account_id !== null) {
+                            assigneeClauses.push("(" + uidClause + " AND t.account_id = ?)");
+                            params = params.concat(uidParams);
+                            params.push(af.account_id);
+                        } else {
+                            assigneeClauses.push(uidClause);
+                            params = params.concat(uidParams);
+                        }
+                    }
+                    if (assigneeClauses.length > 0) {
+                        whereClauses.push("(" + assigneeClauses.join(" OR ") + ")");
+                    }
+
+                    // Search filter
+                    if (searchQuery && searchQuery.trim() !== "") {
+                        var searchLower = "%" + searchQuery.toLowerCase() + "%";
+                        whereClauses.push("(LOWER(t.name) LIKE ? OR LOWER(t.description) LIKE ?)");
+                        params.push(searchLower, searchLower);
+                    }
+
+                    query += " WHERE " + whereClauses.join(" AND ");
+                    query += " ORDER BY t.end_date ASC, t.name COLLATE NOCASE ASC";
+                    query += " LIMIT ? OFFSET ?";
+                    params.push(batchSize, dbOffset);
+
+                    var result = tx.executeSql(query, params);
+                    for (var i = 0; i < result.rows.length; i++) {
+                        rawTasks.push(DBCommon.rowToObject(result.rows.item(i)));
+                    }
+                    if (result.rows.length < batchSize) {
+                        dbHasMore = false;
+                    }
+                });
+
+                if (rawTasks.length === 0) {
+                    dbHasMore = false;
+                    break;
+                }
+
+                // Apply JS-based date filtering
+                for (var i = 0; i < rawTasks.length; i++) {
+                    var task = rawTasks[i];
+                    if (!passesDateFilter(task, filterType, currentDate)) {
+                        continue;
+                    }
+                    if (skipped < offset) {
+                        skipped++;
+                    } else if (taskList.length < limit) {
+                        taskList.push(task);
+                    } else {
+                        hasMore = true;
+                        break;
+                    }
+                }
+
+                dbOffset += rawTasks.length;
+            }
+
+            // If loop ran out but DB still has data, there may be more
+            if (dbHasMore && taskList.length >= limit) {
+                hasMore = true;
+            }
+
+            // Resolve parent hierarchy and enrich with colors/hours
+            db.transaction(function (tx) {
+                var matchedTaskKeys = {};
+                for (var i = 0; i < taskList.length; i++) {
+                    matchedTaskKeys[taskList[i].odoo_record_id + "_" + taskList[i].account_id] = true;
+                }
+
+                // Fetch missing parents
+                var parentsToFetch = [];
+                for (var i = 0; i < taskList.length; i++) {
+                    var t = taskList[i];
+                    if (t.parent_id && t.parent_id > 0) {
+                        var parentKey = t.parent_id + "_" + t.account_id;
+                        if (!matchedTaskKeys[parentKey]) {
+                            parentsToFetch.push({ odoo_record_id: t.parent_id, account_id: t.account_id });
+                            matchedTaskKeys[parentKey] = true;
+                        }
+                    }
+                }
+
+                var maxDepth = 10;
+                var depth = 0;
+                while (parentsToFetch.length > 0 && depth < maxDepth) {
+                    depth++;
+                    var nextParentsToFetch = [];
+                    for (var p = 0; p < parentsToFetch.length; p++) {
+                        var pInfo = parentsToFetch[p];
+                        var parentQuery = "SELECT * FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') LIMIT 1";
+                        var parentResult = tx.executeSql(parentQuery, [pInfo.odoo_record_id, pInfo.account_id]);
+                        if (parentResult.rows.length > 0) {
+                            var parentRow = DBCommon.rowToObject(parentResult.rows.item(0));
+                            taskList.push(parentRow);
+                            if (parentRow.parent_id && parentRow.parent_id > 0) {
+                                var grandparentKey = parentRow.parent_id + "_" + parentRow.account_id;
+                                if (!matchedTaskKeys[grandparentKey]) {
+                                    nextParentsToFetch.push({ odoo_record_id: parentRow.parent_id, account_id: parentRow.account_id });
+                                    matchedTaskKeys[grandparentKey] = true;
+                                }
+                            }
+                        }
+                    }
+                    parentsToFetch = nextParentsToFetch;
+                }
+
+                // Enrich with project colors and spent hours
+                var projectColorMap = {};
+                var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+                if (accountId !== undefined && accountId >= 0) {
+                    projectQuery += " WHERE account_id = ?";
+                    var projectResult = tx.executeSql(projectQuery, [accountId]);
+                } else {
+                    var projectResult = tx.executeSql(projectQuery);
+                }
+                for (var j = 0; j < projectResult.rows.length; j++) {
+                    var pRow = projectResult.rows.item(j);
+                    projectColorMap[pRow.odoo_record_id] = pRow.color_pallet;
+                }
+
+                for (var i = 0; i < taskList.length; i++) {
+                    var task = taskList[i];
+                    var inheritedColor = 0;
+                    if (task.sub_project_id) {
+                        inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                    }
+                    if (!inheritedColor && task.project_id) {
+                        inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                    }
+                    task.color_pallet = inheritedColor;
+
+                    var timeQuery = "SELECT COALESCE(SUM(unit_amount), 0) as total_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)";
+                    var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, task.account_id]);
+                    task.spent_hours = (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null)
+                        ? timeResult.rows.item(0).total_hours : 0;
+                }
+            });
+        }
+
+    } catch (e) {
+        console.error("getTasksByAssigneesPaginated failed:", e);
+    }
+
+    return {
+        tasks: taskList,
+        hasMore: hasMore
+    };
+}
+
+/**
  * Helper function to get the account ID for a given assignee ID
  * This is used to ensure proper account matching in multi-account filtering
  */
