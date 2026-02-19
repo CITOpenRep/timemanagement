@@ -765,7 +765,8 @@ Page {
                             navigatingToReadMore = true;
                             notes.liveSyncActive = true;
                             apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
+                                isReadOnly: isReadOnly,
+                                parentDraftHandler: draftHandler
                                 //useRichText: false
                             });
                         }

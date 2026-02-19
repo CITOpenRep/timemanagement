@@ -334,7 +334,8 @@ Page {
                     
                     if (typeof apLayout !== "undefined" && apLayout) {
                         apLayout.addPageToNextColumn(createUpdatePage, Qt.resolvedUrl("../ReadMorePage.qml"), {
-                            isReadOnly: false
+                            isReadOnly: false,
+                            parentDraftHandler: draftHandler
                         });
                     }
                 }
