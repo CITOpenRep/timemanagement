@@ -152,7 +152,7 @@ ListItem {
     color: "#FFF3E0"
     border.color: "#FF9800"
     border.width: units.gu(0.15)
-anchors.right: parent.right
+    Layout.alignment: Qt.AlignRight
 
     
     Text {

@@ -638,6 +638,150 @@ function getProjectsForAccountPaginated(accountId, limit, offset) {
 }
 
 /**
+ * Paginated version of getAllProjects for infinite scroll (all accounts).
+ * 
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Array<Object>} A list of project objects.
+ */
+function getAllProjectsPaginated(limit, offset) {
+    var projectList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_project_app ORDER BY name COLLATE NOCASE ASC LIMIT ? OFFSET ?";
+            var result = tx.executeSql(query, [limit, offset]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                projectList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("getAllProjectsPaginated failed:", e);
+    }
+
+    return projectList;
+}
+
+/**
+ * Paginated project query with optional search, stage, and account filters at SQL level.
+ *
+ * @param {Object} options
+ * @param {number}  options.accountId      - Account ID (-1 for all)
+ * @param {string}  [options.searchQuery]  - Search string for name/description
+ * @param {number}  [options.stageId]      - Specific stage odoo_record_id (-2 = open stages, -1/undefined = all)
+ * @param {Array}   [options.openStageIds] - Array of odoo_record_ids that count as "open" (used when stageId === -2)
+ * @param {number}  options.limit
+ * @param {number}  options.offset
+ * @returns {{projects: Array, hasMore: boolean}}
+ */
+function getProjectsFilteredPaginated(options) {
+    var projectList = [];
+    var limit = options.limit || 30;
+    var offset = options.offset || 0;
+    var hasMore = false;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var whereClauses = [];
+            var params = [];
+
+            // Account filter
+            if (options.accountId !== undefined && options.accountId >= 0) {
+                whereClauses.push("account_id = ?");
+                params.push(options.accountId);
+            }
+
+            // Stage filter
+            if (options.stageId !== undefined && options.stageId !== null) {
+                if (options.stageId === -2 && options.openStageIds && options.openStageIds.length > 0) {
+                    // "Open" filter — match any of the open stage IDs
+                    var placeholders = options.openStageIds.map(function () { return "?"; }).join(",");
+                    whereClauses.push("stage IN (" + placeholders + ")");
+                    for (var s = 0; s < options.openStageIds.length; s++) {
+                        params.push(options.openStageIds[s]);
+                    }
+                } else if (options.stageId >= 0) {
+                    // Specific stage
+                    whereClauses.push("stage = ?");
+                    params.push(options.stageId);
+                }
+                // stageId === -1 means "All" → no stage filter needed
+            }
+
+            // Search filter
+            if (options.searchQuery && options.searchQuery.trim() !== "") {
+                var searchLower = "%" + options.searchQuery.toLowerCase() + "%";
+                whereClauses.push("(LOWER(name) LIKE ? OR LOWER(description) LIKE ?)");
+                params.push(searchLower, searchLower);
+            }
+
+            var query = "SELECT * FROM project_project_app";
+            if (whereClauses.length > 0) {
+                query += " WHERE " + whereClauses.join(" AND ");
+            }
+            query += " ORDER BY name COLLATE NOCASE ASC LIMIT ? OFFSET ?";
+            params.push(limit + 1, offset);
+
+            var result = tx.executeSql(query, params);
+
+            hasMore = result.rows.length > limit;
+            var count = Math.min(result.rows.length, limit);
+
+            for (var i = 0; i < count; i++) {
+                projectList.push(DBCommon.rowToObject(result.rows.item(i)));
+            }
+        });
+    } catch (e) {
+        console.error("getProjectsFilteredPaginated failed:", e);
+    }
+
+    return {
+        projects: projectList,
+        hasMore: hasMore
+    };
+}
+/**
+ * Paginated version of getProjectUpdatesByProject for infinite scroll.
+ * 
+ * @param {string} projectOdooRecordId - The project's Odoo record ID.
+ * @param {number} accountId - The account ID.
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Array<Object>} A list of project update objects.
+ */
+function getProjectUpdatesByProjectPaginated(projectOdooRecordId, accountId, limit, offset) {
+    var updateList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND project_id = ? AND account_id = ? ORDER BY date DESC LIMIT ? OFFSET ?";
+            var result = tx.executeSql(query, [projectOdooRecordId, accountId, limit, offset]);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                updateList.push(DBCommon.rowToObject(row));
+            }
+        });
+    } catch (e) {
+        console.error("getProjectUpdatesByProjectPaginated failed:", e);
+    }
+
+    return updateList;
+}
+
+/**
  * Paginated version of getAllProjectUpdates for infinite scroll.
  * 
  * @param {number} [accountId] - Optional account ID to filter by. If not provided, returns all updates.
@@ -674,6 +818,87 @@ function getAllProjectUpdatesPaginated(accountId, limit, offset) {
     }
 
     return updateList;
+}
+
+/**
+ * Paginated project updates with SQL-level search and status filtering.
+ *
+ * @param {Object} options
+ * @param {number}  options.accountId       - Account to filter by (-1 = all)
+ * @param {number}  [options.projectId]     - Filter to a specific project odoo_record_id (optional)
+ * @param {string}  [options.searchQuery]   - Free-text search against name/description/status
+ * @param {string}  [options.statusFilter]  - project_status value, e.g. 'on_track' ('all' or '' = no filter)
+ * @param {number}  options.limit
+ * @param {number}  options.offset
+ * @returns {{ updates: Array, hasMore: boolean }}
+ */
+function getProjectUpdatesFilteredPaginated(options) {
+    var updateList = [];
+    var limit = options.limit || 30;
+    var offset = options.offset || 0;
+    var hasMore = false;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var whereClauses = ["u.status != 'deleted'"];
+            var params = [];
+            var needsJoin = false;
+
+            // Account filter
+            if (options.accountId !== undefined && options.accountId !== null && options.accountId >= 0) {
+                whereClauses.push("u.account_id = ?");
+                params.push(options.accountId);
+            }
+
+            // Project filter (when viewing updates for a specific project)
+            if (options.projectId !== undefined && options.projectId !== null && options.projectId > 0) {
+                whereClauses.push("u.project_id = ?");
+                params.push(options.projectId);
+            }
+
+            // Status filter
+            if (options.statusFilter && options.statusFilter !== "" && options.statusFilter !== "all") {
+                whereClauses.push("u.project_status = ?");
+                params.push(options.statusFilter);
+            }
+
+            // Search filter (name, description, project_status, and project name via JOIN)
+            if (options.searchQuery && options.searchQuery.trim() !== "") {
+                needsJoin = true;
+                var searchLower = "%" + options.searchQuery.toLowerCase() + "%";
+                whereClauses.push("(LOWER(u.name) LIKE ? OR LOWER(u.description) LIKE ? OR LOWER(u.project_status) LIKE ? OR LOWER(p.name) LIKE ?)");
+                params.push(searchLower, searchLower, searchLower, searchLower);
+            }
+
+            var query = "SELECT u.* FROM project_update_app u";
+            if (needsJoin) {
+                query += " LEFT JOIN project_project_app p ON u.project_id = p.odoo_record_id AND u.account_id = p.account_id";
+            }
+            if (whereClauses.length > 0) {
+                query += " WHERE " + whereClauses.join(" AND ");
+            }
+            query += " ORDER BY u.date DESC LIMIT ? OFFSET ?";
+            params.push(limit + 1, offset);
+
+            var result = tx.executeSql(query, params);
+
+            hasMore = result.rows.length > limit;
+            var count = Math.min(result.rows.length, limit);
+
+            for (var i = 0; i < count; i++) {
+                updateList.push(DBCommon.rowToObject(result.rows.item(i)));
+            }
+        });
+    } catch (e) {
+        console.error("getProjectUpdatesFilteredPaginated failed:", e);
+    }
+
+    return {
+        updates: updateList,
+        hasMore: hasMore
+    };
 }
 
 /**

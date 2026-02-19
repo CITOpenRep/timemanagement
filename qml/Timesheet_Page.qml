@@ -44,8 +44,8 @@ Page {
     // SEPARATED CONCERNS:
     // 1. selectedAccountId - ONLY for filtering/viewing data (from account selector)
     // 2. defaultAccountId - ONLY for creating new records (from default account setting)
-    property string selectedAccountId: accountPicker.selectedAccountId // Start with "All accounts" for filtering
-    property string defaultAccountId: accountPicker.selectedAccountId // For creating records
+    property int selectedAccountId: accountPicker.selectedAccountId // Stays bound to accountPicker
+    property int defaultAccountId: Account.getDefaultAccountId() // For creating records
 
     // Properties for filtering by task
     property bool filterByTask: false
@@ -110,6 +110,15 @@ Page {
         }
     }
 
+    // Keep selectedAccountId in sync when user changes account in picker
+    Connections {
+        target: accountPicker
+        onAccepted: function (id, name) {
+            selectedAccountId = id;
+            fetch_timesheets_list();
+        }
+    }
+
     // Keep account-data-refresh handler but accept permissive signal signature
     Connections {
         target: mainView
@@ -118,7 +127,8 @@ Page {
             if (typeof accountId === "undefined" || accountId === null) {
                 fetch_timesheets_list();
             } else {
-                if (selectedAccountId === accountId || selectedAccountId === "-1") {
+                // selectedAccountId is int: -1 means "All Accounts"
+                if (selectedAccountId === -1 || selectedAccountId === accountId) {
                     fetch_timesheets_list();
                 }
             }
@@ -188,18 +198,23 @@ Page {
     }
 
     function _doLoadTimesheets() {
-        // Use selectedAccountId for filtering (from account selector)
-        var filterAccountId = selectedAccountId;
+        // Always read the current account filter directly from accountPicker
+        // to ensure we respect the latest selection (selectedAccountId binding
+        // can break if imperatively assigned elsewhere).
+        var rawAccountId = selectedAccountId;
+        var filterAccountId = String(rawAccountId);
+        if (currentFilter === undefined || currentFilter === null || String(currentFilter) === "") {
+            currentFilter = "all";
+        }
         //console.log("Filtering timesheets for account:", filterAccountId, "filter:", currentFilter);
         //console.log("Default account for creation:", defaultAccountId);
 
         var timesheets_list = [];
 
-        // Check if we're filtering by task
+        // Check if we're filtering by task - now uses paginated version
         if (filterByTask && taskOdooRecordId > 0) {
             //console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId, "status:", currentFilter);
-            timesheets_list = Model.getTimesheetsForTask(taskOdooRecordId, taskAccountId, currentFilter);
-            hasMoreItems = false; // Task-specific view doesn't paginate
+            timesheets_list = Model.getTimesheetsForTaskPaginated(taskOdooRecordId, taskAccountId, currentFilter, pageSize, currentOffset);
         }
         // Use paginated fetch method depending on account selector choice
         else if (filterAccountId === "-1") {
@@ -271,7 +286,7 @@ Page {
         }
 
         onAtYEndChanged: {
-            if (timesheetlist.atYEnd && !isLoadingMore && hasMoreItems) {
+            if (timesheetlist.atYEnd && !isLoadingMore && !isLoading && hasMoreItems) {
                 //console.log("Reached end of list, loading more timesheets...");
                 loadMoreTimesheets();
             }
@@ -319,7 +334,6 @@ Page {
             }
         }
 
-        Component.onCompleted: fetch_timesheets_list()
     }
 
     DialerMenu {
@@ -358,9 +372,11 @@ Page {
 
     // Update default account when it changes in settings
     Component.onCompleted: {
-        // Initialize default account
-        defaultAccountId = accountPicker.selectedAccountId;
-        selectedAccountId = accountPicker.selectedAccountId;
+        // selectedAccountId is already bound to accountPicker.selectedAccountId;
+        // do NOT re-assign it imperatively — that would break the binding and
+        // cause the filter to lose sync when the user changes accounts.
+        currentFilter = "all";
+        fetch_timesheets_list();
     }
 
     // Loading indicator overlay

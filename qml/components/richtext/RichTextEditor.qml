@@ -71,6 +71,24 @@ Item {
     property bool _internalUpdate: false
 
     /**
+     * When true, suppress emitting the contentChanged signal.
+     * Starts as true so Squire's very first init events (fired via the URL-hash
+     * bridge during page load, before onLoadingChanged fires) cannot clobber
+     * Global.description_temporary_holder. Cleared in onLoadingChanged after
+     * the real content is confirmed by getHTML().
+     */
+    property bool _suppressContentChanged: true
+
+    Timer {
+        id: suppressTimer
+        interval: 600
+        repeat: false
+        onTriggered: {
+            editor._suppressContentChanged = false;
+        }
+    }
+
+    /**
      * Strip <script>...</script> tags from Squire's getHTML() output.
      * Squire returns the full body HTML including bridge/setup scripts;
      * we only want the actual user content.
@@ -205,6 +223,10 @@ Item {
         var cleanedDoc = sanitizeHtml(htmlText ? htmlText.trim() : "");
         
         if (_isLoaded) {
+            // Suppress contentChanged during setHTML — Squire fires intermediate
+            // empty-content events before delivering the real content.
+            _suppressContentChanged = true;
+            suppressTimer.restart();
             var jsCode = "window.editor.setHTML(" + JSON.stringify(cleanedDoc) + ");";
             wv.runJavaScript(jsCode);
         } else {
@@ -321,6 +343,10 @@ Item {
         onLoadingChanged: {
             if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                 _isLoaded = true;
+                // Suppress spurious empty contentChanged events that Squire
+                // fires during initialisation / setHTML processing.
+                _suppressContentChanged = true;
+                suppressTimer.restart();
                 console.log("[RichTextEditor] Loaded. text=", editor.text ? editor.text.substring(0, 100) : "(empty)", "_pendingText=", _pendingText ? _pendingText.substring(0, 100) : "(empty)");
                 
                 // Set pending text if any
@@ -338,7 +364,12 @@ Item {
                     wv.runJavaScript("document.body.contentEditable = false;");
                 }
                 
-                // Sync content after a short delay to ensure Squire has processed the HTML
+                // Sync content after a short delay to ensure Squire has processed the HTML.
+                // NOTE: Do NOT clear _suppressContentChanged here. The suppress timer (600ms)
+                // is the sole authority that clears suppression. Clearing it here races with
+                // any subsequent setText() calls triggered by onContentLoaded handlers (e.g.
+                // ReadMorePage.onContentLoaded sets editor.text which calls setText again),
+                // causing Squire's intermediate <div><br></div> events to slip through.
                 Qt.callLater(function() {
                     wv.runJavaScript("window.editor.getHTML();", function(result) {
                         // Strip script tags that Squire includes from its body HTML
@@ -458,10 +489,19 @@ Item {
                         // HTML including bridge/setup scripts
                         content = editor.stripScriptTags(content);
                         console.log("[RichTextEditor] contentChanged from Squire, length:", content.length);
+
+                        // Update internal text property always so editor.text stays
+                        // in sync, but only emit the public contentChanged signal
+                        // when we are NOT in a load/setText suppression window.
+                        // This prevents Squire's intermediate empty-content events
+                        // from overwriting Global.description_temporary_holder.
                         editor._internalUpdate = true;
                         editor.text = content;
-                        editor.contentChanged(content);
                         editor._internalUpdate = false;
+
+                        if (!editor._suppressContentChanged) {
+                            editor.contentChanged(content);
+                        }
                     }
                     break;
                 case 'pathChanged':

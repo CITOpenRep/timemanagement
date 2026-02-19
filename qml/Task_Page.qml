@@ -468,7 +468,14 @@ Page {
             // Update navigation tracking
             Global.setLastVisitedPage("Task_Page");
 
-            if (filterByProject) {} else {
+            if (filterByProject) {
+                // Refresh project-filtered task list with current filter/search
+                if (currentSearchQuery) {
+                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
+                } else {
+                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
+                }
+            } else {
                 if (currentSearchQuery) {
                     // Reapply search if there was one
                     tasklist.searchTasks(currentSearchQuery);

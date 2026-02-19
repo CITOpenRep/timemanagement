@@ -32,10 +32,10 @@ function fetchTimesheetsByStatus(status, accountId) {
 
 
             if (!status || status.toLowerCase() === "all") {
-                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                 params = [accountId];
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY last_modified DESC";
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                 params = [accountId, status];
             }
 
@@ -151,10 +151,10 @@ function fetchTimesheetsForAllAccounts(status) {
             var params = [];
 
             if (!status || status.toLowerCase() === "all") {
-                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY last_modified DESC";
+                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                 params = [];
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC";
+                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                 params = [status];
             }
 
@@ -280,10 +280,10 @@ function fetchTimesheetsByStatusPaginated(status, accountId, limit, offset) {
             var params = [];
 
             if (!status || status.toLowerCase() === "all") {
-                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                 params = [accountId, limit, offset];
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                query = "SELECT * FROM account_analytic_line_app WHERE account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                 params = [accountId, status, limit, offset];
             }
 
@@ -378,10 +378,10 @@ function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
             var params = [];
 
             if (!status || status.toLowerCase() === "all") {
-                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                query = "SELECT * FROM account_analytic_line_app WHERE status IS NULL OR status != 'deleted' ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                 params = [limit, offset];
             } else {
-                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                query = "SELECT * FROM account_analytic_line_app WHERE status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
                 params = [status, limit, offset];
             }
 
@@ -477,18 +477,18 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
             // Build query based on status and accountId
             if (!status || status.toLowerCase() === "all") {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, accountId];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY last_modified DESC";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId];
                 }
             } else {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY last_modified DESC";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, accountId, status];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY last_modified DESC";
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, status];
                 }
             }
@@ -585,6 +585,146 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
     } catch (e) {
         console.error("Error in getTimesheetsForTask:", e.message);
         DBCommon.logException("getTimesheetsForTask", e);
+    }
+
+    return timesheetList;
+}
+
+/**
+ * Paginated version of getTimesheetsForTask for infinite scroll.
+ *
+ * @param {number} taskOdooRecordId - The Odoo record ID of the task.
+ * @param {number} accountId - The account ID (optional, if provided will filter by account).
+ * @param {string} status - The status filter: 'all', 'active', 'draft', etc.
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Array<Object>} - A list of enriched timesheet entries for the task.
+ */
+function getTimesheetsForTaskPaginated(taskOdooRecordId, accountId, status, limit, offset) {
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var timesheetList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        db.transaction(function (tx) {
+            // Build map of odoo_record_id -> color_pallet
+            var projectColorMap = {};
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            var query = "";
+            var params = [];
+
+            // Build query based on status and accountId with LIMIT/OFFSET
+            if (!status || status.toLowerCase() === "all") {
+                if (accountId && accountId > 0) {
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
+                    params = [taskOdooRecordId, accountId, limit, offset];
+                } else {
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
+                    params = [taskOdooRecordId, limit, offset];
+                }
+            } else {
+                if (accountId && accountId > 0) {
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
+                    params = [taskOdooRecordId, accountId, status, limit, offset];
+                } else {
+                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC LIMIT ? OFFSET ?";
+                    params = [taskOdooRecordId, status, limit, offset];
+                }
+            }
+
+            var result = tx.executeSql(query, params);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+
+                var quadrantMap = {
+                    0: "Unknown",
+                    1: "Do",
+                    2: "Plan",
+                    3: "Delegate",
+                    4: "Delete"
+                };
+
+                // Resolve project name and parent name
+                var projectName = "Unknown Project";
+                var inheritedColor = 0;
+
+                if (row.project_id) {
+                    var rs_project = tx.executeSql(
+                        "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                        [row.project_id]
+                    );
+
+                    if (rs_project.rows.length > 0) {
+                        var project_row = rs_project.rows.item(0);
+                        if (project_row.parent_id && project_row.parent_id > 0) {
+                            var rs_parent = tx.executeSql(
+                                "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                                [project_row.parent_id]
+                            );
+                            if (rs_parent.rows.length > 0) {
+                                projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
+                            } else {
+                                projectName = project_row.name;
+                            }
+                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
+                        } else {
+                            projectName = project_row.name;
+                            inheritedColor = projectColorMap[row.project_id] || 0;
+                        }
+                    }
+                }
+
+                // Resolve task name
+                var taskName = "Unknown Task";
+                if (row.task_id) {
+                    var rs_task = tx.executeSql(
+                        "SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [row.task_id]
+                    );
+                    if (rs_task.rows.length > 0) {
+                        taskName = rs_task.rows.item(0).name;
+                    }
+                }
+
+                // Resolve instance and user names
+                var instanceName = "", userName = "";
+                if (row.account_id) {
+                    var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
+                    if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
+                }
+
+                if (row.user_id) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                    if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
+                }
+
+                timesheetList.push({
+                    id: row.id,
+                    instance: instanceName,
+                    name: row.name || '',
+                    spentHours: Utils.convertDecimalHoursToHHMM(row.unit_amount),
+                    project: projectName,
+                    quadrant: quadrantMap[row.quadrant_id] || "Unknown",
+                    date: row.record_date,
+                    status: row.status,
+                    task: taskName,
+                    user: userName,
+                    timer_type: row.timer_type || 'manual',
+                    color_pallet: parseInt(inheritedColor) || 0,
+                    has_draft: row.has_draft || 0
+                });
+            }
+        });
+    } catch (e) {
+        console.error("Error in getTimesheetsForTaskPaginated:", e.message);
+        DBCommon.logException("getTimesheetsForTaskPaginated", e);
     }
 
     return timesheetList;

@@ -123,6 +123,12 @@ Item {
     property var stageList: []
     property var openStagesList: []
 
+    // Pagination properties
+    property int pageSize: 30
+    property int currentOffset: 0
+    property bool hasMoreItems: true
+    property bool isLoadingMore: false
+
     // Search properties
     property string searchQuery: ""
     property bool showSearchBox: false
@@ -172,6 +178,11 @@ Item {
         currentParentId = -1;
         currentAccountId = accountPicker.selectedAccountId;
 
+        // Reset pagination
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
+
         // Reset to default "Open" filter
         stageFilter.enabled = true;
         stageFilter.odoo_record_id = -2;
@@ -207,19 +218,15 @@ Item {
         searchField.text = "";
         searchQuery = "";
         customSearch("");
-        // Reload the original list by refreshing the model
-        if (childrenMapReady) {
-            projectListView.model = getCurrentModel();
-        }
+        // Reload from DB without search filter
+        populateProjectChildrenMap();
     }
 
     function performSearch(query) {
         searchQuery = query;
         customSearch(query);
-        // Refresh the model with search filter applied
-        if (childrenMapReady) {
-            projectListView.model = getCurrentModel();
-        }
+        // Reload from DB with search filter applied at SQL level
+        populateProjectChildrenMap();
     }
 
     // Timer for deferred loading - gives UI time to render loading indicator
@@ -234,27 +241,77 @@ Item {
         isLoading = true;
         childrenMap = {};
         childrenMapReady = false;
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
         populateTimer.start();
+    }
+
+    function loadMoreProjects() {
+        if (isLoadingMore || !hasMoreItems) return;
+        isLoadingMore = true;
+        currentOffset += pageSize;
+        _doPaginatedProjectLoad();
+    }
+
+    // Helper to build the array of open stage IDs for SQL filtering
+    function _getOpenStageIds() {
+        var ids = [];
+        for (var i = 0; i < openStagesList.length; i++) {
+            ids.push(openStagesList[i].odoo_record_id);
+        }
+        return ids;
+    }
+
+    function _doPaginatedProjectLoad() {
+        // Determine which stage filter to pass to SQL
+        var sqlStageId = undefined; // undefined = no stage filter
+        if (stageFilter.enabled) {
+            sqlStageId = stageFilter.odoo_record_id; // -2 = open, >=0 = specific
+        }
+
+        var result = Project.getProjectsFilteredPaginated({
+            accountId: currentAccountId,
+            searchQuery: searchQuery || "",
+            stageId: sqlStageId,
+            openStageIds: _getOpenStageIds(),
+            limit: pageSize,
+            offset: currentOffset
+        });
+
+        var allProjects = result.projects;
+        hasMoreItems = result.hasMore;
+
+        if (allProjects.length === 0) {
+            isLoadingMore = false;
+            isLoading = false;
+            if (!childrenMapReady) childrenMapReady = true;
+            return;
+        }
+
+        _processProjectsIntoMap(allProjects, isLoadingMore);
+        isLoadingMore = false;
+        isLoading = false;
     }
 
     function _doPopulateProjectChildrenMap() {
         childrenMap = {};
         childrenMapReady = false;
 
-        var allProjects;
+        // Use paginated loading
+        _doPaginatedProjectLoad();
+    }
 
-        if (currentAccountId >= 0) {
-            allProjects = Project.getProjectsForAccount(currentAccountId);
-            console.log("Loading projects from default account", currentAccountId + ":", allProjects.length, "projects");
-        } else {
-            allProjects = Project.getAllProjects();
-            console.log("Loading projects from all accounts:", allProjects.length, "projects");
+    function _processProjectsIntoMap(allProjects, append) {
+        if (!append) {
+            childrenMap = {};
+            childrenMapReady = false;
         }
 
         if (allProjects.length === 0) {
-            childrenMapReady = true;
+            if (!append) childrenMapReady = true;
             isLoading = false;
             return;
         }
@@ -325,9 +382,13 @@ Item {
             });
         }
 
-        // Convert to QML ListModels with sorting
+        // Create or Update QML ListModels with sorting
         for (var key in tempMap) {
-            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
+            var model = childrenMap[key];
+            if (!model) {
+                model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
+                childrenMap[key] = model;
+            }
 
             // Sort the projects by name before adding to model
             tempMap[key].sort(function (a, b) {
@@ -337,12 +398,14 @@ Item {
             tempMap[key].forEach(function (entry) {
                 model.append(entry);
             });
-            childrenMap[key] = model;
         }
 
         childrenMapReady = true;
+        
+        // Force update of the ListView model binding
+        projectListView.model = getCurrentModel();
+        
         isLoading = false;
-        console.log("Project children map populated for account filter:", currentAccountId);
     }
 
     function getCurrentModel() {
@@ -364,11 +427,9 @@ Item {
                 return a.projectName.localeCompare(b.projectName);
             });
             
-            // Apply filters and add to model
+            // Data is already filtered at SQL level — just add all to model
             allFlatProjects.forEach(function(project) {
-                if (matchesStageFilter(project) && matchesSearchQuery(project)) {
-                    flatModel.append(project);
-                }
+                flatModel.append(project);
             });
             
             return flatModel;
@@ -721,6 +782,18 @@ Item {
             clip: true
             model: getCurrentModel()
 
+            footer: LoadMoreFooter {
+                isLoading: isLoadingMore
+                hasMore: hasMoreItems
+                onLoadMore: loadMoreProjects()
+            }
+
+            onAtYEndChanged: {
+                if (projectListView.atYEnd && !isLoadingMore && hasMoreItems) {
+                    loadMoreProjects();
+                }
+            }
+
             delegate: Item {
                 width: parent.width
                 height: units.gu(13)
@@ -847,8 +920,8 @@ Item {
                 stageFilter.name = selectedItem.label;
             }
 
-            // Refresh listView model
-            projectListView.model = getCurrentModel();
+            // Reload from DB with new stage filter at SQL level
+            populateProjectChildrenMap();
         }
 
         onFilterCleared: {
@@ -856,7 +929,8 @@ Item {
             stageFilter.enabled = true;
             stageFilter.odoo_record_id = -2;
             stageFilter.name = "Open";
-            projectListView.model = getCurrentModel();
+            // Reload from DB with restored default filter
+            populateProjectChildrenMap();
         }
     }
 

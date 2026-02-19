@@ -205,38 +205,63 @@ Page {
             var currentAccountId = selectedAccountId;
             var isPaginated = false;
 
-            // Use pagination for all standard scenarios (except project/task specific views)
-            var canPaginate = !filterByProject && !filterByTasks && 
-                              (!assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0);
+                // Avoid paginating project/task views when client-side date/search filters are active,
+                // otherwise matches outside the current page can be missed.
+                var hasClientSideScopedFilters = (filterByProject || filterByTasks)
+                    && ((currentFilter && currentFilter !== "all")
+                    || (currentSearchQuery && currentSearchQuery.trim() !== ""));
+
+                    // Done/search are expected to be globally accurate on first attempt.
+                    // Keep them on full-load path to avoid pagination edge cases.
+                    var hasActiveSearch = currentSearchQuery && currentSearchQuery.trim() !== "";
+                    var isDoneFilter = currentFilter === "done";
+
+                // Keep pagination only when assignee filtering is not active and scoped client-side filters are not active.
+                var canPaginate = (!hasClientSideScopedFilters)
+                        && (!hasActiveSearch)
+                        && (!isDoneFilter)
+                    && (!filterByAssignees || !assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0);
 
             if (canPaginate) {
                 isPaginated = true;
-                var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
                 
-                // Use the new paginated function that handles all filters with date filtering
-                var result = Activity.getFilteredActivitiesPaginated(
-                    currentFilter, 
-                    currentSearchQuery, 
-                    accountIdForFilter, 
-                    pageSize, 
-                    currentOffset
-                );
-                
-                allActivities = result.activities;
-                hasMoreItems = result.hasMore && allActivities.length >= pageSize;
-                
-                //console.log("Retrieved", allActivities.length, "paginated activities for filter:", currentFilter);
+                if (filterByProject) {
+                    // Paginated project-filtered activities
+                    var result = Activity.getActivitiesForProjectPaginated(
+                        projectOdooRecordId, projectAccountId, pageSize, currentOffset);
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
+                } else if (filterByTasks) {
+                    // Paginated task-filtered activities
+                    var result = Activity.getActivitiesForTaskPaginated(
+                        taskOdooRecordId, projectAccountId, pageSize, currentOffset);
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
+                } else {
+                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                    
+                    // Use the paginated function that handles all filters with date filtering
+                    var result = Activity.getFilteredActivitiesPaginated(
+                        currentFilter, 
+                        currentSearchQuery, 
+                        accountIdForFilter, 
+                        pageSize, 
+                        currentOffset
+                    );
+                    
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
+                }
                 
             } else {
-                // Legacy / Full Load path for project/task specific views
+                // Full-load path when assignee/scoped filters, done filter, or active search are used
                 hasMoreItems = false; 
-                
+
                 if (filterByProject) {
                     allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
                 } else if (filterByTasks) {
                     allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
                 } else {
-                    // This path is for assignee filtering
                     var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
                     allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
                 }
@@ -555,18 +580,17 @@ Page {
         filter7: "done"
 
         onFilterSelected: {
-            activity.currentFilter = filterKey;
+            var nextFilter = (filterKey && filterKey !== "") ? filterKey : (activity.currentFilter || "all");
+            if (activity.currentFilter === nextFilter) {
+                return;
+            }
 
-            // Restore assignee filter state from global storage
-            restoreAssigneeFilterState();
+            activity.currentFilter = nextFilter;
 
             get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
-
-            // Restore assignee filter state from global storage
-            restoreAssigneeFilterState();
 
             get_activity_list();
         }

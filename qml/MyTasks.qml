@@ -81,11 +81,9 @@ Page {
                 text: showFoldedTasks ? "Hide Closed" : "Show Closed"
                 onTriggered: {
                     showFoldedTasks = !showFoldedTasks;
-                    // Refresh the task list with the new filter
+                    // Refresh the task list with the new filter (paginated)
                     if (currentUserOdooId > 0) {
-                        var effectiveAccountId = getEffectiveAccountId();
-                        var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
-                        myTasksList.updateDisplayedTasks(stageTasks);
+                        startPaginatedLoad();
                     }
                 }
             }
@@ -94,8 +92,7 @@ Page {
 
     // Properties for filter and search state
     property var personalStages: []
-    property var currentPersonalStageId: undefined
-    property var allStageTasks: [] // Cache for pagination  // undefined = not initialized, null = "All", 0 = "No Stage", >0 = specific stage
+    property var currentPersonalStageId: undefined  // undefined = not initialized, null = "All", 0 = "No Stage", >0 = specific stage
     property string currentSearchQuery: ""
     property bool showFoldedTasks: false  // Toggle for showing closed/folded tasks
 
@@ -128,29 +125,41 @@ Page {
         loadingTimer.start();
     }
 
-    function startPagination(tasks) {
-        allStageTasks = tasks;
+    // Paginated loading function: fetches a page of tasks from DB
+    function loadPersonalStagesDelegate(limit, offset) {
+        var effectiveAccountId = getEffectiveAccountId();
+        if (currentUserOdooId <= 0) {
+            myTasksList.hasMoreItems = false;
+            myTasksList.isLoadingMore = false;
+            myTasksList.isLoading = false;
+            return;
+        }
+
+        var result = Task.getTasksByPersonalStagePaginated(
+            currentPersonalStageId,
+            [currentUserOdooId],
+            effectiveAccountId,
+            showFoldedTasks,
+            currentSearchQuery && currentSearchQuery.trim() !== "" ? currentSearchQuery : null,
+            limit,
+            offset
+        );
+
+        var tasks = result.tasks;
+        myTasksList.hasMoreItems = result.hasMore;
+
+        var isAppend = (offset > 0);
+        myTasksList.updateDisplayedTasks(tasks, isAppend);
+        myTasksList.isLoadingMore = false;
+        myTasksList.isLoading = false;
+    }
+
+    // Convenience function to reset pagination and load the first page
+    function startPaginatedLoad() {
         myTasksList.currentOffset = 0;
-        myTasksList.hasMoreItems = (tasks.length > 0);
+        myTasksList.hasMoreItems = true;
         myTasksList.isLoadingMore = false;
         loadPersonalStagesDelegate(myTasksList.pageSize, 0);
-    }
-    
-    function loadPersonalStagesDelegate(limit, offset) {
-         if (offset >= allStageTasks.length) {
-             myTasksList.hasMoreItems = false;
-             myTasksList.isLoadingMore = false;
-             return;
-         }
-         var slice = allStageTasks.slice(offset, offset + limit);
-         if (offset + limit >= allStageTasks.length) {
-             myTasksList.hasMoreItems = false;
-         } else {
-             myTasksList.hasMoreItems = true;
-         }
-         var isAppend = (offset > 0);
-         myTasksList.updateDisplayedTasks(slice, isAppend);
-         myTasksList.isLoadingMore = false;
     }
 
     // Function to get the effective account ID (handles -1 for "All Accounts")
@@ -264,11 +273,9 @@ Page {
         // Reload personal stages for the new account
         loadPersonalStages();
 
-        // Refresh the task list with the first personal stage
+        // Refresh the task list with the first personal stage (paginated)
         if (currentUserOdooId > 0 && personalStages.length > 0 && currentPersonalStageId !== undefined) {
-            var effectiveAccountId = getEffectiveAccountId();
-            var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
-            startPagination(stageTasks);
+            startPaginatedLoad();
         }
     }
 
@@ -286,7 +293,8 @@ Page {
         currentFilter: ""
 
         onFilterSelected: {
-            //console.log("onFilterSelected triggered: filterKey =", filterKey);
+            // Update the ListHeader's currentFilter so the UI highlight moves
+            myTaskListHeader.currentFilter = filterKey;
 
             // Parse filterKey to get personal stage ID
             // filterKey is string: "null" for All, "0" for No Stage, or actual stage ID
@@ -297,19 +305,15 @@ Page {
                 stageId = parseInt(filterKey);
             }
 
-            //console.log("onFilterSelected: stageId =", stageId);
             myTasksPage.currentPersonalStageId = stageId;
+            myTasksPage.currentSearchQuery = "";
 
             // Update current user before applying filter
             updateCurrentUser();
 
             if (currentUserOdooId > 0) {
-                // Get tasks by personal stage, respecting folded task filter
-                var effectiveAccountId = getEffectiveAccountId();
                 loadTasksWithIndicator(function() {
-                    var stageTasks = Task.getTasksByPersonalStage(stageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
-                    //console.log("onFilterSelected: stageTasks.length =", stageTasks.length);        // Update the task list directly
-                    startPagination(stageTasks);
+                    startPaginatedLoad();
                 });
             }
         }
@@ -321,18 +325,9 @@ Page {
             updateCurrentUser();
 
             if (currentUserOdooId > 0) {
-                // For search, show all tasks (personal stage = null) that match search, respecting folded task filter
-                var effectiveAccountId = getEffectiveAccountId();
+                // Search uses the paginated function with search query pushed to SQL
                 loadTasksWithIndicator(function() {
-                    var stageTasks = Task.getTasksByPersonalStage(null, [currentUserOdooId], effectiveAccountId, showFoldedTasks);        // Apply search filter
-                    if (query && query.trim() !== "") {
-                        var searchLower = query.toLowerCase();
-                        stageTasks = stageTasks.filter(function (task) {
-                            return (task.name && task.name.toLowerCase().indexOf(searchLower) >= 0) || (task.description && task.description.toLowerCase().indexOf(searchLower) >= 0);
-                        });
-                    }
-
-                    myTasksList.updateDisplayedTasks(stageTasks);
+                    startPaginatedLoad();
                 });
             }
         }
@@ -515,12 +510,9 @@ Page {
             updateCurrentUser();
             loadPersonalStages();
 
-            // Apply current personal stage filter
+            // Apply current personal stage filter (paginated)
             if (currentUserOdooId > 0) {
-                var effectiveAccountId = getEffectiveAccountId();
-                var effectiveAccountId = getEffectiveAccountId();
-                var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
-                startPagination(stageTasks);
+                startPaginatedLoad();
             }
         }
     }
@@ -552,12 +544,8 @@ Page {
             // Apply initial personal stage filter (first stage in the list)
             // Note: "All" is now at the end, so first stage is a specific personal stage
             if (personalStages.length > 0 && currentPersonalStageId !== undefined) {
-                //console.log("MyTasks initial load: currentPersonalStageId =", currentPersonalStageId);
-                var effectiveAccountId = getEffectiveAccountId();
                 loadTasksWithIndicator(function() {
-                    var stageTasks = Task.getTasksByPersonalStage(currentPersonalStageId, [currentUserOdooId], effectiveAccountId, showFoldedTasks);
-                    //console.log("MyTasks initial load: stageTasks.length =", stageTasks.length);
-                    startPagination(stageTasks);
+                    startPaginatedLoad();
                 });
             }
         }
