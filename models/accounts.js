@@ -293,6 +293,75 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
  
     return result;
 }
+
+/**
+ * Updates an existing user account in the local SQLite database.
+ *
+ * @param {number} accountId - The ID of the account to update.
+ * @param {string} name - The new name of the user.
+ * @param {string} link - The new Odoo server link.
+ * @param {string} database - The new Odoo database name.
+ * @param {string} username - The new username for the account.
+ * @param {number} selectedConnectWithId - The connection type identifier.
+ * @param {string} apikey - The new API key if the connection type requires it.
+ * @returns {object} - Returns result object with success, message, and duplicateType.
+ */
+function updateAccount(accountId, name, link, database, username, selectedConnectWithId, apikey) {
+    let result = {
+        success: false,
+        message: "",
+        duplicateType: null
+    };
+ 
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+ 
+        db.transaction(function (tx) {
+            // Check for duplicate account name (excluding current account)
+            const nameCheckResult = tx.executeSql(
+                'SELECT COUNT(*) AS count FROM users WHERE LOWER(name) = LOWER(?) AND id != ?',
+                [name, accountId]
+            );
+ 
+            if (nameCheckResult.rows.item(0).count > 0) {
+                DBCommon.log("Duplicate account name found (case-insensitive): " + name);
+                result.duplicateType = "name";
+                result.message = "An account with this name already exists.";
+                return;
+            }
+ 
+            // Check for duplicate connection (excluding current account)
+            const connectionCheckResult = tx.executeSql(
+                'SELECT COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ? COLLATE BINARY AND id != ?',
+                [link, database, username, accountId]
+            );
+ 
+            if (connectionCheckResult.rows.item(0).count > 0) {
+                DBCommon.log("Duplicate connection found for: " + link + "/" + database + "/" + username);
+                result.duplicateType = "connection";
+                result.message = "An account with this server connection already exists.";
+                return;
+            }
+ 
+            // Update the account
+            const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
+            tx.executeSql(
+                'UPDATE users SET name = ?, link = ?, database = ?, username = ?, connectwith_id = ?, api_key = ? WHERE id = ?',
+                [name, link, database, username, selectedConnectWithId, apiKeyToStore, accountId]
+            );
+            
+            DBCommon.log("User account updated successfully: " + name);
+            result.success = true;
+            result.message = "Account updated successfully.";
+        });
+ 
+    } catch (e) {
+        DBCommon.logException("updateAccount", e);
+        result.message = "Error updating account: " + e.message;
+    }
+ 
+    return result;
+}
  
 /**
  * Deletes a user account and all related records from associated tables in the local SQLite database.

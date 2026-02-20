@@ -26,9 +26,15 @@ import json
 import sqlite3
 import time
 import threading
+import base64
+import os
+from pathlib import Path
 from logger import setup_logger
 
 log = setup_logger()
+
+# Avatar cache directory
+AVATAR_CACHE_DIR = Path.home() / ".cache" / "ubtms" / "avatars"
 
 # Optional: Global lock if multithreaded write access is expected
 db_lock = threading.Lock()
@@ -266,6 +272,114 @@ def add_notification(db_path, account_id, notif_type, message, payload):
     )
 
 
+def get_user_info_by_odoo_id(db_path, account_id, odoo_user_id):
+    """
+    Look up user information (name, avatar) by their Odoo user ID.
+
+    Args:
+        db_path (str): Path to the SQLite database file
+        account_id (int): The account ID
+        odoo_user_id (int or str): The Odoo user ID (odoo_record_id in res_users_app)
+
+    Returns:
+        dict: User info with keys 'name', 'avatar_128', 'avatar_path', 'odoo_record_id', or None if not found
+              avatar_path is the file path to the cached avatar image (for system notifications)
+    """
+    if not odoo_user_id:
+        return None
+    
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT name, avatar_128, odoo_record_id, login, job_title 
+            FROM res_users_app 
+            WHERE account_id = ? AND odoo_record_id = ?
+        """, (account_id, int(odoo_user_id)))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            avatar_path = None
+            avatar_128 = row['avatar_128']
+            
+            # If avatar exists, save to cache and get file path
+            if avatar_128:
+                avatar_path = save_avatar_to_cache(account_id, row['odoo_record_id'], avatar_128)
+            
+            return {
+                'name': row['name'],
+                'avatar_128': avatar_128,
+                'avatar_path': avatar_path,
+                'odoo_record_id': row['odoo_record_id'],
+                'login': row['login'],
+                'job_title': row['job_title']
+            }
+        return None
+    except Exception as e:
+        log.warning(f"[COMMON] Failed to get user info for odoo_id={odoo_user_id}: {e}")
+        return None
+
+
+def save_avatar_to_cache(account_id, user_id, avatar_base64):
+    """
+    Save a base64-encoded avatar image to the cache directory.
+    
+    Args:
+        account_id (int): The account ID
+        user_id (int): The user's Odoo record ID
+        avatar_base64 (str): Base64-encoded image data
+        
+    Returns:
+        str: File path to the saved avatar, or None on error
+    """
+    if not avatar_base64:
+        return None
+    
+    try:
+        # Ensure cache directory exists
+        AVATAR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        
+        # Create unique filename based on account and user
+        filename = f"avatar_{account_id}_{user_id}.png"
+        filepath = AVATAR_CACHE_DIR / filename
+        
+        # Decode and save the image
+        image_data = base64.b64decode(avatar_base64)
+        with open(filepath, 'wb') as f:
+            f.write(image_data)
+        
+        return str(filepath)
+    except Exception as e:
+        log.warning(f"[COMMON] Failed to save avatar to cache: {e}")
+        return None
+
+
+def get_cached_avatar_path(account_id, user_id):
+    """
+    Get the path to a cached avatar if it exists.
+    
+    Args:
+        account_id (int): The account ID
+        user_id (int): The user's Odoo record ID
+        
+    Returns:
+        str: File path to the cached avatar, or None if not cached
+    """
+    try:
+        filename = f"avatar_{account_id}_{user_id}.png"
+        filepath = AVATAR_CACHE_DIR / filename
+        
+        if filepath.exists():
+            return str(filepath)
+        return None
+    except Exception as e:
+        return None
+
+
 # =============================================================================
 # Assignment Tracking - For detecting assignment changes vs general updates
 # =============================================================================
@@ -292,7 +406,8 @@ def get_current_assignments_snapshot(db_path, account_id, user_id):
         'tasks': set(),
         'activities': set(),
         'projects': set(),
-        'timesheets': set()
+        'timesheets': set(),
+        'project_updates': set()
     }
     
     if not user_id:
@@ -343,10 +458,18 @@ def get_current_assignments_snapshot(db_path, account_id, user_id):
         """, (account_id, user_id, str(user_id)))
         snapshot['timesheets'] = {row[0] for row in cursor.fetchall() if row[0]}
         
+        # Project Updates: all updates for projects in this account
+        cursor.execute("""
+            SELECT odoo_record_id FROM project_update_app 
+            WHERE account_id = ? 
+            AND odoo_record_id IS NOT NULL
+        """, (account_id,))
+        snapshot['project_updates'] = {row[0] for row in cursor.fetchall() if row[0]}
+        
         conn.close()
         log.info(f"[COMMON] Assignment snapshot (by odoo_record_id): tasks={len(snapshot['tasks'])}, "
                  f"activities={len(snapshot['activities'])}, projects={len(snapshot['projects'])}, "
-                 f"timesheets={len(snapshot['timesheets'])}")
+                 f"timesheets={len(snapshot['timesheets'])}, project_updates={len(snapshot['project_updates'])}")
         
     except Exception as e:
         log.error(f"[COMMON] Failed to get assignment snapshot: {e}")
@@ -364,6 +487,8 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
     IMPORTANT: Compares by odoo_record_id (not local id) since INSERT OR REPLACE
     changes local id on every sync, but odoo_record_id is stable.
     
+    Also detects new project updates for projects in the account.
+    
     Args:
         db_path (str): Path to the SQLite database file
         account_id (int): Account ID
@@ -377,7 +502,8 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         'new_tasks': [],
         'new_activities': [],
         'new_projects': [],
-        'new_timesheets': []
+        'new_timesheets': [],
+        'new_project_updates': []
     }
     
     if not user_id:
@@ -390,7 +516,7 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         
         # Get current tasks assigned to user - compare by odoo_record_id
         cursor.execute("""
-            SELECT id, name, project_id, odoo_record_id FROM project_task_app 
+            SELECT id, name, project_id, odoo_record_id, create_uid FROM project_task_app 
             WHERE account_id = ? 
             AND odoo_record_id IS NOT NULL
             AND (
@@ -407,7 +533,7 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         
         # Get current activities assigned to user
         cursor.execute("""
-            SELECT id, summary, due_date, odoo_record_id FROM mail_activity_app 
+            SELECT id, summary, due_date, odoo_record_id, create_uid FROM mail_activity_app 
             WHERE account_id = ? 
             AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ? OR CAST(user_id AS TEXT) = ?)
@@ -420,7 +546,7 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
         
         # Get current projects (managed or favorited)
         cursor.execute("""
-            SELECT id, name, odoo_record_id FROM project_project_app 
+            SELECT id, name, odoo_record_id, create_uid FROM project_project_app 
             WHERE account_id = ? 
             AND odoo_record_id IS NOT NULL
             AND (user_id = ? OR user_id = ? OR favorites = 1)
@@ -444,13 +570,383 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
             if odoo_id and odoo_id not in pre_sync_snapshot['timesheets']:
                 result['new_timesheets'].append(dict(timesheet))
         
+        # Get new project updates (by anyone, filtering by creator is done in daemon)
+        cursor.execute("""
+            SELECT pu.id, pu.name, pu.odoo_record_id, pu.create_uid, pu.project_id,
+                   pp.name as project_name
+            FROM project_update_app pu
+            LEFT JOIN project_project_app pp ON pu.project_id = pp.odoo_record_id AND pp.account_id = ?
+            WHERE pu.account_id = ? 
+            AND pu.odoo_record_id IS NOT NULL
+        """, (account_id, account_id))
+        
+        for update in cursor.fetchall():
+            odoo_id = update['odoo_record_id']
+            if odoo_id and odoo_id not in pre_sync_snapshot.get('project_updates', set()):
+                result['new_project_updates'].append(dict(update))
+        
         conn.close()
         
         log.info(f"[COMMON] New assignments detected (by odoo_record_id): tasks={len(result['new_tasks'])}, "
                  f"activities={len(result['new_activities'])}, projects={len(result['new_projects'])}, "
-                 f"timesheets={len(result['new_timesheets'])}")
+                 f"timesheets={len(result['new_timesheets'])}, project_updates={len(result['new_project_updates'])}")
         
     except Exception as e:
         log.error(f"[COMMON] Failed to detect new assignments: {e}")
     
     return result
+
+
+# =============================================================================
+# TIMEZONE AND NOTIFICATION SCHEDULE UTILITIES
+# =============================================================================
+
+def get_available_timezones():
+    """
+    Get a list of common timezones for user selection.
+    
+    Returns:
+        list: List of timezone strings (e.g., "America/New_York", "Europe/London")
+    """
+    # Common timezones organized by region
+    common_timezones = [
+        # UTC
+        "UTC",
+        # Americas
+        "America/New_York",
+        "America/Chicago",
+        "America/Denver",
+        "America/Los_Angeles",
+        "America/Toronto",
+        "America/Vancouver",
+        "America/Mexico_City",
+        "America/Sao_Paulo",
+        "America/Buenos_Aires",
+        # Europe
+        "Europe/London",
+        "Europe/Paris",
+        "Europe/Berlin",
+        "Europe/Madrid",
+        "Europe/Rome",
+        "Europe/Amsterdam",
+        "Europe/Brussels",
+        "Europe/Vienna",
+        "Europe/Warsaw",
+        "Europe/Moscow",
+        # Asia
+        "Asia/Dubai",
+        "Asia/Kolkata",
+        "Asia/Mumbai",
+        "Asia/Bangkok",
+        "Asia/Singapore",
+        "Asia/Hong_Kong",
+        "Asia/Shanghai",
+        "Asia/Tokyo",
+        "Asia/Seoul",
+        "Asia/Jakarta",
+        # Oceania
+        "Australia/Sydney",
+        "Australia/Melbourne",
+        "Australia/Perth",
+        "Pacific/Auckland",
+        # Africa
+        "Africa/Cairo",
+        "Africa/Johannesburg",
+        "Africa/Lagos",
+        "Africa/Nairobi",
+    ]
+    return common_timezones
+
+
+def get_system_timezone():
+    """
+    Get the system's current timezone.
+    
+    Returns:
+        str: Timezone name (e.g., "America/New_York") or "UTC" if detection fails
+    """
+    import os
+    import subprocess
+    
+    try:
+        # Primary method: Use timedatectl (most reliable on Ubuntu Touch/Linux)
+        # This correctly detects the timezone even when /etc/timezone is wrong
+        try:
+            result = subprocess.run(
+                ['timedatectl', 'show', '--value', '-p', 'Timezone'],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                tz = result.stdout.strip()
+                if tz and tz != "n/a":
+                    log.debug(f"[COMMON] Timezone from timedatectl: {tz}")
+                    return tz
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass  # timedatectl not available, try other methods
+        
+        # Secondary: Try to read from /etc/localtime symlink
+        if os.path.islink('/etc/localtime'):
+            link_target = os.readlink('/etc/localtime')
+            # Extract timezone from path like /usr/share/zoneinfo/America/New_York
+            if 'zoneinfo' in link_target:
+                parts = link_target.split('zoneinfo/')
+                if len(parts) > 1:
+                    return parts[1]
+        
+        # Tertiary: Try to read from /etc/timezone (may be outdated on Ubuntu Touch)
+        if os.path.exists('/etc/timezone'):
+            with open('/etc/timezone', 'r') as f:
+                tz = f.read().strip()
+                # Skip if it's just "Etc/UTC" as this is often a default/wrong value
+                if tz and tz not in ("Etc/UTC", "UTC"):
+                    return tz
+        
+        # Fallback: try using Python's time module
+        import time
+        tz_name = time.tzname[0]
+        if tz_name:
+            return tz_name
+            
+    except Exception as e:
+        log.warning(f"[COMMON] Failed to detect system timezone: {e}")
+    
+    return "UTC"
+
+
+def get_current_time_in_timezone(timezone_str):
+    """
+    Get the current time in a specific timezone.
+    
+    Args:
+        timezone_str: Timezone string (e.g., "America/New_York", "Europe/London")
+        
+    Returns:
+        datetime: Current time in the specified timezone, or UTC if timezone is invalid
+    """
+    from datetime import timezone as tz
+    
+    try:
+        # Try using zoneinfo (Python 3.9+)
+        try:
+            from zoneinfo import ZoneInfo
+            now = datetime.now(ZoneInfo(timezone_str))
+            return now
+        except ImportError:
+            pass
+        
+        # Fallback: try using pytz if available
+        try:
+            import pytz
+            tz_obj = pytz.timezone(timezone_str)
+            now = datetime.now(tz_obj)
+            return now
+        except ImportError:
+            pass
+        
+        # Last fallback: use UTC
+        log.warning(f"[COMMON] No timezone library available, using UTC")
+        return datetime.now(tz.utc)
+        
+    except Exception as e:
+        log.error(f"[COMMON] Failed to get time in timezone {timezone_str}: {e}")
+        return datetime.now(tz.utc)
+
+
+def parse_time_string(time_str):
+    """
+    Parse a time string in HH:MM format to hours and minutes.
+    
+    Args:
+        time_str: Time string in "HH:MM" format
+        
+    Returns:
+        tuple: (hour, minute) as integers, or (0, 0) if parsing fails
+    """
+    try:
+        parts = time_str.strip().split(':')
+        if len(parts) >= 2:
+            hour = int(parts[0])
+            minute = int(parts[1])
+            # Validate ranges
+            if 0 <= hour <= 23 and 0 <= minute <= 59:
+                return (hour, minute)
+    except Exception as e:
+        log.warning(f"[COMMON] Failed to parse time string '{time_str}': {e}")
+    
+    return (0, 0)
+
+
+def is_within_active_hours(timezone_str, active_start, active_end):
+    """
+    Check if the current time is within the user's active notification hours.
+    
+    This function supports schedules that wrap around midnight.
+    For example, active_start="22:00" and active_end="06:00" means 
+    notifications are allowed from 10 PM to 6 AM.
+    
+    Args:
+        timezone_str: User's timezone (e.g., "America/New_York") or empty for system default
+        active_start: Start time of active hours in "HH:MM" format
+        active_end: End time of active hours in "HH:MM" format
+        
+    Returns:
+        bool: True if current time is within active hours, False otherwise
+    """
+    try:
+        # Get effective timezone
+        effective_tz = timezone_str if timezone_str else get_system_timezone()
+        
+        # Get current time in user's timezone
+        current_time = get_current_time_in_timezone(effective_tz)
+        current_hour = current_time.hour
+        current_minute = current_time.minute
+        
+        # Parse start and end times
+        start_hour, start_minute = parse_time_string(active_start)
+        end_hour, end_minute = parse_time_string(active_end)
+        
+        # Convert to minutes since midnight for easier comparison
+        current_mins = current_hour * 60 + current_minute
+        start_mins = start_hour * 60 + start_minute
+        end_mins = end_hour * 60 + end_minute
+        
+        # Handle normal case (start < end) and overnight case (start > end)
+        if start_mins <= end_mins:
+            # Normal case: e.g., 09:00 to 18:00
+            is_active = start_mins <= current_mins <= end_mins
+        else:
+            # Overnight case: e.g., 22:00 to 06:00
+            # Active if current time is after start OR before end
+            is_active = current_mins >= start_mins or current_mins <= end_mins
+        
+        log.debug(f"[COMMON] Active hours check: tz={effective_tz}, current={current_hour:02d}:{current_minute:02d}, "
+                  f"range={active_start}-{active_end}, is_active={is_active}")
+        
+        return is_active
+        
+    except Exception as e:
+        log.error(f"[COMMON] Failed to check active hours: {e}")
+        # On error, default to allowing notifications
+        return True
+
+
+def get_notification_schedule_settings(db_path):
+    """
+    Get all notification schedule settings from the database.
+    
+    Args:
+        db_path: Path to the SQLite database
+        
+    Returns:
+        dict: Settings with keys:
+            - notifications_enabled (bool): Master notification toggle
+            - schedule_enabled (bool): Whether notification scheduling is enabled
+            - timezone (str): User's preferred timezone
+            - active_start (str): Start of active hours in HH:MM format
+            - active_end (str): End of active hours in HH:MM format
+            - working_days (list[int]): List of working day numbers (0=Sun,1=Mon,...,6=Sat)
+    """
+    from config import get_setting, DEFAULT_SETTINGS
+    
+    try:
+        notifications_enabled = get_setting(db_path, "notifications_enabled",
+                                            DEFAULT_SETTINGS.get("notifications_enabled", "true"))
+        schedule_enabled = get_setting(db_path, "notification_schedule_enabled", 
+                                        DEFAULT_SETTINGS.get("notification_schedule_enabled", "false"))
+        timezone = get_setting(db_path, "notification_timezone", 
+                               DEFAULT_SETTINGS.get("notification_timezone", ""))
+        active_start = get_setting(db_path, "notification_active_start", 
+                                   DEFAULT_SETTINGS.get("notification_active_start", "09:00"))
+        active_end = get_setting(db_path, "notification_active_end", 
+                                 DEFAULT_SETTINGS.get("notification_active_end", "18:00"))
+        working_days_str = get_setting(db_path, "notification_working_days",
+                                       DEFAULT_SETTINGS.get("notification_working_days", "1,2,3,4,5"))
+        
+        # Parse working days CSV string to list of ints
+        try:
+            working_days = [int(d.strip()) for d in working_days_str.split(",") if d.strip()]
+        except (ValueError, AttributeError):
+            working_days = [1, 2, 3, 4, 5]  # Default Mon-Fri
+        
+        return {
+            "notifications_enabled": notifications_enabled.lower() == "true",
+            "schedule_enabled": schedule_enabled.lower() == "true",
+            "timezone": timezone,
+            "active_start": active_start,
+            "active_end": active_end,
+            "working_days": working_days
+        }
+    except Exception as e:
+        log.error(f"[COMMON] Failed to get notification schedule settings: {e}")
+        return {
+            "notifications_enabled": True,
+            "schedule_enabled": False,
+            "timezone": "",
+            "active_start": "09:00",
+            "active_end": "18:00",
+            "working_days": [1, 2, 3, 4, 5]
+        }
+
+
+def should_send_notification(db_path):
+    """
+    Determine if a notification should be sent based on current schedule settings.
+    
+    This is the main function that the daemon should call before sending any notification.
+    It checks:
+    1. Whether notifications are enabled (master toggle)
+    2. If scheduling is enabled, whether the current day is a working day
+    3. If scheduling is enabled, whether the current time falls within active hours
+    
+    Args:
+        db_path: Path to the SQLite database
+        
+    Returns:
+        tuple: (should_send: bool, reason: str)
+            - should_send: True if notification should be sent
+            - reason: Human-readable explanation for the decision
+    """
+    try:
+        settings = get_notification_schedule_settings(db_path)
+        
+        # Check master notification toggle first
+        if not settings["notifications_enabled"]:
+            return (False, "Notifications are disabled by user")
+        
+        # If scheduling is disabled, always send notifications
+        if not settings["schedule_enabled"]:
+            return (True, "Notification scheduling is disabled")
+        
+        # Get effective timezone and current time for day-of-week check
+        effective_tz = settings["timezone"] if settings["timezone"] else get_system_timezone()
+        current_time = get_current_time_in_timezone(effective_tz)
+        
+        # Check if today is a working day
+        # Python weekday(): Mon=0..Sun=6 -> We store as 0=Sun,1=Mon,...,6=Sat
+        # Convert Python weekday to our format: (py_weekday + 1) % 7 maps Mon=1,Tue=2,...,Sun=0
+        py_weekday = current_time.weekday()  # Mon=0, Tue=1, ..., Sun=6
+        our_day = (py_weekday + 1) % 7       # Sun=0, Mon=1, ..., Sat=6
+        
+        if our_day not in settings["working_days"]:
+            day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+            working_day_names = [day_names[d] for d in sorted(settings["working_days"]) if 0 <= d <= 6]
+            return (False, f"Today is {day_names[our_day]}, not a working day. "
+                          f"Working days: {', '.join(working_day_names)}")
+        
+        # Check if current time is within active hours
+        is_active = is_within_active_hours(
+            settings["timezone"],
+            settings["active_start"],
+            settings["active_end"]
+        )
+        
+        if is_active:
+            return (True, f"Current time is within active hours ({settings['active_start']}-{settings['active_end']})")
+        else:
+            return (False, f"Outside active hours. Current time: {current_time.strftime('%H:%M')} ({effective_tz}), "
+                          f"Active: {settings['active_start']}-{settings['active_end']}")
+        
+    except Exception as e:
+        log.error(f"[COMMON] Error checking notification schedule: {e}")
+        # On error, default to sending notifications
+        return (True, f"Error checking schedule: {e}")

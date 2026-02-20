@@ -44,14 +44,23 @@ Page {
     // SEPARATED CONCERNS:
     // 1. selectedAccountId - ONLY for filtering/viewing data (from account selector)
     // 2. defaultAccountId - ONLY for creating new records (from default account setting)
-    property string selectedAccountId: accountPicker.selectedAccountId // Start with "All accounts" for filtering
-    property string defaultAccountId: accountPicker.selectedAccountId // For creating records
+    property int selectedAccountId: accountPicker.selectedAccountId // Stays bound to accountPicker
+    property int defaultAccountId: Account.getDefaultAccountId() // For creating records
 
     // Properties for filtering by task
     property bool filterByTask: false
     property int taskOdooRecordId: -1
     property int taskAccountId: -1
     property string taskName: ""
+
+    // Loading state property
+    property bool isLoading: false
+
+    // Pagination properties
+    property int pageSize: 30
+    property int currentOffset: 0
+    property bool hasMoreItems: true
+    property bool isLoadingMore: false
 
     header: PageHeader {
         id: timesheetsheader
@@ -79,12 +88,7 @@ Page {
                     }
                 }
             }
-            // Action {
-            //     iconName: "account"
-            //     onTriggered: {
-            //         accountFilterVisible = !accountFilterVisible
-            //     }
-            // }
+         
 
 
         ]
@@ -106,6 +110,15 @@ Page {
         }
     }
 
+    // Keep selectedAccountId in sync when user changes account in picker
+    Connections {
+        target: accountPicker
+        onAccepted: function (id, name) {
+            selectedAccountId = id;
+            fetch_timesheets_list();
+        }
+    }
+
     // Keep account-data-refresh handler but accept permissive signal signature
     Connections {
         target: mainView
@@ -114,7 +127,8 @@ Page {
             if (typeof accountId === "undefined" || accountId === null) {
                 fetch_timesheets_list();
             } else {
-                if (selectedAccountId === accountId || selectedAccountId === "-1") {
+                // selectedAccountId is int: -1 means "All Accounts"
+                if (selectedAccountId === -1 || selectedAccountId === accountId) {
                     fetch_timesheets_list();
                 }
             }
@@ -165,35 +179,59 @@ Page {
         id: timesheetModel
     }
 
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: loadingTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doLoadTimesheets()
+    }
+
     function fetch_timesheets_list() {
-        // Use selectedAccountId for filtering (from account selector)
-        var filterAccountId = selectedAccountId;
-        console.log("Filtering timesheets for account:", filterAccountId, "filter:", currentFilter);
-        console.log("Default account for creation:", defaultAccountId);
+        isLoading = true;
+        currentOffset = 0;  // Reset offset for fresh load
+        hasMoreItems = true; // Reset hasMore flag
+        timesheetModel.clear();
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        loadingTimer.start();
+    }
+
+    function _doLoadTimesheets() {
+        // Always read the current account filter directly from accountPicker
+        // to ensure we respect the latest selection (selectedAccountId binding
+        // can break if imperatively assigned elsewhere).
+        var rawAccountId = selectedAccountId;
+        var filterAccountId = String(rawAccountId);
+        if (currentFilter === undefined || currentFilter === null || String(currentFilter) === "") {
+            currentFilter = "all";
+        }
+        //console.log("Filtering timesheets for account:", filterAccountId, "filter:", currentFilter);
+        //console.log("Default account for creation:", defaultAccountId);
 
         var timesheets_list = [];
 
-        // Check if we're filtering by task
+        // Check if we're filtering by task - now uses paginated version
         if (filterByTask && taskOdooRecordId > 0) {
-            console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId, "status:", currentFilter);
-            timesheets_list = Model.getTimesheetsForTask(taskOdooRecordId, taskAccountId, currentFilter);
+            //console.log("Filtering timesheets by task:", taskOdooRecordId, "account:", taskAccountId, "status:", currentFilter);
+            timesheets_list = Model.getTimesheetsForTaskPaginated(taskOdooRecordId, taskAccountId, currentFilter, pageSize, currentOffset);
         }
-        // Use different fetch method depending on account selector choice
-        // strict comparison to string "-1" so "-1" and -1 mismatch issues are avoided
+        // Use paginated fetch method depending on account selector choice
         else if (filterAccountId === "-1") {
-            console.log("Account selector: All accounts selected — fetching all timesheets");
-            timesheets_list = Model.fetchTimesheetsForAllAccounts(currentFilter);
+            //console.log("Account selector: All accounts selected — fetching paginated timesheets");
+            timesheets_list = Model.fetchTimesheetsForAllAccountsPaginated(currentFilter, pageSize, currentOffset);
         } else {
-            console.log("Account selector: Single account selected — fetching timesheets for account", filterAccountId);
-            timesheets_list = Model.fetchTimesheetsByStatus(currentFilter, filterAccountId);
+            //console.log("Account selector: Single account selected — fetching paginated timesheets for account", filterAccountId);
+            timesheets_list = Model.fetchTimesheetsByStatusPaginated(currentFilter, filterAccountId, pageSize, currentOffset);
         }
-
-        timesheetModel.clear();
 
         if (!timesheets_list || !timesheets_list.length) {
-            console.log("No timesheets returned from model (length 0 or undefined).");
+            //console.log("No timesheets returned from model (length 0 or undefined).");
+            hasMoreItems = false;
         } else {
-            console.log("Retrieved", timesheets_list.length, "timesheets");
+            //console.log("Retrieved", timesheets_list.length, "timesheets");
+            // If we got fewer items than pageSize, there are no more items
+            hasMoreItems = timesheets_list.length >= pageSize;
         }
 
         for (var timesheet = 0; timesheet < (timesheets_list ? timesheets_list.length : 0); timesheet++) {
@@ -217,7 +255,18 @@ Page {
             });
         }
 
-        console.log("Populated timesheetModel with", timesheetModel.count, "items");
+        //console.log("Populated timesheetModel with", timesheetModel.count, "items");
+        isLoading = false;
+        isLoadingMore = false;
+    }
+
+    // Function to load more items for infinite scroll
+    function loadMoreTimesheets() {
+        if (isLoadingMore || !hasMoreItems) return;
+        isLoadingMore = true;
+        currentOffset += pageSize;
+        //console.log("Loading more timesheets, offset:", currentOffset);
+        _doLoadTimesheets();
     }
 
     ListView {
@@ -229,6 +278,20 @@ Page {
         anchors.topMargin: units.gu(1)
         model: timesheetModel
         clip: true
+
+        footer: LoadMoreFooter {
+            isLoading: isLoadingMore
+            hasMore: hasMoreItems
+            onLoadMore: loadMoreTimesheets()
+        }
+
+        onAtYEndChanged: {
+            if (timesheetlist.atYEnd && !isLoadingMore && !isLoading && hasMoreItems) {
+                //console.log("Reached end of list, loading more timesheets...");
+                loadMoreTimesheets();
+            }
+        }
+
         delegate: TimeSheetDetailsCard {
             width: parent.width
             name: model.name
@@ -271,7 +334,6 @@ Page {
             }
         }
 
-        Component.onCompleted: fetch_timesheets_list()
     }
 
     DialerMenu {
@@ -310,8 +372,17 @@ Page {
 
     // Update default account when it changes in settings
     Component.onCompleted: {
-        // Initialize default account
-        defaultAccountId = accountPicker.selectedAccountId;
-        selectedAccountId = accountPicker.selectedAccountId;
+        // selectedAccountId is already bound to accountPicker.selectedAccountId;
+        // do NOT re-assign it imperatively — that would break the binding and
+        // cause the filter to lose sync when the user changes accounts.
+        currentFilter = "all";
+        fetch_timesheets_list();
+    }
+
+    // Loading indicator overlay
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: isLoading
+        message: i18n.dtr("ubtms", "Loading timesheets...")
     }
 }

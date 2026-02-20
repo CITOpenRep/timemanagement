@@ -94,6 +94,7 @@ function initializeDatabase() {
             has_draft INTEGER DEFAULT 0,\
             odoo_record_id INTEGER,\
             user_id INTEGER,\
+            create_uid INTEGER,\
             UNIQUE (odoo_record_id, account_id)\
         )',
         [
@@ -114,7 +115,8 @@ function initializeDatabase() {
             'status TEXT DEFAULT ""',
             'has_draft INTEGER DEFAULT 0',
             'odoo_record_id INTEGER',
-            'user_id INTEGER'
+            'user_id INTEGER',
+            'create_uid INTEGER'
         ]
     );
 
@@ -132,6 +134,7 @@ function initializeDatabase() {
                                  "company_id INTEGER, " +
                                  "share INTEGER, " +
                                  "active INTEGER, " +
+                                 "avatar_128 TEXT, " +
                                  "status TEXT DEFAULT '', " +
                                  "odoo_record_id INTEGER, " +
                                  "UNIQUE (odoo_record_id, account_id)" +
@@ -148,6 +151,7 @@ function initializeDatabase() {
                                      "company_id INTEGER",
                                      "share INTEGER",
                                      "active INTEGER",
+                                     "avatar_128 TEXT",
                                      "status TEXT DEFAULT ''",
                                      "odoo_record_id INTEGER"
                                  ]
@@ -172,6 +176,7 @@ function initializeDatabase() {
             description TEXT,\
             last_modified datetime,\
             user_id INTEGER,\
+            create_uid INTEGER,\
             status TEXT DEFAULT "",\
             has_draft INTEGER DEFAULT 0,\
             odoo_record_id INTEGER,\
@@ -179,7 +184,7 @@ function initializeDatabase() {
         )',
                                  ['id INTEGER', 'name TEXT', 'account_id INTEGER', 'project_id INTEGER', 'sub_project_id INTEGER', 'parent_id INTEGER',
                                   'start_date date', 'end_date date', 'deadline date', 'initial_planned_hours FLOAT', 'priority TEXT', 'state INTEGER',
-                                  'personal_stage INTEGER', 'description TEXT', 'last_modified datetime', 'user_id INTEGER', 'status TEXT DEFAULT ""', 'has_draft INTEGER DEFAULT 0', 'odoo_record_id INTEGER']
+                                  'personal_stage INTEGER', 'description TEXT', 'last_modified datetime', 'user_id INTEGER', 'create_uid INTEGER', 'status TEXT DEFAULT ""', 'has_draft INTEGER DEFAULT 0', 'odoo_record_id INTEGER']
                                  );
 
     DBCommon.createOrUpdateTable("account_analytic_line_app",
@@ -242,6 +247,7 @@ function initializeDatabase() {
             summary TEXT,\
             due_date DATE,\
             user_id INTEGER,\
+            create_uid INTEGER,\
             notes TEXT,\
             odoo_record_id INTEGER,\
             last_modified datetime,\
@@ -256,7 +262,7 @@ function initializeDatabase() {
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'activity_type_id INTEGER', 'summary TEXT', 'due_date DATE', 'user_id INTEGER',
-                                  'notes TEXT', 'odoo_record_id INTEGER', 'last_modified datetime', 'link_id INTEGER', 'project_id INTEGER',
+                                  'create_uid INTEGER', 'notes TEXT', 'odoo_record_id INTEGER', 'last_modified datetime', 'link_id INTEGER', 'project_id INTEGER',
                                   'task_id INTEGER', 'resId INTEGER', 'resModel TEXT', 'state TEXT', 'status TEXT DEFAULT ""', 'has_draft INTEGER DEFAULT 0']
                                  );
     DBCommon.createOrUpdateTable("ir_attachment_app",
@@ -342,6 +348,7 @@ function initializeDatabase() {
             "last_modified datetime," +
             "status TEXT DEFAULT ''," +   // local sync status
             "has_draft INTEGER DEFAULT 0," +
+            "create_uid INTEGER," +
             "UNIQUE (odoo_record_id, account_id)" +
         ")",
         [
@@ -357,7 +364,8 @@ function initializeDatabase() {
             "odoo_record_id INTEGER",
             "last_modified datetime",
             "status TEXT DEFAULT ''",
-            "has_draft INTEGER DEFAULT 0"
+            "has_draft INTEGER DEFAULT 0",
+            "create_uid INTEGER"
         ]
     );
 

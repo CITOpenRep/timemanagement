@@ -326,12 +326,43 @@ Item {
                             anchors.margins: units.gu(1)
                             spacing: units.gu(1)
                             
-                            // Type-specific icon badge
+                            // Assigner avatar or type-specific icon badge
                             Rectangle {
+                                id: avatarContainer
                                 Layout.preferredWidth: units.gu(5)
                                 Layout.preferredHeight: units.gu(5)
-                                radius: units.gu(1)
+                                
+                                // Parse payload once for this delegate
+                                property var parsedPayload: {
+                                    try {
+                                        if (modelData.payload) {
+                                            return typeof modelData.payload === 'string' 
+                                                ? JSON.parse(modelData.payload) 
+                                                : modelData.payload;
+                                        }
+                                    } catch (e) {}
+                                    return {};
+                                }
+                                
+                                property bool hasAvatar: parsedPayload.assigner_avatar ? true : false
+                                property bool hasAssignerName: parsedPayload.assigner_name ? true : false
+                                property string assignerName: parsedPayload.assigner_name || ""
+                                
+                                // Get initials from name (e.g., "John Doe" -> "JD")
+                                property string initials: {
+                                    if (!assignerName) return "";
+                                    var parts = assignerName.trim().split(/\s+/);
+                                    if (parts.length >= 2) {
+                                        return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+                                    }
+                                    return parts[0].substring(0, 2).toUpperCase();
+                                }
+                                
+                                radius: (hasAvatar || hasAssignerName) ? units.gu(2.5) : units.gu(1)
                                 color: {
+                                    if (hasAvatar) return "transparent";
+                                    
+                                    // Use type color for background
                                     var notifType = modelData.type || "";
                                     switch(notifType) {
                                         case "Task": return "#4CAF50";
@@ -341,11 +372,35 @@ Item {
                                         default: return "#757575";
                                     }
                                 }
+                                clip: true
                                 
+                                // Assigner avatar image
+                                Image {
+                                    id: assignerAvatar
+                                    anchors.fill: parent
+                                    visible: avatarContainer.hasAvatar
+                                    source: avatarContainer.hasAvatar 
+                                        ? "data:image/png;base64," + avatarContainer.parsedPayload.assigner_avatar 
+                                        : ""
+                                    fillMode: Image.PreserveAspectCrop
+                                }
+                                
+                                // Initials fallback (shown when name but no avatar)
+                                Label {
+                                    anchors.centerIn: parent
+                                    visible: !avatarContainer.hasAvatar && avatarContainer.hasAssignerName
+                                    text: avatarContainer.initials
+                                    font.pixelSize: units.gu(1.8)
+                                    font.bold: true
+                                    color: "white"
+                                }
+                                
+                                // Fallback type icon (shown when no avatar and no name)
                                 Image {
                                     anchors.centerIn: parent
                                     width: units.gu(3)
                                     height: units.gu(3)
+                                    visible: !avatarContainer.hasAvatar && !avatarContainer.hasAssignerName
                                     source: {
                                         var notifType = modelData.type || "";
                                         switch(notifType) {
@@ -357,6 +412,47 @@ Item {
                                         }
                                     }
                                     fillMode: Image.PreserveAspectFit
+                                }
+                                
+                                // Small type indicator badge (shown when avatar or initials present)
+                                Rectangle {
+                                    visible: avatarContainer.hasAvatar || avatarContainer.hasAssignerName
+                                    width: units.gu(2)
+                                    height: units.gu(2)
+                                    radius: units.gu(1)
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    anchors.rightMargin: -units.gu(0.3)
+                                    anchors.bottomMargin: -units.gu(0.3)
+                                    color: {
+                                        var notifType = modelData.type || "";
+                                        switch(notifType) {
+                                            case "Task": return "#4CAF50";
+                                            case "Activity": return "#2196F3";
+                                            case "Project": return "#FF9800";
+                                            case "Timesheet": return "#9C27B0";
+                                            default: return "#757575";
+                                        }
+                                    }
+                                    border.color: theme.palette.normal.background
+                                    border.width: 1
+                                    
+                                    Image {
+                                        anchors.centerIn: parent
+                                        width: units.gu(1.2)
+                                        height: units.gu(1.2)
+                                        source: {
+                                            var notifType = modelData.type || "";
+                                            switch(notifType) {
+                                                case "Task": return "../images/task.svg";
+                                                case "Activity": return "../images/activity.svg";
+                                                case "Project": return "../images/project.svg";
+                                                case "Timesheet": return "../images/timesheet.svg";
+                                                default: return "../images/notification.png";
+                                            }
+                                        }
+                                        fillMode: Image.PreserveAspectFit
+                                    }
                                 }
                             }
 

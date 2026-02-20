@@ -71,13 +71,7 @@ Page {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
                 }
             }
-            // Action {
-            //     iconName: "account"
-            //     text: "Filter by Account"
-            //     onTriggered: {
-            //         accountFilter.expanded = !accountFilter.expanded;
-            //     }
-            // }
+    
 
 
         ]
@@ -101,23 +95,40 @@ Page {
     property var selectedAssigneeIds: []
     property var availableAssignees: []
 
+    // Loading state property
+    property bool isLoading: false
+
+    // Pagination properties
+    property int pageSize: 30
+    property int currentOffset: 0
+    property bool hasMoreItems: true
+    property bool isLoadingMore: false
+
     NotificationPopup {
         id: notifPopup
         width: units.gu(80)
         height: units.gu(80)
     }
 
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: loadingTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doLoadActivities()
+    }
+
     Connections {
         target: accountPicker
 
         onAccepted: function (id, name) {
-            console.log("Activity_Page: Account picker selection changed to", id, name);
+            //console.log("Activity_Page: Account picker selection changed to", id, name);
             handleAccountChange(id);
         }
     }
 
     function handleAccountChange(accountId) {
-        console.log("Activity_Page: Account changed to", accountId);
+        //console.log("Activity_Page: Account changed to", accountId);
 
         // Normalize account ID to number
         var idNum = -1;
@@ -130,11 +141,8 @@ Page {
             idNum = -1;
         }
 
-        // If -1, use default account instead (like MyTasks and other pages)
-        if (idNum === -1) {
-            idNum = Accounts.getDefaultAccountId();
-            console.log("Activity_Page: Account ID was -1, using default account:", idNum);
-        }
+        // -1 means "All Accounts" - don't fall back to default, keep it as -1
+        // This is consistent with how the Tasks page handles All Accounts
 
         selectedAccountId = idNum;
         filterByAccount = (idNum >= 0);
@@ -143,6 +151,7 @@ Page {
         loadAssignees();
 
         // Refresh the activity list
+        isLoading = true;
         get_activity_list();
     }
 
@@ -179,61 +188,100 @@ Page {
     }
 
     function get_activity_list() {
+        //console.log("Starting get_activity_list - setting isLoading to true");
+        isLoading = true;
+        currentOffset = 0;
+        hasMoreItems = true;
         activityListModel.clear();
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        loadingTimer.start();
+    }
 
+    function _doLoadActivities() {
+        //console.log("_doLoadActivities - starting data fetch, offset:", currentOffset);
         try {
             var allActivities = [];
             var currentAccountId = selectedAccountId;
+            var isPaginated = false;
 
-            console.log("Fetching activities - filterByProject:", filterByProject, "projectOdooRecordId:", projectOdooRecordId, "account:", currentAccountId, "filter:", currentFilter);
+                // Avoid paginating project/task views when client-side date/search filters are active,
+                // otherwise matches outside the current page can be missed.
+                var hasClientSideScopedFilters = (filterByProject || filterByTasks)
+                    && ((currentFilter && currentFilter !== "all")
+                    || (currentSearchQuery && currentSearchQuery.trim() !== ""));
 
-            if (filterByProject) {
-                // When filtering by project, get activities for that specific project
-                allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
-                console.log("Retrieved", allActivities.length, "activities for project:", projectOdooRecordId);
+                    // Done/search are expected to be globally accurate on first attempt.
+                    // Keep them on full-load path to avoid pagination edge cases.
+                    var hasActiveSearch = currentSearchQuery && currentSearchQuery.trim() !== "";
+                    var isDoneFilter = currentFilter === "done";
 
-            } 
-  else if (filterByTasks) {
-                // When filtering by task, get activities for that specific task
-                allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
-                console.log("Retrieved", allActivities.length, "activities for task:", taskOdooRecordId);
+                // Keep pagination only when assignee filtering is not active and scoped client-side filters are not active.
+                var canPaginate = (!hasClientSideScopedFilters)
+                        && (!hasActiveSearch)
+                        && (!isDoneFilter)
+                    && (!filterByAssignees || !assigneeFilterMenu.selectedAssigneeIds || assigneeFilterMenu.selectedAssigneeIds.length === 0);
 
-  }          
-            else {
-                // Normal account-based filtering
-                if (currentFilter && currentFilter !== "" || currentSearchQuery) {
-                    // Pass currentAccountId only if filterByAccount is true and selectedAccountId >= 0
+            if (canPaginate) {
+                isPaginated = true;
+                
+                if (filterByProject) {
+                    // Paginated project-filtered activities
+                    var result = Activity.getActivitiesForProjectPaginated(
+                        projectOdooRecordId, projectAccountId, pageSize, currentOffset);
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
+                } else if (filterByTasks) {
+                    // Paginated task-filtered activities
+                    var result = Activity.getActivitiesForTaskPaginated(
+                        taskOdooRecordId, projectAccountId, pageSize, currentOffset);
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
+                } else {
+                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                    
+                    // Use the paginated function that handles all filters with date filtering
+                    var result = Activity.getFilteredActivitiesPaginated(
+                        currentFilter, 
+                        currentSearchQuery, 
+                        accountIdForFilter, 
+                        pageSize, 
+                        currentOffset
+                    );
+                    
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
+                }
+                
+            } else {
+                // Full-load path when assignee/scoped filters, done filter, or active search are used
+                hasMoreItems = false; 
+
+                if (filterByProject) {
+                    allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
+                } else if (filterByTasks) {
+                    allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
+                } else {
                     var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
                     allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
-                } else {
-                    if (filterByAccount && currentAccountId >= 0) {
-                        allActivities = Activity.getActivitiesForAccount(currentAccountId);
-                    } else {
-                        allActivities = Activity.getAllActivities();
-                    }
                 }
-                console.log("Retrieved", allActivities.length, "activities for account:", currentAccountId >= 0 ? currentAccountId : "all");
             }
 
-            // Apply assignee filtering if enabled
+            // Apply assignee filtering if enabled (Only for legacy path)
             var menuSelectedIds = assigneeFilterMenu.selectedAssigneeIds || [];
-            if (filterByAssignees && menuSelectedIds && menuSelectedIds.length > 0) {
+            if (!isPaginated && filterByAssignees && menuSelectedIds && menuSelectedIds.length > 0) {
                 var assigneeFilteredActivities = [];
                 for (let i = 0; i < allActivities.length; i++) {
                     var item = allActivities[i];
-                    // Check if the activity matches any selected assignee (considering both user_id and account_id)
                     var matchesSelectedAssignee = false;
                     for (let j = 0; j < menuSelectedIds.length; j++) {
                         var selectedId = menuSelectedIds[j];
-                        // Handle both simple ID (old format) and composite format
                         if (typeof selectedId === 'object') {
-                            // New format: {user_id: X, account_id: Y}
                             if (item.user_id && item.account_id && parseInt(item.user_id) === selectedId.user_id && parseInt(item.account_id) === selectedId.account_id) {
                                 matchesSelectedAssignee = true;
                                 break;
                             }
                         } else {
-                            // Legacy format: just user_id (for backward compatibility)
                             if (item.user_id && parseInt(item.user_id) === parseInt(selectedId)) {
                                 matchesSelectedAssignee = true;
                                 break;
@@ -249,16 +297,13 @@ Page {
 
             var filteredActivities = [];
 
-            // Apply additional filtering (date/search) when using project or task filtering
+            // Main processing loop
             for (let i = 0; i < allActivities.length; i++) {
                 var item = allActivities[i];
 
-                // QML ListModel roles are not created for null values.
-                // Normalize to sentinel values to avoid warnings and missing roles.
                 var safeTaskId = (typeof item.task_id !== "undefined" && item.task_id !== null) ? item.task_id : -1;
                 var safeResId = (typeof item.resId !== "undefined" && item.resId !== null) ? item.resId : 0;
 
-                // When filtering by project or task, still apply date and search filters
                 if ((filterByProject || filterByTasks) && !shouldIncludeItem(item)) {
                     continue;
                 }
@@ -294,7 +339,6 @@ Page {
                 if (!a.due_date || !b.due_date) {
                     return (a.summary || "").localeCompare(b.summary || "");
                 }
-                // Sort in acending order (oldest first)
                 return new Date(a.due_date) - new Date(b.due_date);
             });
 
@@ -302,29 +346,27 @@ Page {
                 activityListModel.append(filteredActivities[j]);
             }
 
-            console.log("Populated activityListModel with", activityListModel.count, "items");
+            //console.log("Populated activityListModel with", activityListModel.count, "items");
+            isLoading = false;
+            isLoadingMore = false;
         } catch (e) {
-            console.error("Error in get_activity_list():", e);
+            console.error("Error in _doLoadActivities:", e);
+            isLoading = false;
+            isLoadingMore = false;
         }
     }
 
-    function applyAccountFilter(accountId) {
-        console.log("Activity_Page.applyAccountFilter called with accountId:", accountId);
-
-        filterByAccount = true;
-        selectedAccountId = accountId;
-
-        get_activity_list();
+    function loadMoreActivities() {
+        if (isLoadingMore || !hasMoreItems) return;
+        
+        //console.log("Loading more activities, offset:", currentOffset + pageSize);
+        isLoadingMore = true;
+        currentOffset += pageSize;
+        _doLoadActivities();
+        // Note: isLoadingMore will be reset in _doLoadActivities
     }
 
-    function clearAccountFilter() {
-        console.log("Activity_Page.clearAccountFilter called");
-
-        filterByAccount = false;
-        selectedAccountId = -1;
-
-        get_activity_list();
-    }
+  
 
     // Function to load available assignees for the current account
     function loadAssignees() {
@@ -538,18 +580,17 @@ Page {
         filter7: "done"
 
         onFilterSelected: {
-            activity.currentFilter = filterKey;
+            var nextFilter = (filterKey && filterKey !== "") ? filterKey : (activity.currentFilter || "all");
+            if (activity.currentFilter === nextFilter) {
+                return;
+            }
 
-            // Restore assignee filter state from global storage
-            restoreAssigneeFilterState();
+            activity.currentFilter = nextFilter;
 
             get_activity_list();
         }
         onCustomSearch: {
             activity.currentSearchQuery = query;
-
-            // Restore assignee filter state from global storage
-            restoreAssigneeFilterState();
 
             get_activity_list();
         }
@@ -567,6 +608,19 @@ Page {
             anchors.fill: parent
             clip: true
             model: activityListModel
+            
+            footer: LoadMoreFooter {
+                isLoading: isLoadingMore
+                hasMore: hasMoreItems
+                onLoadMore: loadMoreActivities()
+            }
+
+            onAtYEndChanged: {
+                if (activitylist.atYEnd && !isLoadingMore && hasMoreItems) {
+                    loadMoreActivities();
+                }
+            }
+
             delegate: ActivityDetailsCard {
                 id: activityCard
                 // Use model.id for local database ID (used for navigation to Activities.qml)
@@ -611,7 +665,7 @@ Page {
                     get_activity_list();
                 }
                 onDateChanged: function (accountid, recordid, newDate) {
-                    console.log("Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
+                    //console.log("Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
                     Activity.updateActivityDate(accountid, recordid, newDate);
                     get_activity_list();
                 }
@@ -621,7 +675,7 @@ Page {
                     Activity.markAsDone(accountid, recordid);
                     var result = Activity.createFollowupActivity(accountid, recordid);
                     if (result.success === true) {
-                        console.log("Followup activity has been created");
+                        //console.log("Followup activity has been created");
                         apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                             "recordid": result.record_id,
                             "accountid": accountid,
@@ -653,29 +707,20 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
-            // Sync with mainView's current account (primary source of truth)
-            if (typeof mainView !== 'undefined' && mainView !== null) {
-                if (typeof mainView.currentAccountId !== 'undefined') {
-                    var acctId = mainView.currentAccountId;
-                    if (acctId !== selectedAccountId && acctId >= -1) {
-                        console.log("Activity_Page: Syncing with mainView.currentAccountId on visible:", acctId);
-                        handleAccountChange(acctId);
-                        return; // handleAccountChange will refresh everything
-                    }
-                }
-            }
+            // Note: Account is determined by accountPicker (same pattern as Task_Page)
+            // Do NOT sync with mainView.currentAccountId here - it causes "All Accounts" override
 
             // Check if we're coming from an activity-related page
             var previousPage = Global.getLastVisitedPage();
             var shouldPreserve = Global.shouldPreserveAssigneeFilter("Activity_Page", previousPage);
 
-            console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
+            //console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
 
             if (shouldPreserve) {
                 // Restore assignee filter from global state when returning from Activities detail page
                 restoreAssigneeFilterState();
 
-                console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
+                //console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
             } else {
                 // Clear filter when coming from non-activity pages (Dashboard, Tasks, etc.)
                 activity.filterByAssignees = false;
@@ -683,7 +728,7 @@ Page {
                 assigneeFilterMenu.selectedAssigneeIds = [];
                 Global.clearAssigneeFilter();
 
-                console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
+                //console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
             }
 
             // Update navigation tracking
@@ -702,28 +747,28 @@ Page {
         onFilterApplied: function (assigneeIds) {
             // Read directly from AssigneeFilterMenu to avoid timing issues
             var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
-            console.log("Activity_Page: Assignee filter applied - Reading directly from AssigneeFilterMenu");
-            console.log("   Passed parameter:", JSON.stringify(assigneeIds));
-            console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
+            //console.log("Activity_Page: Assignee filter applied - Reading directly from AssigneeFilterMenu");
+            //console.log("   Passed parameter:", JSON.stringify(assigneeIds));
+            //console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
 
             selectedAssigneeIds = actualSelectedIds;
             filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
             // Save to global state for persistence across navigation
             Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
-            console.log("Activity_Page: Assignee filter saved to global state - enabled:", filterByAssignees);
+            //console.log("Activity_Page: Assignee filter saved to global state - enabled:", filterByAssignees);
 
             get_activity_list();
         }
 
         onFilterCleared: function () {
-            console.log("Activity_Page: Assignee filter cleared");
+            //console.log("Activity_Page: Assignee filter cleared");
             selectedAssigneeIds = [];
             filterByAssignees = false;
 
             // Clear global state
             Global.clearAssigneeFilter();
-            console.log("Activity_Page: Assignee filter cleared from global state");
+            //console.log("Activity_Page: Assignee filter cleared from global state");
 
             get_activity_list();
         }
@@ -736,66 +781,25 @@ Page {
         target: mainView
 
         onAccountDataRefreshRequested: function (accountId) {
-            console.log("Activity_Page: Account data refresh requested for:", accountId);
+            //console.log("Activity_Page: Account data refresh requested for:", accountId);
             if (activity.visible && accountId >= -1) {
                 handleAccountChange(accountId);
             }
         }
 
         onGlobalAccountChanged: function (accountId, accountName) {
-            console.log("Activity_Page: Global account changed to:", accountId, accountName);
+            //console.log("Activity_Page: Global account changed to:", accountId, accountName);
             if (activity.visible && accountId >= -1) {
                 handleAccountChange(accountId);
             }
         }
     }
 
-    Connections {
-        target: typeof accountFilter !== 'undefined' ? accountFilter : null
 
-        function onAccountChanged(accountId, accountName) {
-            console.log("Activity_Page: Account changed via AccountFilter to:", accountId, accountName);
-            if (activity.visible) {
-                handleAccountChange(accountId);
-            }
-        }
-    }
     Component.onCompleted: {
-        // Primary source: accountPicker (direct initialization like Timesheet_Page and Projects)
-        if (typeof accountPicker !== 'undefined' && accountPicker !== null) {
-            selectedAccountId = accountPicker.selectedAccountId;
-            filterByAccount = (selectedAccountId >= 0);
-            console.log("Activity_Page: Initialized with accountPicker.selectedAccountId:", selectedAccountId);
-        }
-
-        // Fallback: try mainView
-        if (selectedAccountId === -1) {
-            if (typeof mainView !== 'undefined' && mainView !== null) {
-                if (typeof mainView.currentAccountId !== 'undefined') {
-                    selectedAccountId = mainView.currentAccountId;
-                    filterByAccount = (selectedAccountId >= 0);
-                    console.log("Activity_Page: Using mainView.currentAccountId:", selectedAccountId);
-                }
-            }
-        }
-
-        // Fallback: try accountFilter
-        if (selectedAccountId === -1) {
-            if (typeof accountFilter !== 'undefined' && accountFilter !== null) {
-                if (typeof accountFilter.selectedAccountId !== 'undefined') {
-                    selectedAccountId = accountFilter.selectedAccountId;
-                    filterByAccount = (selectedAccountId >= 0);
-                    console.log("Activity_Page: Using accountFilter.selectedAccountId:", selectedAccountId);
-                }
-            }
-        }
-
-        // Final fallback: use default account (like MyTasks does)
-        if (selectedAccountId === -1) {
-            selectedAccountId = Accounts.getDefaultAccountId();
-            filterByAccount = (selectedAccountId >= 0);
-            console.log("Activity_Page: No account selection found, using default account:", selectedAccountId);
-        }
+        // Simple single assignment - same pattern as Task_Page.qml
+        selectedAccountId = accountPicker.selectedAccountId;
+        filterByAccount = (selectedAccountId >= 0);
 
         // Load assignees for the assignee filter
         loadAssignees();
@@ -806,5 +810,12 @@ Page {
         assigneeFilterMenu.selectedAssigneeIds = [];
 
         get_activity_list();
+    }
+
+    // Loading indicator overlay
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: isLoading
+        message: i18n.dtr("ubtms", "Loading activities...")
     }
 }

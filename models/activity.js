@@ -39,7 +39,7 @@ function getAllActivities() {
             // Step 2: Fetch activities
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state != 'done'
+                WHERE LOWER(TRIM(COALESCE(state, ''))) != 'done'
                 ORDER BY due_date ASC
             `);
 
@@ -110,7 +110,7 @@ function getDoneActivities() {
             // Step 2: Fetch done activities
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state = 'done'
+                WHERE LOWER(TRIM(COALESCE(state, ''))) = 'done'
                 ORDER BY due_date DESC
             `);
 
@@ -930,7 +930,7 @@ function getActivitiesForProject(projectOdooRecordId, accountId) {
             var rs = tx.executeSql(`
                 SELECT DISTINCT a.* FROM mail_activity_app a
                 WHERE a.account_id = ? 
-                AND a.state != 'done'
+                AND LOWER(TRIM(COALESCE(a.state, ''))) != 'done'
                 AND (
                     (a.resModel = 'project.project' AND a.link_id = ?)
                     OR 
@@ -988,6 +988,98 @@ function getActivitiesForProject(projectOdooRecordId, accountId) {
     return activityList;
 }
 
+/**
+ * Paginated version of getActivitiesForProject for infinite scroll.
+ *
+ * @param {number} projectOdooRecordId - The odoo_record_id of the project
+ * @param {number} accountId - The account ID
+ * @param {number} limit - Maximum number of items to return
+ * @param {number} offset - Number of items to skip
+ * @returns {Object} { activities: Array, hasMore: boolean }
+ */
+function getActivitiesForProjectPaginated(projectOdooRecordId, accountId, limit, offset) {
+    var activityList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
+
+        db.transaction(function (tx) {
+            // Step 1: Build project color map
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?", [accountId]);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            // Step 2: Fetch activities linked to the specific project with LIMIT/OFFSET
+            var rs = tx.executeSql(`
+                SELECT DISTINCT a.* FROM mail_activity_app a
+                WHERE a.account_id = ? 
+                AND LOWER(TRIM(COALESCE(a.state, ''))) != 'done'
+                AND (
+                    (a.resModel = 'project.project' AND a.link_id = ?)
+                    OR 
+                    (a.resModel = 'project.task' AND a.link_id IN (
+                        SELECT odoo_record_id FROM project_task_app 
+                        WHERE project_id = ? AND account_id = ?
+                    ))
+                )
+                ORDER BY a.due_date ASC
+                LIMIT ? OFFSET ?
+            `, [accountId, projectOdooRecordId, projectOdooRecordId, accountId, limit, offset]);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(row);
+
+                // Enrich the activity with project/task details
+                if (activity.resModel === "project.task") {
+                    var enrichedTask = resolveActivityLinkage(tx, activity.link_id, activity.account_id);
+                    activity.task_id = enrichedTask.task_id;
+                    activity.sub_task_id = enrichedTask.sub_task_id;
+                    activity.project_id = enrichedTask.project_id;
+                    activity.sub_project_id = enrichedTask.sub_project_id;
+                    activity.linkedType = "task";
+                } else if (activity.resModel === "project.project") {
+                    var enrichedProject = resolveProjectLinkage(tx, activity.link_id, activity.account_id);
+                    activity.task_id = enrichedProject.task_id;
+                    activity.sub_task_id = enrichedProject.sub_task_id;
+                    activity.project_id = enrichedProject.project_id;
+                    activity.sub_project_id = enrichedProject.sub_project_id;
+                    activity.linkedType = "project";
+                } else if (activity.resModel === "project.update") {
+                    initializeEnrichmentDefaults(activity);
+                    activity.update_id = activity.link_id;
+                    activity.linkedType = "update";
+                } else {
+                    initializeEnrichmentDefaults(activity);
+                }
+
+                // Add color inheritance
+                var colorProjectId = activity.project_id !== -1 ? activity.project_id : activity.sub_project_id;
+                if (colorProjectId !== -1 && projectColorMap[colorProjectId]) {
+                    activity.color_pallet = projectColorMap[colorProjectId];
+                } else {
+                    activity.color_pallet = 0;
+                }
+
+                activityList.push(activity);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getActivitiesForProjectPaginated", e);
+    }
+
+    return {
+        activities: activityList,
+        hasMore: activityList.length >= limit
+    };
+}
+
 function getActivitiesForTask(taskOdooRecordId, accountId) {
     var activityList = [];
 
@@ -1017,7 +1109,7 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
                 SELECT * FROM mail_activity_app
                 WHERE resModel = 'project.task' 
                 AND link_id = ?
-                AND state != 'done'
+                AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
                 AND (status IS NULL OR status != 'deleted')
                 ORDER BY due_date ASC`;
             var params = [taskOdooRecordId];
@@ -1029,7 +1121,7 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
                     WHERE resModel = 'project.task' 
                     AND link_id = ?
                     AND account_id = ?
-                    AND state != 'done'
+                    AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
                     AND (status IS NULL OR status != 'deleted')
                     ORDER BY due_date ASC`;
                 params = [taskOdooRecordId, accountId];
@@ -1058,6 +1150,96 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
     }
 
     return activityList;
+}
+
+/**
+ * Paginated version of getActivitiesForTask for infinite scroll.
+ *
+ * @param {number} taskOdooRecordId - The Odoo record ID of the task.
+ * @param {number} accountId - The account ID (optional, if provided will filter by account).
+ * @param {number} limit - Maximum number of items to return.
+ * @param {number} offset - Number of items to skip.
+ * @returns {Object} { activities: Array, hasMore: boolean }
+ */
+function getActivitiesForTaskPaginated(taskOdooRecordId, accountId, limit, offset) {
+    var activityList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
+
+        db.transaction(function (tx) {
+            // Build project color map
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            // Get the task's project_id for color inheritance
+            var taskProjectId = null;
+            var taskRs = tx.executeSql(
+                "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                [taskOdooRecordId]
+            );
+            if (taskRs.rows.length > 0) {
+                taskProjectId = taskRs.rows.item(0).project_id;
+            }
+
+            var query = "";
+            var params = [];
+
+            // If accountId is provided, filter by it
+            if (accountId && accountId > 0) {
+                query = `
+                    SELECT * FROM mail_activity_app
+                    WHERE resModel = 'project.task' 
+                    AND link_id = ?
+                    AND account_id = ?
+                    AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
+                    AND (status IS NULL OR status != 'deleted')
+                    ORDER BY due_date ASC
+                    LIMIT ? OFFSET ?`;
+                params = [taskOdooRecordId, accountId, limit, offset];
+            } else {
+                query = `
+                    SELECT * FROM mail_activity_app
+                    WHERE resModel = 'project.task' 
+                    AND link_id = ?
+                    AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
+                    AND (status IS NULL OR status != 'deleted')
+                    ORDER BY due_date ASC
+                    LIMIT ? OFFSET ?`;
+                params = [taskOdooRecordId, limit, offset];
+            }
+
+            var rs = tx.executeSql(query, params);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(row);
+
+                // Inherit color from task's project
+                if (taskProjectId && projectColorMap[taskProjectId]) {
+                    activity.color_pallet = parseInt(projectColorMap[taskProjectId]) || 0;
+                } else {
+                    activity.color_pallet = 0;
+                }
+
+                activityList.push(activity);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getActivitiesForTaskPaginated", e);
+    }
+
+    return {
+        activities: activityList,
+        hasMore: activityList.length >= limit
+    };
 }
 
 /**
@@ -1150,7 +1332,7 @@ function getActivitiesForAccount(accountId) {
 
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state != 'done' AND account_id = ?
+                WHERE LOWER(TRIM(COALESCE(state, ''))) != 'done' AND account_id = ?
                 ORDER BY due_date ASC
             `, [accountId]);
 
@@ -1214,7 +1396,7 @@ function getDoneActivitiesForAccount(accountId) {
 
             var rs = tx.executeSql(`
                 SELECT * FROM mail_activity_app
-                WHERE state = 'done' AND account_id = ?
+                WHERE LOWER(TRIM(COALESCE(state, ''))) = 'done' AND account_id = ?
                 ORDER BY due_date DESC
             `, [accountId]);
 
@@ -1250,6 +1432,67 @@ function getDoneActivitiesForAccount(accountId) {
 
     } catch (e) {
         DBCommon.logException("getDoneActivitiesForAccount", e);
+    }
+
+    return activityList;
+}
+
+/**
+ * Paginated version of getDoneActivitiesForAccount for infinite scroll.
+ * 
+ * @param {number} accountId - The account identifier
+ * @param {number} limit - Maximum number of items to return
+ * @param {number} offset - Number of items to skip
+ * @returns {Array<Object>} Array of done activity records for the specified account
+ */
+function getDoneActivitiesForAccountPaginated(accountId, limit, offset) {
+    var activityList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
+
+        db.transaction(function (tx) {
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?", [accountId]);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var row = projectResult.rows.item(j);
+                projectColorMap[row.odoo_record_id] = row.color_pallet;
+            }
+
+            var rs = tx.executeSql(`
+                SELECT * FROM mail_activity_app
+                WHERE LOWER(TRIM(COALESCE(state, ''))) = 'done' AND account_id = ?
+                ORDER BY due_date ASC
+                LIMIT ? OFFSET ?
+            `, [accountId, limit, offset]);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(row);
+
+                let inheritedColor = 0;
+                if (activity.resModel === "project.project" && activity.link_id) {
+                    inheritedColor = projectColorMap[activity.link_id] || 0;
+                } else if (activity.resModel === "project.task" && activity.link_id) {
+                    var taskRs = tx.executeSql(
+                        "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
+                        [activity.link_id, accountId]
+                    );
+                    if (taskRs.rows.length > 0) {
+                        var taskProjectId = taskRs.rows.item(0).project_id;
+                        inheritedColor = projectColorMap[taskProjectId] || 0;
+                    }
+                }
+
+                activity.color_pallet = parseInt(inheritedColor) || 0;
+                activityList.push(activity);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getDoneActivitiesForAccountPaginated", e);
     }
 
     return activityList;
@@ -1320,6 +1563,147 @@ function getFilteredActivities(filterType, searchQuery, accountId) {
 }
 
 /**
+ * Paginated version of getFilteredActivities for infinite scroll with date/search filtering.
+ * Fetches activities in batches, applies JS-based filtering, and returns paginated results.
+ * 
+ * @param {string} filterType - The filter type: "today", "this_week", "overdue", etc.
+ * @param {string} searchQuery - The search query string
+ * @param {number} accountId - Account ID to filter activities (-1 for all accounts)
+ * @param {number} limit - Maximum number of filtered items to return
+ * @param {number} offset - Number of filtered items to skip (virtual offset)
+ * @returns {Object} { activities: Array, hasMore: boolean }
+ */
+function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limit, offset) {
+    limit = limit || 30;
+    offset = offset || 0;
+
+    // Handle "done" filter separately
+    if (filterType === "done") {
+        // Ensure search is applied before pagination so matches are not missed.
+        var doneActivities = getFilteredActivities("done", searchQuery, accountId);
+        var donePage = doneActivities.slice(offset, offset + limit);
+        return {
+            activities: donePage,
+            hasMore: (offset + limit) < doneActivities.length
+        };
+    }
+
+    var filteredActivities = [];
+    var currentDate = new Date();
+    var batchSize = limit * 3; // Fetch 3x more raw items to account for filtering
+    var dbOffset = 0;
+    var skipped = 0;
+    var foundAfterOffset = 0;
+    var hasMore = true;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        while (hasMore && foundAfterOffset < (limit + 1)) {
+            var rawActivities = [];
+
+            db.transaction(function (tx) {
+                var query = "SELECT * FROM mail_activity_app WHERE LOWER(TRIM(COALESCE(state, ''))) != 'done'";
+                var params = [];
+
+                if (accountId !== undefined && accountId >= 0) {
+                    query += " AND account_id = ?";
+                    params.push(accountId);
+                }
+
+                query += " ORDER BY due_date ASC LIMIT ? OFFSET ?";
+                params.push(batchSize, dbOffset);
+
+                var result = tx.executeSql(query, params);
+                for (var i = 0; i < result.rows.length; i++) {
+                    rawActivities.push(DBCommon.rowToObject(result.rows.item(i)));
+                }
+            });
+
+            // If we got fewer items than batch size, no more data in DB
+            if (rawActivities.length < batchSize) {
+                hasMore = false;
+            }
+
+            // Apply JS-based filtering
+            for (var i = 0; i < rawActivities.length; i++) {
+                var activity = rawActivities[i];
+                var passesFilter = true;
+
+                // Apply date filter using existing logic
+                if (filterType && filterType !== "all" && !passesActivityDateFilter(activity, filterType, currentDate)) {
+                    passesFilter = false;
+                }
+
+                // Apply search filter
+                if (passesFilter && searchQuery && !passesActivitySearchFilter(activity, searchQuery)) {
+                    passesFilter = false;
+                }
+
+                if (passesFilter) {
+                    if (skipped < offset) {
+                        // Skip items until we reach the offset
+                        skipped++;
+                    } else {
+                        foundAfterOffset++;
+                        // Collect only up to limit + 1 to derive hasMore correctly.
+                        if (filteredActivities.length < (limit + 1)) {
+                            filteredActivities.push(activity);
+                        }
+                    }
+
+                    if (foundAfterOffset >= (limit + 1)) {
+                        // We have enough items to build page + hasMore.
+                        break;
+                    }
+                }
+            }
+
+            dbOffset += rawActivities.length;
+        }
+
+        // Add project colors to filtered activities
+        db.transaction(function (tx) {
+            var projectColorMap = {};
+            var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+            var projectResult = tx.executeSql(projectQuery);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                projectColorMap[projectResult.rows.item(j).odoo_record_id] = projectResult.rows.item(j).color_pallet;
+            }
+
+            var pageSize = Math.min(filteredActivities.length, limit);
+            for (var i = 0; i < pageSize; i++) {
+                var activity = filteredActivities[i];
+
+                // Inherit color from project
+                var inheritedColor = 0;
+                if (activity.resModel === "project.project" && activity.link_id) {
+                    inheritedColor = projectColorMap[activity.link_id] || 0;
+                } else if (activity.resModel === "project.task" && activity.link_id) {
+                    var taskRs = tx.executeSql(
+                        "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [activity.link_id]
+                    );
+                    if (taskRs.rows.length > 0 && taskRs.rows.item(0).project_id) {
+                        inheritedColor = projectColorMap[taskRs.rows.item(0).project_id] || 0;
+                    }
+                }
+                activity.color_pallet = inheritedColor;
+            }
+        });
+
+    } catch (e) {
+        console.error("getFilteredActivitiesPaginated failed:", e);
+    }
+
+    var pageActivities = filteredActivities.slice(0, limit);
+    return {
+        activities: pageActivities,
+        hasMore: foundAfterOffset > limit
+    };
+}
+
+/**
 * Gets account statistics for activities (similar to Task.getAccountsWithTaskCounts)
 * @returns {Array<Object>} Array of account objects with activity counts
 */
@@ -1335,7 +1719,7 @@ function getAccountsWithActivityCounts() {
                 SELECT
                     a.account_id,
                     COUNT(a.id) as activity_count,
-                    COUNT(CASE WHEN a.state != 'done' THEN 1 END) as active_activity_count
+                    COUNT(CASE WHEN LOWER(TRIM(COALESCE(a.state, ''))) != 'done' THEN 1 END) as active_activity_count
                 FROM mail_activity_app a
                 GROUP BY a.account_id
                 ORDER BY a.account_id ASC
@@ -1448,6 +1832,41 @@ function passesActivitySearchFilter(activity, searchQuery) {
     var activityTypeName = getActivityTypeName(activity.activity_type_id);
     if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
         return true;
+    }
+
+    // Search in assignee/user name
+    try {
+        var userName = Accounts.getUserNameByOdooId(activity.user_id);
+        if (userName && userName.toLowerCase().indexOf(query) >= 0) {
+            return true;
+        }
+    } catch (e) {
+    }
+
+    // Search in project name
+    try {
+        if (activity.project_id && parseInt(activity.project_id) > 0) {
+            var projectDetails = Project.getProjectDetails(activity.project_id);
+            if (projectDetails && projectDetails.name && projectDetails.name.toLowerCase().indexOf(query) >= 0) {
+                return true;
+            }
+        }
+    } catch (e) {
+    }
+
+    // Search in task name
+    try {
+        var taskId = activity.task_id;
+        if ((!taskId || parseInt(taskId) <= 0) && activity.resModel === "project.task") {
+            taskId = activity.link_id;
+        }
+        if (taskId && parseInt(taskId) > 0) {
+            var taskDetails = Task.getTaskDetails(taskId);
+            if (taskDetails && taskDetails.name && taskDetails.name.toLowerCase().indexOf(query) >= 0) {
+                return true;
+            }
+        }
+    } catch (e) {
     }
 
     return false;
@@ -1599,4 +2018,64 @@ function getFilteredActivitiesWithAssignees(filterType, searchQuery, accountId, 
     }
 
     return filteredActivities;
+}
+
+/**
+ * Paginated version of getDoneActivities (all accounts) for infinite scroll.
+ * 
+ * @param {number} limit - Maximum number of items to return
+ * @param {number} offset - Number of items to skip
+ * @returns {Array<Object>} Array of done activity records
+ */
+function getAllDoneActivitiesPaginated(limit, offset) {
+    var activityList = [];
+    limit = limit || 30;
+    offset = offset || 0;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var projectColorMap = {};
+
+        db.transaction(function (tx) {
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var row = projectResult.rows.item(j);
+                projectColorMap[row.odoo_record_id] = row.color_pallet;
+            }
+
+            var rs = tx.executeSql(`
+                SELECT * FROM mail_activity_app
+                WHERE LOWER(TRIM(COALESCE(state, ''))) = 'done'
+                ORDER BY due_date ASC
+                LIMIT ? OFFSET ?
+            `, [limit, offset]);
+
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                var activity = DBCommon.rowToObject(row);
+
+                let inheritedColor = 0;
+                if (activity.resModel === "project.project" && activity.link_id) {
+                    inheritedColor = projectColorMap[activity.link_id] || 0;
+                } else if (activity.resModel === "project.task" && activity.link_id) {
+                    var taskRs = tx.executeSql(
+                        "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [activity.link_id]
+                    );
+                    if (taskRs.rows.length > 0) {
+                        var taskProjectId = taskRs.rows.item(0).project_id;
+                        inheritedColor = projectColorMap[taskProjectId] || 0;
+                    }
+                }
+
+                activity.color_pallet = parseInt(inheritedColor) || 0;
+                activityList.push(activity);
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException("getAllDoneActivitiesPaginated", e);
+    }
+
+    return activityList;
 }

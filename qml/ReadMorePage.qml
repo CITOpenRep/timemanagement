@@ -2,6 +2,7 @@ import QtQuick 2.7
 import Lomiri.Components 1.3
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: readmepage
@@ -18,6 +19,9 @@ Page {
     // Reference to parent form's draft handler (for tracking changes)
     property var parentDraftHandler: null
 
+    // Live sync: track the last content we wrote/read from Global to avoid feedback loops
+    property string _lastKnownHolder: ""
+
     header: PageHeader {
         id: header
         title: i18n.dtr("ubtms","Description")
@@ -31,6 +35,14 @@ Page {
         }
 
         trailingActionBar.actions: [
+            Action {
+                visible: !isReadOnly && useRichText
+                iconName: editor.toolbarExpanded ? "view-collapse" : "view-expand"
+                text: editor.toolbarExpanded ? i18n.dtr("ubtms", "Hide Toolbar") : i18n.dtr("ubtms", "Show Toolbar")
+                onTriggered: {
+                    editor.toolbarExpanded = !editor.toolbarExpanded
+                }
+            },
             Action {
                 visible: !isReadOnly
                 iconName: "tick"
@@ -49,25 +61,26 @@ Page {
         ]
     }
 
-    Column {
+    Item {
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: units.gu(1)
-        padding: units.gu(2)
 
-        // Rich Text Editor - shown when useRichText is true
-        RichTextEditor {
+        // Rich Text Editor with Toolbar - shown when useRichText is true
+        HtmlEditorContainer {
             id: editor
             visible: useRichText
             text: Global.description_temporary_holder
             readOnly: isReadOnly
-            width: parent.width - units.gu(4)
-            height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
+            showToolbar: !isReadOnly
+            anchors.fill: parent
 
             onContentChanged: {
+             //   console.log("[ReadMorePage] onContentChanged - PUSHING to Global, length:", newText.length);
                 Global.description_temporary_holder = newText;
+                readmepage._lastKnownHolder = newText;
+             //   console.log("[ReadMorePage] Updated _lastKnownHolder, length:", readmepage._lastKnownHolder.length);
                 
                 // Track changes in parent form's draft handler
                 if (parentDraftHandler && !isReadOnly) {
@@ -77,8 +90,11 @@ Page {
 
             onContentLoaded: {
                 // Set initial content once the editor is loaded
+              //  console.log("[ReadMorePage] onContentLoaded, holder full content:");
+             //   console.log(Global.description_temporary_holder);
                 if (Global.description_temporary_holder) {
                     editor.text = Global.description_temporary_holder;
+                    readmepage._lastKnownHolder = Global.description_temporary_holder;
                 }
             }
         }
@@ -93,13 +109,14 @@ Page {
             font.pixelSize: units.gu(2)
             wrapMode: TextArea.Wrap
             selectByMouse: true
-            width: parent.width - units.gu(4)
-            height: (parent.height - header.height) - (saveButton.visible ? saveButton.height + units.gu(4) : 0)
+            anchors.fill: parent
             clip: true
 
             onTextChanged: {
                 if (!readOnly) {
+                   // console.log("[ReadMorePage] simpleEditor typing - PUSHING to Global, length:", simpleEditor.text.length);
                     Global.description_temporary_holder = simpleEditor.text;
+                    readmepage._lastKnownHolder = simpleEditor.text;
                     
                     // Track changes in parent form's draft handler
                     if (parentDraftHandler) {
@@ -130,22 +147,48 @@ Page {
         }
     }
 
+    /**
+     * Live sync timer — polls Global.description_temporary_holder every 300ms
+     * to pick up changes pushed by RichTextPreview (user typing in the inline preview).
+     * Skips changes that originated from this editor (tracked via _lastKnownHolder).
+     */
+    Timer {
+        id: liveSyncTimer
+        interval: 300
+        repeat: true
+        running: !isReadOnly
+        onTriggered: {
+            var holderContent = Global.description_temporary_holder;
+            if (holderContent !== "" && holderContent !== readmepage._lastKnownHolder) {
+               // console.log("[ReadMorePage] External change detected - PULLING from Global, length:", holderContent.length);
+                readmepage._lastKnownHolder = holderContent;
+                if (useRichText && editor) {
+                    editor.setText(holderContent);
+                } else if (!useRichText && simpleEditor) {
+                    simpleEditor.text = holderContent;
+                }
+            }
+        }
+    }
+
     // Handle page visibility changes to ensure content is saved
     onVisibleChanged: {
         if (!visible && !isReadOnly) {
             // Page is being hidden, ensure we save the current content
             if (useRichText && editor) {
-                // Force immediate sync before page closes
-                editor.syncContent();
-                // Also get content as backup
-                editor.getText(function (content) {
-                    Global.description_temporary_holder = content;
-                    // Save draft when leaving ReadMore page
-                    if (parentDraftHandler) {
-                        parentDraftHandler.markFieldChanged("description", content);
-                        parentDraftHandler.saveDraft();
-                    }
-                });
+                // Use syncContent which returns the cached text immediately
+                // The text property is kept in sync via contentChanged events
+                var currentContent = editor.syncContent();
+              //  console.log("[ReadMorePage] onVisibleChanged - saving content length:", currentContent ? currentContent.length : 0);
+                
+                // Use the cached text property which is updated via contentChanged
+                Global.description_temporary_holder = currentContent || editor.text || "";
+                
+                // Save draft when leaving ReadMore page
+                if (parentDraftHandler) {
+                    parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
+                    parentDraftHandler.saveDraft();
+                }
             } else if (!useRichText && simpleEditor) {
                 Global.description_temporary_holder = simpleEditor.text;
                 // Save draft when leaving ReadMore page
@@ -158,6 +201,9 @@ Page {
     }
 
     Component.onCompleted: {
+        // Initialize tracking to avoid false external-change detection
+        _lastKnownHolder = Global.description_temporary_holder || "";
+        
         // Ensure the editors are properly initialized with the current content
         if (!useRichText && simpleEditor) {
             simpleEditor.text = Global.description_temporary_holder;
@@ -170,13 +216,16 @@ Page {
         // Save content when page is destroyed
         if (!isReadOnly) {
             if (useRichText && editor) {
-                editor.syncContent();
+                // Use the cached text property which is kept in sync via contentChanged
+                var currentContent = editor.getFormattedText();
+               // console.log("[ReadMorePage] onDestruction - saving content length:", currentContent ? currentContent.length : 0);
+                Global.description_temporary_holder = currentContent;
             } else if (!useRichText && simpleEditor) {
                 Global.description_temporary_holder = simpleEditor.text;
             }
             
             // Save draft one last time before page is destroyed
-            if (parentDraftHandler) {
+            if (parentDraftHandler && Global.description_temporary_holder) {
                 parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
                 parentDraftHandler.saveDraft();
             }

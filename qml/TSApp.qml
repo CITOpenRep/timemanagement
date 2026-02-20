@@ -33,6 +33,7 @@ import "../models/notifications.js" as Notifications
 import Pparent.Notifications 1.0
 import "components"
 import "."
+import "settings"
 
 /*
 Todo: Need to Visit this Page Again and Refactor it.
@@ -595,13 +596,7 @@ MainView {
         }
     }
 
-    function openAccountDrawer() {
-        if (accountFilter && typeof accountFilter.refreshAccounts === 'function') {
-            accountFilter.refreshAccounts();
-        } else {
-            console.warn("⚠️  accountFilter.refreshAccounts function not available");
-        }
-    }
+ 
 
     Component.onCompleted: {
         DbInit.initializeDatabase();

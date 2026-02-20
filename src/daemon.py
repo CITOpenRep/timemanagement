@@ -101,7 +101,7 @@ from config import get_all_accounts, get_setting, DEFAULT_SETTINGS
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
 from sync_to_odoo import sync_all_to_odoo
-from common import add_notification, get_current_assignments_snapshot, detect_new_assignments
+from common import add_notification, get_current_assignments_snapshot, detect_new_assignments, should_send_notification, get_user_info_by_odoo_id
 from logger import setup_logger
 
 log = setup_logger()
@@ -149,7 +149,7 @@ def get_app_version():
         if Path(MANIFEST_PATH).exists():
             with open(MANIFEST_PATH, 'r') as f:
                 manifest = json.load(f)
-                return manifest.get('version', '1.2.3')
+                return manifest.get('version', '1.2.4')
         # Fallback to development path
         dev_manifest = Path(__file__).parent.parent / "manifest.json.in"
         if dev_manifest.exists():
@@ -162,7 +162,7 @@ def get_app_version():
                     return match.group(1)
     except Exception as e:
         log.error(f"[DAEMON] Failed to read app version: {e}")
-    return '1.2.3'  # Fallback version
+    return "1.2.4"  # Fallback version
 
 APP_VERSION = get_app_version()
 
@@ -294,22 +294,26 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Failed to remove PID file: {e}")
     
     def _setup_signal_handlers(self):
-        """Setup signal handlers for graceful shutdown."""
-        # Ignore SIGTERM to prevent being killed by app lifecycle
-        # Only respond to SIGINT (Ctrl+C) for intentional shutdown
-        signal.signal(signal.SIGTERM, self._handle_sigterm_ignore)
+        """Setup signal handlers for graceful shutdown.
+        
+        The daemon runs as a systemd service with Restart=always.
+        We respond to SIGTERM gracefully so systemd can stop/restart us cleanly.
+        Systemd will automatically restart the daemon after a clean shutdown.
+        """
+        signal.signal(signal.SIGTERM, self._handle_shutdown)
         signal.signal(signal.SIGINT, self._handle_shutdown)
         signal.signal(signal.SIGHUP, self._handle_reload)
     
-    def _handle_sigterm_ignore(self, signum, frame):
-        """Ignore SIGTERM to stay alive when app closes."""
-        log.info(f"[DAEMON] Ignoring SIGTERM (signal {signum}) - daemon will continue running")
-        # Do NOT shutdown - just log and continue
-    
     def _handle_shutdown(self, signum, frame):
-        """Handle shutdown signals gracefully (only SIGINT)."""
-        log.info(f"[DAEMON] Received signal {signum}, shutting down...")
+        """Handle shutdown signals gracefully (SIGTERM and SIGINT).
+        
+        Systemd sends SIGTERM to stop the service. We comply and shut down
+        cleanly. Systemd's Restart=always policy will restart us automatically.
+        """
+        sig_name = 'SIGTERM' if signum == signal.SIGTERM else 'SIGINT' if signum == signal.SIGINT else str(signum)
+        log.info(f"[DAEMON] Received {sig_name} (signal {signum}), shutting down gracefully...")
         self.running = False
+        self._save_last_check_times()
         self._release_wakelock()  # Release wakelock before exiting
         self._cleanup_pid_file()
         if self.loop:
@@ -504,8 +508,29 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Post-wake sync failed: {e}")
         return False  # Don't repeat - one-shot callback
     
-    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None):
-        """Send a system notification via DBus with optional deep link navigation."""
+    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None, avatar_path=None):
+        """Send a system notification via DBus with optional deep link navigation.
+        
+        Respects user's notification schedule settings - notifications are only
+        sent during the user's configured active hours in their timezone.
+        
+        Args:
+            title (str): Notification title
+            message (str): Notification body
+            nav_type (str): Type for navigation (Task, Activity, etc.)
+            record_id (int): Record ID for navigation
+            account_id (int): Account ID
+            avatar_path (str): Optional path to assigner's avatar image for notification icon
+        """
+        # Check if notification should be sent based on schedule settings
+        should_send, reason = should_send_notification(self.app_db)
+        if not should_send:
+            log.info(f"[DAEMON] Notification suppressed: {reason}")
+            log.info(f"[DAEMON] Skipped notification: {title} - {message}")
+            # Still add to in-app notifications so user sees them when they open the app
+            # The system notification (popup/sound) is skipped, but record is kept
+            return
+        
         # Retry DBus initialization if not available
         if not self.notification_interface:
             log.info("[DAEMON] Notification interface not available, attempting re-initialization...")
@@ -516,16 +541,21 @@ class NotificationDaemon:
             log.info("[DAEMON] DBus re-initialized successfully!")
         
         try:
-            # Type-specific icon mapping
-            icon_map = {
-                "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
-                "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
-                "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
-                "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
-            }
-            # Select icon based on notification type, fallback to logo
-            icon_path = icon_map.get(nav_type, str(APP_ROOT / "assets" / "logo.png"))
-            log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
+            # Use avatar if provided, otherwise fall back to type-specific icon
+            if avatar_path and Path(avatar_path).exists():
+                icon_path = avatar_path
+                log.info(f"[DAEMON] Using assigner avatar for notification: {icon_path}")
+            else:
+                # Type-specific icon mapping
+                icon_map = {
+                    "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
+                    "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
+                    "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
+                    "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
+                }
+                # Select icon based on notification type, fallback to logo
+                icon_path = icon_map.get(nav_type, str(APP_ROOT / "assets" / "logo.png"))
+                log.info(f"[DAEMON] Using icon for type '{nav_type}': {icon_path}")
             
             # Construct deep link URI for navigation (if navigation params provided)
             # Use odoo_id=1 flag to indicate this is an odoo_record_id (stable across syncs)
@@ -570,8 +600,9 @@ class NotificationDaemon:
                     "account_id": account_id or 0
                 }
                 
-                # Use raw path (not file:// URI) - matches C++ NotificationHelper behavior
-                icon_file = str(APP_ROOT / "assets" / "logo.png")
+                # Use avatar path if available, otherwise fall back to app logo
+                # icon_path was already set above (avatar or type icon)
+                icon_file = icon_path
                 
                 # Ubuntu Touch Postal notification format
                 # Note: vibrate can be true (use default) or an object with pattern
@@ -707,7 +738,7 @@ class NotificationDaemon:
         BULK_THRESHOLD = 10  # Total items that triggers bulk mode
         
         total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
-                     len(new_assignments['new_projects']) + len(new_assignments['new_timesheets']))
+                     len(new_assignments['new_projects']) + len(new_assignments.get('new_project_updates', [])))
         
         if total_new > BULK_THRESHOLD:
             log.warning(f"[DAEMON] Bulk notification protection triggered: {total_new} new items detected")
@@ -721,8 +752,7 @@ class NotificationDaemon:
                 summary_parts.append(f"{len(new_assignments['new_activities'])} activities")
             if new_assignments['new_projects']:
                 summary_parts.append(f"{len(new_assignments['new_projects'])} projects")
-            if new_assignments['new_timesheets']:
-                summary_parts.append(f"{len(new_assignments['new_timesheets'])} timesheets")
+
             
             summary_msg = f"Synced {', '.join(summary_parts)} for {account_name}"
             self.send_notification(
@@ -766,31 +796,81 @@ class NotificationDaemon:
             task_name = task.get('name', 'Unknown Task')
             project_id = task.get('project_id')
             odoo_record_id = task.get('odoo_record_id')
+            create_uid = task.get('create_uid')
+            
+            # Skip self-created tasks (user assigned task to themselves)
+            if create_uid and str(create_uid) == str(current_user_id):
+                log.info(f"[DAEMON] Skipping self-created task '{task_name}' (create_uid={create_uid})")
+                continue
+            
+            # Get assigner info if available
+            assigner_info = None
+            assigner_name = None
+            avatar_path = None
+            if create_uid:
+                assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid)
+                if assigner_info:
+                    assigner_name = assigner_info.get('name')
+                    avatar_path = assigner_info.get('avatar_path')
+            
+            # Build notification message with assigner info
+            if assigner_name:
+                notification_msg = f"{assigner_name} assigned you task '{task_name}'"
+            else:
+                notification_msg = f"You've been assigned to task '{task_name}'"
             
             # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
                 "Task Assigned",
-                f"You've been assigned to task '{task_name}'.",
+                notification_msg,
                 nav_type="Task",
                 record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
-                account_id=account_id
+                account_id=account_id,
+                avatar_path=avatar_path  # Show assigner's avatar in system notification
             )
             add_notification(
                 self.app_db,
                 account_id,
                 "Task",
-                f"You've been assigned to task '{task_name}'.",
-                {"task_name": task_name, "project_id": project_id, "id": task_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+                notification_msg,
+                {
+                    "task_name": task_name, 
+                    "project_id": project_id, 
+                    "id": task_id, 
+                    "odoo_record_id": odoo_record_id, 
+                    "is_new_assignment": True,
+                    "create_uid": create_uid,
+                    "assigner_name": assigner_name,
+                    "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
+                }
             )
         
         # Add remaining tasks to DB without sending popups
         for task in new_assignments['new_tasks'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            create_uid = task.get('create_uid')
+            assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid) if create_uid else None
+            assigner_name = assigner_info.get('name') if assigner_info else None
+            task_name = task.get('name', 'Unknown Task')
+            
+            if assigner_name:
+                msg = f"{assigner_name} assigned you task '{task_name}'"
+            else:
+                msg = f"You've been assigned to task '{task_name}'"
+            
             add_notification(
                 self.app_db, account_id, "Task",
-                f"You've been assigned to task '{task.get('name', 'Unknown Task')}'.",
-                {"task_name": task.get('name'), "project_id": task.get('project_id'), 
-                 "id": task.get('id'), "odoo_record_id": task.get('odoo_record_id'), 
-                 "is_new_assignment": True, "notification_suppressed": True}
+                msg,
+                {
+                    "task_name": task_name, 
+                    "project_id": task.get('project_id'), 
+                    "id": task.get('id'), 
+                    "odoo_record_id": task.get('odoo_record_id'), 
+                    "is_new_assignment": True, 
+                    "notification_suppressed": True,
+                    "create_uid": create_uid,
+                    "assigner_name": assigner_name,
+                    "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
+                }
             )
         
         if new_assignments['new_tasks']:
@@ -808,31 +888,82 @@ class NotificationDaemon:
             summary = activity.get('summary') or "New Activity"
             due_date = activity.get('due_date', 'No date')
             odoo_record_id = activity.get('odoo_record_id')
+            create_uid = activity.get('create_uid')
+            
+            # Skip self-created activities (user assigned activity to themselves)
+            if create_uid and str(create_uid) == str(current_user_id):
+                log.info(f"[DAEMON] Skipping self-created activity '{summary}' (create_uid={create_uid})")
+                continue
+            
+            # Get assigner info if available
+            assigner_info = None
+            assigner_name = None
+            avatar_path = None
+            if create_uid:
+                assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid)
+                if assigner_info:
+                    assigner_name = assigner_info.get('name')
+                    avatar_path = assigner_info.get('avatar_path')
+            
+            # Build notification message with assigner info
+            if assigner_name:
+                notification_msg = f"{assigner_name} assigned you activity: {summary}"
+            else:
+                notification_msg = f"New activity: {summary} (Due: {due_date})"
             
             # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
                 "Activity Assigned",
-                f"New activity: {summary} (Due: {due_date})",
+                notification_msg,
                 nav_type="Activity",
                 record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
-                account_id=account_id
+                account_id=account_id,
+                avatar_path=avatar_path  # Show assigner's avatar in system notification
             )
             add_notification(
                 self.app_db,
                 account_id,
                 "Activity",
-                f"New activity: {summary} (Due: {due_date})",
-                {"summary": summary, "due_date": due_date, "id": activity_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+                notification_msg,
+                {
+                    "summary": summary, 
+                    "due_date": due_date, 
+                    "id": activity_id, 
+                    "odoo_record_id": odoo_record_id, 
+                    "is_new_assignment": True,
+                    "create_uid": create_uid,
+                    "assigner_name": assigner_name,
+                    "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
+                }
             )
         
         # Add remaining activities to DB without sending popups
         for activity in new_assignments['new_activities'][MAX_NOTIFICATIONS_PER_TYPE:]:
+            create_uid = activity.get('create_uid')
+            assigner_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid) if create_uid else None
+            assigner_name = assigner_info.get('name') if assigner_info else None
+            summary = activity.get('summary') or 'New Activity'
+            due_date = activity.get('due_date', 'No date')
+            
+            if assigner_name:
+                msg = f"{assigner_name} assigned you activity: {summary}"
+            else:
+                msg = f"New activity: {summary} (Due: {due_date})"
+            
             add_notification(
                 self.app_db, account_id, "Activity",
-                f"New activity: {activity.get('summary') or 'New Activity'} (Due: {activity.get('due_date', 'No date')})",
-                {"summary": activity.get('summary'), "due_date": activity.get('due_date'),
-                 "id": activity.get('id'), "odoo_record_id": activity.get('odoo_record_id'),
-                 "is_new_assignment": True, "notification_suppressed": True}
+                msg,
+                {
+                    "summary": summary, 
+                    "due_date": due_date,
+                    "id": activity.get('id'), 
+                    "odoo_record_id": activity.get('odoo_record_id'),
+                    "is_new_assignment": True, 
+                    "notification_suppressed": True,
+                    "create_uid": create_uid,
+                    "assigner_name": assigner_name,
+                    "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
+                }
             )
         
         if new_assignments['new_activities']:
@@ -849,6 +980,12 @@ class NotificationDaemon:
             local_project_id = project.get('id')
             project_name = project.get('name', 'Unknown Project')
             odoo_record_id = project.get('odoo_record_id')
+            create_uid = project.get('create_uid')
+            
+            # Skip self-created projects
+            if create_uid and str(create_uid) == str(current_user_id):
+                log.info(f"[DAEMON] Skipping self-created project '{project_name}' (create_uid={create_uid})")
+                continue
             
             # Use odoo_record_id for navigation (stable across syncs, unlike local id)
             self.send_notification(
@@ -863,7 +1000,7 @@ class NotificationDaemon:
                 account_id,
                 "Project",
                 f"You now have access to project '{project_name}'.",
-                {"project_name": project_name, "id": local_project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+                {"project_name": project_name, "id": local_project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True, "create_uid": create_uid}
             )
         
         # Add remaining projects to DB without sending popups
@@ -881,50 +1018,100 @@ class NotificationDaemon:
                      (f" ({projects_overflow} more added to history)" if projects_overflow > 0 else ""))
         
         # =================================================================
-        # 4. TIMESHEETS: Notify for new timesheet entries (max 5 notifications)
+        # 4. PROJECT UPDATES: Notify for new updates by OTHER users
         # =================================================================
-        timesheets_to_notify = new_assignments['new_timesheets'][:MAX_NOTIFICATIONS_PER_TYPE]
-        timesheets_overflow = len(new_assignments['new_timesheets']) - len(timesheets_to_notify)
+        project_updates_to_notify = new_assignments.get('new_project_updates', [])[:MAX_NOTIFICATIONS_PER_TYPE]
+        project_updates_overflow = len(new_assignments.get('new_project_updates', [])) - len(project_updates_to_notify)
         
-        for timesheet in timesheets_to_notify:
-            timesheet_id = timesheet.get('id')
-            ts_name = timesheet.get('name') or "Timesheet Entry"
-            hours = timesheet.get('unit_amount', 0)
-            odoo_record_id = timesheet.get('odoo_record_id')
+        for update in project_updates_to_notify:
+            update_name = update.get('name', 'Project Update')
+            odoo_record_id = update.get('odoo_record_id')
+            create_uid = update.get('create_uid')
+            project_name = update.get('project_name') or 'Unknown Project'
+            project_id = update.get('project_id')
             
-            # Use odoo_record_id for navigation (stable across syncs, unlike local id)
+            # Skip self-created project updates
+            if create_uid and str(create_uid) == str(current_user_id):
+                log.info(f"[DAEMON] Skipping self-created project update '{update_name}' (create_uid={create_uid})")
+                continue
+            
+            # Get author info if available
+            author_info = None
+            author_name = None
+            avatar_path = None
+            if create_uid:
+                author_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid)
+                if author_info:
+                    author_name = author_info.get('name')
+                    avatar_path = author_info.get('avatar_path')
+            
+            # Build notification message
+            if author_name:
+                notification_msg = f"{author_name} posted an update on project '{project_name}'"
+            else:
+                notification_msg = f"New update on project '{project_name}': {update_name}"
+            
             self.send_notification(
-                "Timesheet Added",
-                f"New timesheet '{ts_name}' ({hours}h) synced.",
-                nav_type="Timesheet",
-                record_id=odoo_record_id,  # Use odoo_record_id for stable navigation
-                account_id=account_id
+                "Project Update",
+                notification_msg,
+                nav_type="Project",
+                record_id=project_id,  # Navigate to the project
+                account_id=account_id,
+                avatar_path=avatar_path
             )
             add_notification(
                 self.app_db,
                 account_id,
-                "Timesheet",
-                f"New timesheet '{ts_name}' ({hours}h) synced.",
-                {"timesheet_name": ts_name, "hours": hours, "id": timesheet_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True}
+                "Project",
+                notification_msg,
+                {
+                    "update_name": update_name,
+                    "project_name": project_name,
+                    "project_id": project_id,
+                    "odoo_record_id": odoo_record_id,
+                    "create_uid": create_uid,
+                    "author_name": author_name,
+                    "author_avatar": author_info.get('avatar_128') if author_info else None
+                }
             )
         
-        # Add remaining timesheets to DB without sending popups
-        for timesheet in new_assignments['new_timesheets'][MAX_NOTIFICATIONS_PER_TYPE:]:
+        # Add remaining project updates to DB without sending popups
+        for update in new_assignments.get('new_project_updates', [])[MAX_NOTIFICATIONS_PER_TYPE:]:
+            create_uid = update.get('create_uid')
+            # Skip self-created
+            if create_uid and str(create_uid) == str(current_user_id):
+                continue
+            author_info = get_user_info_by_odoo_id(self.app_db, account_id, create_uid) if create_uid else None
+            author_name = author_info.get('name') if author_info else None
+            project_name = update.get('project_name') or 'Unknown Project'
+            update_name = update.get('name', 'Project Update')
+            
+            if author_name:
+                msg = f"{author_name} posted an update on project '{project_name}'"
+            else:
+                msg = f"New update on project '{project_name}': {update_name}"
+            
             add_notification(
-                self.app_db, account_id, "Timesheet",
-                f"New timesheet '{timesheet.get('name') or 'Timesheet Entry'}' ({timesheet.get('unit_amount', 0)}h) synced.",
-                {"timesheet_name": timesheet.get('name'), "hours": timesheet.get('unit_amount'),
-                 "id": timesheet.get('id'), "odoo_record_id": timesheet.get('odoo_record_id'),
-                 "is_new_assignment": True, "notification_suppressed": True}
+                self.app_db, account_id, "Project",
+                msg,
+                {
+                    "update_name": update_name,
+                    "project_name": project_name,
+                    "project_id": update.get('project_id'),
+                    "odoo_record_id": update.get('odoo_record_id'),
+                    "create_uid": create_uid,
+                    "author_name": author_name,
+                    "notification_suppressed": True
+                }
             )
         
-        if new_assignments['new_timesheets']:
-            log.info(f"[DAEMON] Notified {len(timesheets_to_notify)} NEW timesheet entries" +
-                     (f" ({timesheets_overflow} more added to history)" if timesheets_overflow > 0 else ""))
-        
+        if new_assignments.get('new_project_updates'):
+            log.info(f"[DAEMON] Notified {len(project_updates_to_notify)} NEW project updates" +
+                     (f" ({project_updates_overflow} more added to history)" if project_updates_overflow > 0 else ""))
+
         # Summary log
         total_new = (len(new_assignments['new_tasks']) + len(new_assignments['new_activities']) + 
-                     len(new_assignments['new_projects']) + len(new_assignments['new_timesheets']))
+                     len(new_assignments['new_projects']) + len(new_assignments.get('new_project_updates', [])))
         if total_new == 0:
             log.info(f"[DAEMON] No new assignments detected for {account_name}")
         else:
@@ -1003,7 +1190,7 @@ class NotificationDaemon:
                     log.info(f"[DAEMON] Starting sync_all_from_odoo for {account_name}")
                     self._update_heartbeat()
                     
-                    sync_all_from_odoo(client, account_id, self.settings_db)
+                    sync_all_from_odoo(client, account_id, self.settings_db, account_name=account_name)
                     
                     self._update_heartbeat()
                     log.info(f"[DAEMON] sync_all_from_odoo completed for {account_name}")

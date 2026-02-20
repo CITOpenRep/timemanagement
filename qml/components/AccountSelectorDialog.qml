@@ -8,6 +8,7 @@ import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import "../../models/accounts.js" as Accounts
+import "."
 
 Item {
     id: root
@@ -115,6 +116,7 @@ Item {
                     model: internalInstanceModel
 
                     function loadAccounts() {
+                        isLoadingAccounts = true;
                         internalInstanceModel.clear();
 
                         // Add "All" option first (ID = -1)
@@ -146,9 +148,13 @@ Item {
                             Qt.callLater(() => {
                                 selectAccountById(deferredAccountId);
                                 deferredAccountId = -2;  // Use -2 as "no deferred selection" marker
+                                isLoadingAccounts = false;
                             });
                         } else {
-                            Qt.callLater(() => selectDefaultAccount());
+                            Qt.callLater(() => {
+                                selectDefaultAccount();
+                                isLoadingAccounts = false;
+                            });
                         }
                     }
 
@@ -264,16 +270,35 @@ Item {
                 }
             }
 
+            // Loading state property
+            property bool isLoadingAccounts: false
+
+            // Loading indicator for account list
+            ActivityIndicator {
+                anchors.centerIn: parent
+                running: isLoadingAccounts
+                visible: running
+            }
+
             onVisibleChanged: {
                 if (visible) {
-                    // refresh list
-                    accountCombo.refreshAndSelectDefault()
-                    // apply deferred initial id from root.open()
+                    // Prefer explicit initial selection passed to open(); otherwise
+                    // keep showing the currently applied filter selection.
+                    let preferredAccountId = -2
                     if (root._initialAccountId >= -1) {
-                        accountCombo.shouldDeferSelection = true
-                        accountCombo.deferredAccountId = root._initialAccountId
+                        preferredAccountId = root._initialAccountId
                         root._initialAccountId = -2
+                    } else if (root.selectedAccountId >= -1) {
+                        preferredAccountId = root.selectedAccountId
                     }
+
+                    if (preferredAccountId >= -1) {
+                        accountCombo.shouldDeferSelection = true
+                        accountCombo.deferredAccountId = preferredAccountId
+                    }
+
+                    // refresh list and apply preferred selection if available
+                    accountCombo.refreshAndSelectDefault()
                 }
             }
         }

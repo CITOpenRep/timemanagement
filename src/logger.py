@@ -76,9 +76,29 @@ def get_log_file_path():
     return str(log_dir / "daemon.log")
 
 
+def _is_running_under_systemd():
+    """Detect if the process is running under systemd.
+    
+    When systemd manages the process, it redirects stdout/stderr to the log file
+    via StandardOutput/StandardError directives. In that case, we should NOT add
+    our own file handler (to avoid duplicate log lines), and the stderr handler
+    is sufficient since systemd captures it.
+    """
+    # INVOCATION_ID is set by systemd for all services
+    if os.environ.get('INVOCATION_ID'):
+        return True
+    # JOURNAL_STREAM is set when stdout/stderr are connected to the journal
+    if os.environ.get('JOURNAL_STREAM'):
+        return True
+    return False
+
+
 def setup_logger(name="odoo_sync", log_file=None, level=logging.INFO):
     """
     Sets up a system-wide logger that logs to both console and file.
+    
+    When running under systemd, skips the file handler since systemd
+    already captures stderr to the log file (avoids duplicate log lines).
 
     Args:
         name (str): Logger name.
@@ -90,6 +110,9 @@ def setup_logger(name="odoo_sync", log_file=None, level=logging.INFO):
     """
     logger = logging.getLogger(name)
     logger.setLevel(level)
+    
+    # Prevent propagation to root logger to avoid any extra duplicate output
+    logger.propagate = False
 
     if not logger.handlers:  # Avoid duplicate handlers
 
@@ -99,33 +122,39 @@ def setup_logger(name="odoo_sync", log_file=None, level=logging.INFO):
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 
+        under_systemd = _is_running_under_systemd()
         file_logging_ok = False
         
         # File handler with rotation (5 files x 1MB each)
-        try:
-            if log_file is None:
-                log_file = get_log_file_path()
-            
-            # Ensure parent directory exists
-            log_path = Path(log_file)
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            fh = FlushingFileHandler(
-                log_file,
-                maxBytes=1024*1024,  # 1MB per file
-                backupCount=5,       # Keep 5 backup files
-                encoding='utf-8'
-            )
-            fh.setLevel(level)
-            fh.setFormatter(formatter)
-            logger.addHandler(fh)
-            file_logging_ok = True
-        except Exception as e:
-            # Print to stderr immediately so it's visible even without file logging
-            print(f"[LOGGER] CRITICAL: Could not set up file logging to {log_file}: {e}", file=sys.stderr)
-            sys.stderr.flush()
+        # Skip when running under systemd - it already redirects stderr to the log file
+        if not under_systemd:
+            try:
+                if log_file is None:
+                    log_file = get_log_file_path()
+                
+                # Ensure parent directory exists
+                log_path = Path(log_file)
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                fh = FlushingFileHandler(
+                    log_file,
+                    maxBytes=1024*1024,  # 1MB per file
+                    backupCount=5,       # Keep 5 backup files
+                    encoding='utf-8'
+                )
+                fh.setLevel(level)
+                fh.setFormatter(formatter)
+                logger.addHandler(fh)
+                file_logging_ok = True
+            except Exception as e:
+                # Print to stderr immediately so it's visible even without file logging
+                print(f"[LOGGER] CRITICAL: Could not set up file logging to {log_file}: {e}", file=sys.stderr)
+                sys.stderr.flush()
+        else:
+            file_logging_ok = True  # systemd handles file logging
 
-        # Console handler with immediate flushing
+        # Console/stderr handler with immediate flushing
+        # Under systemd, this is the primary output (captured to log file by systemd)
         ch = FlushingStreamHandler(sys.stderr)
         ch.setLevel(level)
         ch.setFormatter(formatter)
@@ -139,7 +168,9 @@ def setup_logger(name="odoo_sync", log_file=None, level=logging.INFO):
         logger.json_handler = json_handler
         
         # Log startup confirmation
-        if file_logging_ok:
+        if under_systemd:
+            logger.info(f"[LOGGER] Initialized (systemd mode, stderr only). Log file managed by systemd.")
+        elif file_logging_ok:
             logger.info(f"[LOGGER] Initialized successfully. Log file: {log_file}")
         else:
             logger.warning(f"[LOGGER] Initialized without file logging (console only)")

@@ -13,6 +13,7 @@ import "../models/task.js" as Task
 import "../models/project.js" as Project
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: activityDetailsPage
@@ -762,8 +763,10 @@ Page {
                             Global.description_temporary_holder = notes.getFormattedText();
                             Global.description_context = "activity_notes";
                             navigatingToReadMore = true;
+                            notes.liveSyncActive = true;
                             apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                isReadOnly: isReadOnly
+                                isReadOnly: isReadOnly,
+                                parentDraftHandler: draftHandler
                                 //useRichText: false
                             });
                         }
@@ -1206,6 +1209,9 @@ Page {
         if (visible) {
             // Update navigation tracking when Activities detail page becomes visible
             Global.setLastVisitedPage("Activities");
+
+            // Stop live sync — content is already up-to-date via the timer
+            notes.liveSyncActive = false;
 
             // Reset the navigation tracking flag when page becomes visible
             navigatingToReadMore = false;

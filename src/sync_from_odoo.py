@@ -113,7 +113,7 @@ def should_update_local(odoo_write_date: str, local_last_modified: str) -> bool:
             odoo_dt = odoo_dt.replace(tzinfo=timezone.utc)
 
         # Normalize local time (assume it's stored in UTC, or naive)
-        local_dt = datetime.fromisoformat(local_last_modified)
+        local_dt = datetime.fromisoformat(local_last_modified.replace("Z", "+00:00"))
         if local_dt.tzinfo is None:
             local_dt = local_dt.replace(tzinfo=timezone.utc)
 
@@ -129,6 +129,7 @@ def insert_record(
     record,
     db_path="app_settings.db",
     config_path="field_config.json",
+    account_name="",
 ):
     """
     Insert or replace a record in the local SQLite database.
@@ -256,12 +257,13 @@ def insert_record(
             log.error(f"[CONFIG] Database constraint violation - check if required fields have valid values.")
         
         record_name = record.get('name') or record.get('summary') or f"Record #{record.get('id')}"
+        acct_label = f" ({account_name})" if account_name else ""
         add_notification(
             db_path=db_path,
             account_id=account_id,
             notif_type="Sync",
-            message=f"Failed to sync {model_name}: {record_name}",
-            payload={"record_id": record.get("id"), "record_name": record_name, "error": error_msg}
+            message=f"Failed to sync {model_name}: {record_name}{acct_label}",
+            payload={"record_id": record.get("id"), "record_name": record_name, "error": error_msg, "account_name": account_name}
         )
 
 
@@ -301,6 +303,7 @@ def sync_model(
     account_id,
     db_path="app_settings.db",
     config_path="field_config.json",
+    account_name="",
 ):
     """
     Synchronize a complete Odoo model with its corresponding SQLite table.
@@ -346,12 +349,31 @@ def sync_model(
         ]
         
         if model_name in critical_models:
+            # Build a contextual message with account name and brief error reason
+            model_label = model_name.replace('.', ' ').title()
+            error_str = str(e)
+            # Extract a brief, user-friendly error reason
+            if "timeout" in error_str.lower() or "timed out" in error_str.lower():
+                error_brief = "Connection timed out"
+            elif "connection" in error_str.lower() or "refused" in error_str.lower():
+                error_brief = "Connection failed"
+            elif "authentication" in error_str.lower() or "access denied" in error_str.lower() or "invalid api key" in error_str.lower():
+                error_brief = "Authentication failed"
+            elif "no such column" in error_str.lower():
+                error_brief = "Database schema mismatch"
+            elif "fault" in error_str.lower() or "xmlrpc" in error_str.lower():
+                error_brief = "Server error"
+            else:
+                # Truncate raw error to keep notification readable
+                error_brief = error_str[:80] + ("..." if len(error_str) > 80 else "")
+            
+            acct_label = f" on {account_name}" if account_name else ""
             add_notification(
                 db_path=db_path,
                 account_id=account_id,
                 notif_type="Sync",
-                message=f"Sync failed for {model_name.replace('.', ' ').title()}",
-                payload={"model": model_name, "error": str(e)}
+                message=f"Sync failed for {model_label}{acct_label}: {error_brief}",
+                payload={"model": model_name, "error": error_str, "account_name": account_name}
             )
 
 
@@ -577,7 +599,8 @@ def remove_orphaned_local_records(
 
 
 def sync_all_from_odoo(
-    client, account_id, db_path="app_settings.db", config_path="field_config.json"
+    client, account_id, db_path="app_settings.db", config_path="field_config.json",
+    account_name="",
 ):
     """
     Synchronize all configured Odoo models with their corresponding SQLite tables.
@@ -621,12 +644,13 @@ def sync_all_from_odoo(
     """
     for model, table in models_to_sync.items():
         send("sync_message",f"Syncing from Server {model}")
-        sync_model(client, model, table, account_id, db_path, config_path)
+        sync_model(client, model, table, account_id, db_path, config_path, account_name=account_name)
 
 
 
 def sync_ondemand_tables_from_odoo(
-    client, account_id, db_path="app_settings.db", config_path="field_config.json"
+    client, account_id, db_path="app_settings.db", config_path="field_config.json",
+    account_name="",
 ):
     """
     Synchronize all configured Odoo models with their corresponding SQLite tables.
@@ -652,4 +676,4 @@ def sync_ondemand_tables_from_odoo(
     }
 
     for model, table in models_to_sync.items():
-        sync_model(client, model, table, account_id, db_path, config_path)
+        sync_model(client, model, table, account_id, db_path, config_path, account_name=account_name)

@@ -37,6 +37,7 @@ import "../models/activity.js" as Activity
 import "../models/project.js" as Project
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: projectCreate
@@ -91,7 +92,7 @@ Page {
                         'planned_end_date': date_range_widget.formattedEndDate(),
                         'parent_id': ids.project_id,
                         'allocated_hours': hours_text.text,
-                        'description': description_text.text,
+                        'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
                         'favorites': currentFavorites,
                         'color': project_color,
                         'status': "updated",
@@ -221,17 +222,17 @@ Page {
     SaveDiscardDialog {
         id: saveDiscardDialog
         onSaveRequested: {
-            console.log("💾 SaveDiscardDialog: Saving project...");
+            //console.log("💾 SaveDiscardDialog: Saving project...");
             saveProjectData();
         }
         onDiscardRequested: {
-            console.log("🗑️ SaveDiscardDialog: Discarding changes...");
+            //console.log("🗑️ SaveDiscardDialog: Discarding changes...");
             restoreFormToOriginal();
             draftHandler.clearDraft();
             Qt.callLater(navigateBack);
         }
         onCancelled: {
-            console.log("❌ User cancelled navigation - staying on page");
+            //console.log("❌ User cancelled navigation - staying on page");
         }
     }
 
@@ -244,7 +245,7 @@ Page {
         
         // Check if we have unsaved changes
         if (!isReadOnly && draftHandler.hasUnsavedChanges) {
-            console.log("⚠️ Unsaved changes detected on back navigation");
+            //console.log("⚠️ Unsaved changes detected on back navigation");
             saveDiscardDialog.open();
             return;
         }
@@ -254,12 +255,12 @@ Page {
     }
 
     function navigateBack() {
-        console.log("🔙 Attempting to navigate back...");
+        //console.log("🔙 Attempting to navigate back...");
         
         // Method 1: AdaptivePageLayout (primary method for this app)
         try {
             if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
-                console.log("✅ Navigating via apLayout.removePages()");
+                //console.log("✅ Navigating via apLayout.removePages()");
                 apLayout.removePages(projectCreate);
                 return;
             }
@@ -275,13 +276,13 @@ Page {
                 return;
             }
         } catch (e) {
-            console.error("❌ Navigation error with pageStack:", e);
+            //console.error("❌ Navigation error with pageStack:", e);
         }
 
         // Method 3: Parent pop
         try {
             if (parent && parent.pop) {
-                console.log("✅ Navigating via parent.pop()");
+                //console.log("✅ Navigating via parent.pop()");
                 parent.pop();
                 return;
             }
@@ -293,7 +294,7 @@ Page {
     }
 
     function restoreFormFromDraft(draftData) {
-        console.log("🔄 Restoring form from draft data...");
+        //console.log("🔄 Restoring form from draft data...");
         
         // Set flag to suppress tracking during restoration
         isRestoringFromDraft = true;
@@ -331,12 +332,12 @@ Page {
         // Clear the restoration flag
         Qt.callLater(function() {
             isRestoringFromDraft = false;
-            console.log("✅ Draft restoration complete - tracking re-enabled");
+            //console.log("✅ Draft restoration complete - tracking re-enabled");
         });
     }
     
     function restoreFormToOriginal() {
-        console.log("🔄 Restoring form to original values...");
+        //console.log("🔄 Restoring form to original values...");
         
         var originalData = draftHandler.originalData;
         if (originalData.name !== undefined) project_name.text = originalData.name;
@@ -423,7 +424,7 @@ Page {
             'planned_end_date': date_range_widget.formattedEndDate(),
             'parent_id': ids.project_id,
             'allocated_hours': hours_text.text,
-            'description': description_text.text,
+            'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             'favorites': currentFavorites,
             'color': project_color,
             'status': "updated",
@@ -462,7 +463,7 @@ Page {
         if (isOdooRecordId) {
             // projectId is an odoo_record_id (stable, from notification deep link)
             project = Project.getProjectDetailsByOdooId(projectId);
-            console.log("Projects: Loaded by odoo_record_id:", projectId, "found local id:", project ? project.id : "null");
+            //console.log("Projects: Loaded by odoo_record_id:", projectId, "found local id:", project ? project.id : "null");
             // Update recordid to local id for subsequent operations
             if (project && project.id) {
                 recordid = project.id;
@@ -597,6 +598,7 @@ Page {
                         Global.description_temporary_holder = getFormattedText();
                         Global.description_context = "project_description";
                         navigatingToReadMore = true;
+                        description_text.liveSyncActive = true;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                             isReadOnly: isReadOnly,
                             parentDraftHandler: draftHandler
@@ -1045,6 +1047,8 @@ Page {
     
     onVisibleChanged: {
         if (visible) {
+            // Stop live sync — content is already up-to-date via the timer
+            description_text.liveSyncActive = false;
             if (Global.description_temporary_holder !== "" && Global.description_context === "project_description") {
                 //Check if you are coming back from the ReadMore page for project description
                 description_text.setContent(Global.description_temporary_holder);

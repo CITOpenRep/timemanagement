@@ -28,7 +28,7 @@ import logging
 from odoo_client import OdooClient
 from common import sanitize_datetime, safe_sql_execute,add_notification
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from bus import send
 
@@ -601,8 +601,12 @@ def should_push_field(local_val, remote_val, local_ts, remote_ts):
         return True
 
     try:
-        local_dt = datetime.fromisoformat(local_ts)
+        local_dt = datetime.fromisoformat(local_ts.replace("Z", "+00:00"))
+        if local_dt.tzinfo is None:
+            local_dt = local_dt.replace(tzinfo=timezone.utc)
         remote_dt = datetime.fromisoformat(remote_ts.replace("Z", "+00:00"))
+        if remote_dt.tzinfo is None:
+            remote_dt = remote_dt.replace(tzinfo=timezone.utc)
 
         if local_dt >= remote_dt:
             log.debug(
@@ -833,7 +837,17 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
 
                     return record["odoo_record_id"]
                 except Exception as e:
+                    error_str = str(e)
                     log.error(f"[ERROR] Failed to mark activity '{activity_name}' (odoo_id={record['odoo_record_id']}) as done: {e}")
+                    # If the record was already deleted on the server, clear local sync status
+                    # so we don't keep retrying a hopeless operation
+                    if 'Record does not exist' in error_str or 'has been deleted' in error_str:
+                        log.warning(f"[ACTIVITY_SYNC_TO] Activity '{activity_name}' (odoo_id={record['odoo_record_id']}) no longer exists on server. Clearing local sync status.")
+                        safe_sql_execute(
+                            record["db_path"],
+                            f"UPDATE {record['table_name']} SET status = '' WHERE id = ? AND account_id = ?",
+                            (record["id"], record["account_id"])
+                        )
                     return None
 
             valid_fields = [f for f in field_map.keys() if f in field_info]

@@ -38,6 +38,21 @@ Item {
     property ListModel navigationStackModel: ListModel {}
     property var childrenMap: ({})
     property bool childrenMapReady: false
+    
+    // Pagination properties
+    property int pageSize: 30
+    property int currentOffset: 0
+    property bool hasMoreItems: true
+    property bool isLoadingMore: false
+
+    onCurrentParentIdChanged: {
+        currentOffset = 0;
+        hasMoreItems = true;
+        _doPopulateTaskChildrenMap();
+    }
+
+    // Optional delegate for external data loading (function(limit, offset))
+    property var loadDelegate: null
 
     // Add properties for filtering and searching
     property string currentFilter: "today"  // Set default filter to "today"
@@ -60,6 +75,9 @@ Item {
 
     // View mode properties
     property bool flatViewMode: false
+
+    // Loading state property
+    property bool isLoading: false
 
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
@@ -103,16 +121,10 @@ Item {
         filterByProject = true;
         projectOdooRecordId = projectOdooId;
         projectAccountId = projectAccountId;
-        var projectTasks = getTasksForProject(projectOdooId, projectAccountId);
+        currentFilter = "all";
+        currentSearchQuery = "";
 
-        // Apply assignee filtering if enabled (with hierarchy support)
-        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            console.log("TaskList applyProjectFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees:", JSON.stringify(selectedAssigneeIds));
-            projectTasks = applyAssigneeFilterWithHierarchy(projectTasks, selectedAssigneeIds);
-            console.log("TaskList applyProjectFilter: Final filtered tasks count:", projectTasks.length);
-        }
-
-        updateDisplayedTasks(projectTasks);
+        refreshWithFilter();
     }
 
     // Add combined project and time filter method
@@ -121,37 +133,9 @@ Item {
         projectOdooRecordId = projectOdooId;
         projectAccountId = accountId;
         currentFilter = timeFilter;
+        currentSearchQuery = "";
 
-        // Get project tasks first, then apply filtering
-        var projectTasks = getTasksForProject(projectOdooId, accountId);
-
-        // Create a map for quick lookup
-        var projectTasksMap = {};
-        for (var i = 0; i < projectTasks.length; i++) {
-            var key = projectTasks[i].odoo_record_id + "_" + projectTasks[i].account_id;
-            projectTasksMap[key] = projectTasks[i];
-        }
-
-        // Get filtered tasks and intersect with project tasks
-        var allFilteredTasks = Task.getFilteredTasks(timeFilter, "");
-        var filteredProjectTasks = [];
-
-        for (var j = 0; j < allFilteredTasks.length; j++) {
-            var filteredTask = allFilteredTasks[j];
-            var taskKey = filteredTask.odoo_record_id + "_" + filteredTask.account_id;
-            if (projectTasksMap[taskKey]) {
-                filteredProjectTasks.push(filteredTask);
-            }
-        }
-
-        // Apply assignee filtering if enabled (with hierarchy support)
-        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            console.log("TaskList applyProjectAndTimeFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
-            filteredProjectTasks = applyAssigneeFilterWithHierarchy(filteredProjectTasks, selectedAssigneeIds);
-            console.log("TaskList applyProjectAndTimeFilter: Final filtered tasks count:", filteredProjectTasks.length);
-        }
-
-        updateDisplayedTasks(filteredProjectTasks);
+        refreshWithFilter();
     }
 
     // Add combined project and search filter method
@@ -161,36 +145,43 @@ Item {
         projectAccountId = accountId;
         currentSearchQuery = searchQuery;
 
-        // Get project tasks first, then apply search filtering
-        var projectTasks = getTasksForProject(projectOdooId, accountId);
+        refreshWithFilter();
+    }
 
-        // Create a map for quick lookup
-        var projectTasksMap = {};
-        for (var i = 0; i < projectTasks.length; i++) {
-            var key = projectTasks[i].odoo_record_id + "_" + projectTasks[i].account_id;
-            projectTasksMap[key] = projectTasks[i];
-        }
+    // Paginated loading function for assignee-filtered tasks (with optional project filter)
+    function _doPaginatedAssigneeLoad() {
+        var filterType = (currentFilter && currentFilter !== "") ? currentFilter : "all";
+        var searchQuery = (currentSearchQuery && currentSearchQuery.trim() !== "") ? currentSearchQuery : "";
+        var accountParam = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1;
+        var projectParam = (filterByProject && projectOdooRecordId > 0) ? projectOdooRecordId : undefined;
 
-        // Get search filtered tasks and intersect with project tasks
-        var allSearchedTasks = Task.getFilteredTasks("all", searchQuery);
-        var searchedProjectTasks = [];
+        var result = Task.getTasksByAssigneesPaginated(
+            selectedAssigneeIds, accountParam, filterType, searchQuery,
+            pageSize, currentOffset, projectParam);
 
-        for (var j = 0; j < allSearchedTasks.length; j++) {
-            var searchedTask = allSearchedTasks[j];
-            var taskKey = searchedTask.odoo_record_id + "_" + searchedTask.account_id;
-            if (projectTasksMap[taskKey]) {
-                searchedProjectTasks.push(searchedTask);
-            }
-        }
+        var tasks = result.tasks;
+        hasMoreItems = result.hasMore;
 
-        // Apply assignee filtering if enabled (with hierarchy support)
-        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
-            console.log("TaskList applyProjectAndSearchFilter: Applying hierarchical assignee filter with", selectedAssigneeIds.length, "assignees");
-            searchedProjectTasks = applyAssigneeFilterWithHierarchy(searchedProjectTasks, selectedAssigneeIds);
-            console.log("TaskList applyProjectAndSearchFilter: Final filtered tasks count:", searchedProjectTasks.length);
-        }
+        updateDisplayedTasks(tasks, isLoadingMore);
+        isLoadingMore = false;
+        isLoading = false;
+    }
 
-        updateDisplayedTasks(searchedProjectTasks);
+    // Paginated loading function for project-filtered tasks
+    function _doPaginatedProjectLoad() {
+        var filterType = (currentFilter && currentFilter !== "") ? currentFilter : "all";
+        var searchQuery = (currentSearchQuery && currentSearchQuery.trim() !== "") ? currentSearchQuery : "";
+
+        var result = Task.getTasksForProjectPaginated(
+            projectOdooRecordId, projectAccountId, pageSize, currentOffset,
+            filterType, searchQuery);
+        
+        var tasks = result.tasks;
+        hasMoreItems = result.hasMore;
+
+        updateDisplayedTasks(tasks, isLoadingMore);
+        isLoadingMore = false;
+        isLoading = false;
     }
 
     // New function to get tasks for a specific project
@@ -278,7 +269,7 @@ Item {
             if (matchesSelectedAssignee) {
                 var compositeId = task.odoo_record_id + "_" + task.account_id;
                 matchingTaskIds.add(compositeId);
-                console.log("TaskList: Direct match found for task:", task.name, "ID:", compositeId);
+                //console.log("TaskList: Direct match found for task:", task.name, "ID:", compositeId);
             }
         }
 
@@ -295,7 +286,7 @@ Item {
                 if (parentTask && !matchingTaskIds.has(parentCompositeId)) {
                     matchingTaskIds.add(parentCompositeId);
                     toProcess.push(parentCompositeId); // Continue up the hierarchy
-                    console.log("TaskList: Adding parent task for hierarchy:", parentTask.name, "ID:", parentCompositeId);
+                    //console.log("TaskList: Adding parent task for hierarchy:", parentTask.name, "ID:", parentCompositeId);
                 }
             }
         }
@@ -311,56 +302,75 @@ Item {
             }
         }
 
-        console.log("TaskList: Hierarchical filter result - matched tasks:", matchingTaskIds.size, "final count:", filteredTasks.length);
+        //console.log("TaskList: Hierarchical filter result - matched tasks:", matchingTaskIds.size, "final count:", filteredTasks.length);
         return filteredTasks;
     }
 
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: refreshTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doRefreshWithFilter()
+    }
+
     function refreshWithFilter() {
+        isLoading = true;
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        refreshTimer.start();
+    }
+
+    function _doRefreshWithFilter() {
+        // Reset pagination state for a fresh load (filter/search changed)
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
 
         // Restore from global state if assignee filter is enabled but IDs are missing
-        if (filterByAssignees && selectedAssigneeIds.length === 0)
-        // Try to restore from global state - we need to access the Global object from TaskList
-        // Since TaskList doesn't import Global, we'll let Task_Page handle this restoration
-
-        {}
+        if (filterByAssignees && selectedAssigneeIds.length === 0) {
+            // Try to restore from global state - we need to access the Global object from TaskList
+            // Since TaskList doesn't import Global, we'll let Task_Page handle this restoration
+        }
 
         if (filterByAssignees && selectedAssigneeIds.length > 0) {
-            // Filter by assignees with hierarchical support
-            var assigneeTasks;
-            var accountParam = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1;
-
-            assigneeTasks = Task.getTasksByAssigneesHierarchical(selectedAssigneeIds, accountParam, currentFilter, currentSearchQuery);
-
-            updateDisplayedTasks(assigneeTasks);
-        } else if (filterByAccount && selectedAccountId >= 0) {
-            var accountTasks;
-            if (currentFilter === "all" && !currentSearchQuery) {
-                accountTasks = Task.getTasksForAccount(selectedAccountId);
-            } else {
-                accountTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery, selectedAccountId);
-            }
-            updateDisplayedTasks(accountTasks);
-        } else if (currentFilter === "all" && !currentSearchQuery) {
-            populateTaskChildrenMap();
-        } else if (currentFilter && currentFilter !== "" || currentSearchQuery) {
-            var filteredTasks = Task.getFilteredTasks(currentFilter, currentSearchQuery);
-            updateDisplayedTasks(filteredTasks);
+            // Use paginated assignee filtering (SQL-level LIMIT/OFFSET)
+            _doPaginatedAssigneeLoad();
+        } else if (filterByProject) {
+            // Use paginated project loading
+            _doPaginatedProjectLoad();
         } else {
-            populateTaskChildrenMap();
+            // Use paginated loading with proper date/search filtering for all other cases
+            _doPaginatedLoad();
         }
+    }
+
+    // New function for paginated loading with date/search filtering
+    function _doPaginatedLoad() {
+        // Use delegate if provided
+        if (loadDelegate) {
+            loadDelegate(pageSize, currentOffset);
+            return;
+        }
+
+        var acc = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : (accountPicker.selectedAccountId >= 0 ? accountPicker.selectedAccountId : -1);
+        
+        // Use the new paginated function that handles date/search filtering correctly
+        var result = Task.getFilteredTasksPaginated(currentFilter, currentSearchQuery, acc, pageSize, currentOffset);
+        
+        var tasks = result.tasks;
+        hasMoreItems = result.hasMore && tasks.length >= pageSize;
+        
+        // Pass isLoadingMore as 'append' argument
+        updateDisplayedTasks(tasks, isLoadingMore);
+        
+        isLoadingMore = false;
     }
 
     function applyAccountFilter(accountId) {
         filterByAccount = (accountId >= 0);
         selectedAccountId = accountId;
         filterByProject = false;
-
-        refreshWithFilter();
-    }
-
-    function clearAccountFilter() {
-        filterByAccount = false;
-        selectedAccountId = accountPicker.selectedAccountId;
 
         refreshWithFilter();
     }
@@ -405,12 +415,15 @@ Item {
     }
 
     // New function to update displayed tasks with filtered data
-    function updateDisplayedTasks(tasks) {
-        childrenMap = {};
-        childrenMapReady = false;
+    function updateDisplayedTasks(tasks, append) {
+        if (!append) {
+            childrenMap = {};
+            childrenMapReady = false;
+        }
 
         if (tasks.length === 0) {
-            childrenMapReady = true;
+            if (!append) childrenMapReady = true;
+            isLoading = false;
             return;
         }
 
@@ -464,6 +477,42 @@ Item {
             tempMap[parentOdooId].push(item);
         });
 
+        // Build a set of all task IDs present in this batch (and existing data for append)
+        var knownTaskIds = {};
+        for (var parentKey in tempMap) {
+            tempMap[parentKey].forEach(function (item) {
+                knownTaskIds[item.id_val] = true;
+            });
+        }
+        if (append) {
+            // In append mode, parents from previous pages are already in childrenMap
+            for (var existingKey in childrenMap) {
+                var existingModel = childrenMap[existingKey];
+                for (var m = 0; m < existingModel.count; m++) {
+                    knownTaskIds[existingModel.get(m).id_val] = true;
+                }
+            }
+        }
+
+        // Promote orphaned children to root level:
+        // If a task's parent is not in the known set, display it at root (-1)
+        var orphanedParentKeys = [];
+        for (var pKey in tempMap) {
+            var numKey = parseInt(pKey);
+            if (numKey !== -1 && !knownTaskIds[numKey]) {
+                orphanedParentKeys.push(pKey);
+            }
+        }
+        for (var oi = 0; oi < orphanedParentKeys.length; oi++) {
+            var opKey = orphanedParentKeys[oi];
+            if (!tempMap[-1]) tempMap[-1] = [];
+            for (var ci = 0; ci < tempMap[opKey].length; ci++) {
+                tempMap[opKey][ci].parent_id = -1;
+                tempMap[-1].push(tempMap[opKey][ci]);
+            }
+            delete tempMap[opKey];
+        }
+
         // Mark children
         for (var parent in tempMap) {
             tempMap[parent].forEach(function (child) {
@@ -473,93 +522,132 @@ Item {
             });
         }
 
-        // Create QML ListModels
+        // Create or Update QML ListModels
         for (var key in tempMap) {
-            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
+            var model = childrenMap[key];
+            if (!model) {
+                model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
+                childrenMap[key] = model;
+            }
             tempMap[key].forEach(function (entry) {
                 model.append(entry);
             });
-            childrenMap[key] = model;
         }
 
         childrenMapReady = true;
+        
+        // Force update of the ListView model binding
+        taskListView.model = getCurrentModel();
+        
+        isLoading = false;
     }
 
     function refresh() {
+        isLoading = true;
         navigationStackModel.clear();
         currentParentId = -1;
+        
+        // Reset pagination
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
+
         currentFilter = "today";  // Reset to default filter
         currentSearchQuery = "";
         refreshWithFilter();  // Use refreshWithFilter to apply the default filter
     }
 
+    // Timer for populating task children map
+    Timer {
+        id: populateTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doPopulateTaskChildrenMap()
+    }
+
     function populateTaskChildrenMap() {
+        isLoading = true;
         childrenMap = {};
         childrenMapReady = false;
+        // Use Timer to defer the actual data loading
+        populateTimer.start();
+    }
 
-        var allTasks = Task.getAllTasksForAccount(accountPicker.selectedAccountId); // import tasks.js as Task
+    function loadMoreTasks() {
+        if (isLoadingMore || !hasMoreItems) return;
+        isLoadingMore = true;
+        currentOffset += pageSize;
+        // Route to proper paginated loader based on context
+        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+            _doPaginatedAssigneeLoad();
+        } else if (filterByProject) {
+            _doPaginatedProjectLoad();
+        } else {
+            _doPaginatedLoad();
+        }
+    }
 
-        if (allTasks.length === 0) {
-            childrenMapReady = true;
+    function _doPopulateTaskChildrenMap() {
+        // If not loading more, we are resetting/refreshing
+        // updateDisplayedTasks will handle clearing if append=false
+        
+        // Use delegate if provided
+        if (loadDelegate) {
+            loadDelegate(pageSize, currentOffset);
+            // Delegate is responsible for calling updateDisplayedTasks and managing hasMoreItems/isLoading flags
             return;
         }
+        
+        var tasks = [];
+        // This function is now only called for "all" filter or when no date filter is active
+        // So we can always paginate when we reach this point
+        var canPaginate = !currentSearchQuery && (!selectedAssigneeIds || selectedAssigneeIds.length === 0) && !filterByProject;
 
-        // Tasks are already sorted by last_modified in the Task.getAllTasks() SQL query
-
-        var tempMap = {};
-
-        allTasks.forEach(function (row) {
-            var odooId = row.odoo_record_id;
-            var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
-
-            var projectName = Project.getProjectName(row.project_id, row.account_id); // import projects.js as Project
-
-            var item = {
-                id_val: odooId,
-                local_id: row.id,
-                account_id: row.account_id,
-                project: projectName,
-                parent_id: parentOdooId,
-                name: row.name || "Untitled",
-                taskName: row.name || "Untitled",
-                recordId: odooId,
-                allocatedHours: row.initial_planned_hours ? row.initial_planned_hours : 0,
-                spentHours: row.spent_hours ? row.spent_hours : 0,
-                startDate: row.start_date || "",
-                endDate: row.end_date || "",
-                deadline: row.deadline || "",
-                description: row.description || "",
-                hasChildren: false,
-                stage: row.state || -1,
-                color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
-                last_modified: row.last_modified || "",
-                has_draft: row.has_draft === 1
-            };
-
-            if (!tempMap[parentOdooId])
-                tempMap[parentOdooId] = [];
-            tempMap[parentOdooId].push(item);
-        });
-
-        // Mark children
-        for (var parent in tempMap) {
-            tempMap[parent].forEach(function (child) {
-                var children = tempMap[child.id_val];
-                child.hasChildren = !!children;
-                child.childCount = children ? children.length : 0;
-            });
+        if (canPaginate) {
+             // Pagination Logic - no date filter needed since we only paginate for "all" filter
+             if (flatViewMode) {
+                 var acc = accountPicker.selectedAccountId;
+                 if (acc >= 0) tasks = Task.getAllTasksForAccountPaginated(acc, pageSize, currentOffset);
+                 else tasks = Task.getAllTasksPaginated(pageSize, currentOffset);
+             } else {
+                 var acc = accountPicker.selectedAccountId;
+                 if (typeof acc === "undefined") acc = -1;
+                 // Handle Parent ID
+                 var pid = currentParentId;
+                 tasks = Task.getTasksByParentIdPaginated(pid, acc, pageSize, currentOffset);
+             }
+             
+             if (tasks.length < pageSize) hasMoreItems = false;
+             
+             // Pass isLoadingMore as 'append' argument
+             updateDisplayedTasks(tasks, isLoadingMore);
+             
+             // If we loaded a page and got NOTHING, but we are supposed to be paginating...
+             // It implies empty folder or empty account.
+             // hasMoreItems set to false correctly.
+             
+        } else {
+             // Legacy / Full Load path
+             hasMoreItems = false;
+             
+             // Revert to original logic: Load all tasks for account (or all accounts)
+             // Note: Original code used Task.getAllTasksForAccount(accountPicker.selectedAccountId)
+             // But we suspect it might have issues with -1. We'll use the robust logic from Task.js
+             
+             var allTasks;
+             var acc = accountPicker.selectedAccountId;
+             
+             if (acc >= 0) {
+                 allTasks = Task.getAllTasksForAccount(acc);
+             } else {
+                 allTasks = Task.getAllTasks();
+             }
+             
+             updateDisplayedTasks(allTasks, false); // Always reset in legacy mode
         }
-
-        // Create QML ListModels
-        for (var key in tempMap) {
-            var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
-            tempMap[key].forEach(function (entry) {
-                model.append(entry);
-            });
-            childrenMap[key] = model;
-        }
-
-        childrenMapReady = true;
+        
+        isLoadingMore = false;
+        // isLoading = false; // handled in updateDisplayedTasks
     }
 
     function getCurrentModel() {
@@ -624,6 +712,18 @@ Item {
             height: parent.height - backbutton.height
             clip: true
             model: getCurrentModel()
+
+            footer: LoadMoreFooter {
+                isLoading: isLoadingMore
+                hasMore: hasMoreItems
+                onLoadMore: loadMoreTasks()
+            }
+
+            onAtYEndChanged: {
+                if (taskListView.atYEnd && !isLoadingMore && hasMoreItems) {
+                    loadMoreTasks();
+                }
+            }
 
             delegate: Item {
                 width: parent.width
@@ -707,11 +807,7 @@ Item {
         }
     }
 
-    onCurrentParentIdChanged: {
-        if (childrenMapReady) {
-            taskListView.model = getCurrentModel();
-        }
-    }
+
 
     Component.onCompleted: {
         if (filterByProject && projectOdooRecordId !== -1) {

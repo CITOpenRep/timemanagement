@@ -17,6 +17,7 @@ import QtQuick.Layouts 1.3
 import "../../models/accounts.js" as Accounts
 import "../../models/global.js" as Global
 import "../components" as Components
+import "richtext"
 
 Item {
     id: popupWrapper
@@ -44,7 +45,7 @@ Item {
 
             property string lastKnownContent: ""
 
-            // Monitor visibility to reload content from Global when returning
+            // Monitor visibility to manage live sync with ReadMorePage
             onVisibleChanged: {
                 if (visible) {
                     // Check if content was updated in ReadMorePage
@@ -53,25 +54,9 @@ Item {
                         descriptionField.setContent(Global.description_temporary_holder);
                         lastKnownContent = Global.description_temporary_holder;
                     }
-                    // Start monitoring for content changes
-                    contentUpdateTimer.start();
+                    // Live sync timer is managed by descriptionField.liveSyncActive
                 } else {
-                    contentUpdateTimer.stop();
-                }
-            }
-
-            // Timer to periodically check for content updates from ReadMorePage
-            Timer {
-                id: contentUpdateTimer
-                interval: 500  // Check every 500ms
-                repeat: true
-                running: false
-                onTriggered: {
-                    if (Global.description_temporary_holder !== "" && 
-                        Global.description_temporary_holder !== createUpdateDialog.lastKnownContent) {
-                        descriptionField.setContent(Global.description_temporary_holder);
-                        createUpdateDialog.lastKnownContent = Global.description_temporary_holder;
-                    }
+                    descriptionField.liveSyncActive = false;
                 }
             }
 
@@ -125,6 +110,7 @@ Item {
                     onClicked: {
                         // Store current content in Global temporary holder
                         Global.description_temporary_holder = descriptionField.getFormattedText();
+                        descriptionField.liveSyncActive = true;
                         
                         // Access apLayout (global AdaptivePageLayout) and add ReadMorePage
                         // apLayout is the global ID from TSApp.qml

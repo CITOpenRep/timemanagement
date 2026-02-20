@@ -50,6 +50,9 @@ Page {
     property string currentSearchQuery: ""
     property string currentStatusFilter: "all"
 
+    // Loading state property
+    property bool isLoading: false
+
     header: PageHeader {
         id: updatesheader
         title: filterByProject ? "Updates - " + projectName : updates.title
@@ -155,14 +158,7 @@ Page {
         }
     }
 
-    // Also listen to accountFilter so the page initializes and updates from the selector's current selection
-    Connections {
-        target: accountPicker
-        onAccepted: function (accountId, accountName) {
-            selectedAccountId = accountId;
-            fetchupdates();
-        }
-    }
+ 
 
     NotificationPopup {
         id: notifPopup
@@ -174,75 +170,61 @@ Page {
         id: updatesModel
     }
     
-    // Helper function to check if an update passes the search filter
-    function passesSearchFilter(update, query) {
-        if (!query || query.trim() === "") {
-            return true;
-        }
-        
-        var searchLower = query.toLowerCase().trim();
-        
-        // Search in name
-        if (update.name && update.name.toLowerCase().indexOf(searchLower) !== -1) {
-            return true;
-        }
-        
-        // Search in description
-        if (update.description && update.description.toLowerCase().indexOf(searchLower) !== -1) {
-            return true;
-        }
-        
-        // Search in project name
-        var projectName = Project.getProjectName(update.project_id, update.account_id) || "";
-        if (projectName.toLowerCase().indexOf(searchLower) !== -1) {
-            return true;
-        }
-        
-        // Search in status
-        if (update.project_status && update.project_status.toLowerCase().indexOf(searchLower) !== -1) {
-            return true;
-        }
-        
-        return false;
-    }
-    
-    // Helper function to check if an update passes the status filter
-    function passesStatusFilter(update, statusFilter) {
-        if (!statusFilter || statusFilter === "all") {
-            return true;
-        }
-        return update.project_status === statusFilter;
+    // Timer for deferred loading - gives UI time to render loading indicator
+    Timer {
+        id: loadingTimer
+        interval: 50  // 50ms delay to ensure UI renders
+        repeat: false
+        onTriggered: _doLoadUpdates()
     }
 
     function fetchupdates() {
+        isLoading = true;
+        updatesModel.clear();
+        // Use Timer to defer the actual data loading,
+        // giving QML time to render the loading indicator first
+        loadingTimer.start();
+    }
+
+    function _doLoadUpdates() {
         var updates_list = [];
+        var filterAccountId = (filterByProject && projectAccountId >= 0) ? projectAccountId : selectedAccountId;
+
         try {
-            if (filterByProject && projectOdooRecordId && projectAccountId >= 0) {
-                updates_list = Project.getProjectUpdatesByProject(projectOdooRecordId, projectAccountId) || [];
+            if (filterByProject && projectOdooRecordId && filterAccountId >= 0) {
+                updates_list = Project.getProjectUpdatesByProject(projectOdooRecordId, filterAccountId);
             } else {
-                // selectedAccountId is numeric -1 for all accounts, otherwise numeric account id
-                updates_list = Project.getAllProjectUpdates(selectedAccountId) || [];
+                updates_list = Project.getAllProjectUpdates(filterAccountId);
             }
         } catch (e) {
             console.error("Error fetching updates:", e);
             updates_list = [];
         }
 
-        updatesModel.clear();
-        
+        var statusFilter = currentStatusFilter || "all";
+        var searchQuery = (currentSearchQuery || "").toLowerCase().trim();
+
         for (var index = 0; index < updates_list.length; index++) {
             var u = updates_list[index] || {};
-            
-            // Apply search filter
-            if (!passesSearchFilter(u, currentSearchQuery)) {
+
+            if (statusFilter !== "all" && u.project_status !== statusFilter) {
                 continue;
             }
-            
-            // Apply status filter
-            if (!passesStatusFilter(u, currentStatusFilter)) {
-                continue;
+
+            if (searchQuery !== "") {
+                var nameText = (u.name || "").toLowerCase();
+                var descText = (u.description || "").toLowerCase();
+                var statusText = (u.project_status || "").toLowerCase();
+                var projectNameText = (Project.getProjectName(u.project_id, u.account_id) || "").toLowerCase();
+
+                if (nameText.indexOf(searchQuery) === -1
+                        && descText.indexOf(searchQuery) === -1
+                        && statusText.indexOf(searchQuery) === -1
+                        && projectNameText.indexOf(searchQuery) === -1) {
+                    continue;
+                }
             }
-            
+
             updatesModel.append({
                 'name': u.name,
                 'id': u.id,
@@ -256,6 +238,8 @@ Page {
                 'hasDraft': u.has_draft
             });
         }
+
+        isLoading = false;
     }
     
     // ListHeader for search and status filtering
@@ -306,6 +290,7 @@ Page {
         anchors.topMargin: units.gu(1)
         model: updatesModel
         clip: true
+
         delegate: UpdatesDetailsCard {
             width: parent.width
             name: model.name
@@ -354,7 +339,6 @@ Page {
             }
         }
 
-        Component.onCompleted: fetchupdates()
     }
 
     onVisibleChanged: {
@@ -365,8 +349,13 @@ Page {
 
     Component.onCompleted: {
         selectedAccountId = accountPicker.selectedAccountId;
-
-        // Load initial updates list filtered by the account selector
         fetchupdates();
+    }
+
+    // Loading indicator overlay
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: isLoading
+        message: i18n.dtr("ubtms", "Loading updates...")
     }
 }

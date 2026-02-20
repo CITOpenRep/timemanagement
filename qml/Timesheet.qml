@@ -37,6 +37,7 @@ import "../models/timer_service.js" as TimerService
 import "../models/utils.js" as Utils
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: timeSheet
@@ -149,7 +150,7 @@ Page {
             'task': correctTaskId,
             'subTask': correctSubTaskId,
             'subprojectId': ids.subproject_id,
-            'description': description_text.text,
+            'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
@@ -738,6 +739,7 @@ Page {
                         onClicked: {
                             //set the data to a global store and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
+                            description_text.liveSyncActive = true;
                             apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 useRichText: false,
@@ -769,6 +771,9 @@ Page {
             if (!_hasInitialized) {
                 Qt.callLater(initializeTimesheet);
             }
+
+            // Stop live sync — content is already up-to-date via the timer
+            description_text.liveSyncActive = false;
             
             if (Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page

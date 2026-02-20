@@ -35,6 +35,7 @@ import "../models/project.js" as Project
 import "../models/accounts.js" as Accounts
 import "../models/global.js" as Global
 import "components"
+import "components/richtext"
 
 Page {
     id: updateDetailsPage
@@ -62,6 +63,10 @@ Page {
     property bool navigatingToReadMore: false
     // Flag to prevent tracking changes during initialization
     property bool isInitializing: true
+    // Track if form is fully initialized (to defer draft restoration)
+    property bool formFullyInitialized: false
+    // Flag to suppress change tracking during draft restoration
+    property bool isRestoringFromDraft: false
     
     // Flag to indicate if project selection is needed (new update without pre-selected project)
     // This is set on page load and updated after save
@@ -168,25 +173,19 @@ Page {
         onDraftLoaded: function(draftData, changedFields) {
             console.log("📝 Updates.qml: Draft loaded with", changedFields.length, "changed fields");
             
-            // Restore form fields from draft (project and account are fixed, not editable)
-            if (draftData.name !== undefined) {
-                name_text.text = draftData.name;
+            // Only restore if form is fully initialized
+            if (formFullyInitialized) {
+                restoreFormFromDraft(draftData);
+                notifPopup.open("Draft Restored", "Your unsaved changes have been restored", "info");
+            } else {
+                // Defer restoration until form is ready
+                Qt.callLater(function() {
+                    if (formFullyInitialized) {
+                        restoreFormFromDraft(draftData);
+                        notifPopup.open("Draft Restored", "Your unsaved changes have been restored", "info");
+                    }
+                });
             }
-            if (draftData.description !== undefined) {
-                description_text.setContent(draftData.description);
-            }
-            if (draftData.project_status !== undefined) {
-                var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(draftData.project_status);
-                if (statusIndex !== -1) {
-                    statusSelector.currentIndex = statusIndex;
-                }
-            }
-            if (draftData.progress !== undefined) {
-                progressSlider.value = draftData.progress;
-            }
-            
-            // Show notification about draft
-            notifPopup.open("Draft Restored", "Your unsaved changes have been restored", "info");
         }
         
         onDraftSaved: function(draftId) {
@@ -224,6 +223,33 @@ Page {
         onCancelled: {
             // User wants to stay and continue editing
         }
+    }
+    
+    function restoreFormFromDraft(draftData) {
+        console.log("🔄 Restoring form from draft data...");
+        
+        isRestoringFromDraft = true;
+        
+        if (draftData.name !== undefined) {
+            name_text.text = draftData.name;
+        }
+        if (draftData.description !== undefined) {
+            description_text.setContent(draftData.description);
+        }
+        if (draftData.project_status !== undefined) {
+            var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(draftData.project_status);
+            if (statusIndex !== -1) {
+                statusSelector.currentIndex = statusIndex;
+            }
+        }
+        if (draftData.progress !== undefined) {
+            progressSlider.value = draftData.progress;
+        }
+        
+        Qt.callLater(function() {
+            isRestoringFromDraft = false;
+            console.log("✅ Draft restoration complete - tracking re-enabled");
+        });
     }
     
     function restoreFormToOriginal() {
@@ -517,8 +543,10 @@ Page {
                                 Global.description_temporary_holder = description_text.getFormattedText();
                                 Global.description_context = "update_description";
                                 navigatingToReadMore = true;
+                                description_text.liveSyncActive = true;
                                 apLayout.addPageToNextColumn(updateDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
-                                    isReadOnly: isReadOnly
+                                    isReadOnly: isReadOnly,
+                                    parentDraftHandler: draftHandler
                                 });
                             }
                             onContentChanged: function(content) {
@@ -677,7 +705,21 @@ Page {
             currentUpdate = Project.getProjectUpdateById(recordid, accountid);
             hasBeenSaved = true;
             
-            // Initialize draft handler with original data
+            // Populate form fields FIRST (before draft handler init)
+            name_text.text = currentUpdate.name || "";
+            description_text.setContent(currentUpdate.description || "");
+            var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status || "");
+            statusSelector.currentIndex = statusIndex >= 0 ? statusIndex : 0;
+            progressSlider.value = currentUpdate.progress || 0;
+            
+            // Update display names for existing update
+            updateDisplayNames();
+            
+            // Mark form as fully initialized
+            formFullyInitialized = true;
+            
+            // Initialize draft handler AFTER all form fields are populated
+            // This ensures tryLoadDraft() can properly restore draft data
             draftHandler.initialize({
                 name: currentUpdate.name || "",
                 description: currentUpdate.description || "",
@@ -687,18 +729,6 @@ Page {
                 project_id: currentUpdate.project_id || -1,
                 user_id: currentUpdate.user_id || -1
             });
-            
-            // If no draft was loaded, load the update data normally
-            if (!draftHandler.hasUnsavedChanges) {
-                name_text.text = currentUpdate.name || "";
-                description_text.setContent(currentUpdate.description || "");
-                var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status || "");
-                statusSelector.currentIndex = statusIndex >= 0 ? statusIndex : 0;
-                progressSlider.value = currentUpdate.progress || 0;
-            }
-            
-            // Update display names for existing update
-            updateDisplayNames();
         } else {
             // New update - check if project is pre-selected or needs selection
             hasBeenSaved = false;
@@ -714,6 +744,16 @@ Page {
                 updateDisplayNames();
             }
             
+            // Set initial values FIRST
+            name_text.text = "";
+            description_text.setContent("");
+            statusSelector.currentIndex = 0; // "on_track" is at index 0
+            progressSlider.value = 0;
+            
+            // Mark form as fully initialized
+            formFullyInitialized = true;
+            
+            // Initialize draft handler AFTER form fields are populated
             draftHandler.initialize({
                 name: currentUpdate.name || "",
                 description: currentUpdate.description || "",
@@ -723,12 +763,6 @@ Page {
                 project_id: currentUpdate.project_id || -1,
                 user_id: currentUpdate.user_id || -1
             });
-            
-            // Set initial values
-            name_text.text = "";
-            description_text.setContent("");
-            statusSelector.currentIndex = 0; // "on_track" is at index 0
-            progressSlider.value = 0;
         }
         
         // Start timer to end initialization phase
@@ -739,8 +773,11 @@ Page {
         if (visible) {
             Global.setLastVisitedPage("Updates");
             navigatingToReadMore = false;
+
+            // Stop live sync — content is already up-to-date via the timer
+            description_text.liveSyncActive = false;
             
-            if (recordid != 0) {
+            if (recordid != 0 && !draftHandler.hasUnsavedChanges) {
                 currentUpdate = Project.getProjectUpdateById(recordid, accountid);
             }
             
