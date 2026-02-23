@@ -482,11 +482,12 @@ Item {
     // Update filter model when selectedAssigneeIds changes
     onSelectedAssigneeIdsChanged: {
         if (filterModel) {
-            // Update the selected state in the model
+            // Update the selected state in the model using isAssigneeSelected
+            // to properly handle composite {user_id, account_id} objects
             for (var i = 0; i < filterModel.count; i++) {
-                var assigneeId = filterModel.get(i).assigneeId;
-                var isSelected = selectedAssigneeIds.indexOf(assigneeId) !== -1;
-                filterModel.setProperty(i, "selected", isSelected);
+                var item = filterModel.get(i);
+                var selected = isAssigneeSelected(item.assigneeId, item.account_id);
+                filterModel.setProperty(i, "selected", selected);
             }
         }
     }
