@@ -449,6 +449,27 @@ Page {
         }
     }
 
+    // Apply current user as default assignee filter
+    function applyDefaultAssigneeFilter() {
+        var currentAccountId = selectedAccountId;
+        var userIds = Accounts.getCurrentUserAssigneeIds(
+            (typeof currentAccountId !== "undefined" && currentAccountId !== null) ? currentAccountId : -1
+        );
+
+        if (userIds && userIds.length > 0) {
+            activity.filterByAssignees = true;
+            activity.selectedAssigneeIds = userIds;
+            assigneeFilterMenu.selectedAssigneeIds = userIds;
+            Global.setAssigneeFilter(true, userIds);
+        } else {
+            // Fallback: no user found, show all
+            activity.filterByAssignees = false;
+            activity.selectedAssigneeIds = [];
+            assigneeFilterMenu.selectedAssigneeIds = [];
+            Global.clearAssigneeFilter();
+        }
+    }
+
     /*
     Todo :   - Refactor the date filter logic to be more modular and reusable. And Move to Activity.js
     */
@@ -722,13 +743,10 @@ Page {
 
                 //console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
             } else {
-                // Clear filter when coming from non-activity pages (Dashboard, Tasks, etc.)
-                activity.filterByAssignees = false;
-                activity.selectedAssigneeIds = [];
-                assigneeFilterMenu.selectedAssigneeIds = [];
-                Global.clearAssigneeFilter();
+                // Apply current user as default filter when coming from non-activity pages
+                applyDefaultAssigneeFilter();
 
-                //console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
+                //console.log("Activity_Page: Applied default assignee filter (coming from non-activity page)");
             }
 
             // Update navigation tracking
@@ -804,10 +822,8 @@ Page {
         // Load assignees for the assignee filter
         loadAssignees();
 
-        // Initialize with no assignee filter by default
-        activity.filterByAssignees = false;
-        activity.selectedAssigneeIds = [];
-        assigneeFilterMenu.selectedAssigneeIds = [];
+        // Apply current user as default assignee filter
+        applyDefaultAssigneeFilter();
 
         get_activity_list();
     }

@@ -1,5 +1,5 @@
 .import "database.js" as DBCommon
-.import QtQuick.LocalStorage 2.7 as Sql
+    .import QtQuick.LocalStorage 2.7 as Sql
 
 /**
  * Retrieves the list of all user accounts from the local SQLite database.
@@ -150,17 +150,17 @@ function getUsers(accountId) {
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(
-                    DBCommon.NAME,
-                    DBCommon.VERSION,
-                    DBCommon.DISPLAY_NAME,
-                    DBCommon.SIZE
-                    );
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                        "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
-                        [accountId]
-                        );
+                "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
+                [accountId]
+            );
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -194,9 +194,9 @@ function fetchParsedSyncLog(accountId) {
 
         db.transaction(function (tx) {
             var rs = tx.executeSql(
-                        "SELECT timestamp, message FROM sync_report WHERE account_id = ? ORDER BY timestamp DESC",
-                        [accountId]
-                        );
+                "SELECT timestamp, message FROM sync_report WHERE account_id = ? ORDER BY timestamp DESC",
+                [accountId]
+            );
 
             for (var i = 0; i < rs.rows.length; i++) {
                 var entry = rs.rows.item(i);
@@ -240,18 +240,18 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
         message: "",
         duplicateType: null
     };
- 
+
     try {
         const db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
- 
+
         db.transaction(function (tx) {
-            
-            
+
+
             const nameCheckResult = tx.executeSql(
                 'SELECT COUNT(*) AS count FROM users WHERE LOWER(name) = LOWER(?)',
                 [name]
             );
- 
+
             if (nameCheckResult.rows.item(0).count > 0) {
                 DBCommon.log("Duplicate account name found (case-insensitive): " + name);
                 result.duplicateFound = true;
@@ -259,13 +259,13 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
                 result.message = "An account with this name already exists.";
                 return;
             }
- 
-            
+
+
             const connectionCheckResult = tx.executeSql(
                 'SELECT COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ? COLLATE BINARY',
                 [link, database, username]
             );
- 
+
             if (connectionCheckResult.rows.item(0).count > 0) {
                 DBCommon.log("Duplicate connection found for: " + link + "/" + database + "/" + username);
                 result.duplicateFound = true;
@@ -273,24 +273,24 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
                 result.message = "An account with this server connection already exists.";
                 return;
             }
- 
-            
+
+
             const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
             tx.executeSql(
                 'INSERT INTO users (name, link, database, username, connectwith_id, api_key) VALUES (?, ?, ?, ?, ?, ?)',
                 [name, link, database, username, selectedConnectWithId, apiKeyToStore]
             );
-            
+
             DBCommon.log("New user account created successfully: " + name);
             result.message = "Account created successfully.";
         });
- 
+
     } catch (e) {
         DBCommon.logException("createAccount", e);
         result.duplicateFound = true;
         result.message = "Error creating account: " + e.message;
     }
- 
+
     return result;
 }
 
@@ -312,57 +312,57 @@ function updateAccount(accountId, name, link, database, username, selectedConnec
         message: "",
         duplicateType: null
     };
- 
+
     try {
         const db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
- 
+
         db.transaction(function (tx) {
             // Check for duplicate account name (excluding current account)
             const nameCheckResult = tx.executeSql(
                 'SELECT COUNT(*) AS count FROM users WHERE LOWER(name) = LOWER(?) AND id != ?',
                 [name, accountId]
             );
- 
+
             if (nameCheckResult.rows.item(0).count > 0) {
                 DBCommon.log("Duplicate account name found (case-insensitive): " + name);
                 result.duplicateType = "name";
                 result.message = "An account with this name already exists.";
                 return;
             }
- 
+
             // Check for duplicate connection (excluding current account)
             const connectionCheckResult = tx.executeSql(
                 'SELECT COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ? COLLATE BINARY AND id != ?',
                 [link, database, username, accountId]
             );
- 
+
             if (connectionCheckResult.rows.item(0).count > 0) {
                 DBCommon.log("Duplicate connection found for: " + link + "/" + database + "/" + username);
                 result.duplicateType = "connection";
                 result.message = "An account with this server connection already exists.";
                 return;
             }
- 
+
             // Update the account
             const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
             tx.executeSql(
                 'UPDATE users SET name = ?, link = ?, database = ?, username = ?, connectwith_id = ?, api_key = ? WHERE id = ?',
                 [name, link, database, username, selectedConnectWithId, apiKeyToStore, accountId]
             );
-            
+
             DBCommon.log("User account updated successfully: " + name);
             result.success = true;
             result.message = "Account updated successfully.";
         });
- 
+
     } catch (e) {
         DBCommon.logException("updateAccount", e);
         result.message = "Error updating account: " + e.message;
     }
- 
+
     return result;
 }
- 
+
 /**
  * Deletes a user account and all related records from associated tables in the local SQLite database.
  *
@@ -378,14 +378,14 @@ function deleteAccountAndRelatedData(userId) {
 
         db.transaction(function (tx) {
             const tables = [
-                             "sync_report",
-                             "project_project_app",
-                             "project_task_app",
-                             "account_analytic_line_app",
-                             "res_users_app",
-                             "mail_activity_type_app",
-                             "mail_activity_app"
-                         ];
+                "sync_report",
+                "project_project_app",
+                "project_task_app",
+                "account_analytic_line_app",
+                "res_users_app",
+                "mail_activity_type_app",
+                "mail_activity_app"
+            ];
 
             for (let i = 0; i < tables.length; i++) {
                 const table = tables[i];
@@ -448,6 +448,40 @@ function getCurrentUserOdooId(accountId) {
     }
 
     return odooId;
+}
+
+/**
+ * Returns composite assignee IDs ({user_id, account_id}) for the current logged-in user.
+ * When accountId >= 0, returns the user for that single account.
+ * When accountId is -1 (All Accounts), returns the user across all accounts.
+ *
+ * @param {number} accountId - Account ID, or -1 for all accounts.
+ * @returns {Array<Object>} Array of {user_id, account_id} objects.
+ */
+function getCurrentUserAssigneeIds(accountId) {
+    var result = [];
+
+    try {
+        if (accountId >= 0) {
+            var userId = getCurrentUserOdooId(accountId);
+            if (userId) {
+                result.push({ user_id: userId, account_id: accountId });
+            }
+        } else {
+            var accounts = getAccountsList();
+            for (var i = 0; i < accounts.length; i++) {
+                var acct = accounts[i];
+                var userId = getCurrentUserOdooId(acct.id);
+                if (userId) {
+                    result.push({ user_id: userId, account_id: acct.id });
+                }
+            }
+        }
+    } catch (e) {
+        DBCommon.logException("getCurrentUserAssigneeIds", e);
+    }
+
+    return result;
 }
 
 /**
@@ -544,7 +578,7 @@ function getOdooModelId(accountId, technicalName) {
 
             if (rs.rows.length > 0) {
                 odooRecordId = rs.rows.item(0).odoo_record_id;
-              //  console.log("✅ Found Odoo Model ID:", odooRecordId);
+                //  console.log("✅ Found Odoo Model ID:", odooRecordId);
             } else {
                 console.warn("⚠ No matching ir.model found for:", technicalName);
             }
@@ -559,7 +593,7 @@ function getOdooModelId(accountId, technicalName) {
 function clearDefaultAccount() {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        db.transaction(function(tx) {
+        db.transaction(function (tx) {
             tx.executeSql("UPDATE users SET is_default = 0");
         });
     } catch (e) {
