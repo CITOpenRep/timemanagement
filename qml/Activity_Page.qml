@@ -65,8 +65,11 @@ Page {
                 }
             },
             Action {
-                iconName: "filters"
-                text: "Filter by Assignees"
+                
+                iconSource: filterByAssignees ? Qt.resolvedUrl("images/filter.png") : Qt.resolvedUrl("images/filter-assignee.png")
+                text: filterByAssignees
+                    ? i18n.dtr("ubtms", "Assignees") + " (" + selectedAssigneeIds.length + ")"
+                    : i18n.dtr("ubtms", "Filter by Assignees")
                 onTriggered: {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
                 }
