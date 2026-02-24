@@ -46,10 +46,10 @@ Item {
         for (var i = 0; i < selectedAssigneeIds.length; i++) {
             var selectedId = selectedAssigneeIds[i];
             if (typeof selectedId === 'object') {
-                if (selectedId.user_id === userId && selectedId.account_id === accountId) {
+                if (parseInt(selectedId.user_id) === parseInt(userId) && parseInt(selectedId.account_id) === parseInt(accountId)) {
                     return true;
                 }
-            } else if (selectedId === userId) {
+            } else if (parseInt(selectedId) === parseInt(userId)) {
                 // Legacy format - consider it selected for backward compatibility
                 return true;
             }

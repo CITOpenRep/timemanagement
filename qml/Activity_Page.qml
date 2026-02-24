@@ -195,7 +195,6 @@ Page {
         isLoading = true;
         currentOffset = 0;
         hasMoreItems = true;
-        activityListModel.clear();
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
         loadingTimer.start();
@@ -203,6 +202,9 @@ Page {
 
     function _doLoadActivities() {
         //console.log("_doLoadActivities - starting data fetch, offset:", currentOffset);
+        if (!isLoadingMore) {
+            activityListModel.clear();
+        }
         try {
             var allActivities = [];
             var currentAccountId = selectedAccountId;
@@ -273,6 +275,7 @@ Page {
             // Apply assignee filtering if enabled (Only for legacy path)
             var menuSelectedIds = assigneeFilterMenu.selectedAssigneeIds || [];
             if (!isPaginated && filterByAssignees && menuSelectedIds && menuSelectedIds.length > 0) {
+                console.log("Applying assignee filter in Activity_Page.qml. Total items to filter: " + allActivities.length);
                 var assigneeFilteredActivities = [];
                 for (let i = 0; i < allActivities.length; i++) {
                     var item = allActivities[i];
@@ -280,7 +283,7 @@ Page {
                     for (let j = 0; j < menuSelectedIds.length; j++) {
                         var selectedId = menuSelectedIds[j];
                         if (typeof selectedId === 'object') {
-                            if (item.user_id && item.account_id && parseInt(item.user_id) === selectedId.user_id && parseInt(item.account_id) === selectedId.account_id) {
+                            if (item.user_id && item.account_id && parseInt(item.user_id) === parseInt(selectedId.user_id) && parseInt(item.account_id) === parseInt(selectedId.account_id)) {
                                 matchesSelectedAssignee = true;
                                 break;
                             }
@@ -293,8 +296,14 @@ Page {
                     }
                     if (matchesSelectedAssignee) {
                         assigneeFilteredActivities.push(item);
+                    } else if (i < 5) {
+                        // Log first 5 mismatches
+                        console.log("Assignee Filter Mismatch: item.user_id=" + item.user_id + 
+                                  ", item.account_id=" + item.account_id + 
+                                  " vs filter=" + JSON.stringify(menuSelectedIds));
                     }
                 }
+                console.log("Assignee Filter completed. Items matched: " + assigneeFilteredActivities.length);
                 allActivities = assigneeFilteredActivities;
             }
 
@@ -315,7 +324,7 @@ Page {
                 var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
                 var taskDetails = (safeTaskId && safeTaskId > 0) ? getTaskDetails(safeTaskId) : null;
                 var taskName = taskDetails && taskDetails.name ? taskDetails.name : "No Task";
-                var user = Accounts.getUserNameByOdooId(item.user_id);
+                var user = Accounts.getUserNameByOdooId(item.user_id, item.account_id);
 
                 filteredActivities.push({
                     id: item.id,
@@ -344,10 +353,6 @@ Page {
                 }
                 return new Date(a.due_date) - new Date(b.due_date);
             });
-
-            if (!isLoadingMore) {
-                activityListModel.clear();
-            }
 
             for (let j = 0; j < filteredActivities.length; j++) {
                 activityListModel.append(filteredActivities[j]);
@@ -463,12 +468,15 @@ Page {
             (typeof currentAccountId !== "undefined" && currentAccountId !== null) ? currentAccountId : -1
         );
 
+        console.log("applyDefaultAssigneeFilter -> result userIds length: " + (userIds ? userIds.length : 0));
         if (userIds && userIds.length > 0) {
+            console.log("Applying userIds: " + JSON.stringify(userIds));
             activity.filterByAssignees = true;
             activity.selectedAssigneeIds = userIds;
             assigneeFilterMenu.selectedAssigneeIds = userIds;
             Global.setAssigneeFilter(true, userIds);
         } else {
+            console.log("No default user found. Defaulting to show all.");
             // Fallback: no user found, show all
             activity.filterByAssignees = false;
             activity.selectedAssigneeIds = [];
@@ -555,7 +563,7 @@ Page {
         }
 
         // Search in user name
-        var user = Accounts.getUserNameByOdooId(item.user_id);
+        var user = Accounts.getUserNameByOdooId(item.user_id, item.account_id);
         if (user && user.toLowerCase().indexOf(query) >= 0) {
             return true;
         }
@@ -644,7 +652,7 @@ Page {
             }
 
             onAtYEndChanged: {
-                if (activitylist.atYEnd && !isLoadingMore && hasMoreItems) {
+                if (activitylist.atYEnd && !isLoading && !isLoadingMore && hasMoreItems) {
                     loadMoreActivities();
                 }
             }

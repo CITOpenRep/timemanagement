@@ -432,15 +432,15 @@ function getCurrentUserOdooId(accountId) {
 
             const username = result.rows.item(0).username;
 
-            DBCommon.log(`Found username: ${username}, now checking res_users_app`);
+            DBCommon.log(`Found username: ${username}, now checking res_users_app for account: ${accountId}`);
 
-            const userResult = tx.executeSql("SELECT odoo_record_id FROM res_users_app WHERE login = ?", [username]);
+            const userResult = tx.executeSql("SELECT odoo_record_id FROM res_users_app WHERE LOWER(login) = LOWER(?) AND account_id = ?", [username, accountId]);
 
             if (userResult.rows.length > 0) {
                 odooId = userResult.rows.item(0).odoo_record_id;
                 DBCommon.log(`Found odoo_record_id: ${odooId}`);
             } else {
-                DBCommon.log(`No match found in res_users_app for username: ${username}`);
+                DBCommon.log(`No match found in res_users_app for username: ${username} and account_id: ${accountId}`);
             }
         });
     } catch (e) {
@@ -465,7 +465,7 @@ function getCurrentUserAssigneeIds(accountId) {
         if (accountId >= 0) {
             var userId = getCurrentUserOdooId(accountId);
             if (userId) {
-                result.push({ user_id: userId, account_id: accountId });
+                result.push({ user_id: parseInt(userId), account_id: parseInt(accountId) });
             }
         } else {
             var accounts = getAccountsList();
@@ -473,7 +473,7 @@ function getCurrentUserAssigneeIds(accountId) {
                 var acct = accounts[i];
                 var userId = getCurrentUserOdooId(acct.id);
                 if (userId) {
-                    result.push({ user_id: userId, account_id: acct.id });
+                    result.push({ user_id: parseInt(userId), account_id: parseInt(acct.id) });
                 }
             }
         }
@@ -519,23 +519,24 @@ function getAccountName(accountId) {
  *
  * @function getUserNameByOdooId
  * @param {number} odoo_record_id - The user ID from Odoo (remote system).
+ * @param {number} accountId - The local account ID.
  * @returns {string} - The user's name if found; otherwise, an empty string.
  *
  * @description
  * Opens a local SQLite database transaction and queries the `res_users_app` table
- * to find a record matching the provided `odoo_record_id`.
+ * to find a record matching the provided `odoo_record_id` and `account_id`.
  * If a match is found, extracts and returns the `name` field.
  * Logs any exceptions using `DBCommon.logException()` to ensure safe failure handling.
  */
-function getUserNameByOdooId(odoo_record_id) {
+function getUserNameByOdooId(odoo_record_id, accountId) {
     var userName = "";
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1";
-            var result = tx.executeSql(query, [odoo_record_id]);
+            var query = "SELECT name FROM res_users_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1";
+            var result = tx.executeSql(query, [odoo_record_id, accountId]);
 
             if (result.rows.length > 0) {
                 userName = result.rows.item(0).name;

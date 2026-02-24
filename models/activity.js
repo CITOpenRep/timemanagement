@@ -1836,7 +1836,7 @@ function passesActivitySearchFilter(activity, searchQuery) {
 
     // Search in assignee/user name
     try {
-        var userName = Accounts.getUserNameByOdooId(activity.user_id);
+        var userName = Accounts.getUserNameByOdooId(activity.user_id, activity.account_id);
         if (userName && userName.toLowerCase().indexOf(query) >= 0) {
             return true;
         }
