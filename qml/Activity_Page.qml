@@ -275,7 +275,6 @@ Page {
             // Apply assignee filtering if enabled (Only for legacy path)
             var menuSelectedIds = assigneeFilterMenu.selectedAssigneeIds || [];
             if (!isPaginated && filterByAssignees && menuSelectedIds && menuSelectedIds.length > 0) {
-                console.log("Applying assignee filter in Activity_Page.qml. Total items to filter: " + allActivities.length);
                 var assigneeFilteredActivities = [];
                 for (let i = 0; i < allActivities.length; i++) {
                     var item = allActivities[i];
@@ -296,14 +295,8 @@ Page {
                     }
                     if (matchesSelectedAssignee) {
                         assigneeFilteredActivities.push(item);
-                    } else if (i < 5) {
-                        // Log first 5 mismatches
-                        console.log("Assignee Filter Mismatch: item.user_id=" + item.user_id + 
-                                  ", item.account_id=" + item.account_id + 
-                                  " vs filter=" + JSON.stringify(menuSelectedIds));
                     }
                 }
-                console.log("Assignee Filter completed. Items matched: " + assigneeFilteredActivities.length);
                 allActivities = assigneeFilteredActivities;
             }
 
@@ -468,15 +461,12 @@ Page {
             (typeof currentAccountId !== "undefined" && currentAccountId !== null) ? currentAccountId : -1
         );
 
-        console.log("applyDefaultAssigneeFilter -> result userIds length: " + (userIds ? userIds.length : 0));
         if (userIds && userIds.length > 0) {
-            console.log("Applying userIds: " + JSON.stringify(userIds));
             activity.filterByAssignees = true;
             activity.selectedAssigneeIds = userIds;
             assigneeFilterMenu.selectedAssigneeIds = userIds;
             Global.setAssigneeFilter(true, userIds);
         } else {
-            console.log("No default user found. Defaulting to show all.");
             // Fallback: no user found, show all
             activity.filterByAssignees = false;
             activity.selectedAssigneeIds = [];
