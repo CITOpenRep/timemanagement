@@ -345,6 +345,10 @@ Page {
                 return new Date(a.due_date) - new Date(b.due_date);
             });
 
+            if (!isLoadingMore) {
+                activityListModel.clear();
+            }
+
             for (let j = 0; j < filteredActivities.length; j++) {
                 activityListModel.append(filteredActivities[j]);
             }
