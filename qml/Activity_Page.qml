@@ -191,7 +191,7 @@ Page {
         //console.log("Starting get_activity_list - setting isLoading to true");
         isLoading = true;
         currentOffset = 0;
-        hasMoreItems = true;
+        hasMoreItems = false;
         activityListModel.clear();
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
@@ -716,10 +716,6 @@ Page {
             }
             currentIndex: 0
             onCurrentIndexChanged: {}
-
-            Component.onCompleted: {
-                get_activity_list();
-            }
         }
 
         Text {
@@ -830,7 +826,9 @@ Page {
         // Apply default assignee filter (current logged-in user)
         applyDefaultAssigneeFilter();
 
-        get_activity_list();
+        // Note: get_activity_list() is NOT called here.
+        // onVisibleChanged handles loading when the page becomes visible,
+        // which also fires on initial creation. Calling it here too caused duplicates.
     }
 
     // Loading indicator overlay
