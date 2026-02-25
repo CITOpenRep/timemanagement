@@ -134,7 +134,7 @@ Item {
     property bool showSearchBox: false
 
     // View mode properties
-    property bool flatViewMode: true
+    property bool flatViewMode: false
 
     // Loading state property
     property bool isLoading: false
