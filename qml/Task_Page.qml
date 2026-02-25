@@ -55,7 +55,7 @@ Page {
             return titleParts.join(" - ");
         }
 
-        trailingActionBar.numberOfSlots: 4
+        trailingActionBar.numberOfSlots: 5
 
         trailingActionBar.actions: [
             Action {
@@ -83,8 +83,20 @@ Page {
                 }
             },
             Action {
-                iconName: "filters"
-                text: "Filter by Assignees"
+                iconName: task.filterByMyItems ? "contact" : "contact-group"
+                text: task.filterByMyItems
+                    ? i18n.dtr("ubtms", "My Items")
+                    : i18n.dtr("ubtms", "All Items")
+                onTriggered: {
+                    toggleMyItemsFilter();
+                }
+            },
+            Action {
+                
+                iconSource: task.filterByAssignees ? Qt.resolvedUrl("images/filter.png") : Qt.resolvedUrl("images/filter-assignee.png")
+                text: task.filterByAssignees
+                    ? i18n.dtr("ubtms", "Assignees") + " (" + task.selectedAssigneeIds.length + ")"
+                    : i18n.dtr("ubtms", "Filter by Assignees")
                 onTriggered: {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
                 }
@@ -108,6 +120,10 @@ Page {
     property bool filterByAssignees: false
     property var selectedAssigneeIds: []
     property var availableAssignees: []
+
+    // Properties for "My Items" filter (shows items assigned to OR created by current user)
+    property bool filterByMyItems: true  // ON by default
+    property var myItemsUserIds: []  // Populated from getCurrentUserAssigneeIds
 
     // SEPARATED CONCERNS:
     // selectedAccountId - ONLY for filtering/viewing data (from account selector)
@@ -200,6 +216,78 @@ Page {
         }
     }
 
+    // Populate myItemsUserIds from the current user's account info
+    function loadMyItemsUserIds() {
+        var currentAccountId = tasklist.selectedAccountId;
+        var userIds = Account.getCurrentUserAssigneeIds(
+            (typeof currentAccountId !== "undefined" && currentAccountId !== null) ? currentAccountId : -1
+        );
+        myItemsUserIds = (userIds && userIds.length > 0) ? userIds : [];
+    }
+
+    // Toggle the "My Items" filter on/off. Mutually exclusive with Assignee Filter.
+    function toggleMyItemsFilter() {
+        if (task.filterByMyItems) {
+            // Turning OFF My Items — show all items
+            task.filterByMyItems = false;
+            Global.setMyItemsFilter(false);
+
+            // Update TaskList
+            tasklist.filterByMyItems = false;
+            tasklist.myItemsUserIds = [];
+        } else {
+            // Turning ON My Items — disable Assignee Filter first (mutually exclusive)
+            task.filterByAssignees = false;
+            task.selectedAssigneeIds = [];
+            assigneeFilterMenu.selectedAssigneeIds = [];
+            Global.clearAssigneeFilter();
+            tasklist.filterByAssignees = false;
+            tasklist.selectedAssigneeIds = [];
+
+            // Enable My Items
+            task.filterByMyItems = true;
+            Global.setMyItemsFilter(true);
+            loadMyItemsUserIds();
+
+            tasklist.filterByMyItems = true;
+            tasklist.myItemsUserIds = myItemsUserIds;
+        }
+
+        // Refresh task list
+        _refreshTaskList();
+    }
+
+    // Restore My Items filter state from global storage
+    function restoreMyItemsFilterState() {
+        var enabled = Global.getMyItemsFilter();
+        task.filterByMyItems = enabled;
+        if (enabled) {
+            loadMyItemsUserIds();
+            tasklist.filterByMyItems = true;
+            tasklist.myItemsUserIds = myItemsUserIds;
+        } else {
+            tasklist.filterByMyItems = false;
+            tasklist.myItemsUserIds = [];
+        }
+    }
+
+    // Helper to refresh the task list with the current filter/search/project state
+    function _refreshTaskList() {
+        if (filterByProject) {
+            if (currentSearchQuery) {
+                tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
+            } else {
+                tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
+            }
+        } else {
+            if (currentSearchQuery) {
+                tasklist.applySearch(currentSearchQuery);
+            } else {
+                tasklist.applyFilter(currentFilter);
+            }
+        }
+    }
+
     // Add the ListHeader component
     ListHeader {
         id: taskListHeader
@@ -229,8 +317,11 @@ Page {
         onFilterSelected: {
             task.currentFilter = filterKey;
 
-            // Restore assignee filter state from global storage
-            restoreAssigneeFilterState();
+            // Restore filter states from global storage
+            restoreMyItemsFilterState();
+            if (!task.filterByMyItems) {
+                restoreAssigneeFilterState();
+            }
 
             // Ensure TaskList properties are synchronized after restoration
             tasklist.filterByAssignees = task.filterByAssignees;
@@ -247,8 +338,11 @@ Page {
         onCustomSearch: {
             task.currentSearchQuery = query;
 
-            // Restore assignee filter state from global storage
-            restoreAssigneeFilterState();
+            // Restore filter states from global storage
+            restoreMyItemsFilterState();
+            if (!task.filterByMyItems) {
+                restoreAssigneeFilterState();
+            }
 
             // Ensure TaskList properties are synchronized after restoration
             tasklist.filterByAssignees = task.filterByAssignees;
@@ -374,66 +468,42 @@ Page {
         onFilterApplied: function (assigneeIds) {
             // Read directly from AssigneeFilterMenu to avoid timing issues
             var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
-            //console.log("Assignee filter applied - Reading directly from AssigneeFilterMenu");
-            //console.log("   Passed parameter:", JSON.stringify(assigneeIds));
-            //console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
 
             selectedAssigneeIds = actualSelectedIds;
             filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
+            // Mutual exclusivity: disable My Items when Assignee Filter is applied
+            if (filterByAssignees) {
+                task.filterByMyItems = false;
+                Global.setMyItemsFilter(false);
+                tasklist.filterByMyItems = false;
+                tasklist.myItemsUserIds = [];
+            }
+
             // Save to global state for persistence across navigation
             Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
-            //console.log("Assignee filter saved to global state - enabled:", filterByAssignees);
 
             // Update TaskList properties
             tasklist.filterByAssignees = filterByAssignees;
             tasklist.selectedAssigneeIds = actualSelectedIds;
 
-            //console.log("TaskList properties updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
-
             // Refresh task list with assignee filter
-            if (filterByProject) {
-                if (currentSearchQuery) {
-                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
-                } else {
-                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
-                }
-            } else {
-                if (currentSearchQuery) {
-                    tasklist.applySearch(currentSearchQuery);
-                } else {
-                    tasklist.applyFilter(currentFilter);
-                }
-            }
+            _refreshTaskList();
         }
 
         onFilterCleared: function () {
-            //console.log("Assignee filter cleared");
             selectedAssigneeIds = [];
             filterByAssignees = false;
 
             // Clear global state
             Global.clearAssigneeFilter();
-            //console.log("Assignee filter cleared from global state");
 
             // Update TaskList properties
             tasklist.filterByAssignees = false;
             tasklist.selectedAssigneeIds = [];
 
             // Refresh task list without assignee filter
-            if (filterByProject) {
-                if (currentSearchQuery) {
-                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
-                } else {
-                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
-                }
-            } else {
-                if (currentSearchQuery) {
-                    tasklist.applySearch(currentSearchQuery);
-                } else {
-                    tasklist.applyFilter(currentFilter);
-                }
-            }
+            _refreshTaskList();
         }
     }
 
@@ -441,49 +511,35 @@ Page {
         if (visible) {
             // Check if we're coming from a task-related page
             var previousPage = Global.getLastVisitedPage();
-            var shouldPreserve = Global.shouldPreserveAssigneeFilter("Task_Page", previousPage);
-
-            //console.log("Task_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
+            var shouldPreserve = Global.shouldPreserveFilters("Task_Page", previousPage);
 
             if (shouldPreserve) {
-                // Restore assignee filter from global state when returning from Tasks detail page
-                restoreAssigneeFilterState();
-
-                // Update the AssigneeFilterMenu to reflect current state
+                // Restore both filter states from global when returning from Tasks detail page
+                restoreMyItemsFilterState();
+                if (!task.filterByMyItems) {
+                    restoreAssigneeFilterState();
+                }
                 assigneeFilterMenu.selectedAssigneeIds = task.selectedAssigneeIds;
-
-                //console.log("Task_Page: Restored assignee filter - enabled:", task.filterByAssignees);
             } else {
-                // Clear filter when coming from non-task pages (Dashboard, Home, etc.)
+                // Coming from non-task page: enable My Items by default, clear assignee filter
+                task.filterByMyItems = true;
+                Global.setMyItemsFilter(true);
+                loadMyItemsUserIds();
+                tasklist.filterByMyItems = true;
+                tasklist.myItemsUserIds = myItemsUserIds;
+
                 task.filterByAssignees = false;
                 task.selectedAssigneeIds = [];
-                tasklist.filterByAssignees = false;
-                tasklist.selectedAssigneeIds = [];
                 assigneeFilterMenu.selectedAssigneeIds = [];
                 Global.clearAssigneeFilter();
-
-                //console.log("Task_Page: Cleared assignee filter (coming from non-task page)");
+                tasklist.filterByAssignees = false;
+                tasklist.selectedAssigneeIds = [];
             }
 
             // Update navigation tracking
             Global.setLastVisitedPage("Task_Page");
 
-            if (filterByProject) {
-                // Refresh project-filtered task list with current filter/search
-                if (currentSearchQuery) {
-                    tasklist.applyProjectAndSearchFilter(projectOdooRecordId, projectAccountId, currentSearchQuery);
-                } else {
-                    tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
-                }
-            } else {
-                if (currentSearchQuery) {
-                    // Reapply search if there was one
-                    tasklist.searchTasks(currentSearchQuery);
-                } else {
-                    // Reapply current filter
-                    tasklist.applyFilter(currentFilter);
-                }
-            }
+            _refreshTaskList();
         }
     }
 
@@ -495,11 +551,14 @@ Page {
         // Load assignees for the assignee filter
         loadAssignees();
 
-        // Don't automatically restore global assignee filter on page load
-        // The filter should only be restored when user explicitly uses filter tabs or search
-        // This allows the page to show unfiltered results when navigating back from other pages
+        // Apply "My Items" filter by default (replaces applyDefaultAssigneeFilter)
+        task.filterByMyItems = true;
+        Global.setMyItemsFilter(true);
+        loadMyItemsUserIds();
+        tasklist.filterByMyItems = true;
+        tasklist.myItemsUserIds = myItemsUserIds;
 
-        // Initialize with no assignee filter by default
+        // Make sure assignee filter starts cleared
         task.filterByAssignees = false;
         task.selectedAssigneeIds = [];
         tasklist.filterByAssignees = false;

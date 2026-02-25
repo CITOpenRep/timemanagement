@@ -1836,7 +1836,7 @@ function passesActivitySearchFilter(activity, searchQuery) {
 
     // Search in assignee/user name
     try {
-        var userName = Accounts.getUserNameByOdooId(activity.user_id);
+        var userName = Accounts.getUserNameByOdooId(activity.user_id, activity.account_id);
         if (userName && userName.toLowerCase().indexOf(query) >= 0) {
             return true;
         }
@@ -2078,4 +2078,289 @@ function getAllDoneActivitiesPaginated(limit, offset) {
     }
 
     return activityList;
+}
+
+/**
+ * Gets activities where the current user is the assignee (user_id) OR the creator (create_uid).
+ * This is the "My Items" filter — shows items relevant to the current user.
+ *
+ * @param {Array} userIds - Array of composite {user_id, account_id} objects (from getCurrentUserAssigneeIds)
+ * @param {string} filterType - Date filter: "today", "week", "month", "later", "overdue", "all", "done"
+ * @param {string} searchQuery - Search text to filter by
+ * @param {number} accountId - Account ID (-1 for all accounts)
+ * @returns {Array<Object>} Filtered activities
+ */
+function getMyItemsActivities(userIds, filterType, searchQuery, accountId) {
+    if (!userIds || userIds.length === 0) {
+        return getFilteredActivities(filterType, searchQuery, accountId);
+    }
+
+    // For "done" filter, get done activities and filter by user
+    if (filterType === "done") {
+        var doneActivities;
+        if (accountId !== undefined && accountId >= 0) {
+            doneActivities = getDoneActivitiesForAccount(accountId);
+        } else {
+            doneActivities = getDoneActivities();
+        }
+        return _filterActivitiesByMyItems(doneActivities, userIds, null, searchQuery);
+    }
+
+    var allActivities;
+    if (accountId !== undefined && accountId >= 0) {
+        allActivities = getActivitiesForAccount(accountId);
+    } else {
+        allActivities = getAllActivities();
+    }
+
+    return _filterActivitiesByMyItems(allActivities, userIds, filterType, searchQuery);
+}
+
+/**
+ * Paginated version of getMyItemsActivities for infinite scroll.
+ * Uses SQL-level filtering for user_id/create_uid to reduce data loaded.
+ *
+ * @param {Array} userIds - Array of composite {user_id, account_id} objects
+ * @param {string} filterType - Date filter type
+ * @param {string} searchQuery - Search text
+ * @param {number} accountId - Account ID (-1 for all)
+ * @param {number} limit - Page size
+ * @param {number} offset - Virtual offset (number of filtered items to skip)
+ * @returns {Object} { activities: Array, hasMore: boolean }
+ */
+function getMyItemsActivitiesPaginated(userIds, filterType, searchQuery, accountId, limit, offset) {
+    limit = limit || 30;
+    offset = offset || 0;
+
+    if (!userIds || userIds.length === 0) {
+        return getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limit, offset);
+    }
+
+    // Handle "done" filter separately
+    if (filterType === "done") {
+        var doneActivities = getMyItemsActivities(userIds, "done", searchQuery, accountId);
+        var donePage = doneActivities.slice(offset, offset + limit);
+        return {
+            activities: donePage,
+            hasMore: (offset + limit) < doneActivities.length
+        };
+    }
+
+    // Build SQL user filter for user_id OR create_uid
+    var userFilterParts = _buildMyItemsUserFilter(userIds);
+
+    var filteredActivities = [];
+    var currentDate = new Date();
+    var batchSize = limit * 3;
+    var dbOffset = 0;
+    var skipped = 0;
+    var foundAfterOffset = 0;
+    var hasMore = true;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        while (hasMore && foundAfterOffset < (limit + 1)) {
+            var rawActivities = [];
+
+            db.transaction(function (tx) {
+                var query = "SELECT * FROM mail_activity_app WHERE LOWER(TRIM(COALESCE(state, ''))) != 'done'";
+                var params = [];
+
+                if (accountId !== undefined && accountId >= 0) {
+                    query += " AND account_id = ?";
+                    params.push(accountId);
+                }
+
+                // Add user_id OR create_uid filter
+                query += " AND (" + userFilterParts.clause + ")";
+                params = params.concat(userFilterParts.params);
+
+                query += " ORDER BY due_date ASC LIMIT ? OFFSET ?";
+                params.push(batchSize, dbOffset);
+
+                var result = tx.executeSql(query, params);
+                for (var i = 0; i < result.rows.length; i++) {
+                    rawActivities.push(DBCommon.rowToObject(result.rows.item(i)));
+                }
+            });
+
+            if (rawActivities.length < batchSize) {
+                hasMore = false;
+            }
+
+            // Apply JS-based date and search filtering
+            for (var i = 0; i < rawActivities.length; i++) {
+                var activity = rawActivities[i];
+                var passesFilter = true;
+
+                if (filterType && filterType !== "all" && !passesActivityDateFilter(activity, filterType, currentDate)) {
+                    passesFilter = false;
+                }
+
+                if (passesFilter && searchQuery && !passesActivitySearchFilter(activity, searchQuery)) {
+                    passesFilter = false;
+                }
+
+                if (passesFilter) {
+                    if (skipped < offset) {
+                        skipped++;
+                    } else {
+                        foundAfterOffset++;
+                        if (filteredActivities.length < (limit + 1)) {
+                            filteredActivities.push(activity);
+                        }
+                    }
+
+                    if (foundAfterOffset >= (limit + 1)) {
+                        break;
+                    }
+                }
+            }
+
+            dbOffset += rawActivities.length;
+        }
+
+        // Add project colors
+        db.transaction(function (tx) {
+            var projectColorMap = {};
+            var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+            var projectResult = tx.executeSql(projectQuery);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                projectColorMap[projectResult.rows.item(j).odoo_record_id] = projectResult.rows.item(j).color_pallet;
+            }
+
+            var pageSize = Math.min(filteredActivities.length, limit);
+            for (var i = 0; i < pageSize; i++) {
+                var activity = filteredActivities[i];
+                var inheritedColor = 0;
+                if (activity.resModel === "project.project" && activity.link_id) {
+                    inheritedColor = projectColorMap[activity.link_id] || 0;
+                } else if (activity.resModel === "project.task" && activity.link_id) {
+                    var taskRs = tx.executeSql(
+                        "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
+                        [activity.link_id]
+                    );
+                    if (taskRs.rows.length > 0 && taskRs.rows.item(0).project_id) {
+                        inheritedColor = projectColorMap[taskRs.rows.item(0).project_id] || 0;
+                    }
+                }
+                activity.color_pallet = inheritedColor;
+            }
+        });
+
+    } catch (e) {
+        console.error("getMyItemsActivitiesPaginated failed:", e);
+    }
+
+    var pageActivities = filteredActivities.slice(0, limit);
+    return {
+        activities: pageActivities,
+        hasMore: foundAfterOffset > limit
+    };
+}
+
+/**
+ * Internal helper: Builds SQL WHERE clause fragment for "My Items" filter.
+ * Matches activities where user_id = uid OR create_uid = uid, scoped by account.
+ *
+ * @param {Array} userIds - Array of {user_id, account_id} objects
+ * @returns {Object} { clause: string, params: Array }
+ */
+function _buildMyItemsUserFilter(userIds) {
+    var parts = [];
+    var params = [];
+
+    for (var i = 0; i < userIds.length; i++) {
+        var entry = userIds[i];
+        var uid = -1;
+        var acctId = null;
+
+        if (typeof entry === 'object' && entry !== null && entry.user_id !== undefined) {
+            uid = parseInt(entry.user_id);
+            acctId = parseInt(entry.account_id);
+        } else {
+            uid = parseInt(entry);
+        }
+
+        if (acctId !== null && !isNaN(acctId)) {
+            // Scoped by account: (user_id = ? OR create_uid = ?) AND account_id = ?
+            parts.push("((user_id = ? OR create_uid = ?) AND account_id = ?)");
+            params.push(uid, uid, acctId);
+        } else {
+            // No account scope
+            parts.push("(user_id = ? OR create_uid = ?)");
+            params.push(uid, uid);
+        }
+    }
+
+    return {
+        clause: parts.length > 0 ? parts.join(" OR ") : "1=1",
+        params: params
+    };
+}
+
+/**
+ * Internal helper: Filters an already-loaded activities array by "My Items" criteria.
+ * An activity matches if user_id or create_uid matches any of the provided userIds.
+ *
+ * @param {Array} activities - Array of activity objects
+ * @param {Array} userIds - Array of composite {user_id, account_id} objects
+ * @param {string|null} filterType - Date filter (null to skip)
+ * @param {string} searchQuery - Search text (empty to skip)
+ * @returns {Array} Filtered activities
+ */
+function _filterActivitiesByMyItems(activities, userIds, filterType, searchQuery) {
+    var result = [];
+    var currentDate = new Date();
+
+    for (var i = 0; i < activities.length; i++) {
+        var activity = activities[i];
+
+        // Check if activity matches any of the user IDs (assignee OR creator)
+        var matchesUser = false;
+        var activityUserId = parseInt(activity.user_id) || 0;
+        var activityCreateUid = parseInt(activity.create_uid) || 0;
+        var activityAccountId = parseInt(activity.account_id);
+
+        for (var j = 0; j < userIds.length; j++) {
+            var selectedId = userIds[j];
+            var targetUid = -1;
+            var targetAccountId = null;
+
+            if (typeof selectedId === 'object' && selectedId !== null && selectedId.user_id !== undefined) {
+                targetUid = parseInt(selectedId.user_id);
+                targetAccountId = parseInt(selectedId.account_id);
+            } else {
+                targetUid = parseInt(selectedId);
+            }
+
+            // Check account scope if applicable
+            if (targetAccountId !== null && !isNaN(targetAccountId) && activityAccountId !== targetAccountId) {
+                continue;
+            }
+
+            // Match by user_id (assignee) OR create_uid (creator)
+            if (activityUserId === targetUid || activityCreateUid === targetUid) {
+                matchesUser = true;
+                break;
+            }
+        }
+
+        if (!matchesUser) continue;
+
+        // Apply date filter
+        if (filterType && filterType !== "all" && !passesActivityDateFilter(activity, filterType, currentDate)) {
+            continue;
+        }
+
+        // Apply search filter
+        if (searchQuery && !passesActivitySearchFilter(activity, searchQuery)) {
+            continue;
+        }
+
+        result.push(activity);
+    }
+
+    return result;
 }

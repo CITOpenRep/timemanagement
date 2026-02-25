@@ -3827,3 +3827,449 @@ function getTasksByPersonalStagePaginated(personalStageOdooRecordId, assigneeIds
         hasMore: hasMore
     };
 }
+
+/**
+ * Gets tasks where the current user is an assignee (user_id contains uid) OR the creator (create_uid = uid).
+ * This is the "My Items" filter — shows items relevant to the current user.
+ *
+ * @param {Array} userIds - Array of composite {user_id, account_id} objects (from getCurrentUserAssigneeIds)
+ * @param {number} accountId - Account ID (-1 for all accounts)
+ * @param {string} filterType - Date filter: "today", "this_week", "this_month", "later", "done", "all"
+ * @param {string} searchQuery - Search text to filter by
+ * @returns {Array<Object>} Filtered tasks
+ */
+function getMyItemsTasks(userIds, accountId, filterType, searchQuery) {
+    var allTasks;
+    if (accountId !== undefined && accountId >= 0) {
+        allTasks = getTasksForAccount(accountId);
+    } else {
+        allTasks = getAllTasks();
+    }
+
+    if (!userIds || userIds.length === 0) {
+        // No user context — fall through to standard filtering
+        return getFilteredTasks(filterType, searchQuery, accountId);
+    }
+
+    var filteredTasks = [];
+    var currentDate = new Date();
+
+    for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        var matchesUser = _taskMatchesMyItems(task, userIds);
+
+        if (!matchesUser) continue;
+
+        if (filterType && !passesDateFilter(task, filterType, currentDate)) continue;
+        if (searchQuery && !passesSearchFilter(task, searchQuery)) continue;
+
+        filteredTasks.push(task);
+    }
+
+    return filteredTasks;
+}
+
+/**
+ * Paginated version of getMyItemsTasks for infinite scroll.
+ * Uses SQL-level filtering for user_id/create_uid where possible.
+ *
+ * @param {Array} userIds - Array of composite {user_id, account_id} objects
+ * @param {number} accountId - Account ID (-1 for all)
+ * @param {string} filterType - Date filter type
+ * @param {string} searchQuery - Search text
+ * @param {number} limit - Page size
+ * @param {number} offset - Virtual offset
+ * @param {number} projectOdooRecordId - Optional project filter
+ * @returns {Object} { tasks: Array, hasMore: boolean }
+ */
+function getMyItemsTasksPaginated(userIds, accountId, filterType, searchQuery, limit, offset, projectOdooRecordId) {
+    limit = limit || 30;
+    offset = offset || 0;
+
+    var taskList = [];
+    var hasMore = false;
+
+    if (!userIds || userIds.length === 0) {
+        return getFilteredTasksPaginated(filterType, searchQuery, accountId, limit, offset);
+    }
+
+    // Build assignee and creator filter parts
+    var assigneeFilters = [];
+    for (var a = 0; a < userIds.length; a++) {
+        var sel = userIds[a];
+        if (typeof sel === 'object' && sel !== null && sel.user_id !== undefined) {
+            assigneeFilters.push({ user_id: parseInt(sel.user_id), account_id: parseInt(sel.account_id) });
+        } else {
+            assigneeFilters.push({ user_id: parseInt(sel), account_id: null });
+        }
+    }
+
+    var needsJSDateFilter = (filterType && filterType !== "" && filterType !== "all");
+    var currentDate = new Date();
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        if (!needsJSDateFilter) {
+            // ---- Simple path: no date filter, pure SQL pagination ----
+            db.transaction(function (tx) {
+                var query = "SELECT t.* FROM project_task_app t";
+                var params = [];
+                var whereClauses = ["(t.status IS NULL OR t.status != 'deleted')"];
+
+                if (accountId !== undefined && accountId >= 0) {
+                    whereClauses.push("t.account_id = ?");
+                    params.push(accountId);
+                }
+
+                if (projectOdooRecordId !== undefined && projectOdooRecordId > 0) {
+                    whereClauses.push("t.project_id = ?");
+                    params.push(projectOdooRecordId);
+                }
+
+                // Build "My Items" filter: (assignee LIKE patterns OR create_uid = uid) per user
+                var myItemsClauses = [];
+                for (var a = 0; a < assigneeFilters.length; a++) {
+                    var af = assigneeFilters[a];
+                    var uid = String(af.user_id);
+
+                    // Assignee match (comma-separated user_id field)
+                    var uidClause = "(t.user_id = ? OR t.user_id LIKE ? OR t.user_id LIKE ? OR t.user_id LIKE ?)";
+                    var uidParams = [uid, uid + ",%", "%," + uid, "%," + uid + ",%"];
+
+                    // Creator match
+                    var createClause = "t.create_uid = ?";
+
+                    if (af.account_id !== null) {
+                        // Scoped by account
+                        myItemsClauses.push("((" + uidClause + " OR " + createClause + ") AND t.account_id = ?)");
+                        params = params.concat(uidParams);
+                        params.push(parseInt(af.user_id));
+                        params.push(af.account_id);
+                    } else {
+                        myItemsClauses.push("(" + uidClause + " OR " + createClause + ")");
+                        params = params.concat(uidParams);
+                        params.push(parseInt(af.user_id));
+                    }
+                }
+                if (myItemsClauses.length > 0) {
+                    whereClauses.push("(" + myItemsClauses.join(" OR ") + ")");
+                }
+
+                // Search filter
+                if (searchQuery && searchQuery.trim() !== "") {
+                    var searchLower = "%" + searchQuery.toLowerCase() + "%";
+                    whereClauses.push("(LOWER(t.name) LIKE ? OR LOWER(t.description) LIKE ?)");
+                    params.push(searchLower, searchLower);
+                }
+
+                query += " WHERE " + whereClauses.join(" AND ");
+                query += " ORDER BY t.end_date ASC, t.name COLLATE NOCASE ASC";
+                query += " LIMIT ? OFFSET ?";
+                params.push(limit + 1, offset);
+
+                var result = tx.executeSql(query, params);
+
+                var matchedCount = Math.min(result.rows.length, limit);
+                hasMore = result.rows.length > limit;
+
+                var matchedTasks = [];
+                var matchedTaskKeys = {};
+                for (var i = 0; i < matchedCount; i++) {
+                    var row = DBCommon.rowToObject(result.rows.item(i));
+                    matchedTasks.push(row);
+                    matchedTaskKeys[row.odoo_record_id + "_" + row.account_id] = true;
+                }
+
+                // Resolve parent hierarchy
+                var parentsToFetch = [];
+                for (var i = 0; i < matchedTasks.length; i++) {
+                    var t = matchedTasks[i];
+                    if (t.parent_id && t.parent_id > 0) {
+                        var parentKey = t.parent_id + "_" + t.account_id;
+                        if (!matchedTaskKeys[parentKey]) {
+                            parentsToFetch.push({ odoo_record_id: t.parent_id, account_id: t.account_id });
+                            matchedTaskKeys[parentKey] = true;
+                        }
+                    }
+                }
+
+                var maxDepth = 10;
+                var depth = 0;
+                while (parentsToFetch.length > 0 && depth < maxDepth) {
+                    depth++;
+                    var nextParentsToFetch = [];
+                    for (var p = 0; p < parentsToFetch.length; p++) {
+                        var pInfo = parentsToFetch[p];
+                        var parentQuery = "SELECT * FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') LIMIT 1";
+                        var parentResult = tx.executeSql(parentQuery, [pInfo.odoo_record_id, pInfo.account_id]);
+                        if (parentResult.rows.length > 0) {
+                            var parentRow = DBCommon.rowToObject(parentResult.rows.item(0));
+                            matchedTasks.push(parentRow);
+                            if (parentRow.parent_id && parentRow.parent_id > 0) {
+                                var grandparentKey = parentRow.parent_id + "_" + parentRow.account_id;
+                                if (!matchedTaskKeys[grandparentKey]) {
+                                    nextParentsToFetch.push({ odoo_record_id: parentRow.parent_id, account_id: parentRow.account_id });
+                                    matchedTaskKeys[grandparentKey] = true;
+                                }
+                            }
+                        }
+                    }
+                    parentsToFetch = nextParentsToFetch;
+                }
+
+                // Enrich with project colors and spent hours
+                var projectColorMap = {};
+                var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+                if (accountId !== undefined && accountId >= 0) {
+                    projectQuery += " WHERE account_id = ?";
+                    var projectResult = tx.executeSql(projectQuery, [accountId]);
+                } else {
+                    var projectResult = tx.executeSql(projectQuery);
+                }
+                for (var j = 0; j < projectResult.rows.length; j++) {
+                    var pRow = projectResult.rows.item(j);
+                    projectColorMap[pRow.odoo_record_id] = pRow.color_pallet;
+                }
+
+                for (var i = 0; i < matchedTasks.length; i++) {
+                    var task = matchedTasks[i];
+                    var inheritedColor = 0;
+                    if (task.sub_project_id) {
+                        inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                    }
+                    if (!inheritedColor && task.project_id) {
+                        inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                    }
+                    task.color_pallet = inheritedColor;
+
+                    var timeQuery = "SELECT COALESCE(SUM(unit_amount), 0) as total_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)";
+                    var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, task.account_id]);
+                    task.spent_hours = (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null)
+                        ? timeResult.rows.item(0).total_hours : 0;
+
+                    taskList.push(task);
+                }
+            });
+
+        } else {
+            // ---- Complex path: date filter needs JS-level filtering ----
+            var batchSize = limit * 3;
+            var dbOffset = 0;
+            var skipped = 0;
+            var maxIterations = 10;
+            var iteration = 0;
+            var dbHasMore = true;
+
+            while (taskList.length < limit && dbHasMore && iteration < maxIterations) {
+                iteration++;
+                var rawTasks = [];
+
+                db.transaction(function (tx) {
+                    var query = "SELECT t.* FROM project_task_app t";
+                    var params = [];
+                    var whereClauses = ["(t.status IS NULL OR t.status != 'deleted')"];
+
+                    if (accountId !== undefined && accountId >= 0) {
+                        whereClauses.push("t.account_id = ?");
+                        params.push(accountId);
+                    }
+
+                    if (projectOdooRecordId !== undefined && projectOdooRecordId > 0) {
+                        whereClauses.push("t.project_id = ?");
+                        params.push(projectOdooRecordId);
+                    }
+
+                    // Build "My Items" filter
+                    var myItemsClauses = [];
+                    for (var a = 0; a < assigneeFilters.length; a++) {
+                        var af = assigneeFilters[a];
+                        var uid = String(af.user_id);
+                        var uidClause = "(t.user_id = ? OR t.user_id LIKE ? OR t.user_id LIKE ? OR t.user_id LIKE ?)";
+                        var uidParams = [uid, uid + ",%", "%," + uid, "%," + uid + ",%"];
+                        var createClause = "t.create_uid = ?";
+
+                        if (af.account_id !== null) {
+                            myItemsClauses.push("((" + uidClause + " OR " + createClause + ") AND t.account_id = ?)");
+                            params = params.concat(uidParams);
+                            params.push(parseInt(af.user_id));
+                            params.push(af.account_id);
+                        } else {
+                            myItemsClauses.push("(" + uidClause + " OR " + createClause + ")");
+                            params = params.concat(uidParams);
+                            params.push(parseInt(af.user_id));
+                        }
+                    }
+                    if (myItemsClauses.length > 0) {
+                        whereClauses.push("(" + myItemsClauses.join(" OR ") + ")");
+                    }
+
+                    if (searchQuery && searchQuery.trim() !== "") {
+                        var searchLower = "%" + searchQuery.toLowerCase() + "%";
+                        whereClauses.push("(LOWER(t.name) LIKE ? OR LOWER(t.description) LIKE ?)");
+                        params.push(searchLower, searchLower);
+                    }
+
+                    query += " WHERE " + whereClauses.join(" AND ");
+                    query += " ORDER BY t.end_date ASC, t.name COLLATE NOCASE ASC";
+                    query += " LIMIT ? OFFSET ?";
+                    params.push(batchSize, dbOffset);
+
+                    var result = tx.executeSql(query, params);
+                    for (var i = 0; i < result.rows.length; i++) {
+                        rawTasks.push(DBCommon.rowToObject(result.rows.item(i)));
+                    }
+                    if (result.rows.length < batchSize) {
+                        dbHasMore = false;
+                    }
+                });
+
+                if (rawTasks.length === 0) {
+                    dbHasMore = false;
+                    break;
+                }
+
+                for (var i = 0; i < rawTasks.length; i++) {
+                    var task = rawTasks[i];
+                    if (!passesDateFilter(task, filterType, currentDate)) continue;
+                    if (skipped < offset) {
+                        skipped++;
+                    } else if (taskList.length < limit) {
+                        taskList.push(task);
+                    } else {
+                        hasMore = true;
+                        break;
+                    }
+                }
+
+                dbOffset += rawTasks.length;
+            }
+
+            if (dbHasMore && taskList.length >= limit) {
+                hasMore = true;
+            }
+
+            // Resolve parent hierarchy and enrich
+            db.transaction(function (tx) {
+                var matchedTaskKeys = {};
+                for (var i = 0; i < taskList.length; i++) {
+                    matchedTaskKeys[taskList[i].odoo_record_id + "_" + taskList[i].account_id] = true;
+                }
+
+                var parentsToFetch = [];
+                for (var i = 0; i < taskList.length; i++) {
+                    var t = taskList[i];
+                    if (t.parent_id && t.parent_id > 0) {
+                        var parentKey = t.parent_id + "_" + t.account_id;
+                        if (!matchedTaskKeys[parentKey]) {
+                            parentsToFetch.push({ odoo_record_id: t.parent_id, account_id: t.account_id });
+                            matchedTaskKeys[parentKey] = true;
+                        }
+                    }
+                }
+
+                var maxDepth = 10;
+                var depth = 0;
+                while (parentsToFetch.length > 0 && depth < maxDepth) {
+                    depth++;
+                    var nextParentsToFetch = [];
+                    for (var p = 0; p < parentsToFetch.length; p++) {
+                        var pInfo = parentsToFetch[p];
+                        var parentQuery = "SELECT * FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') LIMIT 1";
+                        var parentResult = tx.executeSql(parentQuery, [pInfo.odoo_record_id, pInfo.account_id]);
+                        if (parentResult.rows.length > 0) {
+                            var parentRow = DBCommon.rowToObject(parentResult.rows.item(0));
+                            taskList.push(parentRow);
+                            if (parentRow.parent_id && parentRow.parent_id > 0) {
+                                var grandparentKey = parentRow.parent_id + "_" + parentRow.account_id;
+                                if (!matchedTaskKeys[grandparentKey]) {
+                                    nextParentsToFetch.push({ odoo_record_id: parentRow.parent_id, account_id: parentRow.account_id });
+                                    matchedTaskKeys[grandparentKey] = true;
+                                }
+                            }
+                        }
+                    }
+                    parentsToFetch = nextParentsToFetch;
+                }
+
+                var projectColorMap = {};
+                var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+                if (accountId !== undefined && accountId >= 0) {
+                    projectQuery += " WHERE account_id = ?";
+                    var projectResult = tx.executeSql(projectQuery, [accountId]);
+                } else {
+                    var projectResult = tx.executeSql(projectQuery);
+                }
+                for (var j = 0; j < projectResult.rows.length; j++) {
+                    var pRow = projectResult.rows.item(j);
+                    projectColorMap[pRow.odoo_record_id] = pRow.color_pallet;
+                }
+
+                for (var i = 0; i < taskList.length; i++) {
+                    var task = taskList[i];
+                    var inheritedColor = 0;
+                    if (task.sub_project_id) {
+                        inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                    }
+                    if (!inheritedColor && task.project_id) {
+                        inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                    }
+                    task.color_pallet = inheritedColor;
+
+                    var timeQuery = "SELECT COALESCE(SUM(unit_amount), 0) as total_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)";
+                    var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, task.account_id]);
+                    task.spent_hours = (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null)
+                        ? timeResult.rows.item(0).total_hours : 0;
+                }
+            });
+        }
+
+    } catch (e) {
+        console.error("getMyItemsTasksPaginated failed:", e);
+    }
+
+    return {
+        tasks: taskList,
+        hasMore: hasMore
+    };
+}
+
+/**
+ * Internal helper: Checks if a task matches the "My Items" criteria.
+ * A task matches if the user is in the comma-separated user_id field (assignee)
+ * OR matches create_uid (creator).
+ *
+ * @param {Object} task - Task object with user_id, create_uid, account_id
+ * @param {Array} userIds - Array of {user_id, account_id} objects
+ * @returns {boolean} True if the task matches
+ */
+function _taskMatchesMyItems(task, userIds) {
+    var taskAssigneeIds = parseAssigneeIds(task.user_id);
+    var taskCreateUid = parseInt(task.create_uid) || 0;
+    var taskAccountId = parseInt(task.account_id);
+
+    for (var j = 0; j < userIds.length; j++) {
+        var selectedId = userIds[j];
+        var targetUid = -1;
+        var targetAccountId = null;
+
+        if (typeof selectedId === 'object' && selectedId !== null && selectedId.user_id !== undefined) {
+            targetUid = parseInt(selectedId.user_id);
+            targetAccountId = parseInt(selectedId.account_id);
+        } else {
+            targetUid = parseInt(selectedId);
+        }
+
+        // Check account scope
+        if (targetAccountId !== null && !isNaN(targetAccountId) && taskAccountId !== targetAccountId) {
+            continue;
+        }
+
+        // Match by assignee (user_id) OR creator (create_uid)
+        if (taskAssigneeIds.indexOf(targetUid) !== -1 || taskCreateUid === targetUid) {
+            return true;
+        }
+    }
+
+    return false;
+}
