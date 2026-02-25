@@ -864,7 +864,7 @@ Page {
                 // recordid is a local id (from normal navigation)
                 currentActivity = Activity.getActivityById(recordid, accountid);
             }
-            currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id, accountid);
+            currentActivity.user_name = Accounts.getUserNameByOdooId(currentActivity.user_id);
 
             let instanceId = currentActivity.account_id;
             let user_id = currentActivity.user_id;

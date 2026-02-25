@@ -70,10 +70,6 @@ Item {
     property bool filterByAssignees: false
     property var selectedAssigneeIds: []
 
-    // Properties for "My Items" filter (assigned to OR created by current user)
-    property bool filterByMyItems: false
-    property var myItemsUserIds: []
-
     // Property to indicate if we're in MyTasks context
     property bool isMyTasksContext: false
 
@@ -161,25 +157,6 @@ Item {
 
         var result = Task.getTasksByAssigneesPaginated(
             selectedAssigneeIds, accountParam, filterType, searchQuery,
-            pageSize, currentOffset, projectParam);
-
-        var tasks = result.tasks;
-        hasMoreItems = result.hasMore;
-
-        updateDisplayedTasks(tasks, isLoadingMore);
-        isLoadingMore = false;
-        isLoading = false;
-    }
-
-    // Paginated loading function for "My Items" filter (assigned to OR created by current user)
-    function _doPaginatedMyItemsLoad() {
-        var filterType = (currentFilter && currentFilter !== "") ? currentFilter : "all";
-        var searchQuery = (currentSearchQuery && currentSearchQuery.trim() !== "") ? currentSearchQuery : "";
-        var accountParam = filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1;
-        var projectParam = (filterByProject && projectOdooRecordId > 0) ? projectOdooRecordId : undefined;
-
-        var result = Task.getMyItemsTasksPaginated(
-            myItemsUserIds, accountParam, filterType, searchQuery,
             pageSize, currentOffset, projectParam);
 
         var tasks = result.tasks;
@@ -356,10 +333,7 @@ Item {
             // Since TaskList doesn't import Global, we'll let Task_Page handle this restoration
         }
 
-        if (filterByMyItems && myItemsUserIds.length > 0) {
-            // My Items filter takes priority — uses user_id OR create_uid matching
-            _doPaginatedMyItemsLoad();
-        } else if (filterByAssignees && selectedAssigneeIds.length > 0) {
+        if (filterByAssignees && selectedAssigneeIds.length > 0) {
             // Use paginated assignee filtering (SQL-level LIMIT/OFFSET)
             _doPaginatedAssigneeLoad();
         } else if (filterByProject) {
@@ -604,9 +578,7 @@ Item {
         isLoadingMore = true;
         currentOffset += pageSize;
         // Route to proper paginated loader based on context
-        if (filterByMyItems && myItemsUserIds && myItemsUserIds.length > 0) {
-            _doPaginatedMyItemsLoad();
-        } else if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
+        if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
             _doPaginatedAssigneeLoad();
         } else if (filterByProject) {
             _doPaginatedProjectLoad();

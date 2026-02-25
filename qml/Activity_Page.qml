@@ -65,20 +65,8 @@ Page {
                 }
             },
             Action {
-                iconName: activity.filterByMyItems ? "contact" : "contact-group"
-                text: activity.filterByMyItems
-                    ? i18n.dtr("ubtms", "My Items")
-                    : i18n.dtr("ubtms", "All Items")
-                onTriggered: {
-                    toggleMyItemsFilter();
-                }
-            },
-            Action {
-                
-                iconSource: filterByAssignees ? Qt.resolvedUrl("images/filter.png") : Qt.resolvedUrl("images/filter-assignee.png")
-                text: filterByAssignees
-                    ? i18n.dtr("ubtms", "Assignees") + " (" + selectedAssigneeIds.length + ")"
-                    : i18n.dtr("ubtms", "Filter by Assignees")
+                iconName: "filters"
+                text: "Filter by Assignees"
                 onTriggered: {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
                 }
@@ -106,10 +94,6 @@ Page {
     property bool filterByAssignees: false
     property var selectedAssigneeIds: []
     property var availableAssignees: []
-
-    // Properties for "My Items" filter (shows items assigned to OR created by current user)
-    property bool filterByMyItems: true  // ON by default
-    property var myItemsUserIds: []  // Populated from getCurrentUserAssigneeIds
 
     // Loading state property
     property bool isLoading: false
@@ -166,11 +150,6 @@ Page {
         // Reload assignees for the new account
         loadAssignees();
 
-        // Reload My Items user IDs for the new account
-        if (activity.filterByMyItems) {
-            loadMyItemsUserIds();
-        }
-
         // Refresh the activity list
         isLoading = true;
         get_activity_list();
@@ -213,6 +192,7 @@ Page {
         isLoading = true;
         currentOffset = 0;
         hasMoreItems = true;
+        activityListModel.clear();
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
         loadingTimer.start();
@@ -220,9 +200,6 @@ Page {
 
     function _doLoadActivities() {
         //console.log("_doLoadActivities - starting data fetch, offset:", currentOffset);
-        if (!isLoadingMore) {
-            activityListModel.clear();
-        }
         try {
             var allActivities = [];
             var currentAccountId = selectedAccountId;
@@ -240,7 +217,6 @@ Page {
                     var isDoneFilter = currentFilter === "done";
 
                 // Keep pagination only when assignee filtering is not active and scoped client-side filters are not active.
-                // My Items filter supports pagination (SQL-level user_id/create_uid filtering).
                 var canPaginate = (!hasClientSideScopedFilters)
                         && (!hasActiveSearch)
                         && (!isDoneFilter)
@@ -259,19 +235,6 @@ Page {
                     // Paginated task-filtered activities
                     var result = Activity.getActivitiesForTaskPaginated(
                         taskOdooRecordId, projectAccountId, pageSize, currentOffset);
-                    allActivities = result.activities;
-                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
-                } else if (filterByMyItems && myItemsUserIds && myItemsUserIds.length > 0) {
-                    // My Items paginated: items assigned to OR created by current user
-                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
-                    var result = Activity.getMyItemsActivitiesPaginated(
-                        myItemsUserIds,
-                        currentFilter,
-                        currentSearchQuery,
-                        accountIdForFilter,
-                        pageSize,
-                        currentOffset
-                    );
                     allActivities = result.activities;
                     hasMoreItems = result.hasMore && allActivities.length >= pageSize;
                 } else {
@@ -298,10 +261,6 @@ Page {
                     allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
                 } else if (filterByTasks) {
                     allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
-                } else if (filterByMyItems && myItemsUserIds && myItemsUserIds.length > 0) {
-                    // My Items full-load: items assigned to OR created by current user
-                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
-                    allActivities = Activity.getMyItemsActivities(myItemsUserIds, currentFilter, currentSearchQuery, accountIdForFilter);
                 } else {
                     var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
                     allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
@@ -318,7 +277,7 @@ Page {
                     for (let j = 0; j < menuSelectedIds.length; j++) {
                         var selectedId = menuSelectedIds[j];
                         if (typeof selectedId === 'object') {
-                            if (item.user_id && item.account_id && parseInt(item.user_id) === parseInt(selectedId.user_id) && parseInt(item.account_id) === parseInt(selectedId.account_id)) {
+                            if (item.user_id && item.account_id && parseInt(item.user_id) === selectedId.user_id && parseInt(item.account_id) === selectedId.account_id) {
                                 matchesSelectedAssignee = true;
                                 break;
                             }
@@ -353,7 +312,7 @@ Page {
                 var projectName = projectDetails && projectDetails.name ? projectDetails.name : "No Project";
                 var taskDetails = (safeTaskId && safeTaskId > 0) ? getTaskDetails(safeTaskId) : null;
                 var taskName = taskDetails && taskDetails.name ? taskDetails.name : "No Task";
-                var user = Accounts.getUserNameByOdooId(item.user_id, item.account_id);
+                var user = Accounts.getUserNameByOdooId(item.user_id);
 
                 filteredActivities.push({
                     id: item.id,
@@ -490,47 +449,6 @@ Page {
         }
     }
 
-    // Populate myItemsUserIds from the current user's account info
-    function loadMyItemsUserIds() {
-        var currentAccountId = selectedAccountId;
-        var userIds = Accounts.getCurrentUserAssigneeIds(
-            (typeof currentAccountId !== "undefined" && currentAccountId !== null) ? currentAccountId : -1
-        );
-        myItemsUserIds = (userIds && userIds.length > 0) ? userIds : [];
-    }
-
-    // Toggle the "My Items" filter on/off. Mutually exclusive with Assignee Filter.
-    function toggleMyItemsFilter() {
-        if (activity.filterByMyItems) {
-            // Turning OFF My Items — show all items
-            activity.filterByMyItems = false;
-            Global.setMyItemsFilter(false);
-        } else {
-            // Turning ON My Items — disable Assignee Filter first (mutually exclusive)
-            activity.filterByAssignees = false;
-            activity.selectedAssigneeIds = [];
-            assigneeFilterMenu.selectedAssigneeIds = [];
-            Global.clearAssigneeFilter();
-
-            // Enable My Items
-            activity.filterByMyItems = true;
-            Global.setMyItemsFilter(true);
-            loadMyItemsUserIds();
-        }
-
-        // Refresh activity list
-        get_activity_list();
-    }
-
-    // Restore My Items filter state from global storage
-    function restoreMyItemsFilterState() {
-        var enabled = Global.getMyItemsFilter();
-        activity.filterByMyItems = enabled;
-        if (enabled) {
-            loadMyItemsUserIds();
-        }
-    }
-
     /*
     Todo :   - Refactor the date filter logic to be more modular and reusable. And Move to Activity.js
     */
@@ -609,7 +527,7 @@ Page {
         }
 
         // Search in user name
-        var user = Accounts.getUserNameByOdooId(item.user_id, item.account_id);
+        var user = Accounts.getUserNameByOdooId(item.user_id);
         if (user && user.toLowerCase().indexOf(query) >= 0) {
             return true;
         }
@@ -698,7 +616,7 @@ Page {
             }
 
             onAtYEndChanged: {
-                if (activitylist.atYEnd && !isLoading && !isLoadingMore && hasMoreItems) {
+                if (activitylist.atYEnd && !isLoadingMore && hasMoreItems) {
                     loadMoreActivities();
                 }
             }
@@ -794,24 +712,23 @@ Page {
 
             // Check if we're coming from an activity-related page
             var previousPage = Global.getLastVisitedPage();
-            var shouldPreserve = Global.shouldPreserveFilters("Activity_Page", previousPage);
+            var shouldPreserve = Global.shouldPreserveAssigneeFilter("Activity_Page", previousPage);
+
+            //console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
 
             if (shouldPreserve) {
-                // Restore both filter states from global when returning from Activities detail page
-                restoreMyItemsFilterState();
-                if (!activity.filterByMyItems) {
-                    restoreAssigneeFilterState();
-                }
-            } else {
-                // Coming from non-activity page: enable My Items by default, clear assignee filter
-                activity.filterByMyItems = true;
-                Global.setMyItemsFilter(true);
-                loadMyItemsUserIds();
+                // Restore assignee filter from global state when returning from Activities detail page
+                restoreAssigneeFilterState();
 
+                //console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
+            } else {
+                // Clear filter when coming from non-activity pages (Dashboard, Tasks, etc.)
                 activity.filterByAssignees = false;
                 activity.selectedAssigneeIds = [];
                 assigneeFilterMenu.selectedAssigneeIds = [];
                 Global.clearAssigneeFilter();
+
+                //console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
             }
 
             // Update navigation tracking
@@ -830,28 +747,28 @@ Page {
         onFilterApplied: function (assigneeIds) {
             // Read directly from AssigneeFilterMenu to avoid timing issues
             var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
+            //console.log("Activity_Page: Assignee filter applied - Reading directly from AssigneeFilterMenu");
+            //console.log("   Passed parameter:", JSON.stringify(assigneeIds));
+            //console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
 
             selectedAssigneeIds = actualSelectedIds;
             filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
-            // Mutual exclusivity: disable My Items when Assignee Filter is applied
-            if (filterByAssignees) {
-                activity.filterByMyItems = false;
-                Global.setMyItemsFilter(false);
-            }
-
             // Save to global state for persistence across navigation
             Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
+            //console.log("Activity_Page: Assignee filter saved to global state - enabled:", filterByAssignees);
 
             get_activity_list();
         }
 
         onFilterCleared: function () {
+            //console.log("Activity_Page: Assignee filter cleared");
             selectedAssigneeIds = [];
             filterByAssignees = false;
 
             // Clear global state
             Global.clearAssigneeFilter();
+            //console.log("Activity_Page: Assignee filter cleared from global state");
 
             get_activity_list();
         }
@@ -887,12 +804,7 @@ Page {
         // Load assignees for the assignee filter
         loadAssignees();
 
-        // Apply "My Items" filter by default (replaces applyDefaultAssigneeFilter)
-        activity.filterByMyItems = true;
-        Global.setMyItemsFilter(true);
-        loadMyItemsUserIds();
-
-        // Make sure assignee filter starts cleared
+        // Initialize with no assignee filter by default
         activity.filterByAssignees = false;
         activity.selectedAssigneeIds = [];
         assigneeFilterMenu.selectedAssigneeIds = [];
