@@ -158,7 +158,7 @@ function getUsers(accountId) {
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                        "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
+                        "SELECT u.id, u.name, u.odoo_record_id, u.account_id, a.name as account_name FROM res_users_app u LEFT JOIN users a ON u.account_id = a.id WHERE u.account_id = ?",
                         [accountId]
                         );
 
@@ -444,10 +444,84 @@ function getCurrentUserOdooId(accountId) {
             }
         });
     } catch (e) {
-        logException(e);
+        DBCommon.logException("getCurrentUserOdooId", e);
     }
 
     return odooId;
+}
+
+/**
+ * Gets the current logged-in user's assignee IDs as composite {user_id, account_id} objects.
+ * When accountId is -1 (All Accounts), returns IDs for ALL logged-in accounts.
+ * When accountId is specific, returns only the ID for that account.
+ *
+ * @param {number} accountId - The account ID (-1 for all accounts)
+ * @returns {Array<Object>} Array of {user_id: number, account_id: number} objects
+ */
+function getCurrentUserAssigneeIds(accountId) {
+    var assigneeIds = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            if (accountId === -1) {
+                // All accounts mode: get current user IDs for ALL logged-in accounts
+                var accountsResult = tx.executeSql("SELECT id, username FROM users");
+
+                for (var i = 0; i < accountsResult.rows.length; i++) {
+                    var account = accountsResult.rows.item(i);
+                    var acctId = account.id;
+                    var username = account.username;
+
+                    if (acctId === 0) {
+                        // Local account
+                        assigneeIds.push({ user_id: 1, account_id: 0 });
+                        continue;
+                    }
+
+                    // Find the odoo_record_id for this account's logged-in user
+                    var userResult = tx.executeSql(
+                        "SELECT odoo_record_id FROM res_users_app WHERE login = ? AND account_id = ?",
+                        [username, acctId]
+                    );
+
+                    if (userResult.rows.length > 0) {
+                        var odooId = userResult.rows.item(0).odoo_record_id;
+                        if (odooId && odooId > 0) {
+                            assigneeIds.push({ user_id: odooId, account_id: acctId });
+                        }
+                    }
+                }
+            } else {
+                // Specific account mode
+                if (accountId === 0) {
+                    assigneeIds.push({ user_id: 1, account_id: 0 });
+                } else {
+                    var usernameResult = tx.executeSql("SELECT username FROM users WHERE id = ?", [accountId]);
+
+                    if (usernameResult.rows.length > 0) {
+                        var username = usernameResult.rows.item(0).username;
+                        var userResult = tx.executeSql(
+                            "SELECT odoo_record_id FROM res_users_app WHERE login = ? AND account_id = ?",
+                            [username, accountId]
+                        );
+
+                        if (userResult.rows.length > 0) {
+                            var odooId = userResult.rows.item(0).odoo_record_id;
+                            if (odooId && odooId > 0) {
+                                assigneeIds.push({ user_id: odooId, account_id: accountId });
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getCurrentUserAssigneeIds", e);
+    }
+
+    return assigneeIds;
 }
 
 /**

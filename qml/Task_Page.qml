@@ -200,6 +200,36 @@ Page {
         }
     }
 
+    // Function to apply default assignee filter (current logged-in user)
+    function applyDefaultAssigneeFilter() {
+        try {
+            var currentAccountId = tasklist.selectedAccountId;
+            if (typeof currentAccountId === "undefined" || currentAccountId === null)
+                currentAccountId = -1;
+
+            var userIds = Account.getCurrentUserAssigneeIds(currentAccountId);
+
+            if (userIds && userIds.length > 0) {
+                task.filterByAssignees = true;
+                task.selectedAssigneeIds = userIds;
+                tasklist.filterByAssignees = true;
+                tasklist.selectedAssigneeIds = userIds;
+                assigneeFilterMenu.selectedAssigneeIds = userIds;
+
+                // Save to global state for persistence
+                Global.setAssigneeFilter(true, userIds);
+            } else {
+                task.filterByAssignees = false;
+                task.selectedAssigneeIds = [];
+                tasklist.filterByAssignees = false;
+                tasklist.selectedAssigneeIds = [];
+                assigneeFilterMenu.selectedAssigneeIds = [];
+            }
+        } catch (e) {
+            console.error("applyDefaultAssigneeFilter failed:", e);
+        }
+    }
+
     // Add the ListHeader component
     ListHeader {
         id: taskListHeader
@@ -454,15 +484,10 @@ Page {
 
                 //console.log("Task_Page: Restored assignee filter - enabled:", task.filterByAssignees);
             } else {
-                // Clear filter when coming from non-task pages (Dashboard, Home, etc.)
-                task.filterByAssignees = false;
-                task.selectedAssigneeIds = [];
-                tasklist.filterByAssignees = false;
-                tasklist.selectedAssigneeIds = [];
-                assigneeFilterMenu.selectedAssigneeIds = [];
-                Global.clearAssigneeFilter();
+                // Apply default assignee filter (current user) when coming from non-task pages
+                applyDefaultAssigneeFilter();
 
-                //console.log("Task_Page: Cleared assignee filter (coming from non-task page)");
+                //console.log("Task_Page: Applied default assignee filter (coming from non-task page)");
             }
 
             // Update navigation tracking
@@ -495,15 +520,8 @@ Page {
         // Load assignees for the assignee filter
         loadAssignees();
 
-        // Don't automatically restore global assignee filter on page load
-        // The filter should only be restored when user explicitly uses filter tabs or search
-        // This allows the page to show unfiltered results when navigating back from other pages
-
-        // Initialize with no assignee filter by default
-        task.filterByAssignees = false;
-        task.selectedAssigneeIds = [];
-        tasklist.filterByAssignees = false;
-        tasklist.selectedAssigneeIds = [];
+        // Apply default assignee filter (current logged-in user)
+        applyDefaultAssigneeFilter();
 
         if (filterByProject) {
             tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
