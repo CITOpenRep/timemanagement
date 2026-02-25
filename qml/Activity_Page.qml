@@ -65,6 +65,15 @@ Page {
                 }
             },
             Action {
+                iconName: activity.filterByMyItems ? "contact" : "contact-group"
+                text: activity.filterByMyItems
+                    ? i18n.dtr("ubtms", "My Items")
+                    : i18n.dtr("ubtms", "All Items")
+                onTriggered: {
+                    toggleMyItemsFilter();
+                }
+            },
+            Action {
                 
                 iconSource: filterByAssignees ? Qt.resolvedUrl("images/filter.png") : Qt.resolvedUrl("images/filter-assignee.png")
                 text: filterByAssignees
@@ -97,6 +106,10 @@ Page {
     property bool filterByAssignees: false
     property var selectedAssigneeIds: []
     property var availableAssignees: []
+
+    // Properties for "My Items" filter (shows items assigned to OR created by current user)
+    property bool filterByMyItems: true  // ON by default
+    property var myItemsUserIds: []  // Populated from getCurrentUserAssigneeIds
 
     // Loading state property
     property bool isLoading: false
@@ -152,6 +165,11 @@ Page {
 
         // Reload assignees for the new account
         loadAssignees();
+
+        // Reload My Items user IDs for the new account
+        if (activity.filterByMyItems) {
+            loadMyItemsUserIds();
+        }
 
         // Refresh the activity list
         isLoading = true;
@@ -222,6 +240,7 @@ Page {
                     var isDoneFilter = currentFilter === "done";
 
                 // Keep pagination only when assignee filtering is not active and scoped client-side filters are not active.
+                // My Items filter supports pagination (SQL-level user_id/create_uid filtering).
                 var canPaginate = (!hasClientSideScopedFilters)
                         && (!hasActiveSearch)
                         && (!isDoneFilter)
@@ -240,6 +259,19 @@ Page {
                     // Paginated task-filtered activities
                     var result = Activity.getActivitiesForTaskPaginated(
                         taskOdooRecordId, projectAccountId, pageSize, currentOffset);
+                    allActivities = result.activities;
+                    hasMoreItems = result.hasMore && allActivities.length >= pageSize;
+                } else if (filterByMyItems && myItemsUserIds && myItemsUserIds.length > 0) {
+                    // My Items paginated: items assigned to OR created by current user
+                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                    var result = Activity.getMyItemsActivitiesPaginated(
+                        myItemsUserIds,
+                        currentFilter,
+                        currentSearchQuery,
+                        accountIdForFilter,
+                        pageSize,
+                        currentOffset
+                    );
                     allActivities = result.activities;
                     hasMoreItems = result.hasMore && allActivities.length >= pageSize;
                 } else {
@@ -266,6 +298,10 @@ Page {
                     allActivities = Activity.getActivitiesForProject(projectOdooRecordId, projectAccountId);
                 } else if (filterByTasks) {
                     allActivities = Activity.getActivitiesForTask(taskOdooRecordId, projectAccountId);
+                } else if (filterByMyItems && myItemsUserIds && myItemsUserIds.length > 0) {
+                    // My Items full-load: items assigned to OR created by current user
+                    var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
+                    allActivities = Activity.getMyItemsActivities(myItemsUserIds, currentFilter, currentSearchQuery, accountIdForFilter);
                 } else {
                     var accountIdForFilter = (filterByAccount && currentAccountId >= 0) ? currentAccountId : -1;
                     allActivities = Activity.getFilteredActivities(currentFilter, currentSearchQuery, accountIdForFilter);
@@ -454,24 +490,44 @@ Page {
         }
     }
 
-    // Apply current user as default assignee filter
-    function applyDefaultAssigneeFilter() {
+    // Populate myItemsUserIds from the current user's account info
+    function loadMyItemsUserIds() {
         var currentAccountId = selectedAccountId;
         var userIds = Accounts.getCurrentUserAssigneeIds(
             (typeof currentAccountId !== "undefined" && currentAccountId !== null) ? currentAccountId : -1
         );
+        myItemsUserIds = (userIds && userIds.length > 0) ? userIds : [];
+    }
 
-        if (userIds && userIds.length > 0) {
-            activity.filterByAssignees = true;
-            activity.selectedAssigneeIds = userIds;
-            assigneeFilterMenu.selectedAssigneeIds = userIds;
-            Global.setAssigneeFilter(true, userIds);
+    // Toggle the "My Items" filter on/off. Mutually exclusive with Assignee Filter.
+    function toggleMyItemsFilter() {
+        if (activity.filterByMyItems) {
+            // Turning OFF My Items — show all items
+            activity.filterByMyItems = false;
+            Global.setMyItemsFilter(false);
         } else {
-            // Fallback: no user found, show all
+            // Turning ON My Items — disable Assignee Filter first (mutually exclusive)
             activity.filterByAssignees = false;
             activity.selectedAssigneeIds = [];
             assigneeFilterMenu.selectedAssigneeIds = [];
             Global.clearAssigneeFilter();
+
+            // Enable My Items
+            activity.filterByMyItems = true;
+            Global.setMyItemsFilter(true);
+            loadMyItemsUserIds();
+        }
+
+        // Refresh activity list
+        get_activity_list();
+    }
+
+    // Restore My Items filter state from global storage
+    function restoreMyItemsFilterState() {
+        var enabled = Global.getMyItemsFilter();
+        activity.filterByMyItems = enabled;
+        if (enabled) {
+            loadMyItemsUserIds();
         }
     }
 
@@ -738,20 +794,24 @@ Page {
 
             // Check if we're coming from an activity-related page
             var previousPage = Global.getLastVisitedPage();
-            var shouldPreserve = Global.shouldPreserveAssigneeFilter("Activity_Page", previousPage);
-
-            //console.log("Activity_Page: Page became visible. Previous page:", previousPage, "Should preserve filter:", shouldPreserve);
+            var shouldPreserve = Global.shouldPreserveFilters("Activity_Page", previousPage);
 
             if (shouldPreserve) {
-                // Restore assignee filter from global state when returning from Activities detail page
-                restoreAssigneeFilterState();
-
-                //console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
+                // Restore both filter states from global when returning from Activities detail page
+                restoreMyItemsFilterState();
+                if (!activity.filterByMyItems) {
+                    restoreAssigneeFilterState();
+                }
             } else {
-                // Apply current user as default filter when coming from non-activity pages
-                applyDefaultAssigneeFilter();
+                // Coming from non-activity page: enable My Items by default, clear assignee filter
+                activity.filterByMyItems = true;
+                Global.setMyItemsFilter(true);
+                loadMyItemsUserIds();
 
-                //console.log("Activity_Page: Applied default assignee filter (coming from non-activity page)");
+                activity.filterByAssignees = false;
+                activity.selectedAssigneeIds = [];
+                assigneeFilterMenu.selectedAssigneeIds = [];
+                Global.clearAssigneeFilter();
             }
 
             // Update navigation tracking
@@ -770,28 +830,28 @@ Page {
         onFilterApplied: function (assigneeIds) {
             // Read directly from AssigneeFilterMenu to avoid timing issues
             var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
-            //console.log("Activity_Page: Assignee filter applied - Reading directly from AssigneeFilterMenu");
-            //console.log("   Passed parameter:", JSON.stringify(assigneeIds));
-            //console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
 
             selectedAssigneeIds = actualSelectedIds;
             filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
+            // Mutual exclusivity: disable My Items when Assignee Filter is applied
+            if (filterByAssignees) {
+                activity.filterByMyItems = false;
+                Global.setMyItemsFilter(false);
+            }
+
             // Save to global state for persistence across navigation
             Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
-            //console.log("Activity_Page: Assignee filter saved to global state - enabled:", filterByAssignees);
 
             get_activity_list();
         }
 
         onFilterCleared: function () {
-            //console.log("Activity_Page: Assignee filter cleared");
             selectedAssigneeIds = [];
             filterByAssignees = false;
 
             // Clear global state
             Global.clearAssigneeFilter();
-            //console.log("Activity_Page: Assignee filter cleared from global state");
 
             get_activity_list();
         }
@@ -827,8 +887,15 @@ Page {
         // Load assignees for the assignee filter
         loadAssignees();
 
-        // Apply current user as default assignee filter
-        applyDefaultAssigneeFilter();
+        // Apply "My Items" filter by default (replaces applyDefaultAssigneeFilter)
+        activity.filterByMyItems = true;
+        Global.setMyItemsFilter(true);
+        loadMyItemsUserIds();
+
+        // Make sure assignee filter starts cleared
+        activity.filterByAssignees = false;
+        activity.selectedAssigneeIds = [];
+        assigneeFilterMenu.selectedAssigneeIds = [];
 
         get_activity_list();
     }
