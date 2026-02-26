@@ -175,13 +175,19 @@ Page {
                         id: syncIntervalCombo
                         text: i18n.dtr("ubtms", "Sync Interval")
                         enabled: autoSyncSwitch.checked
-                        containerHeight: units.gu(30)
+                        containerHeight: units.gu(50)
                         model: [
                             { text: "1 minute", value: "1" },
                             { text: "5 minutes", value: "5" },
                             { text: "15 minutes", value: "15" },
                             { text: "30 minutes", value: "30" },
-                            { text: "60 minutes", value: "60" }
+                            { text: "1 hour", value: "60" },
+                            { text: "2 hours", value: "120" },
+                            { text: "6 hours", value: "360" },
+                            { text: "12 hours", value: "720" },
+                            { text: "1 day", value: "1440" },
+                            { text: "3 days", value: "4320" },
+                            { text: "1 week", value: "10080" }
                         ]
                         delegate: OptionSelectorDelegate { 
                             text: modelData.text 
