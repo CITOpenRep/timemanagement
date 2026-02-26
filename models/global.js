@@ -14,9 +14,6 @@ var createUpdateCallback = null
 var assigneeFilterEnabled = false
 var assigneeFilterIds = []
 
-// Global "My Items" filter state (shows items assigned to or created by the current user)
-var myItemsFilterEnabled = true  // ON by default
-
 // Navigation tracking for filter persistence
 var lastVisitedPage = ""
 
@@ -38,19 +35,6 @@ function clearAssigneeFilter() {
     assigneeFilterIds = [];
 }
 
-// Functions to manage "My Items" filter state
-function setMyItemsFilter(enabled) {
-    myItemsFilterEnabled = enabled;
-}
-
-function getMyItemsFilter() {
-    return myItemsFilterEnabled;
-}
-
-function clearMyItemsFilter() {
-    myItemsFilterEnabled = true; // Reset to default (ON)
-}
-
 // Track page navigation for filter persistence
 function setLastVisitedPage(pageName) {
     lastVisitedPage = pageName;
@@ -60,8 +44,8 @@ function getLastVisitedPage() {
     return lastVisitedPage;
 }
 
-// Check if we should preserve filters (navigating between related pages)
-function shouldPreserveFilters(currentPage, previousPage) {
+// Check if we should preserve filter (navigating between related pages)
+function shouldPreserveAssigneeFilter(currentPage, previousPage) {
     // Define page groups that should preserve filters when navigating between each other
     var taskPages = ["Task_Page", "Tasks"];
     var activityPages = ["Activity_Page", "Activities"];
@@ -73,9 +57,4 @@ function shouldPreserveFilters(currentPage, previousPage) {
     var bothInActivityPages = activityPages.indexOf(currentPage) !== -1 && activityPages.indexOf(previousPage) !== -1;
     
     return bothInTaskPages || bothInActivityPages;
-}
-
-// Backward compatibility alias
-function shouldPreserveAssigneeFilter(currentPage, previousPage) {
-    return shouldPreserveFilters(currentPage, previousPage);
 }

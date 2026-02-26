@@ -46,10 +46,10 @@ Item {
         for (var i = 0; i < selectedAssigneeIds.length; i++) {
             var selectedId = selectedAssigneeIds[i];
             if (typeof selectedId === 'object') {
-                if (parseInt(selectedId.user_id) === parseInt(userId) && parseInt(selectedId.account_id) === parseInt(accountId)) {
+                if (selectedId.user_id === userId && selectedId.account_id === accountId) {
                     return true;
                 }
-            } else if (parseInt(selectedId) === parseInt(userId)) {
+            } else if (selectedId === userId) {
                 // Legacy format - consider it selected for backward compatibility
                 return true;
             }
@@ -482,12 +482,11 @@ Item {
     // Update filter model when selectedAssigneeIds changes
     onSelectedAssigneeIdsChanged: {
         if (filterModel) {
-            // Update the selected state in the model using isAssigneeSelected
-            // to properly handle composite {user_id, account_id} objects
+            // Update the selected state in the model using composite ID matching
             for (var i = 0; i < filterModel.count; i++) {
                 var item = filterModel.get(i);
-                var selected = isAssigneeSelected(item.assigneeId, item.account_id);
-                filterModel.setProperty(i, "selected", selected);
+                var isSelected = isAssigneeSelected(item.assigneeId, item.account_id);
+                filterModel.setProperty(i, "selected", isSelected);
             }
         }
     }
