@@ -434,7 +434,7 @@ function getCurrentUserOdooId(accountId) {
 
             DBCommon.log(`Found username: ${username}, now checking res_users_app`);
 
-            const userResult = tx.executeSql("SELECT odoo_record_id FROM res_users_app WHERE login = ?", [username]);
+            const userResult = tx.executeSql("SELECT odoo_record_id FROM res_users_app WHERE login = ? AND account_id = ?", [username, accountId]);
 
             if (userResult.rows.length > 0) {
                 odooId = userResult.rows.item(0).odoo_record_id;
