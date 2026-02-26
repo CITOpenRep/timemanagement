@@ -259,18 +259,21 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#f5f5f5"
 
         ListView {
             id: listView
             anchors.fill: parent
             clip: true
+            spacing: 0
             model: accountListModel
             
             delegate: ListItem {
+                id: delegateItem
                 width: parent.width
-                height: units.gu(16)
+                height: delegateColumn.height
                 divider.visible: false
+                highlightColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#252525" : "#e8e8e8"
 
                 onClicked: {
                     if (model.id !== 0) {
@@ -279,15 +282,14 @@ Page {
                         });
                     }
                 }
-                
-                // Leading action for editing account (swipe from left)
+
+                // ── Swipe Left → Edit ──
                 leadingActions: ListItemActions {
                     actions: [
                         Action {
                             iconName: "edit"
-                            enabled: model.id !== 0  // Disabled for local accounts
+                            enabled: model.id !== 0
                             onTriggered: {
-                                //console.log("Edit account:", model.id);
                                 apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('../Account_Page.qml'), {
                                     "accountId": model.id
                                 });
@@ -295,181 +297,210 @@ Page {
                         }
                     ]
                 }
-                
-                Rectangle {
-                    anchors.fill: parent
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "transparent"
-                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#CCCCCC"
-                    border.width: 1
-                    
-                    Column {
-                        spacing: 0
-                        anchors.fill: parent
-                        Row {
+
+                // ── Swipe Right → Log, Delete ──
+                trailingActions: ListItemActions {
+                    actions: [
+                        Action {
+                            iconName: "note"
+                            text: i18n.dtr("ubtms", "Log")
+                            enabled: model.id !== 0
+                            onTriggered: {
+                                apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl("../SyncLog.qml"), {
+                                    "recordid": model.id
+                                });
+                            }
+                        },
+                        Action {
+                            iconName: "delete"
+                            text: i18n.dtr("ubtms", "Delete")
+                            enabled: model.id !== 0
+                            onTriggered: {
+                                accountToDelete = model.id;
+                                accountIndexToDelete = index;
+                                PopupUtils.open(deleteConfirmationDialogComponent);
+                            }
+                        }
+                    ]
+                }
+
+                Column {
+                    id: delegateColumn
+                    width: parent.width
+
+                    // ── Main content area ──
+                    Item {
                         width: parent.width
-                        height: units.gu(15)
-                        spacing: units.gu(1)
+                        height: contentRow.height + units.gu(2.5)
 
-                        Rectangle {
-                            id: imgmodulename
-                            width: units.gu(5)
-                            height: units.gu(5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#0078d4" : "#0078d4"
-                            radius: 80
-                            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#0056a0" : "#0056a0"
-                            border.width: 1
-                            anchors.rightMargin: units.gu(1)
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: parent.left
-                            anchors.leftMargin: units.gu(1)
+                        Row {
+                            id: contentRow
+                            anchors {
+                                left: parent.left
+                                right: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: units.gu(2)
+                                rightMargin: units.gu(2)
+                            }
+                            spacing: units.gu(1.5)
 
-                            Text {
-                                text: Utils.truncateText(model.name.charAt(0), 20).toUpperCase()
-                                anchors.verticalCenter: parent.verticalCenter
-                                color: "#fff"
-                                anchors.centerIn: parent
-                                font.pixelSize: units.gu(2)
-                            }
-                        }
-
-                        Column {
-                            spacing: 5
-                            anchors.left: imgmodulename.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.leftMargin: units.gu(2)
-
-                            Text {
-                                text: Utils.truncateText(model.name, 20).toUpperCase()
-                                font.pixelSize: units.gu(2)
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#000"
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
-                                text: i18n.dtr("ubtms", "URL : ") + ((model.link.length > 40) ? model.link.substring(0, 40) + "..." : model.link)
-                                font.pixelSize: units.gu(1.2)
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                                elide: Text.ElideNone
-                            }
-                            Text {
-                                text: i18n.dtr("ubtms", "Database : ") + model.database
-                                font.pixelSize: units.gu(1.1)
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                            }
-                            Text {
-                                text: Utils.getLastSyncStatus(model.id)
-                                font.pixelSize: units.gu(1)
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                            }
-                            Text {
-                                visible: model.id !== 0
-                                text: {
-                                    if (model.sync_interval_minutes !== undefined && model.sync_interval_minutes !== null && model.sync_interval_minutes !== "") {
-                                        return i18n.dtr("ubtms", "Sync: every ") + formatSyncInterval(model.sync_interval_minutes) + i18n.dtr("ubtms", " (custom)");
-                                    } else {
-                                        var globalInterval = "15";
-                                        try {
-                                            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-                                            db.readTransaction(function (tx) {
-                                                var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', ["sync_interval_minutes"]);
-                                                if (rs.rows.length > 0) globalInterval = rs.rows.item(0).value;
-                                            });
-                                        } catch (e) {}
-                                        return i18n.dtr("ubtms", "Sync: every ") + formatSyncInterval(globalInterval) + i18n.dtr("ubtms", " (global)");
-                                    }
-                                }
-                                font.pixelSize: units.gu(1)
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#7ab0d9" : "#0078d4"
-                            }
-                            CheckBox {
-                                id: defaultCheckBox
-                                checked: model.is_default === 1
-                                text: i18n.dtr("ubtms", "Default")
-
-                                // Handle the click/toggle event
-                                onClicked: {
-                                    // Only set as default if this checkbox was unchecked and is now checked
-                                    if (checked) {
-                                        setDefaultAccount(model.id);
-                                    } else {
-                                        // Prevent unchecking - there must always be a default account
-                                        checked = true;
-                                    }
-                                }
-                            }
-                        }
-                        Column {
-                            anchors.right: parent.right
-                            anchors.rightMargin: units.gu(1)
-                            anchors.verticalCenter: parent.verticalCenter
-                            TSButton {
-                                visible: (model.id !== 0)
-                                width: units.gu(10)
-                                height: units.gu(4)
-                                fontSize: units.gu(1.5)
-                                text: Utils.truncateText(i18n.dtr("ubtms", "Delete"),10)
-                                onClicked: {
-                                    accountToDelete = model.id;
-                                    accountIndexToDelete = index;
-                                    PopupUtils.open(deleteConfirmationDialogComponent);
-                                }
-                            }
-                            TSButton {
-                                visible: (model.id !== 0)
-                                width: units.gu(10)
-                                height: units.gu(4)
-                                fontSize: units.gu(1.5)
-                                text: Utils.truncateText(i18n.dtr("ubtms", "Show Log"),10)
-                                onClicked: {
-                                    apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl("../SyncLog.qml"), {
-                                        "recordid": model.id
-                                    });
-                                }
-                            }
+                            // ── Avatar ──
                             Rectangle {
-                                id: syncContainer
-                                visible: (model.id !== 0)
-                                width: units.gu(10)
-                                height: units.gu(4)
-                                color: "transparent"
+                                id: avatar
+                                width: units.gu(5)
+                                height: units.gu(5)
+                                radius: units.gu(1)
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: model.id === 0 ? "#8e8e93"
+                                     : model.is_default === 1 ? LomiriColors.orange
+                                     : "#335280"
 
-                                property bool syncing: syncingAccountId === model.id
+                                Text {
+                                    text: model.name.charAt(0).toUpperCase()
+                                    anchors.centerIn: parent
+                                    color: "#ffffff"
+                                    font.pixelSize: units.gu(2.2)
+                                    font.weight: Font.DemiBold
+                                }
 
-                                TSButton {
-                                    id: syncBtn
-                                    anchors.fill: parent
-                                    visible: !syncContainer.syncing
-                                    fontSize: units.gu(1.5)
-                                    text: Utils.truncateText(i18n.dtr("ubtms", "Sync"),10)
-                                    onClicked: {
-                                        //console.log("Starting sync for account:", model.id, "(" + model.name + ")");
-                                        syncingAccountId = model.id;
-                                        syncTimeoutTimer.start(); // Start timeout timer
-                                        syncStatusChecker.start(); // Start status checking
-                                        accountDisplayRefreshTimer.start(); // Start account display refresh
+                                // Default indicator dot
+                                Rectangle {
+                                    visible: model.is_default === 1
+                                    width: units.gu(1.4)
+                                    height: units.gu(1.4)
+                                    radius: width / 2
+                                    color: "#ffffff"
+                                    border.color: LomiriColors.orange
+                                    border.width: units.dp(2)
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    anchors.rightMargin: -units.gu(0.3)
+                                    anchors.bottomMargin: -units.gu(0.3)
 
-                                        // Notify global timer widget about sync start
-                                        if (typeof globalTimerWidget !== 'undefined') {
-                                            globalTimerWidget.startSync(model.id, model.name);
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        width: units.gu(0.8)
+                                        height: units.gu(0.8)
+                                        name: "tick"
+                                        color: LomiriColors.orange
+                                    }
+                                }
+                            }
+
+                            // ── Text Column ──
+                            Column {
+                                id: textCol
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - avatar.width - actionCol.width - units.gu(3)
+                                spacing: units.gu(0.2)
+
+                                // Account name
+                                Text {
+                                    text: model.name
+                                    width: parent.width
+                                    font.pixelSize: units.gu(1.9)
+                                    font.weight: Font.Medium
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f5f5f5" : "#111"
+                                    elide: Text.ElideRight
+                                }
+
+                                // URL
+                                Text {
+                                    text: model.link
+                                    width: parent.width
+                                    font.pixelSize: units.gu(1.2)
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#777"
+                                    elide: Text.ElideMiddle
+                                }
+
+                                // Sync status line (combined: status + interval)
+                                Text {
+                                    visible: model.id !== 0
+                                    width: parent.width
+                                    font.pixelSize: units.gu(1.1)
+                                    elide: Text.ElideRight
+                                    color: {
+                                        var s = Utils.getLastSyncStatus(model.id);
+                                        if (s.indexOf("Successful") !== -1) return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#66bb6a" : "#43a047";
+                                        if (s.indexOf("Failed") !== -1) return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ef5350" : "#e53935";
+                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#999";
+                                    }
+                                    text: {
+                                        var s = Utils.getLastSyncStatus(model.id);
+                                        // Extract just the date/time part for brevity
+                                        var interval = "";
+                                        if (model.sync_interval_minutes !== undefined && model.sync_interval_minutes !== null && model.sync_interval_minutes !== "") {
+                                            interval = formatSyncInterval(model.sync_interval_minutes);
+                                        } else {
+                                            var gi = "15";
+                                            try {
+                                                var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+                                                db.readTransaction(function (tx) {
+                                                    var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', ["sync_interval_minutes"]);
+                                                    if (rs.rows.length > 0) gi = rs.rows.item(0).value;
+                                                });
+                                            } catch (e) {}
+                                            interval = formatSyncInterval(gi);
+                                        }
+                                        if (s && s.length > 0) {
+                                            // Shorten long status text
+                                            var shortStatus = s.length > 35 ? s.substring(0, 32) + "…" : s;
+                                            return shortStatus + "  ·  " + interval;
+                                        }
+                                        return "⟳ " + interval;
+                                    }
+                                }
+                            }
+
+                            // ── Right Action Column ──
+                            Column {
+                                id: actionCol
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: model.id !== 0 ? units.gu(5) : units.gu(4)
+                                spacing: units.gu(0.5)
+
+                                // Sync icon button (non-local only)
+                                Item {
+                                    visible: model.id !== 0
+                                    width: units.gu(4.5)
+                                    height: units.gu(4.5)
+
+                                    property bool syncing: syncingAccountId === model.id
+
+                                    // Sync button
+                                    Rectangle {
+                                        id: syncCircle
+                                        anchors.centerIn: parent
+                                        width: units.gu(4)
+                                        height: units.gu(4)
+                                        radius: width / 2
+                                        visible: !parent.syncing
+                                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#252525" : "#f0f0f0"
+                                        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
+                                        border.width: units.dp(1)
+
+                                        Icon {
+                                            anchors.centerIn: parent
+                                            width: units.gu(2.2)
+                                            height: units.gu(2.2)
+                                            name: "sync"
+                                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ccc" : "#555"
                                         }
 
-                                        backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
-                                            if (path === "") {
-                                                //console.warn("DB not found.");
-                                                syncingAccountId = -1;
-                                                syncTimeoutTimer.stop();
-                                                syncStatusChecker.stop();
-                                                accountDisplayRefreshTimer.stop();
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            onClicked: {
+                                                syncingAccountId = model.id;
+                                                syncTimeoutTimer.start();
+                                                syncStatusChecker.start();
+                                                accountDisplayRefreshTimer.start();
+
                                                 if (typeof globalTimerWidget !== 'undefined') {
-                                                    globalTimerWidget.stopSync();
+                                                    globalTimerWidget.startSync(model.id, model.name);
                                                 }
-                                            } else {
-                                                backend_bridge.call("backend.start_sync_in_background", [path, model.id], function (result) {
-                                                    if (result) {
-                                                        //console.log("Background sync started for account:", model.id);
-                                                        // Keep syncing = true, will be set to false when sync completes or times out
-                                                    } else {
-                                                        console.warn("Failed to start sync for account:", model.id);
+
+                                                backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                                                    if (path === "") {
                                                         syncingAccountId = -1;
                                                         syncTimeoutTimer.stop();
                                                         syncStatusChecker.stop();
@@ -477,56 +508,88 @@ Page {
                                                         if (typeof globalTimerWidget !== 'undefined') {
                                                             globalTimerWidget.stopSync();
                                                         }
+                                                    } else {
+                                                        backend_bridge.call("backend.start_sync_in_background", [path, model.id], function (result) {
+                                                            if (!result) {
+                                                                console.warn("Failed to start sync for account:", model.id);
+                                                                syncingAccountId = -1;
+                                                                syncTimeoutTimer.stop();
+                                                                syncStatusChecker.stop();
+                                                                accountDisplayRefreshTimer.stop();
+                                                                if (typeof globalTimerWidget !== 'undefined') {
+                                                                    globalTimerWidget.stopSync();
+                                                                }
+                                                            }
+                                                        });
                                                     }
                                                 });
                                             }
-                                        });
+                                        }
+                                    }
+
+                                    // Syncing spinner
+                                    Rectangle {
+                                        id: syncingIndicator
+                                        anchors.centerIn: parent
+                                        width: units.gu(4)
+                                        height: units.gu(4)
+                                        radius: width / 2
+                                        visible: parent.syncing
+                                        color: LomiriColors.orange
+
+                                        SequentialAnimation {
+                                            running: syncingIndicator.visible
+                                            loops: Animation.Infinite
+                                            PropertyAnimation { target: syncingIndicator; property: "opacity"; from: 1.0; to: 0.4; duration: 600 }
+                                            PropertyAnimation { target: syncingIndicator; property: "opacity"; from: 0.4; to: 1.0; duration: 600 }
+                                        }
+
+                                        Icon {
+                                            anchors.centerIn: parent
+                                            width: units.gu(2)
+                                            height: units.gu(2)
+                                            name: "sync"
+                                            color: "#ffffff"
+                                        }
                                     }
                                 }
 
-                                Rectangle {
-                                    id: loadingIndicator
-                                    anchors.fill: parent
-                                    visible: syncContainer.syncing
-                                    color: "#0078d4"
-                                    radius: units.gu(0.5)
-                                    border.color: "#0056a0"
-                                    border.width: 1
+                                // Star for setting default (non-local only)
+                                Item {
+                                    visible: model.id !== 0
+                                    width: units.gu(4.5)
+                                    height: units.gu(2)
 
-                                    // Pulsing animation for loading indicator
-                                    SequentialAnimation {
-                                        running: syncContainer.syncing
-                                        loops: Animation.Infinite
-
-                                        PropertyAnimation {
-                                            target: loadingIndicator
-                                            property: "opacity"
-                                            from: 1.0
-                                            to: 0.6
-                                            duration: 800
-                                        }
-
-                                        PropertyAnimation {
-                                            target: loadingIndicator
-                                            property: "opacity"
-                                            from: 0.6
-                                            to: 1.0
-                                            duration: 800
-                                        }
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        width: units.gu(2)
+                                        height: units.gu(2)
+                                        name: model.is_default === 1 ? "starred" : "non-starred"
+                                        color: model.is_default === 1 ? LomiriColors.orange
+                                             : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#ccc")
                                     }
 
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: i18n.dtr("ubtms", "Syncing...")
-                                        color: "white"
-                                        font.pixelSize: units.gu(1.2)
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            if (model.is_default !== 1) {
+                                                setDefaultAccount(model.id);
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+
+                    // ── Bottom divider ──
+                    Rectangle {
+                        width: parent.width - units.gu(4)
+                        height: units.dp(1)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#e0e0e0"
+                    }
                 }
-            }
             }
         }
     }
