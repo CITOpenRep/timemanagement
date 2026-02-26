@@ -144,15 +144,111 @@ def get_all_accounts(settings_db_path):
     try:
         conn = sqlite3.connect(settings_db_path)
         cur = conn.cursor()
-        cur.execute("SELECT id, name, link, database, username, api_key FROM users")
+        cur.execute(
+            "SELECT id, name, link, database, username, api_key, "
+            "sync_interval_minutes, sync_direction, autosync_enabled, last_synced_at "
+            "FROM users"
+        )
         rows = cur.fetchall()
         conn.close()
-        return [
-            dict(zip(["id", "name", "link", "database", "username", "api_key"], row))
-            for row in rows
+        columns = [
+            "id", "name", "link", "database", "username", "api_key",
+            "sync_interval_minutes", "sync_direction", "autosync_enabled", "last_synced_at"
         ]
+        return [dict(zip(columns, row)) for row in rows]
     except sqlite3.OperationalError as e:
         # Table doesn't exist yet - QML app hasn't been opened
         if "no such table" in str(e):
             return []
         raise
+
+
+def get_account_sync_settings(db_path, account_id):
+    """
+    Get the resolved sync settings for a specific account.
+
+    Per-account values override global settings. If the per-account value is
+    NULL, the global default from app_settings is used.
+
+    Args:
+        db_path (str): Path to the SQLite database file
+        account_id (int): Account ID
+
+    Returns:
+        dict: Resolved settings with keys:
+            - autosync_enabled (bool)
+            - sync_interval_minutes (int)
+            - sync_direction (str)
+            - last_synced_at (str or None): ISO timestamp of last sync
+    """
+    # Read global defaults
+    global_enabled = get_setting(db_path, "autosync_enabled", "true")
+    global_interval = get_setting(db_path, "sync_interval_minutes", "15")
+    global_direction = get_setting(db_path, "sync_direction", "both")
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT sync_interval_minutes, sync_direction, autosync_enabled, last_synced_at "
+            "FROM users WHERE id = ?",
+            (account_id,),
+        )
+        row = cur.fetchone()
+        conn.close()
+
+        if row:
+            acct_interval, acct_direction, acct_enabled, last_synced = row
+
+            # Per-account overrides (NULL means use global)
+            resolved_interval = acct_interval if acct_interval is not None else int(global_interval)
+            resolved_direction = acct_direction if acct_direction is not None else global_direction
+            if acct_enabled is not None:
+                resolved_enabled = bool(acct_enabled)
+            else:
+                resolved_enabled = global_enabled.lower() == "true"
+
+            return {
+                "autosync_enabled": resolved_enabled,
+                "sync_interval_minutes": max(1, int(resolved_interval)),
+                "sync_direction": resolved_direction,
+                "last_synced_at": last_synced,
+            }
+    except sqlite3.OperationalError as e:
+        if "no such column" in str(e) or "no such table" in str(e):
+            pass  # Columns not yet migrated
+        else:
+            raise
+
+    # Fallback to global settings
+    return {
+        "autosync_enabled": global_enabled.lower() == "true",
+        "sync_interval_minutes": max(1, int(global_interval)),
+        "sync_direction": global_direction,
+        "last_synced_at": None,
+    }
+
+
+def update_last_synced_at(db_path, account_id):
+    """
+    Update the last_synced_at timestamp for an account to the current UTC time.
+
+    Args:
+        db_path (str): Path to the SQLite database file
+        account_id (int): Account ID
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET last_synced_at = datetime('now') WHERE id = ?",
+            (account_id,),
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False

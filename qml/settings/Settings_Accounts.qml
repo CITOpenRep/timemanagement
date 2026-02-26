@@ -340,6 +340,26 @@ Page {
                                 font.pixelSize: units.gu(1)
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                             }
+                            Text {
+                                visible: model.id !== 0
+                                text: {
+                                    if (model.sync_interval_minutes !== undefined && model.sync_interval_minutes !== null && model.sync_interval_minutes !== "") {
+                                        return i18n.dtr("ubtms", "Sync: every ") + model.sync_interval_minutes + i18n.dtr("ubtms", " min (custom)");
+                                    } else {
+                                        var globalInterval = "15";
+                                        try {
+                                            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+                                            db.readTransaction(function (tx) {
+                                                var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', ["sync_interval_minutes"]);
+                                                if (rs.rows.length > 0) globalInterval = rs.rows.item(0).value;
+                                            });
+                                        } catch (e) {}
+                                        return i18n.dtr("ubtms", "Sync: every ") + globalInterval + i18n.dtr("ubtms", " min (global)");
+                                    }
+                                }
+                                font.pixelSize: units.gu(1)
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#7ab0d9" : "#0078d4"
+                            }
                             CheckBox {
                                 id: defaultCheckBox
                                 checked: model.is_default === 1

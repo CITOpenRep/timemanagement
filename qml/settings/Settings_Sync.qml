@@ -302,7 +302,7 @@ Page {
 
                     // Info text
                     Text {
-                        text: i18n.dtr("ubtms", "Note: Changes take effect on the next sync cycle. The background daemon checks for setting updates automatically.")
+                        text: i18n.dtr("ubtms", "Note: These are global defaults. Individual accounts can override these settings from their account edit page. Changes take effect on the next sync cycle.")
                         font.pixelSize: units.gu(1.3)
                         font.italic: true
                         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#888"
