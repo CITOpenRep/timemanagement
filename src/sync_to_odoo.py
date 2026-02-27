@@ -26,7 +26,7 @@ import json
 import sqlite3
 import logging
 from odoo_client import OdooClient
-from common import sanitize_datetime, safe_sql_execute,add_notification
+from common import sanitize_datetime, safe_sql_execute, add_notification, clear_sync_notifications
 from pathlib import Path
 from datetime import datetime, timezone
 import os
@@ -1137,6 +1137,10 @@ def sync_to_odoo(
     log.info(
         f"[SYNC] {model_name}: {len(local_records)} updated, {len(deleted_records)} deleted."
     )
+
+    # SUCCESS: Clear any previous sync error notifications for this model
+    # Only clear if we had no errors during this sync cycle
+    clear_sync_notifications(db_path, account_id, model_name)
 
 
 def sync_all_to_odoo(

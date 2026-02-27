@@ -474,6 +474,7 @@ Item {
                                                 case "Activity": return i18n.dtr("ubtms", "Activity");
                                                 case "Project": return i18n.dtr("ubtms", "Project");
                                                 case "Timesheet": return i18n.dtr("ubtms", "Timesheet");
+                                                case "Sync": return i18n.dtr("ubtms", "Sync Error");
                                                 default: return i18n.dtr("ubtms", "Update");
                                             }
                                         }
@@ -486,6 +487,7 @@ Item {
                                                 case "Activity": return "#2196F3";
                                                 case "Project": return "#FF9800";
                                                 case "Timesheet": return "#9C27B0";
+                                                case "Sync": return "#F44336";
                                                 default: return theme.palette.normal.backgroundSecondaryText;
                                             }
                                         }
@@ -522,13 +524,41 @@ Item {
                 }
             }
             
-            // Footer button
+            // Footer buttons
             RowLayout {
                 Layout.fillWidth: true
                 Layout.preferredHeight: units.gu(5)
                 spacing: units.gu(2)
                 visible: notificationCount > 0
                 
+                // Clear Sync Errors button - only visible when sync notifications exist
+                AbstractButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: units.gu(4)
+                    visible: Notifications.hasSyncNotifications()
+                    
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: units.gu(1)
+                        color: parent.pressed ? "#FFEBEE" : "transparent"
+                        border.color: "#F44336"
+                        border.width: 1
+                        
+                        Label {
+                            anchors.centerIn: parent
+                            text: i18n.dtr("ubtms", "Clear Sync Errors")
+                            color: "#F44336"
+                            font.pixelSize: units.gu(1.4)
+                        }
+                    }
+                    
+                    onClicked: {
+                        console.log("[NotificationBell] Clear Sync Errors clicked");
+                        Notifications.clearSyncNotifications();
+                        loadNotifications();
+                    }
+                }
+
                 AbstractButton {
                     Layout.fillWidth: true
                     Layout.preferredHeight: units.gu(4)
