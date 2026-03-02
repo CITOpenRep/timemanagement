@@ -400,21 +400,14 @@ Page {
                     }
 
                     // Account Name
-                    Column {
-                        width: parent.width
-                        spacing: units.gu(0.5)
-                        Text {
-                            text: i18n.dtr("ubtms", "Account Name")
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                        }
+                 
                         TextField {
                             id: accountNameInput
                             enabled: !isReadOnly
                             placeholderText: i18n.dtr("ubtms", "Account Name")
                             width: parent.width
                         }
-                    }
+                    
                 }
             }
 
