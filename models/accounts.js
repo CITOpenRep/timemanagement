@@ -640,3 +640,81 @@ function clearDefaultAccount() {
         DBCommon.logException(e);
     }
 }
+
+/**
+ * Updates the per-account sync settings for a given account.
+ * Pass null to reset a value to the global default.
+ *
+ * @param {number} accountId - The ID of the account to update.
+ * @param {number|null} intervalMinutes - Sync interval in minutes, or null for global default.
+ * @param {string|null} direction - "both", "download_only", "upload_only", or null for global default.
+ * @param {number|null} enabled - 1 (enabled), 0 (disabled), or null for global default.
+ */
+function updateAccountSyncSettings(accountId, intervalMinutes, direction, enabled) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            tx.executeSql(
+                'UPDATE users SET sync_interval_minutes = ?, sync_direction = ?, autosync_enabled = ? WHERE id = ?',
+                [intervalMinutes, direction, enabled, accountId]
+            );
+        });
+        DBCommon.log("Updated sync settings for account " + accountId +
+                     ": interval=" + intervalMinutes + ", direction=" + direction + ", enabled=" + enabled);
+    } catch (e) {
+        DBCommon.logException("updateAccountSyncSettings", e);
+    }
+}
+
+/**
+ * Retrieves the per-account sync settings for a given account.
+ *
+ * @param {number} accountId - The ID of the account.
+ * @returns {object} - Object with sync_interval_minutes, sync_direction, autosync_enabled (null if using global defaults).
+ */
+function getAccountSyncSettings(accountId) {
+    var result = {
+        sync_interval_minutes: null,
+        sync_direction: null,
+        autosync_enabled: null
+    };
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                'SELECT sync_interval_minutes, sync_direction, autosync_enabled FROM users WHERE id = ?',
+                [accountId]
+            );
+            if (rs.rows.length > 0) {
+                var row = rs.rows.item(0);
+                result.sync_interval_minutes = row.sync_interval_minutes;
+                result.sync_direction = row.sync_direction;
+                result.autosync_enabled = row.autosync_enabled;
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getAccountSyncSettings", e);
+    }
+
+    return result;
+}
+
+/**
+ * Updates the last_synced_at timestamp for a given account.
+ *
+ * @param {number} accountId - The ID of the account.
+ */
+function updateLastSyncedAt(accountId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            tx.executeSql(
+                "UPDATE users SET last_synced_at = datetime('now') WHERE id = ?",
+                [accountId]
+            );
+        });
+    } catch (e) {
+        DBCommon.logException("updateLastSyncedAt", e);
+    }
+}

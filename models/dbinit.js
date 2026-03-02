@@ -27,9 +27,14 @@ function initializeDatabase() {
             connectwith_id INTEGER,\
             api_key TEXT,\
             username TEXT NOT NULL,\
-            is_default INTEGER DEFAULT 0\
+            is_default INTEGER DEFAULT 0,\
+            sync_interval_minutes INTEGER DEFAULT NULL,\
+            sync_direction TEXT DEFAULT NULL,\
+            autosync_enabled INTEGER DEFAULT NULL,\
+            last_synced_at TEXT DEFAULT NULL\
         )',
-                                 ['id INTEGER', 'name TEXT', 'link TEXT', 'last_modified datetime', 'database TEXT', 'connectwith_id INTEGER', 'api_key TEXT', 'username TEXT','is_default INTEGER']
+                                 ['id INTEGER', 'name TEXT', 'link TEXT', 'last_modified datetime', 'database TEXT', 'connectwith_id INTEGER', 'api_key TEXT', 'username TEXT','is_default INTEGER',
+                                  'sync_interval_minutes INTEGER DEFAULT NULL', 'sync_direction TEXT DEFAULT NULL', 'autosync_enabled INTEGER DEFAULT NULL', 'last_synced_at TEXT DEFAULT NULL']
                                  );
 
     //Notification table

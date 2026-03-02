@@ -97,7 +97,7 @@ if MISSING_DEPS:
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from config import get_all_accounts, get_setting, DEFAULT_SETTINGS
+from config import get_all_accounts, get_setting, get_account_sync_settings, update_last_synced_at, DEFAULT_SETTINGS
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
 from sync_to_odoo import sync_all_to_odoo
@@ -178,9 +178,11 @@ class NotificationDaemon:
         self.running = True
         self.loop = None
         self.wakelock_cookie = None  # For suspend inhibition
-        self.sync_timer_id = None  # Track GLib timer for dynamic interval changes
+        self.sync_timer_id = None  # Track GLib timer for tick-based scheduler
         self.current_sync_interval = DEFAULT_SYNC_INTERVAL_MINUTES  # Track current interval
         self.started_version = APP_VERSION  # Track version at startup for auto-restart
+        # Per-account sync tracking: {account_id: {"last_synced": datetime_or_None, "interval": int, ...}}
+        self.account_sync_schedule = {}
         self._write_pid_file()
         self._setup_signal_handlers()
         self._protect_from_oom()  # Lower OOM priority to survive memory pressure
@@ -1215,6 +1217,9 @@ class NotificationDaemon:
             # Final memory cleanup after account processing
             self._cleanup_memory()
             
+            # Record successful sync timestamp in the database
+            update_last_synced_at(self.app_db, account_id)
+            
         except Exception as e:
             log.error(f"[DAEMON] Error syncing account {account_name}: {e}")
             log.error(f"[DAEMON] Error traceback: {traceback.format_exc()}")
@@ -1225,25 +1230,33 @@ class NotificationDaemon:
             except Exception as e2:
                 log.error(f"[DAEMON] Failed to check assignments after error: {e2}")
     
-    def sync_all_accounts(self):
-        """Sync all configured accounts using current settings."""
+    def sync_all_accounts(self, accounts_to_sync=None):
+        """Sync accounts using per-account settings.
+        
+        Args:
+            accounts_to_sync: Optional list of account dicts to sync.
+                              If None, syncs all configured accounts.
+        """
         try:
-            # Read current sync settings from database
-            settings = self._get_sync_settings()
-            sync_direction = settings["sync_direction"]
+            if accounts_to_sync is None:
+                accounts_to_sync = get_all_accounts(self.settings_db)
             
-            log.info(f"[DAEMON] Sync settings: enabled={settings['autosync_enabled']}, "
-                     f"interval={settings['sync_interval_minutes']}min, direction={sync_direction}")
-            
-            accounts = get_all_accounts(self.settings_db)
-            
-            if not accounts:
-                log.info("[DAEMON] No accounts configured")
+            if not accounts_to_sync:
+                log.info("[DAEMON] No accounts to sync")
                 return
             
-            log.info(f"[DAEMON] Starting sync for {len(accounts)} account(s)")
+            log.info(f"[DAEMON] Starting sync for {len(accounts_to_sync)} account(s)")
             
-            for account in accounts:
+            for account in accounts_to_sync:
+                account_id = account["id"]
+                # Resolve per-account sync settings (with global fallback)
+                acct_settings = get_account_sync_settings(self.app_db, account_id)
+                sync_direction = acct_settings["sync_direction"]
+                
+                log.info(f"[DAEMON] Account {account.get('name', 'Unknown')} (ID: {account_id}): "
+                         f"interval={acct_settings['sync_interval_minutes']}min, "
+                         f"direction={sync_direction}, enabled={acct_settings['autosync_enabled']}")
+                
                 self.sync_account(account, sync_direction=sync_direction)
                 # Update heartbeat between accounts
                 self._update_heartbeat()
@@ -1253,32 +1266,32 @@ class NotificationDaemon:
         except Exception as e:
             log.error(f"[DAEMON] Error in sync_all_accounts: {e}")
     
-    def _schedule_sync_timer(self, interval_minutes):
-        """Schedule the sync timer with the given interval."""
+    def _schedule_tick_timer(self):
+        """Schedule the 60-second tick timer for per-account sync scheduling.
+        
+        Instead of one timer per interval, we use a single 60-second tick that
+        checks each account's last_synced_at + interval to decide if it's due.
+        This scales to any number of accounts with O(N) timestamp comparisons per tick.
+        """
         # Remove existing timer if any
         if self.sync_timer_id:
             GLib.source_remove(self.sync_timer_id)
             self.sync_timer_id = None
         
-        # Schedule new timer
-        self.current_sync_interval = interval_minutes
-        self.sync_timer_id = GLib.timeout_add_seconds(
-            interval_minutes * 60,
-            self._periodic_sync
-        )
-        log.info(f"[DAEMON] Sync timer scheduled: every {interval_minutes} minutes")
+        # Tick every 60 seconds (minimum granularity of sync intervals)
+        self.sync_timer_id = GLib.timeout_add_seconds(60, self._tick)
+        log.info("[DAEMON] Tick timer scheduled: checking accounts every 60 seconds")
     
     def run(self):
         """Main daemon loop with robust keep-alive mechanism."""
-        # Read initial settings
+        # Read initial global settings
         settings = self._get_sync_settings()
-        initial_interval = settings["sync_interval_minutes"]
         
         log.info(f"[DAEMON] Starting TimeManagement background daemon")
         log.info(f"[DAEMON] App Version: {APP_VERSION}")
-        log.info(f"[DAEMON] AutoSync enabled: {settings['autosync_enabled']}")
-        log.info(f"[DAEMON] Sync interval: {initial_interval} minutes")
-        log.info(f"[DAEMON] Sync direction: {settings['sync_direction']}")
+        log.info(f"[DAEMON] Global AutoSync enabled: {settings['autosync_enabled']}")
+        log.info(f"[DAEMON] Global Sync interval: {settings['sync_interval_minutes']} minutes")
+        log.info(f"[DAEMON] Global Sync direction: {settings['sync_direction']}")
         log.info(f"[DAEMON] Settings DB: {self.settings_db}")
         log.info(f"[DAEMON] App DB: {self.app_db}")
         log.info(f"[DAEMON] PID: {os.getpid()}")
@@ -1286,17 +1299,26 @@ class NotificationDaemon:
         # Update heartbeat on start
         self._update_heartbeat()
         
-        # Initial sync with exception handling (if AutoSync is enabled)
+        # Initial sync with exception handling (if global AutoSync is enabled)
         if settings["autosync_enabled"]:
             try:
-                self.sync_all_accounts()
+                # On first run, sync all enabled accounts regardless of their individual intervals
+                accounts = get_all_accounts(self.settings_db)
+                enabled_accounts = []
+                for acct in accounts:
+                    acct_settings = get_account_sync_settings(self.app_db, acct["id"])
+                    if acct_settings["autosync_enabled"]:
+                        enabled_accounts.append(acct)
+                    else:
+                        log.info(f"[DAEMON] Skipping disabled account: {acct.get('name', 'Unknown')}")
+                self.sync_all_accounts(enabled_accounts)
             except Exception as e:
                 log.error(f"[DAEMON] Initial sync failed: {e}")
         else:
-            log.info("[DAEMON] AutoSync disabled, skipping initial sync")
+            log.info("[DAEMON] Global AutoSync disabled, skipping initial sync")
         
-        # Schedule periodic sync using GLib with dynamic interval
-        self._schedule_sync_timer(initial_interval)
+        # Schedule tick-based timer (checks per-account intervals every 60 seconds)
+        self._schedule_tick_timer()
         
         # Schedule heartbeat update every 30 seconds
         GLib.timeout_add_seconds(30, self._heartbeat_callback)
@@ -1328,42 +1350,87 @@ class NotificationDaemon:
             self._update_heartbeat()
         return self.running  # Continue timer if still running
     
-    def _periodic_sync(self):
-        """Callback for periodic sync."""
+    def _tick(self):
+        """Tick callback — runs every 60 seconds to check which accounts are due for sync.
+        
+        For each account, compares (now - last_synced_at) against the account's
+        sync_interval_minutes. Only accounts whose interval has elapsed are synced.
+        This scales linearly — 50 accounts = 50 timestamp comparisons per tick.
+        """
         try:
             # Check if app was updated and restart if needed
             self._check_version_and_restart()
             
-            # Read current settings on each sync cycle
-            settings = self._get_sync_settings()
+            # Read global settings
+            global_settings = self._get_sync_settings()
             
-            log.info(f"[DAEMON] Periodic sync triggered at {datetime.now()}")
+            # Global kill switch
+            if not global_settings["autosync_enabled"]:
+                log.debug("[DAEMON] Global AutoSync is disabled, skipping tick")
+                return True  # Keep ticking so we can resume when re-enabled
             
-            # Check if AutoSync is still enabled
-            if not settings["autosync_enabled"]:
-                log.info("[DAEMON] AutoSync is disabled, skipping sync")
-                # Keep the timer running so we can resume when re-enabled
+            now = datetime.now(timezone.utc)
+            accounts = get_all_accounts(self.settings_db)
+            
+            if not accounts:
                 return True
             
-            # Check if interval changed and reschedule if needed
-            new_interval = settings["sync_interval_minutes"]
-            if new_interval != self.current_sync_interval:
-                log.info(f"[DAEMON] Sync interval changed: {self.current_sync_interval} -> {new_interval} minutes")
-                # Reschedule timer with new interval (will take effect after this sync)
-                self._schedule_sync_timer(new_interval)
-                # Return False to cancel current timer (new one is already scheduled)
-                return False
+            due_accounts = []
             
-            # Reschedule wakeup for next sync cycle
-            self._schedule_wakeup()
-            # Refresh wakelock to ensure it's still active
-            self._request_wakelock()
-            self.sync_all_accounts()
-            log.info("[DAEMON] Periodic sync completed successfully")
+            for account in accounts:
+                account_id = account["id"]
+                account_name = account.get("name", "Unknown")
+                
+                # Skip local/invalid accounts
+                if not account.get("link") or account_name == "Local Account":
+                    continue
+                
+                # Resolve per-account settings (with global fallback)
+                acct_settings = get_account_sync_settings(self.app_db, account_id)
+                
+                # Per-account enable toggle
+                if not acct_settings["autosync_enabled"]:
+                    continue
+                
+                interval_minutes = acct_settings["sync_interval_minutes"]
+                last_synced_str = acct_settings.get("last_synced_at")
+                
+                # Determine if this account is due for sync
+                is_due = False
+                if last_synced_str is None:
+                    # Never synced — due immediately (but we already did initial sync)
+                    is_due = True
+                else:
+                    try:
+                        # Parse the stored timestamp (SQLite datetime format)
+                        last_synced = datetime.strptime(last_synced_str, "%Y-%m-%d %H:%M:%S")
+                        last_synced = last_synced.replace(tzinfo=timezone.utc)
+                        elapsed = (now - last_synced).total_seconds()
+                        if elapsed >= interval_minutes * 60:
+                            is_due = True
+                    except (ValueError, TypeError) as parse_err:
+                        log.warning(f"[DAEMON] Could not parse last_synced_at for {account_name}: {parse_err}")
+                        is_due = True  # Sync on parse error to be safe
+                
+                if is_due:
+                    log.info(f"[DAEMON] Account '{account_name}' (ID: {account_id}) is due for sync "
+                             f"(interval: {interval_minutes}min)")
+                    due_accounts.append(account)
+            
+            if due_accounts:
+                log.info(f"[DAEMON] Tick: {len(due_accounts)}/{len(accounts)} account(s) due for sync")
+                # Reschedule wakeup and refresh wakelock
+                self._schedule_wakeup()
+                self._request_wakelock()
+                self.sync_all_accounts(due_accounts)
+                log.info("[DAEMON] Tick sync completed successfully")
+            else:
+                log.debug(f"[DAEMON] Tick: no accounts due for sync")
+                
         except Exception as e:
-            log.error(f"[DAEMON] Periodic sync failed: {e}")
-            log.error(f"[DAEMON] Periodic sync traceback: {traceback.format_exc()}")
-        return True  # Continue the timer
+            log.error(f"[DAEMON] Tick failed: {e}")
+            log.error(f"[DAEMON] Tick traceback: {traceback.format_exc()}")
+        return True  # Keep the tick timer alive
     
     def get_unread_notification_count(self):
         """Get count of unread notifications for badge display."""

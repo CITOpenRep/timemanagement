@@ -22,7 +22,7 @@
 # SOFTWARE.
 
 
-from config import get_all_accounts, initialize_app_settings_db
+from config import get_all_accounts, initialize_app_settings_db, update_last_synced_at
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo,sync_ondemand_tables_from_odoo
 from sync_to_odoo import sync_all_to_odoo
@@ -473,6 +473,8 @@ def sync_background(settings_db, account_id):
                 "Successful",
                 "Sync completed successfully",
             )
+            # Record successful sync timestamp for per-account interval tracking
+            update_last_synced_at(settings_db, account_id)
             send("sync_progress",100)
             send("sync_completed",True)
         except Exception as e:

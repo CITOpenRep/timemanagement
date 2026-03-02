@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Window 2.2
+import QtQuick.LocalStorage 2.7 as Sql
 import io.thp.pyotherside 1.4
 import "../models/accounts.js" as Accounts
 import "../models/utils.js" as Utils
@@ -48,6 +49,7 @@ Page {
 
     property bool isReadOnly: false
     property int accountId: -1  // -1 means create mode, otherwise edit mode
+    property bool useCustomSyncSettings: false  // Whether per-account sync overrides are enabled
 
     header: PageHeader {
         id: pageHeader
@@ -134,6 +136,7 @@ Page {
                             notifPopup.open("Error", accountResult.message || "Unable to update account.", "error");
                         }
                     } else {
+                        savePerAccountSyncSettings(accountId);
                         notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been updated successfully!"), "success");
                         isReadOnly = true;
                         // Signal to refresh accounts list in Settings_Page
@@ -154,6 +157,14 @@ Page {
                             notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
                         }
                     } else {
+                        // For new accounts, get the newly created account's ID to save sync settings
+                        var newAccounts = Accounts.getAccountsList();
+                        for (var a = 0; a < newAccounts.length; a++) {
+                            if (newAccounts[a].name === accountNameInput.text) {
+                                savePerAccountSyncSettings(newAccounts[a].id);
+                                break;
+                            }
+                        }
                         notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been saved, Enjoy using the app !"), "success");
                         isReadOnly = true;
                     }
@@ -207,6 +218,39 @@ Page {
                 isReadOnly = true;
                 activeBackendAccount = true;
                 
+                // Load per-account sync settings
+                var syncSettings = Accounts.getAccountSyncSettings(accId);
+                if (syncSettings.sync_interval_minutes !== null ||
+                    syncSettings.sync_direction !== null ||
+                    syncSettings.autosync_enabled !== null) {
+                    useCustomSyncSettings = true;
+                    
+                    // Set interval combo
+                    var intervalValues = ["1", "5", "15", "30", "60", "120", "360", "720", "1440", "4320", "10080"];
+                    var savedInterval = String(syncSettings.sync_interval_minutes || getGlobalSyncDefault("sync_interval_minutes"));
+                    for (var si = 0; si < intervalValues.length; si++) {
+                        if (intervalValues[si] === savedInterval) {
+                            syncIntervalCombo.currentIndex = si;
+                            break;
+                        }
+                    }
+                    
+                    // Set direction combo
+                    var directionValues = ["both", "download_only", "upload_only"];
+                    var savedDirection = syncSettings.sync_direction || getGlobalSyncDefault("sync_direction");
+                    for (var di = 0; di < directionValues.length; di++) {
+                        if (directionValues[di] === savedDirection) {
+                            syncDirectionCombo.currentIndex = di;
+                            break;
+                        }
+                    }
+                    
+                    // Set enable switch
+                    perAccountSyncSwitch.checked = (syncSettings.autosync_enabled === null) ? true : (syncSettings.autosync_enabled === 1);
+                } else {
+                    useCustomSyncSettings = false;
+                }
+                
                 break;
             }
         }
@@ -230,6 +274,58 @@ Page {
         accountId = -1;
         isManualDbMode = false;
         database_combo.currentIndex = -1;
+        useCustomSyncSettings = false;
+    }
+
+    // Read a global sync default from app_settings table
+    function getGlobalSyncDefault(key) {
+        var defaults = {
+            "autosync_enabled": "true",
+            "sync_interval_minutes": "15",
+            "sync_direction": "both"
+        };
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var result = defaults[key] || "";
+            db.transaction(function (tx) {
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+                var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', [key]);
+                if (rs.rows.length > 0) {
+                    result = rs.rows.item(0).value;
+                }
+            });
+            return result;
+        } catch (e) {
+            return defaults[key] || "";
+        }
+    }
+
+    // Format minutes into human-readable interval text
+    function formatSyncInterval(minutes) {
+        var m = parseInt(minutes);
+        if (isNaN(m) || m <= 0) return minutes + " min";
+        if (m < 60) return m + " min";
+        if (m === 60) return "1 hour";
+        if (m < 1440) return (m / 60) + " hours";
+        if (m === 1440) return "1 day";
+        if (m < 10080) return (m / 1440) + " days";
+        if (m === 10080) return "1 week";
+        return m + " min";
+    }
+
+    // Save per-account sync settings after account is saved
+    function savePerAccountSyncSettings(accId) {
+        if (!useCustomSyncSettings) {
+            // Reset to global defaults (NULL)
+            Accounts.updateAccountSyncSettings(accId, null, null, null);
+            return;
+        }
+        var intervalValues = ["1", "5", "15", "30", "60", "120", "360", "720", "1440", "4320", "10080"];
+        var directionValues = ["both", "download_only", "upload_only"];
+        var interval = parseInt(intervalValues[syncIntervalCombo.currentIndex]) || 15;
+        var direction = directionValues[syncDirectionCombo.currentIndex] || "both";
+        var enabled = perAccountSyncSwitch.checked ? 1 : 0;
+        Accounts.updateAccountSyncSettings(accId, interval, direction, enabled);
     }
 
     Python {
@@ -262,159 +358,170 @@ Page {
     Flickable {
         id: accountPageFlickable
         anchors.fill: parent
-        contentHeight: signup_shape.height + 1500
+        contentHeight: formColumn.height + units.gu(6)
         flickableDirection: Flickable.VerticalFlick
         anchors.top: pageHeader.bottom
-        anchors.topMargin: pageHeader.height + units.gu(4)
+        anchors.topMargin: pageHeader.height + units.gu(2)
         width: parent.width
-        LomiriShape {
-            id: signup_shape
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            radius: "large"
-            width: parent.width
-            height: parent.height
-            Row {
-                id: accountRow
-                anchors.topMargin: 5
+        clip: true
+
+        Column {
+            id: formColumn
+            width: parent.width - units.gu(4)
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: units.gu(1)
+            spacing: units.gu(2)
+
+            // =============================================================
+            // SECTION 1: ACCOUNT INFO
+            // =============================================================
+            Rectangle {
+                width: parent.width
+                height: accountInfoCol.height + units.gu(3)
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
+                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
+                border.width: 1
+                radius: units.gu(1)
+
                 Column {
-                    leftPadding: units.gu(2)
-                    Item {
-                        width: units.gu(12)
-                        height: units.gu(4)
-                        TSLabel {
-                            id: account_name_label
-                            text: i18n.dtr("ubtms", "Account Name")
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                    id: accountInfoCol
+                    width: parent.width - units.gu(3)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: units.gu(1.5)
+                    spacing: units.gu(1.5)
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Account Info")
+                        font.pixelSize: units.gu(2)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
                     }
-                }
-                Column {
-                    leftPadding: units.gu(1)
-                    Item {
-                        width: units.gu(28)
-                        height: units.gu(5)
+
+                    // Account Name
+                    Column {
+                        width: parent.width
+                        spacing: units.gu(0.5)
+                        Text {
+                            text: i18n.dtr("ubtms", "Account Name")
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                        }
                         TextField {
                             id: accountNameInput
                             enabled: !isReadOnly
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText:i18n.dtr("ubtms", "Account Name")
+                            placeholderText: i18n.dtr("ubtms", "Account Name")
                             width: parent.width
                         }
                     }
                 }
             }
 
-            Row {
-                id: linkRow
-                anchors.top: accountRow.bottom
-                // anchors.horizontalCenter: parent.horizontalCenter
-                anchors.topMargin: units.gu(2)
+            // =============================================================
+            // SECTION 2: SERVER CONNECTION
+            // =============================================================
+            Rectangle {
+                width: parent.width
+                height: serverCol.height + units.gu(3)
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
+                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
+                border.width: 1
+                radius: units.gu(1)
+
                 Column {
-                    leftPadding: units.gu(2)
-                    Item {
-                        width: units.gu(12)
-                        height: units.gu(4)
-                        TSLabel {
-                            id: link_label
-                            text: "URL"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                    id: serverCol
+                    width: parent.width - units.gu(3)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: units.gu(1.5)
+                    spacing: units.gu(1.5)
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Server Connection")
+                        font.pixelSize: units.gu(2)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
                     }
-                }
-                Column {
-                    leftPadding: units.gu(1)
-                    spacing: units.gu(1)
-                    Item {
-                        width: units.gu(28)
-                        height: units.gu(4)
+
+                    // URL
+                    Column {
+                        width: parent.width
+                        spacing: units.gu(0.5)
+                        Text {
+                            text: "URL"
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                        }
                         TextField {
                             id: linkInput
                             enabled: !isReadOnly
                             placeholderText: i18n.dtr("ubtms", "Enter Odoo URL here")
-                            anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
-                            height: parent.height
                             onTextChanged: {
                                 text = text.toLowerCase();
                             }
                         }
-                    }
-                    TSButton {
-                        id: fetch_db_button
-                        text: i18n.dtr("ubtms", "Fetch Databases")
-                        visible: !isReadOnly
-                        width: units.gu(28)
-                        height: units.gu(4)
-                        onClicked: {
-                            databaseListModel.clear();
-                            text = text.toLowerCase();
-                            let result = Utils.validateAndCleanOdooURL(linkInput.text);
-                            if (result.isValid) {
-                                isManualDbMode = false;
-                                activeBackendAccount = false;
-                                linkInput.text = result.cleanedUrl;
-                                isValidUrl = true;
-                                Utils.getDatabasesFromOdooServer(linkInput.text, function (dbList) {
-                                    if (dbList.length === 0) {
-                                        isManualDbMode = true;
-                                        activeBackendAccount = true;
-                                        notifPopup.open("Error", "Unable to fetch the DBs from the Server (may be due to security), please enter it manually below", "error");
-                                    }
+                        TSButton {
+                            id: fetch_db_button
+                            text: i18n.dtr("ubtms", "Fetch Databases")
+                            visible: !isReadOnly
+                            width: parent.width
+                            height: units.gu(4)
+                            onClicked: {
+                                databaseListModel.clear();
+                                text = text.toLowerCase();
+                                let result = Utils.validateAndCleanOdooURL(linkInput.text);
+                                if (result.isValid) {
+                                    isManualDbMode = false;
+                                    activeBackendAccount = false;
+                                    linkInput.text = result.cleanedUrl;
+                                    isValidUrl = true;
+                                    Utils.getDatabasesFromOdooServer(linkInput.text, function (dbList) {
+                                        if (dbList.length === 0) {
+                                            isManualDbMode = true;
+                                            activeBackendAccount = true;
+                                            notifPopup.open("Error", "Unable to fetch the DBs from the Server (may be due to security), please enter it manually below", "error");
+                                        }
 
-                                    for (var i = 0; i < dbList.length; i++) {
-                                        databaseListModel.append({
-                                            name: dbList[i]
-                                        });
-                                        activeBackendAccount = true;
-                                    }
+                                        for (var i = 0; i < dbList.length; i++) {
+                                            databaseListModel.append({
+                                                name: dbList[i]
+                                            });
+                                            activeBackendAccount = true;
+                                        }
 
-                                    if (dbList.length > 0) {
-                                        database_combo.currentIndex = 0;
-                                    }
-                                });
-                            } else {
-                                console.error("Invalid DB URL");
-                                notifPopup.open("Error", "The Odoo Server URL is Wrong", "error");
-                                activeBackendAccount = false;
+                                        if (dbList.length > 0) {
+                                            database_combo.currentIndex = 0;
+                                        }
+                                    });
+                                } else {
+                                    console.error("Invalid DB URL");
+                                    notifPopup.open("Error", "The Odoo Server URL is Wrong", "error");
+                                    activeBackendAccount = false;
+                                }
                             }
                         }
                     }
-                }
-            }
 
-            Row {
-                id: databaseListRow
-                anchors.top: linkRow.bottom
-
-                Column {
-                    leftPadding: units.gu(2)
-                    Item {
-                        width: units.gu(12)
-                        height: units.gu(3)
-                        TSLabel {
-                            id: database_list_label
+                    // Database
+                    Column {
+                        width: parent.width
+                        spacing: units.gu(0.5)
+                        visible: activeBackendAccount
+                        Text {
                             text: i18n.dtr("ubtms", "Database")
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: activeBackendAccount
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                         }
-                    }
-                }
 
-                Column {
-                    leftPadding: units.gu(1)
-
-                    // ComboBox shown only if databases were fetched
-                    Item {
-                        width: units.gu(28)
-                        height: units.gu(5)
-                        visible: activeBackendAccount && !isManualDbMode
+                        // ComboBox shown only if databases were fetched
                         ComboBox {
                             id: database_combo
                             width: parent.width
                             enabled: !isReadOnly
-                            height: parent.height
+                            height: units.gu(5)
+                            visible: !isManualDbMode
                             background: Rectangle {
                                 color: "transparent"
                                 border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
@@ -446,160 +553,318 @@ Page {
                                 }
                             }
                         }
-                    }
 
-                    // Manual TextField shown when DB list fetch fails
-                    Item {
-                        width: units.gu(28)
-                        height: units.gu(5)
-                        visible: isManualDbMode
+                        // Manual TextField shown when DB list fetch fails
                         TextField {
                             id: manualDbInput
                             width: parent.width
+                            visible: isManualDbMode
                             placeholderText: i18n.dtr("ubtms", "Enter Database Name")
                         }
                     }
                 }
             }
 
-            Row {
-                id: usernameRow
-                anchors.top: databaseListRow.bottom
-                anchors.topMargin: units.gu(3)
+            // =============================================================
+            // SECTION 3: CREDENTIALS
+            // =============================================================
+            Rectangle {
+                width: parent.width
+                height: credCol.height + units.gu(3)
+                visible: activeBackendAccount
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
+                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
+                border.width: 1
+                radius: units.gu(1)
+
                 Column {
-                    leftPadding: units.gu(2)
-                    Item {
-                        width: units.gu(12)
-                        height: units.gu(4)
-                        TSLabel {
-                            id: username_label
-                            visible: activeBackendAccount
-                            text: i18n.dtr("ubtms", "Username")
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                    id: credCol
+                    width: parent.width - units.gu(3)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: units.gu(1.5)
+                    spacing: units.gu(1.5)
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Credentials")
+                        font.pixelSize: units.gu(2)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
                     }
-                }
-                Column {
-                    leftPadding: units.gu(1)
-                    Item {
-                        width: units.gu(28)
-                        height: units.gu(5)
+
+                    // Username
+                    Column {
+                        width: parent.width
+                        spacing: units.gu(0.5)
+                        Text {
+                            text: i18n.dtr("ubtms", "Username")
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                        }
                         TextField {
                             id: usernameInput
-                            visible: activeBackendAccount
                             enabled: !isReadOnly
                             placeholderText: i18n.dtr("ubtms", "Username")
-                            anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
                         }
                     }
-                }
-            }
 
-            Row {
-                id: connectWithRow
-                anchors.top: usernameRow.bottom
-                anchors.topMargin: units.gu(2)
-                Column {
-                    leftPadding: units.gu(2)
-                    Item {
-                        width: units.gu(12)
-                        height: units.gu(5)
-                        TSLabel {
-                            id: connectwith_label
+                    // Connect With
+                    Column {
+                        width: parent.width
+                        spacing: units.gu(0.5)
+                        Text {
                             text: i18n.dtr("ubtms", "Connect With")
-                            visible: activeBackendAccount
-                            anchors.verticalCenter: parent.verticalCenter
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                        }
+                        ComboBox {
+                            id: connectWith_combo
+                            enabled: !isReadOnly
+                            width: parent.width
+                            height: units.gu(5)
+                            background: Rectangle {
+                                color: "transparent"
+                                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
+                                border.width: 1
+                                radius: units.gu(0.5)
+                            }
+                            flat: true
+                            model: menuconnectwithModel
+                            contentItem: Text {
+                                text: connectWith_combo.displayText
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                                anchors.verticalCenter: parent.verticalCenter
+                                leftPadding: units.gu(2)
+                            }
+                            delegate: ItemDelegate {
+                                width: connectWith_combo.width
+                                hoverEnabled: true
+                                contentItem: Text {
+                                    text: i18n.dtr("ubtms", model.modelData)
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                    leftPadding: units.gu(1)
+                                    elide: Text.ElideRight
+                                }
+                                background: Rectangle {
+                                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                                    radius: 4
+                                }
+                            }
                         }
                     }
-                }
-                Column {
-                    leftPadding: units.gu(1)
-                    ComboBox {
-                        id: connectWith_combo
-                        enabled: !isReadOnly
-                        width: units.gu(28)
-                        height: units.gu(5)
-                        visible: activeBackendAccount
 
-                        background: Rectangle {
-                            color: "transparent"
-                            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
-                            border.width: 1
-                            radius: units.gu(0.5)
+                    // Password / API Key
+                    Column {
+                        width: parent.width
+                        spacing: units.gu(0.5)
+                        Text {
+                            text: connectWith_combo.currentIndex == 1 ? i18n.dtr("ubtms", "Password") : i18n.dtr("ubtms", "API Key")
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
                         }
-                        anchors.centerIn: parent.centerIn
-                        flat: true
-                        model: menuconnectwithModel
-                        contentItem: Text {
-                            text: connectWith_combo.displayText
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
-                            anchors.verticalCenter: parent.verticalCenter
-                            leftPadding: units.gu(2)
-                        }
-                        delegate: ItemDelegate {
-                            width: connectWith_combo.width
-                            hoverEnabled: true
-                            contentItem: Text {
-                                text: i18n.dtr("ubtms", model.modelData)
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                leftPadding: units.gu(1)
-                                elide: Text.ElideRight
+                        Row {
+                            width: parent.width
+                            spacing: units.gu(1)
+                            TextField {
+                                id: passwordInput
+                                enabled: !isReadOnly
+                                echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
+                                placeholderText: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
+                                width: parent.width - showHideBtn.width - units.gu(1)
                             }
-                            background: Rectangle {
-                                color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                                radius: 4
+                            TSButton {
+                                id: showHideBtn
+                                enabled: !isReadOnly
+                                width: units.gu(6)
+                                height: passwordInput.height
+                                fontSize: units.gu(1.2)
+                                text: isPasswordVisible ? i18n.dtr("ubtms", "Hide") : i18n.dtr("ubtms", "Show")
+                                onClicked: {
+                                    isPasswordVisible = !isPasswordVisible;
+                                }
                             }
                         }
                     }
                 }
             }
 
-            Row {
-                id: passwordRow
-                anchors.top: connectWithRow.bottom
-                anchors.topMargin: units.gu(3)
+            // =============================================================
+            // SECTION 4: PER-ACCOUNT SYNC SETTINGS
+            // =============================================================
+            Rectangle {
+                id: syncSettingsSection
+                visible: activeBackendAccount
+                width: parent.width
+                height: syncSettingsColumn.height + units.gu(3)
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
+                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
+                border.width: 1
+                radius: units.gu(1)
+
                 Column {
-                    leftPadding: units.gu(2)
-                    Item {
-                        width: units.gu(12)
-                        height: units.gu(4)
-                        TSLabel {
-                            id: password_label
-                            visible: activeBackendAccount
-                            text: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
+                    id: syncSettingsColumn
+                    width: parent.width - units.gu(3)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: units.gu(1.5)
+                    spacing: units.gu(1.5)
+
+                    // Section header
+                    Text {
+                        text: i18n.dtr("ubtms", "Sync Settings")
+                        font.pixelSize: units.gu(2)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                    }
+
+                    // Custom sync toggle
+                    Row {
+                        width: parent.width
+                        spacing: units.gu(2)
+                        Text {
+                            text: i18n.dtr("ubtms", "Custom Sync Settings")
+                            font.pixelSize: units.gu(1.8)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - customSyncCheckbox.width - units.gu(4)
+                        }
+                        CheckBox {
+                            id: customSyncCheckbox
+                            checked: useCustomSyncSettings
+                            enabled: !isReadOnly
+                            anchors.verticalCenter: parent.verticalCenter
+                            onCheckedChanged: {
+                                useCustomSyncSettings = checked;
+                            }
+                        }
+                    }
+
+                    // Info when using defaults
+                    Text {
+                        visible: !useCustomSyncSettings
+                        text: i18n.dtr("ubtms", "Using global sync defaults (interval: ") +
+                              formatSyncInterval(getGlobalSyncDefault("sync_interval_minutes")) +
+                              i18n.dtr("ubtms", ", direction: ") +
+                              getGlobalSyncDefault("sync_direction") + ")"
+                        font.pixelSize: units.gu(1.3)
+                        font.italic: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#888"
+                        wrapMode: Text.WordWrap
+                        width: parent.width
+                    }
+
+                    // Per-account enable/disable toggle
+                    Row {
+                        width: parent.width
+                        visible: useCustomSyncSettings
+                        spacing: units.gu(2)
+                        Text {
+                            text: i18n.dtr("ubtms", "Enable Sync")
+                            font.pixelSize: units.gu(1.8)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - perAccountSyncSwitch.width - units.gu(4)
+                        }
+                        Switch {
+                            id: perAccountSyncSwitch
+                            checked: true
+                            enabled: !isReadOnly
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
-                }
-                Column {
-                    leftPadding: units.gu(1)
-                    Item {
-                        width: units.gu(23)
-                        height: units.gu(5)
-                        TextField {
-                            id: passwordInput
-                            enabled: !isReadOnly
-                            visible: activeBackendAccount
-                            echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
-                            placeholderText: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
-                            anchors.horizontalCenter: parent.horizontalCenter
+
+                    // Sync Interval
+                    Column {
+                        width: parent.width
+                        visible: useCustomSyncSettings
+                        spacing: units.gu(0.5)
+
+                        Text {
+                            text: i18n.dtr("ubtms", "Sync Interval")
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                        }
+
+                        ComboBox {
+                            id: syncIntervalCombo
                             width: parent.width
+                            enabled: !isReadOnly && perAccountSyncSwitch.checked
+                            model: ["1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "2 hours", "6 hours", "12 hours", "1 day", "3 days", "1 week"]
+                            currentIndex: 2  // Default: 15 minutes
+                            background: Rectangle {
+                                color: "transparent"
+                                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
+                                border.width: 1
+                                radius: units.gu(0.5)
+                            }
+                            contentItem: Text {
+                                text: syncIntervalCombo.displayText
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: units.gu(2)
+                            }
+                            delegate: ItemDelegate {
+                                width: syncIntervalCombo.width
+                                hoverEnabled: true
+                                contentItem: Text {
+                                    text: modelData
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                    leftPadding: units.gu(1)
+                                }
+                                background: Rectangle {
+                                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                                    radius: 4
+                                }
+                            }
                         }
                     }
-                }
-                Column {
-                    TSButton {
-                        enabled: !isReadOnly
-                        width: units.gu(5)
-                        height: passwordInput.height
-                        visible: activeBackendAccount
-                        fontSize: units.gu(1.2)
-                        text: isPasswordVisible ? i18n.dtr("ubtms", "Hide") : i18n.dtr("ubtms","show")
-                        onClicked: {
-                            isPasswordVisible = !isPasswordVisible;
+
+                    // Sync Direction
+                    Column {
+                        width: parent.width
+                        visible: useCustomSyncSettings
+                        spacing: units.gu(0.5)
+
+                        Text {
+                            text: i18n.dtr("ubtms", "Sync Direction")
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
+                        }
+
+                        ComboBox {
+                            id: syncDirectionCombo
+                            width: parent.width
+                            enabled: !isReadOnly && perAccountSyncSwitch.checked
+                            model: ["Both (Up & Down)", "Download Only", "Upload Only"]
+                            currentIndex: 0  // Default: both
+                            background: Rectangle {
+                                color: "transparent"
+                                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
+                                border.width: 1
+                                radius: units.gu(0.5)
+                            }
+                            contentItem: Text {
+                                text: syncDirectionCombo.displayText
+                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: units.gu(2)
+                            }
+                            delegate: ItemDelegate {
+                                width: syncDirectionCombo.width
+                                hoverEnabled: true
+                                contentItem: Text {
+                                    text: modelData
+                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                    leftPadding: units.gu(1)
+                                }
+                                background: Rectangle {
+                                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
+                                    radius: 4
+                                }
+                            }
                         }
                     }
                 }
