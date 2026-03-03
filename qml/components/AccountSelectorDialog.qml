@@ -108,7 +108,7 @@ Item {
                 // account list container
                 Rectangle {
                     width: parent.width
-                    height: Math.min(units.gu(48),
+                    height: Math.min(units.gu(35),
                                      accountListView.contentHeight + units.gu(2))
                     color: theme.palette.normal.background
                     radius: units.gu(1)
