@@ -193,7 +193,7 @@ Page {
                 selectedconnectwithId = account.connectwith_id || 1;
                 
                 // Fetch databases for this URL
-                python.call("backend.list_databases", [account.link], function(databases) {
+                Utils.getDatabasesFromOdooServer(account.link, function(databases) {
                     if (databases && databases.length > 0) {
                         databaseListModel.clear();
                         for (var j = 0; j < databases.length; j++) {
@@ -355,14 +355,20 @@ Page {
         }
     }
 
+    Rectangle {
+        anchors.fill: parent
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111111" : "#f2f2f7"
+        z: -1
+    }
+
     Flickable {
         id: accountPageFlickable
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.top: pageHeader.bottom
         contentHeight: formColumn.height + units.gu(6)
         flickableDirection: Flickable.VerticalFlick
-        anchors.top: pageHeader.bottom
-        anchors.topMargin: pageHeader.height + units.gu(2)
-        width: parent.width
         clip: true
 
         Column {
@@ -379,9 +385,7 @@ Page {
             Rectangle {
                 width: parent.width
                 height: accountInfoCol.height + units.gu(3)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
-                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
-                border.width: 1
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "white"
                 radius: units.gu(1)
 
                 Column {
@@ -390,24 +394,22 @@ Page {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: parent.top
                     anchors.topMargin: units.gu(1.5)
-                    spacing: units.gu(1.5)
+                    spacing: units.gu(2)
 
                     Text {
-                        text: i18n.dtr("ubtms", "Account Info")
-                        font.pixelSize: units.gu(2)
+                        text: i18n.dtr("ubtms", "Account Details")
+                        font.pixelSize: units.gu(1.8)
                         font.bold: true
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "black"
                     }
 
-                    // Account Name
-                 
-                        TextField {
-                            id: accountNameInput
-                            enabled: !isReadOnly
-                            placeholderText: i18n.dtr("ubtms", "Account Name")
-                            width: parent.width
-                        }
-                    
+                    OutlinedTextField {
+                        id: accountNameInput
+                        width: parent.width
+                        enabled: !isReadOnly
+                        labelText: i18n.dtr("ubtms", "Account Name")
+                        text: ""
+                    }
                 }
             }
 
@@ -417,9 +419,7 @@ Page {
             Rectangle {
                 width: parent.width
                 height: serverCol.height + units.gu(3)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
-                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
-                border.width: 1
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "white"
                 radius: units.gu(1)
 
                 Column {
@@ -428,99 +428,80 @@ Page {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: parent.top
                     anchors.topMargin: units.gu(1.5)
-                    spacing: units.gu(1.5)
+                    spacing: units.gu(2)
 
                     Text {
                         text: i18n.dtr("ubtms", "Server Connection")
-                        font.pixelSize: units.gu(2)
+                        font.pixelSize: units.gu(1.8)
                         font.bold: true
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "black"
                     }
 
-                    // URL
-                    Column {
+                    OutlinedTextField {
+                        id: linkInput
                         width: parent.width
-                        spacing: units.gu(0.5)
-                        Text {
-                            text: "URL"
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                        }
-                        TextField {
-                            id: linkInput
-                            enabled: !isReadOnly
-                            placeholderText: i18n.dtr("ubtms", "Enter Odoo URL here")
-                            width: parent.width
-                            onTextChanged: {
-                                text = text.toLowerCase();
-                            }
-                        }
-                        TSButton {
-                            id: fetch_db_button
-                            text: i18n.dtr("ubtms", "Fetch Databases")
-                            visible: !isReadOnly
-                            width: parent.width
-                            height: units.gu(4)
-                            onClicked: {
-                                databaseListModel.clear();
-                                text = text.toLowerCase();
-                                let result = Utils.validateAndCleanOdooURL(linkInput.text);
-                                if (result.isValid) {
-                                    isManualDbMode = false;
-                                    activeBackendAccount = false;
-                                    linkInput.text = result.cleanedUrl;
-                                    isValidUrl = true;
-                                    Utils.getDatabasesFromOdooServer(linkInput.text, function (dbList) {
-                                        if (dbList.length === 0) {
-                                            isManualDbMode = true;
-                                            activeBackendAccount = true;
-                                            notifPopup.open("Error", "Unable to fetch the DBs from the Server (may be due to security), please enter it manually below", "error");
-                                        }
+                        enabled: !isReadOnly
+                        labelText: i18n.dtr("ubtms", "URL")
+                        placeholderText: "https://"
+                        inputMethodHints: Qt.ImhUrlCharactersOnly
+                    }
 
-                                        for (var i = 0; i < dbList.length; i++) {
-                                            databaseListModel.append({
-                                                name: dbList[i]
-                                            });
-                                            activeBackendAccount = true;
-                                        }
+                    TSButton {
+                        id: fetch_db_button
+                        text: i18n.dtr("ubtms", "Fetch Databases")
+                        visible: !isReadOnly
+                        width: parent.width
+                        height: units.gu(5)
+                       // bgColor: "#00b894"
+                        fgColor: "white"
+                        radius: units.gu(0.8)
+                        onClicked: {
+                            databaseListModel.clear();
+                            linkInput.text = linkInput.text.toLowerCase();
+                            let result = Utils.validateAndCleanOdooURL(linkInput.text);
+                            if (result.isValid) {
+                                isManualDbMode = false;
+                                activeBackendAccount = false;
+                                linkInput.text = result.cleanedUrl;
+                                isValidUrl = true;
+                                Utils.getDatabasesFromOdooServer(linkInput.text, function (dbList) {
+                                    if (dbList.length === 0) {
+                                        isManualDbMode = true;
+                                        activeBackendAccount = true;
+                                        notifPopup.open("Error", "Unable to fetch the DBs from the Server (may be due to security), please enter it manually below", "error");
+                                    }
 
-                                        if (dbList.length > 0) {
-                                            database_combo.currentIndex = 0;
-                                        }
-                                    });
-                                } else {
-                                    console.error("Invalid DB URL");
-                                    notifPopup.open("Error", "The Odoo Server URL is Wrong", "error");
-                                    activeBackendAccount = false;
-                                }
+                                    for (var i = 0; i < dbList.length; i++) {
+                                        databaseListModel.append({
+                                            name: dbList[i]
+                                        });
+                                        activeBackendAccount = true;
+                                    }
+
+                                    if (dbList.length > 0) {
+                                        database_combo.currentIndex = 0;
+                                    }
+                                });
+                            } else {
+                                console.error("Invalid DB URL");
+                                notifPopup.open("Error", "The Odoo Server URL is Wrong", "error");
+                                activeBackendAccount = false;
                             }
                         }
                     }
 
-                    // Database
-                    Column {
+                    OutlinedContainer {
                         width: parent.width
-                        spacing: units.gu(0.5)
-                        visible: activeBackendAccount
-                        Text {
-                            text: i18n.dtr("ubtms", "Database")
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                        }
-
-                        // ComboBox shown only if databases were fetched
+                        visible: activeBackendAccount && !isManualDbMode
+                        labelText: i18n.dtr("ubtms", "Database")
+                        isActiveFocus: database_combo.activeFocus
+                        
                         ComboBox {
                             id: database_combo
-                            width: parent.width
+                            anchors.fill: parent
+                            anchors.margins: 1
                             enabled: !isReadOnly
-                            height: units.gu(5)
-                            visible: !isManualDbMode
-                            background: Rectangle {
-                                color: "transparent"
-                                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
-                                border.width: 1
-                                radius: units.gu(0.5)
-                            }
+                            background: Item {}
                             flat: true
                             model: databaseListModel
                             contentItem: Text {
@@ -528,32 +509,30 @@ Page {
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                                 verticalAlignment: Text.AlignVCenter
                                 elide: Text.ElideRight
-                                anchors.verticalCenter: parent.verticalCenter
-                                leftPadding: units.gu(2)
+                                leftPadding: units.gu(1.5)
                             }
                             delegate: ItemDelegate {
                                 width: database_combo.width
                                 hoverEnabled: true
                                 contentItem: Text {
-                                    text: model.name
+                                    text: model.name || ""
                                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                    leftPadding: units.gu(1)
+                                    leftPadding: units.gu(1.5)
                                     elide: Text.ElideRight
                                 }
                                 background: Rectangle {
                                     color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                                    radius: 4
+                                    radius: units.gu(0.5)
                                 }
                             }
                         }
+                    }
 
-                        // Manual TextField shown when DB list fetch fails
-                        TextField {
-                            id: manualDbInput
-                            width: parent.width
-                            visible: isManualDbMode
-                            placeholderText: i18n.dtr("ubtms", "Enter Database Name")
-                        }
+                    OutlinedTextField {
+                        id: manualDbInput
+                        width: parent.width
+                        visible: isManualDbMode
+                        labelText: i18n.dtr("ubtms", "Database Name")
                     }
                 }
             }
@@ -565,9 +544,7 @@ Page {
                 width: parent.width
                 height: credCol.height + units.gu(3)
                 visible: activeBackendAccount
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
-                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
-                border.width: 1
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "white"
                 radius: units.gu(1)
 
                 Column {
@@ -576,52 +553,33 @@ Page {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: parent.top
                     anchors.topMargin: units.gu(1.5)
-                    spacing: units.gu(1.5)
+                    spacing: units.gu(2)
 
                     Text {
                         text: i18n.dtr("ubtms", "Credentials")
-                        font.pixelSize: units.gu(2)
+                        font.pixelSize: units.gu(1.8)
                         font.bold: true
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "black"
                     }
 
-                    // Username
-                    Column {
+                    OutlinedTextField {
+                        id: usernameInput
                         width: parent.width
-                        spacing: units.gu(0.5)
-                        Text {
-                            text: i18n.dtr("ubtms", "Username")
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                        }
-                        TextField {
-                            id: usernameInput
-                            enabled: !isReadOnly
-                            placeholderText: i18n.dtr("ubtms", "Username")
-                            width: parent.width
-                        }
+                        enabled: !isReadOnly
+                        labelText: i18n.dtr("ubtms", "Username")
                     }
 
-                    // Connect With
-                    Column {
+                    OutlinedContainer {
                         width: parent.width
-                        spacing: units.gu(0.5)
-                        Text {
-                            text: i18n.dtr("ubtms", "Connect With")
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                        }
+                        labelText: i18n.dtr("ubtms", "Connect With")
+                        isActiveFocus: connectWith_combo.activeFocus
+                        
                         ComboBox {
                             id: connectWith_combo
+                            anchors.fill: parent
+                            anchors.margins: 1
                             enabled: !isReadOnly
-                            width: parent.width
-                            height: units.gu(5)
-                            background: Rectangle {
-                                color: "transparent"
-                                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
-                                border.width: 1
-                                radius: units.gu(0.5)
-                            }
+                            background: Item {}
                             flat: true
                             model: menuconnectwithModel
                             contentItem: Text {
@@ -629,55 +587,43 @@ Page {
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                                 verticalAlignment: Text.AlignVCenter
                                 elide: Text.ElideRight
-                                anchors.verticalCenter: parent.verticalCenter
-                                leftPadding: units.gu(2)
+                                leftPadding: units.gu(1.5)
                             }
                             delegate: ItemDelegate {
                                 width: connectWith_combo.width
                                 hoverEnabled: true
                                 contentItem: Text {
-                                    text: i18n.dtr("ubtms", model.modelData)
+                                    text: i18n.dtr("ubtms", model.modelData || "")
                                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                    leftPadding: units.gu(1)
+                                    leftPadding: units.gu(1.5)
                                     elide: Text.ElideRight
                                 }
                                 background: Rectangle {
                                     color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                                    radius: 4
+                                    radius: units.gu(0.5)
                                 }
                             }
                         }
                     }
 
-                    // Password / API Key
-                    Column {
+                    OutlinedTextField {
+                        id: passwordInput
                         width: parent.width
-                        spacing: units.gu(0.5)
-                        Text {
-                            text: connectWith_combo.currentIndex == 1 ? i18n.dtr("ubtms", "Password") : i18n.dtr("ubtms", "API Key")
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                        }
-                        Row {
-                            width: parent.width
-                            spacing: units.gu(1)
-                            TextField {
-                                id: passwordInput
-                                enabled: !isReadOnly
-                                echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
-                                placeholderText: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
-                                width: parent.width - showHideBtn.width - units.gu(1)
-                            }
-                            TSButton {
-                                id: showHideBtn
-                                enabled: !isReadOnly
-                                width: units.gu(6)
-                                height: passwordInput.height
-                                fontSize: units.gu(1.2)
-                                text: isPasswordVisible ? i18n.dtr("ubtms", "Hide") : i18n.dtr("ubtms", "Show")
-                                onClicked: {
-                                    isPasswordVisible = !isPasswordVisible;
-                                }
+                        enabled: !isReadOnly
+                        labelText: connectWith_combo.currentIndex == 1 ? i18n.dtr("ubtms", "Password") : i18n.dtr("ubtms", "API Key")
+                        echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
+                        
+                        Icon {
+                            name: isPasswordVisible ? "view-reveal" : "view-conceal"
+                            width: units.gu(2.5)
+                            height: units.gu(2.5)
+                            anchors.right: parent.right
+                            anchors.rightMargin: units.gu(1.5)
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#aaa" : "#666"
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: isPasswordVisible = !isPasswordVisible
                             }
                         }
                     }
@@ -692,9 +638,7 @@ Page {
                 visible: activeBackendAccount
                 width: parent.width
                 height: syncSettingsColumn.height + units.gu(3)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "#f8f8f8"
-                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
-                border.width: 1
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "white"
                 radius: units.gu(1)
 
                 Column {
@@ -703,28 +647,26 @@ Page {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: parent.top
                     anchors.topMargin: units.gu(1.5)
-                    spacing: units.gu(1.5)
+                    spacing: units.gu(2)
 
-                    // Section header
                     Text {
-                        text: i18n.dtr("ubtms", "Sync Settings")
-                        font.pixelSize: units.gu(2)
+                        text: i18n.dtr("ubtms", "Sync Preferences")
+                        font.pixelSize: units.gu(1.8)
                         font.bold: true
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "black"
                     }
 
-                    // Custom sync toggle
                     Row {
                         width: parent.width
                         spacing: units.gu(2)
                         Text {
                             text: i18n.dtr("ubtms", "Custom Sync Settings")
-                            font.pixelSize: units.gu(1.8)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "black"
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - customSyncCheckbox.width - units.gu(4)
                         }
-                        CheckBox {
+                        Switch {
                             id: customSyncCheckbox
                             checked: useCustomSyncSettings
                             enabled: !isReadOnly
@@ -735,7 +677,6 @@ Page {
                         }
                     }
 
-                    // Info when using defaults
                     Text {
                         visible: !useCustomSyncSettings
                         text: i18n.dtr("ubtms", "Using global sync defaults (interval: ") +
@@ -743,21 +684,19 @@ Page {
                               i18n.dtr("ubtms", ", direction: ") +
                               getGlobalSyncDefault("sync_direction") + ")"
                         font.pixelSize: units.gu(1.3)
-                        font.italic: true
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#888"
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#555"
                         wrapMode: Text.WordWrap
                         width: parent.width
                     }
 
-                    // Per-account enable/disable toggle
                     Row {
                         width: parent.width
                         visible: useCustomSyncSettings
                         spacing: units.gu(2)
                         Text {
                             text: i18n.dtr("ubtms", "Enable Sync")
-                            font.pixelSize: units.gu(1.8)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "#333"
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "black"
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - perAccountSyncSwitch.width - units.gu(4)
                         }
@@ -769,35 +708,26 @@ Page {
                         }
                     }
 
-                    // Sync Interval
-                    Column {
+                    OutlinedContainer {
                         width: parent.width
                         visible: useCustomSyncSettings
-                        spacing: units.gu(0.5)
-
-                        Text {
-                            text: i18n.dtr("ubtms", "Sync Interval")
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                        }
-
+                        labelText: i18n.dtr("ubtms", "Sync Interval")
+                        isActiveFocus: syncIntervalCombo.activeFocus
+                        
                         ComboBox {
                             id: syncIntervalCombo
-                            width: parent.width
+                            anchors.fill: parent
+                            anchors.margins: 1
                             enabled: !isReadOnly && perAccountSyncSwitch.checked
                             model: ["1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "2 hours", "6 hours", "12 hours", "1 day", "3 days", "1 week"]
-                            currentIndex: 2  // Default: 15 minutes
-                            background: Rectangle {
-                                color: "transparent"
-                                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
-                                border.width: 1
-                                radius: units.gu(0.5)
-                            }
+                            currentIndex: 2
+                            background: Item {}
+                            flat: true
                             contentItem: Text {
                                 text: syncIntervalCombo.displayText
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                                 verticalAlignment: Text.AlignVCenter
-                                leftPadding: units.gu(2)
+                                leftPadding: units.gu(1.5)
                             }
                             delegate: ItemDelegate {
                                 width: syncIntervalCombo.width
@@ -805,45 +735,36 @@ Page {
                                 contentItem: Text {
                                     text: modelData
                                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                    leftPadding: units.gu(1)
+                                    leftPadding: units.gu(1.5)
                                 }
                                 background: Rectangle {
                                     color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                                    radius: 4
+                                    radius: units.gu(0.5)
                                 }
                             }
                         }
                     }
 
-                    // Sync Direction
-                    Column {
+                    OutlinedContainer {
                         width: parent.width
                         visible: useCustomSyncSettings
-                        spacing: units.gu(0.5)
-
-                        Text {
-                            text: i18n.dtr("ubtms", "Sync Direction")
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#b0b0b0" : "#666"
-                        }
-
+                        labelText: i18n.dtr("ubtms", "Sync Direction")
+                        isActiveFocus: syncDirectionCombo.activeFocus
+                        
                         ComboBox {
                             id: syncDirectionCombo
-                            width: parent.width
+                            anchors.fill: parent
+                            anchors.margins: 1
                             enabled: !isReadOnly && perAccountSyncSwitch.checked
                             model: ["Both (Up & Down)", "Download Only", "Upload Only"]
-                            currentIndex: 0  // Default: both
-                            background: Rectangle {
-                                color: "transparent"
-                                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
-                                border.width: 1
-                                radius: units.gu(0.5)
-                            }
+                            currentIndex: 0
+                            background: Item {}
+                            flat: true
                             contentItem: Text {
                                 text: syncDirectionCombo.displayText
                                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
                                 verticalAlignment: Text.AlignVCenter
-                                leftPadding: units.gu(2)
+                                leftPadding: units.gu(1.5)
                             }
                             delegate: ItemDelegate {
                                 width: syncDirectionCombo.width
@@ -851,11 +772,11 @@ Page {
                                 contentItem: Text {
                                     text: modelData
                                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                    leftPadding: units.gu(1)
+                                    leftPadding: units.gu(1.5)
                                 }
                                 background: Rectangle {
                                     color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                                    radius: 4
+                                    radius: units.gu(0.5)
                                 }
                             }
                         }
