@@ -226,3 +226,97 @@ function hasSyncNotifications() {
         return false;
     }
 }
+
+/**
+ * Retrieves all unread NON-Sync notifications (Task, Activity, Project, Timesheet).
+ *
+ * @returns {Array<object>}
+ */
+function getUnreadNormalNotifications() {
+    var list = [];
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                "SELECT * FROM " + TABLE_NAME + " WHERE read_status = 0 AND type != 'Sync' ORDER BY timestamp DESC"
+            );
+            for (var i = 0; i < rs.rows.length; i++) {
+                list.push(DBCommon.rowToObject(rs.rows.item(i)));
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getUnreadNormalNotifications", e);
+    }
+    return list;
+}
+
+/**
+ * Retrieves all unread Sync-type notifications.
+ *
+ * @returns {Array<object>}
+ */
+function getUnreadSyncNotifications() {
+    var list = [];
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                "SELECT * FROM " + TABLE_NAME + " WHERE read_status = 0 AND type = 'Sync' ORDER BY timestamp DESC"
+            );
+            for (var i = 0; i < rs.rows.length; i++) {
+                list.push(DBCommon.rowToObject(rs.rows.item(i)));
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getUnreadSyncNotifications", e);
+    }
+    return list;
+}
+
+/**
+ * Gets count of unread NON-Sync notifications.
+ *
+ * @returns {int}
+ */
+function getUnreadNormalCount() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var count = 0;
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                "SELECT COUNT(*) as cnt FROM " + TABLE_NAME + " WHERE read_status = 0 AND type != 'Sync'"
+            );
+            if (rs.rows.length > 0) {
+                count = rs.rows.item(0).cnt;
+            }
+        });
+        return count;
+    } catch (e) {
+        DBCommon.logException("getUnreadNormalCount", e);
+        return 0;
+    }
+}
+
+/**
+ * Gets count of unread Sync-type notifications.
+ *
+ * @returns {int}
+ */
+function getUnreadSyncCount() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var count = 0;
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                "SELECT COUNT(*) as cnt FROM " + TABLE_NAME + " WHERE read_status = 0 AND type = 'Sync'"
+            );
+            if (rs.rows.length > 0) {
+                count = rs.rows.item(0).cnt;
+            }
+        });
+        return count;
+    } catch (e) {
+        DBCommon.logException("getUnreadSyncCount", e);
+        return 0;
+    }
+}

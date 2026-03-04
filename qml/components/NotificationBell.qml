@@ -14,6 +14,13 @@ Item {
     property int notificationCount: 0
     property var notificationList: []
     property Item parentWindow
+
+    // Track which tab is active: "normal" or "sync"
+    property string activeFilter: "normal"
+
+    // Separate counts for badge display
+    property int normalCount: 0
+    property int syncCount: 0
     
     // Signal emitted when navigation is requested
     signal navigateToRecord(string navType, int recordId, int accountId)
@@ -25,10 +32,15 @@ Item {
     }
 
     function loadNotifications() {
-        var rawList = Notifications.getUnreadNotifications();
+        // Load based on current filter
+        var rawList;
+        if (activeFilter === "sync") {
+            rawList = Notifications.getUnreadSyncNotifications();
+        } else {
+            rawList = Notifications.getUnreadNormalNotifications();
+        }
         
-        // Debug: Log the raw data from database
-        console.log("[NotificationBell] Raw notifications count: " + rawList.length);
+        console.log("[NotificationBell] Raw notifications count (" + activeFilter + "): " + rawList.length);
         
         // Debug: Log unique IDs to check for database duplicates
         var ids = [];
@@ -38,14 +50,13 @@ Item {
         console.log("[NotificationBell] Notification IDs: " + JSON.stringify(ids));
         
         // Deduplicate by message content (keep only the most recent - highest ID)
-        // This handles cases where the daemon creates duplicate entries
         var messageMap = {};
         for (var j = 0; j < rawList.length; j++) {
             var notif = rawList[j];
-            var key = notif.type + "|" + notif.message;  // Unique key: type + message
+            var key = notif.type + "|" + notif.message;
             
             if (!messageMap[key] || notif.id > messageMap[key].id) {
-                messageMap[key] = notif;  // Keep the newest (highest ID)
+                messageMap[key] = notif;
             }
         }
         
@@ -60,11 +71,10 @@ Item {
         // Sort by ID descending (newest first)
         dedupedList.sort(function(a, b) { return b.id - a.id; });
         
-        // Log deduplication results and clean up duplicates from database
+        // Clean up duplicates from database
         if (dedupedList.length !== rawList.length) {
             console.log("[NotificationBell] Deduplicated: " + rawList.length + " -> " + dedupedList.length + " notifications");
             
-            // Delete duplicate entries from database (keep only the ones in dedupedList)
             var keepIds = {};
             for (var k = 0; k < dedupedList.length; k++) {
                 keepIds[dedupedList[k].id] = true;
@@ -79,7 +89,13 @@ Item {
         
         notificationList = dedupedList;
         notificationCount = notificationList.length;
-        badgeHelper.updateCount(notificationCount);
+
+        // Always refresh both counts for the tab badges
+        normalCount = Notifications.getUnreadNormalCount();
+        syncCount = Notifications.getUnreadSyncCount();
+
+        // System badge reflects total unread
+        badgeHelper.updateCount(normalCount + syncCount);
         
         console.log("[NotificationBell] Final notificationList.length: " + notificationList.length);
     }
@@ -182,9 +198,9 @@ Item {
                     Layout.fillWidth: true
                 }
                 
-                // Unread badge
+                // Unread badge (total)
                 Rectangle {
-                    visible: notificationCount > 0
+                    visible: (normalCount + syncCount) > 0
                     Layout.preferredWidth: units.gu(3)
                     Layout.preferredHeight: units.gu(2.5)
                     radius: units.gu(1)
@@ -192,7 +208,7 @@ Item {
                     
                     Label {
                         anchors.centerIn: parent
-                        text: notificationCount
+                        text: normalCount + syncCount
                         color: "white"
                         font.pixelSize: units.gu(1.3)
                         font.bold: true
@@ -221,6 +237,125 @@ Item {
                 }
             }
             
+            // ── Filter Tabs ──
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: units.gu(4.5)
+                spacing: units.gu(1)
+
+                // Normal Notifications tab
+                AbstractButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: units.gu(4)
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: units.gu(1)
+                        color: activeFilter === "normal"
+                            ? theme.palette.normal.focus
+                            : (parent.pressed ? theme.palette.normal.base : "transparent")
+                        border.color: activeFilter === "normal"
+                            ? theme.palette.normal.focus
+                            : theme.palette.normal.base
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: units.gu(0.5)
+
+                            Label {
+                                text: i18n.dtr("ubtms", "Notifications")
+                                font.pixelSize: units.gu(1.5)
+                                font.bold: activeFilter === "normal"
+                                color: activeFilter === "normal"
+                                    ? "white"
+                                    : theme.palette.normal.backgroundText
+                            }
+
+                            // Count badge
+                            Rectangle {
+                                visible: normalCount > 0
+                                width: units.gu(2.5)
+                                height: units.gu(2)
+                                radius: units.gu(0.8)
+                                color: activeFilter === "normal" ? '#32a84e' : "#E53935"
+
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: normalCount
+                                    font.pixelSize: units.gu(1.1)
+                                    font.bold: true
+                                    color: activeFilter === "normal" ? "white" : "white"
+                                }
+                            }
+                        }
+                    }
+
+                    onClicked: {
+                        if (activeFilter !== "normal") {
+                            activeFilter = "normal";
+                            loadNotifications();
+                        }
+                    }
+                }
+
+                // Sync Notifications tab
+                AbstractButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: units.gu(4)
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: units.gu(1)
+                        color: activeFilter === "sync"
+                            ? "#F44336"
+                            : (parent.pressed ? theme.palette.normal.base : "transparent")
+                        border.color: activeFilter === "sync"
+                            ? "#F44336"
+                            : theme.palette.normal.base
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: units.gu(0.5)
+
+                            Label {
+                                text: i18n.dtr("ubtms", "Sync")
+                                font.pixelSize: units.gu(1.5)
+                                font.bold: activeFilter === "sync"
+                                color: activeFilter === "sync"
+                                    ? "white"
+                                    : theme.palette.normal.backgroundText
+                            }
+
+                            // Count badge
+                            Rectangle {
+                                visible: syncCount > 0
+                                width: units.gu(2.5)
+                                height: units.gu(2)
+                                radius: units.gu(0.8)
+                                color: activeFilter === "sync" ? "#FFFFFF40" : "#F44336"
+
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: syncCount
+                                    font.pixelSize: units.gu(1.1)
+                                    font.bold: true
+                                    color: "white"
+                                }
+                            }
+                        }
+                    }
+
+                    onClicked: {
+                        if (activeFilter !== "sync") {
+                            activeFilter = "sync";
+                            loadNotifications();
+                        }
+                    }
+                }
+            }
+
             // Separator
             Rectangle {
                 Layout.fillWidth: true
@@ -240,21 +375,25 @@ Item {
                     
                     Label {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "🔔"
+                        text: activeFilter === "sync" ? "🔄" : "🔔"
                         font.pixelSize: units.gu(6)
                         opacity: 0.5
                     }
                     
                     Label {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: i18n.dtr("ubtms", "No notifications")
+                        text: activeFilter === "sync"
+                            ? i18n.dtr("ubtms", "No sync notifications")
+                            : i18n.dtr("ubtms", "No notifications")
                         font.pixelSize: units.gu(2)
                         color: theme.palette.normal.backgroundSecondaryText
                     }
                     
                     Label {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: i18n.dtr("ubtms", "You're all caught up!")
+                        text: activeFilter === "sync"
+                            ? i18n.dtr("ubtms", "All syncs are running smoothly!")
+                            : i18n.dtr("ubtms", "You're all caught up!")
                         font.pixelSize: units.gu(1.5)
                         color: theme.palette.normal.backgroundTertiaryText
                     }
@@ -271,7 +410,6 @@ Item {
                 clip: true
                 spacing: units.gu(0.5)
                 
-                // Debug: Log when model count changes
                 onCountChanged: {
                     console.log("[NotificationBell] ListView count changed to: " + count + " (model length: " + (notificationList ? notificationList.length : 0) + ")");
                 }
@@ -281,12 +419,10 @@ Item {
                     width: notificationListView.width
                     height: units.gu(8)
                     
-                    // Disable ListItem's default visual elements to prevent double rendering
                     divider.visible: false
-                    color: "transparent"  // Make ListItem background transparent
+                    color: "transparent"
                     highlightColor: "transparent"
                     
-                    // Debug: Log when each delegate is created
                     Component.onCompleted: {
                         console.log("[NotificationBell] Delegate created for notification ID: " + (modelData ? modelData.id : "unknown") + " at index: " + index);
                     }
@@ -332,7 +468,6 @@ Item {
                                 Layout.preferredWidth: units.gu(5)
                                 Layout.preferredHeight: units.gu(5)
                                 
-                                // Parse payload once for this delegate
                                 property var parsedPayload: {
                                     try {
                                         if (modelData.payload) {
@@ -348,7 +483,6 @@ Item {
                                 property bool hasAssignerName: parsedPayload.assigner_name ? true : false
                                 property string assignerName: parsedPayload.assigner_name || ""
                                 
-                                // Get initials from name (e.g., "John Doe" -> "JD")
                                 property string initials: {
                                     if (!assignerName) return "";
                                     var parts = assignerName.trim().split(/\s+/);
@@ -362,13 +496,13 @@ Item {
                                 color: {
                                     if (hasAvatar) return "transparent";
                                     
-                                    // Use type color for background
                                     var notifType = modelData.type || "";
                                     switch(notifType) {
                                         case "Task": return "#4CAF50";
                                         case "Activity": return "#2196F3";
                                         case "Project": return "#FF9800";
                                         case "Timesheet": return "#9C27B0";
+                                        case "Sync": return "#F44336";
                                         default: return "#757575";
                                     }
                                 }
@@ -431,6 +565,7 @@ Item {
                                             case "Activity": return "#2196F3";
                                             case "Project": return "#FF9800";
                                             case "Timesheet": return "#9C27B0";
+                                            case "Sync": return "#F44336";
                                             default: return "#757575";
                                         }
                                     }
@@ -530,12 +665,12 @@ Item {
                 Layout.preferredHeight: units.gu(5)
                 spacing: units.gu(2)
                 visible: notificationCount > 0
-                
-                // Clear Sync Errors button - only visible when sync notifications exist
+
+                // "Clear Sync Notifications" button — only in Sync tab
                 AbstractButton {
                     Layout.fillWidth: true
                     Layout.preferredHeight: units.gu(4)
-                    visible: Notifications.hasSyncNotifications()
+                    visible: activeFilter === "sync"
                     
                     Rectangle {
                         anchors.fill: parent
@@ -559,9 +694,11 @@ Item {
                     }
                 }
 
+                // "Clear All" button — always visible in both tabs (clears current tab's items)
                 AbstractButton {
                     Layout.fillWidth: true
                     Layout.preferredHeight: units.gu(4)
+                    visible: activeFilter === "normal"
                     
                     Rectangle {
                         anchors.fill: parent
