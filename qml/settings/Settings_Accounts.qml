@@ -429,7 +429,7 @@ Page {
                                         var s = Utils.getLastSyncStatus(model.id);
                                         // Extract just the date/time part for brevity
                                         var interval = "";
-                                        if (model.sync_interval_minutes !== undefined && model.sync_interval_minutes !== null && model.sync_interval_minutes !== "") {
+                                        if (model.sync_interval_minutes !== undefined && model.sync_interval_minutes !== null && model.sync_interval_minutes !== "" && model.sync_interval_minutes !== 0) {
                                             interval = formatSyncInterval(model.sync_interval_minutes);
                                         } else {
                                             var gi = "15";
