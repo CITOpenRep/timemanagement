@@ -554,27 +554,16 @@ Page {
                                     }
                                 }
 
-                                // Star for setting default (non-local only)
-                                Item {
+                                // Checkbox for setting default (non-local only)
+                                CheckBox {
                                     visible: model.id !== 0
-                                    width: units.gu(4.5)
-                                    height: units.gu(2)
-
-                                    Icon {
-                                        anchors.centerIn: parent
-                                        width: units.gu(2)
-                                        height: units.gu(2)
-                                        name: model.is_default === 1 ? "starred" : "non-starred"
-                                        color: model.is_default === 1 ? LomiriColors.orange
-                                             : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#ccc")
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: {
-                                            if (model.is_default !== 1) {
-                                                setDefaultAccount(model.id);
-                                            }
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    checked: model.is_default === 1
+                                    onClicked: {
+                                        if (model.is_default !== 1) {
+                                            setDefaultAccount(model.id);
+                                        } else {
+                                            checked = true; // prevent unchecking the default
                                         }
                                     }
                                 }
