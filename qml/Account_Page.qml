@@ -406,7 +406,7 @@ Page {
                     OutlinedTextField {
                         id: accountNameInput
                         width: parent.width
-                        enabled: !isReadOnly
+                        readOnly: isReadOnly
                         labelText: i18n.dtr("ubtms", "Account Name")
                         text: ""
                     }
@@ -440,7 +440,7 @@ Page {
                     OutlinedTextField {
                         id: linkInput
                         width: parent.width
-                        enabled: !isReadOnly
+                        readOnly: isReadOnly
                         labelText: i18n.dtr("ubtms", "URL")
                         placeholderText: "https://"
                         inputMethodHints: Qt.ImhUrlCharactersOnly
@@ -565,7 +565,7 @@ Page {
                     OutlinedTextField {
                         id: usernameInput
                         width: parent.width
-                        enabled: !isReadOnly
+                        readOnly: isReadOnly
                         labelText: i18n.dtr("ubtms", "Username")
                     }
 
@@ -609,7 +609,7 @@ Page {
                     OutlinedTextField {
                         id: passwordInput
                         width: parent.width
-                        enabled: !isReadOnly
+                        readOnly: isReadOnly
                         labelText: connectWith_combo.currentIndex == 1 ? i18n.dtr("ubtms", "Password") : i18n.dtr("ubtms", "API Key")
                         echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
                         

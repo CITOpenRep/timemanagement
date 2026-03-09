@@ -27,7 +27,7 @@ Item {
         radius: units.gu(0.8)
         border.color: "transparent"
         border.width: inputField.activeFocus ? 2 : 1
-        color: "transparent"
+        color: inputField.readOnly ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#252525" : "#f0f0f0") : "transparent"
         
         TextField {
             id: inputField
