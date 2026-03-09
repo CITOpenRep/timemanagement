@@ -554,16 +554,37 @@ Page {
                                     }
                                 }
 
-                                // Checkbox for setting default (non-local only)
-                                CheckBox {
+                                // Custom checkbox for setting default (non-local only)
+                                Item {
                                     visible: model.id !== 0
+                                    width: units.gu(2.8)
+                                    height: units.gu(2.8)
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    checked: model.is_default === 1
-                                    onClicked: {
-                                        if (model.is_default !== 1) {
-                                            setDefaultAccount(model.id);
-                                        } else {
-                                            checked = true; // prevent unchecking the default
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: units.gu(0.4)
+                                        color: model.is_default === 1 ? LomiriColors.orange : "transparent"
+                                        border.color: model.is_default === 1 ? LomiriColors.orange
+                                                    : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#666" : "#aaa")
+                                        border.width: units.dp(2)
+
+                                        Icon {
+                                            anchors.centerIn: parent
+                                            width: units.gu(1.8)
+                                            height: units.gu(1.8)
+                                            name: "tick"
+                                            color: "#ffffff"
+                                            visible: model.is_default === 1
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            if (model.is_default !== 1) {
+                                                setDefaultAccount(model.id);
+                                            }
                                         }
                                     }
                                 }
