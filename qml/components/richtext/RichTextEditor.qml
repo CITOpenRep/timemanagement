@@ -16,6 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import QtQuick 2.7
+import QtQuick.Window 2.2
 import Lomiri.Components 1.3
 import QtWebEngine 1.5
 import "js/html-sanitizer.js" as HtmlSanitizer
@@ -341,7 +342,11 @@ Item {
 
     WebEngineView {
         id: wv
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: editor._oskHeight
         zoomFactor: isMultiColumn ? 1.0 : 2.52
         backgroundColor: darkMode ? "#2d2d2d" : "#ffffff"
         
@@ -554,6 +559,37 @@ Item {
                 editor.currentHighlightColor = bgColorMatch[1];
             } else {
                 editor.currentHighlightColor = "transparent";
+            }
+        }
+    }
+
+    // ============ KEYBOARD HANDLING ============
+
+    /**
+     * On-screen keyboard height in QML coordinates.
+     * On Ubuntu Touch the OSK does not automatically resize WebEngineView,
+     * so we track Qt.inputMethod and shrink the web view ourselves.
+     */
+    property real _oskHeight: {
+        if (!Qt.inputMethod.visible) return 0;
+        // keyboardRectangle is in root-window (screen-logical) pixels;
+        // map to QML logical pixels by dividing by devicePixelRatio.
+        var kbRect = Qt.inputMethod.keyboardRectangle;
+        var ratio  = Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1;
+        return kbRect.height / ratio;
+    }
+
+    Connections {
+        target: Qt.inputMethod
+        onVisibleChanged: {
+            if (Qt.inputMethod.visible && _isLoaded && !readOnly) {
+                // After the WebEngineView shrinks, scroll the cursor into view
+                wv.runJavaScript("setTimeout(function(){ if(window.scrollCursorIntoView) window.scrollCursorIntoView(); }, 250);");
+            }
+        }
+        onKeyboardRectangleChanged: {
+            if (Qt.inputMethod.visible && _isLoaded && !readOnly) {
+                wv.runJavaScript("setTimeout(function(){ if(window.scrollCursorIntoView) window.scrollCursorIntoView(); }, 250);");
             }
         }
     }

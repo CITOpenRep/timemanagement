@@ -209,10 +209,9 @@
                 console.log('[Editor] Squire editor found, setting up events');
 
                 // Scroll the cursor into the visible area.
-                // Called after input events and when the virtual keyboard
-                // resizes the viewport, so content behind the keyboard
-                // is scrolled up to remain visible.
-                function scrollCursorIntoView() {
+                // Exposed globally so QML can call it via runJavaScript
+                // when the on-screen keyboard appears or resizes.
+                window.scrollCursorIntoView = function() {
                     try {
                         var selection = window.getSelection();
                         if (!selection || selection.rangeCount === 0) return;
@@ -231,9 +230,7 @@
                         }
                         if (!rect) return;
 
-                        var viewportHeight = window.visualViewport
-                            ? window.visualViewport.height
-                            : window.innerHeight;
+                        var viewportHeight = window.innerHeight;
                         var margin = 40;
 
                         if (rect.bottom > viewportHeight - margin) {
@@ -244,7 +241,8 @@
                     } catch (e) {
                         // Best-effort; don't break editor on failure
                     }
-                }
+                };
+                var scrollCursorIntoView = window.scrollCursorIntoView;
 
                 // Track content changes
                 var lastContent = '';
@@ -267,12 +265,8 @@
                     }
                 });
 
-                // Detect virtual keyboard show/hide via viewport resize
-                if (window.visualViewport) {
-                    window.visualViewport.addEventListener('resize', function() {
-                        setTimeout(scrollCursorIntoView, 100);
-                    });
-                }
+                // Listen for window resize (e.g. QML resizing the WebEngineView
+                // when the on-screen keyboard appears)
                 window.addEventListener('resize', function() {
                     setTimeout(scrollCursorIntoView, 150);
                 });
