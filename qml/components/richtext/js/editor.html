@@ -208,6 +208,44 @@
 
                 console.log('[Editor] Squire editor found, setting up events');
 
+                // Scroll the cursor into the visible area.
+                // Called after input events and when the virtual keyboard
+                // resizes the viewport, so content behind the keyboard
+                // is scrolled up to remain visible.
+                function scrollCursorIntoView() {
+                    try {
+                        var selection = window.getSelection();
+                        if (!selection || selection.rangeCount === 0) return;
+
+                        var range = selection.getRangeAt(0);
+                        var rect = range.getBoundingClientRect();
+
+                        // Collapsed cursor may report zero-size rect; fall back
+                        // to the parent element's bounding box.
+                        if (!rect || (rect.height === 0 && rect.width === 0)) {
+                            var node = range.startContainer;
+                            if (node.nodeType === 3) node = node.parentElement;
+                            if (node && node.getBoundingClientRect) {
+                                rect = node.getBoundingClientRect();
+                            }
+                        }
+                        if (!rect) return;
+
+                        var viewportHeight = window.visualViewport
+                            ? window.visualViewport.height
+                            : window.innerHeight;
+                        var margin = 40;
+
+                        if (rect.bottom > viewportHeight - margin) {
+                            document.body.scrollTop += (rect.bottom - viewportHeight + margin);
+                        } else if (rect.top < margin) {
+                            document.body.scrollTop += (rect.top - margin);
+                        }
+                    } catch (e) {
+                        // Best-effort; don't break editor on failure
+                    }
+                }
+
                 // Track content changes
                 var lastContent = '';
                 
@@ -217,6 +255,26 @@
                         lastContent = content;
                         oxide.sendMessage('contentChanged', { content: content });
                     }
+                    // Keep cursor visible while typing (especially when
+                    // the on-screen keyboard is covering part of the view)
+                    scrollCursorIntoView();
+                });
+
+                // Also scroll cursor into view on Enter / new-line
+                document.body.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                        setTimeout(scrollCursorIntoView, 50);
+                    }
+                });
+
+                // Detect virtual keyboard show/hide via viewport resize
+                if (window.visualViewport) {
+                    window.visualViewport.addEventListener('resize', function() {
+                        setTimeout(scrollCursorIntoView, 100);
+                    });
+                }
+                window.addEventListener('resize', function() {
+                    setTimeout(scrollCursorIntoView, 150);
                 });
 
                 // Track path changes (formatting state)

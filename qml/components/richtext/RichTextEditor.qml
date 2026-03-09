@@ -71,6 +71,13 @@ Item {
     property bool _internalUpdate: false
 
     /**
+     * Tracks the last HTML content set to or received from Squire.
+     * Prevents the feedback loop where binding updates cause setText()
+     * to re-set identical content, which resets scroll position.
+     */
+    property string _lastSetContent: ""
+
+    /**
      * When true, suppress emitting the contentChanged signal.
      * Starts as true so Squire's very first init events (fired via the URL-hash
      * bridge during page load, before onLoadingChanged fires) cannot clobber
@@ -223,6 +230,12 @@ Item {
         var cleanedDoc = sanitizeHtml(htmlText ? htmlText.trim() : "");
         
         if (_isLoaded) {
+            // Skip if content is identical to what Squire already has,
+            // to avoid resetting scroll position via setHTML()
+            if (cleanedDoc === _lastSetContent) {
+                return;
+            }
+            _lastSetContent = cleanedDoc;
             // Suppress contentChanged during setHTML — Squire fires intermediate
             // empty-content events before delivering the real content.
             _suppressContentChanged = true;
@@ -489,6 +502,9 @@ Item {
                         // HTML including bridge/setup scripts
                         content = editor.stripScriptTags(content);
                         console.log("[RichTextEditor] contentChanged from Squire, length:", content.length);
+
+                        // Track what Squire currently has to prevent feedback loop
+                        editor._lastSetContent = content;
 
                         // Update internal text property always so editor.text stays
                         // in sync, but only emit the public contentChanged signal
