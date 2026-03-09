@@ -566,30 +566,32 @@ Item {
     // ============ KEYBOARD HANDLING ============
 
     /**
-     * On-screen keyboard height in QML coordinates.
-     * On Ubuntu Touch the OSK does not automatically resize WebEngineView,
-     * so we track Qt.inputMethod and shrink the web view ourselves.
+     * On-screen keyboard height (QML logical pixels).
+     * Qt.inputMethod.keyboardRectangle is in window coordinates,
+     * same coordinate space as QML — no devicePixelRatio conversion needed.
      */
-    property real _oskHeight: {
-        if (!Qt.inputMethod.visible) return 0;
-        // keyboardRectangle is in root-window (screen-logical) pixels;
-        // map to QML logical pixels by dividing by devicePixelRatio.
-        var kbRect = Qt.inputMethod.keyboardRectangle;
-        var ratio  = Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1;
-        return kbRect.height / ratio;
+    property real _oskHeight: Qt.inputMethod.visible
+                              ? Qt.inputMethod.keyboardRectangle.height
+                              : 0
+
+    /**
+     * Push the current keyboard height into the WebEngineView JS layer
+     * so scrollCursorIntoView() knows how much of the viewport is hidden.
+     * Heights are converted to CSS pixels (QML px / zoomFactor).
+     */
+    function _pushKeyboardHeightToJs() {
+        if (!_isLoaded) return;
+        var cssPx = Math.round(_oskHeight / wv.zoomFactor);
+        wv.runJavaScript("window.setKeyboardHeight(" + cssPx + ");");
     }
+
+    on_OskHeightChanged: _pushKeyboardHeightToJs()
 
     Connections {
         target: Qt.inputMethod
         onVisibleChanged: {
-            if (Qt.inputMethod.visible && _isLoaded && !readOnly) {
-                // After the WebEngineView shrinks, scroll the cursor into view
-                wv.runJavaScript("setTimeout(function(){ if(window.scrollCursorIntoView) window.scrollCursorIntoView(); }, 250);");
-            }
-        }
-        onKeyboardRectangleChanged: {
-            if (Qt.inputMethod.visible && _isLoaded && !readOnly) {
-                wv.runJavaScript("setTimeout(function(){ if(window.scrollCursorIntoView) window.scrollCursorIntoView(); }, 250);");
+            if (_isLoaded) {
+                editor._pushKeyboardHeightToJs();
             }
         }
     }

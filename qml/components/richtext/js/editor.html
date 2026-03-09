@@ -49,7 +49,7 @@
         }
 
         body {
-            height: 100%;
+            min-height: 100%;
             width: 100%;
             margin: 0;
             padding: 8px 12px;
@@ -87,6 +87,12 @@
 
         body:focus {
             outline: none;
+        }
+
+        /* When editable, add bottom padding so content can scroll
+           above the on-screen keyboard on mobile devices */
+        body[contenteditable="true"] {
+            padding-bottom: 45vh;
         }
 
         /* Selection styling */
@@ -208,6 +214,21 @@
 
                 console.log('[Editor] Squire editor found, setting up events');
 
+                // Keyboard height in CSS pixels, set from QML via
+                // window.setKeyboardHeight(). Used by scrollCursorIntoView
+                // to avoid scrolling behind the on-screen keyboard.
+                window._kbHeight = 0;
+
+                /**
+                 * Called from QML to inform JS about the on-screen keyboard
+                 * height in CSS pixels (already divided by zoomFactor).
+                 */
+                window.setKeyboardHeight = function(h) {
+                    window._kbHeight = h || 0;
+                    console.log('[Editor] Keyboard height set to', window._kbHeight, 'CSS px');
+                    scrollCursorIntoView();
+                };
+
                 // Scroll the cursor into the visible area.
                 // Exposed globally so QML can call it via runJavaScript
                 // when the on-screen keyboard appears or resizes.
@@ -230,11 +251,13 @@
                         }
                         if (!rect) return;
 
-                        var viewportHeight = window.innerHeight;
+                        // Visible height = viewport minus keyboard.
+                        // _kbHeight is set from QML; falls back to 0.
+                        var visibleHeight = window.innerHeight - (window._kbHeight || 0);
                         var margin = 40;
 
-                        if (rect.bottom > viewportHeight - margin) {
-                            document.body.scrollTop += (rect.bottom - viewportHeight + margin);
+                        if (rect.bottom > visibleHeight - margin) {
+                            document.body.scrollTop += (rect.bottom - visibleHeight + margin);
                         } else if (rect.top < margin) {
                             document.body.scrollTop += (rect.top - margin);
                         }
