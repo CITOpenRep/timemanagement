@@ -546,8 +546,8 @@ Page {
 
                                         Icon {
                                             anchors.centerIn: parent
-                                            width: units.gu(2)
-                                            height: units.gu(2)
+                                            width: units.gu(2.2)
+                                            height: units.gu(2.2)
                                             name: "sync"
                                             color: "#ffffff"
                                         }
@@ -557,8 +557,8 @@ Page {
                                 // Custom checkbox for setting default (non-local only)
                                 Item {
                                     visible: model.id !== 0
-                                    width: units.gu(2.8)
-                                    height: units.gu(2.8)
+                                    width: units.gu(2.2)
+                                    height: units.gu(2.2)
                                     anchors.horizontalCenter: parent.horizontalCenter
 
                                     Rectangle {
