@@ -614,7 +614,7 @@ Page {
                         echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
                         
                         Icon {
-                            name: isPasswordVisible ? "view-reveal" : "view-conceal"
+                            name: isPasswordVisible ? "view-on" : "view-off"
                             width: units.gu(2.5)
                             height: units.gu(2.5)
                             anchors.right: parent.right
