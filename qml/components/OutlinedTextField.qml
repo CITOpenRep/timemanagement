@@ -7,7 +7,7 @@ Item {
 
     property string labelText: ""
     property alias text: inputField.text
-    property alias placeholderText: inputField.placeholderText
+    property string placeholderText: ""
     property alias echoMode: inputField.echoMode
     property alias enabled: inputField.enabled
     property alias maximumLength: inputField.maximumLength
@@ -25,19 +25,34 @@ Item {
         anchors.fill: parent
         anchors.topMargin: units.gu(1)
         radius: units.gu(0.8)
-        border.color: "transparent"
+        border.color: inputField.activeFocus ? LomiriColors.blue : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#c0c0c0")
         border.width: inputField.activeFocus ? 2 : 1
         color: inputField.readOnly ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#252525" : "#f0f0f0") : "transparent"
-        
-        TextField {
+        clip: true
+
+        TextInput {
             id: inputField
             anchors.fill: parent
-            anchors.margins: 2
             anchors.leftMargin: units.gu(1.5)
             anchors.rightMargin: units.gu(1)
             verticalAlignment: TextInput.AlignVCenter
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+            font.pixelSize: units.gu(2)
+            selectByMouse: true
             
             onAccepted: root.accepted()
+        }
+
+        Text {
+            id: placeholder
+            anchors.fill: parent
+            anchors.leftMargin: units.gu(1.5)
+            anchors.rightMargin: units.gu(1)
+            verticalAlignment: Text.AlignVCenter
+            text: root.placeholderText
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#777" : "#999"
+            font.pixelSize: units.gu(2)
+            visible: !inputField.text && !inputField.activeFocus
         }
     }
 
