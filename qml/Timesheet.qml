@@ -736,9 +736,9 @@ Page {
                     auto_save_for_timer();
                 }
                 
-                // Track elapsed time changes for draft management
+                // Track elapsed time changes for draft management (only manual edits, not timer ticks)
                 onElapsedTimeChanged: {
-                    if (draftHandler.enabled && draftHandler._initialized) {
+                    if (draftHandler.enabled && draftHandler._initialized && !time_sheet_widget.isRecording) {
                         draftHandler.markFieldChanged("elapsedTime", elapsedTime);
                     }
                 }
