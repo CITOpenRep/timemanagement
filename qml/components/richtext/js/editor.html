@@ -49,7 +49,7 @@
         }
 
         body {
-            height: 100%;
+            min-height: 100%;
             width: 100%;
             margin: 0;
             padding: 8px 12px;
@@ -87,6 +87,12 @@
 
         body:focus {
             outline: none;
+        }
+
+        /* When editable, add bottom padding so content can scroll
+           above the on-screen keyboard on mobile devices */
+        body[contenteditable="true"] {
+            padding-bottom: 45vh;
         }
 
         /* Selection styling */
@@ -208,6 +214,59 @@
 
                 console.log('[Editor] Squire editor found, setting up events');
 
+                // Keyboard height in CSS pixels, set from QML via
+                // window.setKeyboardHeight(). Used by scrollCursorIntoView
+                // to avoid scrolling behind the on-screen keyboard.
+                window._kbHeight = 0;
+
+                /**
+                 * Called from QML to inform JS about the on-screen keyboard
+                 * height in CSS pixels (already divided by zoomFactor).
+                 */
+                window.setKeyboardHeight = function(h) {
+                    window._kbHeight = h || 0;
+                    console.log('[Editor] Keyboard height set to', window._kbHeight, 'CSS px');
+                    scrollCursorIntoView();
+                };
+
+                // Scroll the cursor into the visible area.
+                // Exposed globally so QML can call it via runJavaScript
+                // when the on-screen keyboard appears or resizes.
+                window.scrollCursorIntoView = function() {
+                    try {
+                        var selection = window.getSelection();
+                        if (!selection || selection.rangeCount === 0) return;
+
+                        var range = selection.getRangeAt(0);
+                        var rect = range.getBoundingClientRect();
+
+                        // Collapsed cursor may report zero-size rect; fall back
+                        // to the parent element's bounding box.
+                        if (!rect || (rect.height === 0 && rect.width === 0)) {
+                            var node = range.startContainer;
+                            if (node.nodeType === 3) node = node.parentElement;
+                            if (node && node.getBoundingClientRect) {
+                                rect = node.getBoundingClientRect();
+                            }
+                        }
+                        if (!rect) return;
+
+                        // Visible height = viewport minus keyboard.
+                        // _kbHeight is set from QML; falls back to 0.
+                        var visibleHeight = window.innerHeight - (window._kbHeight || 0);
+                        var margin = 40;
+
+                        if (rect.bottom > visibleHeight - margin) {
+                            document.body.scrollTop += (rect.bottom - visibleHeight + margin);
+                        } else if (rect.top < margin) {
+                            document.body.scrollTop += (rect.top - margin);
+                        }
+                    } catch (e) {
+                        // Best-effort; don't break editor on failure
+                    }
+                };
+                var scrollCursorIntoView = window.scrollCursorIntoView;
+
                 // Track content changes
                 var lastContent = '';
                 
@@ -217,6 +276,22 @@
                         lastContent = content;
                         oxide.sendMessage('contentChanged', { content: content });
                     }
+                    // Keep cursor visible while typing (especially when
+                    // the on-screen keyboard is covering part of the view)
+                    scrollCursorIntoView();
+                });
+
+                // Also scroll cursor into view on Enter / new-line
+                document.body.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                        setTimeout(scrollCursorIntoView, 50);
+                    }
+                });
+
+                // Listen for window resize (e.g. QML resizing the WebEngineView
+                // when the on-screen keyboard appears)
+                window.addEventListener('resize', function() {
+                    setTimeout(scrollCursorIntoView, 150);
                 });
 
                 // Track path changes (formatting state)
