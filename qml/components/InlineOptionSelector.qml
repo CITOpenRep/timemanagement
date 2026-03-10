@@ -56,6 +56,28 @@ Item {
         // Auto-adjust expanded height based on item count
         var calculatedHeight = Math.min(modelData.length * units.gu(5) + units.gu(6), maxExpandedHeight);
         expandedHeight = Math.max(calculatedHeight, units.gu(15));
+
+        // If selectedId is already set, resolve its name from the new data
+        if (selectedId !== -1) {
+            for (var j = 0; j < modelData.length; j++) {
+                if (modelData[j].id === selectedId) {
+                    selectedName = modelData[j].name;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Resolve selectedName when selectedId is assigned and modelData is already loaded
+    onSelectedIdChanged: {
+        if (selectedId !== -1 && modelData && modelData.length > 0) {
+            for (var i = 0; i < modelData.length; i++) {
+                if (modelData[i].id === selectedId) {
+                    selectedName = modelData[i].name;
+                    break;
+                }
+            }
+        }
     }
 
     Behavior on height {
