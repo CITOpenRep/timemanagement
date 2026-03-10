@@ -102,7 +102,7 @@ Page {
         ]
     }
 
-    function save_timesheet(skipNavigation) {
+    function save_timesheet() {
         let time = time_sheet_widget.elapsedTime;
 
         const currentStatus = getCurrentTimesheetStatus();
@@ -172,13 +172,73 @@ Page {
             
             time_sheet_widget.elapsedTime = time;
             
-            // Navigate back to list view after successful save (unless skipNavigation is true)
-            if (!skipNavigation) {
-                navigateBack();
-            }
+            // Re-initialize draft tracking with current saved state as new baseline
+            var newBaseline = getCurrentFormData();
+            draftHandler.initialize(newBaseline);
             
             return true;
         }
+    }
+
+    // Auto-save all form fields to DB so the timer can start.
+    // Only requires a project (task can be filled in later before syncing).
+    function auto_save_for_timer() {
+        const ids = workItem.getIds();
+        const user = Accounts.getCurrentUserOdooId(ids.account_id);
+
+        if (!user) {
+            notifPopup.open("Error", "Unable to find the user", "error");
+            return false;
+        }
+
+        if (ids.project_id === null) {
+            notifPopup.open("Select Project", "Please select a project before starting the timer", "error");
+            return false;
+        }
+
+        let correctTaskId = null;
+        let correctSubTaskId = null;
+
+        if (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) {
+            correctTaskId = ids.subtask_id;
+        } else if (ids.task_id !== null) {
+            correctTaskId = ids.task_id;
+        }
+
+        var timesheet_data = {
+            'record_date': date_widget.formattedDate(),
+            'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
+            'project': ids.project_id,
+            'task': correctTaskId,
+            'subTask': correctSubTaskId,
+            'subprojectId': ids.subproject_id,
+            'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            'unit_amount': Utils.convertHHMMtoDecimalHours(time_sheet_widget.elapsedTime),
+            'quadrant': priorityGrid.currentIndex + 1,
+            'user_id': user,
+            'status': "draft"
+        };
+
+        if (recordid && recordid !== 0) {
+            timesheet_data.id = recordid;
+        }
+
+        const result = Model.saveTimesheet(timesheet_data);
+        if (!result.success) {
+            notifPopup.open("Error", "Unable to save: " + result.error, "error");
+            return false;
+        }
+
+        // Clear draft since we saved to DB
+        draftHandler.clearDraft();
+
+        // Re-initialize draft tracking with current data as the new baseline
+        var newBaseline = getCurrentFormData();
+        draftHandler.initialize(newBaseline);
+
+        // Now that project is in DB, retry starting the timer
+        time_sheet_widget.tryStartTimer();
+        return true;
     }
 
     function getCurrentTimesheetStatus() {
@@ -244,8 +304,7 @@ Page {
         id: unsavedChangesDialog
         
         onSaveRequested: {
-            var success = save_timesheet(true); // true = skip automatic navigation
-            // Only navigate back if save was successful
+            var success = save_timesheet();
             if (success) {
                 Qt.callLater(navigateBack);
             }
@@ -672,21 +731,17 @@ Page {
                     notifPopup.open("Error", "Save the time sheet first", "error");
                 }
                 
-                // Track elapsed time changes for draft management
+                // Auto-save and start timer when user clicks Play without prior save
+                onRequestAutoSave: {
+                    auto_save_for_timer();
+                }
+                
+                // Track elapsed time changes for draft management (only manual edits, not timer ticks)
                 onElapsedTimeChanged: {
-                    if (draftHandler.enabled && draftHandler._initialized) {
+                    if (draftHandler.enabled && draftHandler._initialized && !time_sheet_widget.isRecording) {
                         draftHandler.markFieldChanged("elapsedTime", elapsedTime);
                     }
                 }
-            }
-            Label {
-                anchors.fill: parent
-                anchors.margins: units.gu(1)
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: !recordid
-                text: "Please save the timesheet before recording your working hours."
-                color: "red"
-                font.italic: true
             }
         }
         Row {

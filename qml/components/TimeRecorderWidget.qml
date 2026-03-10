@@ -23,6 +23,27 @@ Item {
     property string elapsedTime: "01:00"
     property int timesheetId: 0
     signal invalidtimesheet
+    signal requestAutoSave
+
+    function tryStartTimer() {
+        if (timesheetId <= 0) {
+            autoRecorder.invalidtimesheet();
+            return;
+        }
+
+        if (TimeSheet.isTimesheetReadyToStartTimer(timesheetId)) {
+            var result = TimerService.start(timesheetId);
+            if (result.success) {
+                isRecording = true;
+                autoMode = true;
+                updateTimer.start();
+            } else {
+                notifPopup.open("Timer Error", result.error, "error");
+            }
+        } else {
+            requestAutoSave();
+        }
+    }
 
     Connections {
         target: globalTimerWidget
@@ -132,11 +153,7 @@ Item {
                         if (!autoMode)
                             return "../images/play (1).png";
 
-                        var serviceRunning = TimerService.isRunning();
-                        var servicePaused = TimerService.isPaused();
-                        var activeId = TimerService.getActiveTimesheetId();
-
-                        if (serviceRunning && activeId === timesheetId && !servicePaused) {
+                        if (isRecording) {
                             return "../images/pause.png";
                         } else {
                             return "../images/play (1).png";
@@ -161,17 +178,7 @@ Item {
                         var activeId = TimerService.getActiveTimesheetId();
 
                         if (!serviceRunning || activeId !== timesheetId) {
-                            if (TimeSheet.isTimesheetReadyToStartTimer(timesheetId)) {
-                                var result = TimerService.start(timesheetId);
-                                if (result.success) {
-                                    isRecording = true;
-                                    updateTimer.start();
-                                } else {
-                                    notifPopup.open("Timer Error", result.error, "error");
-                                }
-                            } else {
-                                notifPopup.open("Incomplete Timesheet", "Please select a project first.", "error");
-                            }
+                            tryStartTimer();
                         } else if (servicePaused) {
                             TimerService.resume();
                             isRecording = true;
