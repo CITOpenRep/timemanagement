@@ -95,7 +95,7 @@ Page {
         if (isManualDbMode) {
             dbname = manualDbInput.text;
         } else {
-            dbname = database_combo.currentText;
+            dbname = databaseSelector.selectedName;
         }
 
         if (!linkInput.text.trim()) {
@@ -195,15 +195,15 @@ Page {
                 // Fetch databases for this URL
                 Utils.getDatabasesFromOdooServer(account.link, function(databases) {
                     if (databases && databases.length > 0) {
-                        databaseListModel.clear();
+                        var dbModelData = [];
                         for (var j = 0; j < databases.length; j++) {
-                            databaseListModel.append({"name": databases[j]});
+                            dbModelData.push({id: j, name: databases[j]});
                         }
-                        
-                        // Set the current database as selected
+                        databaseSelector.setData(dbModelData);
+                        // Select the matching database
                         for (var k = 0; k < databases.length; k++) {
                             if (databases[k] === account.database) {
-                                database_combo.currentIndex = k;
+                                databaseSelector.applyDeferredSelection(k, false);
                                 break;
                             }
                         }
@@ -213,6 +213,9 @@ Page {
                         manualDbInput.text = account.database;
                     }
                 });
+                
+                // Restore connect-with selection
+                connectWithSelector.applyDeferredSelection(selectedconnectwithId, false);
                 
                 // Set read-only mode initially
                 isReadOnly = true;
@@ -225,25 +228,15 @@ Page {
                     syncSettings.autosync_enabled !== null) {
                     useCustomSyncSettings = true;
                     
-                    // Set interval combo
-                    var intervalValues = ["1", "5", "15", "30", "60", "120", "360", "720", "1440", "4320", "10080"];
-                    var savedInterval = String(syncSettings.sync_interval_minutes || getGlobalSyncDefault("sync_interval_minutes"));
-                    for (var si = 0; si < intervalValues.length; si++) {
-                        if (intervalValues[si] === savedInterval) {
-                            syncIntervalCombo.currentIndex = si;
-                            break;
-                        }
-                    }
+                    // Set interval selector
+                    var savedInterval = parseInt(syncSettings.sync_interval_minutes || getGlobalSyncDefault("sync_interval_minutes")) || 15;
+                    syncIntervalSelector.applyDeferredSelection(savedInterval, false);
                     
-                    // Set direction combo
+                    // Set direction selector
                     var directionValues = ["both", "download_only", "upload_only"];
                     var savedDirection = syncSettings.sync_direction || getGlobalSyncDefault("sync_direction");
-                    for (var di = 0; di < directionValues.length; di++) {
-                        if (directionValues[di] === savedDirection) {
-                            syncDirectionCombo.currentIndex = di;
-                            break;
-                        }
-                    }
+                    var dirIdx = directionValues.indexOf(savedDirection);
+                    syncDirectionSelector.applyDeferredSelection(dirIdx === -1 ? 0 : dirIdx, false);
                     
                     // Set enable switch
                     perAccountSyncSwitch.checked = (syncSettings.autosync_enabled === null) ? true : (syncSettings.autosync_enabled === 1);
@@ -269,11 +262,11 @@ Page {
         usernameInput.text = "";
         passwordInput.text = "";
         manualDbInput.text = "";
-        databaseListModel.clear();
+        databaseSelector.setData([]);
+        databaseSelector.clear();
         activeBackendAccount = false;
         accountId = -1;
         isManualDbMode = false;
-        database_combo.currentIndex = -1;
         useCustomSyncSettings = false;
     }
 
@@ -320,10 +313,10 @@ Page {
             Accounts.updateAccountSyncSettings(accId, null, null, null);
             return;
         }
-        var intervalValues = ["1", "5", "15", "30", "60", "120", "360", "720", "1440", "4320", "10080"];
         var directionValues = ["both", "download_only", "upload_only"];
-        var interval = parseInt(intervalValues[syncIntervalCombo.currentIndex]) || 15;
-        var direction = directionValues[syncDirectionCombo.currentIndex] || "both";
+        var interval = syncIntervalSelector.selectedId !== -1 ? syncIntervalSelector.selectedId : 15;
+        var dirIdx = syncDirectionSelector.selectedId;
+        var direction = (dirIdx >= 0 && dirIdx < directionValues.length) ? directionValues[dirIdx] : "both";
         var enabled = perAccountSyncSwitch.checked ? 1 : 0;
         Accounts.updateAccountSyncSettings(accId, interval, direction, enabled);
     }
@@ -337,22 +330,6 @@ Page {
         }
 
         onError: {}
-    }
-
-    ListModel {
-        id: databaseListModel
-    }
-
-    ListModel {
-        id: menuconnectwithModel
-        ListElement {
-            modelData: "Connect With Api Key"
-            itemid: 0
-        }
-        ListElement {
-            modelData: "Connect With Password"
-            itemid: 1
-        }
     }
 
     Rectangle {
@@ -456,7 +433,7 @@ Page {
                         fgColor: "white"
                         radius: units.gu(0.8)
                         onClicked: {
-                            databaseListModel.clear();
+                            databaseSelector.setData([]);
                             linkInput.text = linkInput.text.toLowerCase();
                             let result = Utils.validateAndCleanOdooURL(linkInput.text);
                             if (result.isValid) {
@@ -471,15 +448,15 @@ Page {
                                         notifPopup.open("Error", "Unable to fetch the DBs from the Server (may be due to security), please enter it manually below", "error");
                                     }
 
+                                    var dbModelData = [];
                                     for (var i = 0; i < dbList.length; i++) {
-                                        databaseListModel.append({
-                                            name: dbList[i]
-                                        });
+                                        dbModelData.push({id: i, name: dbList[i]});
                                         activeBackendAccount = true;
                                     }
+                                    databaseSelector.setData(dbModelData);
 
                                     if (dbList.length > 0) {
-                                        database_combo.currentIndex = 0;
+                                        databaseSelector.applyDeferredSelection(0, false);
                                     }
                                 });
                             } else {
@@ -490,42 +467,14 @@ Page {
                         }
                     }
 
-                    OutlinedContainer {
+                    InlineOptionSelector {
+                        id: databaseSelector
                         width: parent.width
                         visible: activeBackendAccount && !isManualDbMode
                         labelText: i18n.dtr("ubtms", "Database")
-                        isActiveFocus: database_combo.activeFocus
-                        
-                        ComboBox {
-                            id: database_combo
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            enabled: !isReadOnly
-                            background: Item {}
-                            flat: true
-                            model: databaseListModel
-                            contentItem: Text {
-                                text: database_combo.displayText
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                                leftPadding: units.gu(1.5)
-                            }
-                            delegate: ItemDelegate {
-                                width: database_combo.width
-                                hoverEnabled: true
-                                contentItem: Text {
-                                    text: model.name || ""
-                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                    leftPadding: units.gu(1.5)
-                                    elide: Text.ElideRight
-                                }
-                                background: Rectangle {
-                                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                                    radius: units.gu(0.5)
-                                }
-                            }
-                        }
+                        selectorType: "database"
+                        readOnly: isReadOnly
+                        enabledState: !isReadOnly
                     }
 
                     OutlinedTextField {
@@ -569,40 +518,19 @@ Page {
                         labelText: i18n.dtr("ubtms", "Username")
                     }
 
-                    OutlinedContainer {
+                    InlineOptionSelector {
+                        id: connectWithSelector
                         width: parent.width
                         labelText: i18n.dtr("ubtms", "Connect With")
-                        isActiveFocus: connectWith_combo.activeFocus
-                        
-                        ComboBox {
-                            id: connectWith_combo
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            enabled: !isReadOnly
-                            background: Item {}
-                            flat: true
-                            model: menuconnectwithModel
-                            contentItem: Text {
-                                text: connectWith_combo.displayText
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                                leftPadding: units.gu(1.5)
-                            }
-                            delegate: ItemDelegate {
-                                width: connectWith_combo.width
-                                hoverEnabled: true
-                                contentItem: Text {
-                                    text: i18n.dtr("ubtms", model.modelData || "")
-                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                    leftPadding: units.gu(1.5)
-                                    elide: Text.ElideRight
-                                }
-                                background: Rectangle {
-                                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                                    radius: units.gu(0.5)
-                                }
-                            }
+                        selectorType: "connectwith"
+                        modelData: [
+                            {id: 0, name: i18n.dtr("ubtms", "Connect With Api Key")},
+                            {id: 1, name: i18n.dtr("ubtms", "Connect With Password")}
+                        ]
+                        selectedId: selectedconnectwithId
+                        readOnly: isReadOnly
+                        onSelectionMade: {
+                            selectedconnectwithId = id;
                         }
                     }
 
@@ -610,7 +538,7 @@ Page {
                         id: passwordInput
                         width: parent.width
                         readOnly: isReadOnly
-                        labelText: connectWith_combo.currentIndex == 1 ? i18n.dtr("ubtms", "Password") : i18n.dtr("ubtms", "API Key")
+                        labelText: connectWithSelector.selectedId === 1 ? i18n.dtr("ubtms", "Password") : i18n.dtr("ubtms", "API Key")
                         echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
                         
                         Icon {
@@ -708,78 +636,44 @@ Page {
                         }
                     }
 
-                    OutlinedContainer {
+                    InlineOptionSelector {
+                        id: syncIntervalSelector
                         width: parent.width
                         visible: useCustomSyncSettings
                         labelText: i18n.dtr("ubtms", "Sync Interval")
-                        isActiveFocus: syncIntervalCombo.activeFocus
-                        
-                        ComboBox {
-                            id: syncIntervalCombo
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            enabled: !isReadOnly && perAccountSyncSwitch.checked
-                            model: ["1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "2 hours", "6 hours", "12 hours", "1 day", "3 days", "1 week"]
-                            currentIndex: 2
-                            background: Item {}
-                            flat: true
-                            contentItem: Text {
-                                text: syncIntervalCombo.displayText
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: units.gu(1.5)
-                            }
-                            delegate: ItemDelegate {
-                                width: syncIntervalCombo.width
-                                hoverEnabled: true
-                                contentItem: Text {
-                                    text: modelData
-                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                    leftPadding: units.gu(1.5)
-                                }
-                                background: Rectangle {
-                                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                                    radius: units.gu(0.5)
-                                }
-                            }
-                        }
+                        selectorType: "syncInterval"
+                        modelData: [
+                            {id: 1,    name: i18n.dtr("ubtms", "1 minute")},
+                            {id: 5,    name: i18n.dtr("ubtms", "5 minutes")},
+                            {id: 15,   name: i18n.dtr("ubtms", "15 minutes")},
+                            {id: 30,   name: i18n.dtr("ubtms", "30 minutes")},
+                            {id: 60,   name: i18n.dtr("ubtms", "1 hour")},
+                            {id: 120,  name: i18n.dtr("ubtms", "2 hours")},
+                            {id: 360,  name: i18n.dtr("ubtms", "6 hours")},
+                            {id: 720,  name: i18n.dtr("ubtms", "12 hours")},
+                            {id: 1440, name: i18n.dtr("ubtms", "1 day")},
+                            {id: 4320, name: i18n.dtr("ubtms", "3 days")},
+                            {id: 10080,name: i18n.dtr("ubtms", "1 week")}
+                        ]
+                        selectedId: 15
+                        readOnly: isReadOnly
+                        enabledState: !isReadOnly && perAccountSyncSwitch.checked
                     }
 
-                    OutlinedContainer {
+                    InlineOptionSelector {
+                        id: syncDirectionSelector
                         width: parent.width
                         visible: useCustomSyncSettings
                         labelText: i18n.dtr("ubtms", "Sync Direction")
-                        isActiveFocus: syncDirectionCombo.activeFocus
-                        
-                        ComboBox {
-                            id: syncDirectionCombo
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            enabled: !isReadOnly && perAccountSyncSwitch.checked
-                            model: ["Both (Up & Down)", "Download Only", "Upload Only"]
-                            currentIndex: 0
-                            background: Item {}
-                            flat: true
-                            contentItem: Text {
-                                text: syncDirectionCombo.displayText
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: units.gu(1.5)
-                            }
-                            delegate: ItemDelegate {
-                                width: syncDirectionCombo.width
-                                hoverEnabled: true
-                                contentItem: Text {
-                                    text: modelData
-                                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                                    leftPadding: units.gu(1.5)
-                                }
-                                background: Rectangle {
-                                    color: hovered ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "white")
-                                    radius: units.gu(0.5)
-                                }
-                            }
-                        }
+                        selectorType: "syncDirection"
+                        modelData: [
+                            {id: 0, name: i18n.dtr("ubtms", "Both (Up & Down)")},
+                            {id: 1, name: i18n.dtr("ubtms", "Download Only")},
+                            {id: 2, name: i18n.dtr("ubtms", "Upload Only")}
+                        ]
+                        selectedId: 0
+                        readOnly: isReadOnly
+                        enabledState: !isReadOnly && perAccountSyncSwitch.checked
                     }
                 }
             }
