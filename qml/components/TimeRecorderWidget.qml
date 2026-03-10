@@ -153,11 +153,7 @@ Item {
                         if (!autoMode)
                             return "../images/play (1).png";
 
-                        var serviceRunning = TimerService.isRunning();
-                        var servicePaused = TimerService.isPaused();
-                        var activeId = TimerService.getActiveTimesheetId();
-
-                        if (serviceRunning && activeId === timesheetId && !servicePaused) {
+                        if (isRecording) {
                             return "../images/pause.png";
                         } else {
                             return "../images/play (1).png";
