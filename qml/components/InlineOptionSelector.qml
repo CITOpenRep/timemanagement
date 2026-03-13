@@ -32,6 +32,7 @@ Item {
 
     // Styling
     property color bgColor: AppConst.Colors.CardBackground || "#ffffff"
+    property color disabledBgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#eeeeee"
     property color selectedColor: AppConst.Colors.Primary || "#3498db"
     property color borderColor: AppConst.Colors.Border || "#e0e0e0"
     property color textColor: AppConst.Colors.Text || "#333333"
@@ -88,7 +89,7 @@ Item {
         id: container
         anchors.fill: parent
         radius: units.gu(1)
-        color: bgColor
+        color: (enabledState && !readOnly) ? bgColor : disabledBgColor
         border.color: borderColor
         border.width: 1
         clip: true
