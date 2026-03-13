@@ -291,7 +291,8 @@ Page {
                             enabled: model.id !== 0
                             onTriggered: {
                                 apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('../Account_Page.qml'), {
-                                    "accountId": model.id
+                                    "accountId": model.id,
+                                    "openInEditMode": true
                                 });
                             }
                         }

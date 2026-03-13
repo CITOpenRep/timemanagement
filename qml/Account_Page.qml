@@ -49,6 +49,7 @@ Page {
 
     property bool isReadOnly: false
     property int accountId: -1  // -1 means create mode, otherwise edit mode
+    property bool openInEditMode: false
     property bool useCustomSyncSettings: false  // Whether per-account sync overrides are enabled
 
     header: PageHeader {
@@ -217,8 +218,8 @@ Page {
                 // Restore connect-with selection
                 connectWithSelector.applyDeferredSelection(selectedconnectwithId, false);
                 
-                // Set read-only mode initially
-                isReadOnly = true;
+                // Existing accounts default to read-only unless caller requests direct edit mode.
+                isReadOnly = !openInEditMode;
                 activeBackendAccount = true;
                 
                 // Load per-account sync settings
