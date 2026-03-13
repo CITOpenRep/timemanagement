@@ -82,7 +82,7 @@ Page {
                 onTriggered: {
                     notifPopup.open(
                         i18n.dtr("ubtms", "Personal Stages Help"),
-                        i18n.dtr("ubtms", "If personal stages are not visible, please check the following:<br><br>1) Ensure the stages are available in the CURQ instance under 'My Tasks'.<br> <br> 2) In the app, confirm that you have checked in the correct database as Default, as My Tasks displays tasks based on the selected Default DB."),
+                        i18n.dtr("ubtms", "If personal stages are not visible, please check the following:<br><br><b>1) Ensure stages exist in CURQ:</b><br>Ensure the stages are available in the CURQ instance under 'My Tasks'.<br><br><b>2) Verify the app's Default DB:</b><br>In the app, confirm that you are checked in to the correct database as Default, as My Tasks displays tasks based on the selected Default DB."),
                         "info"
                     );
                 }
