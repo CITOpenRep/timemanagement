@@ -49,7 +49,7 @@ Page {
         }
         title: myTasksPage.title
 
-        trailingActionBar.numberOfSlots: 4
+        trailingActionBar.numberOfSlots: 5
 
         trailingActionBar.actions: [
             Action {
@@ -74,6 +74,17 @@ Page {
                 text: "Search"
                 onTriggered: {
                     myTaskListHeader.toggleSearchVisibility();
+                }
+            },
+            Action {
+                iconName: "help"
+                text: i18n.dtr("ubtms", "Stage Help")
+                onTriggered: {
+                    notifPopup.open(
+                        i18n.dtr("ubtms", "Personal Stages Help"),
+                        i18n.dtr("ubtms", "If personal stages are not visible, please check the following:<br><br>1) Ensure the stages are available in the CURQ instance under 'My Tasks'.<br> <br> 2) In the app, confirm that you have checked in the correct database as Default, as My Tasks displays tasks based on the selected Default DB."),
+                        "info"
+                    );
                 }
             },
             Action {
