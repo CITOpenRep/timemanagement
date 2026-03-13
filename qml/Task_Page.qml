@@ -83,7 +83,7 @@ Page {
                 }
             },
             Action {
-                iconName: "filters"
+                iconName: (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) ? "contact-group" : "filters"
                 text: "Filter by Assignees"
                 onTriggered: {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
