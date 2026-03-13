@@ -31,12 +31,13 @@ Item {
     property int visibleItemCount: 5  // Number of items visible when expanded
 
     // Styling
-    property color bgColor: AppConst.Colors.CardBackground || "#ffffff"
+    property color bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1b1b1f" : "#ffffff"
     property color disabledBgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#eeeeee"
     property color selectedColor: AppConst.Colors.Primary || "#3498db"
-    property color borderColor: AppConst.Colors.Border || "#e0e0e0"
-    property color textColor: AppConst.Colors.Text || "#333333"
-    property color hoverColor: AppConst.Colors.ButtonHover || "#f5f5f5"
+    property color borderColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3a3a3f" : "#e0e0e0"
+    property color textColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ebebef" : "#333333"
+    property color mutedTextColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9a9aa2" : "#888888"
+    property color hoverColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2b2b31" : "#f5f5f5"
 
     signal selectionMade(int id, string name, string selectorType)
 
@@ -127,7 +128,7 @@ Item {
                         width: parent.width * 0.5
                         height: parent.height
                         text: selectedName || i18n.dtr("ubtms", "Tap to select")
-                        color: selectedName ? textColor : "#888888"
+                        color: selectedName ? textColor : mutedTextColor
                         font.pixelSize: units.gu(1.5)
                         font.bold: selectedName ? true : false
                         verticalAlignment: Text.AlignVCenter
@@ -182,7 +183,10 @@ Item {
                     width: optionsList.width
                     height: units.gu(5)
                     color: {
-                        if (model.itemId === selectedId) return selectedColor + "30";
+                        if (model.itemId === selectedId) {
+                            return Qt.rgba(selectedColor.r, selectedColor.g, selectedColor.b,
+                                           theme.name === "Ubuntu.Components.Themes.SuruDark" ? 0.24 : 0.18);
+                        }
                         if (delegateMouseArea.containsMouse) return hoverColor;
                         return "transparent";
                     }
