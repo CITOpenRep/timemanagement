@@ -139,6 +139,7 @@ Page {
                             id: id,
                             odoo_record_id: id,
                             name: assignee.name,
+                            email: assignee.email || "",
                             account_name: assignee.account_name || "",
                             account_id: projectAccountId
                         });
@@ -146,6 +147,7 @@ Page {
                 }
 
                 availableAssignees = filteredAssignees;
+                assigneeFilterMenu.showAccountName = false;
                 assigneeFilterMenu.assigneeModel = availableAssignees;
             } else if (currentAccountId >= 0) {
                 // Use the same method as MultiAssigneeSelector for specific account
@@ -162,6 +164,7 @@ Page {
                             id: id,
                             odoo_record_id: id,
                             name: assignee.name,
+                            email: assignee.email || "",
                             account_name: assignee.account_name || "",
                             account_id: currentAccountId
                         });
@@ -169,11 +172,13 @@ Page {
                 }
 
                 availableAssignees = filteredAssignees;
+                assigneeFilterMenu.showAccountName = false;
                 assigneeFilterMenu.assigneeModel = availableAssignees;
             } else {
                 // For "All Accounts" (-1), load assignees from all accounts that have tasks
 
                 availableAssignees = Task.getAllTaskAssignees(-1); // -1 means all accounts
+                assigneeFilterMenu.showAccountName = true;
                 assigneeFilterMenu.assigneeModel = availableAssignees;
             }
         } catch (e) {

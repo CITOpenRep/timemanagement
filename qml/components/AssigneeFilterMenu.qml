@@ -39,6 +39,7 @@ Item {
     property var assigneeModel: []
     property bool expanded: false
     property var selectedAssigneeIds: []
+    property bool showAccountName: false
     property int maxMenuHeight: units.gu(50)
 
     // Helper function to check if an assignee is selected (handles both old and new format)
@@ -244,10 +245,12 @@ Item {
                             if (assignee.account_name) {
                                 displayText = assignee.name + " (" + assignee.account_name + ")";
                             }
-                            if (!searchText || displayText.toLowerCase().indexOf(searchText) >= 0) {
+                            var emailText = assignee.email || "";
+                            if (!searchText || displayText.toLowerCase().indexOf(searchText) >= 0 || emailText.toLowerCase().indexOf(searchText) >= 0) {
                                 append({
                                     "assigneeId": assignee.odoo_record_id || assignee.id,
                                     "name": assignee.name,
+                                    "email": emailText,
                                     "account_name": assignee.account_name || "",
                                     "account_id": assignee.account_id || -1,
                                     "displayText": displayText,
@@ -291,14 +294,14 @@ Item {
                             color: theme.palette.normal.backgroundText
                         }
 
-                        // Assignee name with account
+                        // Assignee name with email
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - checkbox.width - units.gu(6)
                             spacing: units.gu(0.2)
 
                             Text {
-                                text: model.name
+                                text: (showAccountName && model.account_name !== "") ? model.name + " (" + model.account_name + ")" : model.name
                                 font.pixelSize: units.gu(2)
                                 color: theme.palette.normal.backgroundText
                                 elide: Text.ElideRight
@@ -306,8 +309,8 @@ Item {
                             }
 
                             Text {
-                                visible: model.account_name !== ""
-                                text: "(" + model.account_name + ")"
+                                visible: model.email !== ""
+                                text: model.email
                                 font.pixelSize: units.gu(1.5)
                                 color: theme.palette.normal.backgroundSecondaryText
                                 elide: Text.ElideRight
