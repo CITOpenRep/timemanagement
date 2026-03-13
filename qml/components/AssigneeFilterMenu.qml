@@ -238,6 +238,7 @@ Item {
                     function update() {
                         clear();
                         var searchText = searchField.text.toLowerCase();
+                        var filteredAssignees = [];
 
                         for (var i = 0; i < assigneeModel.length; i++) {
                             var assignee = assigneeModel[i];
@@ -246,17 +247,40 @@ Item {
                                 displayText = assignee.name + " (" + assignee.account_name + ")";
                             }
                             var emailText = assignee.email || "";
+                            var assigneeId = assignee.odoo_record_id || assignee.id;
+                            var accountId = assignee.account_id || -1;
+                            var isSelected = isAssigneeSelected(assigneeId, accountId);
+
                             if (!searchText || displayText.toLowerCase().indexOf(searchText) >= 0 || emailText.toLowerCase().indexOf(searchText) >= 0) {
-                                append({
-                                    "assigneeId": assignee.odoo_record_id || assignee.id,
+                                filteredAssignees.push({
+                                    "assigneeId": assigneeId,
                                     "name": assignee.name,
                                     "email": emailText,
                                     "account_name": assignee.account_name || "",
-                                    "account_id": assignee.account_id || -1,
+                                    "account_id": accountId,
                                     "displayText": displayText,
-                                    "selected": isAssigneeSelected(assignee.odoo_record_id || assignee.id, assignee.account_id || -1)
+                                    "selected": isSelected,
+                                    "sectionLabel": isSelected ? "selected" : "others"
                                 });
                             }
+                        }
+
+                        filteredAssignees.sort(function (a, b) {
+                            if (a.selected !== b.selected) {
+                                return a.selected ? -1 : 1;
+                            }
+
+                            var nameA = (a.name || "").toLowerCase();
+                            var nameB = (b.name || "").toLowerCase();
+                            if (nameA < nameB)
+                                return -1;
+                            if (nameA > nameB)
+                                return 1;
+                            return 0;
+                        });
+
+                        for (var j = 0; j < filteredAssignees.length; j++) {
+                            append(filteredAssignees[j]);
                         }
                     }
                 }
@@ -264,6 +288,32 @@ Item {
                 ScrollBar.vertical: ScrollBar {
                     policy: ScrollBar.AsNeeded
                     width: units.gu(1)
+                }
+
+                section.property: "sectionLabel"
+                section.criteria: ViewSection.FullString
+                section.delegate: Item {
+                    width: assigneeListView.width
+                    height: units.gu(2.2)
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        height: 1
+                        color: theme.palette.normal.base
+                        opacity: 0.45
+                    }
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.leftMargin: units.gu(1)
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: section === "selected" ? i18n.dtr("ubtms", "Selected") : i18n.dtr("ubtms", "Others")
+                        font.pixelSize: units.gu(1.35)
+                        color: theme.palette.normal.backgroundSecondaryText
+                        opacity: 0.75
+                    }
                 }
 
                 delegate: Rectangle {
@@ -365,9 +415,6 @@ Item {
 
                             // Trigger property change notification
                             selectedAssigneeIds = selectedAssigneeIds.slice();
-
-                            // Update model
-                            filterModel.setProperty(index, "selected", checkbox.checked);
                         }
                     }
 
@@ -485,12 +532,8 @@ Item {
     // Update filter model when selectedAssigneeIds changes
     onSelectedAssigneeIdsChanged: {
         if (filterModel) {
-            // Update the selected state in the model using composite ID matching
-            for (var i = 0; i < filterModel.count; i++) {
-                var item = filterModel.get(i);
-                var isSelected = isAssigneeSelected(item.assigneeId, item.account_id);
-                filterModel.setProperty(i, "selected", isSelected);
-            }
+            // Rebuild and sort so selected entries stay pinned at the top.
+            filterModel.update();
         }
     }
 
