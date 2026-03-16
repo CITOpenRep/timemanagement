@@ -181,7 +181,9 @@ Item {
                     name: entry.name,
                     email: entry.email,
                     account_name: entry.account_name,
-                    titleText: titleText,
+                    titleText: entry.name,
+                    showAccountChips: showAccountName && accountNames.length > 0,
+                    accountNamesJson: JSON.stringify(accountNames),
                     memberSelectionsJson: JSON.stringify(entry.memberSelections),
                     selected: selected,
                     sectionLabel: selected ? "selected" : "others"
@@ -442,58 +444,44 @@ Item {
                 }
 
                 delegate: Rectangle {
+                    id: delegateRoot
+                    property bool expandedAccounts: false
+                    property var accountNames: model.accountNamesJson ? JSON.parse(model.accountNamesJson) : []
+                    property bool showsAccountChips: model.showAccountChips && accountNames.length > 0
+                    property real contentMargin: units.gu(1)
+                    property real contentSpacing: units.gu(1.5)
+                    property int visibleChipCount: {
+                        if (!showsAccountChips)
+                            return 0;
+                        if (expandedAccounts)
+                            return accountNames.length;
+
+                        var availableWidth = Math.max(0, chipFlow.width);
+                        var usedWidth = 0;
+                        var count = 0;
+                        var moreChipWidth = units.gu(7);
+                        for (var chipIndex = 0; chipIndex < accountNames.length; chipIndex++) {
+                            var chipText = accountNames[chipIndex];
+                            var estimatedWidth = Math.max(units.gu(7), Math.min(units.gu(16), chipText.length * units.gu(0.75) + units.gu(3.5)));
+                            var spacingWidth = count > 0 ? chipFlow.spacing : 0;
+                            var reserveWidth = chipIndex < accountNames.length - 1 ? moreChipWidth + chipFlow.spacing : 0;
+                            if (usedWidth + spacingWidth + estimatedWidth + reserveWidth > availableWidth) {
+                                break;
+                            }
+                            usedWidth += spacingWidth + estimatedWidth;
+                            count++;
+                            if (count === 2)
+                                break;
+                        }
+
+                        return Math.max(1, count);
+                    }
+                    property bool hasHiddenChips: showsAccountChips && visibleChipCount < accountNames.length
+
                     width: parent.width
-                    height: units.gu(6)
+                    height: Math.max(units.gu(6), infoColumn.implicitHeight + contentMargin * 2)
                     color: mouseArea.pressed ? theme.palette.selected.background : "transparent"
                     radius: units.gu(0.5)
-
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: units.gu(1)
-                        spacing: units.gu(1.5)
-
-                        // Checkbox
-                        CheckBox {
-                            id: checkbox
-                            anchors.verticalCenter: parent.verticalCenter
-                            checked: model.selected
-                            //   enabled: false  // Disable direct checkbox interaction to avoid conflicts
-                        }
-
-                        // User icon
-                        Icon {
-                            name: "contact"
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: theme.palette.normal.backgroundText
-                        }
-
-                        // Assignee name with email
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width - checkbox.width - units.gu(6)
-                            spacing: units.gu(0.2)
-
-                            Text {
-                                text: model.titleText || model.name
-                                font.pixelSize: units.gu(2)
-                                color: theme.palette.normal.backgroundText
-                                elide: Text.ElideRight
-                                width: parent.width
-                            }
-
-                            Text {
-                                visible: model.email !== ""
-                                text: model.email
-                                font.pixelSize: units.gu(1.5)
-                                color: theme.palette.normal.backgroundSecondaryText
-                                elide: Text.ElideRight
-                                width: parent.width
-                                opacity: 0.7
-                            }
-                        }
-                    }
 
                     MouseArea {
                         id: mouseArea
@@ -515,8 +503,114 @@ Item {
                                 }
                             }
 
-                            // Trigger property change notification
                             selectedAssigneeIds = selectedAssigneeIds.slice();
+                        }
+                    }
+
+                    CheckBox {
+                        id: checkbox
+                        anchors.left: parent.left
+                        anchors.leftMargin: delegateRoot.contentMargin
+                        anchors.top: parent.top
+                        anchors.topMargin: delegateRoot.contentMargin
+                        checked: model.selected
+                    }
+
+                    Icon {
+                        id: userIcon
+                        name: "contact"
+                        width: units.gu(2.5)
+                        height: units.gu(2.5)
+                        anchors.left: checkbox.right
+                        anchors.leftMargin: delegateRoot.contentSpacing
+                        anchors.verticalCenter: checkbox.verticalCenter
+                        color: theme.palette.normal.backgroundText
+                    }
+
+                    Column {
+                        id: infoColumn
+                        anchors.left: userIcon.right
+                        anchors.leftMargin: delegateRoot.contentSpacing
+                        anchors.right: parent.right
+                        anchors.rightMargin: delegateRoot.contentMargin
+                        anchors.top: parent.top
+                        anchors.topMargin: delegateRoot.contentMargin
+                        spacing: units.gu(0.4)
+
+                        Text {
+                            text: model.titleText || model.name
+                            font.pixelSize: units.gu(2)
+                            color: theme.palette.normal.backgroundText
+                            elide: Text.ElideRight
+                            width: infoColumn.width
+                        }
+
+                        Flow {
+                            id: chipFlow
+                            width: infoColumn.width
+                            spacing: units.gu(0.5)
+                            visible: delegateRoot.showsAccountChips
+
+                            Repeater {
+                                model: delegateRoot.accountNames.length
+
+                                Rectangle {
+                                    visible: index < delegateRoot.visibleChipCount
+                                    height: units.gu(2.6)
+                                    radius: height / 2
+                                    color: theme.palette.normal.base
+                                    border.color: theme.palette.selected.background
+                                    border.width: 1
+                                    width: Math.min(Math.max(units.gu(7), infoColumn.width * 0.48), chipLabel.implicitWidth + units.gu(2.4))
+
+                                    Text {
+                                        id: chipLabel
+                                        anchors.centerIn: parent
+                                        width: parent.width - units.gu(1.6)
+                                        text: delegateRoot.accountNames[index]
+                                        font.pixelSize: units.gu(1.35)
+                                        color: theme.palette.normal.backgroundText
+                                        elide: Text.ElideRight
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                visible: delegateRoot.hasHiddenChips
+                                height: units.gu(2.6)
+                                radius: height / 2
+                                color: theme.palette.highlighted.background
+                                border.color: theme.palette.selected.background
+                                border.width: 1
+                                width: Math.max(units.gu(7), moreChipLabel.implicitWidth + units.gu(2.4))
+
+                                Text {
+                                    id: moreChipLabel
+                                    anchors.centerIn: parent
+                                    text: delegateRoot.expandedAccounts ? i18n.dtr("ubtms", "Less") : i18n.dtr("ubtms", "More")
+                                    font.pixelSize: units.gu(1.35)
+                                    color: theme.palette.normal.backgroundText
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        delegateRoot.expandedAccounts = !delegateRoot.expandedAccounts;
+                                        mouse.accepted = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            visible: model.email !== ""
+                            text: model.email
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.palette.normal.backgroundSecondaryText
+                            elide: Text.ElideRight
+                            width: infoColumn.width
+                            opacity: 0.7
                         }
                     }
 
