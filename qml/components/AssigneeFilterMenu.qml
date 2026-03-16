@@ -453,18 +453,20 @@ Item {
                     property int visibleChipCount: {
                         if (!showsAccountChips)
                             return 0;
+                        if (accountNames.length <= 1)
+                            return accountNames.length;
                         if (expandedAccounts)
                             return accountNames.length;
 
-                        var availableWidth = Math.max(0, chipFlow.width);
+                        var availableWidth = Math.max(0, headerFlow.width - nameLabel.width - headerFlow.spacing);
                         var usedWidth = 0;
                         var count = 0;
                         var moreChipWidth = units.gu(7);
                         for (var chipIndex = 0; chipIndex < accountNames.length; chipIndex++) {
                             var chipText = accountNames[chipIndex];
                             var estimatedWidth = Math.max(units.gu(7), Math.min(units.gu(16), chipText.length * units.gu(0.75) + units.gu(3.5)));
-                            var spacingWidth = count > 0 ? chipFlow.spacing : 0;
-                            var reserveWidth = chipIndex < accountNames.length - 1 ? moreChipWidth + chipFlow.spacing : 0;
+                            var spacingWidth = count > 0 ? headerFlow.spacing : 0;
+                            var reserveWidth = chipIndex < accountNames.length - 1 ? moreChipWidth + headerFlow.spacing : 0;
                             if (usedWidth + spacingWidth + estimatedWidth + reserveWidth > availableWidth) {
                                 break;
                             }
@@ -537,31 +539,32 @@ Item {
                         anchors.topMargin: delegateRoot.contentMargin
                         spacing: units.gu(0.4)
 
-                        Text {
-                            text: model.titleText || model.name
-                            font.pixelSize: units.gu(2)
-                            color: theme.palette.normal.backgroundText
-                            elide: Text.ElideRight
-                            width: infoColumn.width
-                        }
-
                         Flow {
-                            id: chipFlow
+                            id: headerFlow
                             width: infoColumn.width
                             spacing: units.gu(0.5)
-                            visible: delegateRoot.showsAccountChips
+
+                            Text {
+                                id: nameLabel
+                                width: Math.min(headerFlow.width, Math.max(implicitWidth, units.gu(8)))
+                                text: model.titleText || model.name
+                                font.pixelSize: units.gu(2)
+                                color: theme.palette.normal.backgroundText
+                                wrapMode: Text.NoWrap
+                                elide: Text.ElideRight
+                            }
 
                             Repeater {
                                 model: delegateRoot.accountNames.length
 
                                 Rectangle {
-                                    visible: index < delegateRoot.visibleChipCount
+                                    visible: delegateRoot.showsAccountChips && index < delegateRoot.visibleChipCount
                                     height: units.gu(2.6)
                                     radius: height / 2
                                     color: theme.palette.normal.base
                                     border.color: theme.palette.selected.background
                                     border.width: 1
-                                    width: Math.min(Math.max(units.gu(7), infoColumn.width * 0.48), chipLabel.implicitWidth + units.gu(2.4))
+                                    width: Math.min(Math.max(units.gu(7), infoColumn.width * 0.42), chipLabel.implicitWidth + units.gu(2.4))
 
                                     Text {
                                         id: chipLabel
@@ -577,7 +580,7 @@ Item {
                             }
 
                             Rectangle {
-                                visible: delegateRoot.hasHiddenChips
+                                visible: delegateRoot.showsAccountChips && delegateRoot.hasHiddenChips && delegateRoot.accountNames.length > 1
                                 height: units.gu(2.6)
                                 radius: height / 2
                                 color: theme.palette.highlighted.background
