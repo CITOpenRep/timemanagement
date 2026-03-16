@@ -58,6 +58,172 @@ Item {
         return false;
     }
 
+    function createSelection(userId, accountId) {
+        return {
+            user_id: userId,
+            account_id: accountId
+        };
+    }
+
+    function hasSelectedAssignee(selection) {
+        return isAssigneeSelected(selection.user_id, selection.account_id);
+    }
+
+    function hasAnySelectedAssignee(selections) {
+        for (var i = 0; i < selections.length; i++) {
+            if (hasSelectedAssignee(selections[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function addSelectionIfMissing(selection) {
+        if (!hasSelectedAssignee(selection)) {
+            selectedAssigneeIds.push(createSelection(selection.user_id, selection.account_id));
+        }
+    }
+
+    function removeSelectionIfPresent(selection) {
+        for (var i = selectedAssigneeIds.length - 1; i >= 0; i--) {
+            var existingId = selectedAssigneeIds[i];
+            if (typeof existingId === 'object') {
+                if (existingId.user_id === selection.user_id && existingId.account_id === selection.account_id) {
+                    selectedAssigneeIds.splice(i, 1);
+                }
+            } else if (existingId === selection.user_id) {
+                selectedAssigneeIds.splice(i, 1);
+            }
+        }
+    }
+
+    function uniqueAccountNames(names) {
+        var seen = {};
+        var result = [];
+
+        for (var i = 0; i < names.length; i++) {
+            var value = names[i];
+            if (!value || seen[value]) {
+                continue;
+            }
+
+            seen[value] = true;
+            result.push(value);
+        }
+
+        return result;
+    }
+
+    function buildDisplayAssignees(searchText) {
+        var normalizedSearch = (searchText || "").toLowerCase();
+        var groupedAssignees = {};
+        var filteredAssignees = [];
+
+        for (var i = 0; i < assigneeModel.length; i++) {
+            var assignee = assigneeModel[i];
+            var assigneeId = assignee.odoo_record_id || assignee.id;
+            var accountId = (assignee.account_id === undefined || assignee.account_id === null) ? -1 : assignee.account_id;
+            var emailText = (assignee.email || "").trim();
+            var normalizedEmail = emailText.toLowerCase();
+            var accountName = assignee.account_name || "";
+            var name = assignee.name || "";
+            var shouldGroupByEmail = showAccountName && normalizedEmail !== "";
+            var groupKey = shouldGroupByEmail ? "email:" + normalizedEmail : "account:" + accountId + ":user:" + assigneeId;
+            var group = groupedAssignees[groupKey];
+
+            if (!group) {
+                group = {
+                    assigneeId: assigneeId,
+                    name: name,
+                    email: emailText,
+                    account_name: accountName,
+                    account_names: accountName ? [accountName] : [],
+                    memberSelections: [],
+                    groupedByEmail: shouldGroupByEmail
+                };
+                groupedAssignees[groupKey] = group;
+                filteredAssignees.push(group);
+            } else {
+                if (!group.name && name) {
+                    group.name = name;
+                }
+                if (!group.email && emailText) {
+                    group.email = emailText;
+                }
+                if (!group.account_name && accountName) {
+                    group.account_name = accountName;
+                }
+            }
+
+            if (accountName) {
+                group.account_names.push(accountName);
+            }
+
+            group.memberSelections.push(createSelection(assigneeId, accountId));
+        }
+
+        var visibleAssignees = [];
+        for (var j = 0; j < filteredAssignees.length; j++) {
+            var entry = filteredAssignees[j];
+            var accountNames = uniqueAccountNames(entry.account_names);
+            var titleText = entry.name;
+
+            if (showAccountName && accountNames.length > 0) {
+                titleText = entry.name + " (" + accountNames.join(", ") + ")";
+            }
+
+            var selected = hasAnySelectedAssignee(entry.memberSelections);
+            var searchableText = (titleText + " " + (entry.email || "")).toLowerCase();
+
+            if (!normalizedSearch || searchableText.indexOf(normalizedSearch) >= 0) {
+                visibleAssignees.push({
+                    assigneeId: entry.assigneeId,
+                    name: entry.name,
+                    email: entry.email,
+                    account_name: entry.account_name,
+                    account_names: accountNames,
+                    titleText: titleText,
+                    memberSelections: entry.memberSelections,
+                    selected: selected,
+                    sectionLabel: selected ? "selected" : "others"
+                });
+            }
+        }
+
+        visibleAssignees.sort(function (a, b) {
+            if (a.selected !== b.selected) {
+                return a.selected ? -1 : 1;
+            }
+
+            var nameA = (a.titleText || a.name || "").toLowerCase();
+            var nameB = (b.titleText || b.name || "").toLowerCase();
+            if (nameA < nameB)
+                return -1;
+            if (nameA > nameB)
+                return 1;
+            return 0;
+        });
+
+        return visibleAssignees;
+    }
+
+    function getDisplayAssigneeCount() {
+        return buildDisplayAssignees("").length;
+    }
+
+    function getSelectedDisplayAssigneeCount() {
+        var displayAssignees = buildDisplayAssignees("");
+        var count = 0;
+
+        for (var i = 0; i < displayAssignees.length; i++) {
+            if (displayAssignees[i].selected) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     // Background overlay when expanded
     Rectangle {
         anchors.fill: parent
@@ -85,7 +251,7 @@ Item {
         height: {
             // Calculate dynamic height: header + search + assignee list + buttons + margins
             var baseHeight = units.gu(22); // Header + search + buttons + margins
-            var assigneeListHeight = Math.min(assigneeModel.length * units.gu(6), units.gu(25)); // Max 25 units for list
+            var assigneeListHeight = Math.min(getDisplayAssigneeCount() * units.gu(6), units.gu(25)); // Max 25 units for list
             return Math.min(units.gu(50), baseHeight + assigneeListHeight);
         }
 
@@ -172,7 +338,7 @@ Item {
 
             // Search bar for long lists
             Row {
-                visible: assigneeModel.length > 5
+                visible: getDisplayAssigneeCount() > 5
                 width: parent.width
                 height: units.gu(4)
                 spacing: units.gu(0.5)
@@ -237,47 +403,7 @@ Item {
 
                     function update() {
                         clear();
-                        var searchText = searchField.text.toLowerCase();
-                        var filteredAssignees = [];
-
-                        for (var i = 0; i < assigneeModel.length; i++) {
-                            var assignee = assigneeModel[i];
-                            var displayText = assignee.name;
-                            if (assignee.account_name) {
-                                displayText = assignee.name + " (" + assignee.account_name + ")";
-                            }
-                            var emailText = assignee.email || "";
-                            var assigneeId = assignee.odoo_record_id || assignee.id;
-                            var accountId = (assignee.account_id === undefined || assignee.account_id === null) ? -1 : assignee.account_id;
-                            var isSelected = isAssigneeSelected(assigneeId, accountId);
-
-                            if (!searchText || displayText.toLowerCase().indexOf(searchText) >= 0 || emailText.toLowerCase().indexOf(searchText) >= 0) {
-                                filteredAssignees.push({
-                                    "assigneeId": assigneeId,
-                                    "name": assignee.name,
-                                    "email": emailText,
-                                    "account_name": assignee.account_name || "",
-                                    "account_id": accountId,
-                                    "displayText": displayText,
-                                    "selected": isSelected,
-                                    "sectionLabel": isSelected ? "selected" : "others"
-                                });
-                            }
-                        }
-
-                        filteredAssignees.sort(function (a, b) {
-                            if (a.selected !== b.selected) {
-                                return a.selected ? -1 : 1;
-                            }
-
-                            var nameA = (a.name || "").toLowerCase();
-                            var nameB = (b.name || "").toLowerCase();
-                            if (nameA < nameB)
-                                return -1;
-                            if (nameA > nameB)
-                                return 1;
-                            return 0;
-                        });
+                        var filteredAssignees = buildDisplayAssignees(searchField.text);
 
                         for (var j = 0; j < filteredAssignees.length; j++) {
                             append(filteredAssignees[j]);
@@ -351,7 +477,7 @@ Item {
                             spacing: units.gu(0.2)
 
                             Text {
-                                text: (showAccountName && model.account_name !== "") ? model.name + " (" + model.account_name + ")" : model.name
+                                text: model.titleText || model.name
                                 font.pixelSize: units.gu(2)
                                 color: theme.palette.normal.backgroundText
                                 elide: Text.ElideRight
@@ -376,41 +502,15 @@ Item {
                         hoverEnabled: true
 
                         onClicked: {
-                            // Toggle checkbox state
-                            checkbox.checked = !checkbox.checked;
+                            var memberSelections = model.memberSelections || [];
+                            var shouldSelect = !hasAnySelectedAssignee(memberSelections);
 
-                            // Update selection logic with user_id and account_id combination
-                            var assigneeId = model.assigneeId;
-                            var accountId = model.account_id;
-
-                            // Create composite identifier to handle users with same ID from different accounts
-                            var compositeId = {
-                                user_id: assigneeId,
-                                account_id: accountId
-                            };
-
-                            // Find existing selection by comparing both user_id and account_id
-                            var currentIndex = -1;
-                            for (var i = 0; i < selectedAssigneeIds.length; i++) {
-                                var existingId = selectedAssigneeIds[i];
-                                if (typeof existingId === 'object') {
-                                    if (existingId.user_id === assigneeId && existingId.account_id === accountId) {
-                                        currentIndex = i;
-                                        break;
-                                    }
-                                } else if (existingId === assigneeId) {
-                                    // Legacy format - replace with new format
-                                    currentIndex = i;
-                                    break;
+                            for (var i = 0; i < memberSelections.length; i++) {
+                                if (shouldSelect) {
+                                    addSelectionIfMissing(memberSelections[i]);
+                                } else {
+                                    removeSelectionIfPresent(memberSelections[i]);
                                 }
-                            }
-
-                            if (checkbox.checked && currentIndex === -1) {
-                                // Add to selection
-                                selectedAssigneeIds.push(compositeId);
-                            } else if (!checkbox.checked && currentIndex !== -1) {
-                                // Remove from selection
-                                selectedAssigneeIds.splice(currentIndex, 1);
                             }
 
                             // Trigger property change notification
@@ -506,7 +606,7 @@ Item {
                 }
 
                 Text {
-                    text: selectedAssigneeIds.length + " assignee" + (selectedAssigneeIds.length === 1 ? "" : "s") + " selected"
+                    text: getSelectedDisplayAssigneeCount() + " assignee" + (getSelectedDisplayAssigneeCount() === 1 ? "" : "s") + " selected"
                     font.pixelSize: units.gu(1.6)
                     color: theme.palette.normal.backgroundText
                     anchors.centerIn: parent
