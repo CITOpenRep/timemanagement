@@ -688,6 +688,7 @@ function saveActivityData(data, recordId) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var timestamp = Utils.getFormattedTimestampUTC();
+        var savedRecordId = recordId;
 
         db.transaction(function (tx) {
             if (recordId > 0) {
@@ -727,6 +728,7 @@ function saveActivityData(data, recordId) {
                         recordId
                     ]
                 );
+                savedRecordId = recordId;
                 console.log("✅ Activity record updated: ID " + recordId);
             } else {
                 // INSERT new record
@@ -753,11 +755,15 @@ function saveActivityData(data, recordId) {
                         data.status
                     ]
                 );
-                console.log("✅ New activity record inserted");
+                var inserted = tx.executeSql("SELECT last_insert_rowid() AS id");
+                if (inserted.rows.length > 0) {
+                    savedRecordId = inserted.rows.item(0).id;
+                }
+                console.log("✅ New activity record inserted: ID " + savedRecordId);
             }
         });
 
-        return { success: true };
+        return { success: true, recordId: savedRecordId };
     } catch (e) {
         console.error("❌ saveActivityData failed:", e.message);
         return { success: false, error: e.message };
