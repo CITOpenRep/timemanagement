@@ -407,22 +407,22 @@ Page {
         z: 10
 
         onFilterApplied: function (assigneeIds) {
-            // Read directly from AssigneeFilterMenu to avoid timing issues
-            var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
+            // Always use the signal payload copy to avoid sharing mutable array references.
+            var actualSelectedIds = assigneeIds || [];
             //console.log("Assignee filter applied - Reading directly from AssigneeFilterMenu");
             //console.log("   Passed parameter:", JSON.stringify(assigneeIds));
             //console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
 
-            selectedAssigneeIds = actualSelectedIds;
+            selectedAssigneeIds = actualSelectedIds.slice();
             filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
             // Save to global state for persistence across navigation
-            Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
+            Global.setAssigneeFilter(filterByAssignees, actualSelectedIds.slice());
             //console.log("Assignee filter saved to global state - enabled:", filterByAssignees);
 
             // Update TaskList properties
             tasklist.filterByAssignees = filterByAssignees;
-            tasklist.selectedAssigneeIds = actualSelectedIds;
+            tasklist.selectedAssigneeIds = actualSelectedIds.slice();
 
             //console.log("TaskList properties updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
 
