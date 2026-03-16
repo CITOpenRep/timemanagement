@@ -25,6 +25,7 @@ import xmlrpc.client
 import logging
 import base64
 import socket
+from urllib.parse import urlparse
 from bus import send
 
 # Default timeout for XML-RPC calls (60 seconds)
@@ -59,12 +60,25 @@ class OdooClient:
             username (str): The username (usually email).
             password (str): The user’s password or API key.
         """
-        self.url = url
+        self.url = self._normalize_url(url)
         self.db = db
         self.username = username
         self.password = password
         self.uid = self._login()
         self.models = self._get_model_proxy()
+
+    def _normalize_url(self, url):
+        """Normalize server URL to a safe XML-RPC base URL."""
+        normalized = (url or "").strip().rstrip("/")
+        if not normalized:
+            return normalized
+
+        parsed = urlparse(normalized)
+        if not parsed.scheme:
+            # Most Odoo deployments require HTTPS and XML-RPC does not follow redirects.
+            normalized = f"https://{normalized}"
+
+        return normalized
 
     def search(self, model, domain):
             return self.models.execute_kw(
@@ -98,6 +112,41 @@ class OdooClient:
                     f"Authentication failed for user '{self.username}' on database '{self.db}'"
                 )
             return uid
+        except xmlrpc.client.ProtocolError as e:
+            # Handle HTTP redirects by retrying on resolved HTTPS or Location target.
+            redirect_target = None
+            if e.errcode in (301, 302, 307, 308):
+                if self.url.startswith("http://"):
+                    redirect_target = self.url.replace("http://", "https://", 1)
+
+                location_header = None
+                try:
+                    if hasattr(e, "headers") and e.headers is not None:
+                        location_header = e.headers.get("Location")
+                except Exception:
+                    location_header = None
+
+                if location_header:
+                    parsed = urlparse(location_header)
+                    if parsed.scheme and parsed.netloc:
+                        redirect_target = f"{parsed.scheme}://{parsed.netloc}"
+
+            if redirect_target:
+                self.url = redirect_target.rstrip("/")
+                try:
+                    transport = TimeoutTransport(timeout=DEFAULT_TIMEOUT)
+                    common = xmlrpc.client.ServerProxy(
+                        f"{self.url}/xmlrpc/2/common",
+                        transport=transport
+                    )
+                    uid = common.authenticate(self.db, self.username, self.password, {})
+                    if uid:
+                        return uid
+                except Exception:
+                    pass
+
+            send("sync_error", "Login to server failed")
+            raise ConnectionError(f"Login failed: {e}")
         except socket.timeout:
             send("sync_error", "Connection timed out - server not responding")
             raise ConnectionError("Login timed out - check network connection")
