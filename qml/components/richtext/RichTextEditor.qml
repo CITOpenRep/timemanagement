@@ -16,6 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import QtQuick 2.7
+import QtQuick.Window 2.2
 import Lomiri.Components 1.3
 import QtWebEngine 1.5
 import "js/html-sanitizer.js" as HtmlSanitizer
@@ -69,6 +70,13 @@ Item {
     property bool _isLoaded: false
     property string _pendingText: ""
     property bool _internalUpdate: false
+
+    /**
+     * Tracks the last HTML content set to or received from Squire.
+     * Prevents the feedback loop where binding updates cause setText()
+     * to re-set identical content, which resets scroll position.
+     */
+    property string _lastSetContent: ""
 
     /**
      * When true, suppress emitting the contentChanged signal.
@@ -223,6 +231,12 @@ Item {
         var cleanedDoc = sanitizeHtml(htmlText ? htmlText.trim() : "");
         
         if (_isLoaded) {
+            // Skip if content is identical to what Squire already has,
+            // to avoid resetting scroll position via setHTML()
+            if (cleanedDoc === _lastSetContent) {
+                return;
+            }
+            _lastSetContent = cleanedDoc;
             // Suppress contentChanged during setHTML — Squire fires intermediate
             // empty-content events before delivering the real content.
             _suppressContentChanged = true;
@@ -328,7 +342,11 @@ Item {
 
     WebEngineView {
         id: wv
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: editor._oskHeight
         zoomFactor: isMultiColumn ? 1.0 : 2.52
         backgroundColor: darkMode ? "#2d2d2d" : "#ffffff"
         
@@ -490,6 +508,9 @@ Item {
                         content = editor.stripScriptTags(content);
                         console.log("[RichTextEditor] contentChanged from Squire, length:", content.length);
 
+                        // Track what Squire currently has to prevent feedback loop
+                        editor._lastSetContent = content;
+
                         // Update internal text property always so editor.text stays
                         // in sync, but only emit the public contentChanged signal
                         // when we are NOT in a load/setText suppression window.
@@ -538,6 +559,39 @@ Item {
                 editor.currentHighlightColor = bgColorMatch[1];
             } else {
                 editor.currentHighlightColor = "transparent";
+            }
+        }
+    }
+
+    // ============ KEYBOARD HANDLING ============
+
+    /**
+     * On-screen keyboard height (QML logical pixels).
+     * Qt.inputMethod.keyboardRectangle is in window coordinates,
+     * same coordinate space as QML — no devicePixelRatio conversion needed.
+     */
+    property real _oskHeight: Qt.inputMethod.visible
+                              ? Qt.inputMethod.keyboardRectangle.height
+                              : 0
+
+    /**
+     * Push the current keyboard height into the WebEngineView JS layer
+     * so scrollCursorIntoView() knows how much of the viewport is hidden.
+     * Heights are converted to CSS pixels (QML px / zoomFactor).
+     */
+    function _pushKeyboardHeightToJs() {
+        if (!_isLoaded) return;
+        var cssPx = Math.round(_oskHeight / wv.zoomFactor);
+        wv.runJavaScript("window.setKeyboardHeight(" + cssPx + ");");
+    }
+
+    on_OskHeightChanged: _pushKeyboardHeightToJs()
+
+    Connections {
+        target: Qt.inputMethod
+        onVisibleChanged: {
+            if (_isLoaded) {
+                editor._pushKeyboardHeightToJs();
             }
         }
     }

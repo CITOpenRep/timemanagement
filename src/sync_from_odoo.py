@@ -29,7 +29,7 @@ from odoo_client import OdooClient
 import logging
 from datetime import timezone
 from datetime import datetime
-from common import sanitize_datetime, safe_sql_execute,add_notification
+from common import sanitize_datetime, safe_sql_execute, add_notification, clear_sync_notifications
 from pathlib import Path
 import os
 from bus import send
@@ -338,6 +338,10 @@ def sync_model(
         )
 
         log.info(f"[SYNC] Completed sync for '{model_name}' -> '{table_name}' ({len(fetched_odoo_ids)} records processed)")
+        
+        # SUCCESS: Clear any previous sync error notifications for this model
+        # This removes stale "Sync failed for ..." notifications once the issue is resolved
+        clear_sync_notifications(db_path, account_id, model_name)
     except Exception as e:
         log.error(f"[ERROR] Failed to sync model '{model_name}': {e}")
         
@@ -363,6 +367,8 @@ def sync_model(
                 error_brief = "Database schema mismatch"
             elif "fault" in error_str.lower() or "xmlrpc" in error_str.lower():
                 error_brief = "Server error"
+            elif "no element found" in error_str.lower() or "unclosed token" in error_str.lower() or "not well-formed" in error_str.lower() or "syntax error" in error_str.lower():
+                error_brief = "Server returned malformed data (HTML in records)"
             else:
                 # Truncate raw error to keep notification readable
                 error_brief = error_str[:80] + ("..." if len(error_str) > 80 else "")
@@ -416,6 +422,10 @@ def fetch_odoo_records(client, model_name, fields):
     """
     Fetch all records from an Odoo model with specified fields.
     
+    Uses a fast single-request path first. If the XML-RPC response fails to parse
+    (e.g. due to malformed HTML in rich-text fields like 'description'), falls back
+    to batched fetching that isolates and skips problematic records.
+    
     Args:
         client (OdooClient): Authenticated Odoo client instance
         model_name (str): Name of the Odoo model to fetch from
@@ -437,15 +447,92 @@ def fetch_odoo_records(client, model_name, fields):
     if "write_date" in model_fields and "write_date" not in safe_fields:
         safe_fields.append("write_date")
 
-    return client.models.execute_kw(
-        client.db,
-        client.uid,
-        client.password,
-        model_name,
-        "search_read",
-        [[]],
-        {"fields": safe_fields},
+    # Fast path: fetch all records in a single request
+    try:
+        return client.models.execute_kw(
+            client.db,
+            client.uid,
+            client.password,
+            model_name,
+            "search_read",
+            [[]],
+            {"fields": safe_fields},
+        )
+    except Exception as e:
+        error_str = str(e).lower()
+        # Check if this is an XML parsing error (malformed HTML in record fields)
+        xml_parse_errors = ["no element found", "unclosed token", "not well-formed",
+                           "syntax error", "xml.parsers.expat", "mismatched tag"]
+        is_xml_error = any(err in error_str for err in xml_parse_errors)
+        
+        if not is_xml_error:
+            # Not an XML parsing error — re-raise as-is (connection/auth/etc.)
+            raise
+        
+        log.warning(f"[FETCH] XML parse error fetching {model_name} in bulk: {e}")
+        log.info(f"[FETCH] Falling back to batched fetching for {model_name}...")
+        return _fetch_odoo_records_batched(client, model_name, safe_fields)
+
+
+def _fetch_odoo_records_batched(client, model_name, fields, batch_size=50):
+    """
+    Fallback: fetch records in batches to isolate problematic records.
+    
+    When a single bulk search_read fails due to XML parsing errors (typically from
+    malformed HTML in rich-text fields), this function fetches record IDs first,
+    then reads records in small batches. Bad batches are subdivided to isolate the
+    exact problematic record(s), which are skipped.
+    
+    Args:
+        client (OdooClient): Authenticated Odoo client instance
+        model_name (str): Name of the Odoo model
+        fields (list): List of field names to fetch
+        batch_size (int): Number of records per batch
+        
+    Returns:
+        list: Successfully fetched records (problematic ones skipped)
+    """
+    # Step 1: Get all record IDs (lightweight — no field data, no XML issues)
+    all_ids = client.models.execute_kw(
+        client.db, client.uid, client.password,
+        model_name, "search", [[]]
     )
+    log.info(f"[FETCH] {model_name}: {len(all_ids)} record IDs found, fetching in batches of {batch_size}")
+    
+    all_records = []
+    skipped_ids = []
+    
+    # Step 2: Fetch in batches
+    for i in range(0, len(all_ids), batch_size):
+        batch_ids = all_ids[i:i + batch_size]
+        try:
+            batch_records = client.models.execute_kw(
+                client.db, client.uid, client.password,
+                model_name, "read", [batch_ids],
+                {"fields": fields}
+            )
+            all_records.extend(batch_records)
+        except Exception as batch_err:
+            log.warning(f"[FETCH] Batch {i//batch_size + 1} failed for {model_name} "
+                       f"(IDs {batch_ids[0]}-{batch_ids[-1]}): {batch_err}")
+            # Subdivide: try fetching records individually to isolate bad ones
+            for record_id in batch_ids:
+                try:
+                    single_record = client.models.execute_kw(
+                        client.db, client.uid, client.password,
+                        model_name, "read", [[record_id]],
+                        {"fields": fields}
+                    )
+                    all_records.extend(single_record)
+                except Exception as single_err:
+                    log.error(f"[FETCH] Skipping {model_name} record ID {record_id}: {single_err}")
+                    skipped_ids.append(record_id)
+    
+    if skipped_ids:
+        log.warning(f"[FETCH] {model_name}: Skipped {len(skipped_ids)} problematic record(s): {skipped_ids}")
+    
+    log.info(f"[FETCH] {model_name}: Successfully fetched {len(all_records)} of {len(all_ids)} records via batched fallback")
+    return all_records
 
 
 def process_odoo_records(

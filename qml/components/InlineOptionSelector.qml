@@ -31,11 +31,13 @@ Item {
     property int visibleItemCount: 5  // Number of items visible when expanded
 
     // Styling
-    property color bgColor: AppConst.Colors.CardBackground || "#ffffff"
+    property color bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1b1b1f" : "#ffffff"
+    property color disabledBgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#eeeeee"
     property color selectedColor: AppConst.Colors.Primary || "#3498db"
-    property color borderColor: AppConst.Colors.Border || "#e0e0e0"
-    property color textColor: AppConst.Colors.Text || "#333333"
-    property color hoverColor: AppConst.Colors.ButtonHover || "#f5f5f5"
+    property color borderColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3a3a3f" : "#e0e0e0"
+    property color textColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ebebef" : "#333333"
+    property color mutedTextColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9a9aa2" : "#888888"
+    property color hoverColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2b2b31" : "#f5f5f5"
 
     signal selectionMade(int id, string name, string selectorType)
 
@@ -56,6 +58,28 @@ Item {
         // Auto-adjust expanded height based on item count
         var calculatedHeight = Math.min(modelData.length * units.gu(5) + units.gu(6), maxExpandedHeight);
         expandedHeight = Math.max(calculatedHeight, units.gu(15));
+
+        // If selectedId is already set, resolve its name from the new data
+        if (selectedId !== -1) {
+            for (var j = 0; j < modelData.length; j++) {
+                if (modelData[j].id === selectedId) {
+                    selectedName = modelData[j].name;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Resolve selectedName when selectedId is assigned and modelData is already loaded
+    onSelectedIdChanged: {
+        if (selectedId !== -1 && modelData && modelData.length > 0) {
+            for (var i = 0; i < modelData.length; i++) {
+                if (modelData[i].id === selectedId) {
+                    selectedName = modelData[i].name;
+                    break;
+                }
+            }
+        }
     }
 
     Behavior on height {
@@ -66,7 +90,7 @@ Item {
         id: container
         anchors.fill: parent
         radius: units.gu(1)
-        color: bgColor
+        color: (enabledState && !readOnly) ? bgColor : disabledBgColor
         border.color: borderColor
         border.width: 1
         clip: true
@@ -104,7 +128,7 @@ Item {
                         width: parent.width * 0.5
                         height: parent.height
                         text: selectedName || i18n.dtr("ubtms", "Tap to select")
-                        color: selectedName ? textColor : "#888888"
+                        color: selectedName ? textColor : mutedTextColor
                         font.pixelSize: units.gu(1.5)
                         font.bold: selectedName ? true : false
                         verticalAlignment: Text.AlignVCenter
@@ -159,7 +183,10 @@ Item {
                     width: optionsList.width
                     height: units.gu(5)
                     color: {
-                        if (model.itemId === selectedId) return selectedColor + "30";
+                        if (model.itemId === selectedId) {
+                            return Qt.rgba(selectedColor.r, selectedColor.g, selectedColor.b,
+                                           theme.name === "Ubuntu.Components.Themes.SuruDark" ? 0.24 : 0.18);
+                        }
                         if (delegateMouseArea.containsMouse) return hoverColor;
                         return "transparent";
                     }

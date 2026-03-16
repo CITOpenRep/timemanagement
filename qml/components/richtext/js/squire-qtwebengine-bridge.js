@@ -48,9 +48,11 @@
                 var encoded = encodeURIComponent(JSON.stringify(message));
                 window.location.hash = '#qtevent:' + type + ':' + encoded;
 
+                // Clear hash without scrolling to top — history.replaceState
+                // removes the fragment without triggering scroll behavior
                 setTimeout(function () {
                     if (window.location.hash.indexOf('#qtevent:' + type) === 0) {
-                        window.location.hash = '';
+                        history.replaceState(null, null, window.location.pathname + window.location.search);
                     }
                 }, 10);
             } catch (e) {
@@ -127,9 +129,10 @@
                 var encoded = encodeURIComponent(JSON.stringify(reply));
                 window.location.hash = '#qtreply:' + callId + ':' + encoded;
 
+                // Clear hash without scrolling to top
                 setTimeout(function () {
                     if (window.location.hash.indexOf('#qtreply:' + callId) === 0) {
-                        window.location.hash = '';
+                        history.replaceState(null, null, window.location.pathname + window.location.search);
                     }
                 }, 10);
             } catch (e) {

@@ -158,7 +158,7 @@ function getUsers(accountId) {
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                        "SELECT id, name, odoo_record_id FROM res_users_app WHERE account_id = ?",
+                        "SELECT u.id, u.name, u.odoo_record_id, u.account_id, a.name as account_name FROM res_users_app u LEFT JOIN users a ON u.account_id = a.id WHERE u.account_id = ?",
                         [accountId]
                         );
 
@@ -434,7 +434,7 @@ function getCurrentUserOdooId(accountId) {
 
             DBCommon.log(`Found username: ${username}, now checking res_users_app`);
 
-            const userResult = tx.executeSql("SELECT odoo_record_id FROM res_users_app WHERE login = ?", [username]);
+            const userResult = tx.executeSql("SELECT odoo_record_id FROM res_users_app WHERE login = ? AND account_id = ?", [username, accountId]);
 
             if (userResult.rows.length > 0) {
                 odooId = userResult.rows.item(0).odoo_record_id;
@@ -444,10 +444,84 @@ function getCurrentUserOdooId(accountId) {
             }
         });
     } catch (e) {
-        logException(e);
+        DBCommon.logException("getCurrentUserOdooId", e);
     }
 
     return odooId;
+}
+
+/**
+ * Gets the current logged-in user's assignee IDs as composite {user_id, account_id} objects.
+ * When accountId is -1 (All Accounts), returns IDs for ALL logged-in accounts.
+ * When accountId is specific, returns only the ID for that account.
+ *
+ * @param {number} accountId - The account ID (-1 for all accounts)
+ * @returns {Array<Object>} Array of {user_id: number, account_id: number} objects
+ */
+function getCurrentUserAssigneeIds(accountId) {
+    var assigneeIds = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            if (accountId === -1) {
+                // All accounts mode: get current user IDs for ALL logged-in accounts
+                var accountsResult = tx.executeSql("SELECT id, username FROM users");
+
+                for (var i = 0; i < accountsResult.rows.length; i++) {
+                    var account = accountsResult.rows.item(i);
+                    var acctId = account.id;
+                    var username = account.username;
+
+                    if (acctId === 0) {
+                        // Local account
+                        assigneeIds.push({ user_id: 1, account_id: 0 });
+                        continue;
+                    }
+
+                    // Find the odoo_record_id for this account's logged-in user
+                    var userResult = tx.executeSql(
+                        "SELECT odoo_record_id FROM res_users_app WHERE login = ? AND account_id = ?",
+                        [username, acctId]
+                    );
+
+                    if (userResult.rows.length > 0) {
+                        var odooId = userResult.rows.item(0).odoo_record_id;
+                        if (odooId && odooId > 0) {
+                            assigneeIds.push({ user_id: odooId, account_id: acctId });
+                        }
+                    }
+                }
+            } else {
+                // Specific account mode
+                if (accountId === 0) {
+                    assigneeIds.push({ user_id: 1, account_id: 0 });
+                } else {
+                    var usernameResult = tx.executeSql("SELECT username FROM users WHERE id = ?", [accountId]);
+
+                    if (usernameResult.rows.length > 0) {
+                        var username = usernameResult.rows.item(0).username;
+                        var userResult = tx.executeSql(
+                            "SELECT odoo_record_id FROM res_users_app WHERE login = ? AND account_id = ?",
+                            [username, accountId]
+                        );
+
+                        if (userResult.rows.length > 0) {
+                            var odooId = userResult.rows.item(0).odoo_record_id;
+                            if (odooId && odooId > 0) {
+                                assigneeIds.push({ user_id: odooId, account_id: accountId });
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getCurrentUserAssigneeIds", e);
+    }
+
+    return assigneeIds;
 }
 
 /**
@@ -564,5 +638,83 @@ function clearDefaultAccount() {
         });
     } catch (e) {
         DBCommon.logException(e);
+    }
+}
+
+/**
+ * Updates the per-account sync settings for a given account.
+ * Pass null to reset a value to the global default.
+ *
+ * @param {number} accountId - The ID of the account to update.
+ * @param {number|null} intervalMinutes - Sync interval in minutes, or null for global default.
+ * @param {string|null} direction - "both", "download_only", "upload_only", or null for global default.
+ * @param {number|null} enabled - 1 (enabled), 0 (disabled), or null for global default.
+ */
+function updateAccountSyncSettings(accountId, intervalMinutes, direction, enabled) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            tx.executeSql(
+                'UPDATE users SET sync_interval_minutes = ?, sync_direction = ?, autosync_enabled = ? WHERE id = ?',
+                [intervalMinutes, direction, enabled, accountId]
+            );
+        });
+        DBCommon.log("Updated sync settings for account " + accountId +
+                     ": interval=" + intervalMinutes + ", direction=" + direction + ", enabled=" + enabled);
+    } catch (e) {
+        DBCommon.logException("updateAccountSyncSettings", e);
+    }
+}
+
+/**
+ * Retrieves the per-account sync settings for a given account.
+ *
+ * @param {number} accountId - The ID of the account.
+ * @returns {object} - Object with sync_interval_minutes, sync_direction, autosync_enabled (null if using global defaults).
+ */
+function getAccountSyncSettings(accountId) {
+    var result = {
+        sync_interval_minutes: null,
+        sync_direction: null,
+        autosync_enabled: null
+    };
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                'SELECT sync_interval_minutes, sync_direction, autosync_enabled FROM users WHERE id = ?',
+                [accountId]
+            );
+            if (rs.rows.length > 0) {
+                var row = rs.rows.item(0);
+                result.sync_interval_minutes = row.sync_interval_minutes;
+                result.sync_direction = row.sync_direction;
+                result.autosync_enabled = row.autosync_enabled;
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getAccountSyncSettings", e);
+    }
+
+    return result;
+}
+
+/**
+ * Updates the last_synced_at timestamp for a given account.
+ *
+ * @param {number} accountId - The ID of the account.
+ */
+function updateLastSyncedAt(accountId) {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            tx.executeSql(
+                "UPDATE users SET last_synced_at = datetime('now') WHERE id = ?",
+                [accountId]
+            );
+        });
+    } catch (e) {
+        DBCommon.logException("updateLastSyncedAt", e);
     }
 }

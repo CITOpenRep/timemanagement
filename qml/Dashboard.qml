@@ -407,54 +407,37 @@ Page {
         }
     }
 
-    Icon {
-        visible: !isMultiColumn
-        width: units.gu(5)
-        height: units.gu(4)
-        z: 1000
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: swipeUpArea.top
-        name: 'toolkit_chevron-up_3gu'
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? LomiriColors.orange : LomiriColors.slate
-    }
-
-    MultiPointTouchArea {
-        id: swipeUpArea
+    BottomEdge {
+        id: bottomEdge
         enabled: !isMultiColumn
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: units.gu(1)
-        minimumTouchPoints: 1
-        maximumTouchPoints: 1
+        height: parent.height
 
-        property real startY: 0
-
-        onPressed: {
-            startY = touchPoints[0].y;
+        hint {
+            iconName: "add"
+            text: i18n.dtr("ubtms", "New Timesheet")
+            visible: !isMultiColumn
         }
-        onReleased: {
-            var endY = touchPoints[0].y;
-            // Detect upward swipe (swipe up: startY > endY)
-            if (startY - endY > units.gu(2)) {
-                // threshold for swipe - open new timesheet
-                const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
-                if (result.success) {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
-                        "recordid": result.id,
-                        "isReadOnly": false
-                    });
-                } else {
-                    console.error("Error creating timesheet: " + result.message);
-                }
+
+        preloadContent: false
+
+        contentComponent: Component {
+            Item {
+                width: bottomEdge.width
+                height: bottomEdge.height
             }
         }
-        z: 999 // Ensure it's above other content
 
-        Rectangle {
-            anchors.fill: parent
-            color: "lightgray"
-            opacity: 0.0 // Make it invisible but still interactive
+        onCommitCompleted: {
+            const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+            if (result.success) {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                    "recordid": result.id,
+                    "isReadOnly": false
+                });
+            } else {
+                console.error("Error creating timesheet: " + result.message);
+            }
+            collapse();
         }
     }
 

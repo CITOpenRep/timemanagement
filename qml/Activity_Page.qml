@@ -65,7 +65,7 @@ Page {
                 }
             },
             Action {
-                iconName: "filters"
+                iconName: (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) ? "contact-group" : "filters"
                 text: "Filter by Assignees"
                 onTriggered: {
                     assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
@@ -191,7 +191,7 @@ Page {
         //console.log("Starting get_activity_list - setting isLoading to true");
         isLoading = true;
         currentOffset = 0;
-        hasMoreItems = true;
+        hasMoreItems = false;
         activityListModel.clear();
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
@@ -449,6 +449,32 @@ Page {
         }
     }
 
+    // Function to apply default assignee filter (current logged-in user)
+    function applyDefaultAssigneeFilter() {
+        try {
+            var currentAccountId = selectedAccountId;
+            if (typeof currentAccountId === "undefined" || currentAccountId === null)
+                currentAccountId = -1;
+
+            var userIds = Accounts.getCurrentUserAssigneeIds(currentAccountId);
+
+            if (userIds && userIds.length > 0) {
+                activity.filterByAssignees = true;
+                activity.selectedAssigneeIds = userIds;
+                assigneeFilterMenu.selectedAssigneeIds = userIds;
+
+                // Save to global state for persistence
+                Global.setAssigneeFilter(true, userIds);
+            } else {
+                activity.filterByAssignees = false;
+                activity.selectedAssigneeIds = [];
+                assigneeFilterMenu.selectedAssigneeIds = [];
+            }
+        } catch (e) {
+            console.error("applyDefaultAssigneeFilter failed:", e);
+        }
+    }
+
     /*
     Todo :   - Refactor the date filter logic to be more modular and reusable. And Move to Activity.js
     */
@@ -690,10 +716,6 @@ Page {
             }
             currentIndex: 0
             onCurrentIndexChanged: {}
-
-            Component.onCompleted: {
-                get_activity_list();
-            }
         }
 
         Text {
@@ -722,13 +744,10 @@ Page {
 
                 //console.log("Activity_Page: Restored assignee filter - enabled:", activity.filterByAssignees);
             } else {
-                // Clear filter when coming from non-activity pages (Dashboard, Tasks, etc.)
-                activity.filterByAssignees = false;
-                activity.selectedAssigneeIds = [];
-                assigneeFilterMenu.selectedAssigneeIds = [];
-                Global.clearAssigneeFilter();
+                // Apply default assignee filter (current user) when coming from non-activity pages
+                applyDefaultAssigneeFilter();
 
-                //console.log("Activity_Page: Cleared assignee filter (coming from non-activity page)");
+                //console.log("Activity_Page: Applied default assignee filter (coming from non-activity page)");
             }
 
             // Update navigation tracking
@@ -804,12 +823,12 @@ Page {
         // Load assignees for the assignee filter
         loadAssignees();
 
-        // Initialize with no assignee filter by default
-        activity.filterByAssignees = false;
-        activity.selectedAssigneeIds = [];
-        assigneeFilterMenu.selectedAssigneeIds = [];
+        // Apply default assignee filter (current logged-in user)
+        applyDefaultAssigneeFilter();
 
-        get_activity_list();
+        // Note: get_activity_list() is NOT called here.
+        // onVisibleChanged handles loading when the page becomes visible,
+        // which also fires on initial creation. Calling it here too caused duplicates.
     }
 
     // Loading indicator overlay

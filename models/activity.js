@@ -1907,7 +1907,10 @@ function getAllActivityAssignees(accountId) {
 
             var activityResult = tx.executeSql(activityQuery, activityParams);
 
-            var userAccountMap = {}; // Map user_id -> account_id for users
+            // Build accountUserMap directly: { account_id -> [user_id, ...] }
+            // This avoids the cross-account deduplication bug where userAccountMap[userId]
+            // would overwrite entries when the same user exists in multiple accounts
+            var accountUserMap = {};
 
             // Parse user IDs from all activities
             for (var i = 0; i < activityResult.rows.length; i++) {
@@ -1916,22 +1919,19 @@ function getAllActivityAssignees(accountId) {
                 var activityAccountId = row.account_id;
 
                 if (userIdField && parseInt(userIdField) > 0) {
-                    userAccountMap[parseInt(userIdField)] = activityAccountId;
+                    var uid = parseInt(userIdField);
+                    if (!accountUserMap[activityAccountId]) {
+                        accountUserMap[activityAccountId] = [];
+                    }
+                    if (accountUserMap[activityAccountId].indexOf(uid) === -1) {
+                        accountUserMap[activityAccountId].push(uid);
+                    }
                 }
             }
 
-            var allUserIds = Object.keys(userAccountMap).map(function (key) { return parseInt(key); });
+            var hasUsers = Object.keys(accountUserMap).length > 0;
 
-            if (allUserIds.length > 0) {
-                // Group user IDs by account for efficient querying
-                var accountUserMap = {};
-                for (var userId in userAccountMap) {
-                    var userAccountId = userAccountMap[userId];
-                    if (!accountUserMap[userAccountId]) {
-                        accountUserMap[userAccountId] = [];
-                    }
-                    accountUserMap[userAccountId].push(parseInt(userId));
-                }
+            if (hasUsers) {
 
                 // Query each account's users
                 for (var acctId in accountUserMap) {

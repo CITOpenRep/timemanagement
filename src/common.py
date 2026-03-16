@@ -265,11 +265,71 @@ def add_notification(db_path, account_id, notif_type, message, payload):
     timestamp = datetime.utcnow().isoformat() + "Z"
     payload_json = json.dumps(payload)
 
+    # Auto-expire old Sync notifications (older than 72 hours)
+    # This prevents indefinite accumulation of stale sync errors
+    if notif_type == "Sync":
+        try:
+            expire_sql = """
+                DELETE FROM notification 
+                WHERE type = 'Sync' AND read_status = 0 
+                AND timestamp < datetime('now', '-72 hours')
+            """
+            safe_sql_execute(db_path, expire_sql)
+        except Exception:
+            pass  # Don't fail the insert if cleanup fails
+
     safe_sql_execute(
         db_path,
         insert_sql,
         (account_id, timestamp, message, notif_type, payload_json)
     )
+
+
+def clear_sync_notifications(db_path, account_id, model_name=None):
+    """
+    Clear unread Sync error notifications for an account after a successful sync.
+    
+    When a model syncs successfully, any previous error notifications for that
+    model+account should be removed so users don't see stale errors.
+    
+    Args:
+        db_path (str): Path to the SQLite database file
+        account_id (int): The account ID to clear notifications for
+        model_name (str, optional): Odoo model name (e.g. 'project.task').
+            If provided, only clears notifications matching that model.
+            If None, clears ALL Sync notifications for the account.
+    """
+    try:
+        if model_name:
+            # Build a label matching the notification message format:
+            # "Sync failed for Project Task on MTG: ..." or "Failed to sync project.task: ..."
+            model_label = model_name.replace('.', ' ').title()  # e.g. "Project Task"
+            
+            # Delete notifications that match either format
+            delete_sql = """
+                DELETE FROM notification 
+                WHERE account_id = ? AND type = 'Sync' AND read_status = 0
+                AND (message LIKE ? OR message LIKE ? OR message LIKE ?)
+            """
+            safe_sql_execute(
+                db_path, delete_sql,
+                (account_id,
+                 f"%{model_label}%",        # "Sync failed for Project Task on ..."
+                 f"%{model_name}%",          # "Failed to sync project.task: ..."
+                 f"%{model_name.replace('.', '_')}_app%")  # "Failed to fetch local records from 'project_task_app'"
+            )
+        else:
+            # Clear all Sync notifications for this account
+            delete_sql = """
+                DELETE FROM notification 
+                WHERE account_id = ? AND type = 'Sync' AND read_status = 0
+            """
+            safe_sql_execute(db_path, delete_sql, (account_id,))
+        
+        log.info(f"[NOTIFY] Cleared sync error notifications for account {account_id}" +
+                 (f" model {model_name}" if model_name else ""))
+    except Exception as e:
+        log.warning(f"[NOTIFY] Failed to clear sync notifications: {e}")
 
 
 def get_user_info_by_odoo_id(db_path, account_id, odoo_user_id):

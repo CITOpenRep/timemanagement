@@ -22,9 +22,7 @@
     var FONT_FAMILY_CLASS = 'font';
     var FONT_SIZE_CLASS = 'size';
 
-    // Scale factor to match CSS --scale-factor in editor.html
-    // Font sizes are multiplied by this so they appear proportional to the scaled body text
-    var SCALE_FACTOR = 2.5;
+
 
     var ZWS = '\u200B';
 
@@ -346,16 +344,7 @@
                             node.style.fontFamily.replace(/ /g, '') + ']';
                     }
                     if ( indexOf.call( classNames, FONT_SIZE_CLASS ) > -1 ) {
-                        // Divide by scale factor to report the original size user selected
-                        var storedSize = node.style.fontSize;
-                        var originalSize = storedSize;
-                        var sizeMatch = storedSize.match( /^([\d.]+)(pt|px|em|rem)?$/i );
-                        if ( sizeMatch ) {
-                            var sizeValue = parseFloat( sizeMatch[1] );
-                            var sizeUnit = sizeMatch[2] || 'pt';
-                            originalSize = Math.round( sizeValue / SCALE_FACTOR ) + sizeUnit;
-                        }
-                        path += '[fontSize=' + originalSize + ']';
+                        path += '[fontSize=' + node.style.fontSize + ']';
                     }
                 }
             }
@@ -4521,29 +4510,12 @@
         return this.focus();
     };
     proto.setFontSize = function (size) {
-        // Multiply by SCALE_FACTOR so font sizes appear proportional to the scaled body text
-        // User selects 8pt -> we apply 20pt -> appears correct relative to body
-        // Backend will normalize back to 8pt when sending email
-        var scaledSize = size;
-        if (size && typeof size === 'string') {
-            var match = size.match(/^([\d.]+)(pt|px|em|rem)?$/i);
-            if (match) {
-                var value = parseFloat(match[1]);
-                var unit = match[2] || 'pt';
-                // Multiply by scale factor for proportional display
-                var scaled = Math.round(value * SCALE_FACTOR);
-                scaledSize = scaled + unit;
-            }
-        } else if (typeof size === 'number') {
-            scaledSize = Math.round(size * SCALE_FACTOR);
-        }
-
-        this.changeFormat(scaledSize ? {
+        this.changeFormat(size ? {
             tag: 'SPAN',
             attributes: {
                 'class': FONT_SIZE_CLASS,
                 style: 'font-size: ' +
-                    (typeof scaledSize === 'number' ? scaledSize + 'px' : scaledSize)
+                    (typeof size === 'number' ? size + 'px' : size)
             }
         } : null, {
             tag: 'SPAN',
