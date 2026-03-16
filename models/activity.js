@@ -1939,7 +1939,7 @@ function getAllActivityAssignees(accountId) {
                     var placeholders = userIds.map(function () { return '?'; }).join(',');
 
                     var userQuery = `
-                        SELECT u.id, u.odoo_record_id, u.name, u.account_id, a.name as account_name
+                        SELECT u.id, u.odoo_record_id, u.name, COALESCE(NULLIF(u.login, ''), NULLIF(u.email, ''), NULLIF(u.work_email, ''), '') as email, u.account_id, a.name as account_name
                         FROM res_users_app u
                         LEFT JOIN users a ON u.account_id = a.id
                         WHERE u.account_id = ? AND u.odoo_record_id IN (${placeholders})
@@ -1956,6 +1956,7 @@ function getAllActivityAssignees(accountId) {
                             id: userRow.id,
                             odoo_record_id: userRow.odoo_record_id,
                             name: userRow.name,
+                            email: userRow.email || "",
                             account_id: userRow.account_id,
                             account_name: userRow.account_name || "Unknown Account"
                         });
