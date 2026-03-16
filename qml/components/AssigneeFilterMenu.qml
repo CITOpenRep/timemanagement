@@ -181,9 +181,8 @@ Item {
                     name: entry.name,
                     email: entry.email,
                     account_name: entry.account_name,
-                    account_names: accountNames,
                     titleText: titleText,
-                    memberSelections: entry.memberSelections,
+                    memberSelectionsJson: JSON.stringify(entry.memberSelections),
                     selected: selected,
                     sectionLabel: selected ? "selected" : "others"
                 });
@@ -502,7 +501,10 @@ Item {
                         hoverEnabled: true
 
                         onClicked: {
-                            var memberSelections = model.memberSelections || [];
+                            var memberSelections = [];
+                            if (model.memberSelectionsJson) {
+                                memberSelections = JSON.parse(model.memberSelectionsJson);
+                            }
                             var shouldSelect = !hasAnySelectedAssignee(memberSelections);
 
                             for (var i = 0; i < memberSelections.length; i++) {
