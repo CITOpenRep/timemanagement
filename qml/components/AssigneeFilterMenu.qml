@@ -248,7 +248,7 @@ Item {
                             }
                             var emailText = assignee.email || "";
                             var assigneeId = assignee.odoo_record_id || assignee.id;
-                            var accountId = assignee.account_id || -1;
+                            var accountId = (assignee.account_id === undefined || assignee.account_id === null) ? -1 : assignee.account_id;
                             var isSelected = isAssigneeSelected(assigneeId, accountId);
 
                             if (!searchText || displayText.toLowerCase().indexOf(searchText) >= 0 || emailText.toLowerCase().indexOf(searchText) >= 0) {
