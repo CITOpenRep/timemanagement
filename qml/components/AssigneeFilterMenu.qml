@@ -104,7 +104,7 @@ Item {
     }
 
     function uniqueAccountNames(names) {
-        var seen = {};
+        var seen = Object.create(null);
         var result = [];
 
         for (var i = 0; i < names.length; i++) {
@@ -538,6 +538,7 @@ Item {
                         anchors.leftMargin: delegateRoot.contentMargin
                         anchors.top: parent.top
                         anchors.topMargin: delegateRoot.contentMargin
+                        checkable: false
                         checked: model.selected
 
                         MouseArea {
