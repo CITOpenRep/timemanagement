@@ -32,8 +32,21 @@ from bus import send
 DEFAULT_TIMEOUT = 60
 
 
+class HttpTimeoutTransport(xmlrpc.client.Transport):
+    """Custom transport with timeout support for plain HTTP XML-RPC calls."""
+
+    def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.timeout = timeout
+
+    def make_connection(self, host):
+        conn = super().make_connection(host)
+        conn.timeout = self.timeout
+        return conn
+
+
 class TimeoutTransport(xmlrpc.client.SafeTransport):
-    """Custom transport with timeout support for XML-RPC calls."""
+    """Custom transport with timeout support for HTTPS XML-RPC calls."""
     
     def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -105,7 +118,7 @@ class OdooClient:
             int: UID if authentication is successful, otherwise raises an exception.
         """
         try:
-            transport = TimeoutTransport(timeout=DEFAULT_TIMEOUT)
+            transport = self._create_transport()
             common = xmlrpc.client.ServerProxy(
                 f"{self.url}/xmlrpc/2/common",
                 transport=transport
@@ -139,7 +152,7 @@ class OdooClient:
             if redirect_target:
                 self.url = redirect_target.rstrip("/")
                 try:
-                    transport = TimeoutTransport(timeout=DEFAULT_TIMEOUT)
+                    transport = self._create_transport()
                     common = xmlrpc.client.ServerProxy(
                         f"{self.url}/xmlrpc/2/common",
                         transport=transport
@@ -158,6 +171,20 @@ class OdooClient:
         except Exception as e:
             send("sync_error",f"Login to server failed")
             raise ConnectionError(f"Login failed: {e}")
+
+    def _create_transport(self):
+        """
+        Select an appropriate XML-RPC transport with timeout based on the URL scheme.
+
+        Uses a plain HTTP transport for 'http://' URLs and a SafeTransport-based
+        transport for 'https://' URLs (or when no scheme is specified).
+        """
+        parsed = urlparse(self.url or "")
+        scheme = (parsed.scheme or "").lower()
+        if scheme == "http":
+            return HttpTimeoutTransport(timeout=DEFAULT_TIMEOUT)
+        # Default to HTTPS-safe transport.
+        return TimeoutTransport(timeout=DEFAULT_TIMEOUT)
 
     def _get_model_proxy(self):
         """
