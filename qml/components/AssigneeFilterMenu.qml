@@ -33,6 +33,12 @@ Item {
     id: assigneeFilterMenu
     anchors.fill: parent
 
+    // Cached data for display assignees (no-search case) to avoid
+    // rebuilding the full list from bindings on every evaluation.
+    property var cachedDisplayAssignees: []
+    property int cachedDisplayAssigneeCount: 0
+    property int cachedSelectedDisplayAssigneeCount: 0
+
     signal filterApplied(var selectedAssigneeIds)
     signal filterCleared
 
@@ -208,21 +214,38 @@ Item {
         return visibleAssignees;
     }
 
+    // Recompute and cache the display assignee list and derived counts
+    // for the no-search-text case. This is called when the underlying
+    // model or selection changes, so that bindings can read cached
+    // values without triggering O(n) work on every evaluation.
+    function recomputeDisplayAssigneeCache() {
+        var displayAssignees = buildDisplayAssignees("");
+        cachedDisplayAssignees = displayAssignees;
+        cachedDisplayAssigneeCount = displayAssignees.length;
+
+        var selectedCount = 0;
+        for (var i = 0; i < displayAssignees.length; i++) {
+            if (displayAssignees[i].selected) {
+                selectedCount++;
+            }
+        }
+        cachedSelectedDisplayAssigneeCount = selectedCount;
+    }
+
     function getDisplayAssigneeCount() {
-        return buildDisplayAssignees("").length;
+        // Lazily initialize cache in case it hasn't been recomputed yet.
+        if (!cachedDisplayAssignees || cachedDisplayAssignees.length !== cachedDisplayAssigneeCount) {
+            recomputeDisplayAssigneeCache();
+        }
+        return cachedDisplayAssigneeCount;
     }
 
     function getSelectedDisplayAssigneeCount() {
-        var displayAssignees = buildDisplayAssignees("");
-        var count = 0;
-
-        for (var i = 0; i < displayAssignees.length; i++) {
-            if (displayAssignees[i].selected) {
-                count++;
-            }
+        // Lazily initialize cache in case it hasn't been recomputed yet.
+        if (!cachedDisplayAssignees || cachedDisplayAssignees.length !== cachedDisplayAssigneeCount) {
+            recomputeDisplayAssigneeCache();
         }
-
-        return count;
+        return cachedSelectedDisplayAssigneeCount;
     }
 
     // Background overlay when expanded
@@ -725,6 +748,8 @@ Item {
     onAssigneeModelChanged: {
         if (filterModel) {
             filterModel.update();
+            // Keep cached display assignee data in sync with the model.
+            recomputeDisplayAssigneeCache();
         }
     }
 
@@ -733,12 +758,16 @@ Item {
         if (filterModel) {
             // Rebuild and sort so selected entries stay pinned at the top.
             filterModel.update();
+            // Selection changed; update cached display counts accordingly.
+            recomputeDisplayAssigneeCache();
         }
     }
 
     Component.onCompleted: {
         if (filterModel) {
             filterModel.update();
+            // Ensure cache is initialized once the component is ready.
+            recomputeDisplayAssigneeCache();
         }
     }
 }
