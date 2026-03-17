@@ -169,7 +169,7 @@ APP_VERSION = get_app_version()
 class NotificationDaemon:
     """Background service for syncing and sending notifications."""
     
-    def __init__(self):
+    def __init__(self, managed_mode=True):
         self.app_db = self._get_app_db_path()
         # Use the main app database for settings/users as well, since QML creates them there
         self.settings_db = self.app_db
@@ -181,14 +181,16 @@ class NotificationDaemon:
         self.sync_timer_id = None  # Track GLib timer for tick-based scheduler
         self.current_sync_interval = DEFAULT_SYNC_INTERVAL_MINUTES  # Track current interval
         self.started_version = APP_VERSION  # Track version at startup for auto-restart
+        self.managed_mode = managed_mode
         # Per-account sync tracking: {account_id: {"last_synced": datetime_or_None, "interval": int, ...}}
         self.account_sync_schedule = {}
-        self._write_pid_file()
-        self._setup_signal_handlers()
-        self._protect_from_oom()  # Lower OOM priority to survive memory pressure
         self._init_dbus()
-        self._request_wakelock()  # Request wakelock to survive device sleep
-        self._setup_suspend_handler()  # Handle sleep/wake events
+        if self.managed_mode:
+            self._write_pid_file()
+            self._setup_signal_handlers()
+            self._protect_from_oom()  # Lower OOM priority to survive memory pressure
+            self._request_wakelock()  # Request wakelock to survive device sleep
+            self._setup_suspend_handler()  # Handle sleep/wake events
     
     def _get_sync_settings(self):
         """
@@ -510,7 +512,8 @@ class NotificationDaemon:
             log.error(f"[DAEMON] Post-wake sync failed: {e}")
         return False  # Don't repeat - one-shot callback
     
-    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None, avatar_path=None):
+    def send_notification(self, title, message, nav_type=None, record_id=None, account_id=None,
+                          avatar_path=None, force_send=False):
         """Send a system notification via DBus with optional deep link navigation.
         
         Respects user's notification schedule settings - notifications are only
@@ -523,15 +526,36 @@ class NotificationDaemon:
             record_id (int): Record ID for navigation
             account_id (int): Account ID
             avatar_path (str): Optional path to assigner's avatar image for notification icon
+            force_send (bool): Ignore schedule suppression and send anyway (debug use)
+
+        Returns:
+            dict: Delivery diagnostics for Postal/Freedesktop attempts
         """
+        result = {
+            "schedule_allowed": None,
+            "schedule_reason": "",
+            "postal_counter_ok": False,
+            "postal_post_ok": False,
+            "freedesktop_ok": False,
+            "delivery_channel": "none",
+            "errors": []
+        }
+
         # Check if notification should be sent based on schedule settings
         should_send, reason = should_send_notification(self.app_db)
+        result["schedule_allowed"] = should_send
+        result["schedule_reason"] = reason
+
+        if force_send and not should_send:
+            log.info(f"[DAEMON] Notification schedule bypass enabled: {reason}")
+            should_send = True
+
         if not should_send:
             log.info(f"[DAEMON] Notification suppressed: {reason}")
             log.info(f"[DAEMON] Skipped notification: {title} - {message}")
-            # Still add to in-app notifications so user sees them when they open the app
-            # The system notification (popup/sound) is skipped, but record is kept
-            return
+            # Suppressed notifications are not sent or persisted by this method.
+            # Any in-app notification record, if desired, must be handled elsewhere.
+            return result
         
         # Retry DBus initialization if not available
         if not self.notification_interface:
@@ -539,7 +563,8 @@ class NotificationDaemon:
             self._init_dbus()
             if not self.notification_interface:
                 log.warning("[DAEMON] DBus re-initialization failed, skipping notification")
-                return
+                result["errors"].append("DBus re-initialization failed")
+                return result
             log.info("[DAEMON] DBus re-initialized successfully!")
         
         try:
@@ -582,8 +607,10 @@ class NotificationDaemon:
                 
                 postal_iface.SetCounter("ubtms_ubtms", unread_count, True)
                 log.info(f"[DAEMON] Badge updated to {unread_count} unread notifications")
+                result["postal_counter_ok"] = True
             except Exception as e:
                 log.error(f"[DAEMON] Failed to update badge: {e}")
+                result["errors"].append(f"SetCounter failed: {e}")
 
             # 2. Send notification popup via Postal Post method
             # This simulates receiving a push notification locally
@@ -634,17 +661,23 @@ class NotificationDaemon:
                 
                 # Call Post and check for errors
                 try:
-                    result = postal_iface.Post(app_id_with_version, json_str)
-                    log.info(f"[DAEMON] Postal.Post result: {result}")
+                    post_result = postal_iface.Post(app_id_with_version, json_str)
+                    log.info(f"[DAEMON] Postal.Post result: {post_result}")
+                    result_value = post_result
                 except dbus.exceptions.DBusException as dbus_err:
                     log.error(f"[DAEMON] DBus exception from Postal.Post: {dbus_err}")
+                    result["errors"].append(f"Postal.Post DBusException: {dbus_err}")
                     raise
                     
                 log.info(f"[DAEMON] Notification sent via Postal: {title}")
                 notification_sent = True
+                result["postal_post_ok"] = True
+                result["delivery_channel"] = "postal"
+                log.info(f"[DAEMON] Postal delivery debug value: {result_value}")
                 
             except Exception as e:
                 log.warning(f"[DAEMON] Postal notification failed: {e}")
+                result["errors"].append(f"Postal notification failed: {e}")
             
             # 3. Fallback to Standard Freedesktop Notifications if Postal didn't work
             if not notification_sent:
@@ -669,11 +702,31 @@ class NotificationDaemon:
                         -1  # Timeout (-1 = default)
                     )
                     log.info(f"[DAEMON] Notification sent via freedesktop (ID: {notification_id}): {title}")
+                    result["freedesktop_ok"] = True
+                    if result["delivery_channel"] == "none":
+                        result["delivery_channel"] = "freedesktop"
                 except Exception as fallback_error:
                     log.error(f"[DAEMON] Freedesktop notification also failed: {fallback_error}")
+                    result["errors"].append(f"Freedesktop notify failed: {fallback_error}")
                     
         except Exception as e:
             log.error(f"[DAEMON] Failed to send notification: {e}")
+            result["errors"].append(f"send_notification fatal: {e}")
+
+        return result
+
+    def run_panel_notification_test(self):
+        """Run a forced one-shot panel notification test and return diagnostics."""
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        log.info("[DAEMON] Running one-shot panel notification test")
+        return self.send_notification(
+            title="Notification Panel Test",
+            message=f"Daemon test at {timestamp}",
+            nav_type="Task",
+            record_id=1,
+            account_id=0,
+            force_send=True
+        )
     
     def get_current_user_id(self, account_id, username):
         """Get the Odoo user ID for the current account login."""
@@ -1464,6 +1517,7 @@ def main():
     """Entry point for daemon."""
     parser = argparse.ArgumentParser(description="TimeManagement background sync daemon")
     parser.add_argument("--test", action="store_true", help="Send test notification on startup")
+    parser.add_argument("--panel-test", action="store_true", help="Run one-shot forced panel notification test and exit")
     parser.add_argument("--force", action="store_true", help="Force start even if already running")
     parser.add_argument("--status", action="store_true", help="Check if daemon is running")
     args = parser.parse_args()
@@ -1487,20 +1541,39 @@ def main():
             sys.exit(1)
     
     # Check for existing instance
-    if not args.force:
+    if not args.force and not args.panel_test:
         is_running, pid = check_already_running()
         if is_running:
             log.info(f"[DAEMON] Daemon already running with PID {pid}")
             sys.exit(0)
 
-    # Retry loop for daemon startup
+    # One-shot panel test should not use the daemon retry loop
+    if args.panel_test:
+        try:
+            daemon = NotificationDaemon(managed_mode=False)
+            diag = daemon.run_panel_notification_test()
+            print("Panel test delivery channel:", diag.get("delivery_channel"))
+            print("Postal SetCounter:", diag.get("postal_counter_ok"))
+            print("Postal Post:", diag.get("postal_post_ok"))
+            print("Freedesktop:", diag.get("freedesktop_ok"))
+            if diag.get("errors"):
+                print("Errors:")
+                for err in diag["errors"]:
+                    print(f"- {err}")
+            sys.exit(0 if diag.get("delivery_channel") != "none" else 1)
+        except Exception as e:
+            log.error(f"[DAEMON] Panel test failed: {e}")
+            log.error(f"[DAEMON] Traceback: {traceback.format_exc()}")
+            sys.exit(1)
+
+    # Retry loop for daemon startup (normal managed daemon mode only)
     max_retries = 10
     retry_delay = 30  # seconds
     
     for attempt in range(max_retries):
         try:
-            daemon = NotificationDaemon()
-            
+            daemon = NotificationDaemon(managed_mode=True)
+
             if args.test:
                 log.info("[DAEMON] Test mode: Sending test notification...")
                 daemon.send_notification("Test Notification", "This is a test notification from the daemon")
