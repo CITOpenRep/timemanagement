@@ -25,7 +25,7 @@ import xmlrpc.client
 import logging
 import base64
 import socket
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from bus import send
 
 # Default timeout for XML-RPC calls (60 seconds)
@@ -146,8 +146,15 @@ class OdooClient:
 
                 if location_header:
                     parsed = urlparse(location_header)
-                    if parsed.scheme and parsed.netloc:
-                        redirect_target = f"{parsed.scheme}://{parsed.netloc}"
+                    try:
+                        # If Location is absolute, preserve its full path; otherwise resolve relative to current base URL.
+                        if parsed.scheme and parsed.netloc:
+                            redirect_target = parsed.geturl()
+                        else:
+                            redirect_target = urljoin(self.url.rstrip("/") + "/", location_header)
+                    except Exception:
+                        # Fallback: ignore malformed Location and keep any previously computed redirect_target
+                        pass
 
             if redirect_target:
                 self.url = redirect_target.rstrip("/")
