@@ -553,8 +553,8 @@ class NotificationDaemon:
         if not should_send:
             log.info(f"[DAEMON] Notification suppressed: {reason}")
             log.info(f"[DAEMON] Skipped notification: {title} - {message}")
-            # Still add to in-app notifications so user sees them when they open the app
-            # The system notification (popup/sound) is skipped, but record is kept
+            # Suppressed notifications are not sent or persisted by this method.
+            # Any in-app notification record, if desired, must be handled elsewhere.
             return result
         
         # Retry DBus initialization if not available
