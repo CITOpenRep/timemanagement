@@ -728,7 +728,8 @@ Item {
                 }
 
                 Text {
-                    text: getSelectedDisplayAssigneeCount() + " assignee" + (getSelectedDisplayAssigneeCount() === 1 ? "" : "s") + " selected"
+                    property int selectedCount: getSelectedDisplayAssigneeCount()
+                    text: selectedCount + " assignee" + (selectedCount === 1 ? "" : "s") + " selected"
                     font.pixelSize: units.gu(1.6)
                     color: theme.palette.normal.backgroundText
                     anchors.centerIn: parent
