@@ -684,6 +684,18 @@ function getActivityTypesForAccount(account_id) {
  * @param {number} recordId - The local ID of the activity record. If > 0, the record is updated; otherwise, a new record is inserted.
  * @returns {Object} - Returns { success: true } on success or { success: false, error: <message> } on failure.
  */
+/**
+ * Inserts or updates an activity record in the `mail_activity_app` table.
+ *
+ * When `recordId` is greater than 0, the existing record is updated; otherwise a new record is inserted.
+ *
+ * @function saveActivityData
+ * @param {Object} data - The activity data to persist.
+ * @param {number} recordId - The existing record ID to update, or 0/undefined to insert a new record.
+ * @returns {{success: true, recordId: number} | {success: false, error: string}} - On success, returns
+ *          an object with `success: true` and the persisted `recordId` (either the updated record ID or
+ *          the newly inserted ID). On failure, returns `success: false` with an `error` message.
+ */
 function saveActivityData(data, recordId) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
