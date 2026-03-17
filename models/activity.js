@@ -684,10 +684,23 @@ function getActivityTypesForAccount(account_id) {
  * @param {number} recordId - The local ID of the activity record. If > 0, the record is updated; otherwise, a new record is inserted.
  * @returns {Object} - Returns { success: true } on success or { success: false, error: <message> } on failure.
  */
+/**
+ * Inserts or updates an activity record in the `mail_activity_app` table.
+ *
+ * When `recordId` is greater than 0, the existing record is updated; otherwise a new record is inserted.
+ *
+ * @function saveActivityData
+ * @param {Object} data - The activity data to persist.
+ * @param {number} recordId - The existing record ID to update, or 0/undefined to insert a new record.
+ * @returns {{success: true, recordId: number} | {success: false, error: string}} - On success, returns
+ *          an object with `success: true` and the persisted `recordId` (either the updated record ID or
+ *          the newly inserted ID). On failure, returns `success: false` with an `error` message.
+ */
 function saveActivityData(data, recordId) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var timestamp = Utils.getFormattedTimestampUTC();
+        var savedRecordId = recordId;
 
         db.transaction(function (tx) {
             if (recordId > 0) {
@@ -727,6 +740,7 @@ function saveActivityData(data, recordId) {
                         recordId
                     ]
                 );
+                savedRecordId = recordId;
                 console.log("✅ Activity record updated: ID " + recordId);
             } else {
                 // INSERT new record
@@ -753,11 +767,15 @@ function saveActivityData(data, recordId) {
                         data.status
                     ]
                 );
-                console.log("✅ New activity record inserted");
+                var inserted = tx.executeSql("SELECT last_insert_rowid() AS id");
+                if (inserted.rows.length > 0) {
+                    savedRecordId = inserted.rows.item(0).id;
+                }
+                console.log("✅ New activity record inserted: ID " + savedRecordId);
             }
         });
 
-        return { success: true };
+        return { success: true, recordId: savedRecordId };
     } catch (e) {
         console.error("❌ saveActivityData failed:", e.message);
         return { success: false, error: e.message };
