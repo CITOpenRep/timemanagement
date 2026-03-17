@@ -1547,26 +1547,33 @@ def main():
             log.info(f"[DAEMON] Daemon already running with PID {pid}")
             sys.exit(0)
 
-    # Retry loop for daemon startup
+    # One-shot panel test should not use the daemon retry loop
+    if args.panel_test:
+        try:
+            daemon = NotificationDaemon(managed_mode=False)
+            diag = daemon.run_panel_notification_test()
+            print("Panel test delivery channel:", diag.get("delivery_channel"))
+            print("Postal SetCounter:", diag.get("postal_counter_ok"))
+            print("Postal Post:", diag.get("postal_post_ok"))
+            print("Freedesktop:", diag.get("freedesktop_ok"))
+            if diag.get("errors"):
+                print("Errors:")
+                for err in diag["errors"]:
+                    print(f"- {err}")
+            sys.exit(0 if diag.get("delivery_channel") != "none" else 1)
+        except Exception as e:
+            log.error(f"[DAEMON] Panel test failed: {e}")
+            log.error(f"[DAEMON] Traceback: {traceback.format_exc()}")
+            sys.exit(1)
+
+    # Retry loop for daemon startup (normal managed daemon mode only)
     max_retries = 10
     retry_delay = 30  # seconds
     
     for attempt in range(max_retries):
         try:
-            daemon = NotificationDaemon(managed_mode=not args.panel_test)
+            daemon = NotificationDaemon(managed_mode=True)
 
-            if args.panel_test:
-                diag = daemon.run_panel_notification_test()
-                print("Panel test delivery channel:", diag.get("delivery_channel"))
-                print("Postal SetCounter:", diag.get("postal_counter_ok"))
-                print("Postal Post:", diag.get("postal_post_ok"))
-                print("Freedesktop:", diag.get("freedesktop_ok"))
-                if diag.get("errors"):
-                    print("Errors:")
-                    for err in diag["errors"]:
-                        print(f"- {err}")
-                sys.exit(0 if diag.get("delivery_channel") != "none" else 1)
-            
             if args.test:
                 log.info("[DAEMON] Test mode: Sending test notification...")
                 daemon.send_notification("Test Notification", "This is a test notification from the daemon")
