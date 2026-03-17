@@ -540,6 +540,15 @@ Item {
                         anchors.topMargin: delegateRoot.contentMargin
                         checkable: false
                         checked: model.selected
+
+                        MouseArea {
+                            anchors.fill: parent
+                            propagateComposedEvents: true
+                            onClicked: {
+                                mouseArea.clicked(mouse);
+                                mouse.accepted = true;
+                            }
+                        }
                     }
 
                     Icon {
