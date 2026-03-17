@@ -538,6 +538,7 @@ Item {
                         anchors.leftMargin: delegateRoot.contentMargin
                         anchors.top: parent.top
                         anchors.topMargin: delegateRoot.contentMargin
+                        checkable: false
                         checked: model.selected
                     }
 
