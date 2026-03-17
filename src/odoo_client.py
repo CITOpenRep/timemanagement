@@ -73,6 +73,11 @@ class OdooClient:
         if not normalized:
             return normalized
 
+        # If there is no scheme separator, treat this as a bare host (optionally with port)
+        # and prepend HTTPS so that XML-RPC calls get a proper absolute URL.
+        if "://" not in normalized:
+            return f"https://{normalized}"
+
         parsed = urlparse(normalized)
         if not parsed.scheme:
             # Most Odoo deployments require HTTPS and XML-RPC does not follow redirects.
