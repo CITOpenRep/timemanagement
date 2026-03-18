@@ -38,9 +38,16 @@ def store_notification(notif_type, message, payload):
                 message TEXT NOT NULL,
                 type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'Timesheet', 'Sync')),
                 payload TEXT NOT NULL,
-                read_status INTEGER DEFAULT 0
+                read_status INTEGER DEFAULT 0,
+                panel_invoked INTEGER DEFAULT 0
             )
         """)
+
+        # Upgrade path for existing databases created before panel_invoked existed.
+        cursor.execute("PRAGMA table_info(notification)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if "panel_invoked" not in columns:
+            cursor.execute("ALTER TABLE notification ADD COLUMN panel_invoked INTEGER DEFAULT 0")
         
         # Check for duplicate unread notification with same type+message
         cursor.execute("""
@@ -56,8 +63,8 @@ def store_notification(notif_type, message, payload):
         
         # Insert notification (account_id = 0 for push notifications)
         cursor.execute("""
-            INSERT INTO notification (account_id, timestamp, message, type, payload, read_status)
-            VALUES (?, ?, ?, ?, ?, 0)
+            INSERT INTO notification (account_id, timestamp, message, type, payload, read_status, panel_invoked)
+            VALUES (?, ?, ?, ?, ?, 0, 1)
         """, (0, datetime.utcnow().isoformat() + "Z", message, notif_type, json.dumps(payload)))
         
         conn.commit()

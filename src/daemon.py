@@ -182,8 +182,10 @@ class NotificationDaemon:
         self.current_sync_interval = DEFAULT_SYNC_INTERVAL_MINUTES  # Track current interval
         self.started_version = APP_VERSION  # Track version at startup for auto-restart
         self.managed_mode = managed_mode
+        self._last_schedule_allowed = None
         # Per-account sync tracking: {account_id: {"last_synced": datetime_or_None, "interval": int, ...}}
         self.account_sync_schedule = {}
+        self._ensure_notification_tracking_schema()
         self._init_dbus()
         if self.managed_mode:
             self._write_pid_file()
@@ -220,6 +222,116 @@ class NotificationDaemon:
                 "sync_interval_minutes": DEFAULT_SYNC_INTERVAL_MINUTES,
                 "sync_direction": "both"
             }
+
+    def _ensure_notification_tracking_schema(self):
+        """Ensure notification table has delivery tracking columns for replay logic."""
+        conn = None
+        try:
+            conn = sqlite3.connect(self.app_db)
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS notification (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    account_id INTEGER,
+                    timestamp TEXT DEFAULT (datetime('now')),
+                    message TEXT NOT NULL,
+                    type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'Timesheet', 'Sync')),
+                    payload TEXT NOT NULL,
+                    read_status INTEGER DEFAULT 0,
+                    panel_invoked INTEGER DEFAULT 0
+                )
+                """
+            )
+
+            cursor.execute("PRAGMA table_info(notification)")
+            columns = {row[1] for row in cursor.fetchall()}
+            if "panel_invoked" not in columns:
+                cursor.execute("ALTER TABLE notification ADD COLUMN panel_invoked INTEGER DEFAULT 0")
+                log.info("[DAEMON] Added notification.panel_invoked column")
+
+            conn.commit()
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to ensure notification tracking schema: {e}")
+        finally:
+            if conn:
+                conn.close()
+
+    def _panel_invoked_from_result(self, delivery_result):
+        """Convert send_notification diagnostics to a DB-friendly invoked flag."""
+        if not delivery_result:
+            return 0
+        return 1 if delivery_result.get("delivery_channel") in ("postal", "freedesktop") else 0
+
+    def _is_schedule_active_now(self):
+        """Return whether notification schedule currently allows panel delivery."""
+        try:
+            allowed, reason = should_send_notification(self.app_db)
+            log.debug(f"[DAEMON] Schedule active={allowed}: {reason}")
+            return allowed
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to evaluate schedule state: {e}")
+            return True
+
+    def _replay_deferred_notifications_summary(self):
+        """Send a single summary toast for unread notifications deferred outside active hours."""
+        conn = None
+        deferred_count = 0
+        try:
+            conn = sqlite3.connect(self.app_db)
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM notification
+                WHERE read_status = 0
+                  AND COALESCE(panel_invoked, 0) = 0
+                  AND type != 'Sync'
+                """
+            )
+            deferred_count = int(cursor.fetchone()[0] or 0)
+        except Exception as e:
+            log.error(f"[DAEMON] Failed to query deferred notifications: {e}")
+            if conn:
+                conn.close()
+            return
+
+        if deferred_count <= 0:
+            if conn:
+                conn.close()
+            return
+
+        message = f"You have {deferred_count} notification(s) received outside working hours."
+        result = self.send_notification(
+            "Missed Notifications",
+            message,
+            nav_type=None,
+            record_id=None,
+            account_id=0
+        )
+
+        if self._panel_invoked_from_result(result):
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    UPDATE notification
+                    SET panel_invoked = 1
+                    WHERE read_status = 0
+                      AND COALESCE(panel_invoked, 0) = 0
+                      AND type != 'Sync'
+                    """
+                )
+                conn.commit()
+                log.info(f"[DAEMON] Replayed deferred notifications summary for {deferred_count} item(s)")
+            except Exception as e:
+                log.error(f"[DAEMON] Failed to mark deferred notifications as invoked: {e}")
+        else:
+            log.warning("[DAEMON] Deferred notification summary could not be delivered; will retry on next active transition")
+
+        if conn:
+            conn.close()
     
     def _check_version_and_restart(self):
         """
@@ -810,13 +922,14 @@ class NotificationDaemon:
 
             
             summary_msg = f"Synced {', '.join(summary_parts)} for {account_name}"
-            self.send_notification(
+            summary_delivery = self.send_notification(
                 "Sync Complete",
                 summary_msg,
                 nav_type=None,
                 record_id=None,
                 account_id=account_id
             )
+            bulk_panel_invoked = self._panel_invoked_from_result(summary_delivery)
             
             # Still add individual notifications to the DB (for history) but don't send popups
             # This ensures the notification center has the full list
@@ -826,7 +939,8 @@ class NotificationDaemon:
                     f"You've been assigned to task '{task.get('name', 'Unknown Task')}'.",
                     {"task_name": task.get('name'), "project_id": task.get('project_id'), 
                      "id": task.get('id'), "odoo_record_id": task.get('odoo_record_id'), 
-                     "is_new_assignment": True, "bulk_sync": True}
+                     "is_new_assignment": True, "bulk_sync": True},
+                    panel_invoked=bulk_panel_invoked
                 )
             for activity in new_assignments['new_activities']:
                 add_notification(
@@ -834,7 +948,8 @@ class NotificationDaemon:
                     f"New activity: {activity.get('summary') or 'New Activity'} (Due: {activity.get('due_date', 'No date')})",
                     {"summary": activity.get('summary'), "due_date": activity.get('due_date'),
                      "id": activity.get('id'), "odoo_record_id": activity.get('odoo_record_id'),
-                     "is_new_assignment": True, "bulk_sync": True}
+                     "is_new_assignment": True, "bulk_sync": True},
+                    panel_invoked=bulk_panel_invoked
                 )
             
             log.info(f"[DAEMON] Bulk sync summary notification sent for {account_name}")
@@ -875,7 +990,7 @@ class NotificationDaemon:
                 notification_msg = f"You've been assigned to task '{task_name}'"
             
             # Use odoo_record_id for navigation (stable across syncs, unlike local id)
-            self.send_notification(
+            task_delivery = self.send_notification(
                 "Task Assigned",
                 notification_msg,
                 nav_type="Task",
@@ -897,7 +1012,8 @@ class NotificationDaemon:
                     "create_uid": create_uid,
                     "assigner_name": assigner_name,
                     "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
-                }
+                },
+                panel_invoked=self._panel_invoked_from_result(task_delivery)
             )
         
         # Add remaining tasks to DB without sending popups
@@ -925,7 +1041,8 @@ class NotificationDaemon:
                     "create_uid": create_uid,
                     "assigner_name": assigner_name,
                     "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
-                }
+                },
+                panel_invoked=0
             )
         
         if new_assignments['new_tasks']:
@@ -967,7 +1084,7 @@ class NotificationDaemon:
                 notification_msg = f"New activity: {summary} (Due: {due_date})"
             
             # Use odoo_record_id for navigation (stable across syncs, unlike local id)
-            self.send_notification(
+            activity_delivery = self.send_notification(
                 "Activity Assigned",
                 notification_msg,
                 nav_type="Activity",
@@ -989,7 +1106,8 @@ class NotificationDaemon:
                     "create_uid": create_uid,
                     "assigner_name": assigner_name,
                     "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
-                }
+                },
+                panel_invoked=self._panel_invoked_from_result(activity_delivery)
             )
         
         # Add remaining activities to DB without sending popups
@@ -1018,7 +1136,8 @@ class NotificationDaemon:
                     "create_uid": create_uid,
                     "assigner_name": assigner_name,
                     "assigner_avatar": assigner_info.get('avatar_128') if assigner_info else None
-                }
+                },
+                panel_invoked=0
             )
         
         if new_assignments['new_activities']:
@@ -1043,7 +1162,7 @@ class NotificationDaemon:
                 continue
             
             # Use odoo_record_id for navigation (stable across syncs, unlike local id)
-            self.send_notification(
+            project_delivery = self.send_notification(
                 "Project Added",
                 f"You now have access to project '{project_name}'.",
                 nav_type="Project",
@@ -1055,7 +1174,8 @@ class NotificationDaemon:
                 account_id,
                 "Project",
                 f"You now have access to project '{project_name}'.",
-                {"project_name": project_name, "id": local_project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True, "create_uid": create_uid}
+                {"project_name": project_name, "id": local_project_id, "odoo_record_id": odoo_record_id, "is_new_assignment": True, "create_uid": create_uid},
+                panel_invoked=self._panel_invoked_from_result(project_delivery)
             )
         
         # Add remaining projects to DB without sending popups
@@ -1065,7 +1185,8 @@ class NotificationDaemon:
                 f"You now have access to project '{project.get('name', 'Unknown Project')}'.",
                 {"project_name": project.get('name'), "id": project.get('id'), 
                  "odoo_record_id": project.get('odoo_record_id'),
-                 "is_new_assignment": True, "notification_suppressed": True}
+                 "is_new_assignment": True, "notification_suppressed": True},
+                panel_invoked=0
             )
         
         if new_assignments['new_projects']:
@@ -1106,7 +1227,7 @@ class NotificationDaemon:
             else:
                 notification_msg = f"New update on project '{project_name}': {update_name}"
             
-            self.send_notification(
+            project_update_delivery = self.send_notification(
                 "Project Update",
                 notification_msg,
                 nav_type="Project",
@@ -1127,7 +1248,8 @@ class NotificationDaemon:
                     "create_uid": create_uid,
                     "author_name": author_name,
                     "author_avatar": author_info.get('avatar_128') if author_info else None
-                }
+                },
+                panel_invoked=self._panel_invoked_from_result(project_update_delivery)
             )
         
         # Add remaining project updates to DB without sending popups
@@ -1157,7 +1279,8 @@ class NotificationDaemon:
                     "create_uid": create_uid,
                     "author_name": author_name,
                     "notification_suppressed": True
-                }
+                },
+                panel_invoked=0
             )
         
         if new_assignments.get('new_project_updates'):
@@ -1416,10 +1539,13 @@ class NotificationDaemon:
             
             # Read global settings
             global_settings = self._get_sync_settings()
+
+            current_schedule_allowed = self._is_schedule_active_now()
             
             # Global kill switch
             if not global_settings["autosync_enabled"]:
                 log.debug("[DAEMON] Global AutoSync is disabled, skipping tick")
+                self._last_schedule_allowed = current_schedule_allowed
                 return True  # Keep ticking so we can resume when re-enabled
             
             now = datetime.now(timezone.utc)
@@ -1479,6 +1605,12 @@ class NotificationDaemon:
                 log.info("[DAEMON] Tick sync completed successfully")
             else:
                 log.debug(f"[DAEMON] Tick: no accounts due for sync")
+
+            if self._last_schedule_allowed in (None, False) and current_schedule_allowed is True:
+                log.info("[DAEMON] Schedule transitioned to active hours, replaying deferred notifications")
+                self._replay_deferred_notifications_summary()
+
+            self._last_schedule_allowed = current_schedule_allowed
                 
         except Exception as e:
             log.error(f"[DAEMON] Tick failed: {e}")
