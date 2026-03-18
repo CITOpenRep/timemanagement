@@ -46,7 +46,8 @@ function initializeDatabase() {
             "message TEXT NOT NULL," +
             "type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'Timesheet', 'Sync'))," +
             "payload TEXT NOT NULL," +
-            "read_status INTEGER DEFAULT 0" +
+            "read_status INTEGER DEFAULT 0," +
+            "panel_invoked INTEGER DEFAULT 0" +
         ")",
         [
             "id INTEGER",
@@ -55,7 +56,8 @@ function initializeDatabase() {
             "message TEXT",
             "type TEXT",
             "payload TEXT",
-            "read_status INTEGER"
+            "read_status INTEGER",
+            "panel_invoked INTEGER"
         ]
     );
 

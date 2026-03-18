@@ -203,7 +203,7 @@ def write_sync_report_to_db(db_path, account_id, status, message=""):
     conn.commit()
     conn.close()
 
-def add_notification(db_path, account_id, notif_type, message, payload):
+def add_notification(db_path, account_id, notif_type, message, payload, panel_invoked=0):
     """
     Insert a notification record into the notification table.
 
@@ -213,6 +213,8 @@ def add_notification(db_path, account_id, notif_type, message, payload):
         notif_type (str): Type of notification ('Activity', 'Task', 'Project', 'Timesheet', 'Sync')
         message (str): The main message body of the notification
         payload (dict or list): Any JSON-serializable metadata payload
+        panel_invoked (int|bool): Whether this notification has already been
+            invoked to the system panel (1) or is still deferred (0)
 
     Note:
         Creates notification table if it doesn't exist with proper schema constraints.
@@ -230,7 +232,8 @@ def add_notification(db_path, account_id, notif_type, message, payload):
             message TEXT NOT NULL,
             type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'Timesheet', 'Sync')),
             payload TEXT NOT NULL,
-            read_status INTEGER DEFAULT 0
+            read_status INTEGER DEFAULT 0,
+            panel_invoked INTEGER DEFAULT 0
         )
     """
 
@@ -258,8 +261,8 @@ def add_notification(db_path, account_id, notif_type, message, payload):
         pass
 
     insert_sql = """
-        INSERT INTO notification (account_id, timestamp, message, type, payload, read_status)
-        VALUES (?, ?, ?, ?, ?, 0)
+        INSERT INTO notification (account_id, timestamp, message, type, payload, read_status, panel_invoked)
+        VALUES (?, ?, ?, ?, ?, 0, ?)
     """
 
     timestamp = datetime.utcnow().isoformat() + "Z"
@@ -278,11 +281,26 @@ def add_notification(db_path, account_id, notif_type, message, payload):
         except Exception:
             pass  # Don't fail the insert if cleanup fails
 
-    safe_sql_execute(
-        db_path,
-        insert_sql,
-        (account_id, timestamp, message, notif_type, payload_json)
-    )
+    try:
+        safe_sql_execute(
+            db_path,
+            insert_sql,
+            (account_id, timestamp, message, notif_type, payload_json, 1 if panel_invoked else 0)
+        )
+    except sqlite3.OperationalError as e:
+        # Upgrade path: old databases may not yet include panel_invoked.
+        if "no column named panel_invoked" in str(e).lower():
+            safe_sql_execute(
+                db_path,
+                "ALTER TABLE notification ADD COLUMN panel_invoked INTEGER DEFAULT 0"
+            )
+            safe_sql_execute(
+                db_path,
+                insert_sql,
+                (account_id, timestamp, message, notif_type, payload_json, 1 if panel_invoked else 0)
+            )
+        else:
+            raise
 
 
 def clear_sync_notifications(db_path, account_id, model_name=None):
