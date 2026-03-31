@@ -296,11 +296,28 @@ function fetchTimesheetsByStatusPaginated(status, accountId, limit, offset) {
                 var projectName = "Unknown Project";
                 var inheritedColor = 0;
                 if (row.project_id) {
-                    var rs_project = tx.executeSql("SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1", [row.project_id]);
+                    var projectAccountId = row.account_id || null;
+                    var rs_project = projectAccountId ?
+                        tx.executeSql(
+                            "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
+                            [row.project_id, projectAccountId]
+                        ) :
+                        tx.executeSql(
+                            "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                            [row.project_id]
+                        );
                     if (rs_project.rows.length > 0) {
                         var project_row = rs_project.rows.item(0);
                         if (project_row.parent_id && project_row.parent_id > 0) {
-                            var rs_parent = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1", [project_row.parent_id]);
+                            var rs_parent = projectAccountId ?
+                                tx.executeSql(
+                                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
+                                    [project_row.parent_id, projectAccountId]
+                                ) :
+                                tx.executeSql(
+                                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                                    [project_row.parent_id]
+                                );
                             projectName = rs_parent.rows.length > 0 ? rs_parent.rows.item(0).name + " / " + project_row.name : project_row.name;
                             inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
                         } else {
@@ -610,10 +627,11 @@ function getTimesheetsForTaskPaginated(taskOdooRecordId, accountId, status, limi
         db.transaction(function (tx) {
             // Build map of odoo_record_id -> color_pallet
             var projectColorMap = {};
-            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+            var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet, account_id FROM project_project_app");
             for (var j = 0; j < projectResult.rows.length; j++) {
                 var projectRow = projectResult.rows.item(j);
-                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+                var colorKey = projectRow.account_id + ":" + projectRow.odoo_record_id;
+                projectColorMap[colorKey] = projectRow.color_pallet;
             }
 
             var query = "";
@@ -656,27 +674,41 @@ function getTimesheetsForTaskPaginated(taskOdooRecordId, accountId, status, limi
                 var inheritedColor = 0;
 
                 if (row.project_id) {
-                    var rs_project = tx.executeSql(
-                        "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                        [row.project_id]
-                    );
+                    var accountId = row.account_id || null;
+                    var rs_project = accountId ?
+                        tx.executeSql(
+                            "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
+                            [row.project_id, accountId]
+                        ) :
+                        tx.executeSql(
+                            "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                            [row.project_id]
+                        );
 
                     if (rs_project.rows.length > 0) {
                         var project_row = rs_project.rows.item(0);
                         if (project_row.parent_id && project_row.parent_id > 0) {
-                            var rs_parent = tx.executeSql(
-                                "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                                [project_row.parent_id]
-                            );
+                            var rs_parent = accountId ?
+                                tx.executeSql(
+                                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
+                                    [project_row.parent_id, accountId]
+                                ) :
+                                tx.executeSql(
+                                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
+                                    [project_row.parent_id]
+                                );
                             if (rs_parent.rows.length > 0) {
                                 projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
                             } else {
                                 projectName = project_row.name;
                             }
-                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
+                            var projectColorKey = accountId + ":" + row.project_id;
+                            var parentColorKey = accountId + ":" + project_row.parent_id;
+                            inheritedColor = projectColorMap[projectColorKey] || projectColorMap[parentColorKey] || 0;
                         } else {
                             projectName = project_row.name;
-                            inheritedColor = projectColorMap[row.project_id] || 0;
+                            var directColorKey = accountId + ":" + row.project_id;
+                            inheritedColor = projectColorMap[directColorKey] || 0;
                         }
                     }
                 }
