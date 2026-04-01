@@ -38,9 +38,156 @@ import "../models/accounts.js" as Account
 import "../models/global.js" as Global
 import io.thp.pyotherside 1.4
 import "components"
+import "components/settings"
 
 Page {
     id: mainPage
+
+    Controls.Drawer {
+        id: sideMenuDrawer
+
+    Connections {
+        target: apLayout
+        onCurrentPageChanged: {
+            if (sideMenuDrawer.opened && apLayout.currentPage !== mainPage) {
+                sideMenuDrawer.close();
+            }
+        }
+    }
+
+        width: Math.min(parent.width * 0.75, units.gu(35))
+        height: parent.height
+        
+        Rectangle {
+            anchors.fill: parent
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#f2f2f7"
+            
+            Flickable {
+                anchors.fill: parent
+                contentHeight: menuColumn.height + units.gu(4)
+                clip: true
+
+                Column {
+                    id: menuColumn
+                    width: parent.width
+
+                    // Header for the Drawer
+                    Rectangle {
+                        width: parent.width
+                        height: units.gu(8)
+                        color: LomiriColors.orange
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.leftMargin: units.gu(2)
+                            text: i18n.dtr("ubtms", "Menu")
+                            color: "white"
+                            fontSize: "large"
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: mainSection.height
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e1e1e" : "#ffffff"
+
+                        Column {
+                            id: mainSection
+                            width: parent.width
+
+                            SettingsListItem {
+                                iconName: "home"
+                                iconColor: "#3498db"
+                                text: i18n.dtr("ubtms", "Dashboard")
+                                onClicked: {
+                                    sideMenuDrawer.close();
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "alarm-clock"
+                                iconColor: "#e67e22"
+                                text: i18n.dtr("ubtms", "Timesheet")
+                                onClicked: {
+                                    sideMenuDrawer.close();
+                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
+                                    page = 1; apLayout.setCurrentPage(page);
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "calendar"
+                                iconColor: "#e74c3c"
+                                text: i18n.dtr("ubtms", "Activities")
+                                onClicked: {
+                                    sideMenuDrawer.close();
+                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
+                                    page = 2; apLayout.setCurrentPage(page);
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "scope-manager"
+                                iconColor: "#2ecc71"
+                                text: i18n.dtr("ubtms", "My Tasks")
+                                onClicked: {
+                                    sideMenuDrawer.close();
+                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("MyTasks.qml"));
+                                    page = 3; apLayout.setCurrentPage(page);
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "view-list-symbolic"
+                                iconColor: "#1abc9c"
+                                text: i18n.dtr("ubtms", "All Tasks")
+                                onClicked: {
+                                    sideMenuDrawer.close();
+                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
+                                    page = 3; apLayout.setCurrentPage(page);
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "folder-symbolic"
+                                iconColor: "#9b59b6"
+                                text: i18n.dtr("ubtms", "Projects")
+                                onClicked: {
+                                    sideMenuDrawer.close();
+                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"));
+                                    page = 4; apLayout.setCurrentPage(page);
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "history"
+                                iconColor: "#f39c12"
+                                text: i18n.dtr("ubtms", "Project Updates")
+                                onClicked: {
+                                    sideMenuDrawer.close();
+                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
+                                    page = 5; apLayout.setCurrentPage(page);
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "settings"
+                                iconColor: "#7f8c8d"
+                                text: i18n.dtr("ubtms", "Settings")
+                                showDivider: false
+                                onClicked: {
+                                    sideMenuDrawer.close();
+                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("settings/Settings_Page.qml"));
+                                    page = 6; apLayout.setCurrentPage(page);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     title: i18n.dtr("ubtms", "Time Manager - Time Management Dashboard")
     anchors.fill: parent
     property bool isMultiColumn: apLayout.columns > 1
@@ -107,14 +254,27 @@ Page {
         // Notification Bell in header
         leadingActionBar.actions: [
             Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: !isMultiColumn
+                onTriggered: {
+                    sideMenuDrawer.open()
+                }
+            }
+        ]
+
+        trailingActionBar.visible: isMultiColumn ? false : true
+        trailingActionBar.numberOfSlots: 5
+
+        trailingActionBar.actions: [
+            Action {
                 id: notificationAction
-                //todo : Fix the Icons visibility based on notification count
                 iconSource: notificationBell.totalCount > 0 ? "images/notification_active.png" : "images/notification.png"
                 text: notificationBell.totalCount > 0 ? 
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.totalCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
                 onTriggered: {
-                    // Always refresh from DB before deciding what to show.
                     notificationBell.loadNotifications();
                     if (notificationBell.totalCount > 0) {
                         notificationBell.openPopup();
@@ -122,19 +282,12 @@ Page {
                         notifPopup.open("No Notifications", "You have no new notifications", "info");
                     }
                 }
-            }
-        ]
-
-        trailingActionBar.visible: isMultiColumn ? false : true
-        trailingActionBar.numberOfSlots: 4
-
-        trailingActionBar.actions: [
-         
+            },
             Action {
-                iconName: "account"
-                text: i18n.dtr("ubtms", "Switch Accounts")
+                iconName: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
+                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Light Mode") : i18n.dtr("ubtms","Dark Mode")
                 onTriggered: {
-                    accountPicker.open(accountPicker.selectedAccountId);
+                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
                 }
             },
             Action {
@@ -147,73 +300,25 @@ Page {
                 }
             },
             Action {
-                iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
-                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Light Mode") : i18n.dtr("ubtms","Dark Mode")
+                iconName: "account"
+                text: i18n.dtr("ubtms", "Switch Accounts")
                 onTriggered: {
-                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                    accountPicker.open(accountPicker.selectedAccountId);
                 }
             },
             Action {
-                iconName: "clock"
-                text: i18n.dtr("ubtms", "Timesheet")
+                iconName: "reminder-new"
+                text: i18n.dtr("ubtms", "New Timesheet")
                 onTriggered: {
-                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
-                    page = 7;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "calendar"
-                text: i18n.dtr("ubtms", "Activities")
-                onTriggered: {
-                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
-                    page = 2;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "scope-manager"
-                text: i18n.dtr("ubtms", "My Tasks")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("MyTasks.qml"));
-                    page = 3;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "view-list-symbolic"
-                text: i18n.dtr("ubtms", "All Tasks")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
-                    page = 3;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "folder-symbolic"
-                text: i18n.dtr("ubtms", "Projects")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"));
-                    page = 4;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "history"
-                text: i18n.dtr("ubtms", "Project Updates")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
-                    page = 5;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "settings"
-                text: i18n.dtr("ubtms", "Settings")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("settings/Settings_Page.qml"));
-                    page = 6;
-                    apLayout.setCurrentPage(page);
+                    const result = TimesheetModel.createTimesheet(accountPicker.selectedAccountId, Account.getCurrentUserOdooId(accountPicker.selectedAccountId));
+                    if (result.success) {
+                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                            "recordid": result.id,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        console.error("Error creating timesheet: " + result.message);
+                    }
                 }
             }
         ]

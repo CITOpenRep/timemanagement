@@ -46,45 +46,7 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        trailingActionBar.actions: [
-            Action {
-                iconName: "reminder-new"
-                text: "New Timesheet"
-                onTriggered: {
-                    const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
-                    if (result.success) {
-                        apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet.qml"), {
-                            "recordid": result.id,
-                            "isReadOnly": false
-                        });
-                    } else {
-                        console.error("Error creating timesheet: " + result.message);
-                    }
-                    page = 1;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "weather-clear-night-symbolic" : "weather-clear-symbolic"
-                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
-                onTriggered: {
-                    var newTheme = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
-                    Theme.name = newTheme;
-
-                    // // Save theme preference to persist across app restarts // We are not saving the theme preference from here.
-                    // if (typeof mainView !== 'undefined' && mainView.saveThemePreference) {
-                    //     mainView.saveThemePreference(newTheme);
-                    // }
-                }
-            },
-            Action {
-                iconName: "account"
-                text: i18n.dtr("ubtms", "Switch Accounts")
-                onTriggered: {
-                    accountPicker.open(accountPicker.selectedAccountId);
-                }
-            }
-        ]
+        trailingActionBar.actions: []
     }
 
     readonly property bool isDark: theme.name === "Ubuntu.Components.Themes.SuruDark"
