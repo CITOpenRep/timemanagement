@@ -34,6 +34,18 @@ Page {
     header: SettingsHeader {
         id: pageHeader
         title: settings.title
+        leadingActionBar.actions: [
+            Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: typeof isMultiColumn !== "undefined" ? !isMultiColumn : (apLayout.columns === 1)
+                onTriggered: {
+                    apLayout.openGlobalDrawer()
+                }
+            }
+        ]
+
     }
 
     SettingsPageLayout {

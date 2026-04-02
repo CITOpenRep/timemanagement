@@ -23,6 +23,7 @@
  */
 
 import QtQuick 2.6
+import QtQuick.Controls 2.2 as Controls
 import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
@@ -33,6 +34,7 @@ import "../models/notifications.js" as Notifications
 import Pparent.Notifications 1.0
 import "components"
 import "."
+import "components/settings"
 import "settings"
 
 /*
@@ -279,6 +281,12 @@ MainView {
         property Page thirdPage: dashboard_page2
         primaryPage: splash_page
 
+        function openGlobalDrawer() {
+            if (typeof globalDrawer !== "undefined") {
+                globalDrawer.open();
+            }
+        }
+
         layouts: [
             //Tablet Layout
             PageColumnsLayout {
@@ -447,6 +455,43 @@ MainView {
             }
         }
 
+        
+    function setPageGlobal(url, pageNum) {
+        // Map URLs to pre-instantiated root pages if they exist
+        var targetPage = null;
+        if (pageNum === 0) targetPage = dashboard_page;
+        else if (pageNum === 1) targetPage = timesheet_list || timesheet_page;
+        else if (pageNum === 2) targetPage = activity_page;
+        else if (pageNum === 3 && url.indexOf("MyTasks") === -1) targetPage = task_page;
+        else if (pageNum === 4) targetPage = project_page;
+        else if (pageNum === 6) targetPage = settings_page;
+        
+        if (targetPage !== null) {
+            apLayout.currentPage = targetPage;
+        }
+        
+        if (apLayout.columns === 1) {
+            // For single column, replace primary page to dodge back-stack
+            if (targetPage !== null) {
+                apLayout.primaryPage = targetPage;
+            } else {
+                // Unmapped pages need to be added to the dashboard dynamically
+                apLayout.primaryPage = dashboard_page;
+                apLayout.addPageToCurrentColumn(dashboard_page, Qt.resolvedUrl(url));
+            }
+        } else {
+            // For multiple columns, Menu is the primary page
+            apLayout.primaryPage = menu_page;
+            if (targetPage !== null) {
+                apLayout.addPageToNextColumn(menu_page, targetPage);
+            } else {
+                apLayout.addPageToNextColumn(menu_page, Qt.resolvedUrl(url));
+            }
+        }
+        setCurrentPage(pageNum);
+        globalDrawer.close();
+    }
+
         function setCurrentPage(page) {
             console.log("📄 Setting current page to:", page);
             switch (page) {
@@ -471,10 +516,6 @@ MainView {
                 break;
             case 4:
                 currentPage = project_page;
-                thirdPage = null;
-                break;
-            case 5:
-                currentPage = sync_page;
                 thirdPage = null;
                 break;
             case 6:
@@ -841,6 +882,147 @@ MainView {
             console.log("💾 Theme preference saved:", themeName);
         } catch (e) {
             console.warn("⚠️  Error saving theme preference:", e);
+        }
+    }
+
+    Controls.Drawer {
+        id: globalDrawer
+    edge: Qt.LeftEdge
+    interactive: true
+
+    Connections {
+        target: apLayout
+        onCurrentPageChanged: {
+            if (globalDrawer.opened && apLayout.currentPage !== mainPage) {
+                globalDrawer.close();
+            }
+        }
+    }
+
+        width: Math.min(parent.width * 0.75, units.gu(35))
+        height: parent.height
+        
+        Rectangle {
+            anchors.fill: parent
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#f2f2f7"
+            
+            Flickable {
+                anchors.fill: parent
+                contentHeight: menuColumn.height + units.gu(4)
+                clip: true
+
+                Column {
+                    id: menuColumn
+                    width: parent.width
+
+                    // Header for the Drawer
+                    Rectangle {
+                        width: parent.width
+                        height: units.gu(8)
+                        color: LomiriColors.orange
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.leftMargin: units.gu(2)
+                            text: i18n.dtr("ubtms", "Menu")
+                            color: "white"
+                            fontSize: "large"
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: mainSection.height
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e1e1e" : "#ffffff"
+
+                        Column {
+                            id: mainSection
+                            width: parent.width
+
+                            SettingsListItem {
+                                iconName: "home"
+                                iconColor: "#3498db"
+                                text: i18n.dtr("ubtms", "Dashboard")
+                                onClicked: {
+                                    globalDrawer.close();
+                                    apLayout.setPageGlobal("Dashboard.qml", 0)
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "alarm-clock"
+                                iconColor: "#e67e22"
+                                text: i18n.dtr("ubtms", "Timesheet")
+                                onClicked: {
+                                    globalDrawer.close();
+                                    apLayout.setPageGlobal("Timesheet_Page.qml", 1)
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "calendar"
+                                iconColor: "#e74c3c"
+                                text: i18n.dtr("ubtms", "Activities")
+                                onClicked: {
+                                    globalDrawer.close();
+                                    apLayout.setPageGlobal("Activity_Page.qml", 2)
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "scope-manager"
+                                iconColor: "#2ecc71"
+                                text: i18n.dtr("ubtms", "My Tasks")
+                                onClicked: {
+                                    globalDrawer.close();
+                                    apLayout.setPageGlobal("MyTasks.qml", 3)
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "view-list-symbolic"
+                                iconColor: "#1abc9c"
+                                text: i18n.dtr("ubtms", "All Tasks")
+                                onClicked: {
+                                    globalDrawer.close();
+                                    apLayout.setPageGlobal("Task_Page.qml", 3)
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "folder-symbolic"
+                                iconColor: "#9b59b6"
+                                text: i18n.dtr("ubtms", "Projects")
+                                onClicked: {
+                                    globalDrawer.close();
+                                    apLayout.setPageGlobal("Project_Page.qml", 4)
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "history"
+                                iconColor: "#f39c12"
+                                text: i18n.dtr("ubtms", "Project Updates")
+                                onClicked: {
+                                    globalDrawer.close();
+                                    apLayout.setPageGlobal("Updates_Page.qml", 5)
+                                }
+                            }
+
+                            SettingsListItem {
+                                iconName: "settings"
+                                iconColor: "#7f8c8d"
+                                text: i18n.dtr("ubtms", "Settings")
+                                showDivider: false
+                                onClicked: {
+                                    globalDrawer.close();
+                                    apLayout.setPageGlobal("settings/Settings_Page.qml", 6)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

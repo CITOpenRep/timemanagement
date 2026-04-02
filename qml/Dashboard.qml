@@ -43,150 +43,7 @@ import "components/settings"
 Page {
     id: mainPage
 
-    Controls.Drawer {
-        id: sideMenuDrawer
 
-    Connections {
-        target: apLayout
-        onCurrentPageChanged: {
-            if (sideMenuDrawer.opened && apLayout.currentPage !== mainPage) {
-                sideMenuDrawer.close();
-            }
-        }
-    }
-
-        width: Math.min(parent.width * 0.75, units.gu(35))
-        height: parent.height
-        
-        Rectangle {
-            anchors.fill: parent
-            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#f2f2f7"
-            
-            Flickable {
-                anchors.fill: parent
-                contentHeight: menuColumn.height + units.gu(4)
-                clip: true
-
-                Column {
-                    id: menuColumn
-                    width: parent.width
-
-                    // Header for the Drawer
-                    Rectangle {
-                        width: parent.width
-                        height: units.gu(8)
-                        color: LomiriColors.orange
-                        Label {
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: parent.left
-                            anchors.leftMargin: units.gu(2)
-                            text: i18n.dtr("ubtms", "Menu")
-                            color: "white"
-                            fontSize: "large"
-                        }
-                    }
-
-                    Rectangle {
-                        width: parent.width
-                        height: mainSection.height
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e1e1e" : "#ffffff"
-
-                        Column {
-                            id: mainSection
-                            width: parent.width
-
-                            SettingsListItem {
-                                iconName: "home"
-                                iconColor: "#3498db"
-                                text: i18n.dtr("ubtms", "Dashboard")
-                                onClicked: {
-                                    sideMenuDrawer.close();
-                                }
-                            }
-
-                            SettingsListItem {
-                                iconName: "alarm-clock"
-                                iconColor: "#e67e22"
-                                text: i18n.dtr("ubtms", "Timesheet")
-                                onClicked: {
-                                    sideMenuDrawer.close();
-                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
-                                    page = 1; apLayout.setCurrentPage(page);
-                                }
-                            }
-
-                            SettingsListItem {
-                                iconName: "calendar"
-                                iconColor: "#e74c3c"
-                                text: i18n.dtr("ubtms", "Activities")
-                                onClicked: {
-                                    sideMenuDrawer.close();
-                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
-                                    page = 2; apLayout.setCurrentPage(page);
-                                }
-                            }
-
-                            SettingsListItem {
-                                iconName: "scope-manager"
-                                iconColor: "#2ecc71"
-                                text: i18n.dtr("ubtms", "My Tasks")
-                                onClicked: {
-                                    sideMenuDrawer.close();
-                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("MyTasks.qml"));
-                                    page = 3; apLayout.setCurrentPage(page);
-                                }
-                            }
-
-                            SettingsListItem {
-                                iconName: "view-list-symbolic"
-                                iconColor: "#1abc9c"
-                                text: i18n.dtr("ubtms", "All Tasks")
-                                onClicked: {
-                                    sideMenuDrawer.close();
-                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
-                                    page = 3; apLayout.setCurrentPage(page);
-                                }
-                            }
-
-                            SettingsListItem {
-                                iconName: "folder-symbolic"
-                                iconColor: "#9b59b6"
-                                text: i18n.dtr("ubtms", "Projects")
-                                onClicked: {
-                                    sideMenuDrawer.close();
-                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"));
-                                    page = 4; apLayout.setCurrentPage(page);
-                                }
-                            }
-
-                            SettingsListItem {
-                                iconName: "history"
-                                iconColor: "#f39c12"
-                                text: i18n.dtr("ubtms", "Project Updates")
-                                onClicked: {
-                                    sideMenuDrawer.close();
-                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
-                                    page = 5; apLayout.setCurrentPage(page);
-                                }
-                            }
-
-                            SettingsListItem {
-                                iconName: "settings"
-                                iconColor: "#7f8c8d"
-                                text: i18n.dtr("ubtms", "Settings")
-                                showDivider: false
-                                onClicked: {
-                                    sideMenuDrawer.close();
-                                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("settings/Settings_Page.qml"));
-                                    page = 6; apLayout.setCurrentPage(page);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     title: i18n.dtr("ubtms", "Time Manager - Time Management Dashboard")
     anchors.fill: parent
@@ -259,7 +116,7 @@ Page {
                 text: i18n.dtr("ubtms", "Menu")
                 visible: !isMultiColumn
                 onTriggered: {
-                    sideMenuDrawer.open()
+                    globalDrawer.open()
                 }
             }
         ]
