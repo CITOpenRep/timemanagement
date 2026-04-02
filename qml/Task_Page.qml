@@ -139,6 +139,7 @@ Page {
                             id: id,
                             odoo_record_id: id,
                             name: assignee.name,
+                            email: assignee.email || "",
                             account_name: assignee.account_name || "",
                             account_id: projectAccountId
                         });
@@ -146,6 +147,7 @@ Page {
                 }
 
                 availableAssignees = filteredAssignees;
+                assigneeFilterMenu.showAccountName = false;
                 assigneeFilterMenu.assigneeModel = availableAssignees;
             } else if (currentAccountId >= 0) {
                 // Use the same method as MultiAssigneeSelector for specific account
@@ -162,6 +164,7 @@ Page {
                             id: id,
                             odoo_record_id: id,
                             name: assignee.name,
+                            email: assignee.email || "",
                             account_name: assignee.account_name || "",
                             account_id: currentAccountId
                         });
@@ -169,11 +172,13 @@ Page {
                 }
 
                 availableAssignees = filteredAssignees;
+                assigneeFilterMenu.showAccountName = false;
                 assigneeFilterMenu.assigneeModel = availableAssignees;
             } else {
                 // For "All Accounts" (-1), load assignees from all accounts that have tasks
 
                 availableAssignees = Task.getAllTaskAssignees(-1); // -1 means all accounts
+                assigneeFilterMenu.showAccountName = true;
                 assigneeFilterMenu.assigneeModel = availableAssignees;
             }
         } catch (e) {
@@ -402,22 +407,22 @@ Page {
         z: 10
 
         onFilterApplied: function (assigneeIds) {
-            // Read directly from AssigneeFilterMenu to avoid timing issues
-            var actualSelectedIds = assigneeFilterMenu.selectedAssigneeIds;
+            // Always use the signal payload copy to avoid sharing mutable array references.
+            var actualSelectedIds = assigneeIds || [];
             //console.log("Assignee filter applied - Reading directly from AssigneeFilterMenu");
             //console.log("   Passed parameter:", JSON.stringify(assigneeIds));
             //console.log("   Actual selected IDs:", JSON.stringify(actualSelectedIds));
 
-            selectedAssigneeIds = actualSelectedIds;
+            selectedAssigneeIds = actualSelectedIds.slice();
             filterByAssignees = (actualSelectedIds && actualSelectedIds.length > 0);
 
             // Save to global state for persistence across navigation
-            Global.setAssigneeFilter(filterByAssignees, actualSelectedIds);
+            Global.setAssigneeFilter(filterByAssignees, actualSelectedIds.slice());
             //console.log("Assignee filter saved to global state - enabled:", filterByAssignees);
 
             // Update TaskList properties
             tasklist.filterByAssignees = filterByAssignees;
-            tasklist.selectedAssigneeIds = actualSelectedIds;
+            tasklist.selectedAssigneeIds = actualSelectedIds.slice();
 
             //console.log("TaskList properties updated - filterByAssignees:", tasklist.filterByAssignees, "selectedAssigneeIds:", JSON.stringify(tasklist.selectedAssigneeIds));
 

@@ -142,20 +142,27 @@ def get_all_accounts(settings_db_path):
         Returns empty list if the database or table doesn't exist yet.
     """
     try:
-        conn = sqlite3.connect(settings_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT id, name, link, database, username, api_key, "
-            "sync_interval_minutes, sync_direction, autosync_enabled, last_synced_at "
-            "FROM users"
-        )
-        rows = cur.fetchall()
-        conn.close()
-        columns = [
-            "id", "name", "link", "database", "username", "api_key",
-            "sync_interval_minutes", "sync_direction", "autosync_enabled", "last_synced_at"
-        ]
-        return [dict(zip(columns, row)) for row in rows]
+        with sqlite3.connect(settings_db_path) as conn:
+            cur = conn.cursor()
+            # Backward compatibility: older databases may not have per-account sync columns yet.
+            cur.execute("PRAGMA table_info(users)")
+            existing_columns = {row[1] for row in cur.fetchall()}
+
+            projected_columns = [
+                "id", "name", "link", "database", "username", "api_key",
+                "sync_interval_minutes", "sync_direction", "autosync_enabled", "last_synced_at"
+            ]
+            select_parts = []
+            for col in projected_columns:
+                if col in existing_columns:
+                    select_parts.append(col)
+                else:
+                    select_parts.append(f"NULL AS {col}")
+
+            query = f"SELECT {', '.join(select_parts)} FROM users"
+            cur.execute(query)
+            rows = cur.fetchall()
+        return [dict(zip(projected_columns, row)) for row in rows]
     except sqlite3.OperationalError as e:
         # Table doesn't exist yet - QML app hasn't been opened
         if "no such table" in str(e):

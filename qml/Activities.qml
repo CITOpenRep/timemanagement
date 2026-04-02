@@ -1186,6 +1186,10 @@ Page {
         if (!result.success) {
             notifPopup.open("Error", "Unable to save the Activity", "error");
         } else {
+            // Ensure next saves use UPDATE path instead of INSERT.
+            if (result.recordId && result.recordId > 0) {
+                recordid = result.recordId;
+            }
             hasBeenSaved = true;  // Mark that this activity has been properly saved
             formModified = false; // Reset form modification flag after successful save
             

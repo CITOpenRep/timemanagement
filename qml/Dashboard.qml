@@ -109,12 +109,14 @@ Page {
             Action {
                 id: notificationAction
                 //todo : Fix the Icons visibility based on notification count
-                iconSource: notificationBell.notificationCount > 0 ? "images/notification_active.png" : "images/notification.png"
-                text: notificationBell.notificationCount > 0 ? 
-                      i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.notificationCount + ")" : 
+                iconSource: notificationBell.totalCount > 0 ? "images/notification_active.png" : "images/notification.png"
+                text: notificationBell.totalCount > 0 ? 
+                      i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.totalCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
                 onTriggered: {
-                    if (notificationBell.notificationCount > 0) {
+                    // Always refresh from DB before deciding what to show.
+                    notificationBell.loadNotifications();
+                    if (notificationBell.totalCount > 0) {
                         notificationBell.openPopup();
                     } else {
                         notifPopup.open("No Notifications", "You have no new notifications", "info");
@@ -458,16 +460,16 @@ Page {
         // Track previous count to detect new notifications
         property int previousCount: 0
         
-        onNotificationCountChanged: {
-            if (notificationCount > previousCount && previousCount > 0) {
-                var newCount = notificationCount - previousCount;
+        onTotalCountChanged: {
+            if (totalCount > previousCount && previousCount > 0) {
+                var newCount = totalCount - previousCount;
                 notifPopup.open(
                     i18n.dtr("ubtms", "New Notifications"),
                     i18n.dtr("ubtms", "You have %1 new notification(s)").arg(newCount),
                     "info"
                 );
             }
-            previousCount = notificationCount;
+            previousCount = totalCount;
         }
         
         // Handle navigation from notification clicks

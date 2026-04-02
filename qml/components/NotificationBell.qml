@@ -21,6 +21,7 @@ Item {
     // Separate counts for badge display
     property int normalCount: 0
     property int syncCount: 0
+    property int totalCount: 0
     
     // Signal emitted when navigation is requested
     signal navigateToRecord(string navType, int recordId, int accountId)
@@ -32,6 +33,11 @@ Item {
     }
 
     function loadNotifications() {
+        // Refresh tab badge counts first so header/UI state is always current.
+        normalCount = Notifications.getUnreadNormalCount();
+        syncCount = Notifications.getUnreadSyncCount();
+        totalCount = normalCount + syncCount;
+
         // Load based on current filter
         var rawList;
         if (activeFilter === "sync") {
@@ -90,18 +96,26 @@ Item {
         notificationList = dedupedList;
         notificationCount = notificationList.length;
 
-        // Always refresh both counts for the tab badges
-        normalCount = Notifications.getUnreadNormalCount();
-        syncCount = Notifications.getUnreadSyncCount();
-
         // System badge reflects total unread
-        badgeHelper.updateCount(normalCount + syncCount);
+        badgeHelper.updateCount(totalCount);
         
         console.log("[NotificationBell] Final notificationList.length: " + notificationList.length);
     }
     
     function openPopup() {
         loadNotifications();
+
+        // If the active tab is empty but the other tab has items, show the non-empty tab.
+        if (notificationCount === 0 && totalCount > 0) {
+            if (activeFilter === "normal" && syncCount > 0) {
+                activeFilter = "sync";
+                loadNotifications();
+            } else if (activeFilter === "sync" && normalCount > 0) {
+                activeFilter = "normal";
+                loadNotifications();
+            }
+        }
+
         notificationPopup.open();
     }
     

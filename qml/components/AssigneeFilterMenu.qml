@@ -33,12 +33,19 @@ Item {
     id: assigneeFilterMenu
     anchors.fill: parent
 
+    // Cached data for display assignees (no-search case) to avoid
+    // rebuilding the full list from bindings on every evaluation.
+    property var cachedDisplayAssignees: []
+    property int cachedDisplayAssigneeCount: 0
+    property int cachedSelectedDisplayAssigneeCount: 0
+
     signal filterApplied(var selectedAssigneeIds)
     signal filterCleared
 
     property var assigneeModel: []
     property bool expanded: false
     property var selectedAssigneeIds: []
+    property bool showAccountName: false
     property int maxMenuHeight: units.gu(50)
 
     // Helper function to check if an assignee is selected (handles both old and new format)
@@ -55,6 +62,190 @@ Item {
             }
         }
         return false;
+    }
+
+    function createSelection(userId, accountId) {
+        return {
+            user_id: userId,
+            account_id: accountId
+        };
+    }
+
+    function hasSelectedAssignee(selection) {
+        return isAssigneeSelected(selection.user_id, selection.account_id);
+    }
+
+    function hasAnySelectedAssignee(selections) {
+        for (var i = 0; i < selections.length; i++) {
+            if (hasSelectedAssignee(selections[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function addSelectionIfMissing(selection) {
+        if (!hasSelectedAssignee(selection)) {
+            selectedAssigneeIds.push(createSelection(selection.user_id, selection.account_id));
+        }
+    }
+
+    function removeSelectionIfPresent(selection) {
+        for (var i = selectedAssigneeIds.length - 1; i >= 0; i--) {
+            var existingId = selectedAssigneeIds[i];
+            if (typeof existingId === 'object') {
+                if (existingId.user_id === selection.user_id && existingId.account_id === selection.account_id) {
+                    selectedAssigneeIds.splice(i, 1);
+                }
+            } else if (existingId === selection.user_id) {
+                selectedAssigneeIds.splice(i, 1);
+            }
+        }
+    }
+
+    function uniqueAccountNames(names) {
+        var seen = Object.create(null);
+        var result = [];
+
+        for (var i = 0; i < names.length; i++) {
+            var value = names[i];
+            if (!value || seen[value]) {
+                continue;
+            }
+
+            seen[value] = true;
+            result.push(value);
+        }
+
+        return result;
+    }
+
+    function buildDisplayAssignees(searchText) {
+        var normalizedSearch = (searchText || "").toLowerCase();
+        var groupedAssignees = {};
+        var filteredAssignees = [];
+
+        for (var i = 0; i < assigneeModel.length; i++) {
+            var assignee = assigneeModel[i];
+            var assigneeId = assignee.odoo_record_id || assignee.id;
+            var accountId = (assignee.account_id === undefined || assignee.account_id === null) ? -1 : assignee.account_id;
+            var emailText = (assignee.email || "").trim();
+            var normalizedEmail = emailText.toLowerCase();
+            var accountName = assignee.account_name || "";
+            var name = assignee.name || "";
+            var shouldGroupByEmail = showAccountName && normalizedEmail !== "";
+            var groupKey = shouldGroupByEmail ? "email:" + normalizedEmail : "account:" + accountId + ":user:" + assigneeId;
+            var group = groupedAssignees[groupKey];
+
+            if (!group) {
+                group = {
+                    assigneeId: assigneeId,
+                    name: name,
+                    email: emailText,
+                    account_name: accountName,
+                    account_names: accountName ? [accountName] : [],
+                    memberSelections: [],
+                    groupedByEmail: shouldGroupByEmail
+                };
+                groupedAssignees[groupKey] = group;
+                filteredAssignees.push(group);
+            } else {
+                if (!group.name && name) {
+                    group.name = name;
+                }
+                if (!group.email && emailText) {
+                    group.email = emailText;
+                }
+                if (!group.account_name && accountName) {
+                    group.account_name = accountName;
+                }
+            }
+
+            if (accountName) {
+                group.account_names.push(accountName);
+            }
+
+            group.memberSelections.push(createSelection(assigneeId, accountId));
+        }
+
+        var visibleAssignees = [];
+        for (var j = 0; j < filteredAssignees.length; j++) {
+            var entry = filteredAssignees[j];
+            var accountNames = uniqueAccountNames(entry.account_names);
+            var titleText = entry.name;
+
+            if (showAccountName && accountNames.length > 0) {
+                titleText = entry.name + " (" + accountNames.join(", ") + ")";
+            }
+
+            var selected = hasAnySelectedAssignee(entry.memberSelections);
+            var searchableText = (titleText + " " + (entry.email || "")).toLowerCase();
+
+            if (!normalizedSearch || searchableText.indexOf(normalizedSearch) >= 0) {
+                visibleAssignees.push({
+                    assigneeId: entry.assigneeId,
+                    name: entry.name,
+                    email: entry.email,
+                    account_name: entry.account_name,
+                    titleText: entry.name,
+                    showAccountChips: showAccountName && accountNames.length > 0,
+                    accountNamesJson: JSON.stringify(accountNames),
+                    memberSelectionsJson: JSON.stringify(entry.memberSelections),
+                    selected: selected,
+                    sectionLabel: selected ? "selected" : "others"
+                });
+            }
+        }
+
+        visibleAssignees.sort(function (a, b) {
+            if (a.selected !== b.selected) {
+                return a.selected ? -1 : 1;
+            }
+
+            var nameA = (a.titleText || a.name || "").toLowerCase();
+            var nameB = (b.titleText || b.name || "").toLowerCase();
+            if (nameA < nameB)
+                return -1;
+            if (nameA > nameB)
+                return 1;
+            return 0;
+        });
+
+        return visibleAssignees;
+    }
+
+    // Recompute and cache the display assignee list and derived counts
+    // for the no-search-text case. This is called when the underlying
+    // model or selection changes, so that bindings can read cached
+    // values without triggering O(n) work on every evaluation.
+    function recomputeDisplayAssigneeCache() {
+        var displayAssignees = buildDisplayAssignees("");
+        cachedDisplayAssignees = displayAssignees;
+        cachedDisplayAssigneeCount = displayAssignees.length;
+
+        var selectedCount = 0;
+        for (var i = 0; i < displayAssignees.length; i++) {
+            if (displayAssignees[i].selected) {
+                selectedCount++;
+            }
+        }
+        cachedSelectedDisplayAssigneeCount = selectedCount;
+    }
+
+    function getDisplayAssigneeCount() {
+        // Lazily initialize cache in case it hasn't been recomputed yet.
+        if (!cachedDisplayAssignees || cachedDisplayAssignees.length !== cachedDisplayAssigneeCount) {
+            recomputeDisplayAssigneeCache();
+        }
+        return cachedDisplayAssigneeCount;
+    }
+
+    function getSelectedDisplayAssigneeCount() {
+        // Lazily initialize cache in case it hasn't been recomputed yet.
+        if (!cachedDisplayAssignees || cachedDisplayAssignees.length !== cachedDisplayAssigneeCount) {
+            recomputeDisplayAssigneeCache();
+        }
+        return cachedSelectedDisplayAssigneeCount;
     }
 
     // Background overlay when expanded
@@ -84,7 +275,7 @@ Item {
         height: {
             // Calculate dynamic height: header + search + assignee list + buttons + margins
             var baseHeight = units.gu(22); // Header + search + buttons + margins
-            var assigneeListHeight = Math.min(assigneeModel.length * units.gu(6), units.gu(25)); // Max 25 units for list
+            var assigneeListHeight = Math.min(getDisplayAssigneeCount() * units.gu(6), units.gu(25)); // Max 25 units for list
             return Math.min(units.gu(50), baseHeight + assigneeListHeight);
         }
 
@@ -171,7 +362,7 @@ Item {
 
             // Search bar for long lists
             Row {
-                visible: assigneeModel.length > 5
+                visible: getDisplayAssigneeCount() > 5
                 width: parent.width
                 height: units.gu(4)
                 spacing: units.gu(0.5)
@@ -236,24 +427,10 @@ Item {
 
                     function update() {
                         clear();
-                        var searchText = searchField.text.toLowerCase();
+                        var filteredAssignees = buildDisplayAssignees(searchField.text);
 
-                        for (var i = 0; i < assigneeModel.length; i++) {
-                            var assignee = assigneeModel[i];
-                            var displayText = assignee.name;
-                            if (assignee.account_name) {
-                                displayText = assignee.name + " (" + assignee.account_name + ")";
-                            }
-                            if (!searchText || displayText.toLowerCase().indexOf(searchText) >= 0) {
-                                append({
-                                    "assigneeId": assignee.odoo_record_id || assignee.id,
-                                    "name": assignee.name,
-                                    "account_name": assignee.account_name || "",
-                                    "account_id": assignee.account_id || -1,
-                                    "displayText": displayText,
-                                    "selected": isAssigneeSelected(assignee.odoo_record_id || assignee.id, assignee.account_id || -1)
-                                });
-                            }
+                        for (var j = 0; j < filteredAssignees.length; j++) {
+                            append(filteredAssignees[j]);
                         }
                     }
                 }
@@ -263,59 +440,73 @@ Item {
                     width: units.gu(1)
                 }
 
+                section.property: "sectionLabel"
+                section.criteria: ViewSection.FullString
+                section.delegate: Item {
+                    width: assigneeListView.width
+                    height: units.gu(2.2)
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        height: 1
+                        color: theme.palette.normal.base
+                        opacity: 0.45
+                    }
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.leftMargin: units.gu(1)
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: section === "selected" ? i18n.dtr("ubtms", "Selected") : i18n.dtr("ubtms", "Others")
+                        font.pixelSize: units.gu(1.35)
+                        color: theme.palette.normal.backgroundSecondaryText
+                        opacity: 0.75
+                    }
+                }
+
                 delegate: Rectangle {
+                    id: delegateRoot
+                    property bool expandedAccounts: false
+                    property var accountNames: model.accountNamesJson ? JSON.parse(model.accountNamesJson) : []
+                    property bool showsAccountChips: model.showAccountChips && accountNames.length > 0
+                    property real contentMargin: units.gu(1)
+                    property real contentSpacing: units.gu(1.5)
+                    property int visibleChipCount: {
+                        if (!showsAccountChips)
+                            return 0;
+                        if (accountNames.length <= 1)
+                            return accountNames.length;
+                        if (expandedAccounts)
+                            return accountNames.length;
+
+                        var availableWidth = Math.max(0, headerFlow.width - nameLabel.width - headerFlow.spacing);
+                        var usedWidth = 0;
+                        var count = 0;
+                        var moreChipWidth = units.gu(7);
+                        for (var chipIndex = 0; chipIndex < accountNames.length; chipIndex++) {
+                            var chipText = accountNames[chipIndex];
+                            var estimatedWidth = Math.max(units.gu(7), Math.min(units.gu(16), chipText.length * units.gu(0.75) + units.gu(3.5)));
+                            var spacingWidth = count > 0 ? headerFlow.spacing : 0;
+                            var reserveWidth = chipIndex < accountNames.length - 1 ? moreChipWidth + headerFlow.spacing : 0;
+                            if (usedWidth + spacingWidth + estimatedWidth + reserveWidth > availableWidth) {
+                                break;
+                            }
+                            usedWidth += spacingWidth + estimatedWidth;
+                            count++;
+                            if (count === 2)
+                                break;
+                        }
+
+                        return Math.max(1, count);
+                    }
+                    property bool hasHiddenChips: showsAccountChips && visibleChipCount < accountNames.length
+
                     width: parent.width
-                    height: units.gu(6)
+                    height: Math.max(units.gu(6), infoColumn.implicitHeight + contentMargin * 2)
                     color: mouseArea.pressed ? theme.palette.selected.background : "transparent"
                     radius: units.gu(0.5)
-
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: units.gu(1)
-                        spacing: units.gu(1.5)
-
-                        // Checkbox
-                        CheckBox {
-                            id: checkbox
-                            anchors.verticalCenter: parent.verticalCenter
-                            checked: model.selected
-                            //   enabled: false  // Disable direct checkbox interaction to avoid conflicts
-                        }
-
-                        // User icon
-                        Icon {
-                            name: "contact"
-                            width: units.gu(2.5)
-                            height: units.gu(2.5)
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: theme.palette.normal.backgroundText
-                        }
-
-                        // Assignee name with account
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width - checkbox.width - units.gu(6)
-                            spacing: units.gu(0.2)
-
-                            Text {
-                                text: model.name
-                                font.pixelSize: units.gu(2)
-                                color: theme.palette.normal.backgroundText
-                                elide: Text.ElideRight
-                                width: parent.width
-                            }
-
-                            Text {
-                                visible: model.account_name !== ""
-                                text: "(" + model.account_name + ")"
-                                font.pixelSize: units.gu(1.5)
-                                color: theme.palette.normal.backgroundSecondaryText
-                                elide: Text.ElideRight
-                                width: parent.width
-                                opacity: 0.7
-                            }
-                        }
-                    }
 
                     MouseArea {
                         id: mouseArea
@@ -323,48 +514,138 @@ Item {
                         hoverEnabled: true
 
                         onClicked: {
-                            // Toggle checkbox state
-                            checkbox.checked = !checkbox.checked;
+                            var memberSelections = [];
+                            if (model.memberSelectionsJson) {
+                                memberSelections = JSON.parse(model.memberSelectionsJson);
+                            }
+                            var shouldSelect = !hasAnySelectedAssignee(memberSelections);
 
-                            // Update selection logic with user_id and account_id combination
-                            var assigneeId = model.assigneeId;
-                            var accountId = model.account_id;
-
-                            // Create composite identifier to handle users with same ID from different accounts
-                            var compositeId = {
-                                user_id: assigneeId,
-                                account_id: accountId
-                            };
-
-                            // Find existing selection by comparing both user_id and account_id
-                            var currentIndex = -1;
-                            for (var i = 0; i < selectedAssigneeIds.length; i++) {
-                                var existingId = selectedAssigneeIds[i];
-                                if (typeof existingId === 'object') {
-                                    if (existingId.user_id === assigneeId && existingId.account_id === accountId) {
-                                        currentIndex = i;
-                                        break;
-                                    }
-                                } else if (existingId === assigneeId) {
-                                    // Legacy format - replace with new format
-                                    currentIndex = i;
-                                    break;
+                            for (var i = 0; i < memberSelections.length; i++) {
+                                if (shouldSelect) {
+                                    addSelectionIfMissing(memberSelections[i]);
+                                } else {
+                                    removeSelectionIfPresent(memberSelections[i]);
                                 }
                             }
 
-                            if (checkbox.checked && currentIndex === -1) {
-                                // Add to selection
-                                selectedAssigneeIds.push(compositeId);
-                            } else if (!checkbox.checked && currentIndex !== -1) {
-                                // Remove from selection
-                                selectedAssigneeIds.splice(currentIndex, 1);
+                            selectedAssigneeIds = selectedAssigneeIds.slice();
+                        }
+                    }
+
+                    CheckBox {
+                        id: checkbox
+                        anchors.left: parent.left
+                        anchors.leftMargin: delegateRoot.contentMargin
+                        anchors.top: parent.top
+                        anchors.topMargin: delegateRoot.contentMargin
+                        checked: model.selected
+
+                        MouseArea {
+                            anchors.fill: parent
+                            propagateComposedEvents: true
+                            onClicked: {
+                                mouseArea.clicked(mouse);
+                                mouse.accepted = true;
+                            }
+                        }
+                    }
+
+                    Icon {
+                        id: userIcon
+                        name: "contact"
+                        width: units.gu(2.5)
+                        height: units.gu(2.5)
+                        anchors.left: checkbox.right
+                        anchors.leftMargin: delegateRoot.contentSpacing
+                        anchors.verticalCenter: checkbox.verticalCenter
+                        color: theme.palette.normal.backgroundText
+                    }
+
+                    Column {
+                        id: infoColumn
+                        anchors.left: userIcon.right
+                        anchors.leftMargin: delegateRoot.contentSpacing
+                        anchors.right: parent.right
+                        anchors.rightMargin: delegateRoot.contentMargin
+                        anchors.top: parent.top
+                        anchors.topMargin: delegateRoot.contentMargin
+                        spacing: units.gu(0.4)
+
+                        Flow {
+                            id: headerFlow
+                            width: infoColumn.width
+                            spacing: units.gu(0.5)
+
+                            Text {
+                                id: nameLabel
+                                width: Math.min(headerFlow.width, Math.max(implicitWidth, units.gu(8)))
+                                text: model.titleText || model.name
+                                font.pixelSize: units.gu(2)
+                                color: theme.palette.normal.backgroundText
+                                wrapMode: Text.NoWrap
+                                elide: Text.ElideRight
                             }
 
-                            // Trigger property change notification
-                            selectedAssigneeIds = selectedAssigneeIds.slice();
+                            Repeater {
+                                model: delegateRoot.accountNames.length
 
-                            // Update model
-                            filterModel.setProperty(index, "selected", checkbox.checked);
+                                Rectangle {
+                                    visible: delegateRoot.showsAccountChips && index < delegateRoot.visibleChipCount
+                                    height: units.gu(2.6)
+                                    radius: height / 2
+                                    color: theme.palette.normal.base
+                                    border.color: theme.palette.selected.background
+                                    border.width: 1
+                                    width: Math.min(Math.max(units.gu(7), infoColumn.width * 0.42), chipLabel.implicitWidth + units.gu(2.4))
+
+                                    Text {
+                                        id: chipLabel
+                                        anchors.centerIn: parent
+                                        width: parent.width - units.gu(1.6)
+                                        text: delegateRoot.accountNames[index]
+                                        font.pixelSize: units.gu(1.35)
+                                        color: theme.palette.normal.backgroundText
+                                        elide: Text.ElideRight
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                visible: delegateRoot.showsAccountChips && delegateRoot.hasHiddenChips && delegateRoot.accountNames.length > 1
+                                height: units.gu(2.6)
+                                radius: height / 2
+                                color: theme.palette.highlighted.background
+                                border.color: theme.palette.selected.background
+                                border.width: 1
+                                width: Math.max(units.gu(7), moreChipLabel.implicitWidth + units.gu(2.4))
+
+                                Text {
+                                    id: moreChipLabel
+                                    anchors.centerIn: parent
+                                    text: delegateRoot.expandedAccounts ? i18n.dtr("ubtms", "Less") : i18n.dtr("ubtms", "More")
+                                    font.pixelSize: units.gu(1.35)
+                                    color: theme.palette.normal.backgroundText
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        delegateRoot.expandedAccounts = !delegateRoot.expandedAccounts;
+                                        mouse.accepted = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            visible: model.email !== ""
+                            text: model.email
+                            font.pixelSize: units.gu(1.5)
+                            color: theme.palette.normal.backgroundSecondaryText
+                            elide: Text.ElideRight
+                            width: infoColumn.width
+                            opacity: 0.7
                         }
                     }
 
@@ -456,7 +737,8 @@ Item {
                 }
 
                 Text {
-                    text: selectedAssigneeIds.length + " assignee" + (selectedAssigneeIds.length === 1 ? "" : "s") + " selected"
+                    property int selectedCount: getSelectedDisplayAssigneeCount()
+                    text: selectedCount + " assignee" + (selectedCount === 1 ? "" : "s") + " selected"
                     font.pixelSize: units.gu(1.6)
                     color: theme.palette.normal.backgroundText
                     anchors.centerIn: parent
@@ -476,24 +758,26 @@ Item {
     onAssigneeModelChanged: {
         if (filterModel) {
             filterModel.update();
+            // Keep cached display assignee data in sync with the model.
+            recomputeDisplayAssigneeCache();
         }
     }
 
     // Update filter model when selectedAssigneeIds changes
     onSelectedAssigneeIdsChanged: {
         if (filterModel) {
-            // Update the selected state in the model using composite ID matching
-            for (var i = 0; i < filterModel.count; i++) {
-                var item = filterModel.get(i);
-                var isSelected = isAssigneeSelected(item.assigneeId, item.account_id);
-                filterModel.setProperty(i, "selected", isSelected);
-            }
+            // Rebuild and sort so selected entries stay pinned at the top.
+            filterModel.update();
+            // Selection changed; update cached display counts accordingly.
+            recomputeDisplayAssigneeCache();
         }
     }
 
     Component.onCompleted: {
         if (filterModel) {
             filterModel.update();
+            // Ensure cache is initialized once the component is ready.
+            recomputeDisplayAssigneeCache();
         }
     }
 }

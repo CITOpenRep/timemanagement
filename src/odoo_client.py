@@ -25,14 +25,28 @@ import xmlrpc.client
 import logging
 import base64
 import socket
+from urllib.parse import urlparse, urljoin
 from bus import send
 
 # Default timeout for XML-RPC calls (60 seconds)
 DEFAULT_TIMEOUT = 60
 
 
+class HttpTimeoutTransport(xmlrpc.client.Transport):
+    """Custom transport with timeout support for plain HTTP XML-RPC calls."""
+
+    def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.timeout = timeout
+
+    def make_connection(self, host):
+        conn = super().make_connection(host)
+        conn.timeout = self.timeout
+        return conn
+
+
 class TimeoutTransport(xmlrpc.client.SafeTransport):
-    """Custom transport with timeout support for XML-RPC calls."""
+    """Custom transport with timeout support for HTTPS XML-RPC calls."""
     
     def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -59,12 +73,30 @@ class OdooClient:
             username (str): The username (usually email).
             password (str): The user’s password or API key.
         """
-        self.url = url
+        self.url = self._normalize_url(url)
         self.db = db
         self.username = username
         self.password = password
         self.uid = self._login()
         self.models = self._get_model_proxy()
+
+    def _normalize_url(self, url):
+        """Normalize server URL to a safe XML-RPC base URL."""
+        normalized = (url or "").strip().rstrip("/")
+        if not normalized:
+            return normalized
+
+        # If there is no scheme separator, treat this as a bare host (optionally with port)
+        # and prepend HTTPS so that XML-RPC calls get a proper absolute URL.
+        if "://" not in normalized:
+            return f"https://{normalized}"
+
+        parsed = urlparse(normalized)
+        if not parsed.scheme:
+            # Most Odoo deployments require HTTPS and XML-RPC does not follow redirects.
+            normalized = f"https://{normalized}"
+
+        return normalized
 
     def search(self, model, domain):
             return self.models.execute_kw(
@@ -86,7 +118,7 @@ class OdooClient:
             int: UID if authentication is successful, otherwise raises an exception.
         """
         try:
-            transport = TimeoutTransport(timeout=DEFAULT_TIMEOUT)
+            transport = self._create_transport()
             common = xmlrpc.client.ServerProxy(
                 f"{self.url}/xmlrpc/2/common",
                 transport=transport
@@ -98,12 +130,68 @@ class OdooClient:
                     f"Authentication failed for user '{self.username}' on database '{self.db}'"
                 )
             return uid
+        except xmlrpc.client.ProtocolError as e:
+            # Handle HTTP redirects by retrying on resolved HTTPS or Location target.
+            redirect_target = None
+            if e.errcode in (301, 302, 307, 308):
+                if self.url.startswith("http://"):
+                    redirect_target = self.url.replace("http://", "https://", 1)
+
+                location_header = None
+                try:
+                    if hasattr(e, "headers") and e.headers is not None:
+                        location_header = e.headers.get("Location")
+                except Exception:
+                    location_header = None
+
+                if location_header:
+                    parsed = urlparse(location_header)
+                    try:
+                        # If Location is absolute, preserve its full path; otherwise resolve relative to current base URL.
+                        if parsed.scheme and parsed.netloc:
+                            redirect_target = parsed.geturl()
+                        else:
+                            redirect_target = urljoin(self.url.rstrip("/") + "/", location_header)
+                    except Exception:
+                        # Fallback: ignore malformed Location and keep any previously computed redirect_target
+                        pass
+
+            if redirect_target:
+                self.url = redirect_target.rstrip("/")
+                try:
+                    transport = self._create_transport()
+                    common = xmlrpc.client.ServerProxy(
+                        f"{self.url}/xmlrpc/2/common",
+                        transport=transport
+                    )
+                    uid = common.authenticate(self.db, self.username, self.password, {})
+                    if uid:
+                        return uid
+                except Exception:
+                    pass
+
+            send("sync_error", "Login to server failed")
+            raise ConnectionError(f"Login failed: {e}")
         except socket.timeout:
             send("sync_error", "Connection timed out - server not responding")
             raise ConnectionError("Login timed out - check network connection")
         except Exception as e:
             send("sync_error",f"Login to server failed")
             raise ConnectionError(f"Login failed: {e}")
+
+    def _create_transport(self):
+        """
+        Select an appropriate XML-RPC transport with timeout based on the URL scheme.
+
+        Uses a plain HTTP transport for 'http://' URLs and a SafeTransport-based
+        transport for 'https://' URLs (or when no scheme is specified).
+        """
+        parsed = urlparse(self.url or "")
+        scheme = (parsed.scheme or "").lower()
+        if scheme == "http":
+            return HttpTimeoutTransport(timeout=DEFAULT_TIMEOUT)
+        # Default to HTTPS-safe transport.
+        return TimeoutTransport(timeout=DEFAULT_TIMEOUT)
 
     def _get_model_proxy(self):
         """
