@@ -73,30 +73,6 @@ Page {
         }
     }
 
-    function simulateTestNotifications() {
-        // First clear all existing notifications
-        Notifications.deleteAllNotifications();
-        console.log("Cleared all notifications");
-        
-        // Add test notifications with valid record IDs (id: 1 should exist for each type)
-        Notifications.addNotification(1, "Task", "Task 'Write Report' is due today", {
-            id: 1
-        });
-        Notifications.addNotification(1, "Project", "Project 'Website Revamp' deadline is tomorrow", {
-            id: 1
-        });
-        Notifications.addNotification(1, "Activity", "Meeting with John at 3 PM", {
-            id: 1
-        });
-        Notifications.addNotification(1, "Timesheet", "Timesheet entry updated", {
-            id: 1
-        });
-        
-        console.log("Created 4 test notifications with record IDs");
-        
-        // Refresh the notification list
-        notificationBell.loadNotifications();
-    }
 
     header: PageHeader {
         id: header
