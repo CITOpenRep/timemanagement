@@ -36,6 +36,7 @@ import "../models/global.js" as Global
 import "components"
 
 Page {
+    property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
     id: activity
     title: i18n.dtr("ubtms", "Activities")
     header: PageHeader {
@@ -52,7 +53,7 @@ Page {
                 id: drawerAction
                 iconName: "navigation-menu"
                 text: i18n.dtr("ubtms", "Menu")
-                visible: apLayout.columns === 1
+                visible: !isMultiColumn
                 onTriggered: {
                     apLayout.openGlobalDrawer()
                 }

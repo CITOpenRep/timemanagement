@@ -29,6 +29,8 @@ import "../components/settings"
 
 Page {
     id: settings
+    property bool isMultiColumn: apLayout.columns > 1
+
     title: i18n.dtr("ubtms", "Settings")
 
     header: SettingsHeader {
@@ -39,9 +41,9 @@ Page {
                 id: drawerAction
                 iconName: "navigation-menu"
                 text: i18n.dtr("ubtms", "Menu")
-                visible: typeof isMultiColumn !== "undefined" ? !isMultiColumn : (apLayout.columns === 1)
+                visible: !isMultiColumn
                 onTriggered: {
-                    apLayout.openGlobalDrawer()
+                    globalDrawer.open()
                 }
             }
         ]

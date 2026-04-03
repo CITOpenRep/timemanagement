@@ -49,12 +49,22 @@ MainView {
     objectName: "TS"
     applicationName: "ubtms"
     property bool init: true
-    property alias globalTimerWidget: globalTimerWidget
-    property alias backend_bridge: backend_bridge
+    property alias globalTimerWidget: globalWidgets.globalTimerWidget
+    property alias backend_bridge: globalWidgets.backend_bridge
+    property alias imagePreviewer: globalWidgets.imagePreviewer
+    property alias accountPicker: globalWidgets.accountPicker
+    property alias notifPopup: globalWidgets.notifPopup
+    property alias infobar: globalWidgets.infobar
 
     property int currentAccountId: -1
     property string currentAccountName: ""
 
+
+    SystemIntegrationManager {
+        id: systemIntegration
+        rootApp: mainView
+        apLayout: apLayout
+    }
     width: units.gu(50)
     //  width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
     // width: units.gu(50) //GM: for testing with only one column
@@ -62,220 +72,16 @@ MainView {
 
     signal globalAccountChanged(int accountId, string accountName)
     signal accountDataRefreshRequested(int accountId)
-    
-    // Deep link handling for system notification navigation
-    // Pending navigation data (used when app needs to initialize first)
-    property var pendingNavigation: null
-    
-    // Handle incoming URI from system notifications
-    Connections {
-        target: UriHandler
-        onOpened: function(uris) {
-            console.log("UriHandler: Received URIs:", JSON.stringify(uris));
-            if (uris.length > 0) {
-                handleDeepLink(uris[0]);
-            }
-        }
+    GlobalWidgets {
+        id: globalWidgets
+        rootApp: mainView
     }
-    
-    // Function to handle deep link navigation
-    function handleDeepLink(uri) {
-        console.log("handleDeepLink: Processing URI:", uri);
-        
-        try {
-            // Parse URI manually: ubtms://navigate?type=Task&id=123&account_id=1&odoo_id=1
-            // The URL object is not available in QML, so we parse manually
-            var queryStart = uri.indexOf("?");
-            if (queryStart === -1) {
-                console.log("handleDeepLink: No query parameters found");
-                return;
-            }
-            
-            var queryString = uri.substring(queryStart + 1);
-            var params = {};
-            var pairs = queryString.split("&");
-            for (var i = 0; i < pairs.length; i++) {
-                var pair = pairs[i].split("=");
-                if (pair.length === 2) {
-                    params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
-                }
-            }
-            
-            var navType = params["type"] || "";
-            var recordId = parseInt(params["id"]) || -1;
-            var accountId = parseInt(params["account_id"]) || 0;
-            // Check if this is an odoo_record_id (stable ID) vs local id
-            var isOdooId = (params["odoo_id"] === "1");
-            
-            console.log("handleDeepLink: type=" + navType + ", recordId=" + recordId + ", accountId=" + accountId + ", isOdooId=" + isOdooId);
-            
-            if (!navType || recordId <= 0) {
-                console.log("handleDeepLink: Missing required parameters");
-                return;
-            }
-            
-            // Wait for app to be ready before navigating
-            if (init) {
-                pendingNavigation = {type: navType, id: recordId, accountId: accountId, isOdooId: isOdooId};
-                console.log("handleDeepLink: App not ready, queuing navigation");
-                return;
-            }
-            
-            navigateToRecord(navType, recordId, accountId, isOdooId);
-        } catch (e) {
-            console.error("handleDeepLink: Error parsing URI:", e);
-        }
-    }
-    
-    // Navigate to a specific record based on type
-    // isOdooId: if true, recordId is an odoo_record_id (stable), otherwise it's a local id
-    function navigateToRecord(navType, recordId, accountId, isOdooId) {
-        console.log("navigateToRecord: type=" + navType + ", id=" + recordId + ", isOdooId=" + isOdooId);
-        
-        if (navType === "Task" && recordId > 0) {
-            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("Tasks.qml"), {
-                "recordid": recordId,
-                "isOdooRecordId": isOdooId || false,
-                "isReadOnly": true
-            });
-        } else if (navType === "Activity" && recordId > 0) {
-            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("Activities.qml"), {
-                "recordid": recordId,
-                "accountid": accountId,
-                "isOdooRecordId": isOdooId || false,
-                "isReadOnly": true
-            });
-        } else if (navType === "Project" && recordId > 0) {
-            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("Projects.qml"), {
-                "recordid": recordId,
-                "isOdooRecordId": isOdooId || false,
-                "isReadOnly": true
-            });
-        } else if (navType === "Timesheet" && recordId > 0) {
-            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("Timesheet.qml"), {
-                "recordid": recordId,
-                "isOdooRecordId": isOdooId || false,
-                "isReadOnly": true
-            });
-        } else {
-            console.log("navigateToRecord: Unknown type or invalid recordId");
-        }
-    }
-
-    NotificationHelper {
-        id: notificationSystem
-        push_app_id: "ubtms_ubtms"
-        Component.onCompleted: {
-            console.log("Starting background daemon...")
-            startDaemon()
-        }
-    }
-    
-    // NOTE: PushClient removed - using Qt.application.arguments approach instead
-    // for handling notification click navigation
-    
-    // Periodic daemon health check timer - check more frequently to catch crashes
-    Timer {
-        id: daemonHealthCheckTimer
-        interval: 120000  // Check every 2 minutes to catch daemon crashes quickly
-        running: true
-        repeat: true
-        onTriggered: {
-            console.log("Checking daemon health...")
-            notificationSystem.ensureDaemonRunning()
-        }
-    }
-    
-    // Timer for delayed deep link navigation on cold start
-    // This ensures all UI components are fully loaded before navigating
-    Timer {
-        id: delayedNavigationTimer
-        interval: 500  // 500ms delay to ensure pages are loaded
-        repeat: false
-        onTriggered: {
-            if (pendingNavigation) {
-                console.log("delayedNavigationTimer: Executing pending navigation - type:", pendingNavigation.type, "id:", pendingNavigation.id, "isOdooId:", pendingNavigation.isOdooId);
-                navigateToRecord(pendingNavigation.type, pendingNavigation.id, pendingNavigation.accountId, pendingNavigation.isOdooId);
-                pendingNavigation = null;
-            }
-        }
-    }
-
-    function showSystemNotification(title, message) {
-        notificationSystem.showNotificationMessage(title, message)
-    }
-
-    GlobalTimerWidget {
-        id: globalTimerWidget
-        z: 9999
-        anchors.bottom: parent.bottom
-        visible: false
-        showNotification: function (title, message, type) {
-            notifPopup.open(title, message, type);
-        }
-    }
-
-    BackendBridge {
-        id: backend_bridge
-
-        onMessageReceived: function (data) {}
-
-        onPythonError: function (tb) {
-            console.error("[FAILURE] Critical Error from backend");
-        }
-
-        onReadyChanged: if (ready) {
-            console.log("Backend ready");
-        }
-    }
-
-    //used by attachment manager for example
-    ImagePreviewer
-    {
-        id: imagePreviewer
-        anchors.fill: parent
-    }
-
-
-    AccountSelectorDialog {
-        id: accountPicker
-        titleText: i18n.dtr("ubtms", "Switch account")
-        restrictToLocalOnly: false
-
-        onAccepted: function (id, name) {
-            // persist selection, refresh views, trigger sync, etc.
-            console.log("Account chosen:", id, name);
-
-            // Update mainView's current account
-            currentAccountId = id;
-            currentAccountName = name;
-
-        // Emit signals to notify other components
-        //globalAccountChanged(id, name);
-        //accountDataRefreshRequested(id);
-        }
-        onCanceled: console.log("Account selection canceled")
-    }
-
-    // Global notification popup
-    NotificationPopup {
-        id: notifPopup
-    }
-
-    InfoBar {
-        id: infobar
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        width: parent.width
-        height: units.gu(10)
-    }
-
     AppLayout {
         id: apLayout
         rootApp: mainView
         globalDrawer: globalDrawer
-        pendingNavigation: pendingNavigation
-        delayedNavigationTimer: delayedNavigationTimer
+        
+        
     }
 
     
@@ -349,7 +155,7 @@ MainView {
                                  "sudo apt install python3-dbus python3-gi gir1.2-glib-2.0\n\n" +
                                  "Then restart the app.";
                     
-                    notifPopup.open("⚠️ Setup Required", message, "warning");
+                    globalWidgets.notifPopup.open("⚠️ Setup Required", message, "warning");
                 }
             } catch (fileError) {
                 // File doesn't exist = setup is complete, this is normal
@@ -365,7 +171,7 @@ MainView {
         try {
             var unreadList = Notifications.getUnreadNotifications();
             var count = unreadList.length;
-            notificationSystem.updateCount(count);
+            systemIntegration.notificationSystem.updateCount(count);
             console.log("System badge updated to:", count);
         } catch (e) {
             console.error("Failed to update system badge:", e);
@@ -382,7 +188,7 @@ MainView {
                              formatDraftsMessage(summary) + 
                              "\n\nOpen the respective forms to restore your changes.";
                 
-                notifPopup.open("📂 Unsaved Drafts Found", message, "info");
+                globalWidgets.notifPopup.open("📂 Unsaved Drafts Found", message, "info");
             }
             
             // Cleanup old drafts (older than 7 days)

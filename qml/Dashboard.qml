@@ -230,12 +230,20 @@ Page {
     }
 
     function _doRefreshData() {
-        get_project_chart_data();
-        get_task_chart_data();
-        // Refresh project chart using the account selector's selection (not default account)
-        if (typeof projectchart !== 'undefined') {
-            var selected = accountPicker.selectedAccountId;
-            projectchart.refreshForAccount(selected);
+        console.log("🟢 _doRefreshData START");
+        try {
+            get_project_chart_data();
+            console.log("🟠 get_project_chart_data DONE");
+            get_task_chart_data();
+            console.log("🟡 get_task_chart_data DONE");
+            if (typeof projectchart !== 'undefined') {
+                var selected = accountPicker.selectedAccountId;
+                console.log("🔵 selected: ", selected);
+                projectchart.refreshForAccount(selected);
+            }
+            console.log("🟣 _doRefreshData SUCCESS");
+        } catch(e) {
+            console.error("🔴 _doRefreshData ERROR: ", e);
         }
         isLoading = false;
     }
