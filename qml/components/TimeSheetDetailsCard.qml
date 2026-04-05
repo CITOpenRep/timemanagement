@@ -247,10 +247,9 @@ ListItem {
                     width: parent.width
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
                 }
-                
 
                 Text {
-                    text: (project ? Utils.truncateText(project, 30) : "No Project")
+                    text: (project ? Utils.truncateText(project, 30) + (instance ? " (" + instance + ")" : "") : "No Project" + (instance ? " (" + instance + ")" : ""))
                     font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                     elide: Text.ElideRight
                     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#222"
