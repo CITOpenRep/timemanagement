@@ -288,16 +288,22 @@ AdaptivePageLayout {
                 switch (columns) {
                 case 1:
                     primaryPage = dashboard_page;
-                    addPageToCurrentColumn(primaryPage, currentPage);
+                    if (currentPage) {
+                        addPageToCurrentColumn(primaryPage, currentPage);
+                    }
                     break;
                 case 2:
                     primaryPage = menu_page;
-                    addPageToNextColumn(primaryPage, currentPage);
+                    if (currentPage) {
+                        addPageToNextColumn(primaryPage, currentPage);
+                    }
                     break;
                 case 3:
                     primaryPage = menu_page;
-                    addPageToNextColumn(primaryPage, currentPage);
-                    if (thirdPage != "")
+                    if (currentPage) {
+                        addPageToNextColumn(primaryPage, currentPage);
+                    }
+                    if (currentPage && thirdPage)
                         addPageToNextColumn(currentPage, thirdPage);
                     break;
                 }
