@@ -38,9 +38,13 @@ import "../models/accounts.js" as Account
 import "../models/global.js" as Global
 import io.thp.pyotherside 1.4
 import "components"
+import "components/settings"
 
 Page {
     id: mainPage
+
+
+
     title: i18n.dtr("ubtms", "Time Manager - Time Management Dashboard")
     anchors.fill: parent
     property bool isMultiColumn: apLayout.columns > 1
@@ -107,14 +111,27 @@ Page {
         // Notification Bell in header
         leadingActionBar.actions: [
             Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: !isMultiColumn
+                onTriggered: {
+                    globalDrawer.open()
+                }
+            }
+        ]
+
+        trailingActionBar.visible: isMultiColumn ? false : true
+        trailingActionBar.numberOfSlots: 5
+
+        trailingActionBar.actions: [
+            Action {
                 id: notificationAction
-                //todo : Fix the Icons visibility based on notification count
                 iconSource: notificationBell.totalCount > 0 ? "images/notification_active.png" : "images/notification.png"
                 text: notificationBell.totalCount > 0 ? 
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.totalCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
                 onTriggered: {
-                    // Always refresh from DB before deciding what to show.
                     notificationBell.loadNotifications();
                     if (notificationBell.totalCount > 0) {
                         notificationBell.openPopup();
@@ -122,19 +139,12 @@ Page {
                         notifPopup.open("No Notifications", "You have no new notifications", "info");
                     }
                 }
-            }
-        ]
-
-        trailingActionBar.visible: isMultiColumn ? false : true
-        trailingActionBar.numberOfSlots: 4
-
-        trailingActionBar.actions: [
-         
+            },
             Action {
-                iconName: "account"
-                text: i18n.dtr("ubtms", "Switch Accounts")
+                iconName: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
+                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Light Mode") : i18n.dtr("ubtms","Dark Mode")
                 onTriggered: {
-                    accountPicker.open(accountPicker.selectedAccountId);
+                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
                 }
             },
             Action {
@@ -147,73 +157,25 @@ Page {
                 }
             },
             Action {
-                iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
-                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Light Mode") : i18n.dtr("ubtms","Dark Mode")
+                iconName: "account"
+                text: i18n.dtr("ubtms", "Switch Accounts")
                 onTriggered: {
-                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                    accountPicker.open(accountPicker.selectedAccountId);
                 }
             },
             Action {
-                iconName: "clock"
-                text: i18n.dtr("ubtms", "Timesheet")
+                iconName: "reminder-new"
+                text: i18n.dtr("ubtms", "New Timesheet")
                 onTriggered: {
-                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"));
-                    page = 7;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "calendar"
-                text: i18n.dtr("ubtms", "Activities")
-                onTriggered: {
-                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"));
-                    page = 2;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "scope-manager"
-                text: i18n.dtr("ubtms", "My Tasks")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("MyTasks.qml"));
-                    page = 3;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "view-list-symbolic"
-                text: i18n.dtr("ubtms", "All Tasks")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"));
-                    page = 3;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "folder-symbolic"
-                text: i18n.dtr("ubtms", "Projects")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"));
-                    page = 4;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "history"
-                text: i18n.dtr("ubtms", "Project Updates")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Updates_Page.qml"));
-                    page = 5;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: "settings"
-                text: i18n.dtr("ubtms", "Settings")
-                onTriggered: {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("settings/Settings_Page.qml"));
-                    page = 6;
-                    apLayout.setCurrentPage(page);
+                    const result = TimesheetModel.createTimesheet(accountPicker.selectedAccountId, Account.getCurrentUserOdooId(accountPicker.selectedAccountId));
+                    if (result.success) {
+                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                            "recordid": result.id,
+                            "isReadOnly": false
+                        });
+                    } else {
+                        console.error("Error creating timesheet: " + result.message);
+                    }
                 }
             }
         ]

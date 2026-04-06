@@ -47,6 +47,18 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        leadingActionBar.actions: [
+            Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: apLayout.columns === 1
+                onTriggered: {
+                    apLayout.openGlobalDrawer()
+                }
+            }
+        ]
         title: {
             var titleParts = ["Tasks"];
             if (filterByProject && projectName) {

@@ -71,6 +71,18 @@ Page {
             dividerColor: LomiriColors.slate
         }
 
+        leadingActionBar.actions: [
+            Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: apLayout.columns === 1
+                onTriggered: {
+                    apLayout.openGlobalDrawer()
+                }
+            }
+        ]
+
         trailingActionBar.actions: [
             Action {
                 iconName: "reminder-new"
