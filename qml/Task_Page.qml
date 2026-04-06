@@ -416,7 +416,6 @@ Page {
     // Assignee Filter Menu
     AssigneeFilterMenu {
         id: assigneeFilterMenu
-        showAccountName: tasklist.selectedAccountId === -1
         anchors.fill: parent
         z: 10
 
