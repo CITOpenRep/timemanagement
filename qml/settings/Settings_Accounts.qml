@@ -54,7 +54,6 @@ Page {
     // Listen for sync timeout from GlobalTimerWidget
     Connections {
         target: typeof globalTimerWidget !== 'undefined' ? globalTimerWidget : null
-        ignoreUnknownSignals: true
         onSyncTimedOut: function (accountId) {
             if (syncingAccountId === accountId) {
                 syncingAccountId = -1;
