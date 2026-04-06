@@ -17,17 +17,42 @@ Item {
     Connections {
         target: UriHandler
         onOpened: function(uris) {
-            if (uris.length > 0) {
-                handleDeepLink(uris[0]);
+            if (!uris || uris.length === 0) {
+                return;
+            }
+
+            for (var i = 0; i < uris.length; i++) {
+                handleDeepLink(uris[i]);
             }
         }
+    }
+
+    function normalizeDeepLink(rawUri) {
+        var uri = String(rawUri || "");
+        if (uri.indexOf("ubtms://") === 0) {
+            return uri;
+        }
+
+        var deepLinkIndex = uri.indexOf("ubtms://");
+        if (deepLinkIndex >= 0) {
+            return uri.substring(deepLinkIndex);
+        }
+
+        return "";
     }
     
     function handleDeepLink(uri) {
         try {
-            var queryStart = uri.indexOf("?");
+            var deepLink = normalizeDeepLink(uri);
+            if (!deepLink) {
+                return;
+            }
+
+            console.log("System deep link received:", deepLink);
+
+            var queryStart = deepLink.indexOf("?");
             if (queryStart === -1) return;
-            var queryString = uri.substring(queryStart + 1);
+            var queryString = deepLink.substring(queryStart + 1);
             var params = {};
             var pairs = queryString.split("&");
             for (var i = 0; i < pairs.length; i++) {
@@ -47,7 +72,9 @@ Item {
                 return;
             }
             navigateToRecord(navType, recordId, accountId, isOdooId);
-        } catch (e) {}
+        } catch (e) {
+            console.warn("Failed to handle deep link:", uri, e);
+        }
     }
     
     function navigateToRecord(navType, recordId, accountId, isOdooId) {

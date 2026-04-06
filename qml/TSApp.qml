@@ -128,12 +128,31 @@ MainView {
             var arg = args[i];
             console.log("Checking argument:", arg);
             
-            // Check for ubtms:// or appid:// URLs
+            // Check for ubtms:// deep links from notification panel actions
             if (arg.indexOf("ubtms://") === 0) {
                 console.log("Found deep link URL:", arg);
                 handleDeepLink(arg);
                 return;
             }
+
+            // Some launchers prepend appid:// and still include a deep-link payload.
+            var deepLinkIndex = arg.indexOf("ubtms://");
+            if (deepLinkIndex > 0) {
+                var extractedDeepLink = arg.substring(deepLinkIndex);
+                console.log("Extracted deep link URL:", extractedDeepLink);
+                handleDeepLink(extractedDeepLink);
+                return;
+            }
+        }
+    }
+
+    // Forward all deep links to SystemIntegrationManager so panel and in-app notifications
+    // use the exact same navigation code path.
+    function handleDeepLink(uri) {
+        if (systemIntegration && typeof systemIntegration.handleDeepLink === "function") {
+            systemIntegration.handleDeepLink(uri);
+        } else {
+            console.warn("Deep link handler unavailable:", uri);
         }
     }
     
