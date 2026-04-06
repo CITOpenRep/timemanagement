@@ -13,10 +13,24 @@ QtObject {
 
     // Check if app was launched with a deep link URL (via notification click)
     function checkStartupArguments(args) {
+        console.log("Startup arguments:", JSON.stringify(args));
+
         for (var i = 0; i < args.length; i++) {
             var arg = args[i];
+            console.log("Checking argument:", arg);
+
             if (arg.indexOf("ubtms://") === 0) {
+                console.log("Found deep link URL:", arg);
                 if (handleDeepLinkCallback) handleDeepLinkCallback(arg);
+                return;
+            }
+
+            // Some launchers prepend appid:// and still include a deep-link payload.
+            var deepLinkIndex = arg.indexOf("ubtms://");
+            if (deepLinkIndex > 0) {
+                var extractedDeepLink = arg.substring(deepLinkIndex);
+                console.log("Extracted deep link URL:", extractedDeepLink);
+                if (handleDeepLinkCallback) handleDeepLinkCallback(extractedDeepLink);
                 return;
             }
         }
