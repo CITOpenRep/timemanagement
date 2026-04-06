@@ -375,7 +375,6 @@ Rectangle {
         anchors.topMargin: units.gu(3)
         anchors.left: indicator.right
         anchors.verticalCenter: parent.verticalCenter
-        anchors.horizontalCenter: parent.horizontalCenter
         // anchors.margins: units.gu(-12)
         anchors.right: (TimerService.isRunning() || TimerService.isPaused()) ? pausebutton.left : parent.right
         anchors.rightMargin: units.gu(1)

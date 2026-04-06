@@ -10,8 +10,8 @@ AdaptivePageLayout {
 
     property var rootApp
     property var globalDrawer
-    property var pendingNavigation
-    property var delayedNavigationTimer
+    
+    
 
         anchors.top: parent.top
         anchors.left: parent.left
@@ -190,9 +190,9 @@ AdaptivePageLayout {
             
             // Process any pending deep link navigation
             // Use a Timer to ensure all UI components are fully loaded on cold start
-            if (pendingNavigation) {
+            if (systemIntegration.pendingNavigation) {
                 console.log("setFirstScreen: Pending navigation detected, scheduling with delay");
-                delayedNavigationTimer.start();
+                systemIntegration.startDelayedNavigation();
             }
         }
 
@@ -230,7 +230,7 @@ AdaptivePageLayout {
                         apLayout.removePages(dashboard_page);
                     }
                 }
-                apLayout.addPageToCurrentColumn(dashboard_page, Qt.resolvedUrl(url));
+                apLayout.addPageToCurrentColumn(dashboard_page, Qt.resolvedUrl("../" + url));
             }
         } else {
             // For multiple columns, Menu is the primary page
@@ -238,7 +238,7 @@ AdaptivePageLayout {
             if (targetPage !== null) {
                 apLayout.addPageToNextColumn(menu_page, targetPage);
             } else {
-                apLayout.addPageToNextColumn(menu_page, Qt.resolvedUrl(url));
+                apLayout.addPageToNextColumn(menu_page, Qt.resolvedUrl("../" + url));
             }
         }
         setCurrentPage(pageNum);
@@ -288,16 +288,22 @@ AdaptivePageLayout {
                 switch (columns) {
                 case 1:
                     primaryPage = dashboard_page;
-                    addPageToCurrentColumn(primaryPage, currentPage);
+                    if (currentPage) {
+                        addPageToCurrentColumn(primaryPage, currentPage);
+                    }
                     break;
                 case 2:
                     primaryPage = menu_page;
-                    addPageToNextColumn(primaryPage, currentPage);
+                    if (currentPage) {
+                        addPageToNextColumn(primaryPage, currentPage);
+                    }
                     break;
                 case 3:
                     primaryPage = menu_page;
-                    addPageToNextColumn(primaryPage, currentPage);
-                    if (thirdPage != "")
+                    if (currentPage) {
+                        addPageToNextColumn(primaryPage, currentPage);
+                    }
+                    if (currentPage && thirdPage)
                         addPageToNextColumn(currentPage, thirdPage);
                     break;
                 }

@@ -77,8 +77,7 @@ Rectangle {
         id: downloadBtn
         text:  i18n.dtr("ubtms", "Download")
         visible: imagePreviewer._downloadedOnce ? false:true
-        anchors.right: parent.right
-        anchors.horizontalCenter: parent
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.margins: units.gu(2)
         enabled: !imagePreviewer.busy

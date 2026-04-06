@@ -73,30 +73,6 @@ Page {
         }
     }
 
-    function simulateTestNotifications() {
-        // First clear all existing notifications
-        Notifications.deleteAllNotifications();
-        console.log("Cleared all notifications");
-        
-        // Add test notifications with valid record IDs (id: 1 should exist for each type)
-        Notifications.addNotification(1, "Task", "Task 'Write Report' is due today", {
-            id: 1
-        });
-        Notifications.addNotification(1, "Project", "Project 'Website Revamp' deadline is tomorrow", {
-            id: 1
-        });
-        Notifications.addNotification(1, "Activity", "Meeting with John at 3 PM", {
-            id: 1
-        });
-        Notifications.addNotification(1, "Timesheet", "Timesheet entry updated", {
-            id: 1
-        });
-        
-        console.log("Created 4 test notifications with record IDs");
-        
-        // Refresh the notification list
-        notificationBell.loadNotifications();
-    }
 
     header: PageHeader {
         id: header
@@ -167,7 +143,8 @@ Page {
                 iconName: "reminder-new"
                 text: i18n.dtr("ubtms", "New Timesheet")
                 onTriggered: {
-                    const result = TimesheetModel.createTimesheet(accountPicker.selectedAccountId, Account.getCurrentUserOdooId(accountPicker.selectedAccountId));
+                    const defaultAccountId = Account.getDefaultAccountId();
+                    const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
                     if (result.success) {
                         apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
                             "recordid": result.id,
@@ -230,12 +207,20 @@ Page {
     }
 
     function _doRefreshData() {
-        get_project_chart_data();
-        get_task_chart_data();
-        // Refresh project chart using the account selector's selection (not default account)
-        if (typeof projectchart !== 'undefined') {
-            var selected = accountPicker.selectedAccountId;
-            projectchart.refreshForAccount(selected);
+        console.log("🟢 _doRefreshData START");
+        try {
+            get_project_chart_data();
+            console.log("🟠 get_project_chart_data DONE");
+            get_task_chart_data();
+            console.log("🟡 get_task_chart_data DONE");
+            if (typeof projectchart !== 'undefined') {
+                var selected = accountPicker.selectedAccountId;
+                console.log("🔵 selected: ", selected);
+                projectchart.refreshForAccount(selected);
+            }
+            console.log("🟣 _doRefreshData SUCCESS");
+        } catch(e) {
+            console.error("🔴 _doRefreshData ERROR: ", e);
         }
         isLoading = false;
     }

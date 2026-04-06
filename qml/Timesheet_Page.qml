@@ -35,6 +35,7 @@ import "components"
 import "../models/timer_service.js" as TimerService
 
 Page {
+    property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
     id: timesheets
     title: i18n.dtr("ubtms", "Timesheets")
 
@@ -76,7 +77,7 @@ Page {
                 id: drawerAction
                 iconName: "navigation-menu"
                 text: i18n.dtr("ubtms", "Menu")
-                visible: apLayout.columns === 1
+                visible: !isMultiColumn
                 onTriggered: {
                     apLayout.openGlobalDrawer()
                 }
