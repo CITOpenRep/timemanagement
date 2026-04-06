@@ -143,7 +143,8 @@ Page {
                 iconName: "reminder-new"
                 text: i18n.dtr("ubtms", "New Timesheet")
                 onTriggered: {
-                    const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
+                    const defaultAccountId = Account.getDefaultAccountId();
+                    const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
                     if (result.success) {
                         apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
                             "recordid": result.id,
