@@ -4,6 +4,7 @@ import QtQuick.LocalStorage 2.7 as Sql
 
 Item {
     id: globalWidgets
+    z: 10000
     
     property var rootApp
     property alias globalTimerWidget: globalTimerWidget
@@ -17,7 +18,7 @@ Item {
 
     GlobalTimerWidget {
         id: globalTimerWidget
-        z: 9999
+        z: 999
         anchors.bottom: parent.bottom
         visible: false
         showNotification: function (title, message, type) {
