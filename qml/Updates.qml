@@ -43,6 +43,7 @@ Page {
     
     property var recordid: 0
     property var accountid: 0
+    property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
     property bool isReadOnly: true
     property var currentUpdate: {
         "name": "",
@@ -702,7 +703,18 @@ Page {
         if (recordid != 0) {
             // Load existing update - project selection is not needed
             needsProjectSelection = false;
-            currentUpdate = Project.getProjectUpdateById(recordid, accountid);
+            
+            // Resolve odoo_record_id to local id if needed (from notification deep link)
+            if (isOdooRecordId) {
+                currentUpdate = Project.getProjectUpdateByOdooId(recordid, accountid);
+                if (currentUpdate && currentUpdate.id) {
+                    recordid = currentUpdate.id;
+                    accountid = currentUpdate.account_id || accountid;
+                    isOdooRecordId = false;
+                }
+            } else {
+                currentUpdate = Project.getProjectUpdateById(recordid, accountid);
+            }
             hasBeenSaved = true;
             
             // Populate form fields FIRST (before draft handler init)

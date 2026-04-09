@@ -690,6 +690,7 @@ class NotificationDaemon:
                     "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
                     "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
                     "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
+                    "ProjectUpdate": str(APP_ROOT / "qml" / "images" / "project.svg"),
                     "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
                 }
                 # Select icon based on notification type, fallback to logo
@@ -1230,15 +1231,15 @@ class NotificationDaemon:
             project_update_delivery = self.send_notification(
                 "Project Update",
                 notification_msg,
-                nav_type="Project",
-                record_id=project_id,  # Navigate to the project
+                nav_type="ProjectUpdate",
+                record_id=odoo_record_id,  # Navigate to the project update record
                 account_id=account_id,
                 avatar_path=avatar_path
             )
             add_notification(
                 self.app_db,
                 account_id,
-                "Project",
+                "ProjectUpdate",
                 notification_msg,
                 {
                     "update_name": update_name,
@@ -1269,7 +1270,7 @@ class NotificationDaemon:
                 msg = f"New update on project '{project_name}': {update_name}"
             
             add_notification(
-                self.app_db, account_id, "Project",
+                self.app_db, account_id, "ProjectUpdate",
                 msg,
                 {
                     "update_name": update_name,

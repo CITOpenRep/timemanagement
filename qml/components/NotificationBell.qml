@@ -151,7 +151,7 @@ Item {
             console.error("Failed to parse notification payload:", e);
         }
         
-        var recordId = payload.id || -1;
+        var recordId = payload.id || payload.odoo_record_id || -1;
         var accountId = modelData.account_id || 0;
         var notifType = modelData.type || "";
         
@@ -515,6 +515,7 @@ Item {
                                         case "Task": return "#4CAF50";
                                         case "Activity": return "#2196F3";
                                         case "Project": return "#FF9800";
+                                        case "ProjectUpdate": return "#FF9800";
                                         case "Timesheet": return "#9C27B0";
                                         case "Sync": return "#F44336";
                                         default: return "#757575";
@@ -555,6 +556,7 @@ Item {
                                             case "Task": return "../images/task.svg";
                                             case "Activity": return "../images/activity.svg";
                                             case "Project": return "../images/project.svg";
+                                            case "ProjectUpdate": return "../images/project.svg";
                                             case "Timesheet": return "../images/timesheet.svg";
                                             default: return "../images/notification.png";
                                         }
@@ -578,6 +580,7 @@ Item {
                                             case "Task": return "#4CAF50";
                                             case "Activity": return "#2196F3";
                                             case "Project": return "#FF9800";
+                                            case "ProjectUpdate": return "#FF9800";
                                             case "Timesheet": return "#9C27B0";
                                             case "Sync": return "#F44336";
                                             default: return "#757575";
@@ -596,6 +599,7 @@ Item {
                                                 case "Task": return "../images/task.svg";
                                                 case "Activity": return "../images/activity.svg";
                                                 case "Project": return "../images/project.svg";
+                                                case "ProjectUpdate": return "../images/project.svg";
                                                 case "Timesheet": return "../images/timesheet.svg";
                                                 default: return "../images/notification.png";
                                             }
@@ -622,6 +626,7 @@ Item {
                                                 case "Task": return i18n.dtr("ubtms", "Task");
                                                 case "Activity": return i18n.dtr("ubtms", "Activity");
                                                 case "Project": return i18n.dtr("ubtms", "Project");
+                                                case "ProjectUpdate": return i18n.dtr("ubtms", "Update");
                                                 case "Timesheet": return i18n.dtr("ubtms", "Timesheet");
                                                 case "Sync": return i18n.dtr("ubtms", "Sync Error");
                                                 default: return i18n.dtr("ubtms", "Update");
@@ -635,6 +640,7 @@ Item {
                                                 case "Task": return "#4CAF50";
                                                 case "Activity": return "#2196F3";
                                                 case "Project": return "#FF9800";
+                                                case "ProjectUpdate": return "#FF9800";
                                                 case "Timesheet": return "#9C27B0";
                                                 case "Sync": return "#F44336";
                                                 default: return theme.palette.normal.backgroundSecondaryText;
