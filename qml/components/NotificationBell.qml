@@ -55,11 +55,20 @@ Item {
         }
         console.log("[NotificationBell] Notification IDs: " + JSON.stringify(ids));
         
-        // Deduplicate by message content (keep only the most recent - highest ID)
+        function canonicalType(notif) {
+            if (notif.type === "Project" || notif.type === "ProjectUpdate") {
+                return "ProjectEvent";
+            }
+            return notif.type;
+        }
+
+        // Deduplicate by message content (keep only the most recent - highest ID).
+        // Project update duplicates sometimes arrive once as "Project" and once as
+        // "ProjectUpdate" with the same message, so normalize those two types.
         var messageMap = {};
         for (var j = 0; j < rawList.length; j++) {
             var notif = rawList[j];
-            var key = notif.type + "|" + notif.message;
+            var key = canonicalType(notif) + "|" + notif.message;
             
             if (!messageMap[key] || notif.id > messageMap[key].id) {
                 messageMap[key] = notif;

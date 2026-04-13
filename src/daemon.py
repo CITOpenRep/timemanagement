@@ -295,6 +295,17 @@ class NotificationDaemon:
             return 0
         return 1 if delivery_result.get("delivery_channel") in ("postal", "freedesktop") else 0
 
+    def _normalize_record_id(self, value):
+        """Normalize DB/JSON ids so int-vs-string mismatches do not break comparisons."""
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return str(value).strip() or None
+
     def _is_schedule_active_now(self):
         """Return whether notification schedule currently allows panel delivery."""
         try:
@@ -1179,6 +1190,19 @@ class NotificationDaemon:
         # =================================================================
         # 3. PROJECTS: Notify for newly managed/favorited projects (max 5 notifications)
         # =================================================================
+        
+        # Prevent duplicate notifications: if a project is 'new' only because it was just synced 
+        # due to a project update, don't send a redundant "Project Added" notification.
+        update_project_ids = {
+            self._normalize_record_id(u.get('project_id'))
+            for u in new_assignments.get('new_project_updates', [])
+            if self._normalize_record_id(u.get('project_id')) is not None
+        }
+        new_assignments['new_projects'] = [
+            p for p in new_assignments['new_projects']
+            if self._normalize_record_id(p.get('odoo_record_id')) not in update_project_ids
+        ]
+
         projects_to_notify = new_assignments['new_projects'][:MAX_NOTIFICATIONS_PER_TYPE]
         projects_overflow = len(new_assignments['new_projects']) - len(projects_to_notify)
         
