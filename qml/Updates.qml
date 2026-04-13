@@ -711,6 +711,13 @@ Page {
                     recordid = currentUpdate.id;
                     accountid = currentUpdate.account_id || accountid;
                     isOdooRecordId = false;
+                } else {
+                    // Update not yet synced locally — show error and navigate back
+                    console.warn("⚠️ ProjectUpdate with odoo_record_id=" + recordid + " not found locally. Not yet synced?");
+                    notifPopup.open("Not Found", "This project update has not been synced yet. Please sync and try again.", "error");
+                    isInitializing = false;
+                    Qt.callLater(navigateBack);
+                    return;
                 }
             } else {
                 currentUpdate = Project.getProjectUpdateById(recordid, accountid);

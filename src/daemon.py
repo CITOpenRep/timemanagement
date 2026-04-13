@@ -251,30 +251,39 @@ class NotificationDaemon:
             row = cursor.fetchone()
             if row and row[0] and 'ProjectUpdate' not in row[0]:
                 log.info("[DAEMON] Migrating notification table to add 'ProjectUpdate' type...")
-                cursor.execute("ALTER TABLE notification RENAME TO notification_old")
-                cursor.execute(
-                    """
-                    CREATE TABLE notification (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        account_id INTEGER,
-                        timestamp TEXT DEFAULT (datetime('now')),
-                        message TEXT NOT NULL,
-                        type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'ProjectUpdate', 'Timesheet', 'Sync')),
-                        payload TEXT NOT NULL,
-                        read_status INTEGER DEFAULT 0,
-                        panel_invoked INTEGER DEFAULT 0
+                try:
+                    cursor.execute("BEGIN")
+                    cursor.execute("ALTER TABLE notification RENAME TO notification_old")
+                    cursor.execute("PRAGMA table_info(notification_old)")
+                    old_columns = {column_row[1] for column_row in cursor.fetchall()}
+                    panel_invoked_select = "COALESCE(panel_invoked, 0)" if "panel_invoked" in old_columns else "0"
+                    cursor.execute(
+                        """
+                        CREATE TABLE notification (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            account_id INTEGER,
+                            timestamp TEXT DEFAULT (datetime('now')),
+                            message TEXT NOT NULL,
+                            type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'ProjectUpdate', 'Timesheet', 'Sync')),
+                            payload TEXT NOT NULL,
+                            read_status INTEGER DEFAULT 0,
+                            panel_invoked INTEGER DEFAULT 0
+                        )
+                        """
                     )
-                    """
-                )
-                cursor.execute(
-                    """
-                    INSERT INTO notification (id, account_id, timestamp, message, type, payload, read_status, panel_invoked)
-                    SELECT id, account_id, timestamp, message, type, payload, read_status,
-                           COALESCE(panel_invoked, 0) FROM notification_old
-                    """
-                )
-                cursor.execute("DROP TABLE notification_old")
-                log.info("[DAEMON] Notification table migrated successfully (added 'ProjectUpdate' type)")
+                    cursor.execute(
+                        f"""
+                        INSERT INTO notification (id, account_id, timestamp, message, type, payload, read_status, panel_invoked)
+                        SELECT id, account_id, timestamp, message, type, payload, read_status,
+                               {panel_invoked_select} FROM notification_old
+                        """
+                    )
+                    cursor.execute("DROP TABLE notification_old")
+                    cursor.execute("COMMIT")
+                    log.info("[DAEMON] Notification table migrated successfully (added 'ProjectUpdate' type)")
+                except Exception:
+                    cursor.execute("ROLLBACK")
+                    raise
 
             cursor.execute("PRAGMA table_info(notification)")
             columns = {row[1] for row in cursor.fetchall()}

@@ -68,7 +68,7 @@ Item {
         var messageMap = {};
         for (var j = 0; j < rawList.length; j++) {
             var notif = rawList[j];
-            var key = canonicalType(notif) + "|" + notif.message;
+            var key = notif.account_id + "|" + canonicalType(notif) + "|" + notif.message;
             
             if (!messageMap[key] || notif.id > messageMap[key].id) {
                 messageMap[key] = notif;
