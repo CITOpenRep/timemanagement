@@ -86,6 +86,9 @@ Item {
         } else if (navType === "Activity" && recordId > 0) {
             options["accountid"] = accountId;
             apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("../Activities.qml"), options);
+        } else if (navType === "ProjectUpdate" && recordId > 0) {
+            options["accountid"] = accountId;
+            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("../Updates.qml"), options);
         } else if (navType === "Project" && recordId > 0) {
             apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("../Projects.qml"), options);
         } else if (navType === "Timesheet" && recordId > 0) {

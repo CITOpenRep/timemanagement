@@ -237,13 +237,54 @@ class NotificationDaemon:
                     account_id INTEGER,
                     timestamp TEXT DEFAULT (datetime('now')),
                     message TEXT NOT NULL,
-                    type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'Timesheet', 'Sync')),
+                    type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'ProjectUpdate', 'Timesheet', 'Sync')),
                     payload TEXT NOT NULL,
                     read_status INTEGER DEFAULT 0,
                     panel_invoked INTEGER DEFAULT 0
                 )
                 """
             )
+
+            # Migrate CHECK constraint: SQLite cannot ALTER CHECK constraints,
+            # so we must recreate the table if old constraint is missing 'ProjectUpdate'
+            cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='notification'")
+            row = cursor.fetchone()
+            if row and row[0] and 'ProjectUpdate' not in row[0]:
+                log.info("[DAEMON] Migrating notification table to add 'ProjectUpdate' type...")
+                try:
+                    cursor.execute("BEGIN")
+                    cursor.execute("ALTER TABLE notification RENAME TO notification_old")
+                    cursor.execute("PRAGMA table_info(notification_old)")
+                    old_columns = {column_row[1] for column_row in cursor.fetchall()}
+                    panel_invoked_select = "COALESCE(panel_invoked, 0)" if "panel_invoked" in old_columns else "0"
+                    cursor.execute(
+                        """
+                        CREATE TABLE notification (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            account_id INTEGER,
+                            timestamp TEXT DEFAULT (datetime('now')),
+                            message TEXT NOT NULL,
+                            type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'ProjectUpdate', 'Timesheet', 'Sync')),
+                            payload TEXT NOT NULL,
+                            read_status INTEGER DEFAULT 0,
+                            panel_invoked INTEGER DEFAULT 0
+                        )
+                        """
+                    )
+                    cursor.execute(
+                        f"""
+                        INSERT INTO notification (id, account_id, timestamp, message, type, payload, read_status, panel_invoked)
+                        SELECT id, account_id, timestamp, message, type, payload, read_status,
+                               {panel_invoked_select} FROM notification_old
+                        """
+                    )
+                    cursor.execute("DROP TABLE notification_old")
+                    cursor.execute("COMMIT")
+                    log.info("[DAEMON] Notification table migrated successfully (added 'ProjectUpdate' type)")
+                except Exception as migration_err:
+                    log.error(f"[DAEMON] Migration failed, rolling back: {migration_err}", exc_info=True)
+                    cursor.execute("ROLLBACK")
+                    raise
 
             cursor.execute("PRAGMA table_info(notification)")
             columns = {row[1] for row in cursor.fetchall()}
@@ -263,6 +304,17 @@ class NotificationDaemon:
         if not delivery_result:
             return 0
         return 1 if delivery_result.get("delivery_channel") in ("postal", "freedesktop") else 0
+
+    def _normalize_record_id(self, value):
+        """Normalize DB/JSON ids so int-vs-string mismatches do not break comparisons."""
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return str(value).strip() or None
 
     def _is_schedule_active_now(self):
         """Return whether notification schedule currently allows panel delivery."""
@@ -690,6 +742,7 @@ class NotificationDaemon:
                     "Task": str(APP_ROOT / "qml" / "images" / "task.svg"),
                     "Activity": str(APP_ROOT / "qml" / "images" / "activity.svg"),
                     "Project": str(APP_ROOT / "qml" / "images" / "project.svg"),
+                    "ProjectUpdate": str(APP_ROOT / "qml" / "images" / "project.svg"),
                     "Timesheet": str(APP_ROOT / "qml" / "images" / "timesheet.svg"),
                 }
                 # Select icon based on notification type, fallback to logo
@@ -1147,6 +1200,19 @@ class NotificationDaemon:
         # =================================================================
         # 3. PROJECTS: Notify for newly managed/favorited projects (max 5 notifications)
         # =================================================================
+        
+        # Prevent duplicate notifications: if a project is 'new' only because it was just synced 
+        # due to a project update, don't send a redundant "Project Added" notification.
+        update_project_ids = {
+            self._normalize_record_id(u.get('project_id'))
+            for u in new_assignments.get('new_project_updates', [])
+            if self._normalize_record_id(u.get('project_id')) is not None
+        }
+        new_assignments['new_projects'] = [
+            p for p in new_assignments['new_projects']
+            if self._normalize_record_id(p.get('odoo_record_id')) not in update_project_ids
+        ]
+
         projects_to_notify = new_assignments['new_projects'][:MAX_NOTIFICATIONS_PER_TYPE]
         projects_overflow = len(new_assignments['new_projects']) - len(projects_to_notify)
         
@@ -1230,15 +1296,15 @@ class NotificationDaemon:
             project_update_delivery = self.send_notification(
                 "Project Update",
                 notification_msg,
-                nav_type="Project",
-                record_id=project_id,  # Navigate to the project
+                nav_type="ProjectUpdate",
+                record_id=odoo_record_id,  # Navigate to the project update record
                 account_id=account_id,
                 avatar_path=avatar_path
             )
             add_notification(
                 self.app_db,
                 account_id,
-                "Project",
+                "ProjectUpdate",
                 notification_msg,
                 {
                     "update_name": update_name,
@@ -1269,7 +1335,7 @@ class NotificationDaemon:
                 msg = f"New update on project '{project_name}': {update_name}"
             
             add_notification(
-                self.app_db, account_id, "Project",
+                self.app_db, account_id, "ProjectUpdate",
                 msg,
                 {
                     "update_name": update_name,

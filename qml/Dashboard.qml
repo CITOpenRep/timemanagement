@@ -432,6 +432,13 @@ Page {
                     "accountid": accountId,
                     "isReadOnly": true
                 });
+            } else if (navType === "ProjectUpdate" && recordId > 0) {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Updates.qml"), {
+                    "recordid": recordId,
+                    "accountid": accountId,
+                    "isOdooRecordId": true,
+                    "isReadOnly": true
+                });
             } else if (navType === "Project" && recordId > 0) {
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Projects.qml"), {
                     "recordid": recordId,

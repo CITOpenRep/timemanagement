@@ -44,7 +44,7 @@ function initializeDatabase() {
             "account_id INTEGER," +
             "timestamp TEXT DEFAULT (datetime('now'))," +
             "message TEXT NOT NULL," +
-            "type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'Timesheet', 'Sync'))," +
+            "type TEXT CHECK(type IN ('Activity', 'Task', 'Project', 'ProjectUpdate', 'Timesheet', 'Sync'))," +
             "payload TEXT NOT NULL," +
             "read_status INTEGER DEFAULT 0," +
             "panel_invoked INTEGER DEFAULT 0" +
