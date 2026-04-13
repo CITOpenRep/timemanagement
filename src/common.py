@@ -203,6 +203,32 @@ def write_sync_report_to_db(db_path, account_id, status, message=""):
     conn.commit()
     conn.close()
 
+
+def _normalize_notification_identity_value(value):
+    """Normalize payload identifiers for duplicate detection."""
+    if value in (None, "", 0, "0"):
+        return None
+    if isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        text = str(value).strip()
+        return text or None
+
+
+def _extract_notification_identity(payload):
+    """Extract a stable per-record identity from a notification payload."""
+    if not isinstance(payload, dict):
+        return None
+
+    for key in ("odoo_record_id", "record_id", "id"):
+        normalized = _normalize_notification_identity_value(payload.get(key))
+        if normalized is not None:
+            return f"{key}:{normalized}"
+
+    return None
+
 def add_notification(db_path, account_id, notif_type, message, payload, panel_invoked=0):
     """
     Insert a notification record into the notification table.
@@ -239,23 +265,34 @@ def add_notification(db_path, account_id, notif_type, message, payload, panel_in
 
     safe_sql_execute(db_path, create_table_sql)
 
-    # Check for duplicate notification (same type+message that is still unread)
-    # This prevents duplicate notifications from multiple sync cycles
-    check_duplicate_sql = """
-        SELECT COUNT(*) FROM notification 
-        WHERE account_id = ? AND message = ? AND type = ? AND read_status = 0
-    """
-    
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute(check_duplicate_sql, (account_id, message, notif_type))
-        count = cursor.fetchone()[0]
+        cursor.execute(
+            """
+            SELECT message, payload
+            FROM notification
+            WHERE account_id = ? AND type = ? AND read_status = 0
+            """,
+            (account_id, notif_type)
+        )
+        unread_rows = cursor.fetchall()
         conn.close()
-        
-        if count > 0:
-            # Duplicate unread notification exists, skip
-            return
+
+        incoming_identity = _extract_notification_identity(payload)
+        incoming_message = (message or "").strip()
+
+        for existing_message, existing_payload_json in unread_rows:
+            if incoming_identity is not None:
+                try:
+                    existing_payload = json.loads(existing_payload_json) if existing_payload_json else {}
+                except Exception:
+                    existing_payload = {}
+
+                if _extract_notification_identity(existing_payload) == incoming_identity:
+                    return
+            elif (existing_message or "").strip() == incoming_message:
+                return
     except Exception as e:
         # If check fails, proceed with insert (better to have duplicate than miss notification)
         pass

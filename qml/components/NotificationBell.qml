@@ -62,13 +62,38 @@ Item {
             return notif.type;
         }
 
+        function normalizedMessage(notif) {
+            var raw = (notif.message || "").toString();
+            return raw.replace(/\s+/g, " ").trim();
+        }
+
+        function stableIdentity(notif) {
+            var payload = {};
+            try {
+                if (notif.payload) {
+                    payload = typeof notif.payload === "string"
+                        ? JSON.parse(notif.payload)
+                        : notif.payload;
+                }
+            } catch (e) {}
+
+            var idValue = payload.odoo_record_id || payload.id || "";
+            var projectValue = payload.project_id || payload.project_name || "";
+            return idValue + "|" + projectValue;
+        }
+
         // Deduplicate by message content (keep only the most recent - highest ID).
         // Project update duplicates sometimes arrive once as "Project" and once as
         // "ProjectUpdate" with the same message, so normalize those two types.
         var messageMap = {};
         for (var j = 0; j < rawList.length; j++) {
             var notif = rawList[j];
-            var key = notif.account_id + "|" + canonicalType(notif) + "|" + notif.message;
+            var canonical = canonicalType(notif);
+            var key = notif.account_id + "|" + canonical + "|" + normalizedMessage(notif);
+
+            if (canonical !== "ProjectEvent") {
+                key += "|" + stableIdentity(notif);
+            }
             
             if (!messageMap[key] || notif.id > messageMap[key].id) {
                 messageMap[key] = notif;
