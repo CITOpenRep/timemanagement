@@ -281,7 +281,8 @@ class NotificationDaemon:
                     cursor.execute("DROP TABLE notification_old")
                     cursor.execute("COMMIT")
                     log.info("[DAEMON] Notification table migrated successfully (added 'ProjectUpdate' type)")
-                except Exception:
+                except Exception as migration_err:
+                    log.error(f"[DAEMON] Migration failed, rolling back: {migration_err}", exc_info=True)
                     cursor.execute("ROLLBACK")
                     raise
 
