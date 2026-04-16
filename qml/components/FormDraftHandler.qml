@@ -260,7 +260,7 @@ Item {
         var currentSnapshot = JSON.stringify(currentFormData);
         if (currentSnapshot === _lastSavedSnapshot) {
             _pendingDraftSave = false;
-            return { success: true, hasChanges: true, skipped: true };
+            return { success: true, hasChanges: false, skipped: true };
         }
         
         var result = DraftManager.saveDraft({
