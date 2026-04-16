@@ -97,7 +97,7 @@ Page {
             }
         ]
 
-        trailingActionBar.visible: isMultiColumn ? false : true
+      //  trailingActionBar.visible: isMultiColumn ? false : true
         trailingActionBar.numberOfSlots: 5
 
         trailingActionBar.actions: [
