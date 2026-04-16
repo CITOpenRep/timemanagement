@@ -596,6 +596,7 @@ function initializeDatabase() {
                     "ON current.draft_type = legacy.draft_type " +
                     "AND current.account_id = legacy.account_id " +
                     "AND current.page_identifier = legacy.page_identifier " +
+                    "AND current.is_new_record = legacy.is_new_record " +
                     "AND ((current.record_id = legacy.record_id) OR (current.record_id IS NULL AND legacy.record_id IS NULL)) " +
                     "WHERE current.id IS NULL"
                 );
