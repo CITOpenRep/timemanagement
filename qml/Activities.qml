@@ -1190,6 +1190,7 @@ Page {
             if (result.recordId && result.recordId > 0) {
                 recordid = result.recordId;
             }
+            var newBaseline = getCurrentFormData();
             hasBeenSaved = true;  // Mark that this activity has been properly saved
             formModified = false; // Reset form modification flag after successful save
             
@@ -1197,7 +1198,7 @@ Page {
             draftHandler.clearDraft();
             
             // Update original data in draft handler to reset baseline
-            draftHandler.updateOriginalData();
+            draftHandler.updateOriginalData(newBaseline);
             
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
             // No navigation - stay on the same page like Timesheet.qml

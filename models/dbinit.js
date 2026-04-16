@@ -500,7 +500,8 @@ function initializeDatabase() {
     );
 
     // Form drafts table for auto-save functionality
-    // Drop and recreate to fix column name mismatch from previous version
+    // Migrate legacy column names instead of dropping user drafts.
+    var needsLegacyDraftMigration = false;
     try {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function(tx) {
@@ -516,11 +517,13 @@ function initializeDatabase() {
                 }
             }
             
-            // Drop table if it has old schema
+            // Preserve legacy table so we can migrate existing draft data.
             if (hasOldSchema) {
-                console.log("🔄 Dropping form_drafts table with old schema...");
-                tx.executeSql("DROP TABLE IF EXISTS form_drafts");
-                console.log("✅ Old form_drafts table dropped");
+                console.log("🔄 Preserving legacy form_drafts table for migration...");
+                tx.executeSql("DROP TABLE IF EXISTS form_drafts_legacy");
+                tx.executeSql("ALTER TABLE form_drafts RENAME TO form_drafts_legacy");
+                needsLegacyDraftMigration = true;
+                console.log("✅ Legacy form_drafts table preserved");
             }
         });
     } catch (e) {
@@ -556,6 +559,24 @@ function initializeDatabase() {
             "updated_at TEXT"
         ]
     );
+
+    if (needsLegacyDraftMigration) {
+        try {
+            var migrationDb = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            migrationDb.transaction(function(tx) {
+                tx.executeSql(
+                    "INSERT OR IGNORE INTO form_drafts " +
+                    "(draft_type, record_id, account_id, page_identifier, draft_data, original_data, field_changes, is_new_record, created_at, updated_at) " +
+                    "SELECT draft_type, record_id, account_id, page_identifier, form_data, original_data, changed_fields, is_new_record, created_at, updated_at " +
+                    "FROM form_drafts_legacy"
+                );
+                tx.executeSql("DROP TABLE IF EXISTS form_drafts_legacy");
+            });
+            console.log("✅ Legacy form drafts migrated successfully");
+        } catch (e) {
+            console.error("❌ Failed to migrate legacy form drafts:", e);
+        }
+    }
     
     // Create indexes for form_drafts table for better query performance
     try {
@@ -740,4 +761,3 @@ function syncDraftFlags() {
         }
     }
 }
-

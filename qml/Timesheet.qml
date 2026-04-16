@@ -281,7 +281,7 @@ Page {
         recordId: timeSheet.recordid
         accountId: (currentTimesheet && currentTimesheet.account_id) ? currentTimesheet.account_id : 0
         enabled: !isReadOnly
-        autoSaveInterval: 300000 // 5 minutes
+        autoSaveInterval: 30000 // 30 seconds
         
         onDraftLoaded: {
             restoreFormFromDraft(draftData);
@@ -839,6 +839,10 @@ Page {
                 if (draftHandler.enabled) {
                     draftHandler.markFieldChanged("description", description_text.getFormattedText());
                 }
+            }
+        } else {
+            if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+                draftHandler.saveDraft();
             }
         }
         // Don't clear Global.description_temporary_holder when page becomes invisible

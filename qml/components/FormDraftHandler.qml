@@ -67,7 +67,7 @@ Item {
     /**
      * Auto-save interval in milliseconds (default: 30 seconds)
      */
-    property int autoSaveInterval: 300000
+    property int autoSaveInterval: 30000
     
     /**
      * Whether there are unsaved changes
@@ -164,6 +164,8 @@ Item {
     function initialize(originalDataObj) {
         if (!enabled) return;
         
+        _preventAutoSave = false;
+        currentDraftId = null;
         originalData = originalDataObj || {};
         currentFormData = JSON.parse(JSON.stringify(originalData)); // Deep copy
         hasUnsavedChanges = false;
@@ -207,9 +209,13 @@ Item {
     function markFieldChanged(fieldName, value) {
       //  console.log("📝 FormDraftHandler.markFieldChanged called - field:", fieldName, "value:", value, "enabled:", enabled, "_initialized:", _initialized, "_preventAutoSave:", _preventAutoSave);
         
-        if (!enabled || !_initialized || _preventAutoSave) {
+        if (!enabled || !_initialized) {
             console.log("⚠️ FormDraftHandler.markFieldChanged - returning early (checks failed)");
             return;
+        }
+
+        if (_preventAutoSave) {
+            _preventAutoSave = false;
         }
         
         // Update current form data
@@ -227,8 +233,8 @@ Item {
      * @returns Success status
      */
     function saveDraft() {
-        if (!enabled || !_initialized || _preventAutoSave) {
-            return { success: false, error: "Not initialized or prevented" };
+        if (!enabled || !_initialized) {
+            return { success: false, error: "Not initialized" };
         }
         
         if (!hasUnsavedChanges) {
@@ -343,10 +349,14 @@ Item {
      * Update original data after successful save
      * This resets the "changes" baseline
      */
-    function updateOriginalData() {
-        originalData = JSON.parse(JSON.stringify(currentFormData));
+    function updateOriginalData(newOriginalDataObj) {
+        var newBaseline = newOriginalDataObj !== undefined ? newOriginalDataObj : currentFormData;
+        originalData = JSON.parse(JSON.stringify(newBaseline || {}));
+        currentFormData = JSON.parse(JSON.stringify(newBaseline || {}));
+        currentDraftId = null;
         hasUnsavedChanges = false;
         changedFields = [];
+        _preventAutoSave = false;
     }
     
     /**
