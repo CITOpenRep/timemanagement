@@ -78,8 +78,6 @@ QtObject {
                              "\n\nOpen the respective forms to restore your changes.";
                 if (notifPopup) notifPopup.open("📂 Unsaved Drafts Found", message, "info");
             }
-            // Cleanup old drafts (older than 7 days)
-            DraftManager.cleanupOldDrafts(7);
         } catch (e) {
             console.error("❌ Error checking for unsaved drafts:", e.toString());
         }

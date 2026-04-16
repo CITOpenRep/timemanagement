@@ -675,6 +675,7 @@ Page {
             notifPopup.open("Error", "Unable to save the Project Update", "error");
         } else {
             hasBeenSaved = true;
+            var newBaseline = getCurrentFormData();
             
             // If this was a new record (recordid was 0), update recordid with the new ID
             if (recordid === 0 && result.record_id) {
@@ -691,7 +692,7 @@ Page {
             draftHandler.clearDraft();
             
             // Update original data in draft handler
-            draftHandler.updateOriginalData();
+            draftHandler.updateOriginalData(newBaseline);
             
             notifPopup.open("Saved", "Project Update has been saved successfully", "success");
         }
@@ -812,6 +813,10 @@ Page {
                 Global.description_context = "";
             }
         } else {
+            if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+                draftHandler.saveDraft();
+            }
+
             var isNavigatingToReadMore = navigatingToReadMore || (Global.description_context === "update_description");
             
             if (!isNavigatingToReadMore) {

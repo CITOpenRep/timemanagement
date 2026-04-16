@@ -179,7 +179,7 @@ Page {
         recordId: taskCreate.recordid
         accountId: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
         enabled: !isReadOnly
-        autoSaveInterval: 300000 // 5 minutes
+        autoSaveInterval: 30000 // 30 seconds
         
         onDraftLoaded: {
             // Only restore if form is fully initialized
@@ -1802,6 +1802,10 @@ Page {
                 }
             }
         } else {
+            if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+                draftHandler.saveDraft();
+            }
+
             // Only clear the holder if we're not navigating to ReadMore
             if (!navigatingToReadMore) {
                 Global.description_temporary_holder = "";

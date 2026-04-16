@@ -187,7 +187,7 @@ Page {
         recordId: projectCreate.recordid
         accountId: (project && project.account_id) ? project.account_id : 0
         enabled: !isReadOnly
-        autoSaveInterval: 300000 // 5 minutes
+        autoSaveInterval: 30000 // 30 seconds
         
         onDraftLoaded: {
             // Only restore if form is fully initialized
@@ -1054,6 +1054,10 @@ Page {
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
                 Global.description_context = "";
+            }
+        } else {
+            if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+                draftHandler.saveDraft();
             }
         }
         // Don't clear context when page becomes invisible as it might be needed
