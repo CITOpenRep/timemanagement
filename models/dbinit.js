@@ -502,9 +502,15 @@ function initializeDatabase() {
     // Form drafts table for auto-save functionality
     // Migrate legacy column names instead of dropping user drafts.
     var needsLegacyDraftMigration = false;
+    var hasLegacyDraftTable = false;
     try {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function(tx) {
+            var legacyTableInfo = tx.executeSql(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='form_drafts_legacy'"
+            );
+            hasLegacyDraftTable = legacyTableInfo.rows.length > 0;
+
             // Check if table exists and has wrong column names
             var tableInfo = tx.executeSql("PRAGMA table_info(form_drafts)");
             var hasOldSchema = false;
@@ -520,10 +526,23 @@ function initializeDatabase() {
             // Preserve legacy table so we can migrate existing draft data.
             if (hasOldSchema) {
                 console.log("🔄 Preserving legacy form_drafts table for migration...");
-                tx.executeSql("DROP TABLE IF EXISTS form_drafts_legacy");
-                tx.executeSql("ALTER TABLE form_drafts RENAME TO form_drafts_legacy");
+                if (hasLegacyDraftTable) {
+                    tx.executeSql(
+                        "INSERT OR IGNORE INTO form_drafts_legacy " +
+                        "(draft_type, record_id, account_id, page_identifier, form_data, original_data, changed_fields, is_new_record, created_at, updated_at) " +
+                        "SELECT draft_type, record_id, account_id, page_identifier, form_data, original_data, changed_fields, is_new_record, created_at, updated_at " +
+                        "FROM form_drafts"
+                    );
+                    tx.executeSql("DROP TABLE IF EXISTS form_drafts");
+                } else {
+                    tx.executeSql("ALTER TABLE form_drafts RENAME TO form_drafts_legacy");
+                    hasLegacyDraftTable = true;
+                }
                 needsLegacyDraftMigration = true;
                 console.log("✅ Legacy form_drafts table preserved");
+            } else if (hasLegacyDraftTable) {
+                needsLegacyDraftMigration = true;
+                console.log("ℹ️ Found existing form_drafts_legacy table, migration will continue");
             }
         });
     } catch (e) {
@@ -560,7 +579,7 @@ function initializeDatabase() {
         ]
     );
 
-    if (needsLegacyDraftMigration) {
+    if (needsLegacyDraftMigration || hasLegacyDraftTable) {
         try {
             var migrationDb = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
             migrationDb.transaction(function(tx) {
@@ -570,7 +589,21 @@ function initializeDatabase() {
                     "SELECT draft_type, record_id, account_id, page_identifier, form_data, original_data, changed_fields, is_new_record, created_at, updated_at " +
                     "FROM form_drafts_legacy"
                 );
-                tx.executeSql("DROP TABLE IF EXISTS form_drafts_legacy");
+                var missingRows = tx.executeSql(
+                    "SELECT COUNT(*) AS missing_count " +
+                    "FROM form_drafts_legacy legacy " +
+                    "LEFT JOIN form_drafts current " +
+                    "ON current.draft_type = legacy.draft_type " +
+                    "AND current.account_id = legacy.account_id " +
+                    "AND current.page_identifier = legacy.page_identifier " +
+                    "AND ((current.record_id = legacy.record_id) OR (current.record_id IS NULL AND legacy.record_id IS NULL)) " +
+                    "WHERE current.id IS NULL"
+                );
+                if (missingRows.rows.item(0).missing_count === 0) {
+                    tx.executeSql("DROP TABLE IF EXISTS form_drafts_legacy");
+                } else {
+                    console.warn("⚠️ Keeping form_drafts_legacy table because some rows are not migrated yet");
+                }
             });
             console.log("✅ Legacy form drafts migrated successfully");
         } catch (e) {

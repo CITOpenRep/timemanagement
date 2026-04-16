@@ -109,6 +109,16 @@ Item {
      */
     property bool _preventAutoSave: false
     
+    /**
+     * Internal flag to track whether form data changed since the last successful draft save
+     */
+    property bool _pendingDraftSave: false
+    
+    /**
+     * Snapshot of the last successfully saved form data
+     */
+    property string _lastSavedSnapshot: "{}"
+    
     // Make this invisible - it's just for logic
     visible: false
     width: 0
@@ -144,11 +154,11 @@ Item {
     Timer {
         id: autoSaveTimer
         interval: root.autoSaveInterval
-        running: root.enabled && root._initialized && root.hasUnsavedChanges && !root._preventAutoSave
+        running: root.enabled && root._initialized && root.hasUnsavedChanges && root._pendingDraftSave && !root._preventAutoSave
         repeat: true
         
         onTriggered: {
-            if (root.hasUnsavedChanges && !root._preventAutoSave) {
+            if (root.hasUnsavedChanges && root._pendingDraftSave && !root._preventAutoSave) {
                 root.saveDraft();
             }
         }
@@ -165,9 +175,11 @@ Item {
         if (!enabled) return;
         
         _preventAutoSave = false;
+        _pendingDraftSave = false;
         currentDraftId = null;
         originalData = originalDataObj || {};
         currentFormData = JSON.parse(JSON.stringify(originalData)); // Deep copy
+        _lastSavedSnapshot = JSON.stringify(currentFormData);
         hasUnsavedChanges = false;
         changedFields = [];
         _initialized = true;
@@ -194,6 +206,8 @@ Item {
             currentFormData = result.draft.formData;
             changedFields = result.draft.changedFields;
             hasUnsavedChanges = changedFields.length > 0;
+            _lastSavedSnapshot = JSON.stringify(currentFormData);
+            _pendingDraftSave = false;
             
             // Emit signal to restore form UI
             draftLoaded(result.draft.formData, changedFields);
@@ -224,6 +238,7 @@ Item {
         // Recalculate changed fields
         changedFields = DraftManager.getChangedFields(currentFormData, originalData);
         hasUnsavedChanges = changedFields.length > 0;
+        _pendingDraftSave = hasUnsavedChanges && JSON.stringify(currentFormData) !== _lastSavedSnapshot;
         
       //  console.log("✅ FormDraftHandler.markFieldChanged - updated. hasUnsavedChanges:", hasUnsavedChanges, "changedFields count:", changedFields.length);
     }
@@ -238,7 +253,13 @@ Item {
         }
         
         if (!hasUnsavedChanges) {
+            _pendingDraftSave = false;
             return { success: true, hasChanges: false };
+        }
+        
+        var currentSnapshot = JSON.stringify(currentFormData);
+        if (!_pendingDraftSave && currentSnapshot === _lastSavedSnapshot) {
+            return { success: true, hasChanges: true, skipped: true };
         }
         
         var result = DraftManager.saveDraft({
@@ -252,6 +273,8 @@ Item {
         
         if (result.success && result.draftId) {
             currentDraftId = result.draftId;
+            _lastSavedSnapshot = currentSnapshot;
+            _pendingDraftSave = false;
             draftSaved(result.draftId);
             
             // Trigger menu refresh to update draft badges
@@ -293,6 +316,8 @@ Item {
         hasUnsavedChanges = false;
         changedFields = [];
         currentFormData = JSON.parse(JSON.stringify(originalData));
+        _lastSavedSnapshot = JSON.stringify(currentFormData);
+        _pendingDraftSave = false;
         
         draftCleared();
         
@@ -357,6 +382,8 @@ Item {
         hasUnsavedChanges = false;
         changedFields = [];
         _preventAutoSave = false;
+        _lastSavedSnapshot = JSON.stringify(currentFormData);
+        _pendingDraftSave = false;
     }
     
     /**
@@ -376,7 +403,7 @@ Item {
     Component.onDestruction: {
         // Save draft one last time before component is destroyed
         // But NOT if we just cleared the draft (after save or discard)
-        if (enabled && _initialized && hasUnsavedChanges && !_preventAutoSave) {
+        if (enabled && _initialized && hasUnsavedChanges && _pendingDraftSave && !_preventAutoSave) {
             saveDraft();
         }
     }
