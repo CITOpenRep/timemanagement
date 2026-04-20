@@ -160,15 +160,25 @@ Rectangle {
                 anchors.fill: parent
                 anchors.rightMargin: units.gu(4) // Space for clear button
                 anchors.leftMargin: units.gu(1)
-                placeholderText: i18n.dtr("ubtms", "Search...")
                 background: Rectangle {
                     color: "transparent"
                 }
                 color: topFilterBar.isDark ? "#FFFFFF" : "#333333"
-                placeholderTextColor: topFilterBar.isDark ? "#888888" : "#888888"
                 selectByMouse: true
                 onAccepted: topFilterBar.customSearch(text)
-                // onTextChanged: topFilterBar.customSearch(text)
+
+                // Custom placeholder text to guarantee color on Ubuntu Touch
+                Text {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.margins: units.gu(0.5)
+                    text: i18n.dtr("ubtms", "Search...")
+                    color: topFilterBar.isDark ? "#CCCCCC" : "#888888"
+                    font: searchField.font
+                    visible: !searchField.text && !searchField.activeFocus
+                    elide: Text.ElideRight
+                }
             }
 
             Button {
