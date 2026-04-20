@@ -145,21 +145,27 @@ Rectangle {
             width: parent.width
             anchors.left: parent.left
             anchors.right: parent.right
-            //  anchors.margins: units.gu(0.5)
-            color: "#F5F5F5"
-            border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
-            border.width: searchField.activeFocus ? 2 : 1
+            color: topFilterBar.isDark ? "#1E1E1E" : "#FFFFFF"
+            border.width: 0
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                anchors.bottom: parent.bottom
+                color: searchField.activeFocus ? "#FF6B35" : (topFilterBar.isDark ? "#48484A" : "#E0E0E0")
+            }
 
             TextField {
                 id: searchField
                 anchors.fill: parent
                 anchors.rightMargin: units.gu(4) // Space for clear button
+                anchors.leftMargin: units.gu(1)
                 placeholderText: i18n.dtr("ubtms", "Search...")
                 background: Rectangle {
                     color: "transparent"
                 }
-                color: "#333333"
-                placeholderTextColor: "#888888"
+                color: topFilterBar.isDark ? "#FFFFFF" : "#333333"
+                placeholderTextColor: topFilterBar.isDark ? "#888888" : "#888888"
                 selectByMouse: true
                 onAccepted: topFilterBar.customSearch(text)
                 // onTextChanged: topFilterBar.customSearch(text)
