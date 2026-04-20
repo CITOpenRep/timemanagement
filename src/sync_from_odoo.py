@@ -24,6 +24,7 @@
 
 import json
 import sqlite3
+from functools import lru_cache
 from xmlrpc.client import ServerProxy
 from odoo_client import OdooClient
 import logging
@@ -35,6 +36,14 @@ import os
 from bus import send
 
 log = logging.getLogger("odoo_sync")
+
+
+@lru_cache(maxsize=128)
+def get_table_columns(db_path, table_name):
+    table_info = safe_sql_execute(
+        db_path, f"PRAGMA table_info({table_name})", fetch=True, commit=False
+    )
+    return tuple(row[1] for row in table_info or [])
 
 
 def get_record_display_name(record, model_name=None):
@@ -152,10 +161,7 @@ def insert_record(
         columns = []
         values = []
         record["account_id"] = account_id
-        table_info = safe_sql_execute(
-            db_path, f"PRAGMA table_info({table_name})", fetch=True, commit=False
-        )
-        table_columns = {row[1] for row in table_info or []}
+        table_columns = set(get_table_columns(db_path, table_name))
         
         # Check if local record has pending changes (status = 'updated' or 'created')
         # If so, we should preserve certain local fields like 'favorites' and 'state' for activities
