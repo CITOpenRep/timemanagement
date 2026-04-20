@@ -5,12 +5,11 @@ import QtGraphicalEffects 1.0
 Rectangle {
     id: topFilterBar
     width: parent ? parent.width : Screen.width
-    height: showSearchBox ? units.gu(11) : units.gu(6) // Dynamic height based on search visibility
-    color: "#E0E0E0"
+    height: showSearchBox ? units.gu(11) : units.gu(6) // Restored height to give proper space
+    color: "transparent"
 
-    //  anchors.margins: units.gu(0.5)
-    //  anchors.leftMargin: units.gu(1)
-    //  anchors.rightMargin: units.gu(1)
+    // Helper property to check if dark mode is active
+    property bool isDark: typeof theme !== 'undefined' ? (theme.name === "Ubuntu.Components.Themes.SuruDark") : false
 
     // Dynamic filter model - array of {label, filterKey} objects
     property var filterModel: []
@@ -190,45 +189,84 @@ Rectangle {
         }
 
         // Filter buttons row below search
-        Flickable {
-            id: flickable
+        Item {
             width: parent.width
-            height: units.gu(6)
-            contentWidth: rowLayout.width
-            contentHeight: rowLayout.height
-            clip: true
-            interactive: true
-            flickableDirection: Flickable.HorizontalFlick
+            height: units.gu(6) // Adjusted back
 
-            Row {
-                id: rowLayout
-                spacing: 0 // Remove spacing between elements
-                anchors.verticalCenter: parent.verticalCenter // Center vertically
-                anchors.left: parent.left
+            Flickable {
+                id: flickable
+                anchors.fill: parent
+                contentWidth: rowLayout.width
+                contentHeight: rowLayout.height
+                clip: true
+                interactive: true
+                flickableDirection: Flickable.HorizontalFlick
 
-                // Dynamic buttons using Repeater
-                Repeater {
-                    model: topFilterBar.filterModel.length > 0 ? topFilterBar.filterModel : []
+                Rectangle {
+                    id: tabContainer
+                    height: units.gu(6)
+                    width: Math.max(rowLayout.width, flickable.width)
+                    color: topFilterBar.isDark ? "#2C2C2E" : "#E0E0E0" // Adapts to theme
+                }
 
-                    Button {
-                        text: modelData.label
-                        height: units.gu(6)
-                        width: units.gu(12)
+                Row {
+                    id: rowLayout
+                    spacing: 0
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Repeater {
+                        model: topFilterBar.filterModel.length > 0 ? topFilterBar.filterModel : []
+
+                        Button {
+                            text: modelData.label
+                            height: units.gu(6)
+                        // Dynamic width based on text
+                        width: Math.max(units.gu(12), metrics.width + units.gu(4))
                         property bool isHighlighted: topFilterBar.currentFilter === modelData.filterKey
 
-                        background: Rectangle {
-                            color: parent.isHighlighted ? "#F2EDE8" : "#E0E0E0"
-                            border.color: parent.isHighlighted ? "#F2EDE8" : "#CCCCCC"
-                            border.width: 1
+                        TextMetrics {
+                            id: metrics
+                            font: buttonText.font
+                            text: buttonText.text
                         }
 
-                        contentItem: Text {
-                            text: parent.text
-                            color: parent.isHighlighted ? "#FF6B35" : "#8C7059"
-                            font.bold: parent.isHighlighted
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
+                        background: Rectangle {
+                            color: "transparent"
+
+                            // Divider between options
+                            Rectangle {
+                                width: 1
+                                height: parent.height - units.gu(2)
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: topFilterBar.isDark ? "#48484A" : "#C7C7CC"
+                                visible: index < (topFilterBar.filterModel.length > 0 ? topFilterBar.filterModel.length : 0) - 1
+                            }
+                        }
+
+                        contentItem: Item {
+                            anchors.fill: parent
+
+                            Text {
+                                id: buttonText
+                                text: parent.parent.text
+                                anchors.centerIn: parent
+                                color: parent.parent.isHighlighted ? "#FF6B35" : (topFilterBar.isDark ? "#D1D1D6" : "#666666")
+                                font.weight: parent.parent.isHighlighted ? Font.DemiBold : Font.Normal
+                                font.pixelSize: units.gu(1.6)
+                            }
+
+                            // Underline indicator for selected tab
+                            Rectangle {
+                                visible: parent.parent.isHighlighted
+                                height: units.gu(0.4)
+                                width: buttonText.width + units.gu(1)
+                                color: "#FF6B35"
+                                radius: units.gu(0.2)
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: units.gu(0.6)
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
                         }
 
                         onClicked: {
@@ -241,5 +279,6 @@ Rectangle {
                 }
             }
         }
+        } // close Item
     }
 }
