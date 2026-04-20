@@ -736,7 +736,7 @@ Page {
             onCurrentIndexChanged: {}
         }
 
-        Text {
+        Label {
             id: labelNoActivity
             anchors.centerIn: parent
             font.pixelSize: units.gu(2)
