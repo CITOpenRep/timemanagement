@@ -24,6 +24,7 @@
 
 import json
 import sqlite3
+import re
 from functools import lru_cache
 from xmlrpc.client import ServerProxy
 from odoo_client import OdooClient
@@ -38,12 +39,26 @@ from bus import send
 log = logging.getLogger("odoo_sync")
 
 
+_SAFE_SQLITE_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _validate_table_name(table_name):
+    if not isinstance(table_name, str) or not _SAFE_SQLITE_IDENTIFIER.fullmatch(table_name):
+        raise ValueError(f"Invalid table name: {table_name!r}")
+    return table_name
+
+
 @lru_cache(maxsize=128)
 def get_table_columns(db_path, table_name):
+    safe_table_name = _validate_table_name(table_name)
     table_info = safe_sql_execute(
-        db_path, f"PRAGMA table_info({table_name})", fetch=True, commit=False
+        db_path, f"PRAGMA table_info({safe_table_name})", fetch=True, commit=False
     )
     return tuple(row[1] for row in table_info or [])
+
+
+def clear_table_columns_cache():
+    get_table_columns.cache_clear()
 
 
 def get_record_display_name(record, model_name=None):
@@ -344,6 +359,7 @@ def sync_model(
         Performs complete sync including fetching records, updating local database,
         and removing orphaned records. Adds notification on failure.
     """
+    clear_table_columns_cache()
     log.info(f"[SYNC] Fetching '{model_name}' records from Odoo...")
     field_map = prepare_field_mapping(client, model_name, config_path)
     odoo_fields = list(field_map.keys())
