@@ -124,15 +124,6 @@ Page {
                 }
             },
             Action {
-                iconName: "help"
-                text: i18n.dtr("ubtms", "About")
-                onTriggered: {
-                    apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Aboutus.qml"));
-                    page = 7;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
                 iconName: "account"
                 text: i18n.dtr("ubtms", "Switch Accounts")
                 onTriggered: {
