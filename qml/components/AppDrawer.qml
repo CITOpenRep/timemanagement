@@ -49,6 +49,29 @@ Controls.Drawer {
                         color: "white"
                         fontSize: "large"
                     }
+
+                    Item {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                        anchors.rightMargin: units.gu(1.2)
+                        width: units.gu(4)
+                        height: units.gu(4)
+
+                        Image {
+                            anchors.centerIn: parent
+                            width: units.gu(2.2)
+                            height: units.gu(2.2)
+                            source: theme.name === "Ubuntu.Components.Themes.SuruDark" ? Qt.resolvedUrl("../images/daymode.png") : Qt.resolvedUrl("../images/darkmode.png")
+                            fillMode: Image.PreserveAspectFit
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                            }
+                        }
+                    }
                 }
 
                 Rectangle {

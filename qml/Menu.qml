@@ -48,7 +48,15 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        trailingActionBar.actions: []
+        trailingActionBar.actions: [
+                Action {
+                iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
+                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Light Mode") : i18n.dtr("ubtms","Dark Mode")
+                onTriggered: {
+                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                }
+            }
+        ]
     }
 
     readonly property bool isDark: theme.name === "Ubuntu.Components.Themes.SuruDark"
