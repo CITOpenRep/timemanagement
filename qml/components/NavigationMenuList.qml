@@ -1,0 +1,24 @@
+import QtQuick 2.6
+import Lomiri.Components 1.3
+import "settings"
+
+Column {
+    id: root
+    width: parent ? parent.width : 0
+
+    property var menuItems: []
+    signal itemSelected(var item)
+
+    Repeater {
+        model: root.menuItems
+
+        SettingsListItem {
+            width: root.width
+            iconName: modelData.iconName
+            iconColor: modelData.iconColor
+            text: i18n.dtr("ubtms", modelData.textKey)
+            showDivider: modelData.showDivider === undefined ? true : modelData.showDivider
+            onClicked: root.itemSelected(modelData)
+        }
+    }
+}
