@@ -39,18 +39,20 @@ from bus import send
 log = logging.getLogger("odoo_sync")
 
 
-_SAFE_SQLITE_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_SAFE_SQLITE_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def _validate_table_name(table_name):
-    if not isinstance(table_name, str) or not _SAFE_SQLITE_IDENTIFIER.fullmatch(table_name):
+    if not isinstance(table_name, str) or not _SAFE_SQLITE_IDENTIFIER_PATTERN.fullmatch(table_name):
         raise ValueError(f"Invalid table name: {table_name!r}")
     return table_name
 
 
 @lru_cache(maxsize=128)
 def get_table_columns(db_path, table_name):
+    """Return cached table columns for a sync run. Cache is cleared at sync start."""
     safe_table_name = _validate_table_name(table_name)
+    # Safe to interpolate after strict identifier validation above.
     table_info = safe_sql_execute(
         db_path, f"PRAGMA table_info({safe_table_name})", fetch=True, commit=False
     )
