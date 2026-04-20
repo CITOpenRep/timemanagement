@@ -151,6 +151,12 @@ AdaptivePageLayout {
                 }
             }
         }
+        Updates_Page {
+            id: updates_page
+        }
+        Aboutus {
+            id: aboutus_page
+        }
         Settings_Page {
             id: settings_page
         }
@@ -205,7 +211,9 @@ AdaptivePageLayout {
         else if (pageNum === 2) targetPage = activity_page;
         else if (pageNum === 3 && url.indexOf("MyTasks") === -1) targetPage = task_page;
         else if (pageNum === 4) targetPage = project_page;
+        else if (pageNum === 5) targetPage = updates_page;
         else if (pageNum === 6) targetPage = settings_page;
+        else if (pageNum === 7) targetPage = aboutus_page;
         
         if (targetPage !== null) {
             apLayout.currentPage = targetPage;
@@ -242,7 +250,9 @@ AdaptivePageLayout {
             }
         }
         setCurrentPage(pageNum);
-        globalDrawer.close();
+        if (globalDrawer) {
+            globalDrawer.close();
+        }
     }
 
         function setCurrentPage(page) {
@@ -256,7 +266,7 @@ AdaptivePageLayout {
                 {}
                 break;
             case 1:
-                currentPage = timesheet_page;
+                currentPage = timesheet_list || timesheet_page;
                 thirdPage = null;
                 break;
             case 2:
@@ -271,12 +281,16 @@ AdaptivePageLayout {
                 currentPage = project_page;
                 thirdPage = null;
                 break;
+            case 5:
+                currentPage = updates_page;
+                thirdPage = null;
+                break;
             case 6:
                 currentPage = settings_page;
                 thirdPage = null;
                 break;
             case 7:
-                currentPage = timesheet_list;
+                currentPage = aboutus_page;
                 thirdPage = null;
                 break;
             }
