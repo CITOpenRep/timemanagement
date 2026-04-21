@@ -515,16 +515,6 @@ Page {
 
 
 
-    // Also listen to TSApp signals so account changes propagate even while this
-    // page is covered by another page in the navigation stack.
-    Connections {
-        target: accountPicker
-
-        onAccepted: function (id, name) {
-            handleAccountChange(id);
-        }
-    }
-
     Connections {
         target: typeof mainView !== 'undefined' ? mainView : null
 
