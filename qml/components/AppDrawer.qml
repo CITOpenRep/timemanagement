@@ -110,6 +110,7 @@ Controls.Drawer {
                         NavigationMenuList {
                             width: parent.width
                             menuItems: MenuData.items()
+                            selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
                             onItemSelected: function(item) {
                                 drawerRoot.close()
                                 apLayout.setPageGlobal(item.pageUrl, item.pageNum)

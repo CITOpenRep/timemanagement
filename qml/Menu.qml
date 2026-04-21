@@ -99,6 +99,7 @@ Page {
                         NavigationMenuList {
                             width: parent.width
                             menuItems: MenuData.items()
+                            selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
                             onItemSelected: function(item) {
                                 apLayout.setPageGlobal(item.pageUrl, item.pageNum)
                             }
