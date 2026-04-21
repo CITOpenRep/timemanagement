@@ -515,6 +515,16 @@ Page {
 
 
 
+    // Listen directly to the picker as well, because MyTasks is often opened
+    // as a dynamic page and should react immediately to account changes.
+    Connections {
+        target: accountPicker
+
+        onAccepted: function (id, name) {
+            handleAccountChange(id);
+        }
+    }
+
     Connections {
         target: typeof mainView !== 'undefined' ? mainView : null
 
