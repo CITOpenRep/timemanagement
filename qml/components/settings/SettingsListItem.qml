@@ -112,7 +112,7 @@ Item {
                     text: root.text
                     font.pixelSize: units.gu(2)
                     color: root.textColor
-                    font.bold: root.active
+                 //   font.bold: root.active
                     elide: Text.ElideRight
                     width: parent.width
                 }
