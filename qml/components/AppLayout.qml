@@ -20,6 +20,7 @@ AdaptivePageLayout {
         property bool isMultiColumn: true
         property Page currentPage: splash_page
         property Page thirdPage: dashboard_page2
+        property string currentMenuPageUrl: "Dashboard.qml"
         primaryPage: splash_page
 
         function openGlobalDrawer() {
@@ -179,15 +180,18 @@ AdaptivePageLayout {
             case 1:
                 primaryPage = dashboard_page;
                 currentPage = dashboard_page;
+                currentMenuPageUrl = "Dashboard.qml";
                 break;
             case 2:
                 primaryPage = menu_page;
                 currentPage = dashboard_page;
+                currentMenuPageUrl = "Dashboard.qml";
                 addPageToNextColumn(primaryPage, currentPage);
                 break;
             case 3:
                 primaryPage = menu_page;
                 currentPage = dashboard_page;
+                currentMenuPageUrl = "Dashboard.qml";
                 addPageToNextColumn(primaryPage, currentPage);
                 addPageToNextColumn(currentPage, thirdPage);
                 break;
@@ -218,6 +222,7 @@ AdaptivePageLayout {
         if (targetPage !== null) {
             apLayout.currentPage = targetPage;
         }
+        currentMenuPageUrl = url;
         
         if (apLayout.columns === 1) {
             // For single column, replace primary page to dodge back-stack

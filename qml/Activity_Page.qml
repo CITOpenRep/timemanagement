@@ -162,6 +162,11 @@ Page {
 
         // Reload assignees for the new account
         loadAssignees();
+        assigneeFilterMenu.expanded = false;
+
+        // Reset assignee selection for the new account so stale IDs from the
+        // previous account do not make the refreshed list appear empty/stale.
+        applyDefaultAssigneeFilter();
 
         // Refresh the activity list
         isLoading = true;
@@ -487,9 +492,14 @@ Page {
                 activity.filterByAssignees = false;
                 activity.selectedAssigneeIds = [];
                 assigneeFilterMenu.selectedAssigneeIds = [];
+                Global.clearAssigneeFilter();
             }
         } catch (e) {
             console.error("applyDefaultAssigneeFilter failed:", e);
+            activity.filterByAssignees = false;
+            activity.selectedAssigneeIds = [];
+            assigneeFilterMenu.selectedAssigneeIds = [];
+            Global.clearAssigneeFilter();
         }
     }
 
@@ -819,14 +829,14 @@ Page {
 
         onAccountDataRefreshRequested: function (accountId) {
             //console.log("Activity_Page: Account data refresh requested for:", accountId);
-            if (activity.visible && accountId >= -1) {
+            if (activity.visible && accountId >= -1 && accountId !== selectedAccountId) {
                 handleAccountChange(accountId);
             }
         }
 
         onGlobalAccountChanged: function (accountId, accountName) {
             //console.log("Activity_Page: Global account changed to:", accountId, accountName);
-            if (activity.visible && accountId >= -1) {
+            if (activity.visible && accountId >= -1 && accountId !== selectedAccountId) {
                 handleAccountChange(accountId);
             }
         }

@@ -49,7 +49,14 @@ Page {
             dividerColor: LomiriColors.slate
         }
         trailingActionBar.actions: [
-                Action {
+            Action {
+                iconName: "account"
+                text: i18n.dtr("ubtms", "Switch Accounts")
+                onTriggered: {
+                    accountPicker.open(accountPicker.selectedAccountId);
+                }
+            },
+            Action {
                 iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
                 text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Light Mode") : i18n.dtr("ubtms","Dark Mode")
                 onTriggered: {
@@ -92,6 +99,7 @@ Page {
                         NavigationMenuList {
                             width: parent.width
                             menuItems: MenuData.items()
+                            selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
                             onItemSelected: function(item) {
                                 apLayout.setPageGlobal(item.pageUrl, item.pageNum)
                             }

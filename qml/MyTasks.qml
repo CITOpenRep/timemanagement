@@ -271,6 +271,18 @@ Page {
         }
     }
 
+    function clearCurrentTasks() {
+        personalStages = [];
+        currentPersonalStageId = undefined;
+        myTaskListHeader.filterModel = [];
+        myTaskListHeader.currentFilter = "";
+        myTasksList.currentOffset = 0;
+        myTasksList.hasMoreItems = false;
+        myTasksList.isLoadingMore = false;
+        myTasksList.isLoading = false;
+        myTasksList.updateDisplayedTasks([], false);
+    }
+
     // Function to handle account selection changes
     function handleAccountChange(accountId) {
         //console.log("MyTasks: Account changed to", accountId);
@@ -294,12 +306,21 @@ Page {
         // Update current user for the new account
         updateCurrentUser();
 
+        if (currentUserOdooId <= 0) {
+            clearCurrentTasks();
+            return;
+        }
+
         // Reload personal stages for the new account
         loadPersonalStages();
 
         // Refresh the task list with the first personal stage (paginated)
         if (currentUserOdooId > 0 && personalStages.length > 0 && currentPersonalStageId !== undefined) {
-            startPaginatedLoad();
+            loadTasksWithIndicator(function() {
+                startPaginatedLoad();
+            });
+        } else {
+            clearCurrentTasks();
         }
     }
 
@@ -494,20 +515,19 @@ Page {
 
 
 
-    // Also listen to TSApp signals for when MyTasks is already visible
     Connections {
         target: typeof mainView !== 'undefined' ? mainView : null
 
         function onAccountDataRefreshRequested(accountId) {
             // console.log("🔄 MyTasks: Refreshing data for account:", accountId);
-            if (myTasksPage.visible && accountId >= 0) {
+            if (accountId >= -1 && accountId !== selectedAccountId) {
                 handleAccountChange(accountId);
             }
         }
 
         function onGlobalAccountChanged(accountId, accountName) {
             //  console.log("🔄 MyTasks: Global account changed to:", accountId, accountName);
-            if (myTasksPage.visible && accountId >= 0) {
+            if (accountId >= -1 && accountId !== selectedAccountId) {
                 handleAccountChange(accountId);
             }
         }

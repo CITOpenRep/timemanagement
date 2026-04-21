@@ -47,10 +47,18 @@ Item {
         restrictToLocalOnly: false
 
         onAccepted: function (id, name) {
-            if(rootApp) {
-                rootApp.currentAccountId = id;
-                rootApp.currentAccountName = name;
+            if (!rootApp) {
+                return;
             }
+
+            if (rootApp.currentAccountId === id) {
+                return;
+            }
+
+            rootApp.currentAccountId = id;
+            rootApp.currentAccountName = name;
+            rootApp.globalAccountChanged(id, name);
+            rootApp.accountDataRefreshRequested(id);
         }
     }
 

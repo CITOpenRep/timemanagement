@@ -117,13 +117,6 @@ Page {
                 }
             },
             Action {
-                iconName: "account"
-                text: i18n.dtr("ubtms", "Switch Accounts")
-                onTriggered: {
-                    accountPicker.open(accountPicker.selectedAccountId);
-                }
-            },
-            Action {
                 iconName: "reminder-new"
                 text: i18n.dtr("ubtms", "New Timesheet")
                 onTriggered: {

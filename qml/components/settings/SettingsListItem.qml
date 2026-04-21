@@ -50,6 +50,7 @@ Item {
     property color iconColor: "#666"
     property bool showProgression: true
     property bool showDivider: true
+    property bool active: false
 
     signal clicked()
 
@@ -57,17 +58,28 @@ Item {
     readonly property bool isDark: theme.name === "Ubuntu.Components.Themes.SuruDark"
     readonly property color bgColor: isDark ? "#1e1e1e" : "#ffffff"
     readonly property color bgPressedColor: isDark ? "#2a2a2a" : "#f0f0f0"
-    readonly property color textColor: isDark ? "#e0e0e0" : "#333333"
+    readonly property color bgActiveColor: isDark ? "#2b241b" : "#fff1de"
+    readonly property color textColor: active ? LomiriColors.orange : (isDark ? "#e0e0e0" : "#333333")
     readonly property color dividerColor: isDark ? "#333333" : "#e8e8e8"
-    readonly property color chevronColor: isDark ? "#666666" : "#c7c7cc"
+    readonly property color chevronColor: active ? LomiriColors.orange : (isDark ? "#666666" : "#c7c7cc")
 
     Rectangle {
         id: background
         anchors.fill: parent
-        color: mouseArea.pressed ? root.bgPressedColor : root.bgColor
+        color: mouseArea.pressed ? root.bgPressedColor : (root.active ? root.bgActiveColor : root.bgColor)
 
         Behavior on color {
             ColorAnimation { duration: 120 }
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: units.dp(3)
+            height: parent.height - units.gu(1.6)
+            radius: units.dp(2)
+            color: LomiriColors.orange
+            visible: root.active
         }
 
         Row {
