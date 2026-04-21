@@ -50,6 +50,8 @@ Item {
             if(rootApp) {
                 rootApp.currentAccountId = id;
                 rootApp.currentAccountName = name;
+                rootApp.globalAccountChanged(id, name);
+                rootApp.accountDataRefreshRequested(id);
             }
         }
     }
