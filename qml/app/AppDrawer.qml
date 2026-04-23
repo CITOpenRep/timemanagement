@@ -1,8 +1,8 @@
 import QtQuick 2.6
 import QtQuick.Controls 2.2 as Controls
 import Lomiri.Components 1.3
-import "settings"
-import "MenuData.js" as MenuData
+import "../components"
+import "../components/MenuData.js" as MenuData
 
 Controls.Drawer {
     id: drawerRoot
@@ -22,11 +22,11 @@ Controls.Drawer {
 
     width: Math.min(parent.width * 0.75, units.gu(35))
     height: parent.height
-    
+
     Rectangle {
         anchors.fill: parent
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#f2f2f7"
-        
+
         Flickable {
             anchors.fill: parent
             contentHeight: menuColumn.height + units.gu(4)
@@ -36,11 +36,11 @@ Controls.Drawer {
                 id: menuColumn
                 width: parent.width
 
-                // Header for the Drawer
                 Rectangle {
                     width: parent.width
                     height: units.gu(8)
                     color: LomiriColors.orange
+
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
@@ -107,13 +107,14 @@ Controls.Drawer {
                     Column {
                         id: mainSection
                         width: parent.width
+
                         NavigationMenuList {
                             width: parent.width
                             menuItems: MenuData.items()
                             selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
-                            onItemSelected: function(item) {
-                                drawerRoot.close()
-                                apLayout.setPageGlobal(item.pageUrl, item.pageNum)
+                            onItemSelected: function (item) {
+                                drawerRoot.close();
+                                apLayout.setPageGlobal(item.pageUrl, item.pageNum);
                             }
                         }
                     }
