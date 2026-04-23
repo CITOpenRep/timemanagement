@@ -94,7 +94,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.log("🔄 Refreshing Dashboard2 data for account:", accountId);
+                console.debug("🔄 Refreshing Dashboard2 data for account:", accountId);
                 if (dashboard_page2.visible && typeof dashboard_page2.refreshData === "function") {
                     dashboard_page2.refreshData();
                 }
@@ -108,7 +108,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.log("🔄 Refreshing Timesheet data for account:", accountId);
+                console.debug("🔄 Refreshing Timesheet data for account:", accountId);
                 if (timesheet_page.visible && typeof timesheet_page.refreshData === "function") {
                     timesheet_page.refreshData();
                 }
@@ -122,7 +122,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.log("🔄 Refreshing Activity data for account:", accountId);
+                console.debug("🔄 Refreshing Activity data for account:", accountId);
                 if (activity_page.visible && typeof activity_page.get_activity_list === "function") {
                     activity_page.get_activity_list();
                 }
@@ -136,7 +136,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.log("🔄 Refreshing Task data for account:", accountId);
+                console.debug("🔄 Refreshing Task data for account:", accountId);
                 if (task_page.visible && typeof task_page.getTaskList === "function") {
                     task_page.getTaskList(task_page.currentFilter || "today", "");
                 }
@@ -150,7 +150,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.log("🔄 Refreshing Project data for account:", accountId);
+                console.debug("🔄 Refreshing Project data for account:", accountId);
                 if (project_page.visible && project_page.projectlist && typeof project_page.projectlist.refresh === "function") {
                     project_page.projectlist.refresh();
                 }
@@ -176,7 +176,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.log("🔄 Refreshing Timesheet List data for account:", accountId);
+                console.debug("🔄 Refreshing Timesheet List data for account:", accountId);
                 if (timesheet_list.visible && typeof timesheet_list.fetch_timesheets_list === "function") {
                     timesheet_list.fetch_timesheets_list();
                 }
@@ -209,7 +209,7 @@ AdaptivePageLayout {
         init = false;
 
         if (systemIntegration.pendingNavigation) {
-            console.log("setFirstScreen: Pending navigation detected, scheduling with delay");
+            console.debug("setFirstScreen: Pending navigation detected, scheduling with delay");
             systemIntegration.startDelayedNavigation();
         }
     }
@@ -275,7 +275,7 @@ AdaptivePageLayout {
     }
 
     function setCurrentPage(page) {
-        console.log("📄 Setting current page to:", page);
+        console.debug("📄 Setting current page to:", page);
         switch (page) {
         case 0:
             currentPage = dashboard_page;
@@ -315,7 +315,7 @@ AdaptivePageLayout {
     }
 
     onColumnsChanged: {
-        console.log("📐 Layout columns changed to:", columns);
+        console.debug("📐 Layout columns changed to:", columns);
         if (init === false) {
             switch (columns) {
             case 1:
@@ -370,7 +370,7 @@ AdaptivePageLayout {
             console.error("❌ ERROR during application reload:", e);
             refreshAppData();
         }
-        console.log("✅ Full application reload completed");
+        console.debug("✅ Full application reload completed");
     }
 
     function refreshAppData() {

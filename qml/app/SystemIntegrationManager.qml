@@ -45,7 +45,7 @@ Item {
                 return;
             }
 
-            console.log("System deep link received:", deepLink);
+            console.debug("System deep link received:", deepLink);
 
             var queryStart = deepLink.indexOf("?");
             if (queryStart === -1)

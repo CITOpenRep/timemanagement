@@ -16,10 +16,10 @@ QtObject {
 
         for (var i = 0; i < args.length; i++) {
             var arg = args[i];
-            console.log("Checking argument:", arg);
+            console.debug("Checking argument:", arg);
 
             if (arg.indexOf("ubtms://") === 0) {
-                console.log("Found deep link URL:", arg);
+                console.debug("Found deep link URL:", arg);
                 if (handleDeepLinkCallback)
                     handleDeepLinkCallback(arg);
                 return;
@@ -28,7 +28,7 @@ QtObject {
             var deepLinkIndex = arg.indexOf("ubtms://");
             if (deepLinkIndex > 0) {
                 var extractedDeepLink = arg.substring(deepLinkIndex);
-                console.log("Extracted deep link URL:", extractedDeepLink);
+                console.debug("Extracted deep link URL:", extractedDeepLink);
                 if (handleDeepLinkCallback)
                     handleDeepLinkCallback(extractedDeepLink);
                 return;
