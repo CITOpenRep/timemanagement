@@ -1,11 +1,11 @@
 import QtQuick 2.6
 import Lomiri.Components 1.3
-import QtQuick.LocalStorage 2.7 as Sql
+import "../components"
 
 Item {
     id: globalWidgets
     z: 10000
-    
+
     property var rootApp
     property alias globalTimerWidget: globalTimerWidget
     property alias backend_bridge: backend_bridge
@@ -13,7 +13,7 @@ Item {
     property alias imagePreviewer: imagePreviewer
     property alias accountPicker: accountPicker
     property alias infobar: infobar
-    
+
     anchors.fill: parent
 
     GlobalTimerWidget {
