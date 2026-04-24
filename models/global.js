@@ -10,6 +10,9 @@ var current_account_id=Account.getDefaultAccountId()
 // Global callback storage for CreateUpdatePage
 var createUpdateCallback = null
 
+// Global callback storage for ReadMorePage rich-text saves
+var richTextSaveCallback = null
+
 // Global assignee filter state
 var assigneeFilterEnabled = false
 var assigneeFilterIds = []

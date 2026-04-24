@@ -457,6 +457,11 @@ Page {
         }
     }
 
+    function saveProjectDescriptionFromEditor(content) {
+        description_text.setContent(content || "");
+        return saveProjectData();
+    }
+
     // Helper function to load project data
     function loadProjectData(projectId) {
         // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
@@ -597,11 +602,14 @@ Page {
                     onClicked: {
                         Global.description_temporary_holder = getFormattedText();
                         Global.description_context = "project_description";
+                        Global.richTextSaveCallback = saveProjectDescriptionFromEditor;
                         navigatingToReadMore = true;
                         description_text.liveSyncActive = true;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                             isReadOnly: isReadOnly,
-                            parentDraftHandler: draftHandler
+                            parentDraftHandler: draftHandler,
+                            parentFormPage: projectCreate,
+                            parentSaveHandler: saveProjectDescriptionFromEditor
                         });
                     }
                 }
@@ -1055,6 +1063,8 @@ Page {
                 Global.description_temporary_holder = "";
                 Global.description_context = "";
             }
+            Global.richTextSaveCallback = null;
+            navigatingToReadMore = false;
         } else {
             if (!isReadOnly && draftHandler.hasUnsavedChanges) {
                 draftHandler.saveDraft();

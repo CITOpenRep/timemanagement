@@ -18,9 +18,12 @@ Page {
     
     // Reference to parent form's draft handler (for tracking changes)
     property var parentDraftHandler: null
+    property var parentFormPage: null
+    property var parentSaveHandler: null
 
     // Live sync: track the last content we wrote/read from Global to avoid feedback loops
     property string _lastKnownHolder: ""
+    property bool _parentSaveCommitted: false
 
     header: PageHeader {
         id: header
@@ -47,18 +50,78 @@ Page {
                 visible: !isReadOnly
                 iconName: "tick"
                 onTriggered: {
-                    if (useRichText) {
-                        editor.getText(function (content) {
-                            Global.description_temporary_holder = content;
-                            pageStack.removePages(readmepage);
-                        });
-                    } else {
-                        Global.description_temporary_holder = simpleEditor.text;
-                        pageStack.removePages(readmepage);
-                    }
+                    saveAndClose()
                 }
             }
         ]
+    }
+
+    function commitContent(content) {
+        Global.description_temporary_holder = content || "";
+        var saveWasExpected = parentFormPage || parentSaveHandler || Global.richTextSaveCallback;
+
+        if (parentDraftHandler && !isReadOnly) {
+            parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
+        }
+
+        if (parentFormPage && parentFormPage.saveProjectDescriptionFromEditor) {
+            try {
+                var pageSaveSucceeded = parentFormPage.saveProjectDescriptionFromEditor(Global.description_temporary_holder);
+                if (pageSaveSucceeded) {
+                    _parentSaveCommitted = true;
+                    Global.richTextSaveCallback = null;
+                }
+                return pageSaveSucceeded;
+            } catch (e) {
+                console.warn("[ReadMorePage] parentFormPage save failed:", e);
+            }
+        }
+
+        if (parentSaveHandler && typeof parentSaveHandler === "function") {
+            try {
+                var saveSucceeded = parentSaveHandler(Global.description_temporary_holder);
+                if (saveSucceeded) {
+                    _parentSaveCommitted = true;
+                    Global.richTextSaveCallback = null;
+                }
+                return saveSucceeded;
+            } catch (e) {
+                console.warn("[ReadMorePage] parentSaveHandler save failed:", e);
+            }
+        }
+
+        if (Global.richTextSaveCallback && typeof Global.richTextSaveCallback === "function") {
+            try {
+                var globalSaveSucceeded = Global.richTextSaveCallback(Global.description_temporary_holder);
+                if (globalSaveSucceeded) {
+                    _parentSaveCommitted = true;
+                    Global.richTextSaveCallback = null;
+                }
+                return globalSaveSucceeded;
+            } catch (e) {
+                console.warn("[ReadMorePage] global rich-text save failed:", e);
+            }
+        }
+
+        return !saveWasExpected;
+    }
+
+    function closePage() {
+        pageStack.removePages(readmepage);
+    }
+
+    function saveAndClose() {
+        if (useRichText) {
+            editor.getText(function (content) {
+                if (commitContent(content)) {
+                    closePage();
+                }
+            });
+        } else {
+            if (commitContent(simpleEditor.text)) {
+                closePage();
+            }
+        }
     }
 
     Item {
@@ -132,17 +195,7 @@ Page {
             text: "Save"
             anchors.horizontalCenter: parent.horizontalCenter
             onClicked: {
-                if (useRichText) {
-                    // Get the current content from the rich text editor
-                    editor.getText(function (content) {
-                        Global.description_temporary_holder = content;
-                        pageStack.removePages(readmepage);
-                    });
-                } else {
-                    // Get the current content from the simple text area
-                    Global.description_temporary_holder = simpleEditor.text;
-                    pageStack.removePages(readmepage);
-                }
+                saveAndClose()
             }
         }
     }
@@ -173,7 +226,7 @@ Page {
 
     // Handle page visibility changes to ensure content is saved
     onVisibleChanged: {
-        if (!visible && !isReadOnly) {
+        if (!visible && !isReadOnly && !_parentSaveCommitted) {
             // Page is being hidden, ensure we save the current content
             if (useRichText && editor) {
                 // Use syncContent which returns the cached text immediately
@@ -214,7 +267,7 @@ Page {
 
     Component.onDestruction: {
         // Save content when page is destroyed
-        if (!isReadOnly) {
+        if (!isReadOnly && !_parentSaveCommitted) {
             if (useRichText && editor) {
                 // Use the cached text property which is kept in sync via contentChanged
                 var currentContent = editor.getFormattedText();
