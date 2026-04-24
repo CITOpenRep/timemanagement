@@ -95,6 +95,7 @@ Page {
                         'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
                         'favorites': currentFavorites,
                         'color': project_color,
+                        'stage': (project && project.stage !== undefined) ? project.stage : 0,
                         'status': "updated",
                         'user_id': ids.assignee_id
                     };
@@ -306,6 +307,9 @@ Page {
             project_color = draftData.color;
             project_color_label.color = colorpicker.getColorByIndex(draftData.color);
         }
+        if (draftData.stage !== undefined) {
+            setProjectStageForForm(draftData.stage);
+        }
         
         if (draftData.startDate || draftData.endDate) {
             date_range_widget.setDateRange(
@@ -347,6 +351,9 @@ Page {
             project_color = originalData.color;
             project_color_label.color = colorpicker.getColorByIndex(originalData.color);
         }
+        if (originalData.stage !== undefined) {
+            setProjectStageForForm(originalData.stage);
+        }
         
         if (originalData.startDate !== undefined || originalData.endDate !== undefined) {
             date_range_widget.setDateRange(
@@ -379,6 +386,7 @@ Page {
             description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             allocatedHours: hours_text.text,
             color: project_color,
+            stage: (project && project.stage !== undefined) ? project.stage : 0,
             startDate: date_range_widget.formattedStartDate ? date_range_widget.formattedStartDate() : "",
             endDate: date_range_widget.formattedEndDate ? date_range_widget.formattedEndDate() : "",
             accountId: ids.account_id,
@@ -427,6 +435,7 @@ Page {
             'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             'favorites': currentFavorites,
             'color': project_color,
+            'stage': (project && project.stage !== undefined) ? project.stage : 0,
             'status': "updated",
             'user_id': ids.assignee_id
         };
@@ -460,6 +469,17 @@ Page {
     function saveProjectDescriptionFromEditor(content) {
         description_text.setContent(content || "");
         return saveProjectData();
+    }
+
+    function setProjectStageForForm(stageOdooRecordId) {
+        var updatedProject = {};
+        if (project) {
+            for (var key in project) {
+                updatedProject[key] = project[key];
+            }
+        }
+        updatedProject.stage = stageOdooRecordId;
+        project = updatedProject;
     }
 
     // Helper function to load project data
@@ -1012,11 +1032,18 @@ Page {
             return;
         }
 
+        if (!isReadOnly) {
+            setProjectStageForForm(stageOdooRecordId);
+            draftHandler.markFieldChanged("stage", stageOdooRecordId);
+            notifPopup.open("Stage Selected", "Project stage will be saved with your other changes.", "info");
+            return;
+        }
+
         var result = Project.updateProjectStage(project.id, stageOdooRecordId, project.account_id);
 
         if (result.success) {
             // Update local project data to reflect the change
-            project.stage = stageOdooRecordId;
+            setProjectStageForForm(stageOdooRecordId);
             
             // Reload project data to ensure UI is updated
             loadProjectData(recordid);
