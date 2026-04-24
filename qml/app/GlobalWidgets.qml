@@ -20,6 +20,7 @@ Item {
         id: globalTimerWidget
         z: 999
         anchors.bottom: parent.bottom
+        anchors.bottomMargin: Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0
         visible: false
         showNotification: function (title, message, type) {
             notifPopup.open(title, message, type);
