@@ -7,7 +7,7 @@ import Lomiri.Components.Pickers 1.3
 Item {
     id: dateRangeSelector
     width: parent ? parent.width : units.gu(50)
-    height: parent.height
+    implicitHeight: layout.implicitHeight
     property alias labelText: rangeLabel.text
     property date startDate: new Date()
     property date endDate: new Date()
@@ -68,7 +68,8 @@ Item {
     }
 
     ColumnLayout {
-        anchors.fill: parent
+        id: layout
+        width: parent.width
 
         RowLayout {
             spacing: units.gu(1.2)

@@ -981,7 +981,6 @@ Page {
                     id: date_range_widget
                     readOnly: isReadOnly
                     width: parent.width
-                    height: units.gu(5)
                     onRangeChanged: {
                         if (!isRestoringFromDraft) {
                             draftHandler.markFieldChanged("startDate", formattedStartDate());

@@ -1550,7 +1550,6 @@ Page {
                     id: date_range_widget
                     readOnly: isReadOnly
                     width: tasksDetailsPageFlickable.width < units.gu(361) ? tasksDetailsPageFlickable.width - units.gu(35) : tasksDetailsPageFlickable.width - units.gu(30)
-                    height: units.gu(4)
                     anchors.centerIn: parent.centerIn
                     
                     onRangeChanged: {
