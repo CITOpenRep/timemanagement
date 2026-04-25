@@ -43,6 +43,7 @@ Page {
     
     property var recordid: 0
     property var accountid: 0
+    property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
     property bool isReadOnly: true
     property var currentUpdate: {
         "name": "",
@@ -674,6 +675,7 @@ Page {
             notifPopup.open("Error", "Unable to save the Project Update", "error");
         } else {
             hasBeenSaved = true;
+            var newBaseline = getCurrentFormData();
             
             // If this was a new record (recordid was 0), update recordid with the new ID
             if (recordid === 0 && result.record_id) {
@@ -690,7 +692,7 @@ Page {
             draftHandler.clearDraft();
             
             // Update original data in draft handler
-            draftHandler.updateOriginalData();
+            draftHandler.updateOriginalData(newBaseline);
             
             notifPopup.open("Saved", "Project Update has been saved successfully", "success");
         }
@@ -702,7 +704,25 @@ Page {
         if (recordid != 0) {
             // Load existing update - project selection is not needed
             needsProjectSelection = false;
-            currentUpdate = Project.getProjectUpdateById(recordid, accountid);
+            
+            // Resolve odoo_record_id to local id if needed (from notification deep link)
+            if (isOdooRecordId) {
+                currentUpdate = Project.getProjectUpdateByOdooId(recordid, accountid);
+                if (currentUpdate && currentUpdate.id) {
+                    recordid = currentUpdate.id;
+                    accountid = currentUpdate.account_id || accountid;
+                    isOdooRecordId = false;
+                } else {
+                    // Update not yet synced locally — show error and navigate back
+                    console.warn("⚠️ ProjectUpdate with odoo_record_id=" + recordid + " not found locally. Not yet synced?");
+                    notifPopup.open("Not Found", "This project update has not been synced yet. Please sync and try again.", "error");
+                    isInitializing = false;
+                    Qt.callLater(navigateBack);
+                    return;
+                }
+            } else {
+                currentUpdate = Project.getProjectUpdateById(recordid, accountid);
+            }
             hasBeenSaved = true;
             
             // Populate form fields FIRST (before draft handler init)
@@ -793,6 +813,10 @@ Page {
                 Global.description_context = "";
             }
         } else {
+            if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+                draftHandler.saveDraft();
+            }
+
             var isNavigatingToReadMore = navigatingToReadMore || (Global.description_context === "update_description");
             
             if (!isNavigatingToReadMore) {

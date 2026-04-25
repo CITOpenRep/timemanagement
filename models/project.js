@@ -288,6 +288,46 @@ function getProjectUpdateById(updateId, accountId) {
     return update || {};
 }
 
+/**
+ * Retrieves project update details by Odoo record ID (stable identifier).
+ * This is used for deep link navigation from notifications.
+ *
+ * @param {number} odoo_record_id - The Odoo record ID of the project update.
+ * @param {number} [accountId] - Optional account ID to narrow the search.
+ * @returns {Object} - An object containing update details, or empty object if not found.
+ */
+function getProjectUpdateByOdooId(odoo_record_id, accountId) {
+    var update = null;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var sql = 'SELECT * FROM project_update_app WHERE odoo_record_id = ?';
+            var params = [odoo_record_id];
+
+            if (accountId !== undefined && accountId !== null && accountId > 0) {
+                sql += ' AND account_id = ?';
+                params.push(accountId);
+            }
+
+            sql += ' LIMIT 1';
+            var result = tx.executeSql(sql, params);
+
+            if (result.rows.length > 0) {
+                update = DBCommon.rowToObject(result.rows.item(0));
+                console.log("getProjectUpdateByOdooId found update:", update.id, "for odoo_record_id:", odoo_record_id);
+            } else {
+                console.error("No project update found for odoo_record_id:", odoo_record_id);
+            }
+        });
+    } catch (e) {
+        console.error("❌ getProjectUpdateByOdooId failed:", e);
+    }
+
+    return update || {};
+}
+
 function getProjectStageName(odooRecordId) {
     var stageName = null;
 
@@ -986,11 +1026,11 @@ function createUpdateProject(project_data, recordid) {
             if (recordid === 0) {
                 tx.executeSql('INSERT INTO project_project_app \
                             (account_id, name, parent_id, planned_start_date, planned_end_date, \
-                            allocated_hours, favorites, description, last_modified, color_pallet, status, user_id)\
-                            Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                            allocated_hours, favorites, description, last_modified, color_pallet, stage, status, user_id)\
+                            Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     [project_data.account_id, project_data.name, project_data.parent_id,
                     project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null]);
+                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.stage || 0, project_data.status, project_data.user_id || null]);
 
                 // Get the ID of the newly inserted project
                 var result = tx.executeSql("SELECT last_insert_rowid() as id");
@@ -1000,11 +1040,11 @@ function createUpdateProject(project_data, recordid) {
             } else {
                 tx.executeSql('UPDATE project_project_app SET \
                             account_id = ?, name = ?, parent_id = ?, planned_start_date = ?, planned_end_date = ?, \
-                            allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?, status = ?, user_id = ?\
+                            allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?, stage = ?, status = ?, user_id = ?\
                             where id = ?',
                     [project_data.account_id, project_data.name, project_data.parent_id,
                     project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.status, project_data.user_id || null, recordid]);
+                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.stage || 0, project_data.status, project_data.user_id || null, recordid]);
             }
             messageObj['is_success'] = true;
             messageObj['message'] = 'Project saved Successfully!';
@@ -1334,4 +1374,3 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         return { success: false, message: "Failed to update project favorite status: " + e.message };
     }
 }
-

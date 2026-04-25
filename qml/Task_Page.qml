@@ -37,6 +37,7 @@ import "../models/global.js" as Global
 import "components"
 
 Page {
+    property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
     id: task
     title: i18n.dtr("ubtms", "All Tasks")
 
@@ -47,6 +48,18 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        leadingActionBar.actions: [
+            Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: !isMultiColumn
+                onTriggered: {
+                    apLayout.openGlobalDrawer()
+                }
+            }
+        ]
         title: {
             var titleParts = ["Tasks"];
             if (filterByProject && projectName) {
@@ -514,6 +527,15 @@ Page {
                     tasklist.applyFilter(currentFilter);
                 }
             }
+        }
+    }
+
+    Connections {
+        target: accountPicker
+        onAccepted: function (id, name) {
+            tasklist.selectedAccountId = id;
+            loadAssignees();
+            applyDefaultAssigneeFilter();
         }
     }
 

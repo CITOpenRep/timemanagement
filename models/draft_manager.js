@@ -346,6 +346,8 @@ function deleteDraft(draftId) {
  */
 function deleteDrafts(params) {
     params = params || {};
+    var matchSpecificRecord = params.recordId !== undefined && params.recordId !== null && params.recordId !== 0;
+    var matchNewRecordDraft = params.recordId === null || params.recordId === 0;
     var result = {
         success: false,
         deletedCount: 0,
@@ -369,9 +371,11 @@ function deleteDrafts(params) {
                 queryParams.push(params.draftType);
             }
             
-            if (params.recordId !== undefined && params.recordId !== null) {
+            if (matchSpecificRecord) {
                 query += " AND record_id = ?";
                 queryParams.push(params.recordId);
+            } else if (matchNewRecordDraft) {
+                query += " AND is_new_record = 1";
             }
             
             if (params.accountId !== undefined) {
@@ -393,9 +397,11 @@ function deleteDrafts(params) {
                 selectParams.push(params.draftType);
             }
             
-            if (params.recordId !== undefined && params.recordId !== null) {
+            if (matchSpecificRecord) {
                 selectQuery += " AND record_id = ?";
                 selectParams.push(params.recordId);
+            } else if (matchNewRecordDraft) {
+                selectQuery += " AND is_new_record = 1";
             }
             
             if (params.accountId !== undefined) {
@@ -950,4 +956,3 @@ function syncHasDraftFlags() {
     
     return result;
 }
-

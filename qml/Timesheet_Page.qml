@@ -35,6 +35,7 @@ import "components"
 import "../models/timer_service.js" as TimerService
 
 Page {
+    property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
     id: timesheets
     title: i18n.dtr("ubtms", "Timesheets")
 
@@ -70,6 +71,18 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        leadingActionBar.actions: [
+            Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: !isMultiColumn
+                onTriggered: {
+                    apLayout.openGlobalDrawer()
+                }
+            }
+        ]
 
         trailingActionBar.actions: [
             Action {

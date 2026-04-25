@@ -95,6 +95,7 @@ Page {
                         'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
                         'favorites': currentFavorites,
                         'color': project_color,
+                        'stage': (project && project.stage !== undefined) ? project.stage : 0,
                         'status': "updated",
                         'user_id': ids.assignee_id
                     };
@@ -187,7 +188,7 @@ Page {
         recordId: projectCreate.recordid
         accountId: (project && project.account_id) ? project.account_id : 0
         enabled: !isReadOnly
-        autoSaveInterval: 300000 // 5 minutes
+        autoSaveInterval: 30000 // 30 seconds
         
         onDraftLoaded: {
             // Only restore if form is fully initialized
@@ -306,6 +307,9 @@ Page {
             project_color = draftData.color;
             project_color_label.color = colorpicker.getColorByIndex(draftData.color);
         }
+        if (draftData.stage !== undefined) {
+            setProjectStageForForm(draftData.stage);
+        }
         
         if (draftData.startDate || draftData.endDate) {
             date_range_widget.setDateRange(
@@ -347,6 +351,9 @@ Page {
             project_color = originalData.color;
             project_color_label.color = colorpicker.getColorByIndex(originalData.color);
         }
+        if (originalData.stage !== undefined) {
+            setProjectStageForForm(originalData.stage);
+        }
         
         if (originalData.startDate !== undefined || originalData.endDate !== undefined) {
             date_range_widget.setDateRange(
@@ -379,6 +386,7 @@ Page {
             description: description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             allocatedHours: hours_text.text,
             color: project_color,
+            stage: (project && project.stage !== undefined) ? project.stage : 0,
             startDate: date_range_widget.formattedStartDate ? date_range_widget.formattedStartDate() : "",
             endDate: date_range_widget.formattedEndDate ? date_range_widget.formattedEndDate() : "",
             accountId: ids.account_id,
@@ -427,6 +435,7 @@ Page {
             'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
             'favorites': currentFavorites,
             'color': project_color,
+            'stage': (project && project.stage !== undefined) ? project.stage : 0,
             'status': "updated",
             'user_id': ids.assignee_id
         };
@@ -455,6 +464,22 @@ Page {
             notifPopup.open("Failed", "Unable to save project", "error");
             return false;
         }
+    }
+
+    function saveProjectDescriptionFromEditor(content) {
+        description_text.setContent(content || "");
+        return saveProjectData();
+    }
+
+    function setProjectStageForForm(stageOdooRecordId) {
+        var updatedProject = {};
+        if (project) {
+            for (var key in project) {
+                updatedProject[key] = project[key];
+            }
+        }
+        updatedProject.stage = stageOdooRecordId;
+        project = updatedProject;
     }
 
     // Helper function to load project data
@@ -597,11 +622,14 @@ Page {
                     onClicked: {
                         Global.description_temporary_holder = getFormattedText();
                         Global.description_context = "project_description";
+                        Global.richTextSaveCallback = saveProjectDescriptionFromEditor;
                         navigatingToReadMore = true;
                         description_text.liveSyncActive = true;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
                             isReadOnly: isReadOnly,
-                            parentDraftHandler: draftHandler
+                            parentDraftHandler: draftHandler,
+                            parentFormPage: projectCreate,
+                            parentSaveHandler: saveProjectDescriptionFromEditor
                         });
                     }
                 }
@@ -953,7 +981,6 @@ Page {
                     id: date_range_widget
                     readOnly: isReadOnly
                     width: parent.width
-                    height: units.gu(5)
                     onRangeChanged: {
                         if (!isRestoringFromDraft) {
                             draftHandler.markFieldChanged("startDate", formattedStartDate());
@@ -1004,11 +1031,18 @@ Page {
             return;
         }
 
+        if (!isReadOnly) {
+            setProjectStageForForm(stageOdooRecordId);
+            draftHandler.markFieldChanged("stage", stageOdooRecordId);
+            notifPopup.open("Stage Selected", "Project stage will be saved with your other changes.", "info");
+            return;
+        }
+
         var result = Project.updateProjectStage(project.id, stageOdooRecordId, project.account_id);
 
         if (result.success) {
             // Update local project data to reflect the change
-            project.stage = stageOdooRecordId;
+            setProjectStageForForm(stageOdooRecordId);
             
             // Reload project data to ensure UI is updated
             loadProjectData(recordid);
@@ -1054,6 +1088,12 @@ Page {
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
                 Global.description_context = "";
+            }
+            Global.richTextSaveCallback = null;
+            navigatingToReadMore = false;
+        } else {
+            if (!isReadOnly && draftHandler.hasUnsavedChanges) {
+                draftHandler.saveDraft();
             }
         }
         // Don't clear context when page becomes invisible as it might be needed

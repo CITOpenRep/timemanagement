@@ -55,11 +55,45 @@ Item {
         }
         console.log("[NotificationBell] Notification IDs: " + JSON.stringify(ids));
         
-        // Deduplicate by message content (keep only the most recent - highest ID)
+        function canonicalType(notif) {
+            if (notif.type === "Project" || notif.type === "ProjectUpdate") {
+                return "ProjectEvent";
+            }
+            return notif.type;
+        }
+
+        function normalizedMessage(notif) {
+            var raw = (notif.message || "").toString();
+            return raw.replace(/\s+/g, " ").trim();
+        }
+
+        function stableIdentity(notif) {
+            var payload = {};
+            try {
+                if (notif.payload) {
+                    payload = typeof notif.payload === "string"
+                        ? JSON.parse(notif.payload)
+                        : notif.payload;
+                }
+            } catch (e) {}
+
+            var idValue = payload.odoo_record_id || payload.id || "";
+            var projectValue = payload.project_id || payload.project_name || "";
+            return idValue + "|" + projectValue;
+        }
+
+        // Deduplicate by message content (keep only the most recent - highest ID).
+        // Project update duplicates sometimes arrive once as "Project" and once as
+        // "ProjectUpdate" with the same message, so normalize those two types.
         var messageMap = {};
         for (var j = 0; j < rawList.length; j++) {
             var notif = rawList[j];
-            var key = notif.type + "|" + notif.message;
+            var canonical = canonicalType(notif);
+            var key = notif.account_id + "|" + canonical + "|" + normalizedMessage(notif);
+
+            if (canonical !== "ProjectEvent") {
+                key += "|" + stableIdentity(notif);
+            }
             
             if (!messageMap[key] || notif.id > messageMap[key].id) {
                 messageMap[key] = notif;
@@ -151,7 +185,7 @@ Item {
             console.error("Failed to parse notification payload:", e);
         }
         
-        var recordId = payload.id || -1;
+        var recordId = payload.id || payload.odoo_record_id || -1;
         var accountId = modelData.account_id || 0;
         var notifType = modelData.type || "";
         
@@ -515,6 +549,7 @@ Item {
                                         case "Task": return "#4CAF50";
                                         case "Activity": return "#2196F3";
                                         case "Project": return "#FF9800";
+                                        case "ProjectUpdate": return "#FF9800";
                                         case "Timesheet": return "#9C27B0";
                                         case "Sync": return "#F44336";
                                         default: return "#757575";
@@ -555,6 +590,7 @@ Item {
                                             case "Task": return "../images/task.svg";
                                             case "Activity": return "../images/activity.svg";
                                             case "Project": return "../images/project.svg";
+                                            case "ProjectUpdate": return "../images/project.svg";
                                             case "Timesheet": return "../images/timesheet.svg";
                                             default: return "../images/notification.png";
                                         }
@@ -578,6 +614,7 @@ Item {
                                             case "Task": return "#4CAF50";
                                             case "Activity": return "#2196F3";
                                             case "Project": return "#FF9800";
+                                            case "ProjectUpdate": return "#FF9800";
                                             case "Timesheet": return "#9C27B0";
                                             case "Sync": return "#F44336";
                                             default: return "#757575";
@@ -596,6 +633,7 @@ Item {
                                                 case "Task": return "../images/task.svg";
                                                 case "Activity": return "../images/activity.svg";
                                                 case "Project": return "../images/project.svg";
+                                                case "ProjectUpdate": return "../images/project.svg";
                                                 case "Timesheet": return "../images/timesheet.svg";
                                                 default: return "../images/notification.png";
                                             }
@@ -622,6 +660,7 @@ Item {
                                                 case "Task": return i18n.dtr("ubtms", "Task");
                                                 case "Activity": return i18n.dtr("ubtms", "Activity");
                                                 case "Project": return i18n.dtr("ubtms", "Project");
+                                                case "ProjectUpdate": return i18n.dtr("ubtms", "Update");
                                                 case "Timesheet": return i18n.dtr("ubtms", "Timesheet");
                                                 case "Sync": return i18n.dtr("ubtms", "Sync Error");
                                                 default: return i18n.dtr("ubtms", "Update");
@@ -635,6 +674,7 @@ Item {
                                                 case "Task": return "#4CAF50";
                                                 case "Activity": return "#2196F3";
                                                 case "Project": return "#FF9800";
+                                                case "ProjectUpdate": return "#FF9800";
                                                 case "Timesheet": return "#9C27B0";
                                                 case "Sync": return "#F44336";
                                                 default: return theme.palette.normal.backgroundSecondaryText;

@@ -24,6 +24,8 @@
 
 import json
 import sqlite3
+import re
+from functools import lru_cache
 from xmlrpc.client import ServerProxy
 from odoo_client import OdooClient
 import logging
@@ -35,6 +37,30 @@ import os
 from bus import send
 
 log = logging.getLogger("odoo_sync")
+
+
+_SAFE_SQLITE_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _validate_table_name(table_name):
+    if not isinstance(table_name, str) or not _SAFE_SQLITE_IDENTIFIER_PATTERN.fullmatch(table_name):
+        raise ValueError(f"Invalid table name: {table_name!r}")
+    return table_name
+
+
+@lru_cache(maxsize=128)
+def get_table_columns(db_path, table_name):
+    """Return cached table columns for a sync run. Cache is cleared at sync start."""
+    safe_table_name = _validate_table_name(table_name)
+    # Safe to interpolate after strict identifier validation above.
+    table_info = safe_sql_execute(
+        db_path, f"PRAGMA table_info({safe_table_name})", fetch=True, commit=False
+    )
+    return tuple(row[1] for row in table_info or [])
+
+
+def clear_table_columns_cache():
+    get_table_columns.cache_clear()
 
 
 def get_record_display_name(record, model_name=None):
@@ -152,6 +178,7 @@ def insert_record(
         columns = []
         values = []
         record["account_id"] = account_id
+        table_columns = set(get_table_columns(db_path, table_name))
         
         # Check if local record has pending changes (status = 'updated' or 'created')
         # If so, we should preserve certain local fields like 'favorites' and 'state' for activities
@@ -161,21 +188,31 @@ def insert_record(
         existing_state = None  # For mail_activity_app - preserve done state
         if odoo_record_id:
             try:
-                # For activities, also fetch the state field to preserve 'done' status
-                if table_name == "mail_activity_app":
-                    check_sql = f"SELECT status, favorites, state FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
-                else:
-                    check_sql = f"SELECT status, favorites FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
-                result = safe_sql_execute(db_path, check_sql, (odoo_record_id, account_id), fetch=True, commit=False)
-                if result and len(result) > 0:
-                    existing_status = result[0][0]
-                    existing_favorites = result[0][1]
-                    if table_name == "mail_activity_app" and len(result[0]) > 2:
-                        existing_state = result[0][2]
-                    # DEBUG: Log activity sync decisions
-                    if table_name == "mail_activity_app":
-                        activity_name = record.get('summary') or '(no summary)'
-                        log.info(f"[ACTIVITY_SYNC] Activity '{activity_name}' (odoo_id={odoo_record_id}): local_status={existing_status}, local_state={existing_state}, server_state={record.get('state')}")
+                select_fields = []
+                if "status" in table_columns:
+                    select_fields.append("status")
+                if "favorites" in table_columns:
+                    select_fields.append("favorites")
+                if table_name == "mail_activity_app" and "state" in table_columns:
+                    select_fields.append("state")
+
+                if select_fields:
+                    check_sql = f"SELECT {', '.join(select_fields)} FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
+                    result = safe_sql_execute(db_path, check_sql, (odoo_record_id, account_id), fetch=True, commit=False)
+                    if result and len(result) > 0:
+                        field_index = 0
+                        if "status" in table_columns:
+                            existing_status = result[0][field_index]
+                            field_index += 1
+                        if "favorites" in table_columns:
+                            existing_favorites = result[0][field_index]
+                            field_index += 1
+                        if table_name == "mail_activity_app" and "state" in table_columns:
+                            existing_state = result[0][field_index]
+                        # DEBUG: Log activity sync decisions
+                        if table_name == "mail_activity_app":
+                            activity_name = record.get('summary') or '(no summary)'
+                            log.info(f"[ACTIVITY_SYNC] Activity '{activity_name}' (odoo_id={odoo_record_id}): local_status={existing_status}, local_state={existing_state}, server_state={record.get('state')}")
             except Exception as e:
                 log.debug(f"[DEBUG] Could not check existing status: {e}")
         
@@ -241,8 +278,12 @@ def insert_record(
             log.debug(f"[PRESERVE] Keeping local status: {existing_status}")
 
         placeholders = ", ".join(["?"] * len(columns))
-        #log.debug(f"[INSERT] Final account_id for {table_name}: {account_id}")
-        sql = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
+        update_columns = [column for column in columns if column != "odoo_record_id"]
+        update_clause = ", ".join(f"{column} = excluded.{column}" for column in update_columns)
+        sql = (
+            f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders}) "
+            f"ON CONFLICT(odoo_record_id, account_id) DO UPDATE SET {update_clause}"
+        )
 
         safe_sql_execute(db_path, sql, values)
     except Exception as e:
@@ -320,6 +361,7 @@ def sync_model(
         Performs complete sync including fetching records, updating local database,
         and removing orphaned records. Adds notification on failure.
     """
+    clear_table_columns_cache()
     log.info(f"[SYNC] Fetching '{model_name}' records from Odoo...")
     field_map = prepare_field_mapping(client, model_name, config_path)
     odoo_fields = list(field_map.keys())
@@ -564,23 +606,51 @@ def process_odoo_records(
     )
     columns = [row[1] for row in pragma_result]
     has_last_modified = "last_modified" in columns
+    has_status = "status" in columns
+    has_draft_flag = "has_draft" in columns
 
     for rec in records:
         odoo_id = rec["id"]
         fetched_odoo_ids.add(odoo_id)
         #print(rec) #to view the record for debugging
 
-        if has_last_modified:
-            # Read last_modified from local DB
+        if has_last_modified or has_status or has_draft_flag:
+            select_fields = []
+            if has_last_modified:
+                select_fields.append("last_modified")
+            if has_status:
+                select_fields.append("status")
+            if has_draft_flag:
+                select_fields.append("has_draft")
+
             row = safe_sql_execute(
                 db_path,
-                f"SELECT last_modified FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?",
+                f"SELECT {', '.join(select_fields)} FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?",
                 (odoo_id, account_id),
                 commit=False,
                 fetch=True,
             )
-            local_last_modified = row[0][0] if row else None
+            field_index = 0
+            local_last_modified = row[0][field_index] if row and has_last_modified else None
+            if row and has_last_modified:
+                field_index += 1
+            local_status = row[0][field_index] if row and has_status else None
+            if row and has_status:
+                field_index += 1
+            local_has_draft = bool(row[0][field_index]) if row and has_draft_flag else False
             odoo_write_date = rec.get("write_date")
+
+            if local_status in ("updated", "created"):
+                log.info(
+                    f"[SKIP] {model_name} id={odoo_id} has pending local changes (status={local_status}) - keeping local record."
+                )
+                continue
+
+            if local_has_draft:
+                log.info(
+                    f"[SKIP] {model_name} id={odoo_id} has an unsaved draft - skipping background overwrite."
+                )
+                continue
 
             if should_update_local(odoo_write_date, local_last_modified):
                 insert_record(
@@ -638,35 +708,53 @@ def remove_orphaned_local_records(
         EXCEPTION: Records with status='updated' are preserved (pending local changes).
         EXCEPTION: For mail_activity_app, records with state='done' are preserved.
     """
-    # Fetch all local records with odoo_record_id
-    # For activities, also fetch state to preserve done activities
-    if table_name == "mail_activity_app":
-        rows = safe_sql_execute(
-            db_path,
-            f"SELECT id, odoo_record_id, status, state FROM {table_name} WHERE account_id = ? AND odoo_record_id IS NOT NULL",
-            (account_id,),
-            fetch=True,
-            commit=False,
-        )
-    else:
-        rows = safe_sql_execute(
-            db_path,
-            f"SELECT id, odoo_record_id, status FROM {table_name} WHERE account_id = ? AND odoo_record_id IS NOT NULL",
-            (account_id,),
-            fetch=True,
-            commit=False,
-        )
+    pragma_result = safe_sql_execute(
+        db_path, f"PRAGMA table_info({table_name})", commit=False, fetch=True
+    )
+    columns = [row[1] for row in pragma_result]
+
+    select_fields = ["id", "odoo_record_id"]
+    has_status = "status" in columns
+    has_draft_flag = "has_draft" in columns
+    has_state = table_name == "mail_activity_app" and "state" in columns
+
+    if has_status:
+        select_fields.append("status")
+    if has_state:
+        select_fields.append("state")
+    if has_draft_flag:
+        select_fields.append("has_draft")
+
+    rows = safe_sql_execute(
+        db_path,
+        f"SELECT {', '.join(select_fields)} FROM {table_name} WHERE account_id = ? AND odoo_record_id IS NOT NULL",
+        (account_id,),
+        fetch=True,
+        commit=False,
+    )
 
     for row in rows:
-        local_id = row[0]
-        odoo_id = row[1]
-        status = row[2] if len(row) > 2 else None
-        state = row[3] if len(row) > 3 else None  # Only for activities
+        field_index = 0
+        local_id = row[field_index]
+        field_index += 1
+        odoo_id = row[field_index]
+        field_index += 1
+        status = row[field_index] if has_status else None
+        if has_status:
+            field_index += 1
+        state = row[field_index] if has_state else None
+        if has_state:
+            field_index += 1
+        has_draft = bool(row[field_index]) if has_draft_flag else False
         
         if odoo_id not in fetched_odoo_ids:
             # Skip deletion if record has pending local changes
             if status in ("updated", "created"):
                 log.info(f"[SKIP_DELETE] {model_name}: local_id={local_id}, odoo_id={odoo_id} has pending local changes (status={status}) - keeping record")
+                continue
+
+            if has_draft:
+                log.info(f"[SKIP_DELETE] {model_name}: local_id={local_id}, odoo_id={odoo_id} has an unsaved draft - keeping record")
                 continue
             
             # Skip deletion for done activities - they were intentionally kept locally

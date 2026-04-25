@@ -344,6 +344,7 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+        anchors.bottomMargin: Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0
         anchors.top: pageHeader.bottom
         contentHeight: formColumn.height + units.gu(6)
         flickableDirection: Flickable.VerticalFlick

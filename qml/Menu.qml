@@ -30,7 +30,9 @@ import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
 import "../models/timesheet.js" as TimesheetModel
 import "../models/accounts.js" as Account
+import "components"
 import "components/settings"
+import "components/MenuData.js" as MenuData
 
 Page {
     id: listpage
@@ -48,48 +50,23 @@ Page {
         }
         trailingActionBar.actions: [
             Action {
-                iconName: "reminder-new"
-                text: "New Timesheet"
-                onTriggered: {
-                    const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
-                    if (result.success) {
-                        apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet.qml"), {
-                            "recordid": result.id,
-                            "isReadOnly": false
-                        });
-                    } else {
-                        console.error("Error creating timesheet: " + result.message);
-                    }
-                    page = 1;
-                    apLayout.setCurrentPage(page);
-                }
-            },
-            Action {
-                iconName: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "weather-clear-night-symbolic" : "weather-clear-symbolic"
-                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.tr("Light Mode") : i18n.tr("Dark Mode")
-                onTriggered: {
-                    var newTheme = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
-                    Theme.name = newTheme;
-
-                    // // Save theme preference to persist across app restarts // We are not saving the theme preference from here.
-                    // if (typeof mainView !== 'undefined' && mainView.saveThemePreference) {
-                    //     mainView.saveThemePreference(newTheme);
-                    // }
-                }
-            },
-            Action {
                 iconName: "account"
                 text: i18n.dtr("ubtms", "Switch Accounts")
                 onTriggered: {
                     accountPicker.open(accountPicker.selectedAccountId);
+                }
+            },
+            Action {
+                iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "images/daymode.png" : "images/darkmode.png"
+                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Light Mode") : i18n.dtr("ubtms","Dark Mode")
+                onTriggered: {
+                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
                 }
             }
         ]
     }
 
     readonly property bool isDark: theme.name === "Ubuntu.Components.Themes.SuruDark"
-
-    property var page: 0
 
     Rectangle {
         anchors.top: header.bottom
@@ -119,109 +96,12 @@ Page {
                     Column {
                         id: mainSection
                         width: parent.width
-
-                        SettingsListItem {
-                            iconName: "home"
-                            iconColor: "#3498db"
-                            text: i18n.dtr("ubtms", "Dashboard")
-                            onClicked: {
-                                page = 0;
-                                apLayout.setCurrentPage(page);
-                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Dashboard.qml"));
-                            }
-                        }
-
-                        SettingsListItem {
-                            iconName: "alarm-clock"
-                            iconColor: "#e67e22"
-                            text: i18n.dtr("ubtms", "Timesheet")
-                            onClicked: {
-                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet_Page.qml"));
-                                page = 1;
-                                apLayout.setCurrentPage(page);
-                            }
-                        }
-
-                        SettingsListItem {
-                            iconName: "calendar"
-                            iconColor: "#e74c3c"
-                            text: i18n.dtr("ubtms", "Activities")
-                          
-                            onClicked: {
-                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Activity_Page.qml"));
-                                page = 2;
-                                apLayout.setCurrentPage(page);
-                            }
-                        }
-
-                                             SettingsListItem {
-                            iconName: "scope-manager"
-                            iconColor: "#2ecc71"
-                            text: i18n.dtr("ubtms", "My Tasks")
-                            onClicked: {
-                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("MyTasks.qml"));
-                                page = 3;
-                                apLayout.setCurrentPage(page);
-                            }
-                        }
-
-                        SettingsListItem {
-                            iconName: "view-list-symbolic"
-                            iconColor: "#1abc9c"
-                            text: i18n.dtr("ubtms", "All Tasks")
-                            onClicked: {
-                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Task_Page.qml"));
-                                page = 3;
-                                apLayout.setCurrentPage(page);
-                            }
-                        }
-
-                        SettingsListItem {
-                            iconName: "folder-symbolic"
-                            iconColor: "#9b59b6"
-                            text: i18n.dtr("ubtms", "Projects")
-                            onClicked: {
-                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Project_Page.qml"));
-                                page = 4;
-                                apLayout.setCurrentPage(page);
-                            }
-                        }
-
-                        SettingsListItem {
-                            iconName: "history"
-                            iconColor: "#f39c12"
-                            text: i18n.dtr("ubtms", "Project Updates")
-                            onClicked: {
-                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Updates_Page.qml"));
-                                page = 4;
-                                apLayout.setCurrentPage(page);
-                            }
-                        }
-            
-            
-
-           
-
-                        SettingsListItem {
-                            iconName: "info"
-                            iconColor: "#2980b9"
-                            text: i18n.dtr("ubtms", "About Us")
-                            onClicked: {
-                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Aboutus.qml"));
-                                page = 5;
-                                apLayout.setCurrentPage(page);
-                            }
-                        }
-
-                        SettingsListItem {
-                            iconName: "settings"
-                            iconColor: "#7f8c8d"
-                            text: i18n.dtr("ubtms", "Settings")
-                            showDivider: false
-                            onClicked: {
-                                apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("settings/Settings_Page.qml"));
-                                page = 6;
-                                apLayout.setCurrentPage(page);
+                        NavigationMenuList {
+                            width: parent.width
+                            menuItems: MenuData.items()
+                            selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
+                            onItemSelected: function(item) {
+                                apLayout.setPageGlobal(item.pageUrl, item.pageNum)
                             }
                         }
                

@@ -38,6 +38,7 @@ import "../models/global.js" as Global
 import "components"
 
 Page {
+    property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
     id: project
     title: i18n.dtr("ubtms", "Projects")
     header: PageHeader {
@@ -47,6 +48,18 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        leadingActionBar.actions: [
+            Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: !isMultiColumn
+                onTriggered: {
+                    apLayout.openGlobalDrawer()
+                }
+            }
+        ]
         title: project.title
 
         trailingActionBar.actions: [

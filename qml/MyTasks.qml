@@ -37,6 +37,7 @@ import "../models/global.js" as Global
 import "components"
 
 Page {
+    property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
     id: myTasksPage
     title: i18n.dtr("ubtms", "My Tasks")
 
@@ -47,6 +48,18 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        leadingActionBar.actions: [
+            Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: !isMultiColumn
+                onTriggered: {
+                    apLayout.openGlobalDrawer()
+                }
+            }
+        ]
         title: myTasksPage.title
 
         trailingActionBar.numberOfSlots: 5
@@ -258,6 +271,18 @@ Page {
         }
     }
 
+    function clearCurrentTasks() {
+        personalStages = [];
+        currentPersonalStageId = undefined;
+        myTaskListHeader.filterModel = [];
+        myTaskListHeader.currentFilter = "";
+        myTasksList.currentOffset = 0;
+        myTasksList.hasMoreItems = false;
+        myTasksList.isLoadingMore = false;
+        myTasksList.isLoading = false;
+        myTasksList.updateDisplayedTasks([], false);
+    }
+
     // Function to handle account selection changes
     function handleAccountChange(accountId) {
         //console.log("MyTasks: Account changed to", accountId);
@@ -281,12 +306,21 @@ Page {
         // Update current user for the new account
         updateCurrentUser();
 
+        if (currentUserOdooId <= 0) {
+            clearCurrentTasks();
+            return;
+        }
+
         // Reload personal stages for the new account
         loadPersonalStages();
 
         // Refresh the task list with the first personal stage (paginated)
         if (currentUserOdooId > 0 && personalStages.length > 0 && currentPersonalStageId !== undefined) {
-            startPaginatedLoad();
+            loadTasksWithIndicator(function() {
+                startPaginatedLoad();
+            });
+        } else {
+            clearCurrentTasks();
         }
     }
 
@@ -481,20 +515,29 @@ Page {
 
 
 
-    // Also listen to TSApp signals for when MyTasks is already visible
+    // Listen directly to the picker as well, because MyTasks is often opened
+    // as a dynamic page and should react immediately to account changes.
+    Connections {
+        target: accountPicker
+
+        onAccepted: function (id, name) {
+            handleAccountChange(id);
+        }
+    }
+
     Connections {
         target: typeof mainView !== 'undefined' ? mainView : null
 
         function onAccountDataRefreshRequested(accountId) {
             // console.log("🔄 MyTasks: Refreshing data for account:", accountId);
-            if (myTasksPage.visible && accountId >= 0) {
+            if (accountId >= -1 && accountId !== selectedAccountId) {
                 handleAccountChange(accountId);
             }
         }
 
         function onGlobalAccountChanged(accountId, accountName) {
             //  console.log("🔄 MyTasks: Global account changed to:", accountId, accountName);
-            if (myTasksPage.visible && accountId >= 0) {
+            if (accountId >= -1 && accountId !== selectedAccountId) {
                 handleAccountChange(accountId);
             }
         }

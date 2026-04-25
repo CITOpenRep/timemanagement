@@ -29,11 +29,32 @@ import "../components/settings"
 
 Page {
     id: settings
+    property bool isMultiColumn: apLayout.columns > 1
+    property string selectedSettingsPageUrl: ""
+
     title: i18n.dtr("ubtms", "Settings")
+
+    onVisibleChanged: {
+        if (visible && !isMultiColumn) {
+            selectedSettingsPageUrl = "";
+        }
+    }
 
     header: SettingsHeader {
         id: pageHeader
         title: settings.title
+        leadingActionBar.actions: [
+            Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: !isMultiColumn
+                onTriggered: {
+                    globalDrawer.open()
+                }
+            }
+        ]
+
     }
 
     SettingsPageLayout {
@@ -46,7 +67,9 @@ Page {
             iconName: "contact-group"
             iconColor: "#2980b9"
             text: i18n.dtr("ubtms", "Connected Accounts")
+            active: settings.selectedSettingsPageUrl === "Settings_Accounts.qml"
             onClicked: {
+                settings.selectedSettingsPageUrl = "Settings_Accounts.qml";
                 apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_Accounts.qml'));
             }
         }
@@ -55,7 +78,9 @@ Page {
             iconName: "notification"
             iconColor: "#e74c3c"
             text: i18n.dtr("ubtms", "Notifications")
+            active: settings.selectedSettingsPageUrl === "Settings_Notifications.qml"
             onClicked: {
+                settings.selectedSettingsPageUrl = "Settings_Notifications.qml";
                 apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_Notifications.qml'));
             }
         }
@@ -64,7 +89,9 @@ Page {
             iconName: "sync-idle"
             iconColor: "#27ae60"
             text: i18n.dtr("ubtms", "Background Sync")
+            active: settings.selectedSettingsPageUrl === "Settings_Sync.qml"
             onClicked: {
+                settings.selectedSettingsPageUrl = "Settings_Sync.qml";
                 apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_Sync.qml'));
             }
         }
@@ -73,8 +100,10 @@ Page {
             iconName: "preferences-desktop-theme"
             iconColor: "#8e44ad"
             text: i18n.dtr("ubtms", "Theme Settings")
+            active: settings.selectedSettingsPageUrl === "Settings_Theme.qml"
             showDivider: false
             onClicked: {
+                settings.selectedSettingsPageUrl = "Settings_Theme.qml";
                 apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_Theme.qml'));
             }
         }
