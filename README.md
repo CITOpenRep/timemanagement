@@ -49,6 +49,20 @@ clickable install
 ```
 to install the app on the connected device.
 
+## Refactor guardrails
+
+Phase 1 refactor guardrails and naming contract are documented here:
+
+- docs/refactor/phase-1-architecture-contract.md
+- docs/refactor/phase-1-naming-map.md
+- docs/refactor/phase-1-smoke-checklist.md
+
+Migration check helper:
+
+```bash
+./scripts/refactor_phase1_checks.sh report
+```
+
 
 ## License
 
