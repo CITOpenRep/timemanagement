@@ -4,12 +4,14 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
 import "../"
 import "../settings"
+import "navigation/NavigationRoutes.js" as NavigationRoutes
 
 AdaptivePageLayout {
     id: apLayout
 
     property var rootApp
     property var globalDrawer
+    property var navigationController
 
     anchors.top: parent.top
     anchors.left: parent.left
@@ -73,6 +75,7 @@ AdaptivePageLayout {
 
     Menu {
         id: menu_page
+        navigationController: apLayout.navigationController
     }
 
     Dashboard {
@@ -216,22 +219,23 @@ AdaptivePageLayout {
 
     function setPageGlobal(url, pageNum) {
         var targetPage = null;
+        var pageKey = NavigationRoutes.resolvePageKey(pageNum, url);
 
-        if (pageNum === 0)
+        if (pageKey === "dashboard")
             targetPage = dashboard_page;
-        else if (pageNum === 1)
+        else if (pageKey === "timesheet_list")
             targetPage = timesheet_list || timesheet_page;
-        else if (pageNum === 2)
+        else if (pageKey === "activity")
             targetPage = activity_page;
-        else if (pageNum === 3 && url.indexOf("MyTasks") === -1)
+        else if (pageKey === "task")
             targetPage = task_page;
-        else if (pageNum === 4)
+        else if (pageKey === "project")
             targetPage = project_page;
-        else if (pageNum === 5)
+        else if (pageKey === "updates")
             targetPage = updates_page;
-        else if (pageNum === 6)
+        else if (pageKey === "settings")
             targetPage = settings_page;
-        else if (pageNum === 7)
+        else if (pageKey === "about")
             targetPage = aboutus_page;
 
         if (targetPage !== null) {

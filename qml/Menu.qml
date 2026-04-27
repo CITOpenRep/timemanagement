@@ -38,6 +38,7 @@ Page {
     id: listpage
     title: i18n.dtr("ubtms", "Menu")
     property bool isMultiColumn: apLayout.columns > 1
+    property var navigationController
     anchors.fill: parent
     header: PageHeader {
         id: header
@@ -101,7 +102,11 @@ Page {
                             menuItems: MenuData.items()
                             selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
                             onItemSelected: function(item) {
-                                apLayout.setPageGlobal(item.pageUrl, item.pageNum)
+                                if (navigationController && typeof navigationController.navigateMenuItem === "function") {
+                                    navigationController.navigateMenuItem(item);
+                                } else if (apLayout && typeof apLayout.setPageGlobal === "function") {
+                                    apLayout.setPageGlobal(item.pageUrl, item.pageNum);
+                                }
                             }
                         }
                

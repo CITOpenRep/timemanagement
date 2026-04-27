@@ -10,6 +10,7 @@ Controls.Drawer {
     interactive: true
 
     property var apLayout
+    property var navigationController
 
     Connections {
         target: apLayout
@@ -114,7 +115,11 @@ Controls.Drawer {
                             selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
                             onItemSelected: function (item) {
                                 drawerRoot.close();
-                                apLayout.setPageGlobal(item.pageUrl, item.pageNum);
+                                if (navigationController && typeof navigationController.navigateMenuItem === "function") {
+                                    navigationController.navigateMenuItem(item);
+                                } else if (apLayout && typeof apLayout.setPageGlobal === "function") {
+                                    apLayout.setPageGlobal(item.pageUrl, item.pageNum);
+                                }
                             }
                         }
                     }
