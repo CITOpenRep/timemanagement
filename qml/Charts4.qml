@@ -40,7 +40,7 @@ Rectangle {
     //        anchors.top: rect4.bottom
     width: parent.width
     height: units.gu(40)
-    color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "transparent"
+    color: "transparent"
 
     ChartView {
         id: chart4
@@ -48,12 +48,12 @@ Rectangle {
         titleColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         anchors.fill: parent
         
-        theme: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? ChartView.ChartThemeDark : ChartView.ChartThemeLight
+        // No built-in theme so it doesn't override our custom transparent background
         
         legend.alignment: Qt.AlignBottom
         antialiasing: true
 
-        backgroundColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "transparent"
+        backgroundColor: "transparent"
 
         legend.labelColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         legend.font.pixelSize: units.gu(3)
@@ -65,9 +65,11 @@ Rectangle {
                 max: 50
                 tickCount: 5
                 labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                gridLineColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
             }
             axisX: BarCategoryAxis {
                 labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                gridLineColor: "transparent"
             }
         }
 
@@ -75,12 +77,10 @@ Rectangle {
             get_task_chart_data();
             var count = 0;
             var count2 = Object.keys(task_data).length;
-            //  console.log("Count2 is: " + count2);
-            /*                    for (count = 0; count < count2; count++)
-                        {
-                            console.log("Task Timecat: " + task_timecat[count]);
-                    }*/
-            mySeries2.append("Time", task_timecat);
+            
+            var barSet = mySeries2.append(i18n.dtr("ubtms", "Time"), task_timecat);
+            barSet.color = LomiriColors.orange;
+            
             mySeries2.axisX.categories = task;
         }
     }

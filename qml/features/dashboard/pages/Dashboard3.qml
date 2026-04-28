@@ -46,13 +46,13 @@ Page {
             titleColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
             anchors.fill: parent
             
-            theme: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? ChartView.ChartThemeDark : ChartView.ChartThemeLight
+            // No built-in theme so it doesn't override our custom transparent background
             
             legend.alignment: Qt.AlignBottom
             antialiasing: true
 
             backgroundColor: "transparent"
-            legend.labelColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "red"
+            legend.labelColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
 
             BarSeries {
                 id: mySeries2
@@ -61,9 +61,11 @@ Page {
                     max: 50
                     tickCount: 5
                     labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                    gridLineColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
                 }
                 axisX: BarCategoryAxis {
                     labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                    gridLineColor: "transparent"
                 }
             }
 
@@ -85,7 +87,8 @@ Page {
                     timecat[count] = quadrant_data[task[count]];
                     // console.log("Dashboard 3 Timecat in task: " + timecat[count]);
                 }
-                mySeries2.append("Time", timecat);
+                var barSet = mySeries2.append(i18n.dtr("ubtms", "Time"), timecat);
+                barSet.color = LomiriColors.orange;
                 mySeries2.axisX.categories = task;
             }
         }
