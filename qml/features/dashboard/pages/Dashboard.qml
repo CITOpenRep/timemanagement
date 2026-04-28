@@ -38,7 +38,6 @@ import "../../../../models/accounts.js" as Account
 import "../../../../models/global.js" as Global
 import io.thp.pyotherside 1.4
 import "../../../components"
-import "../../settings/components"
 
 Page {
     id: mainPage

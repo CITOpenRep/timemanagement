@@ -31,8 +31,7 @@ import "../models/Main.js" as Model
 import "../models/timesheet.js" as TimesheetModel
 import "../models/accounts.js" as Account
 import "components"
-import "components/settings"
-import "components/MenuData.js" as MenuData
+import "app/navigation/NavigationRoutes.js" as NavigationRoutes
 
 Page {
     id: listpage
@@ -99,7 +98,7 @@ Page {
                         width: parent.width
                         NavigationMenuList {
                             width: parent.width
-                            menuItems: MenuData.items()
+                            menuItems: NavigationRoutes.menuItems()
                             selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
                             onItemSelected: function(item) {
                                 if (navigationController && typeof navigationController.navigateMenuItem === "function") {

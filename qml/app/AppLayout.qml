@@ -3,7 +3,9 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
 import "../"
-import "../settings"
+import "pages" as AppPages
+import "../features/dashboard/pages" as DashboardPages
+import "../features/settings/pages" as SettingsPages
 import "navigation/NavigationRoutes.js" as NavigationRoutes
 
 AdaptivePageLayout {
@@ -21,7 +23,7 @@ AdaptivePageLayout {
     property bool isMultiColumn: true
     property Page currentPage: splash_page
     property Page thirdPage: dashboard_page2
-    property string currentMenuPageUrl: "Dashboard.qml"
+    property string currentMenuPageUrl: "features/dashboard/pages/Dashboard.qml"
 
     primaryPage: splash_page
 
@@ -69,7 +71,7 @@ AdaptivePageLayout {
         }
     ]
 
-    Splash {
+    AppPages.Splash {
         id: splash_page
     }
 
@@ -78,7 +80,7 @@ AdaptivePageLayout {
         navigationController: apLayout.navigationController
     }
 
-    Dashboard {
+    DashboardPages.Dashboard {
         id: dashboard_page
 
         Connections {
@@ -91,7 +93,7 @@ AdaptivePageLayout {
         }
     }
 
-    Dashboard2 {
+    DashboardPages.Dashboard2 {
         id: dashboard_page2
 
         Connections {
@@ -169,7 +171,7 @@ AdaptivePageLayout {
         id: aboutus_page
     }
 
-    Settings_Page {
+    SettingsPages.Settings_Page {
         id: settings_page
     }
 
@@ -192,18 +194,18 @@ AdaptivePageLayout {
         case 1:
             primaryPage = dashboard_page;
             currentPage = dashboard_page;
-            currentMenuPageUrl = "Dashboard.qml";
+            currentMenuPageUrl = "features/dashboard/pages/Dashboard.qml";
             break;
         case 2:
             primaryPage = menu_page;
             currentPage = dashboard_page;
-            currentMenuPageUrl = "Dashboard.qml";
+            currentMenuPageUrl = "features/dashboard/pages/Dashboard.qml";
             addPageToNextColumn(primaryPage, currentPage);
             break;
         case 3:
             primaryPage = menu_page;
             currentPage = dashboard_page;
-            currentMenuPageUrl = "Dashboard.qml";
+            currentMenuPageUrl = "features/dashboard/pages/Dashboard.qml";
             addPageToNextColumn(primaryPage, currentPage);
             addPageToNextColumn(currentPage, thirdPage);
             break;

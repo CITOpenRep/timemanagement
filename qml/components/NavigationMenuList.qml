@@ -1,6 +1,6 @@
 import QtQuick 2.6
 import Lomiri.Components 1.3
-import "settings"
+import "../features/settings/components" as SettingsComponents
 
 Column {
     id: root
@@ -13,7 +13,7 @@ Column {
     Repeater {
         model: root.menuItems
 
-        SettingsListItem {
+        SettingsComponents.SettingsListItem {
             width: root.width
             iconName: modelData.iconName
             iconColor: modelData.iconColor
