@@ -348,7 +348,7 @@ Page {
                     resId: safeResId,
                     resModel: item.resModel,
                     last_modified: item.last_modified,
-                    color_pallet: item.color_pallet,
+                    color_pallet: (typeof item.color_pallet !== "undefined" && item.color_pallet !== null && item.color_pallet !== "") ? Number(item.color_pallet) : 0,
                     hasDraft: item.has_draft === 1
                 });
             }

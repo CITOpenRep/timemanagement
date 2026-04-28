@@ -287,6 +287,7 @@ AdaptivePageLayout {
             currentPage = dashboard_page;
             thirdPage = dashboard_page2;
             if (apLayout.columns === 3) {
+                apLayout.addPageToNextColumn(currentPage, thirdPage);
             }
             break;
         case 1:
