@@ -26,6 +26,7 @@ import QtQuick 2.6
 import Lomiri.Components 1.3
 import "../models/dbinit.js" as DbInit
 import "app"
+import "app/navigation"
 MainView {
     id: mainView
 
@@ -42,11 +43,18 @@ MainView {
     property int currentAccountId: -1
     property string currentAccountName: ""
 
+    NavigationController {
+        id: navigationController
+        apLayout: apLayout
+        globalDrawer: globalDrawer
+    }
+
 
     SystemIntegrationManager {
         id: systemIntegration
         rootApp: mainView
         apLayout: apLayout
+        navigationController: navigationController
     }
 
     StartupManager {
@@ -70,6 +78,7 @@ MainView {
         id: apLayout
         rootApp: mainView
         globalDrawer: globalDrawer
+        navigationController: navigationController
         
         
     }
@@ -129,5 +138,6 @@ MainView {
     AppDrawer {
         id: globalDrawer
         apLayout: apLayout
+        navigationController: navigationController
     }
 }
