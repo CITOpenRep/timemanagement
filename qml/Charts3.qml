@@ -55,17 +55,17 @@ Rectangle {
     ChartView {
         id: chart3
         title: "Projectwise Time Spent"
-        titleColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        titleColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
 
         anchors.fill: parent
         legend.alignment: Qt.AlignBottom
         antialiasing: true
 
         backgroundColor: "transparent"
-        legend.labelColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        legend.labelColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         legend.font.pixelSize: units.gu(3)
 
-        // theme: ChartView.ChartThemeHighContrast
+        theme: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? ChartView.ChartThemeDark : ChartView.ChartThemeLight
 
         BarSeries {
             id: mySeries
@@ -73,10 +73,10 @@ Rectangle {
                 min: 0
                 max: 50
                 tickCount: 5
-                labelsColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
             }
             axisX: BarCategoryAxis {
-                labelsColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
             }
         }
 

@@ -43,13 +43,16 @@ Page {
         ChartView {
             id: chart4
             title: i18n.dtr("ubtms", "Taskwise Time Spent")
+            titleColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
             anchors.fill: parent
-            theme: ChartView.ChartThemeHighContrast
+            
+            theme: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? ChartView.ChartThemeDark : ChartView.ChartThemeLight
+            
             legend.alignment: Qt.AlignBottom
             antialiasing: true
 
             backgroundColor: "transparent"
-            legend.labelColor: "red"
+            legend.labelColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "red"
 
             BarSeries {
                 id: mySeries2
@@ -57,6 +60,10 @@ Page {
                     min: 0
                     max: 50
                     tickCount: 5
+                    labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                }
+                axisX: BarCategoryAxis {
+                    labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
                 }
             }
 

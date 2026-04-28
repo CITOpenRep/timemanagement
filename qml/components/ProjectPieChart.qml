@@ -43,7 +43,7 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         font.pixelSize: units.gu(2)
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         padding: units.gu(1.5)
     }
 
@@ -120,7 +120,7 @@ Item {
                     id: label
                     text: Utils.truncateText(model.label, 35)
                     font.pixelSize: units.gu(2)
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
+                    color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
                     wrapMode: Text.WordWrap
                     maximumLineCount: 2
                     width: parent.width
