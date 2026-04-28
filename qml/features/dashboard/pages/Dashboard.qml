@@ -103,7 +103,7 @@ Page {
         trailingActionBar.actions: [
             Action {
                 id: notificationAction
-                iconSource: notificationBell.totalCount > 0 ? "images/notification_active.png" : "images/notification.png"
+                iconSource: notificationBell.totalCount > 0 ? "../../../images/notification_active.png" : "../../../images/notification.png"
                 text: notificationBell.totalCount > 0 ? 
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.totalCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
