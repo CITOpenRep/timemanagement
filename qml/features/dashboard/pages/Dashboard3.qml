@@ -56,6 +56,15 @@ Page {
 
             BarSeries {
                 id: mySeries2
+                onHovered: {
+                    if (status) {
+                        var cat = mySeries2.axisX.categories[index];
+                        var val = barset.at(index);
+                        hoverText.text = cat + " — " + Number(val).toFixed(1) + i18n.dtr("ubtms", " hrs");
+                    } else {
+                        hoverText.text = "";
+                    }
+                }
                 axisY: ValueAxis {
                     min: 0
                     max: 50
@@ -90,6 +99,31 @@ Page {
                 var barSet = mySeries2.append(i18n.dtr("ubtms", "Time"), timecat);
                 barSet.color = LomiriColors.orange;
                 mySeries2.axisX.categories = task;
+            }
+
+            Rectangle {
+                id: hoverInfo
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: units.gu(1)
+                width: hoverText.width + units.gu(3)
+                height: hoverText.height + units.gu(1.5)
+                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
+                border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
+                border.width: 1
+                radius: units.gu(0.5)
+                opacity: hoverText.text !== "" ? 0.95 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 150 } }
+                z: 100
+
+                Label {
+                    id: hoverText
+                    anchors.centerIn: parent
+                    text: ""
+                    color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
+                    font.weight: Font.Light
+                    font.pixelSize: units.gu(2)
+                }
             }
         }
     }
