@@ -91,10 +91,9 @@ Item {
     Rectangle {
         id: hoverInfo
         anchors.top: chartTitle.bottom
-        anchors.right: parent.right
-        anchors.margins: units.gu(1)
-        width: hoverText.width + units.gu(3)
-        height: hoverText.height + units.gu(1.5)
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(2))
+        height: hoverText.implicitHeight + units.gu(1.5)
         color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
         border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
         border.width: 1
@@ -106,6 +105,9 @@ Item {
         Label {
             id: hoverText
             anchors.centerIn: parent
+            width: parent.width - units.gu(2)
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
             text: ""
             color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
             font.weight: Font.Light
@@ -154,11 +156,12 @@ Item {
                 Text {
                     id: label
                     text: Utils.truncateText(model.label, 35)
-                    font.pixelSize: units.gu(2)
+                    font.pixelSize: units.gu(1.8)
                     color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
                     wrapMode: Text.WordWrap
+                    elide: Text.ElideRight
                     maximumLineCount: 2
-                    width: parent.width
+                    width: parent.width - units.gu(4)
                 }
             }
         }

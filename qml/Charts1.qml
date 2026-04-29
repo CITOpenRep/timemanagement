@@ -101,10 +101,10 @@ Rectangle {
         Rectangle {
             id: hoverInfo
             anchors.top: parent.top
-            anchors.right: parent.right
+            anchors.horizontalCenter: parent.horizontalCenter
             anchors.margins: units.gu(1)
-            width: hoverText.width + units.gu(3)
-            height: hoverText.height + units.gu(1.5)
+            width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(2))
+            height: hoverText.implicitHeight + units.gu(1.5)
             color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
             border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
             border.width: 1
@@ -116,6 +116,9 @@ Rectangle {
             Label {
                 id: hoverText
                 anchors.centerIn: parent
+                width: parent.width - units.gu(2)
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
                 text: ""
                 color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
                 font.weight: Font.Light
