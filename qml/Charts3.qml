@@ -112,6 +112,7 @@ Rectangle {
                 var barSet = mySeries.append(i18n.dtr("ubtms", "Time"), t_cat);
                 if (barSet) {
                     barSet.color = LomiriColors.blue;
+                    barSet.borderColor = "transparent";
                 }
                 mySeries.axisX.categories = t_proj;
             } else {

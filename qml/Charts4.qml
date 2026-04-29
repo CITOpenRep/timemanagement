@@ -103,6 +103,7 @@ Rectangle {
                 if (barSet) {
                     // Assign a new color here to replace orange
                     barSet.color = LomiriColors.blue;
+                    barSet.borderColor = "transparent";
                 }
                 mySeries2.axisX.categories = t_task;
             } else {
