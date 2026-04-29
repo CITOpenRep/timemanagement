@@ -72,6 +72,17 @@ Page {
         }
     }
 
+    onIsMultiColumnChanged: {
+        if (isMultiColumn) {
+            if (typeof mobileChartTabBar !== "undefined") {
+                mobileChartTabBar.currentIndex = 0;
+            }
+            if (typeof mobileChartsView !== "undefined") {
+                mobileChartsView.currentIndex = 0;
+            }
+        }
+    }
+
 
     header: PageHeader {
         id: header
@@ -321,6 +332,8 @@ Page {
                     Controls.TabBar {
                         id: mobileChartTabBar
                         width: parent.width
+                        visible: !isMultiColumn
+                        height: visible ? implicitHeight : 0
                         currentIndex: 0
                         onCurrentIndexChanged: {
                             if (mobileChartsView.currentIndex !== currentIndex)
@@ -376,7 +389,7 @@ Page {
                         width: parent.width
                         height: currentIndex === 0 ? projectchart.implicitHeight : units.gu(40)
                         currentIndex: 0
-                        interactive: true
+                        interactive: !isMultiColumn
                         clip: true
                         onCurrentIndexChanged: {
                             if (mobileChartTabBar.currentIndex !== currentIndex)
@@ -396,7 +409,7 @@ Page {
                             Loader {
                                 id: mobileProjectChartLoader
                                 anchors.fill: parent
-                                active: mobileChartsView.currentIndex === 1
+                                active: !isMultiColumn && mobileChartsView.currentIndex === 1
                                 source: "../../../Charts3.qml"
                             }
                         }
@@ -405,7 +418,7 @@ Page {
                             Loader {
                                 id: mobileTaskChartLoader
                                 anchors.fill: parent
-                                active: mobileChartsView.currentIndex === 2
+                                active: !isMultiColumn && mobileChartsView.currentIndex === 2
                                 source: "../../../Charts4.qml"
                             }
                         }
