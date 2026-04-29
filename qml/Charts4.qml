@@ -101,7 +101,8 @@ Rectangle {
             if (t_cat && t_cat.length > 0) {
                 var barSet = mySeries2.append(i18n.dtr("ubtms", "Time"), t_cat);
                 if (barSet) {
-                    barSet.color = LomiriColors.orange;
+                    // Assign a new color here to replace orange
+                    barSet.color = LomiriColors.blue;
                 }
                 mySeries2.axisX.categories = t_task;
             } else {
