@@ -42,6 +42,10 @@ Rectangle {
     height: units.gu(40)
     color: "transparent"
 
+    function reloadData() {
+        chart4.reloadData();
+    }
+
     ChartView {
         id: chart4
         title: "Taskwise Time Spent"

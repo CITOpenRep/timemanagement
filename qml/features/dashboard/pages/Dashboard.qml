@@ -146,32 +146,40 @@ Page {
         var account = accountPicker.selectedAccountId;
         project_data = Model.get_projects_spent_hours(account);
         var count = 0;
+        var temp_project = [];
         var timeval;
         for (var key in project_data) {
-            project[count] = key;
+            temp_project[count] = key;
             timeval = project_data[key];
             count = count + 1;
         }
         var count2 = Object.keys(project_data).length;
+        var temp_timecat = [];
         for (count = 0; count < count2; count++) {
-            project_timecat[count] = project_data[project[count]];
+            temp_timecat[count] = project_data[temp_project[count]];
         }
+        project = temp_project;
+        project_timecat = temp_timecat;
     }
 
     function get_task_chart_data() {
         var account = accountPicker.selectedAccountId;
         task_data = Model.get_tasks_spent_hours(account);
         var count = 0;
+        var temp_task = [];
         var timeval;
         for (var key in task_data) {
-            task[count] = key;
+            temp_task[count] = key;
             timeval = task_data[key];
             count = count + 1;
         }
         var count2 = Object.keys(task_data).length;
+        var temp_timecat = [];
         for (count = 0; count < count2; count++) {
-            task_timecat[count] = task_data[task[count]];
+            temp_timecat[count] = task_data[temp_task[count]];
         }
+        task = temp_task;
+        task_timecat = temp_timecat;
     }
 
     function refreshData() {
@@ -194,6 +202,10 @@ Page {
                 console.log("🔵 selected: ", selected);
                 projectchart.refreshForAccount(selected);
             }
+            if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
+                mobileProjectChartLoader.item.reloadData();
+            if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
+                mobileTaskChartLoader.item.reloadData();
             console.log("🟣 _doRefreshData SUCCESS");
         } catch(e) {
             console.error("🔴 _doRefreshData ERROR: ", e);
@@ -382,6 +394,7 @@ Page {
 
                         Item {
                             Loader {
+                                id: mobileProjectChartLoader
                                 anchors.fill: parent
                                 active: mobileChartsView.currentIndex === 1
                                 source: "../../../Charts3.qml"
@@ -390,6 +403,7 @@ Page {
 
                         Item {
                             Loader {
+                                id: mobileTaskChartLoader
                                 anchors.fill: parent
                                 active: mobileChartsView.currentIndex === 2
                                 source: "../../../Charts4.qml"
