@@ -75,6 +75,41 @@ Item {
             holeSize: 0.3
             horizontalPosition: 0.5
             verticalPosition: 0.45
+            
+            onHovered: {
+                if (state) {
+                    hoverText.text = slice.label + " — " + Number(slice.value).toFixed(1) + i18n.dtr("ubtms", " hrs");
+                    slice.exploded = true;
+                } else {
+                    hoverText.text = "";
+                    slice.exploded = false;
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        id: hoverInfo
+        anchors.top: chartTitle.bottom
+        anchors.right: parent.right
+        anchors.margins: units.gu(1)
+        width: hoverText.width + units.gu(3)
+        height: hoverText.height + units.gu(1.5)
+        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
+        border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
+        border.width: 1
+        radius: units.gu(0.5)
+        opacity: hoverText.text !== "" ? 0.95 : 0.0
+        Behavior on opacity { NumberAnimation { duration: 150 } }
+        z: 100
+
+        Label {
+            id: hoverText
+            anchors.centerIn: parent
+            text: ""
+            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
+            font.weight: Font.Light
+            font.pixelSize: units.gu(2)
         }
     }
 
