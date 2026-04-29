@@ -43,7 +43,7 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         font.pixelSize: units.gu(2)
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         padding: units.gu(1.5)
     }
 
@@ -75,6 +75,70 @@ Item {
             holeSize: 0.3
             horizontalPosition: 0.5
             verticalPosition: 0.45
+            
+            onHovered: {
+                if (state) {
+                    hoverText.text = slice.label + " — " + Number(slice.value).toFixed(1) + i18n.dtr("ubtms", " hrs");
+                    slice.exploded = true;
+
+                    // Compute dynamic tool-tip position based on slice radius, angles, and aspect ratio sizing
+                    var r = spanAreaSize() / 2;
+                    var angle = (slice.startAngle + slice.angleSpan / 2) * Math.PI / 180;
+                    
+                    var cx = pieChart.plotArea.x + pieChart.plotArea.width * pieSeries.horizontalPosition;
+                    var cy = pieChart.plotArea.y + pieChart.plotArea.height * (1.0 - pieSeries.verticalPosition);
+
+                    var intendedX = cx + (r * Math.cos(angle)) - hoverInfo.width / 2;
+                    var intendedY = cy - (r * Math.sin(angle)) - hoverInfo.height;
+                    
+                    if (intendedX < 0) intendedX = units.gu(1);
+                    if (intendedX + hoverInfo.width > pieChart.width) intendedX = pieChart.width - hoverInfo.width - units.gu(1);
+                    if (intendedY < 0) intendedY = units.gu(1);
+                    
+                    hoverInfo.x = intendedX;
+                    hoverInfo.y = intendedY;
+
+                } else {
+                    hoverText.text = "";
+                    slice.exploded = false;
+                }
+            }
+
+            function spanAreaSize() {
+                var w = pieChart.plotArea.width;
+                var h = pieChart.plotArea.height;
+                var baseRadius = pieSeries.size * Math.min(w, h);
+                return baseRadius
+            }
+        }
+    }
+
+    Rectangle {
+        id: hoverInfo
+        x: pieChart.width / 2 - width / 2
+        y: units.gu(2)
+        width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(2))
+        height: hoverText.implicitHeight + units.gu(1.5)
+        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
+        border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
+        border.width: 1
+        radius: units.gu(0.5)
+        opacity: hoverText.text !== "" ? 0.95 : 0.0
+        Behavior on opacity { NumberAnimation { duration: 150 } }
+        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+        Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+        z: 100
+
+        Label {
+            id: hoverText
+            anchors.centerIn: parent
+            width: parent.width - units.gu(2)
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            text: ""
+            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
+            font.weight: Font.Light
+            font.pixelSize: units.gu(2)
         }
     }
 
@@ -119,11 +183,12 @@ Item {
                 Text {
                     id: label
                     text: Utils.truncateText(model.label, 35)
-                    font.pixelSize: units.gu(2)
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
+                    font.pixelSize: units.gu(1.8)
+                    color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
                     wrapMode: Text.WordWrap
+                    elide: Text.ElideRight
                     maximumLineCount: 2
-                    width: parent.width
+                    width: parent.width - units.gu(4)
                 }
             }
         }

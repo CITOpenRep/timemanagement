@@ -25,7 +25,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
-import "../components/settings"
+import "../components"
 
 Page {
     id: settings

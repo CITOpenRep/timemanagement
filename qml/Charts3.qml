@@ -55,43 +55,98 @@ Rectangle {
     ChartView {
         id: chart3
         title: "Projectwise Time Spent"
-        titleColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        titleColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
 
         anchors.fill: parent
         legend.alignment: Qt.AlignBottom
         antialiasing: true
 
         backgroundColor: "transparent"
-        legend.labelColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        legend.labelColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         legend.font.pixelSize: units.gu(3)
 
-        // theme: ChartView.ChartThemeHighContrast
+        // No built-in theme so it doesn't override our custom transparent background
+        // theme: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? ChartView.ChartThemeDark : ChartView.ChartThemeLight
 
         BarSeries {
             id: mySeries
+            onHovered: {
+                if (status) {
+                    var cat = mySeries.axisX.categories[index];
+                    var val = barset.at(index);
+                    hoverText.text = cat + " — " + Number(val).toFixed(1) + i18n.dtr("ubtms", " hrs");
+                    
+                    var barCount = mySeries.axisX.categories.length;
+                    var intendedX = chart3.plotArea.x + (index + 0.5) * (chart3.plotArea.width / barCount) - hoverInfo.width / 2;
+                    if (intendedX < 0) intendedX = units.gu(1);
+                    if (intendedX + hoverInfo.width > chart3.width) intendedX = chart3.width - hoverInfo.width - units.gu(1);
+                    hoverInfo.x = intendedX;
+                    var intendedY = chart3.plotArea.y + units.gu(1);
+                    hoverInfo.y = intendedY;
+                } else {
+                    hoverText.text = "";
+                }
+            }
             axisY: ValueAxis {
                 min: 0
                 max: 50
                 tickCount: 5
-                labelsColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                gridLineColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
             }
             axisX: BarCategoryAxis {
-                labelsColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+                gridLineColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "transparent" : "transparent"
             }
         }
 
-        Component.onCompleted: {
-            get_project_chart_data();
+        function reloadData() {
+            if (typeof parent.get_project_chart_data === 'function') parent.get_project_chart_data();
+            else if (typeof get_project_chart_data === 'function') get_project_chart_data();
 
-            var count = 0;
-            var count2 = Object.keys(project_data).length;
-            //  console.log("Count2 is: " + count2);
-            /*                    for (count = 0; count < count2; count++)
-                        {
-                            console.log("Project Timecat: " + project_timecat[count]);
-                    }*/
-            mySeries.append("Time", project_timecat);
-            mySeries.axisX.categories = project;
+            mySeries.clear();
+            var t_cat = typeof project_timecat !== 'undefined' ? project_timecat : [];
+            var t_proj = typeof project !== 'undefined' ? project : [];
+            
+            if (t_cat && t_cat.length > 0) {
+                var barSet = mySeries.append(i18n.dtr("ubtms", "Time"), t_cat);
+                if (barSet) {
+                    barSet.color = LomiriColors.blue;
+                    barSet.borderColor = "transparent";
+                }
+                mySeries.axisX.categories = t_proj;
+            } else {
+                mySeries.axisX.categories = [""];
+            }
+        }
+
+        Component.onCompleted: reloadData()
+        
+        Rectangle {
+            id: hoverInfo
+            width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(4))
+            height: hoverText.implicitHeight + units.gu(1.5)
+            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
+            border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
+            border.width: 1
+            radius: units.gu(0.5)
+            opacity: hoverText.text !== "" ? 0.95 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 150 } }
+            Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+            Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+            z: 100
+
+            Label {
+                id: hoverText
+                anchors.centerIn: parent
+                width: parent.width - units.gu(2)
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                text: ""
+                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
+                font.weight: Font.Light
+                font.pixelSize: units.gu(2)
+            }
         }
     }
 }

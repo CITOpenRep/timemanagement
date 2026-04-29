@@ -20,6 +20,7 @@ Rectangle {
     signal timerStarted
     signal timerPaused
     signal timerResumed
+    signal syncTimedOut(int accountId)
     property bool previousRunningState: false
     property bool previousPausedState: false
     property int previousTimesheetId: -1

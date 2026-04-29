@@ -25,7 +25,7 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtCharts 2.0
-import "../models/Main.js" as Model
+import "../../../../models/Main.js" as Model
 
 Page {
     id: dashboard
@@ -48,36 +48,67 @@ Page {
     property variant task: []
     property variant task_data: []
 
+    function refreshData() {
+        console.log("Refreshing Dashboard2 charts for account: " + (typeof accountPicker !== 'undefined' ? accountPicker.selectedAccountId : "unknown"));
+        get_project_chart_data();
+        get_task_chart_data();
+        
+        // Re-construct the Loaders directly to forcefully update the inner Charts3 and Charts4 bindings
+        var prev3 = load3.source;
+        var prev4 = load4.source;
+        load3.source = "";
+        load4.source = "";
+        load3.source = prev3;
+        load4.source = prev4;
+    }
+
+    Connections {
+        target: typeof accountPicker !== "undefined" ? accountPicker : null
+        onAccepted: function (accountId, accountName) {
+            refreshData();
+        }
+    }
+
     function get_project_chart_data() {
         //  console.log("get_project_chart_data called");
-        project_data = Model.get_projects_spent_hours();
+        var accountId = typeof accountPicker !== 'undefined' ? accountPicker.selectedAccountId : -1;
+        project_data = Model.get_projects_spent_hours(accountId);
         var count = 0;
+        var temp_project = [];
         var timeval;
         for (var key in project_data) {
-            project[count] = key;
+            temp_project[count] = key;
             timeval = project_data[key];
             count = count + 1;
         }
         var count2 = Object.keys(project_data).length;
+        var temp_timecat = [];
         for (count = 0; count < count2; count++) {
-            project_timecat[count] = project_data[project[count]];
+            temp_timecat[count] = project_data[temp_project[count]];
         }
+        project = temp_project;
+        project_timecat = temp_timecat;
     }
 
     function get_task_chart_data() {
         //  console.log("get_task_chart_data called");
-        task_data = Model.get_tasks_spent_hours();
+        var accountId = typeof accountPicker !== 'undefined' ? accountPicker.selectedAccountId : -1;
+        task_data = Model.get_tasks_spent_hours(accountId);
         var count = 0;
+        var temp_task = [];
         var timeval;
         for (var key in task_data) {
-            task[count] = key;
+            temp_task[count] = key;
             timeval = task_data[key];
             count = count + 1;
         }
         var count2 = Object.keys(task_data).length;
+        var temp_timecat = [];
         for (count = 0; count < count2; count++) {
-            task_timecat[count] = task_data[task[count]];
+            temp_timecat[count] = task_data[temp_task[count]];
         }
+        task = temp_task;
+        task_timecat = temp_timecat;
     }
 
     Flickable {
@@ -102,7 +133,7 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             //            anchors.top: header.bottom
-            source: "Charts3.qml"
+            source: "../../../Charts3.qml"
         }
 
         Loader {
@@ -110,7 +141,7 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: load3.bottom
-            source: "Charts4.qml"
+            source: "../../../Charts4.qml"
         }
 
         onFlickEnded: {

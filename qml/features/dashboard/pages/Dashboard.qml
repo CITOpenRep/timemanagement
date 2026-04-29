@@ -29,16 +29,15 @@ import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import QtQuick.Controls 2.2 as Controls
 import Qt.labs.settings 1.0
-import "../models/Main.js" as Model
-import "../models/project.js" as Project
-import "../models/notifications.js" as Notifications
-import "../models/utils.js" as Utils
-import "../models/timesheet.js" as TimesheetModel
-import "../models/accounts.js" as Account
-import "../models/global.js" as Global
+import "../../../../models/Main.js" as Model
+import "../../../../models/project.js" as Project
+import "../../../../models/notifications.js" as Notifications
+import "../../../../models/utils.js" as Utils
+import "../../../../models/timesheet.js" as TimesheetModel
+import "../../../../models/accounts.js" as Account
+import "../../../../models/global.js" as Global
 import io.thp.pyotherside 1.4
-import "components"
-import "components/settings"
+import "../../../components"
 
 Page {
     id: mainPage
@@ -103,7 +102,7 @@ Page {
         trailingActionBar.actions: [
             Action {
                 id: notificationAction
-                iconSource: notificationBell.totalCount > 0 ? "images/notification_active.png" : "images/notification.png"
+                iconSource: notificationBell.totalCount > 0 ? "../../../images/notification_active.png" : "../../../images/notification.png"
                 text: notificationBell.totalCount > 0 ? 
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.totalCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
@@ -123,7 +122,7 @@ Page {
                     const defaultAccountId = Account.getDefaultAccountId();
                     const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
                     if (result.success) {
-                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
                             "recordid": result.id,
                             "isReadOnly": false
                         });
@@ -219,7 +218,7 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
                 });
@@ -227,7 +226,7 @@ Page {
             if (index === 1) {
                 const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
                 if (result.success) {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
                     });
@@ -236,7 +235,7 @@ Page {
                 }
             }
             if (index === 2) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Activities.qml"), {
                     "isReadOnly": false
                 });
             }
@@ -356,7 +355,7 @@ Page {
         onCommitCompleted: {
             const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
             if (result.success) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
                     "recordid": result.id,
                     "isReadOnly": false
                 });
@@ -399,30 +398,30 @@ Page {
         // Handle navigation from notification clicks
         onNavigateToRecord: {
             if (navType === "Task" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Tasks.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
             } else if (navType === "Activity" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activities.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Activities.qml"), {
                     "recordid": recordId,
                     "accountid": accountId,
                     "isReadOnly": true
                 });
             } else if (navType === "ProjectUpdate" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Updates.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Updates.qml"), {
                     "recordid": recordId,
                     "accountid": accountId,
                     "isOdooRecordId": true,
                     "isReadOnly": true
                 });
             } else if (navType === "Project" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Projects.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Projects.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
             } else if (navType === "Timesheet" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });

@@ -26,7 +26,7 @@ import Lomiri.Components 1.3
 import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
-import "../models/Main.js" as Model
+import "../../../models/Main.js" as Model
 
 Page {
     id: splashPage
@@ -54,7 +54,7 @@ Page {
             anchors.centerIn: parent
             width: units.gu(30)
             height: units.gu(30)
-            source: "logo.png"
+            source: "../../logo.png"
             opacity: 0.3
 
             // Animate the opacity to fade in

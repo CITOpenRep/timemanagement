@@ -27,8 +27,8 @@ import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
 import Pparent.Notifications 1.0
-import "../components/settings"
 import "../components"
+import "../../../components"
 
 Page {
     id: syncSettingsPage

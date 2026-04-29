@@ -64,6 +64,35 @@ Rectangle {
         PieSeries {
             id: pieSeries2
             size: 0.5
+            onHovered: {
+                if (state) {
+                    hoverText.text = slice.label + " — " + Number(slice.value).toFixed(1) + i18n.dtr("ubtms", " hrs");
+                    slice.exploded = true;
+
+                    // Compute dynamic tool-tip position based on slice radius, angles, and aspect ratio sizing
+                    var w = chart2.plotArea.width;
+                    var h = chart2.plotArea.height;
+                    var r = (pieSeries2.size * Math.min(w, h)) / 2;
+                    var angle = (slice.startAngle + slice.angleSpan / 2) * Math.PI / 180;
+                    
+                    var cx = chart2.plotArea.x + w * pieSeries2.horizontalPosition;
+                    var cy = chart2.plotArea.y + h * (1.0 - pieSeries2.verticalPosition);
+
+                    var intendedX = cx + (r * Math.cos(angle)) - hoverInfo.width / 2;
+                    var intendedY = cy - (r * Math.sin(angle)) - hoverInfo.height;
+                    
+                    if (intendedX < 0) intendedX = units.gu(1);
+                    if (intendedX + hoverInfo.width > chart2.width) intendedX = chart2.width - hoverInfo.width - units.gu(1);
+                    if (intendedY < 0) intendedY = units.gu(1);
+                    
+                    hoverInfo.x = intendedX;
+                    hoverInfo.y = intendedY;
+
+                } else {
+                    hoverText.text = "";
+                    slice.exploded = false;
+                }
+            }
             PieSlice {
                 label: "Important, Urgent"
                 value: chart2.timecat[0]
@@ -84,6 +113,36 @@ Rectangle {
         Component.onCompleted: {
             var quadrant_data = Model.get_quadrant_current_month();
             chart2.timecat = quadrant_data;
+        }
+
+
+        Rectangle {
+            id: hoverInfo
+            x: chart2.width / 2 - width / 2
+            y: units.gu(2)
+            width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(2))
+            height: hoverText.implicitHeight + units.gu(1.5)
+            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
+            border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
+            border.width: 1
+            radius: units.gu(0.5)
+            opacity: hoverText.text !== "" ? 0.95 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 150 } }
+            Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+            Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+            z: 100
+
+            Label {
+                id: hoverText
+                anchors.centerIn: parent
+                width: parent.width - units.gu(2)
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                text: ""
+                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
+                font.weight: Font.Light
+                font.pixelSize: units.gu(2)
+            }
         }
     }
 
