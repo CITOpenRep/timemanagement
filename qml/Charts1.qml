@@ -66,6 +66,26 @@ Rectangle {
                 if (state) {
                     hoverText.text = slice.label + " — " + Number(slice.value).toFixed(1) + i18n.dtr("ubtms", " hrs");
                     slice.exploded = true;
+
+                    // Compute dynamic tool-tip position based on slice radius, angles, and aspect ratio sizing
+                    var w = chart.plotArea.width;
+                    var h = chart.plotArea.height;
+                    var r = (pieSeries.size * Math.min(w, h)) / 2;
+                    var angle = (slice.startAngle + slice.angleSpan / 2) * Math.PI / 180;
+                    
+                    var cx = chart.plotArea.x + w * pieSeries.horizontalPosition;
+                    var cy = chart.plotArea.y + h * (1.0 - pieSeries.verticalPosition);
+
+                    var intendedX = cx + (r * Math.cos(angle)) - hoverInfo.width / 2;
+                    var intendedY = cy - (r * Math.sin(angle)) - hoverInfo.height;
+                    
+                    if (intendedX < 0) intendedX = units.gu(1);
+                    if (intendedX + hoverInfo.width > chart.width) intendedX = chart.width - hoverInfo.width - units.gu(1);
+                    if (intendedY < 0) intendedY = units.gu(1);
+                    
+                    hoverInfo.x = intendedX;
+                    hoverInfo.y = intendedY;
+
                 } else {
                     hoverText.text = "";
                     slice.exploded = false;
@@ -98,11 +118,11 @@ Rectangle {
             chart.timecat = quadrant_data;
         }
 
+
         Rectangle {
             id: hoverInfo
-            anchors.top: parent.top
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.margins: units.gu(1)
+            x: chart.width / 2 - width / 2
+            y: units.gu(2)
             width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(2))
             height: hoverText.implicitHeight + units.gu(1.5)
             color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
@@ -111,6 +131,8 @@ Rectangle {
             radius: units.gu(0.5)
             opacity: hoverText.text !== "" ? 0.95 : 0.0
             Behavior on opacity { NumberAnimation { duration: 150 } }
+            Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+            Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
             z: 100
 
             Label {

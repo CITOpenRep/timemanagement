@@ -61,6 +61,14 @@ Page {
                         var cat = mySeries2.axisX.categories[index];
                         var val = barset.at(index);
                         hoverText.text = cat + " — " + Number(val).toFixed(1) + i18n.dtr("ubtms", " hrs");
+                        
+                        var barCount = mySeries2.axisX.categories.length;
+                        var intendedX = chart4.plotArea.x + (index + 0.5) * (chart4.plotArea.width / barCount) - hoverInfo.width / 2;
+                        if (intendedX < 0) intendedX = units.gu(1);
+                        if (intendedX + hoverInfo.width > chart4.width) intendedX = chart4.width - hoverInfo.width - units.gu(1);
+                        hoverInfo.x = intendedX;
+                        var intendedY = chart4.plotArea.y + units.gu(1);
+                        hoverInfo.y = intendedY;
                     } else {
                         hoverText.text = "";
                     }
@@ -122,10 +130,7 @@ Page {
 
             Rectangle {
                 id: hoverInfo
-                anchors.top: parent.top
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.margins: units.gu(1)
-                width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(2))
+                width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(4))
                 height: hoverText.implicitHeight + units.gu(1.5)
                 color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
                 border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
@@ -133,6 +138,8 @@ Page {
                 radius: units.gu(0.5)
                 opacity: hoverText.text !== "" ? 0.95 : 0.0
                 Behavior on opacity { NumberAnimation { duration: 150 } }
+                Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+                Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
                 z: 100
 
                 Label {

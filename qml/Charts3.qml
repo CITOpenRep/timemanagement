@@ -75,6 +75,14 @@ Rectangle {
                     var cat = mySeries.axisX.categories[index];
                     var val = barset.at(index);
                     hoverText.text = cat + " — " + Number(val).toFixed(1) + i18n.dtr("ubtms", " hrs");
+                    
+                    var barCount = mySeries.axisX.categories.length;
+                    var intendedX = chart3.plotArea.x + (index + 0.5) * (chart3.plotArea.width / barCount) - hoverInfo.width / 2;
+                    if (intendedX < 0) intendedX = units.gu(1);
+                    if (intendedX + hoverInfo.width > chart3.width) intendedX = chart3.width - hoverInfo.width - units.gu(1);
+                    hoverInfo.x = intendedX;
+                    var intendedY = chart3.plotArea.y + units.gu(1);
+                    hoverInfo.y = intendedY;
                 } else {
                     hoverText.text = "";
                 }
@@ -115,22 +123,24 @@ Rectangle {
         
         Rectangle {
             id: hoverInfo
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: units.gu(1)
-            width: hoverText.width + units.gu(3)
-            height: hoverText.height + units.gu(1.5)
+            width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(4))
+            height: hoverText.implicitHeight + units.gu(1.5)
             color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
             border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
             border.width: 1
             radius: units.gu(0.5)
             opacity: hoverText.text !== "" ? 0.95 : 0.0
             Behavior on opacity { NumberAnimation { duration: 150 } }
+            Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+            Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
             z: 100
 
             Label {
                 id: hoverText
                 anchors.centerIn: parent
+                width: parent.width - units.gu(2)
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
                 text: ""
                 color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
                 font.weight: Font.Light
