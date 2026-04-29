@@ -249,7 +249,7 @@ Page {
         anchors.top: header.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         contentWidth: parent.width
-        contentHeight: 4000
+        contentHeight: quadrantColumn.height + units.gu(4)
         rebound: Transition {
             NumberAnimation {
                 properties: "x,y"
@@ -294,11 +294,88 @@ Page {
                 }
             }
 
-            ProjectPieChart {
-                id: projectchart
-                width: parent.width * 0.95
-                height: width
+            Item {
+                id: mobileChartsTabs
+                width: parent.width - units.gu(2)
+                height: mobileChartsColumn.height
                 anchors.horizontalCenter: parent.horizontalCenter
+                visible: true
+
+                Column {
+                    id: mobileChartsColumn
+                    width: parent.width
+                    spacing: units.gu(1)
+
+                    Controls.TabBar {
+                        id: mobileChartTabBar
+                        width: parent.width
+                        currentIndex: 0
+                        onCurrentIndexChanged: {
+                            if (mobileChartsView.currentIndex !== currentIndex)
+                                mobileChartsView.currentIndex = currentIndex;
+                        }
+
+                        background: Rectangle {
+                            color: Theme.palette.normal.background
+                            radius: units.gu(1)
+                            border.width: 1
+                            border.color: Theme.palette.normal.base
+                        }
+
+                        Controls.TabButton {
+                            text: i18n.dtr("ubtms", "Overview")
+                            width: mobileChartTabBar.width / 3
+                        }
+
+                        Controls.TabButton {
+                            text: i18n.dtr("ubtms", "Projects")
+                            width: mobileChartTabBar.width / 3
+                        }
+
+                        Controls.TabButton {
+                            text: i18n.dtr("ubtms", "Tasks")
+                            width: mobileChartTabBar.width / 3
+                        }
+                    }
+
+                    Controls.SwipeView {
+                        id: mobileChartsView
+                        width: parent.width
+                        height: currentIndex === 0 ? parent.width * 0.95 : units.gu(40)
+                        currentIndex: 0
+                        interactive: true
+                        clip: true
+                        onCurrentIndexChanged: {
+                            if (mobileChartTabBar.currentIndex !== currentIndex)
+                                mobileChartTabBar.currentIndex = currentIndex;
+                        }
+
+                        Item {
+                            ProjectPieChart {
+                                id: projectchart
+                                width: parent.width * 0.95
+                                height: width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+                        }
+
+                        Item {
+                            Loader {
+                                anchors.fill: parent
+                                active: mobileChartsView.currentIndex === 1
+                                source: "../../../Charts3.qml"
+                            }
+                        }
+
+                        Item {
+                            Loader {
+                                anchors.fill: parent
+                                active: mobileChartsView.currentIndex === 2
+                                source: "../../../Charts4.qml"
+                            }
+                        }
+                    }
+                }
             }
 
             Component.onCompleted: {
