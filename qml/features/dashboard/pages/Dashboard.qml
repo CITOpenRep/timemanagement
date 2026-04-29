@@ -325,16 +325,37 @@ Page {
                         Controls.TabButton {
                             text: i18n.dtr("ubtms", "Overview")
                             width: mobileChartTabBar.width / 3
+                            contentItem: Text {
+                                text: parent.text
+                                font: parent.font
+                                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
 
                         Controls.TabButton {
                             text: i18n.dtr("ubtms", "Projects")
                             width: mobileChartTabBar.width / 3
+                            contentItem: Text {
+                                text: parent.text
+                                font: parent.font
+                                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
 
                         Controls.TabButton {
                             text: i18n.dtr("ubtms", "Tasks")
                             width: mobileChartTabBar.width / 3
+                            contentItem: Text {
+                                text: parent.text
+                                font: parent.font
+                                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
                     }
 
