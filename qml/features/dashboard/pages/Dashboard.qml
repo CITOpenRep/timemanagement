@@ -341,7 +341,7 @@ Page {
                     Controls.SwipeView {
                         id: mobileChartsView
                         width: parent.width
-                        height: currentIndex === 0 ? parent.width * 0.95 : units.gu(40)
+                        height: currentIndex === 0 ? projectchart.implicitHeight : units.gu(40)
                         currentIndex: 0
                         interactive: true
                         clip: true
@@ -354,7 +354,7 @@ Page {
                             ProjectPieChart {
                                 id: projectchart
                                 width: parent.width * 0.95
-                                height: width
+                                height: implicitHeight
                                 anchors.horizontalCenter: parent.horizontalCenter
                             }
                         }
