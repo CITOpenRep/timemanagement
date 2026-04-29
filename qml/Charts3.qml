@@ -92,17 +92,26 @@ Rectangle {
             }
         }
 
-        Component.onCompleted: {
-            get_project_chart_data();
+        function reloadData() {
+            if (typeof parent.get_project_chart_data === 'function') parent.get_project_chart_data();
+            else if (typeof get_project_chart_data === 'function') get_project_chart_data();
 
-            var count = 0;
-            var count2 = Object.keys(project_data).length;
+            mySeries.clear();
+            var t_cat = typeof project_timecat !== 'undefined' ? project_timecat : [];
+            var t_proj = typeof project !== 'undefined' ? project : [];
             
-            var barSet = mySeries.append(i18n.dtr("ubtms", "Time"), project_timecat);
-            barSet.color = LomiriColors.blue;
-            
-            mySeries.axisX.categories = project;
+            if (t_cat && t_cat.length > 0) {
+                var barSet = mySeries.append(i18n.dtr("ubtms", "Time"), t_cat);
+                if (barSet) {
+                    barSet.color = LomiriColors.blue;
+                }
+                mySeries.axisX.categories = t_proj;
+            } else {
+                mySeries.axisX.categories = [""];
+            }
         }
+
+        Component.onCompleted: reloadData()
         
         Rectangle {
             id: hoverInfo

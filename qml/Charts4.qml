@@ -82,16 +82,26 @@ Rectangle {
             }
         }
 
-        Component.onCompleted: {
-            get_task_chart_data();
-            var count = 0;
-            var count2 = Object.keys(task_data).length;
-            
-            var barSet = mySeries2.append(i18n.dtr("ubtms", "Time"), task_timecat);
-            barSet.color = LomiriColors.orange;
-            
-            mySeries2.axisX.categories = task;
+        function reloadData() {
+            if (typeof parent.get_task_chart_data === 'function') parent.get_task_chart_data();
+            else if (typeof get_task_chart_data === 'function') get_task_chart_data();
+
+            mySeries2.clear();
+            var t_cat = typeof task_timecat !== 'undefined' ? task_timecat : [];
+            var t_task = typeof task !== 'undefined' ? task : [];
+
+            if (t_cat && t_cat.length > 0) {
+                var barSet = mySeries2.append(i18n.dtr("ubtms", "Time"), t_cat);
+                if (barSet) {
+                    barSet.color = LomiriColors.orange;
+                }
+                mySeries2.axisX.categories = t_task;
+            } else {
+                mySeries2.axisX.categories = [""];
+            }
         }
+
+        Component.onCompleted: reloadData()
 
         Rectangle {
             id: hoverInfo

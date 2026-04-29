@@ -81,24 +81,43 @@ Page {
             property variant othersSlice: 0
             property variant task: []
 
-            Component.onCompleted: {
-                var quadrant_data = Model.get_tasks_spent_hours();
+            function reloadData() {
+                var accountId = typeof accountPicker !== 'undefined' ? accountPicker.selectedAccountId : -1;
+                var quadrant_data = Model.get_tasks_spent_hours(accountId);
                 var count = 0;
                 var timeval;
                 var timecat = [];
+                var temp_task = [];
                 for (var key in quadrant_data) {
-                    task[count] = key;
+                    temp_task[count] = key;
                     timeval = quadrant_data[key];
                     count = count + 1;
                 }
                 var count2 = Object.keys(quadrant_data).length;
                 for (count = 0; count < count2; count++) {
-                    timecat[count] = quadrant_data[task[count]];
-                    // console.log("Dashboard 3 Timecat in task: " + timecat[count]);
+                    timecat[count] = quadrant_data[temp_task[count]];
                 }
-                var barSet = mySeries2.append(i18n.dtr("ubtms", "Time"), timecat);
-                barSet.color = LomiriColors.orange;
-                mySeries2.axisX.categories = task;
+                task = temp_task;
+                
+                mySeries2.clear();
+                if (timecat && timecat.length > 0) {
+                    var barSet = mySeries2.append(i18n.dtr("ubtms", "Time"), timecat);
+                    if (barSet) {
+                        barSet.color = LomiriColors.orange;
+                    }
+                    mySeries2.axisX.categories = task;
+                } else {
+                    mySeries2.axisX.categories = [""];
+                }
+            }
+
+            Component.onCompleted: reloadData()
+
+            Connections {
+                target: typeof accountPicker !== "undefined" ? accountPicker : null
+                onAccepted: function (accountId, accountName) {
+                    reloadData();
+                }
             }
 
             Rectangle {
