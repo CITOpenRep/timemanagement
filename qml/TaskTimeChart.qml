@@ -31,6 +31,8 @@ Item {
     readonly property var topProjectTasks: ChartUtils.topTasks(selectedProjectTasks, 10)
     readonly property real currentContentHeight: contentLoader.item ? contentLoader.item.implicitHeight : units.gu(40)
     implicitHeight: headerBar.height + currentContentHeight
+    readonly property color summaryAccentTextColor: root.isDark ? root.activeAccent : Qt.darker(root.activeAccent, 1.8)
+    readonly property color summaryPrimaryTextColor: root.isDark ? Theme.palette.normal.baseText : Qt.darker(Theme.palette.normal.baseText, 1.35)
 
     // Accent color from the selected project, or fallback to the orange theme
     readonly property color activeAccent: selectedProject && selectedProject.colour ? selectedProject.colour : "#E95420"
@@ -395,7 +397,7 @@ Item {
                                 Label {
                                     width: parent.width
                                     text: modelData.value
-                                    color: modelData.accent ? root.activeAccent
+                                    color: modelData.accent ? root.summaryAccentTextColor
                                            : (Theme.palette.normal.baseText)
                                     font.bold: true
                                     font.pixelSize: modelData.accent ? units.dp(18) : units.dp(15)
@@ -542,7 +544,7 @@ Item {
 
                                 Label {
                                     text: ChartUtils.formatHours(root.selectedTask ? root.selectedTask.totalHours : 0)
-                                    color: root.activeAccent
+                                    color: root.summaryAccentTextColor
                                     font.bold: true
                                     font.pixelSize: units.dp(20)
                                 }
@@ -568,7 +570,7 @@ Item {
 
                                 Label {
                                     text: ChartUtils.percentLabel(root.selectedTask ? root.selectedTask.totalHours : 0, root.selectedProject ? root.selectedProject.totalHours : 0)
-                                    color: Theme.palette.normal.baseText
+                                    color: root.summaryPrimaryTextColor
                                     font.bold: true
                                     font.pixelSize: units.dp(20)
                                 }
