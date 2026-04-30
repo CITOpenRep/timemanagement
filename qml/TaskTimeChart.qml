@@ -169,14 +169,16 @@ Item {
 
                             TextField {
                                 width: parent.width
-                                placeholderText: i18n.dtr("ubtms", "Search projects")
+                                placeholderText: i18n.dtr("ubtms", "Search projects...")
                                 text: root.portfolioSearchText
                                 onTextChanged: root.portfolioSearchText = text
+                                // Sleek rounded search styling (assumes TextField supports this or we just use default with padding)
+                                color: Theme.palette.normal.baseText
                             }
 
                             Row {
                                 width: parent.width
-                                spacing: units.gu(0.8)
+                                spacing: units.gu(1)
 
                                 Repeater {
                                     model: [
@@ -186,16 +188,19 @@ Item {
                                     ]
 
                                     delegate: Rectangle {
-                                        width: (parent.width - (units.gu(0.8) * 2)) / 3
-                                        height: units.gu(4.8)
-                                        radius: units.gu(0.8)
+                                        width: (parent.width - (units.gu(1) * 2)) / 3
+                                        height: units.gu(4.5)
+                                        radius: height / 2
                                         color: root.portfolioSortMode === modelData.value ? Theme.palette.selected.background : Theme.palette.normal.base
+                                        border.color: root.portfolioSortMode === modelData.value ? "transparent" : Theme.palette.normal.backgroundText
+                                        border.width: root.portfolioSortMode === modelData.value ? 0 : 1
 
                                         Label {
                                             anchors.centerIn: parent
                                             text: modelData.label
-                                            color: root.portfolioSortMode === modelData.value ? Theme.palette.selected.backgroundText : Theme.palette.normal.backgroundText
-                                            font.pixelSize: units.dp(12)
+                                            color: root.portfolioSortMode === modelData.value ? "white" : Theme.palette.normal.baseText
+                                            font.pixelSize: units.dp(13)
+                                            font.bold: root.portfolioSortMode === modelData.value
                                         }
 
                                         MouseArea {
@@ -254,16 +259,23 @@ Item {
 
                     Rectangle {
                         width: parent.width - units.gu(3)
-                        height: units.gu(11)
+                        height: units.gu(12)
                         anchors.horizontalCenter: parent.horizontalCenter
-                        radius: units.gu(1)
+                        radius: units.gu(1.5)
                         color: Theme.palette.normal.base
+
+                        // Subtle inner background to make it look like a dashboard widget
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1AFFFFFF" : "#0A000000"
+                        }
 
                         Grid {
                             anchors.fill: parent
-                            anchors.margins: units.gu(1.5)
+                            anchors.margins: units.gu(2)
                             columns: 2
-                            spacing: units.gu(1)
+                            spacing: units.gu(1.5)
 
                             Repeater {
                                 model: [
@@ -274,13 +286,15 @@ Item {
                                 ]
 
                                 delegate: Column {
-                                    width: (parent.width - units.gu(1)) / 2
-                                    spacing: units.gu(0.2)
+                                    width: (parent.width - units.gu(1.5)) / 2
+                                    spacing: units.gu(0.4)
 
                                     Label {
                                         text: modelData.label
                                         color: Theme.palette.normal.backgroundText
-                                        font.pixelSize: units.dp(12)
+                                        font.pixelSize: units.dp(11)
+                                        font.capitalization: Font.AllUppercase
+                                        font.letterSpacing: 0.5
                                     }
 
                                     Label {
@@ -288,7 +302,7 @@ Item {
                                         text: modelData.value
                                         color: Theme.palette.normal.baseText
                                         font.bold: true
-                                        font.pixelSize: units.dp(13)
+                                        font.pixelSize: units.dp(14)
                                         elide: Text.ElideRight
                                     }
                                 }
@@ -363,49 +377,59 @@ Item {
 
                     Rectangle {
                         width: parent.width - units.gu(3)
-                        height: units.gu(9)
+                        height: units.gu(10)
                         anchors.horizontalCenter: parent.horizontalCenter
-                        radius: units.gu(1)
+                        radius: units.gu(1.5)
                         color: Theme.palette.normal.base
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1AFFFFFF" : "#0A000000"
+                        }
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: units.gu(1.5)
-                            spacing: units.gu(1.5)
+                            anchors.margins: units.gu(2)
+                            spacing: units.gu(2)
 
                             Column {
                                 Layout.fillWidth: true
-                                spacing: units.gu(0.2)
+                                spacing: units.gu(0.4)
 
                                 Label {
                                     text: i18n.dtr("ubtms", "Time spent")
                                     color: Theme.palette.normal.backgroundText
                                     font.pixelSize: units.dp(12)
+                                    font.capitalization: Font.AllUppercase
+                                    font.letterSpacing: 0.5
                                 }
 
                                 Label {
                                     text: ChartUtils.formatHours(root.selectedTask ? root.selectedTask.totalHours : 0)
                                     color: Theme.palette.normal.baseText
                                     font.bold: true
-                                    font.pixelSize: units.dp(14)
+                                    font.pixelSize: units.dp(16)
                                 }
                             }
 
                             Column {
                                 Layout.fillWidth: true
-                                spacing: units.gu(0.2)
+                                spacing: units.gu(0.4)
 
                                 Label {
                                     text: i18n.dtr("ubtms", "% of project")
                                     color: Theme.palette.normal.backgroundText
                                     font.pixelSize: units.dp(12)
+                                    font.capitalization: Font.AllUppercase
+                                    font.letterSpacing: 0.5
                                 }
 
                                 Label {
                                     text: ChartUtils.percentLabel(root.selectedTask ? root.selectedTask.totalHours : 0, root.selectedProject ? root.selectedProject.totalHours : 0)
                                     color: Theme.palette.normal.baseText
                                     font.bold: true
-                                    font.pixelSize: units.dp(14)
+                                    font.pixelSize: units.dp(16)
                                 }
                             }
                         }
@@ -473,37 +497,56 @@ Item {
 
                         delegate: Rectangle {
                             width: ListView.view.width - units.gu(3)
-                            height: units.gu(7)
+                            implicitHeight: Math.max(units.gu(8), rowLayout.implicitHeight + units.gu(2))
                             x: units.gu(1.5)
                             radius: units.gu(1)
                             color: Theme.palette.normal.base
 
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: units.gu(1.5)
-                                spacing: units.gu(1)
+                            // Left accent line
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: units.gu(0.5)
+                                color: Theme.palette.selected.background
+                                // Use a mask or simply let it overlap (often safe if corner radius is small, but let's avoid clipping issues by using layer if needed, or just let it be)
+                            }
 
-                                Label {
-                                    Layout.preferredWidth: units.gu(9)
-                                    text: modelData.date || ""
-                                    color: Theme.palette.normal.baseText
-                                    font.pixelSize: units.dp(12)
-                                    elide: Text.ElideRight
+                            RowLayout {
+                                id: rowLayout
+                                anchors.fill: parent
+                                anchors.leftMargin: units.gu(2)
+                                anchors.rightMargin: units.gu(1.5)
+                                anchors.topMargin: units.gu(1)
+                                anchors.bottomMargin: units.gu(1)
+                                spacing: units.gu(1.5)
+
+                                Column {
+                                    Layout.preferredWidth: units.gu(10)
+                                    spacing: units.gu(0.3)
+                                    
+                                    Label {
+                                        text: modelData.date || ""
+                                        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : Theme.palette.normal.baseText
+                                        font.pixelSize: units.dp(13)
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                    }
                                 }
 
                                 Label {
                                     Layout.fillWidth: true
                                     text: modelData.note || i18n.dtr("ubtms", "No note")
                                     color: Theme.palette.normal.backgroundText
-                                    font.pixelSize: units.dp(12)
-                                    elide: Text.ElideRight
+                                    font.pixelSize: units.dp(13)
+                                    wrapMode: Text.WordWrap
                                 }
 
                                 Label {
                                     text: ChartUtils.formatHours(modelData.hours || 0)
-                                    color: Theme.palette.normal.baseText
+                                    color: Theme.palette.selected.background
                                     font.bold: true
-                                    font.pixelSize: units.dp(12)
+                                    font.pixelSize: units.dp(15)
                                 }
                             }
                         }
