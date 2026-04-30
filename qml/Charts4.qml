@@ -10,7 +10,8 @@ Item {
     id: root
 
     width: parent ? parent.width : units.gu(48)
-    height: parent ? parent.height : units.gu(40)
+    implicitHeight: chartFlow.implicitHeight
+    height: chartFlow.implicitHeight
 
     property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
     property var projectsModel: []
@@ -199,7 +200,8 @@ Item {
 
     TaskTimeChart {
         id: chartFlow
-        anchors.fill: parent
+        width: parent.width
+        height: currentContentHeight + units.gu(7)
         projectsModel: root.projectsModel
         projectTasksProvider: root.loadTasksForProject
         taskLogsProvider: root.loadLogsForTask

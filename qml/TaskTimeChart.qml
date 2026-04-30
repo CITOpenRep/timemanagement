@@ -29,6 +29,8 @@ Item {
     readonly property real portfolioTotalHours: ChartUtils.sumProjectHours(projectsModel)
     readonly property real portfolioMaxHours: ChartUtils.maxProjectHours(projectsModel)
     readonly property var topProjectTasks: ChartUtils.topTasks(selectedProjectTasks, 10)
+    readonly property real currentContentHeight: contentLoader.item ? contentLoader.item.implicitHeight : units.gu(40)
+    implicitHeight: headerBar.height + currentContentHeight
 
     // Accent color from the selected project, or fallback to the orange theme
     readonly property color activeAccent: selectedProject && selectedProject.colour ? selectedProject.colour : "#E95420"
@@ -63,6 +65,32 @@ Item {
             selectedProjectTasks = [];
         }
         backNavigated();
+    }
+
+    function ensureVisibleInAncestorFlickable(item) {
+        if (!item) return;
+
+        var parentItem = root.parent;
+        while (parentItem) {
+            if (parentItem.contentY !== undefined && parentItem.height !== undefined && parentItem.contentItem !== undefined) {
+                var point = item.mapToItem(parentItem.contentItem, 0, 0);
+                var topPadding = units.gu(2);
+                var bottomPadding = units.gu(8);
+                var itemTop = point.y;
+                var itemBottom = itemTop + item.height;
+                var viewportTop = parentItem.contentY;
+                var viewportBottom = viewportTop + parentItem.height;
+
+                if (itemTop < viewportTop + topPadding) {
+                    parentItem.contentY = Math.max(0, itemTop - topPadding);
+                } else if (itemBottom > viewportBottom - bottomPadding) {
+                    parentItem.contentY = Math.min(parentItem.contentHeight - parentItem.height,
+                                                   itemBottom - parentItem.height + bottomPadding);
+                }
+                return;
+            }
+            parentItem = parentItem.parent;
+        }
     }
 
     // ── Background ──
@@ -167,7 +195,7 @@ Item {
         Loader {
             id: contentLoader
             width: parent.width
-            height: parent.height - headerBar.height
+            height: item ? item.implicitHeight : 0
             sourceComponent: root.currentView === "projects" ? projectsView
                             : root.currentView === "project" ? projectView
                             : taskView
@@ -181,119 +209,119 @@ Item {
         id: projectsView
 
         Item {
-            Flickable {
-                id: projectFlick
-                anchors.fill: parent
-                contentWidth: width
-                contentHeight: projectContent.height + units.gu(4)
-                clip: true
+            width: root.width
+            implicitHeight: projectContent.implicitHeight + units.gu(4)
 
-                Column {
-                    id: projectContent
-                    width: projectFlick.width
-                    spacing: units.gu(2)
+            Column {
+                id: projectContent
+                width: parent.width
+                spacing: units.gu(2)
 
-                    // Top padding
-                    Item { width: 1; height: units.gu(1.5) }
+                // Top padding
+                Item { width: 1; height: units.gu(1.5) }
 
-                    // Search bar
-                    Rectangle {
-                        width: parent.width - units.gu(4)
-                        height: units.gu(5)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        radius: units.gu(1.2)
-                        color: "transparent"
-                        border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
-                        border.width: units.dp(1)
+                // Search bar
+                Rectangle {
+                    width: parent.width - units.gu(4)
+                    height: units.gu(5)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    radius: units.gu(1.2)
+                    color: "transparent"
+                    border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
+                    border.width: units.dp(1)
 
-                        TextField {
-                            anchors.fill: parent
-                            anchors.margins: units.dp(2)
-                            placeholderText: i18n.dtr("ubtms", "🔍  Search projects...")
-                            text: root.portfolioSearchText
-                            onTextChanged: root.portfolioSearchText = text
-                            color: Theme.palette.normal.baseText
-                            font.pixelSize: units.dp(13)
+                    TextField {
+                        anchors.fill: parent
+                        anchors.margins: units.dp(2)
+                        placeholderText: i18n.dtr("ubtms", "🔍  Search projects...")
+                        text: root.portfolioSearchText
+                        onTextChanged: root.portfolioSearchText = text
+                        onActiveFocusChanged: {
+                            if (activeFocus) {
+                                root.ensureVisibleInAncestorFlickable(parent);
+                            }
                         }
+                        color: Theme.palette.normal.baseText
+                        font.pixelSize: units.dp(13)
                     }
+                }
 
-                    // Sort tabs
-                    Rectangle {
-                        width: parent.width - units.gu(4)
-                        height: units.gu(5)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        radius: units.gu(1.2)
-                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
+                // Sort tabs
+                Rectangle {
+                    width: parent.width - units.gu(4)
+                    height: units.gu(5)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    radius: units.gu(1.2)
+                    color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
 
-                        Row {
-                            anchors.fill: parent
-                            anchors.margins: units.dp(3)
-                            spacing: units.dp(3)
+                    Row {
+                        anchors.fill: parent
+                        anchors.margins: units.dp(3)
+                        spacing: units.dp(3)
 
-                            Repeater {
-                                model: [
-                                    { label: i18n.dtr("ubtms", "Most time"), value: "time", icon: "🕐" },
-                                    { label: i18n.dtr("ubtms", "Tasks"), value: "tasks", icon: "📋" },
-                                    { label: i18n.dtr("ubtms", "A-Z"), value: "name", icon: "🔤" }
-                                ]
+                        Repeater {
+                            model: [
+                                { label: i18n.dtr("ubtms", "Most time"), value: "time", icon: "🕐" },
+                                { label: i18n.dtr("ubtms", "Tasks"), value: "tasks", icon: "📋" },
+                                { label: i18n.dtr("ubtms", "A-Z"), value: "name", icon: "🔤" }
+                            ]
 
-                                delegate: Rectangle {
-                                    width: (parent.width - units.dp(6)) / 3
-                                    height: parent.height
-                                    radius: units.gu(1)
+                            delegate: Rectangle {
+                                width: (parent.width - units.dp(6)) / 3
+                                height: parent.height
+                                radius: units.gu(1)
+                                color: root.portfolioSortMode === modelData.value
+                                       ? "#E95420" : "transparent"
+
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: modelData.label
                                     color: root.portfolioSortMode === modelData.value
-                                           ? "#E95420" : "transparent"
-
-                                    Label {
-                                        anchors.centerIn: parent
-                                        text: modelData.label
-                                        color: root.portfolioSortMode === modelData.value
-                                               ? "white"
-                                               : (Theme.palette.normal.backgroundText)
-                                        font.pixelSize: units.dp(13)
-                                        font.bold: root.portfolioSortMode === modelData.value
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: root.portfolioSortMode = modelData.value
-                                    }
-
-                                    Behavior on color { ColorAnimation { duration: 200 } }
+                                           ? "white"
+                                           : (Theme.palette.normal.backgroundText)
+                                    font.pixelSize: units.dp(13)
+                                    font.bold: root.portfolioSortMode === modelData.value
                                 }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: root.portfolioSortMode = modelData.value
+                                }
+
+                                Behavior on color { ColorAnimation { duration: 200 } }
                             }
                         }
                     }
-
-                    // Project list
-                    ListView {
-                        width: parent.width
-                        height: contentHeight
-                        interactive: false
-                        spacing: units.gu(1.2)
-                        model: root.visibleProjects
-
-                        delegate: ProjectCard {
-                            width: ListView.view.width
-                            projectData: modelData.projectData
-                            maxHours: Math.max(root.portfolioMaxHours, 0.1)
-                            onClicked: root.openProject(modelData.projectData)
-                        }
-                    }
-
-                    Label {
-                        visible: root.visibleProjects.length === 0
-                        width: parent.width - units.gu(4)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: i18n.dtr("ubtms", "No projects found")
-                        color: Theme.palette.normal.backgroundText
-                        horizontalAlignment: Text.AlignHCenter
-                        font.pixelSize: units.dp(14)
-                    }
-
-                    // Bottom padding
-                    Item { width: 1; height: units.gu(2) }
                 }
+
+                // Project list
+                ListView {
+                    width: parent.width
+                    height: contentHeight
+                    interactive: false
+                    spacing: units.gu(1.2)
+                    model: root.visibleProjects
+
+                    delegate: ProjectCard {
+                        width: ListView.view.width
+                        projectData: modelData.projectData
+                        maxHours: Math.max(root.portfolioMaxHours, 0.1)
+                        onClicked: root.openProject(modelData.projectData)
+                    }
+                }
+
+                Label {
+                    visible: root.visibleProjects.length === 0
+                    width: parent.width - units.gu(4)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: i18n.dtr("ubtms", "No projects found")
+                    color: Theme.palette.normal.backgroundText
+                    horizontalAlignment: Text.AlignHCenter
+                    font.pixelSize: units.dp(14)
+                }
+
+                // Bottom padding
+                Item { width: 1; height: units.gu(2) }
             }
         }
     }
@@ -305,159 +333,154 @@ Item {
         id: projectView
 
         Item {
-            Flickable {
-                id: taskFlick
-                anchors.fill: parent
-                contentWidth: width
-                contentHeight: taskContent.height + units.gu(4)
-                clip: true
+            width: root.width
+            implicitHeight: taskContent.implicitHeight + units.gu(4)
 
-                Column {
-                    id: taskContent
-                    width: taskFlick.width
-                    spacing: units.gu(2.5)
+            Column {
+                id: taskContent
+                width: parent.width
+                spacing: units.gu(2.5)
 
-                    // Top padding
-                    Item { width: 1; height: units.gu(1) }
+                // Top padding
+                Item { width: 1; height: units.gu(1) }
 
-                    // ── Summary Card ──
+                // ── Summary Card ──
+                Rectangle {
+                    width: parent.width - units.gu(4)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    implicitHeight: summaryGrid.implicitHeight + units.gu(5)
+                    radius: units.gu(1.5)
+                    color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
+                    border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : Qt.rgba(0,0,0,0.1)
+                    border.width: units.dp(1)
+
+                    // Top accent strip
                     Rectangle {
-                        width: parent.width - units.gu(4)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        implicitHeight: summaryGrid.implicitHeight + units.gu(5)
-                        radius: units.gu(1.5)
-                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
-                        border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : Qt.rgba(0,0,0,0.1)
-                        border.width: units.dp(1)
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: units.gu(1.5)
+                        anchors.rightMargin: units.gu(1.5)
+                        height: units.dp(3)
+                        color: root.activeAccent
+                    }
 
-                        // Top accent strip
-                        Rectangle {
-                            anchors.top: parent.top
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.leftMargin: units.gu(1.5)
-                            anchors.rightMargin: units.gu(1.5)
-                            height: units.dp(3)
-                            color: root.activeAccent
-                        }
+                    Grid {
+                        id: summaryGrid
+                        width: parent.width - units.gu(5)
+                        anchors.centerIn: parent
+                        columns: 2
+                        rowSpacing: units.gu(2.5)
+                        columnSpacing: units.gu(3)
 
-                        Grid {
-                            id: summaryGrid
-                            width: parent.width - units.gu(5)
-                            anchors.centerIn: parent
-                            columns: 2
-                            rowSpacing: units.gu(2.5)
-                            columnSpacing: units.gu(3)
+                        Repeater {
+                            model: [
+                                { label: i18n.dtr("ubtms", "TOTAL"), value: ChartUtils.formatHours(root.selectedProject ? root.selectedProject.totalHours : 0), accent: true },
+                                { label: i18n.dtr("ubtms", "TASKS"), value: String(root.selectedProjectTasks.length), accent: false },
+                                { label: i18n.dtr("ubtms", "AVERAGE"), value: ChartUtils.averageLabel(root.selectedProject ? root.selectedProject.totalHours : 0, root.selectedProjectTasks.length), accent: false },
+                                { label: i18n.dtr("ubtms", "TOP TASK"), value: ChartUtils.topTaskName(root.selectedProjectTasks), accent: false }
+                            ]
 
-                            Repeater {
-                                model: [
-                                    { label: i18n.dtr("ubtms", "TOTAL"), value: ChartUtils.formatHours(root.selectedProject ? root.selectedProject.totalHours : 0), accent: true },
-                                    { label: i18n.dtr("ubtms", "TASKS"), value: String(root.selectedProjectTasks.length), accent: false },
-                                    { label: i18n.dtr("ubtms", "AVERAGE"), value: ChartUtils.averageLabel(root.selectedProject ? root.selectedProject.totalHours : 0, root.selectedProjectTasks.length), accent: false },
-                                    { label: i18n.dtr("ubtms", "TOP TASK"), value: ChartUtils.topTaskName(root.selectedProjectTasks), accent: false }
-                                ]
+                            delegate: Column {
+                                width: (summaryGrid.width - units.gu(3)) / 2
+                                spacing: units.gu(0.6)
 
-                                delegate: Column {
-                                    width: (summaryGrid.width - units.gu(3)) / 2
-                                    spacing: units.gu(0.6)
+                                Label {
+                                    text: modelData.label
+                                    color: Theme.palette.normal.backgroundText
+                                    font.pixelSize: units.dp(11)
+                                    font.letterSpacing: 1.0
+                                }
 
-                                    Label {
-                                        text: modelData.label
-                                        color: Theme.palette.normal.backgroundText
-                                        font.pixelSize: units.dp(11)
-                                        font.letterSpacing: 1.0
-                                    }
-
-                                    Label {
-                                        width: parent.width
-                                        text: modelData.value
-                                        color: modelData.accent ? root.activeAccent
-                                               : (Theme.palette.normal.baseText)
-                                        font.bold: true
-                                        font.pixelSize: modelData.accent ? units.dp(18) : units.dp(15)
-                                        elide: Text.ElideRight
-                                    }
+                                Label {
+                                    width: parent.width
+                                    text: modelData.value
+                                    color: modelData.accent ? root.activeAccent
+                                           : (Theme.palette.normal.baseText)
+                                    font.bold: true
+                                    font.pixelSize: modelData.accent ? units.dp(18) : units.dp(15)
+                                    elide: Text.ElideRight
                                 }
                             }
                         }
                     }
+                }
 
-                    // ── Task Bars ──
-                    Rectangle {
-                        width: parent.width - units.gu(4)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        implicitHeight: taskChart.implicitHeight + units.gu(4)
-                        radius: units.gu(1.5)
-                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
-                        border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
-                        border.width: units.dp(1)
+                // ── Task Bars ──
+                Rectangle {
+                    width: parent.width - units.gu(4)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    implicitHeight: taskChart.implicitHeight + units.gu(4)
+                    radius: units.gu(1.5)
+                    color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
+                    border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
+                    border.width: units.dp(1)
 
-                        TaskChartCanvas {
-                            id: taskChart
-                            anchors.fill: parent
-                            anchors.margins: units.gu(2)
-                            tasksData: root.topProjectTasks
-                            accentColour: root.activeAccent
-                            onTaskSelected: {
-                                var task = ChartUtils.findTaskById(root.selectedProjectTasks, taskId)
-                                if (task) root.openTask(task)
-                            }
+                    TaskChartCanvas {
+                        id: taskChart
+                        anchors.fill: parent
+                        anchors.margins: units.gu(2)
+                        tasksData: root.topProjectTasks
+                        accentColour: root.activeAccent
+                        onTaskSelected: {
+                            var task = ChartUtils.findTaskById(root.selectedProjectTasks, taskId)
+                            if (task) root.openTask(task)
                         }
                     }
+                }
 
-                    // ── Full Task List ──
-                    ListView {
-                        width: parent.width
-                        height: contentHeight
-                        interactive: false
-                        spacing: units.gu(1)
-                        model: root.showAllTasks ? root.selectedProjectTasks : root.selectedProjectTasks.slice(0, 8)
+                // ── Full Task List ──
+                ListView {
+                    width: parent.width
+                    height: contentHeight
+                    interactive: false
+                    spacing: units.gu(1)
+                    model: root.showAllTasks ? root.selectedProjectTasks : root.selectedProjectTasks.slice(0, 8)
 
-                        delegate: TaskRow {
-                            width: ListView.view.width
-                            taskData: modelData
-                            projectTotalHours: root.selectedProject ? root.selectedProject.totalHours : 0
-                            accentColour: root.activeAccent
-                            onClicked: root.openTask(modelData)
-                        }
+                    delegate: TaskRow {
+                        width: ListView.view.width
+                        taskData: modelData
+                        projectTotalHours: root.selectedProject ? root.selectedProject.totalHours : 0
+                        accentColour: root.activeAccent
+                        onClicked: root.openTask(modelData)
                     }
+                }
 
-                    // Show more button
-                    Rectangle {
-                        visible: root.selectedProjectTasks.length > 8 && !root.showAllTasks
-                        width: parent.width - units.gu(6)
-                        height: units.gu(5)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        radius: units.gu(1.2)
-                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
-
-                        Label {
-                            anchors.centerIn: parent
-                            text: i18n.dtr("ubtms", "Show all %1 tasks ↓").arg(root.selectedProjectTasks.length)
-                            color: root.activeAccent
-                            font.bold: true
-                            font.pixelSize: units.dp(13)
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: root.showAllTasks = true
-                        }
-                    }
+                // Show more button
+                Rectangle {
+                    visible: root.selectedProjectTasks.length > 8 && !root.showAllTasks
+                    width: parent.width - units.gu(6)
+                    height: units.gu(5)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    radius: units.gu(1.2)
+                    color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
 
                     Label {
-                        visible: root.selectedProjectTasks.length === 0
-                        width: parent.width - units.gu(4)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: i18n.dtr("ubtms", "No tasks with tracked time")
-                        color: Theme.palette.normal.backgroundText
-                        horizontalAlignment: Text.AlignHCenter
-                        font.pixelSize: units.dp(14)
+                        anchors.centerIn: parent
+                        text: i18n.dtr("ubtms", "Show all %1 tasks ↓").arg(root.selectedProjectTasks.length)
+                        color: root.activeAccent
+                        font.bold: true
+                        font.pixelSize: units.dp(13)
                     }
 
-                    // Bottom padding
-                    Item { width: 1; height: units.gu(3) }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.showAllTasks = true
+                    }
                 }
+
+                Label {
+                    visible: root.selectedProjectTasks.length === 0
+                    width: parent.width - units.gu(4)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: i18n.dtr("ubtms", "No tasks with tracked time")
+                    color: Theme.palette.normal.backgroundText
+                    horizontalAlignment: Text.AlignHCenter
+                    font.pixelSize: units.dp(14)
+                }
+
+                // Bottom padding
+                Item { width: 1; height: units.gu(3) }
             }
         }
     }
@@ -469,20 +492,16 @@ Item {
         id: taskView
 
         Item {
-            Flickable {
-                id: detailsFlick
-                anchors.fill: parent
-                contentWidth: width
-                contentHeight: detailsContent.height + units.gu(4)
-                clip: true
+            width: root.width
+            implicitHeight: detailsContent.implicitHeight + units.gu(4)
 
-                Column {
-                    id: detailsContent
-                    width: detailsFlick.width
-                    spacing: units.gu(2.5)
+            Column {
+                id: detailsContent
+                width: parent.width
+                spacing: units.gu(2.5)
 
-                    // Top padding
-                    Item { width: 1; height: units.gu(1) }
+                // Top padding
+                Item { width: 1; height: units.gu(1) }
 
                     // ── Time Summary Card ──
                     Rectangle {
@@ -709,4 +728,3 @@ Item {
             }
         }
     }
-}

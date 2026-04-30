@@ -117,6 +117,7 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+        anchors.bottomMargin: Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0
         contentWidth: parent.width
         contentHeight: contentColumn.height + units.gu(4)
         flickableDirection: Flickable.VerticalFlick
@@ -155,7 +156,7 @@ Page {
 
             Rectangle {
                 width: parent.width - units.gu(2)
-                height: units.gu(80) // Increased height for convergence mode drill-down list
+                height: load4.item ? load4.item.implicitHeight : units.gu(80)
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: "transparent"
 

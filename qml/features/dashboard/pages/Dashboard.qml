@@ -387,7 +387,9 @@ Page {
                     Controls.SwipeView {
                         id: mobileChartsView
                         width: parent.width
-                        height: currentIndex === 0 ? projectchart.implicitHeight : units.gu(40)
+                        height: currentIndex === 0 ? projectchart.implicitHeight
+                               : currentIndex === 2 && mobileTaskChartLoader.item ? mobileTaskChartLoader.item.implicitHeight
+                               : units.gu(40)
                         currentIndex: 0
                         interactive: !isMultiColumn
                         clip: true
