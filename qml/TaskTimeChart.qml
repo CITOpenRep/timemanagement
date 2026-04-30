@@ -68,7 +68,7 @@ Item {
     // ── Background ──
     Rectangle {
         anchors.fill: parent
-        color: Theme.palette.normal.background
+        color: "transparent"
     }
 
     Column {
@@ -80,7 +80,7 @@ Item {
             id: headerBar
             width: parent.width
             height: units.gu(7)
-            color: Theme.palette.normal.base
+            color: "transparent"
 
             // Bottom border accent
             Rectangle {
@@ -202,7 +202,7 @@ Item {
                         height: units.gu(5)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.2)
-                        color: Theme.palette.normal.base
+                        color: root.isDark ? "transparent" : Theme.palette.normal.base
                         border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
