@@ -29,7 +29,7 @@ Item {
 
         for (var i = 0; i < taskRows.length; i++) {
             var task = taskRows[i];
-            if (!task || task.parent_id > 0) {
+            if (!task) {
                 continue;
             }
 
@@ -47,7 +47,7 @@ Item {
 
         for (var j = 0; j < projectRows.length; j++) {
             var project = projectRows[j];
-            if (!project || project.parent_id > 0) {
+            if (!project) {
                 continue;
             }
 
@@ -86,7 +86,7 @@ Item {
 
         for (var i = 0; i < taskRows.length; i++) {
             var task = taskRows[i];
-            if (!task || task.parent_id > 0) {
+            if (!task) {
                 continue;
             }
 
