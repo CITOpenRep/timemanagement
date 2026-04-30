@@ -172,13 +172,7 @@ Page {
             }
         }
 
-        onFlickEnded: {
-            load3.active = false;
-            load4.active = false;
-            //  console.log("Flickable flick ended");
-            load3.active = true;
-            load4.active = true;
-        }
+
     }
 
     Scrollbar {
