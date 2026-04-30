@@ -155,7 +155,7 @@ Page {
 
             Rectangle {
                 width: parent.width - units.gu(2)
-                height: load4.item ? load4.item.height : units.gu(40)
+                height: units.gu(80) // Increased height for convergence mode drill-down list
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: "transparent"
 

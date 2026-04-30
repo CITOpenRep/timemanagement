@@ -12,93 +12,108 @@ Item {
 
     signal clicked()
 
+    readonly property bool isDark: Theme.name === "Ubuntu.Components.Themes.SuruDark"
+    readonly property color projectColor: projectData.colour || "#E95420"
+
     width: parent ? parent.width : units.gu(40)
-    implicitHeight: units.gu(12)
+    implicitHeight: units.gu(11)
 
     // Micro-animation states
-    scale: mouseArea.pressed ? 0.98 : 1.0
-    opacity: mouseArea.pressed ? 0.9 : 1.0
+    scale: mouseArea.pressed ? 0.97 : 1.0
+    opacity: mouseArea.pressed ? 0.85 : 1.0
     Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
     Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
     Rectangle {
         id: cardBg
         anchors.fill: parent
-        anchors.leftMargin: units.gu(1.5)
-        anchors.rightMargin: units.gu(1.5)
+        anchors.leftMargin: units.gu(2)
+        anchors.rightMargin: units.gu(2)
         anchors.topMargin: units.gu(0.5)
         anchors.bottomMargin: units.gu(0.5)
-        radius: units.gu(1)
-        color: Theme.palette.normal.base
+        radius: units.gu(1.2)
+        color: root.isDark ? "#222244" : "#FFFFFF"
+        border.color: root.isDark ? Qt.rgba(root.projectColor.r, root.projectColor.g, root.projectColor.b, 0.25) : "#E8E8F0"
+        border.width: units.dp(1)
 
-        // Subtle tint using the project color
+        // Left accent strip
         Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
-            color: projectData.colour || Theme.palette.selected.background
-            opacity: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? 0.12 : 0.08
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: units.gu(0.6)
+            radius: width / 2
+            color: root.projectColor
         }
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: units.gu(1.5)
+            anchors.leftMargin: units.gu(2.5)
+            anchors.rightMargin: units.gu(2)
+            anchors.topMargin: units.gu(1.5)
+            anchors.bottomMargin: units.gu(1.5)
             spacing: units.gu(1.5)
-
-            // Accent pill indicator
-            Rectangle {
-                Layout.preferredWidth: units.gu(0.6)
-                Layout.fillHeight: true
-                radius: width / 2
-                color: projectData.colour || Theme.palette.selected.background
-            }
 
             Column {
                 Layout.fillWidth: true
                 spacing: units.gu(0.8)
 
-                RowLayout {
+                Label {
                     width: parent.width
-
-                    Label {
-                        Layout.fillWidth: true
-                        text: projectData.name || ""
-                        color: Theme.palette.normal.baseText
-                        font.bold: true
-                        font.pixelSize: units.dp(15)
-                        elide: Text.ElideRight
-                    }
-
-                    Label {
-                        text: ChartUtils.formatHours(projectData.totalHours || 0)
-                        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : Theme.palette.normal.baseText
-                        font.bold: true
-                        font.pixelSize: units.dp(16)
-                    }
+                    text: projectData.name || ""
+                    color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                    font.bold: true
+                    font.pixelSize: units.dp(15)
+                    elide: Text.ElideRight
                 }
 
                 Label {
                     text: String(projectData.taskCount || 0) + " " + i18n.dtr("ubtms", "tasks")
-                    color: Theme.palette.normal.backgroundText
+                    color: root.isDark ? "#8888AA" : "#888899"
                     font.pixelSize: units.dp(12)
                 }
 
-                // Smooth Rounded Progress Bar
+                // Progress bar
                 Rectangle {
                     width: parent.width
-                    height: units.gu(0.8)
+                    height: units.gu(0.7)
                     radius: height / 2
-                    color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333333" : "#E5E5E5"
+                    color: root.isDark ? "#2A2A4A" : "#EEEEF2"
 
                     Rectangle {
                         width: parent.width * Math.min(1, Number(projectData.totalHours || 0) / Math.max(root.maxHours, 0.1))
                         height: parent.height
                         radius: parent.radius
-                        color: projectData.colour || Theme.palette.selected.background
-                        
-                        // Subtle width animation on load
+                        color: root.projectColor
+
                         Behavior on width { NumberAnimation { duration: 600; easing.type: Easing.OutCubic } }
                     }
                 }
+            }
+
+            // Hours pill
+            Rectangle {
+                Layout.preferredWidth: hoursLabel.implicitWidth + units.gu(1.5)
+                Layout.preferredHeight: units.gu(3.5)
+                radius: height / 2
+                color: Qt.rgba(root.projectColor.r, root.projectColor.g, root.projectColor.b, root.isDark ? 0.2 : 0.12)
+
+                Label {
+                    id: hoursLabel
+                    anchors.centerIn: parent
+                    text: ChartUtils.formatHours(projectData.totalHours || 0)
+                    color: root.projectColor
+                    font.bold: true
+                    font.pixelSize: units.dp(14)
+                }
+            }
+
+            // Chevron
+            Icon {
+                Layout.preferredWidth: units.gu(2)
+                Layout.preferredHeight: units.gu(2)
+                name: "go-next"
+                color: root.isDark ? "#666688" : "#AAAABB"
             }
         }
     }

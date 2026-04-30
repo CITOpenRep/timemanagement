@@ -24,16 +24,17 @@ Item {
     signal taskOpened(string projectId, string taskId)
     signal backNavigated()
 
+    readonly property bool isDark: Theme.name === "Ubuntu.Components.Themes.SuruDark"
     readonly property var visibleProjects: ChartUtils.prepareProjects(projectsModel, portfolioSortMode, portfolioSearchText)
     readonly property real portfolioTotalHours: ChartUtils.sumProjectHours(projectsModel)
     readonly property real portfolioMaxHours: ChartUtils.maxProjectHours(projectsModel)
     readonly property var topProjectTasks: ChartUtils.topTasks(selectedProjectTasks, 10)
 
-    function openProject(projectData) {
-        if (!projectData) {
-            return;
-        }
+    // Accent color from the selected project, or fallback to the orange theme
+    readonly property color activeAccent: selectedProject && selectedProject.colour ? selectedProject.colour : "#E95420"
 
+    function openProject(projectData) {
+        if (!projectData) return;
         selectedProject = projectData;
         selectedTask = null;
         selectedTaskLogs = [];
@@ -44,10 +45,7 @@ Item {
     }
 
     function openTask(taskData) {
-        if (!selectedProject || !taskData) {
-            return;
-        }
-
+        if (!selectedProject || !taskData) return;
         selectedTask = taskData;
         selectedTask.projectTotalHours = Number(selectedProject.totalHours || 0);
         selectedTaskLogs = taskLogsProvider ? (taskLogsProvider(selectedProject.id, taskData.id) || []) : [];
@@ -67,46 +65,70 @@ Item {
         backNavigated();
     }
 
+    // ── Background ──
     Rectangle {
         anchors.fill: parent
-        color: Theme.palette.normal.background
+        color: root.isDark ? "#1A1A2E" : "#F5F7FA"
     }
 
     Column {
         anchors.fill: parent
         spacing: 0
 
+        // ── Header Bar ──
         Rectangle {
             id: headerBar
             width: parent.width
-            height: units.gu(8)
-            color: Theme.palette.normal.base
+            height: units.gu(7)
+            color: root.isDark ? "#222244" : "#FFFFFF"
+
+            // Bottom border accent
+            Rectangle {
+                anchors.bottom: parent.bottom
+                width: parent.width
+                height: units.dp(2)
+                color: root.currentView === "projects" ? "#E95420" : root.activeAccent
+            }
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: units.gu(1.5)
-                anchors.rightMargin: units.gu(1.5)
-                spacing: units.gu(1)
+                anchors.leftMargin: units.gu(2)
+                anchors.rightMargin: units.gu(2)
+                spacing: units.gu(1.5)
 
-                Button {
+                // Back button
+                Rectangle {
                     visible: root.currentView !== "projects"
-                    text: i18n.dtr("ubtms", "Back")
-                    Layout.preferredWidth: units.gu(9)
-                    onClicked: root.goBack()
+                    Layout.preferredWidth: units.gu(8)
+                    Layout.preferredHeight: units.gu(4)
+                    radius: units.gu(2)
+                    color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.2)
+                                       : Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.12)
+                    Label {
+                        anchors.centerIn: parent
+                        text: "← Back"
+                        color: root.activeAccent
+                        font.pixelSize: units.dp(13)
+                        font.bold: true
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.goBack()
+                    }
                 }
 
                 Column {
                     Layout.fillWidth: true
-                    spacing: 0
+                    spacing: units.dp(2)
 
                     Label {
                         width: parent.width
                         text: root.currentView === "projects" ? i18n.dtr("ubtms", "Projects")
                              : root.currentView === "project" ? (root.selectedProject ? root.selectedProject.name : "")
                              : (root.selectedTask ? root.selectedTask.name : "")
-                        color: Theme.palette.normal.baseText
+                        color: root.isDark ? "#FFFFFF" : "#1A1A2E"
                         font.bold: true
-                        font.pixelSize: units.dp(15)
+                        font.pixelSize: units.dp(16)
                         elide: Text.ElideRight
                     }
 
@@ -115,22 +137,33 @@ Item {
                         text: root.currentView === "projects" ? ChartUtils.formatHours(root.portfolioTotalHours)
                              : root.currentView === "project" ? ChartUtils.projectSubtitle(root.selectedProject, root.selectedProjectTasks.length)
                              : (root.selectedProject ? root.selectedProject.name : "")
-                        color: Theme.palette.normal.backgroundText
+                        color: root.isDark ? "#AAAACC" : "#666680"
                         font.pixelSize: units.dp(12)
                         elide: Text.ElideRight
                     }
                 }
 
-                Label {
+                // Total hours pill (projects view only)
+                Rectangle {
                     visible: root.currentView === "projects"
-                    text: ChartUtils.formatHours(root.portfolioTotalHours)
-                    color: Theme.palette.normal.baseText
-                    font.bold: true
-                    font.pixelSize: units.dp(13)
+                    Layout.preferredWidth: totalLabel.implicitWidth + units.gu(2)
+                    Layout.preferredHeight: units.gu(3.5)
+                    radius: height / 2
+                    color: "#E95420"
+
+                    Label {
+                        id: totalLabel
+                        anchors.centerIn: parent
+                        text: ChartUtils.formatHours(root.portfolioTotalHours)
+                        color: "white"
+                        font.bold: true
+                        font.pixelSize: units.dp(12)
+                    }
                 }
             }
         }
 
+        // ── Content Area ──
         Loader {
             id: contentLoader
             width: parent.width
@@ -141,6 +174,9 @@ Item {
         }
     }
 
+    // ═══════════════════════════════════════════════════
+    // ── PROJECTS LIST VIEW ──
+    // ═══════════════════════════════════════════════════
     Component {
         id: projectsView
 
@@ -149,75 +185,92 @@ Item {
                 id: projectFlick
                 anchors.fill: parent
                 contentWidth: width
-                contentHeight: projectContent.height + units.gu(2)
+                contentHeight: projectContent.height + units.gu(4)
                 clip: true
 
                 Column {
                     id: projectContent
                     width: projectFlick.width
-                    spacing: units.gu(1.2)
+                    spacing: units.gu(2)
 
+                    // Top padding
+                    Item { width: 1; height: units.gu(1.5) }
+
+                    // Search bar
                     Rectangle {
-                        width: parent.width
-                        height: units.gu(11)
-                        color: Theme.palette.normal.background
+                        width: parent.width - units.gu(4)
+                        height: units.gu(5)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        radius: units.gu(1.2)
+                        color: root.isDark ? "#2A2A4A" : "#FFFFFF"
+                        border.color: root.isDark ? "#3A3A5A" : "#E0E0E8"
+                        border.width: units.dp(1)
 
-                        Column {
+                        TextField {
                             anchors.fill: parent
-                            anchors.margins: units.gu(1.5)
-                            spacing: units.gu(1)
+                            anchors.margins: units.dp(2)
+                            placeholderText: i18n.dtr("ubtms", "🔍  Search projects...")
+                            text: root.portfolioSearchText
+                            onTextChanged: root.portfolioSearchText = text
+                            color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                            font.pixelSize: units.dp(13)
+                        }
+                    }
 
-                            TextField {
-                                width: parent.width
-                                placeholderText: i18n.dtr("ubtms", "Search projects...")
-                                text: root.portfolioSearchText
-                                onTextChanged: root.portfolioSearchText = text
-                                // Sleek rounded search styling (assumes TextField supports this or we just use default with padding)
-                                color: Theme.palette.normal.baseText
-                            }
+                    // Sort tabs
+                    Rectangle {
+                        width: parent.width - units.gu(4)
+                        height: units.gu(5)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        radius: units.gu(1.2)
+                        color: root.isDark ? "#2A2A4A" : "#EEEEF2"
 
-                            Row {
-                                width: parent.width
-                                spacing: units.gu(1)
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: units.dp(3)
+                            spacing: units.dp(3)
 
-                                Repeater {
-                                    model: [
-                                        { label: i18n.dtr("ubtms", "Most time"), value: "time" },
-                                        { label: i18n.dtr("ubtms", "Tasks"), value: "tasks" },
-                                        { label: i18n.dtr("ubtms", "A-Z"), value: "name" }
-                                    ]
+                            Repeater {
+                                model: [
+                                    { label: i18n.dtr("ubtms", "Most time"), value: "time", icon: "🕐" },
+                                    { label: i18n.dtr("ubtms", "Tasks"), value: "tasks", icon: "📋" },
+                                    { label: i18n.dtr("ubtms", "A-Z"), value: "name", icon: "🔤" }
+                                ]
 
-                                    delegate: Rectangle {
-                                        width: (parent.width - (units.gu(1) * 2)) / 3
-                                        height: units.gu(4.5)
-                                        radius: height / 2
-                                        color: root.portfolioSortMode === modelData.value ? Theme.palette.selected.background : Theme.palette.normal.base
-                                        border.color: root.portfolioSortMode === modelData.value ? "transparent" : Theme.palette.normal.backgroundText
-                                        border.width: root.portfolioSortMode === modelData.value ? 0 : 1
+                                delegate: Rectangle {
+                                    width: (parent.width - units.dp(6)) / 3
+                                    height: parent.height
+                                    radius: units.gu(1)
+                                    color: root.portfolioSortMode === modelData.value
+                                           ? "#E95420" : "transparent"
 
-                                        Label {
-                                            anchors.centerIn: parent
-                                            text: modelData.label
-                                            color: root.portfolioSortMode === modelData.value ? "white" : Theme.palette.normal.baseText
-                                            font.pixelSize: units.dp(13)
-                                            font.bold: root.portfolioSortMode === modelData.value
-                                        }
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            onClicked: root.portfolioSortMode = modelData.value
-                                        }
+                                    Label {
+                                        anchors.centerIn: parent
+                                        text: modelData.label
+                                        color: root.portfolioSortMode === modelData.value
+                                               ? "white"
+                                               : (root.isDark ? "#CCCCDD" : "#555566")
+                                        font.pixelSize: units.dp(13)
+                                        font.bold: root.portfolioSortMode === modelData.value
                                     }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: root.portfolioSortMode = modelData.value
+                                    }
+
+                                    Behavior on color { ColorAnimation { duration: 200 } }
                                 }
                             }
                         }
                     }
 
+                    // Project list
                     ListView {
                         width: parent.width
                         height: contentHeight
                         interactive: false
-                        spacing: units.gu(0.8)
+                        spacing: units.gu(1.2)
                         model: root.visibleProjects
 
                         delegate: ProjectCard {
@@ -230,17 +283,24 @@ Item {
 
                     Label {
                         visible: root.visibleProjects.length === 0
-                        width: parent.width - units.gu(3)
+                        width: parent.width - units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: i18n.dtr("ubtms", "No projects found")
-                        color: Theme.palette.normal.backgroundText
+                        color: root.isDark ? "#888899" : "#999999"
                         horizontalAlignment: Text.AlignHCenter
+                        font.pixelSize: units.dp(14)
                     }
+
+                    // Bottom padding
+                    Item { width: 1; height: units.gu(2) }
                 }
             }
         }
     }
 
+    // ═══════════════════════════════════════════════════
+    // ── PROJECT DETAIL VIEW ──
+    // ═══════════════════════════════════════════════════
     Component {
         id: projectView
 
@@ -249,60 +309,78 @@ Item {
                 id: taskFlick
                 anchors.fill: parent
                 contentWidth: width
-                contentHeight: taskContent.height + units.gu(2)
+                contentHeight: taskContent.height + units.gu(4)
                 clip: true
 
                 Column {
                     id: taskContent
                     width: taskFlick.width
-                    spacing: units.gu(1.2)
+                    spacing: units.gu(2.5)
 
+                    // Top padding
+                    Item { width: 1; height: units.gu(1) }
+
+                    // ── Summary Card ──
                     Rectangle {
-                        width: parent.width - units.gu(3)
-                        height: units.gu(12)
+                        width: parent.width - units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
+                        implicitHeight: summaryGrid.implicitHeight + units.gu(5)
                         radius: units.gu(1.5)
-                        color: Theme.palette.normal.base
+                        color: root.isDark ? "#222244" : "#FFFFFF"
+                        border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : "#E8E8F0"
+                        border.width: units.dp(1)
 
-                        // Subtle inner background to make it look like a dashboard widget
+                        // Top accent strip
                         Rectangle {
-                            anchors.fill: parent
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            height: units.dp(3)
+                            color: root.activeAccent
                             radius: parent.radius
-                            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1AFFFFFF" : "#0A000000"
+                            // Clip the bottom corners
+                            Rectangle {
+                                anchors.bottom: parent.bottom
+                                width: parent.width
+                                height: parent.radius
+                                color: parent.color
+                            }
                         }
 
                         Grid {
-                            anchors.fill: parent
-                            anchors.margins: units.gu(2)
+                            id: summaryGrid
+                            width: parent.width - units.gu(5)
+                            anchors.centerIn: parent
                             columns: 2
-                            spacing: units.gu(1.5)
+                            rowSpacing: units.gu(2.5)
+                            columnSpacing: units.gu(3)
 
                             Repeater {
                                 model: [
-                                    { label: i18n.dtr("ubtms", "Total"), value: ChartUtils.formatHours(root.selectedProject ? root.selectedProject.totalHours : 0) },
-                                    { label: i18n.dtr("ubtms", "Tasks"), value: String(root.selectedProjectTasks.length) },
-                                    { label: i18n.dtr("ubtms", "Average"), value: ChartUtils.averageLabel(root.selectedProject ? root.selectedProject.totalHours : 0, root.selectedProjectTasks.length) },
-                                    { label: i18n.dtr("ubtms", "Top task"), value: ChartUtils.topTaskName(root.selectedProjectTasks) }
+                                    { label: i18n.dtr("ubtms", "TOTAL"), value: ChartUtils.formatHours(root.selectedProject ? root.selectedProject.totalHours : 0), accent: true },
+                                    { label: i18n.dtr("ubtms", "TASKS"), value: String(root.selectedProjectTasks.length), accent: false },
+                                    { label: i18n.dtr("ubtms", "AVERAGE"), value: ChartUtils.averageLabel(root.selectedProject ? root.selectedProject.totalHours : 0, root.selectedProjectTasks.length), accent: false },
+                                    { label: i18n.dtr("ubtms", "TOP TASK"), value: ChartUtils.topTaskName(root.selectedProjectTasks), accent: false }
                                 ]
 
                                 delegate: Column {
-                                    width: (parent.width - units.gu(1.5)) / 2
-                                    spacing: units.gu(0.4)
+                                    width: (summaryGrid.width - units.gu(3)) / 2
+                                    spacing: units.gu(0.6)
 
                                     Label {
                                         text: modelData.label
-                                        color: Theme.palette.normal.backgroundText
+                                        color: root.isDark ? "#8888AA" : "#888899"
                                         font.pixelSize: units.dp(11)
-                                        font.capitalization: Font.AllUppercase
-                                        font.letterSpacing: 0.5
+                                        font.letterSpacing: 1.0
                                     }
 
                                     Label {
                                         width: parent.width
                                         text: modelData.value
-                                        color: Theme.palette.normal.baseText
+                                        color: modelData.accent ? root.activeAccent
+                                               : (root.isDark ? "#FFFFFF" : "#1A1A2E")
                                         font.bold: true
-                                        font.pixelSize: units.dp(14)
+                                        font.pixelSize: modelData.accent ? units.dp(18) : units.dp(15)
                                         elide: Text.ElideRight
                                     }
                                 }
@@ -310,55 +388,78 @@ Item {
                         }
                     }
 
+                    // ── Task Bars ──
                     TaskChartCanvas {
-                        width: parent.width - units.gu(3)
+                        width: parent.width - units.gu(2)
                         anchors.horizontalCenter: parent.horizontalCenter
                         tasksData: root.topProjectTasks
-                        accentColour: root.selectedProject ? root.selectedProject.colour : Theme.palette.selected.background
+                        accentColour: root.activeAccent
                         onTaskSelected: {
                             var task = ChartUtils.findTaskById(root.selectedProjectTasks, taskId)
-                            if (task) {
-                                root.openTask(task)
-                            }
+                            if (task) root.openTask(task)
                         }
                     }
 
+                    // ── Full Task List ──
                     ListView {
                         width: parent.width
                         height: contentHeight
                         interactive: false
-                        spacing: units.gu(0.6)
+                        spacing: units.gu(1)
                         model: root.showAllTasks ? root.selectedProjectTasks : root.selectedProjectTasks.slice(0, 8)
 
                         delegate: TaskRow {
                             width: ListView.view.width
                             taskData: modelData
                             projectTotalHours: root.selectedProject ? root.selectedProject.totalHours : 0
-                            accentColour: root.selectedProject ? root.selectedProject.colour : Theme.palette.selected.background
+                            accentColour: root.activeAccent
                             onClicked: root.openTask(modelData)
                         }
                     }
 
-                    Button {
+                    // Show more button
+                    Rectangle {
                         visible: root.selectedProjectTasks.length > 8 && !root.showAllTasks
+                        width: parent.width - units.gu(6)
+                        height: units.gu(5)
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: i18n.dtr("ubtms", "Show all %1 tasks").arg(root.selectedProjectTasks.length)
-                        onClicked: root.showAllTasks = true
+                        radius: units.gu(1.2)
+                        color: root.isDark ? "#2A2A4A" : "#EEEEF2"
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: i18n.dtr("ubtms", "Show all %1 tasks ↓").arg(root.selectedProjectTasks.length)
+                            color: root.activeAccent
+                            font.bold: true
+                            font.pixelSize: units.dp(13)
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: root.showAllTasks = true
+                        }
                     }
 
                     Label {
                         visible: root.selectedProjectTasks.length === 0
-                        width: parent.width - units.gu(3)
+                        width: parent.width - units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: i18n.dtr("ubtms", "No tasks with tracked time")
-                        color: Theme.palette.normal.backgroundText
+                        color: root.isDark ? "#888899" : "#999999"
                         horizontalAlignment: Text.AlignHCenter
+                        font.pixelSize: units.dp(14)
                     }
+
+                    // Bottom padding
+                    Item { width: 1; height: units.gu(3) }
                 }
             }
         }
     }
 
+    // ═══════════════════════════════════════════════════
+    // ── TASK DETAIL VIEW ──
+    // ═══════════════════════════════════════════════════
     Component {
         id: taskView
 
@@ -367,86 +468,110 @@ Item {
                 id: detailsFlick
                 anchors.fill: parent
                 contentWidth: width
-                contentHeight: detailsContent.height + units.gu(2)
+                contentHeight: detailsContent.height + units.gu(4)
                 clip: true
 
                 Column {
                     id: detailsContent
                     width: detailsFlick.width
-                    spacing: units.gu(1.2)
+                    spacing: units.gu(2.5)
 
+                    // Top padding
+                    Item { width: 1; height: units.gu(1) }
+
+                    // ── Time Summary Card ──
                     Rectangle {
-                        width: parent.width - units.gu(3)
-                        height: units.gu(10)
+                        width: parent.width - units.gu(4)
+                        height: units.gu(12)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.5)
-                        color: Theme.palette.normal.base
+                        color: root.isDark ? "#222244" : "#FFFFFF"
+                        border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : "#E8E8F0"
+                        border.width: units.dp(1)
 
+                        // Top accent strip
                         Rectangle {
-                            anchors.fill: parent
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            height: units.dp(3)
+                            color: root.activeAccent
                             radius: parent.radius
-                            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1AFFFFFF" : "#0A000000"
+                            Rectangle {
+                                anchors.bottom: parent.bottom
+                                width: parent.width
+                                height: parent.radius
+                                color: parent.color
+                            }
                         }
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: units.gu(2)
-                            spacing: units.gu(2)
+                            anchors.margins: units.gu(2.5)
+                            spacing: units.gu(3)
 
                             Column {
                                 Layout.fillWidth: true
-                                spacing: units.gu(0.4)
+                                spacing: units.gu(0.6)
 
                                 Label {
-                                    text: i18n.dtr("ubtms", "Time spent")
-                                    color: Theme.palette.normal.backgroundText
-                                    font.pixelSize: units.dp(12)
-                                    font.capitalization: Font.AllUppercase
-                                    font.letterSpacing: 0.5
+                                    text: i18n.dtr("ubtms", "TIME SPENT")
+                                    color: root.isDark ? "#8888AA" : "#888899"
+                                    font.pixelSize: units.dp(11)
+                                    font.letterSpacing: 1.0
                                 }
 
                                 Label {
                                     text: ChartUtils.formatHours(root.selectedTask ? root.selectedTask.totalHours : 0)
-                                    color: Theme.palette.normal.baseText
+                                    color: root.activeAccent
                                     font.bold: true
-                                    font.pixelSize: units.dp(16)
+                                    font.pixelSize: units.dp(20)
                                 }
+                            }
+
+                            // Divider
+                            Rectangle {
+                                Layout.preferredWidth: units.dp(1)
+                                Layout.fillHeight: true
+                                color: root.isDark ? "#3A3A5A" : "#E0E0E8"
                             }
 
                             Column {
                                 Layout.fillWidth: true
-                                spacing: units.gu(0.4)
+                                spacing: units.gu(0.6)
 
                                 Label {
-                                    text: i18n.dtr("ubtms", "% of project")
-                                    color: Theme.palette.normal.backgroundText
-                                    font.pixelSize: units.dp(12)
-                                    font.capitalization: Font.AllUppercase
-                                    font.letterSpacing: 0.5
+                                    text: i18n.dtr("ubtms", "% OF PROJECT")
+                                    color: root.isDark ? "#8888AA" : "#888899"
+                                    font.pixelSize: units.dp(11)
+                                    font.letterSpacing: 1.0
                                 }
 
                                 Label {
                                     text: ChartUtils.percentLabel(root.selectedTask ? root.selectedTask.totalHours : 0, root.selectedProject ? root.selectedProject.totalHours : 0)
-                                    color: Theme.palette.normal.baseText
+                                    color: root.isDark ? "#FFFFFF" : "#1A1A2E"
                                     font.bold: true
-                                    font.pixelSize: units.dp(16)
+                                    font.pixelSize: units.dp(20)
                                 }
                             }
                         }
                     }
 
+                    // ── Task Metadata Card ──
                     Rectangle {
-                        width: parent.width - units.gu(3)
-                        height: detailMeta.implicitHeight + units.gu(3)
+                        width: parent.width - units.gu(4)
+                        implicitHeight: detailMeta.implicitHeight + units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
-                        radius: units.gu(1)
-                        color: Theme.palette.normal.base
+                        radius: units.gu(1.5)
+                        color: root.isDark ? "#222244" : "#FFFFFF"
+                        border.color: root.isDark ? "#3A3A5A" : "#E8E8F0"
+                        border.width: units.dp(1)
 
                         Column {
                             id: detailMeta
-                            anchors.fill: parent
-                            anchors.margins: units.gu(1.5)
-                            spacing: units.gu(1)
+                            width: parent.width - units.gu(4)
+                            anchors.centerIn: parent
+                            spacing: units.gu(1.5)
 
                             Repeater {
                                 model: [
@@ -462,15 +587,16 @@ Item {
                                     Label {
                                         Layout.preferredWidth: units.gu(12)
                                         text: modelData.label
-                                        color: Theme.palette.normal.backgroundText
-                                        font.pixelSize: units.dp(12)
+                                        color: root.isDark ? "#8888AA" : "#888899"
+                                        font.pixelSize: units.dp(13)
                                     }
 
                                     Label {
                                         Layout.fillWidth: true
                                         text: modelData.value
-                                        color: Theme.palette.normal.baseText
-                                        font.pixelSize: units.dp(12)
+                                        color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                                        font.pixelSize: units.dp(13)
+                                        font.bold: true
                                         horizontalAlignment: Text.AlignRight
                                         elide: Text.ElideRight
                                     }
@@ -479,55 +605,70 @@ Item {
                         }
                     }
 
-                    Label {
-                        width: parent.width - units.gu(3)
+                    // ── Time Log Header ──
+                    RowLayout {
+                        width: parent.width - units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: i18n.dtr("ubtms", "Time log")
-                        color: Theme.palette.normal.baseText
-                        font.bold: true
-                        font.pixelSize: units.dp(14)
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: i18n.dtr("ubtms", "Time log")
+                            color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                            font.bold: true
+                            font.pixelSize: units.dp(15)
+                        }
+
+                        Label {
+                            text: root.selectedTaskLogs.length + " entries"
+                            color: root.isDark ? "#8888AA" : "#999999"
+                            font.pixelSize: units.dp(12)
+                        }
                     }
 
+                    // ── Time Log List ──
                     ListView {
                         width: parent.width
                         height: contentHeight
                         interactive: false
-                        spacing: units.gu(0.5)
+                        spacing: units.gu(1)
                         model: root.selectedTaskLogs
 
                         delegate: Rectangle {
-                            width: ListView.view.width - units.gu(3)
-                            implicitHeight: Math.max(units.gu(8), rowLayout.implicitHeight + units.gu(2))
-                            x: units.gu(1.5)
-                            radius: units.gu(1)
-                            color: Theme.palette.normal.base
+                            width: ListView.view.width - units.gu(4)
+                            implicitHeight: Math.max(units.gu(8), logRowLayout.implicitHeight + units.gu(3))
+                            x: units.gu(2)
+                            radius: units.gu(1.2)
+                            color: root.isDark ? "#222244" : "#FFFFFF"
+                            border.color: root.isDark ? "#3A3A5A" : "#E8E8F0"
+                            border.width: units.dp(1)
 
-                            // Left accent line
+                            // Left accent bar
                             Rectangle {
                                 anchors.left: parent.left
                                 anchors.top: parent.top
                                 anchors.bottom: parent.bottom
+                                anchors.leftMargin: units.dp(0)
                                 width: units.gu(0.5)
-                                color: Theme.palette.selected.background
-                                // Use a mask or simply let it overlap (often safe if corner radius is small, but let's avoid clipping issues by using layer if needed, or just let it be)
+                                radius: width / 2
+                                color: root.activeAccent
                             }
 
                             RowLayout {
-                                id: rowLayout
+                                id: logRowLayout
                                 anchors.fill: parent
-                                anchors.leftMargin: units.gu(2)
-                                anchors.rightMargin: units.gu(1.5)
-                                anchors.topMargin: units.gu(1)
-                                anchors.bottomMargin: units.gu(1)
-                                spacing: units.gu(1.5)
+                                anchors.leftMargin: units.gu(2.5)
+                                anchors.rightMargin: units.gu(2)
+                                anchors.topMargin: units.gu(1.5)
+                                anchors.bottomMargin: units.gu(1.5)
+                                spacing: units.gu(2)
 
                                 Column {
                                     Layout.preferredWidth: units.gu(10)
                                     spacing: units.gu(0.3)
-                                    
+
                                     Label {
                                         text: modelData.date || ""
-                                        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : Theme.palette.normal.baseText
+                                        color: root.isDark ? "#FFFFFF" : "#1A1A2E"
                                         font.pixelSize: units.dp(13)
                                         font.bold: true
                                         elide: Text.ElideRight
@@ -537,14 +678,14 @@ Item {
                                 Label {
                                     Layout.fillWidth: true
                                     text: modelData.note || i18n.dtr("ubtms", "No note")
-                                    color: Theme.palette.normal.backgroundText
+                                    color: root.isDark ? "#AAAACC" : "#666680"
                                     font.pixelSize: units.dp(13)
                                     wrapMode: Text.WordWrap
                                 }
 
                                 Label {
                                     text: ChartUtils.formatHours(modelData.hours || 0)
-                                    color: Theme.palette.selected.background
+                                    color: root.activeAccent
                                     font.bold: true
                                     font.pixelSize: units.dp(15)
                                 }
@@ -554,12 +695,16 @@ Item {
 
                     Label {
                         visible: root.selectedTaskLogs.length === 0
-                        width: parent.width - units.gu(3)
+                        width: parent.width - units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: i18n.dtr("ubtms", "No log entries")
-                        color: Theme.palette.normal.backgroundText
+                        color: root.isDark ? "#888899" : "#999999"
                         horizontalAlignment: Text.AlignHCenter
+                        font.pixelSize: units.dp(14)
                     }
+
+                    // Bottom padding
+                    Item { width: 1; height: units.gu(3) }
                 }
             }
         }

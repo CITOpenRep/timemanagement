@@ -9,47 +9,48 @@ Item {
 
     property var taskData: ({})
     property real projectTotalHours: 0
-    property color accentColour: Theme.palette.selected.background
+    property color accentColour: "#E95420"
 
     signal clicked()
 
-    implicitHeight: units.gu(9)
+    readonly property bool isDark: Theme.name === "Ubuntu.Components.Themes.SuruDark"
+
+    implicitHeight: units.gu(8)
 
     // Micro-animation states
-    scale: mouseArea.pressed ? 0.98 : 1.0
-    opacity: mouseArea.pressed ? 0.9 : 1.0
+    scale: mouseArea.pressed ? 0.97 : 1.0
+    opacity: mouseArea.pressed ? 0.85 : 1.0
     Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
     Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
     Rectangle {
         anchors.fill: parent
-        anchors.leftMargin: units.gu(1.5)
-        anchors.rightMargin: units.gu(1.5)
+        anchors.leftMargin: units.gu(2)
+        anchors.rightMargin: units.gu(2)
         anchors.topMargin: units.gu(0.4)
         anchors.bottomMargin: units.gu(0.4)
-        radius: units.gu(1)
-        color: Theme.palette.normal.base
+        radius: units.gu(1.2)
+        color: root.isDark ? "#222244" : "#FFFFFF"
+        border.color: root.isDark ? "#3A3A5A" : "#E8E8F0"
+        border.width: units.dp(1)
 
-        // Subtle accent tint
+        // Left accent strip
         Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: units.gu(0.5)
+            radius: width / 2
             color: root.accentColour
-            opacity: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? 0.08 : 0.04
         }
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: units.gu(1.5)
+            anchors.leftMargin: units.gu(2.5)
+            anchors.rightMargin: units.gu(1.5)
+            anchors.topMargin: units.gu(1)
+            anchors.bottomMargin: units.gu(1)
             spacing: units.gu(1.5)
-
-            // Pill indicator instead of plain circle
-            Rectangle {
-                Layout.preferredWidth: units.gu(0.6)
-                Layout.fillHeight: true
-                radius: width / 2
-                color: root.accentColour
-            }
 
             Column {
                 Layout.fillWidth: true
@@ -58,7 +59,7 @@ Item {
                 Label {
                     width: parent.width
                     text: taskData.name || ""
-                    color: Theme.palette.normal.baseText
+                    color: root.isDark ? "#FFFFFF" : "#1A1A2E"
                     font.pixelSize: units.dp(14)
                     font.bold: true
                     elide: Text.ElideRight
@@ -66,25 +67,34 @@ Item {
 
                 Label {
                     text: ChartUtils.percentLabel(taskData.totalHours || 0, projectTotalHours)
-                    color: Theme.palette.normal.backgroundText
+                    color: root.isDark ? "#8888AA" : "#888899"
                     font.pixelSize: units.dp(12)
                 }
             }
 
-            Label {
-                text: ChartUtils.formatHours(taskData.totalHours || 0)
-                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : Theme.palette.normal.baseText
-                font.bold: true
-                font.pixelSize: units.dp(15)
+            // Hours pill
+            Rectangle {
+                Layout.preferredWidth: taskHoursLabel.implicitWidth + units.gu(1.5)
+                Layout.preferredHeight: units.gu(3)
+                radius: height / 2
+                color: Qt.rgba(root.accentColour.r, root.accentColour.g, root.accentColour.b, root.isDark ? 0.2 : 0.12)
+
+                Label {
+                    id: taskHoursLabel
+                    anchors.centerIn: parent
+                    text: ChartUtils.formatHours(taskData.totalHours || 0)
+                    color: root.accentColour
+                    font.bold: true
+                    font.pixelSize: units.dp(13)
+                }
             }
 
-            // Modern chevron icon
+            // Chevron
             Icon {
                 Layout.preferredWidth: units.gu(2)
                 Layout.preferredHeight: units.gu(2)
                 name: "go-next"
-                color: Theme.palette.normal.backgroundText
-                opacity: 0.7
+                color: root.isDark ? "#666688" : "#AAAABB"
             }
         }
     }
