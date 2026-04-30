@@ -113,12 +113,14 @@ Page {
 
     Flickable {
         id: flick1
-        width: parent.width
-        height: 80
         anchors.top: header.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         contentWidth: parent.width
-        contentHeight: 3500
+        contentHeight: contentColumn.height + units.gu(4)
+        flickableDirection: Flickable.VerticalFlick
+        clip: true
 
         rebound: Transition {
             NumberAnimation {
@@ -128,20 +130,46 @@ Page {
             }
         }
 
-        Loader {
-            id: load3
-            anchors.left: parent.left
-            anchors.right: parent.right
-            //            anchors.top: header.bottom
-            source: "../../../Charts3.qml"
-        }
+        Column {
+            id: contentColumn
+            width: flick1.width
+            spacing: units.gu(2)
 
-        Loader {
-            id: load4
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: load3.bottom
-            source: "../../../Charts4.qml"
+            Item {
+                width: parent.width
+                height: units.gu(1)
+            }
+
+            Rectangle {
+                width: parent.width - units.gu(2)
+                height: load3.item ? load3.item.height : units.gu(40)
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: "transparent"
+
+                Loader {
+                    id: load3
+                    anchors.fill: parent
+                    source: "../../../Charts3.qml"
+                }
+            }
+
+            Rectangle {
+                width: parent.width - units.gu(2)
+                height: load4.item ? load4.item.height : units.gu(40)
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: "transparent"
+
+                Loader {
+                    id: load4
+                    anchors.fill: parent
+                    source: "../../../Charts4.qml"
+                }
+            }
+
+            Item {
+                width: parent.width
+                height: units.gu(2)
+            }
         }
 
         onFlickEnded: {

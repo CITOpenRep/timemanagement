@@ -72,6 +72,17 @@ Page {
         }
     }
 
+    onIsMultiColumnChanged: {
+        if (isMultiColumn) {
+            if (typeof mobileChartTabBar !== "undefined") {
+                mobileChartTabBar.currentIndex = 0;
+            }
+            if (typeof mobileChartsView !== "undefined") {
+                mobileChartsView.currentIndex = 0;
+            }
+        }
+    }
+
 
     header: PageHeader {
         id: header
@@ -146,32 +157,40 @@ Page {
         var account = accountPicker.selectedAccountId;
         project_data = Model.get_projects_spent_hours(account);
         var count = 0;
+        var temp_project = [];
         var timeval;
         for (var key in project_data) {
-            project[count] = key;
+            temp_project[count] = key;
             timeval = project_data[key];
             count = count + 1;
         }
         var count2 = Object.keys(project_data).length;
+        var temp_timecat = [];
         for (count = 0; count < count2; count++) {
-            project_timecat[count] = project_data[project[count]];
+            temp_timecat[count] = project_data[temp_project[count]];
         }
+        project = temp_project;
+        project_timecat = temp_timecat;
     }
 
     function get_task_chart_data() {
         var account = accountPicker.selectedAccountId;
         task_data = Model.get_tasks_spent_hours(account);
         var count = 0;
+        var temp_task = [];
         var timeval;
         for (var key in task_data) {
-            task[count] = key;
+            temp_task[count] = key;
             timeval = task_data[key];
             count = count + 1;
         }
         var count2 = Object.keys(task_data).length;
+        var temp_timecat = [];
         for (count = 0; count < count2; count++) {
-            task_timecat[count] = task_data[task[count]];
+            temp_timecat[count] = task_data[temp_task[count]];
         }
+        task = temp_task;
+        task_timecat = temp_timecat;
     }
 
     function refreshData() {
@@ -194,6 +213,10 @@ Page {
                 console.log("🔵 selected: ", selected);
                 projectchart.refreshForAccount(selected);
             }
+            if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
+                mobileProjectChartLoader.item.reloadData();
+            if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
+                mobileTaskChartLoader.item.reloadData();
             console.log("🟣 _doRefreshData SUCCESS");
         } catch(e) {
             console.error("🔴 _doRefreshData ERROR: ", e);
@@ -249,7 +272,7 @@ Page {
         anchors.top: header.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         contentWidth: parent.width
-        contentHeight: 4000
+        contentHeight: quadrantColumn.height + units.gu(4)
         rebound: Transition {
             NumberAnimation {
                 properties: "x,y"
@@ -294,11 +317,113 @@ Page {
                 }
             }
 
-            ProjectPieChart {
-                id: projectchart
-                width: parent.width * 0.95
-                height: width
+            Item {
+                id: mobileChartsTabs
+                width: parent.width - units.gu(2)
+                height: mobileChartsColumn.height
                 anchors.horizontalCenter: parent.horizontalCenter
+                visible: true
+
+                Column {
+                    id: mobileChartsColumn
+                    width: parent.width
+                    spacing: units.gu(1)
+
+                    Controls.TabBar {
+                        id: mobileChartTabBar
+                        width: parent.width
+                        visible: !isMultiColumn
+                        height: visible ? implicitHeight : 0
+                        currentIndex: 0
+                        onCurrentIndexChanged: {
+                            if (mobileChartsView.currentIndex !== currentIndex)
+                                mobileChartsView.currentIndex = currentIndex;
+                        }
+
+                        background: Rectangle {
+                            color: Theme.palette.normal.background
+                            radius: units.gu(1)
+                            border.width: 1
+                            border.color: Theme.palette.normal.base
+                        }
+
+                        Controls.TabButton {
+                            text: i18n.dtr("ubtms", "Overview")
+                            width: mobileChartTabBar.width / 3
+                            contentItem: Text {
+                                text: parent.text
+                                font: parent.font
+                                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        Controls.TabButton {
+                            text: i18n.dtr("ubtms", "Projects")
+                            width: mobileChartTabBar.width / 3
+                            contentItem: Text {
+                                text: parent.text
+                                font: parent.font
+                                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        Controls.TabButton {
+                            text: i18n.dtr("ubtms", "Tasks")
+                            width: mobileChartTabBar.width / 3
+                            contentItem: Text {
+                                text: parent.text
+                                font: parent.font
+                                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                    }
+
+                    Controls.SwipeView {
+                        id: mobileChartsView
+                        width: parent.width
+                        height: currentIndex === 0 ? projectchart.implicitHeight : units.gu(40)
+                        currentIndex: 0
+                        interactive: !isMultiColumn
+                        clip: true
+                        onCurrentIndexChanged: {
+                            if (mobileChartTabBar.currentIndex !== currentIndex)
+                                mobileChartTabBar.currentIndex = currentIndex;
+                        }
+
+                        Item {
+                            ProjectPieChart {
+                                id: projectchart
+                                width: parent.width * 0.95
+                                height: implicitHeight
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+                        }
+
+                        Item {
+                            Loader {
+                                id: mobileProjectChartLoader
+                                anchors.fill: parent
+                                active: !isMultiColumn && mobileChartsView.currentIndex === 1
+                                source: "../../../Charts3.qml"
+                            }
+                        }
+
+                        Item {
+                            Loader {
+                                id: mobileTaskChartLoader
+                                anchors.fill: parent
+                                active: !isMultiColumn && mobileChartsView.currentIndex === 2
+                                source: "../../../Charts4.qml"
+                            }
+                        }
+                    }
+                }
             }
 
             Component.onCompleted: {

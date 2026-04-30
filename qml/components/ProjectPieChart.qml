@@ -30,8 +30,9 @@ import "../../models/project.js" as Project
 import "../../models/accounts.js" as Account
 
 Item {
+    id: root
     width: parent.width
-    height: parent.height
+    implicitHeight: chartTitle.height + pieChart.height + customLegend.height + units.gu(2)
 
     // account used to fetch data; numeric -1 indicates "all accounts"
     property int selectedAccountId: accountPicker.selectedAccountId
@@ -53,7 +54,7 @@ Item {
         anchors.top: chartTitle.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        height: width
 
         backgroundColor: "transparent"
 

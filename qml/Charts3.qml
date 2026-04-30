@@ -40,6 +40,10 @@ Rectangle {
     width: parent.width
     height: units.gu(40)
     color: "transparent"
+
+    function reloadData() {
+        chart3.reloadData();
+    }
     //anchors.fill: parent
 
     //   Text {
