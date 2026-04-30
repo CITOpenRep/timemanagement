@@ -116,7 +116,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.left: parent.left
                             height: parent.height
-                            width: Math.max(units.dp(2), parent.width * fraction)
+                            width: Math.max(units.dp(2), Math.min(parent.width * fraction, parent.width - units.gu(6)))
                             radius: units.dp(4)
                             
                             // Flatten left corners
@@ -136,7 +136,7 @@ Item {
                         // Label displaying hours at the end of the bar
                         Label {
                             anchors.left: parent.left
-                            anchors.leftMargin: Math.max(units.dp(2), parent.width * fraction) + units.dp(8)
+                            anchors.leftMargin: Math.max(units.dp(2), Math.min(parent.width * fraction, parent.width - units.gu(6))) + units.dp(8)
                             anchors.verticalCenter: parent.verticalCenter
                             text: ChartUtils.formatHours(modelData.totalHours || 0)
                             color: Theme.palette.normal.baseText

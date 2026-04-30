@@ -326,7 +326,7 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         implicitHeight: summaryGrid.implicitHeight + units.gu(5)
                         radius: units.gu(1.5)
-                        color: Theme.palette.normal.base
+                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
                         border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
@@ -335,16 +335,10 @@ Item {
                             anchors.top: parent.top
                             anchors.left: parent.left
                             anchors.right: parent.right
+                            anchors.leftMargin: units.gu(1.5)
+                            anchors.rightMargin: units.gu(1.5)
                             height: units.dp(3)
                             color: root.activeAccent
-                            radius: parent.radius
-                            // Clip the bottom corners
-                            Rectangle {
-                                anchors.bottom: parent.bottom
-                                width: parent.width
-                                height: parent.radius
-                                color: parent.color
-                            }
                         }
 
                         Grid {
@@ -389,14 +383,25 @@ Item {
                     }
 
                     // ── Task Bars ──
-                    TaskChartCanvas {
-                        width: parent.width - units.gu(2)
+                    Rectangle {
+                        width: parent.width - units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
-                        tasksData: root.topProjectTasks
-                        accentColour: root.activeAccent
-                        onTaskSelected: {
-                            var task = ChartUtils.findTaskById(root.selectedProjectTasks, taskId)
-                            if (task) root.openTask(task)
+                        implicitHeight: taskChart.implicitHeight + units.gu(4)
+                        radius: units.gu(1.5)
+                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
+                        border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
+                        border.width: units.dp(1)
+
+                        TaskChartCanvas {
+                            id: taskChart
+                            anchors.fill: parent
+                            anchors.margins: units.gu(2)
+                            tasksData: root.topProjectTasks
+                            accentColour: root.activeAccent
+                            onTaskSelected: {
+                                var task = ChartUtils.findTaskById(root.selectedProjectTasks, taskId)
+                                if (task) root.openTask(task)
+                            }
                         }
                     }
 
@@ -494,15 +499,10 @@ Item {
                             anchors.top: parent.top
                             anchors.left: parent.left
                             anchors.right: parent.right
+                            anchors.leftMargin: units.gu(1.5)
+                            anchors.rightMargin: units.gu(1.5)
                             height: units.dp(3)
                             color: root.activeAccent
-                            radius: parent.radius
-                            Rectangle {
-                                anchors.bottom: parent.bottom
-                                width: parent.width
-                                height: parent.radius
-                                color: parent.color
-                            }
                         }
 
                         RowLayout {
