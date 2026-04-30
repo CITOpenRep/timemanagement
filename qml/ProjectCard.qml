@@ -32,7 +32,7 @@ Item {
         anchors.topMargin: units.gu(0.5)
         anchors.bottomMargin: units.gu(0.5)
         radius: units.gu(1.2)
-        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Theme.palette.normal.base
+        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
         border.color: root.isDark ? Qt.rgba(root.projectColor.r, root.projectColor.g, root.projectColor.b, 0.25) : Qt.rgba(0,0,0,0.1)
         border.width: units.dp(1)
 

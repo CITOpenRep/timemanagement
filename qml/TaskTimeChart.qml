@@ -202,7 +202,7 @@ Item {
                         height: units.gu(5)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.2)
-                        color: root.isDark ? "transparent" : Theme.palette.normal.base
+                        color: "transparent"
                         border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
@@ -485,7 +485,7 @@ Item {
                         height: units.gu(12)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.5)
-                        color: Theme.palette.normal.base
+                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
                         border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
@@ -563,7 +563,7 @@ Item {
                         implicitHeight: detailMeta.implicitHeight + units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.5)
-                        color: Theme.palette.normal.base
+                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
                         border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
@@ -638,7 +638,7 @@ Item {
                             implicitHeight: Math.max(units.gu(8), logRowLayout.implicitHeight + units.gu(3))
                             x: units.gu(2)
                             radius: units.gu(1.2)
-                            color: Theme.palette.normal.base
+                            color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)
                             border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                             border.width: units.dp(1)
 
