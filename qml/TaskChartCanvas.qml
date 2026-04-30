@@ -20,91 +20,136 @@ Item {
         "#F39C12", "#1ABC9C", "#E67E22", "#16A085", "#D35400"
     ]
 
-    implicitHeight: layout.implicitHeight + units.gu(4)
+    property real maxHours: ChartUtils.maxTaskHours(root.tasksData) > 0 ? ChartUtils.maxTaskHours(root.tasksData) : 1
 
-    Column {
-        id: layout
-        width: parent.width - units.gu(2)
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: units.gu(1.5)
-        spacing: units.gu(2)
+    implicitHeight: (root.tasksData.length * units.gu(4.5)) + units.gu(3)
 
-        Repeater {
-            model: root.tasksData
+    RowLayout {
+        anchors.fill: parent
+        spacing: units.gu(1.5)
 
-            Item {
-                width: parent.width
-                height: units.gu(4.5)
+        // Labels Column
+        Column {
+            Layout.preferredWidth: units.gu(14)
+            Layout.fillHeight: true
+            spacing: units.gu(1.5)
 
-                property real maxHours: ChartUtils.maxTaskHours(root.tasksData)
-                property real fraction: maxHours > 0 ? (Number(modelData.totalHours || 0) / maxHours) : 0
-                property bool isHighlighted: root.highlightedIndex < 0 || root.highlightedIndex === index
-                property color barColor: root.barColors[index % root.barColors.length]
-
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: units.gu(1.5)
-
-                    // Left Task Name
+            Repeater {
+                model: root.tasksData
+                Item {
+                    width: parent.width
+                    height: units.gu(3) // match bar height
                     Label {
-                        Layout.preferredWidth: units.gu(14)
+                        anchors.fill: parent
                         text: modelData.name || ""
                         color: root.isDark ? "#FFFFFF" : "#1A1A2E"
-                        font.pixelSize: units.dp(13)
-                        elide: Text.ElideRight
-                        opacity: isHighlighted ? 1.0 : 0.6
-                    }
-
-                    // Bar Track
-                    Item {
-                        Layout.fillWidth: true
-                        height: units.gu(1.2)
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: root.isDark ? "#2A2A4A" : "#EEEEF2"
-                            radius: height / 2
-                        }
-
-                        // Active Bar
-                        Rectangle {
-                            height: parent.height
-                            width: Math.max(height, parent.width * fraction)
-                            radius: height / 2
-                            color: barColor
-                            opacity: isHighlighted ? 1.0 : 0.6
-
-                            Behavior on width {
-                                NumberAnimation { duration: 600; easing.type: Easing.OutCubic }
-                            }
-                        }
-                    }
-
-                    // Right Hours Value
-                    Label {
-                        Layout.preferredWidth: units.gu(6)
-                        text: ChartUtils.formatHours(Number(modelData.totalHours || 0))
-                        color: barColor
-                        font.bold: true
-                        font.pixelSize: units.dp(13)
+                        font.pixelSize: units.dp(12)
                         horizontalAlignment: Text.AlignRight
-                        opacity: isHighlighted ? 1.0 : 0.6
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
                     }
                 }
+            }
+            
+            // Bottom spacer to align with X-axis labels
+            Item { width: 1; height: units.gu(3) }
+        }
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: root.taskSelected(modelData.id)
+        // Bars & Grid Column
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
 
+            // Grid Lines & X-Axis
+            Repeater {
+                model: 5
+                Item {
+                    x: parent.width * (index / 4)
+                    height: parent.height - units.gu(3)
+                    width: units.dp(1)
+
+                    // Vertical grid line
                     Rectangle {
                         anchors.fill: parent
-                        anchors.margins: -units.gu(0.5)
-                        radius: units.gu(0.5)
-                        color: barColor
-                        opacity: parent.pressed ? 0.12 : 0.0
+                        color: root.isDark ? "#3A3A5A" : "#E0E0E8"
+                        visible: index > 0 // hide the 0 line to avoid overlapping the axis
+                    }
 
-                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                    // Axis Label
+                    Label {
+                        anchors.top: parent.bottom
+                        anchors.topMargin: units.dp(6)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: ChartUtils.formatHours(root.maxHours * (index / 4))
+                        color: root.isDark ? "#8888AA" : "#888899"
+                        font.pixelSize: units.dp(10)
+                    }
+                }
+            }
+
+            // Left axis line (stronger)
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                height: parent.height - units.gu(3)
+                width: units.dp(2)
+                color: root.isDark ? "#555577" : "#AAAAAA"
+                z: 1
+            }
+
+            // Bars
+            Column {
+                anchors.fill: parent
+                spacing: units.gu(1.5)
+                z: 2
+
+                Repeater {
+                    model: root.tasksData
+                    Item {
+                        width: parent.width
+                        height: units.gu(3)
+                        
+                        property real fraction: Number(modelData.totalHours || 0) / root.maxHours
+                        property color barColor: root.barColors[index % root.barColors.length]
+
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            height: parent.height
+                            width: Math.max(units.dp(2), parent.width * fraction)
+                            radius: units.dp(4)
+                            
+                            // Flatten left corners
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: parent.radius
+                                color: parent.color
+                            }
+
+                            color: barColor
+
+                            Behavior on width { NumberAnimation { duration: 800; easing.type: Easing.OutCubic } }
+                        }
+                        
+                        // Label displaying hours at the end of the bar
+                        Label {
+                            anchors.left: parent.left
+                            anchors.leftMargin: Math.max(units.dp(2), parent.width * fraction) + units.dp(8)
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ChartUtils.formatHours(modelData.totalHours || 0)
+                            color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                            font.pixelSize: units.dp(11)
+                            font.bold: true
+                            opacity: 0.8
+                        }
+                        
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.rightMargin: -units.gu(4) // allow clicking near the end
+                            onClicked: root.taskSelected(modelData.id)
+                        }
                     }
                 }
             }
