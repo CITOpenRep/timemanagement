@@ -100,7 +100,7 @@ Item {
                 totalHours: Number(task.spent_hours || 0),
                 description: task.description || "",
                 assignee: assignee || i18n.dtr("ubtms", "Unassigned"),
-                status: task.state || task.status || i18n.dtr("ubtms", "Unknown"),
+                status: (task.state && task.state > 0) ? TaskModel.getTaskStageName(task.state, project.accountId) : (task.status || i18n.dtr("ubtms", "Unknown")),
                 projectName: project.name,
                 logs: [],
                 _logsLoaded: false
