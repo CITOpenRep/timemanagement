@@ -32,8 +32,8 @@ Item {
         anchors.topMargin: units.gu(0.5)
         anchors.bottomMargin: units.gu(0.5)
         radius: units.gu(1.2)
-        color: root.isDark ? "#222244" : "#FFFFFF"
-        border.color: root.isDark ? Qt.rgba(root.projectColor.r, root.projectColor.g, root.projectColor.b, 0.25) : "#E8E8F0"
+        color: Theme.palette.normal.base
+        border.color: root.isDark ? Qt.rgba(root.projectColor.r, root.projectColor.g, root.projectColor.b, 0.25) : Qt.rgba(0,0,0,0.1)
         border.width: units.dp(1)
 
         // Left accent strip
@@ -61,7 +61,7 @@ Item {
                 Label {
                     width: parent.width
                     text: projectData.name || ""
-                    color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                    color: Theme.palette.normal.baseText
                     font.bold: true
                     font.pixelSize: units.dp(15)
                     elide: Text.ElideRight
@@ -69,7 +69,7 @@ Item {
 
                 Label {
                     text: String(projectData.taskCount || 0) + " " + i18n.dtr("ubtms", "tasks")
-                    color: root.isDark ? "#8888AA" : "#888899"
+                    color: Theme.palette.normal.backgroundText
                     font.pixelSize: units.dp(12)
                 }
 
@@ -78,7 +78,7 @@ Item {
                     width: parent.width
                     height: units.gu(0.7)
                     radius: height / 2
-                    color: root.isDark ? "#2A2A4A" : "#EEEEF2"
+                    color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
 
                     Rectangle {
                         width: parent.width * Math.min(1, Number(projectData.totalHours || 0) / Math.max(root.maxHours, 0.1))
@@ -113,7 +113,7 @@ Item {
                 Layout.preferredWidth: units.gu(2)
                 Layout.preferredHeight: units.gu(2)
                 name: "go-next"
-                color: root.isDark ? "#666688" : "#AAAABB"
+                color: Theme.palette.normal.backgroundText
             }
         }
     }

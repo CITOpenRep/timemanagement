@@ -68,7 +68,7 @@ Item {
     // ── Background ──
     Rectangle {
         anchors.fill: parent
-        color: root.isDark ? "#1A1A2E" : "#F5F7FA"
+        color: Theme.palette.normal.background
     }
 
     Column {
@@ -80,7 +80,7 @@ Item {
             id: headerBar
             width: parent.width
             height: units.gu(7)
-            color: root.isDark ? "#222244" : "#FFFFFF"
+            color: Theme.palette.normal.base
 
             // Bottom border accent
             Rectangle {
@@ -126,7 +126,7 @@ Item {
                         text: root.currentView === "projects" ? i18n.dtr("ubtms", "Projects")
                              : root.currentView === "project" ? (root.selectedProject ? root.selectedProject.name : "")
                              : (root.selectedTask ? root.selectedTask.name : "")
-                        color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                        color: Theme.palette.normal.baseText
                         font.bold: true
                         font.pixelSize: units.dp(16)
                         elide: Text.ElideRight
@@ -137,7 +137,7 @@ Item {
                         text: root.currentView === "projects" ? ChartUtils.formatHours(root.portfolioTotalHours)
                              : root.currentView === "project" ? ChartUtils.projectSubtitle(root.selectedProject, root.selectedProjectTasks.length)
                              : (root.selectedProject ? root.selectedProject.name : "")
-                        color: root.isDark ? "#AAAACC" : "#666680"
+                        color: Theme.palette.normal.backgroundText
                         font.pixelSize: units.dp(12)
                         elide: Text.ElideRight
                     }
@@ -202,8 +202,8 @@ Item {
                         height: units.gu(5)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.2)
-                        color: root.isDark ? "#2A2A4A" : "#FFFFFF"
-                        border.color: root.isDark ? "#3A3A5A" : "#E0E0E8"
+                        color: Theme.palette.normal.base
+                        border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
                         TextField {
@@ -212,7 +212,7 @@ Item {
                             placeholderText: i18n.dtr("ubtms", "🔍  Search projects...")
                             text: root.portfolioSearchText
                             onTextChanged: root.portfolioSearchText = text
-                            color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                            color: Theme.palette.normal.baseText
                             font.pixelSize: units.dp(13)
                         }
                     }
@@ -223,7 +223,7 @@ Item {
                         height: units.gu(5)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.2)
-                        color: root.isDark ? "#2A2A4A" : "#EEEEF2"
+                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
 
                         Row {
                             anchors.fill: parent
@@ -249,7 +249,7 @@ Item {
                                         text: modelData.label
                                         color: root.portfolioSortMode === modelData.value
                                                ? "white"
-                                               : (root.isDark ? "#CCCCDD" : "#555566")
+                                               : (Theme.palette.normal.backgroundText)
                                         font.pixelSize: units.dp(13)
                                         font.bold: root.portfolioSortMode === modelData.value
                                     }
@@ -286,7 +286,7 @@ Item {
                         width: parent.width - units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: i18n.dtr("ubtms", "No projects found")
-                        color: root.isDark ? "#888899" : "#999999"
+                        color: Theme.palette.normal.backgroundText
                         horizontalAlignment: Text.AlignHCenter
                         font.pixelSize: units.dp(14)
                     }
@@ -326,8 +326,8 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         implicitHeight: summaryGrid.implicitHeight + units.gu(5)
                         radius: units.gu(1.5)
-                        color: root.isDark ? "#222244" : "#FFFFFF"
-                        border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : "#E8E8F0"
+                        color: Theme.palette.normal.base
+                        border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
                         // Top accent strip
@@ -369,7 +369,7 @@ Item {
 
                                     Label {
                                         text: modelData.label
-                                        color: root.isDark ? "#8888AA" : "#888899"
+                                        color: Theme.palette.normal.backgroundText
                                         font.pixelSize: units.dp(11)
                                         font.letterSpacing: 1.0
                                     }
@@ -378,7 +378,7 @@ Item {
                                         width: parent.width
                                         text: modelData.value
                                         color: modelData.accent ? root.activeAccent
-                                               : (root.isDark ? "#FFFFFF" : "#1A1A2E")
+                                               : (Theme.palette.normal.baseText)
                                         font.bold: true
                                         font.pixelSize: modelData.accent ? units.dp(18) : units.dp(15)
                                         elide: Text.ElideRight
@@ -424,7 +424,7 @@ Item {
                         height: units.gu(5)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.2)
-                        color: root.isDark ? "#2A2A4A" : "#EEEEF2"
+                        color: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
 
                         Label {
                             anchors.centerIn: parent
@@ -445,7 +445,7 @@ Item {
                         width: parent.width - units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: i18n.dtr("ubtms", "No tasks with tracked time")
-                        color: root.isDark ? "#888899" : "#999999"
+                        color: Theme.palette.normal.backgroundText
                         horizontalAlignment: Text.AlignHCenter
                         font.pixelSize: units.dp(14)
                     }
@@ -485,8 +485,8 @@ Item {
                         height: units.gu(12)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.5)
-                        color: root.isDark ? "#222244" : "#FFFFFF"
-                        border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : "#E8E8F0"
+                        color: Theme.palette.normal.base
+                        border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
                         // Top accent strip
@@ -516,7 +516,7 @@ Item {
 
                                 Label {
                                     text: i18n.dtr("ubtms", "TIME SPENT")
-                                    color: root.isDark ? "#8888AA" : "#888899"
+                                    color: Theme.palette.normal.backgroundText
                                     font.pixelSize: units.dp(11)
                                     font.letterSpacing: 1.0
                                 }
@@ -533,7 +533,7 @@ Item {
                             Rectangle {
                                 Layout.preferredWidth: units.dp(1)
                                 Layout.fillHeight: true
-                                color: root.isDark ? "#3A3A5A" : "#E0E0E8"
+                                color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                             }
 
                             Column {
@@ -542,14 +542,14 @@ Item {
 
                                 Label {
                                     text: i18n.dtr("ubtms", "% OF PROJECT")
-                                    color: root.isDark ? "#8888AA" : "#888899"
+                                    color: Theme.palette.normal.backgroundText
                                     font.pixelSize: units.dp(11)
                                     font.letterSpacing: 1.0
                                 }
 
                                 Label {
                                     text: ChartUtils.percentLabel(root.selectedTask ? root.selectedTask.totalHours : 0, root.selectedProject ? root.selectedProject.totalHours : 0)
-                                    color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                                    color: Theme.palette.normal.baseText
                                     font.bold: true
                                     font.pixelSize: units.dp(20)
                                 }
@@ -563,8 +563,8 @@ Item {
                         implicitHeight: detailMeta.implicitHeight + units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: units.gu(1.5)
-                        color: root.isDark ? "#222244" : "#FFFFFF"
-                        border.color: root.isDark ? "#3A3A5A" : "#E8E8F0"
+                        color: Theme.palette.normal.base
+                        border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
                         Column {
@@ -587,14 +587,14 @@ Item {
                                     Label {
                                         Layout.preferredWidth: units.gu(12)
                                         text: modelData.label
-                                        color: root.isDark ? "#8888AA" : "#888899"
+                                        color: Theme.palette.normal.backgroundText
                                         font.pixelSize: units.dp(13)
                                     }
 
                                     Label {
                                         Layout.fillWidth: true
                                         text: modelData.value
-                                        color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                                        color: Theme.palette.normal.baseText
                                         font.pixelSize: units.dp(13)
                                         font.bold: true
                                         horizontalAlignment: Text.AlignRight
@@ -613,7 +613,7 @@ Item {
                         Label {
                             Layout.fillWidth: true
                             text: i18n.dtr("ubtms", "Time log")
-                            color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                            color: Theme.palette.normal.baseText
                             font.bold: true
                             font.pixelSize: units.dp(15)
                         }
@@ -638,8 +638,8 @@ Item {
                             implicitHeight: Math.max(units.gu(8), logRowLayout.implicitHeight + units.gu(3))
                             x: units.gu(2)
                             radius: units.gu(1.2)
-                            color: root.isDark ? "#222244" : "#FFFFFF"
-                            border.color: root.isDark ? "#3A3A5A" : "#E8E8F0"
+                            color: Theme.palette.normal.base
+                            border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                             border.width: units.dp(1)
 
                             // Left accent bar
@@ -668,7 +668,7 @@ Item {
 
                                     Label {
                                         text: modelData.date || ""
-                                        color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                                        color: Theme.palette.normal.baseText
                                         font.pixelSize: units.dp(13)
                                         font.bold: true
                                         elide: Text.ElideRight
@@ -678,7 +678,7 @@ Item {
                                 Label {
                                     Layout.fillWidth: true
                                     text: modelData.note || i18n.dtr("ubtms", "No note")
-                                    color: root.isDark ? "#AAAACC" : "#666680"
+                                    color: Theme.palette.normal.backgroundText
                                     font.pixelSize: units.dp(13)
                                     wrapMode: Text.WordWrap
                                 }
@@ -698,7 +698,7 @@ Item {
                         width: parent.width - units.gu(4)
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: i18n.dtr("ubtms", "No log entries")
-                        color: root.isDark ? "#888899" : "#999999"
+                        color: Theme.palette.normal.backgroundText
                         horizontalAlignment: Text.AlignHCenter
                         font.pixelSize: units.dp(14)
                     }

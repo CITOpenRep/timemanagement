@@ -30,8 +30,8 @@ Item {
         anchors.topMargin: units.gu(0.4)
         anchors.bottomMargin: units.gu(0.4)
         radius: units.gu(1.2)
-        color: root.isDark ? "#222244" : "#FFFFFF"
-        border.color: root.isDark ? "#3A3A5A" : "#E8E8F0"
+        color: Theme.palette.normal.base
+        border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
         border.width: units.dp(1)
 
         // Left accent strip
@@ -59,7 +59,7 @@ Item {
                 Label {
                     width: parent.width
                     text: taskData.name || ""
-                    color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                    color: Theme.palette.normal.baseText
                     font.pixelSize: units.dp(14)
                     font.bold: true
                     elide: Text.ElideRight
@@ -67,7 +67,7 @@ Item {
 
                 Label {
                     text: ChartUtils.percentLabel(taskData.totalHours || 0, projectTotalHours)
-                    color: root.isDark ? "#8888AA" : "#888899"
+                    color: Theme.palette.normal.backgroundText
                     font.pixelSize: units.dp(12)
                 }
             }
@@ -94,7 +94,7 @@ Item {
                 Layout.preferredWidth: units.gu(2)
                 Layout.preferredHeight: units.gu(2)
                 name: "go-next"
-                color: root.isDark ? "#666688" : "#AAAABB"
+                color: Theme.palette.normal.backgroundText
             }
         }
     }

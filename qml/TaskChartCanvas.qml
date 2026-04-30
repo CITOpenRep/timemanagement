@@ -42,7 +42,7 @@ Item {
                     Label {
                         anchors.fill: parent
                         text: modelData.name || ""
-                        color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                        color: Theme.palette.normal.baseText
                         font.pixelSize: units.dp(12)
                         horizontalAlignment: Text.AlignRight
                         verticalAlignment: Text.AlignVCenter
@@ -71,7 +71,7 @@ Item {
                     // Vertical grid line
                     Rectangle {
                         anchors.fill: parent
-                        color: root.isDark ? "#3A3A5A" : "#E0E0E8"
+                        color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                         visible: index > 0 // hide the 0 line to avoid overlapping the axis
                     }
 
@@ -81,7 +81,7 @@ Item {
                         anchors.topMargin: units.dp(6)
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: ChartUtils.formatHours(root.maxHours * (index / 4))
-                        color: root.isDark ? "#8888AA" : "#888899"
+                        color: Theme.palette.normal.backgroundText
                         font.pixelSize: units.dp(10)
                     }
                 }
@@ -93,7 +93,7 @@ Item {
                 anchors.top: parent.top
                 height: parent.height - units.gu(3)
                 width: units.dp(2)
-                color: root.isDark ? "#555577" : "#AAAAAA"
+                color: Theme.palette.normal.backgroundText
                 z: 1
             }
 
@@ -139,7 +139,7 @@ Item {
                             anchors.leftMargin: Math.max(units.dp(2), parent.width * fraction) + units.dp(8)
                             anchors.verticalCenter: parent.verticalCenter
                             text: ChartUtils.formatHours(modelData.totalHours || 0)
-                            color: root.isDark ? "#FFFFFF" : "#1A1A2E"
+                            color: Theme.palette.normal.baseText
                             font.pixelSize: units.dp(11)
                             font.bold: true
                             opacity: 0.8
