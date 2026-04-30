@@ -17,20 +17,24 @@ Item {
 
     Column {
         id: layout
-        anchors.fill: parent
-        anchors.margins: units.gu(2)
-        spacing: units.gu(1.5)
+        width: parent.width - units.gu(4)
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: units.gu(2)
+        spacing: units.gu(2.5)
 
         Repeater {
             model: root.tasksData
 
             Item {
                 width: parent.width
-                height: units.gu(4)
+                height: units.gu(4.5)
 
                 property real maxHours: ChartUtils.maxTaskHours(root.tasksData)
                 property real fraction: maxHours > 0 ? (Number(modelData.totalHours || 0) / maxHours) : 0
                 property bool isHighlighted: root.highlightedIndex < 0 || root.highlightedIndex === index
+                // Generate a vibrant distinct color for each task bar using the golden angle
+                property color barColor: Qt.hsla( (index * 137.5) % 360 / 360.0, 0.75, Theme.name === "Ubuntu.Components.Themes.SuruDark" ? 0.6 : 0.5, 1.0 )
 
                 RowLayout {
                     anchors.fill: parent
@@ -41,7 +45,7 @@ Item {
                         Layout.preferredWidth: units.gu(14)
                         text: modelData.name || ""
                         color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : Theme.palette.normal.baseText
-                        font.pixelSize: units.dp(13)
+                        font.pixelSize: units.dp(14)
                         elide: Text.ElideRight
                         opacity: isHighlighted ? 1.0 : 0.6
                     }
@@ -49,7 +53,7 @@ Item {
                     // Bar Track
                     Item {
                         Layout.fillWidth: true
-                        height: units.gu(1)
+                        height: units.gu(1.5)
                         
                         Rectangle {
                             anchors.fill: parent
@@ -63,7 +67,7 @@ Item {
                             height: parent.height
                             width: Math.max(height, parent.width * fraction)
                             radius: height / 2
-                            color: root.accentColour
+                            color: barColor
                             opacity: isHighlighted ? 1.0 : 0.6
 
                             Behavior on width {
@@ -78,7 +82,7 @@ Item {
                         text: ChartUtils.formatHours(Number(modelData.totalHours || 0))
                         color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : Theme.palette.normal.baseText
                         font.bold: true
-                        font.pixelSize: units.dp(13)
+                        font.pixelSize: units.dp(14)
                         horizontalAlignment: Text.AlignRight
                         opacity: isHighlighted ? 1.0 : 0.6
                     }
@@ -93,8 +97,8 @@ Item {
                         anchors.fill: parent
                         anchors.margins: -units.gu(0.5)
                         radius: units.gu(0.5)
-                        color: root.accentColour
-                        opacity: parent.pressed ? 0.1 : 0.0
+                        color: barColor
+                        opacity: parent.pressed ? 0.15 : 0.0
                         
                         Behavior on opacity { NumberAnimation { duration: 150 } }
                     }
