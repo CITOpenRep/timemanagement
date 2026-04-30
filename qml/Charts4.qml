@@ -1,147 +1,209 @@
-/*
- * MIT License
- *
- * Copyright (c) 2025 CIT-Services
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
-import QtQuick 2.7
+// Chart 4 compatibility wrapper that adapts dashboard data into the new drilldown flow.
+import QtQuick 2.12
 import Lomiri.Components 1.3
-import QtCharts 2.0
-import QtQuick.Layouts 1.11
-import Qt.labs.settings 1.0
-import "../models/Main.js" as Model
+import "../models/project.js" as ProjectModel
+import "../models/task.js" as TaskModel
+import "../models/timesheet.js" as TimesheetModel
+import "../models/utils.js" as Utils
 
-/**************************
-* Taskwise graph
-* This is a Bar Chart for Taskwise Time Spent
-* It is only visible in Convergence Mode
-* Todo : The Chart Files need to be revisited and Merged in a Single File with all the Different Charts.
-**************************/
-Rectangle {
-    id: rect5
-    //        anchors.top: rect4.bottom
-    width: parent.width
-    height: units.gu(40)
-    color: "transparent"
+Item {
+    id: root
+
+    width: parent ? parent.width : units.gu(48)
+    height: parent ? parent.height : units.gu(40)
+
+    property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
+    property var projectsModel: []
 
     function reloadData() {
-        chart4.reloadData();
+        projectsModel = buildProjectsModel();
     }
 
-    ChartView {
-        id: chart4
-        title: "Taskwise Time Spent"
-        titleColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+    function buildProjectsModel() {
+        var accountId = selectedAccountId;
+        var projectRows = accountId === -1 ? ProjectModel.getAllProjects() : ProjectModel.getProjectsForAccount(accountId);
+        var taskRows = accountId === -1 ? TaskModel.getAllTasks() : TaskModel.getTasksForAccount(accountId);
+        var aggregateByProject = {};
+        var topLevelProjects = [];
+        var seenProjectKeys = {};
+
+        for (var i = 0; i < taskRows.length; i++) {
+            var task = taskRows[i];
+            if (!task || task.parent_id > 0) {
+                continue;
+            }
+
+            var projectKey = String(task.account_id) + ":" + String(task.project_id);
+            if (!aggregateByProject[projectKey]) {
+                aggregateByProject[projectKey] = {
+                    taskCount: 0,
+                    totalHours: 0
+                };
+            }
+
+            aggregateByProject[projectKey].taskCount += 1;
+            aggregateByProject[projectKey].totalHours += Number(task.spent_hours || 0);
+        }
+
+        for (var j = 0; j < projectRows.length; j++) {
+            var project = projectRows[j];
+            if (!project || project.parent_id > 0) {
+                continue;
+            }
+
+            var uniqueKey = String(project.account_id) + ":" + String(project.odoo_record_id);
+            if (seenProjectKeys[uniqueKey]) {
+                continue;
+            }
+            seenProjectKeys[uniqueKey] = true;
+
+            var aggregate = aggregateByProject[uniqueKey] || { taskCount: 0, totalHours: 0 };
+            topLevelProjects.push({
+                id: uniqueKey,
+                accountId: project.account_id,
+                odooRecordId: project.odoo_record_id,
+                localId: project.id,
+                name: project.name || i18n.dtr("ubtms", "Unnamed project"),
+                colour: normalizeProjectColour(project.color_pallet),
+                taskCount: aggregate.taskCount,
+                totalHours: Number(aggregate.totalHours || 0),
+                tasks: [],
+                _tasksLoaded: false
+            });
+        }
+
+        return topLevelProjects;
+    }
+
+    function loadTasksForProject(projectId) {
+        var project = findProject(projectId);
+        if (!project) {
+            return [];
+        }
+
+        var taskRows = TaskModel.getTasksForProject(project.odooRecordId, project.accountId);
+        var mappedTasks = [];
+
+        for (var i = 0; i < taskRows.length; i++) {
+            var task = taskRows[i];
+            if (!task || task.parent_id > 0) {
+                continue;
+            }
+
+            var assignee = Utils.getTaskAssignerName(project.accountId, task.id);
+            mappedTasks.push({
+                id: String(project.id) + ":" + String(task.odoo_record_id),
+                localId: task.id,
+                odooRecordId: task.odoo_record_id,
+                projectId: project.id,
+                name: task.name || i18n.dtr("ubtms", "Unnamed task"),
+                totalHours: Number(task.spent_hours || 0),
+                description: task.description || "",
+                assignee: assignee || i18n.dtr("ubtms", "Unassigned"),
+                status: task.state || task.status || i18n.dtr("ubtms", "Unknown"),
+                projectName: project.name,
+                logs: [],
+                _logsLoaded: false
+            });
+        }
+
+        project.tasks = mappedTasks;
+        project._tasksLoaded = true;
+        project.taskCount = mappedTasks.length;
+
+        return mappedTasks;
+    }
+
+    function loadLogsForTask(projectId, taskId) {
+        var project = findProject(projectId);
+        var task = findTask(project, taskId);
+        if (!project || !task) {
+            return [];
+        }
+
+        var timesheets = TimesheetModel.getTimesheetsForTask(task.odooRecordId, project.accountId, "all");
+        var logs = [];
+
+        for (var i = 0; i < timesheets.length; i++) {
+            var entry = timesheets[i];
+            logs.push({
+                id: entry.id,
+                date: toIsoDate(entry.date),
+                hours: parseHours(entry.spentHours),
+                note: entry.name || ""
+            });
+        }
+
+        task.logs = logs;
+        task._logsLoaded = true;
+        return logs;
+    }
+
+    function findProject(projectId) {
+        for (var i = 0; i < projectsModel.length; i++) {
+            if (projectsModel[i].id === projectId) {
+                return projectsModel[i];
+            }
+        }
+        return null;
+    }
+
+    function findTask(project, taskId) {
+        if (!project || !project.tasks) {
+            return null;
+        }
+
+        for (var i = 0; i < project.tasks.length; i++) {
+            if (project.tasks[i].id === taskId) {
+                return project.tasks[i];
+            }
+        }
+        return null;
+    }
+
+    function normalizeProjectColour(colourValue) {
+        if (typeof colourValue === "string" && colourValue.indexOf("#") === 0) {
+            return colourValue;
+        }
+        return Theme.palette.selected.background;
+    }
+
+    function toIsoDate(dateValue) {
+        if (!dateValue) {
+            return "";
+        }
+
+        var stringValue = String(dateValue);
+        return stringValue.length >= 10 ? stringValue.slice(0, 10) : stringValue;
+    }
+
+    function parseHours(hoursValue) {
+        if (typeof hoursValue === "number") {
+            return hoursValue;
+        }
+
+        if (!hoursValue) {
+            return 0;
+        }
+
+        var text = String(hoursValue);
+        if (text.indexOf(":") !== -1) {
+            var parts = text.split(":");
+            var hours = Number(parts[0] || 0);
+            var minutes = Number(parts[1] || 0);
+            return hours + (minutes / 60);
+        }
+
+        return Number(text) || 0;
+    }
+
+    TaskTimeChart {
+        id: chartFlow
         anchors.fill: parent
-        
-        // No built-in theme so it doesn't override our custom transparent background
-        
-        legend.alignment: Qt.AlignBottom
-        antialiasing: true
-
-        backgroundColor: "transparent"
-
-        legend.labelColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
-        legend.font.pixelSize: units.gu(3)
-
-        BarSeries {
-            id: mySeries2
-            onHovered: {
-                if (status) {
-                    var cat = mySeries2.axisX.categories[index];
-                    var val = barset.at(index);
-                    hoverText.text = cat + " — " + Number(val).toFixed(1) + i18n.dtr("ubtms", " hrs");
-
-                    var barCount = mySeries2.axisX.categories.length;
-                    var intendedX = chart4.plotArea.x + (index + 0.5) * (chart4.plotArea.width / barCount) - hoverInfo.width / 2;
-                    if (intendedX < 0) intendedX = units.gu(1);
-                    if (intendedX + hoverInfo.width > chart4.width) intendedX = chart4.width - hoverInfo.width - units.gu(1);
-                    hoverInfo.x = intendedX;
-                    var intendedY = chart4.plotArea.y + units.gu(1);
-                    hoverInfo.y = intendedY;
-                } else {
-                    hoverText.text = "";
-                }
-            }
-            axisY: ValueAxis {
-                min: 0
-                max: 50
-                tickCount: 5
-                labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
-                gridLineColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#ddd"
-            }
-            axisX: BarCategoryAxis {
-                labelsColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
-                gridLineColor: "transparent"
-            }
-        }
-
-        function reloadData() {
-            if (typeof parent.get_task_chart_data === 'function') parent.get_task_chart_data();
-            else if (typeof get_task_chart_data === 'function') get_task_chart_data();
-
-            mySeries2.clear();
-            var t_cat = typeof task_timecat !== 'undefined' ? task_timecat : [];
-            var t_task = typeof task !== 'undefined' ? task : [];
-
-            if (t_cat && t_cat.length > 0) {
-                var barSet = mySeries2.append(i18n.dtr("ubtms", "Time"), t_cat);
-                if (barSet) {
-                    // Assign a new color here to replace orange
-                    barSet.color = LomiriColors.blue;
-                    barSet.borderColor = "transparent";
-                }
-                mySeries2.axisX.categories = t_task;
-            } else {
-                mySeries2.axisX.categories = [""];
-            }
-        }
-
-        Component.onCompleted: reloadData()
-
-        Rectangle {
-            id: hoverInfo
-            width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(4))
-            height: hoverText.implicitHeight + units.gu(1.5)
-            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
-            border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
-            border.width: 1
-            radius: units.gu(0.5)
-            opacity: hoverText.text !== "" ? 0.95 : 0.0
-            Behavior on opacity { NumberAnimation { duration: 150 } }
-            Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-            Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-            z: 100
-
-            Label {
-                id: hoverText
-                anchors.centerIn: parent
-                width: parent.width - units.gu(2)
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.Wrap
-                text: ""
-                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
-                font.weight: Font.Light
-                font.pixelSize: units.gu(2)
-            }
-        }
+        projectsModel: root.projectsModel
+        projectTasksProvider: root.loadTasksForProject
+        taskLogsProvider: root.loadLogsForTask
     }
+
+    Component.onCompleted: reloadData()
 }
