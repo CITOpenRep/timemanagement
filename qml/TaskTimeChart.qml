@@ -235,7 +235,7 @@ Item {
                     TextField {
                         anchors.fill: parent
                         anchors.margins: units.dp(2)
-                        placeholderText: i18n.dtr("ubtms", "🔍  Search projects...")
+                        placeholderText: i18n.dtr("ubtms", "Search projects...")
                         text: root.portfolioSearchText
                         onTextChanged: root.portfolioSearchText = text
                         onActiveFocusChanged: {
