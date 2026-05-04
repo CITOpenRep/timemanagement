@@ -27,14 +27,15 @@ import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import QtQml.Models 2.3
-import "../models/timesheet.js" as Model
-import "../models/timesheet.js" as Timesheet
-import "../models/project.js" as Project
-import "../models/task.js" as Task
-import "../models/utils.js" as Utils
-import "../models/accounts.js" as Account
-import "../models/global.js" as Global
-import "components"
+import "../../../../models/timesheet.js" as Model
+import "../../../../models/timesheet.js" as Timesheet
+import "../../../../models/project.js" as Project
+import "../../../../models/task.js" as Task
+import "../../../../models/utils.js" as Utils
+import "../../../../models/accounts.js" as Account
+import "../../../../models/global.js" as Global
+import "../../../components"
+import "../components"
 
 Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false

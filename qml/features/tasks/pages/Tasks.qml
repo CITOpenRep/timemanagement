@@ -30,16 +30,17 @@ import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
-import "../models/task.js" as Task
-import "../models/timesheet.js" as Timesheet
-import "../models/utils.js" as Utils
-import "../models/global.js" as Global
-import "../models/activity.js" as Activity
-import "../models/accounts.js" as Accounts
-import "../models/timer_service.js" as TimerService
+import "../../../../models/task.js" as Task
+import "../../../../models/timesheet.js" as Timesheet
+import "../../../../models/utils.js" as Utils
+import "../../../../models/global.js" as Global
+import "../../../../models/activity.js" as Activity
+import "../../../../models/accounts.js" as Accounts
+import "../../../../models/timer_service.js" as TimerService
 
-import "components"
-import "components/richtext"
+import "../../../components"
+import "../../../components/richtext"
+import "../components"
 
 Page {
     id: taskCreate
@@ -1156,7 +1157,7 @@ Page {
                          //   console.log(contentToPass);
                             Global.description_temporary_holder = contentToPass;
                             description_text.liveSyncActive = true;
-                            apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
+                            apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 parentDraftHandler: draftHandler // Pass draft handler reference
                             });
@@ -1273,7 +1274,7 @@ Page {
                 onClicked: {
                     let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
                     if (result.success) {
-                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Activities.qml"), {
+                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Activities.qml"), {
                             "recordid": result.record_id,
                             "accountid": currentTask.account_id,
                             "isReadOnly": false
@@ -1298,7 +1299,7 @@ Page {
                 text: i18n.dtr("ubtms", "View")
                 onClicked: {
                     console.log("Viewing activities for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
-                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Activity_Page.qml"), {
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Activity_Page.qml"), {
                         "filterByTasks": true,
                         "taskOdooRecordId": currentTask.odoo_record_id,
                         "projectAccountId": currentTask.account_id,
@@ -1334,7 +1335,7 @@ Page {
                     // createTimesheetFromTask expects only the task's odoo_record_id
                     const result = Timesheet.createTimesheetFromTask(currentTask.odoo_record_id);
                     if (result.success) {
-                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Timesheet.qml"), {
+                        apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Timesheet.qml"), {
                             "recordid": result.id,
                             "isReadOnly": false
                         });
@@ -1359,7 +1360,7 @@ Page {
                 text: i18n.dtr("ubtms", "View")
                 onClicked: {
                     console.log("Viewing timesheets for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
-                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("Timesheet_Page.qml"), {
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Timesheet_Page.qml"), {
                         "filterByTask": true,
                         "taskOdooRecordId": currentTask.odoo_record_id,
                         "taskAccountId": currentTask.account_id,

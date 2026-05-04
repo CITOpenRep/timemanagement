@@ -23,12 +23,13 @@
 */
 import QtQuick 2.12
 import QtQuick.Controls 2.2
-import "../../models/constants.js" as AppConst
-import "../../models/utils.js" as Utils
-import "../../models/timesheet.js" as Timesheet
-import "../../models/timer_service.js" as TimerService
-import "../../models/task.js" as Task
-import "../../models/accounts.js" as Account
+import "../../../../models/constants.js" as AppConst
+import "../../../../models/utils.js" as Utils
+import "../../../../models/timesheet.js" as Timesheet
+import "../../../../models/timer_service.js" as TimerService
+import "../../../../models/task.js" as Task
+import "../../../../models/accounts.js" as Account
+import "../../../components"
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import QtQuick.Layouts 1.1

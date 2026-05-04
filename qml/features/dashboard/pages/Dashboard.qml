@@ -241,7 +241,7 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Tasks.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
                 });
@@ -525,7 +525,7 @@ Page {
         // Handle navigation from notification clicks
         onNavigateToRecord: {
             if (navType === "Task" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Tasks.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
