@@ -117,6 +117,7 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+        anchors.bottomMargin: Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0
         contentWidth: parent.width
         contentHeight: contentColumn.height + units.gu(4)
         flickableDirection: Flickable.VerticalFlick
@@ -149,20 +150,20 @@ Page {
                 Loader {
                     id: load3
                     anchors.fill: parent
-                    source: "../../../Charts3.qml"
+                    source: "../charts/Charts3.qml"
                 }
             }
 
             Rectangle {
                 width: parent.width - units.gu(2)
-                height: load4.item ? load4.item.height : units.gu(40)
+                height: load4.item ? load4.item.implicitHeight : units.gu(80)
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: "transparent"
 
                 Loader {
                     id: load4
                     anchors.fill: parent
-                    source: "../../../Charts4.qml"
+                    source: "../charts/Charts4.qml"
                 }
             }
 
@@ -172,13 +173,7 @@ Page {
             }
         }
 
-        onFlickEnded: {
-            load3.active = false;
-            load4.active = false;
-            //  console.log("Flickable flick ended");
-            load3.active = true;
-            load4.active = true;
-        }
+
     }
 
     Scrollbar {

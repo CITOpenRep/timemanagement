@@ -387,7 +387,9 @@ Page {
                     Controls.SwipeView {
                         id: mobileChartsView
                         width: parent.width
-                        height: currentIndex === 0 ? projectchart.implicitHeight : units.gu(40)
+                        height: currentIndex === 0 ? projectchart.implicitHeight
+                               : currentIndex === 2 && mobileTaskChartLoader.item ? mobileTaskChartLoader.item.implicitHeight
+                               : units.gu(40)
                         currentIndex: 0
                         interactive: !isMultiColumn
                         clip: true
@@ -410,7 +412,7 @@ Page {
                                 id: mobileProjectChartLoader
                                 anchors.fill: parent
                                 active: !isMultiColumn && mobileChartsView.currentIndex === 1
-                                source: "../../../Charts3.qml"
+                                source: "../charts/Charts3.qml"
                             }
                         }
 
@@ -419,7 +421,7 @@ Page {
                                 id: mobileTaskChartLoader
                                 anchors.fill: parent
                                 active: !isMultiColumn && mobileChartsView.currentIndex === 2
-                                source: "../../../Charts4.qml"
+                                source: "../charts/Charts4.qml"
                             }
                         }
                     }
