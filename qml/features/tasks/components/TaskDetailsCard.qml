@@ -238,7 +238,7 @@ ListItem {
             },
             Action {
                 id: playpauseaction
-                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../images/play.png" : "../images/pause.png") : "../images/play.png"
+                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../../../images/play.png" : "../../../images/pause.png") : "../../../images/play.png"
                 visible: recordId > 0
                 text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
@@ -248,7 +248,7 @@ ListItem {
             Action {
                 id: startstopaction
                 visible: recordId > 0
-                iconSource: "../images/stop.png"
+                iconSource: "../../../images/stop.png"
                 text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     stop_workflow();
@@ -489,7 +489,7 @@ ListItem {
                                     model: 3 // 3 stars for priority levels 1-3
 
                                     Image {
-                                        source: (index + 1) <= taskCard.priority ? "../images/star.png" : "../images/star-inactive.png"
+                                        source: (index + 1) <= taskCard.priority ? "../../../images/star.png" : "../../../images/star-inactive.png"
                                         fillMode: Image.PreserveAspectFit
                                         width: units.gu(1.5)
                                         height: units.gu(1.5)

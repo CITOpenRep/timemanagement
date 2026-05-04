@@ -66,7 +66,7 @@ Page {
 
         trailingActionBar.actions: [
             Action {
-                iconSource: "images/save.svg"
+                iconSource: "../../../images/save.svg"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms", "Save")
                 onTriggered: {
@@ -655,14 +655,19 @@ Page {
                 return false;
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
-                
-                // Clear draft after successful save
-                draftHandler.clearDraft();
-                
-                // Format the hours display after successful save
+
+                // Prevent programmatic UI normalization from creating a fresh draft.
+                draftHandler.trackingSuspended = true;
+
+                // Format the hours display after successful save.
                 if (hours_input.text !== "") {
                     hours_input.text = formatHoursDisplay(hours_input.text);
                 }
+
+                // Clear any persisted draft and reset the clean baseline to the saved state.
+                draftHandler.clearDraft();
+                draftHandler.updateOriginalData(getCurrentFormData());
+                draftHandler.trackingSuspended = false;
                 
                 // Navigate back to list view after successful save (unless skipNavigation is true)
                 if (!skipNavigation) {
@@ -1044,7 +1049,7 @@ Page {
                         Image {
                             id: priorityStar
                             property int starIndex: index
-                            source: ((index + 1) <= taskCreate.priority) ? "../qml/images/star.png" : "../qml/images/star-inactive.png"
+                            source: ((index + 1) <= taskCreate.priority) ? "../../../images/star.png" : "../../../images/star-inactive.png"
                             width: units.gu(3.5)
                             height: units.gu(3.5)
                             opacity: isReadOnly ? 0.7 : 1.0
