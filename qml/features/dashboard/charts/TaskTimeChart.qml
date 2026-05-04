@@ -2,7 +2,8 @@
 import QtQuick 2.12
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.12
-import "chartUtils.js" as ChartUtils
+import "../components" as DashboardComponents
+import "../js/chartUtils.js" as ChartUtils
 
 Item {
     id: root
@@ -304,7 +305,7 @@ Item {
                     spacing: units.gu(1.2)
                     model: root.visibleProjects
 
-                    delegate: ProjectCard {
+                    delegate: DashboardComponents.ProjectCard {
                         width: ListView.view.width
                         projectData: modelData.projectData
                         maxHours: Math.max(root.portfolioMaxHours, 0.1)
@@ -418,7 +419,7 @@ Item {
                     border.color: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
                     border.width: units.dp(1)
 
-                    TaskChartCanvas {
+                    DashboardComponents.TaskChartCanvas {
                         id: taskChart
                         anchors.fill: parent
                         anchors.margins: units.gu(2)
@@ -439,7 +440,7 @@ Item {
                     spacing: units.gu(1)
                     model: root.showAllTasks ? root.selectedProjectTasks : root.selectedProjectTasks.slice(0, 8)
 
-                    delegate: TaskRow {
+                    delegate: DashboardComponents.TaskRow {
                         width: ListView.view.width
                         taskData: modelData
                         projectTotalHours: root.selectedProject ? root.selectedProject.totalHours : 0
