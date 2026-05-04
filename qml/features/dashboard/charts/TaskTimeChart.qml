@@ -35,8 +35,17 @@ Item {
     readonly property color summaryAccentTextColor: root.isDark ? root.activeAccent : Qt.darker(root.activeAccent, 1.8)
     readonly property color summaryPrimaryTextColor: root.isDark ? Theme.palette.normal.baseText : Qt.darker(Theme.palette.normal.baseText, 1.35)
 
-    // Accent color from the selected project, or fallback to the orange theme
-    readonly property color activeAccent: selectedProject && selectedProject.colour ? selectedProject.colour : "#E95420"
+    // Accent color from the selected project, or fallback to the orange theme.
+    // Guard against white / near-white colours that become invisible in light mode.
+    readonly property color activeAccent: {
+        if (selectedProject && selectedProject.colour) {
+            var c = Qt.darker(selectedProject.colour, 1.0);
+            if (c.r > 0.85 && c.g > 0.85 && c.b > 0.85)
+                return "#E95420";
+            return selectedProject.colour;
+        }
+        return "#E95420";
+    }
 
     function openProject(projectData) {
         if (!projectData) return;

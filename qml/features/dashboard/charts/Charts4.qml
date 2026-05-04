@@ -164,9 +164,15 @@ Item {
 
     function normalizeProjectColour(colourValue) {
         if (typeof colourValue === "string" && colourValue.indexOf("#") === 0) {
+            // Reject white / near-white colours that become invisible in light mode
+            var c = Qt.darker(colourValue, 1.0); // parse to a Qt color
+            // Perceived lightness: if all RGB channels are very high, fall back
+            if (c.r > 0.85 && c.g > 0.85 && c.b > 0.85) {
+                return "#E95420";
+            }
             return colourValue;
         }
-        return Theme.palette.selected.background;
+        return "#E95420";
     }
 
     function toIsoDate(dateValue) {

@@ -13,7 +13,13 @@ Item {
     signal clicked()
 
     readonly property bool isDark: Theme.name === "Ubuntu.Components.Themes.SuruDark"
-    readonly property color projectColor: projectData.colour || "#E95420"
+    readonly property color projectColor: {
+        var raw = projectData.colour || "#E95420";
+        var c = Qt.darker(raw, 1.0);
+        if (c.r > 0.85 && c.g > 0.85 && c.b > 0.85)
+            return "#E95420";
+        return raw;
+    }
 
     width: parent ? parent.width : units.gu(40)
     implicitHeight: units.gu(11)
