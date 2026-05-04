@@ -1,10 +1,10 @@
 // Chart 4 compatibility wrapper that adapts dashboard data into the new drilldown flow.
 import QtQuick 2.12
 import Lomiri.Components 1.3
-import "../models/project.js" as ProjectModel
-import "../models/task.js" as TaskModel
-import "../models/timesheet.js" as TimesheetModel
-import "../models/utils.js" as Utils
+import "../../../models/project.js" as ProjectModel
+import "../../../models/task.js" as TaskModel
+import "../../../models/timesheet.js" as TimesheetModel
+import "../../../models/utils.js" as Utils
 
 Item {
     id: root

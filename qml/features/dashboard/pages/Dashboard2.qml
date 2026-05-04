@@ -150,7 +150,7 @@ Page {
                 Loader {
                     id: load3
                     anchors.fill: parent
-                    source: "../../../Charts3.qml"
+                    source: "../Charts3.qml"
                 }
             }
 
@@ -163,7 +163,7 @@ Page {
                 Loader {
                     id: load4
                     anchors.fill: parent
-                    source: "../../../Charts4.qml"
+                    source: "../Charts4.qml"
                 }
             }
 

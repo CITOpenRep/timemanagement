@@ -27,7 +27,7 @@ import Lomiri.Components 1.3
 import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
-import "../models/Main.js" as Model
+import "../../../models/Main.js" as Model
 
 /*
 Todo : The Chart Files need to be revisited and Merged in a Single File with all the Different Charts

@@ -412,7 +412,7 @@ Page {
                                 id: mobileProjectChartLoader
                                 anchors.fill: parent
                                 active: !isMultiColumn && mobileChartsView.currentIndex === 1
-                                source: "../../../Charts3.qml"
+                                source: "../Charts3.qml"
                             }
                         }
 
@@ -421,7 +421,7 @@ Page {
                                 id: mobileTaskChartLoader
                                 anchors.fill: parent
                                 active: !isMultiColumn && mobileChartsView.currentIndex === 2
-                                source: "../../../Charts4.qml"
+                                source: "../Charts4.qml"
                             }
                         }
                     }
