@@ -248,48 +248,48 @@ Rectangle {
         expectedDeferredLoads = 0;
 
         // Count expected loads
-        if (accountId !== -1)
+        if (showAccountSelector && accountId !== -1)
             expectedDeferredLoads++;
-        if (accountId !== -1)
+        if (showProjectSelector && accountId !== -1)
             expectedDeferredLoads++; // Projects
-        if (accountId !== -1 && projectId !== -1)
+        if (showSubProjectSelector && accountId !== -1 && projectId !== -1)
             expectedDeferredLoads++; // Subprojects
-        if (accountId !== -1 && (projectId !== -1 || subProjectId !== -1))
+        if (showTaskSelector && accountId !== -1 && (projectId !== -1 || subProjectId !== -1))
             expectedDeferredLoads++; // Tasks
-        if (accountId !== -1 && taskId !== -1)
+        if (showSubTaskSelector && accountId !== -1 && taskId !== -1)
             expectedDeferredLoads++; // Subtasks
-        if (accountId !== -1)
+        if (showAssigneeSelector && accountId !== -1)
             expectedDeferredLoads++; // Assignees
 
 
-        if (accountId !== -1) {
+        if (showAccountSelector && accountId !== -1) {
             loadAccounts(accountId);
         }
 
         // Load Projects under account with selected projectId
-        if (accountId !== -1) {
+        if (showProjectSelector && accountId !== -1) {
             loadProjects(accountId, projectId);
         }
 
         // Load Subprojects under project with selected subProjectId
-        if (accountId !== -1 && projectId !== -1) {
+        if (showSubProjectSelector && accountId !== -1 && projectId !== -1) {
             loadSubProjects(accountId, projectId, subProjectId);
         }
 
         // Load Tasks under project/subproject with selected taskId
-        if (accountId !== -1 && (projectId !== -1 || subProjectId !== -1)) {
+        if (showTaskSelector && accountId !== -1 && (projectId !== -1 || subProjectId !== -1)) {
             // Use subproject ID if available, otherwise use project ID
             var parentIdForTasks = subProjectId !== -1 ? subProjectId : projectId;
             loadTasks(accountId, parentIdForTasks, taskId);
         }
 
         // Load Subtasks under task with selected subTaskId
-        if (accountId !== -1 && taskId !== -1) {
+        if (showSubTaskSelector && accountId !== -1 && taskId !== -1) {
             loadSubTasks(accountId, taskId, subTaskId);
         }
 
         // Load Assignees with selected assigneeId
-        if (accountId !== -1) {
+        if (showAssigneeSelector && accountId !== -1) {
             loadAssignees(accountId, assigneeId);
 
             // Also load assignees for MultiAssigneeSelector if enabled
@@ -977,4 +977,3 @@ responsibilities, and how data flows between the selectors.
 Last updated: [2025-07-01]
 ---------------------------------
 */
-

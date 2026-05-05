@@ -616,10 +616,9 @@ Page {
         Row {
             id: myRow1a
             width: parent.width
-            height: workItem.height + units.gu(1)
-            topPadding: units.gu(5)
-            z: 999
+            height: workItemColumn.implicitHeight
             Column {
+                id: workItemColumn
                 leftPadding: units.gu(1)
 
                 WorkItemSelector {
@@ -697,7 +696,7 @@ Page {
             id: taskNameField
             availableWidth: parent.width
             isReadOnly: taskCreate.isReadOnly
-            onTextChanged: {
+            onNameEdited: {
                 if (draftHandler.enabled) {
                     draftHandler.markFieldChanged("name", newText);
                 }
@@ -959,13 +958,15 @@ Page {
                 console.log("Task has no personal stage set");
             }
 
-            // Load multiple assignees if enabled
-            if (workItem.enableMultipleAssignees) {
-                var existingAssignees = Task.getTaskAssignees(recordid, instanceId);
-                workItem.setMultipleAssignees(existingAssignees);
-            }
+            Qt.callLater(function() {
+                // Defer secondary data so the main form renders first.
+                if (workItem.enableMultipleAssignees) {
+                    var existingAssignees = Task.getTaskAssignees(recordid, instanceId);
+                    workItem.setMultipleAssignees(existingAssignees);
+                }
 
-            attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id, currentTask.account_id));
+                attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id, currentTask.account_id));
+            });
         } else {
             // We are creating a new task
             workItem.loadAccounts();
