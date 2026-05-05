@@ -30,6 +30,7 @@ Rectangle {
     // Add counter to track when all deferred loading is complete
     property int deferredLoadingCounter: 0
     property int expectedDeferredLoads: 0
+    property var taskSelectorCacheByAccount: ({})
 
     // Watch for readOnly property changes and update all selectors
     onReadOnlyChanged: {
@@ -533,7 +534,8 @@ Rectangle {
     function loadTasks(accountId, projectIdOrSubprojectId, selectedId = -1) {
         // console.log("Loading tasks for account:", accountId, "parentId (project/subproject):", projectIdOrSubprojectId, "selectedId:", selectedId);
 
-        const rawTasks = Task.getTasksForAccount(accountId);
+        const rawTasks = taskSelectorCacheByAccount[accountId] || Task.getTaskSelectorDataForAccount(accountId);
+        taskSelectorCacheByAccount[accountId] = rawTasks;
         let taskList = [];
 
         // Always add "No Task" entry
@@ -608,7 +610,8 @@ Rectangle {
     }
 
     function loadSubTasks(accountId, parentTaskId, selectedId = -1) {
-        const rawTasks = Task.getTasksForAccount(accountId);
+        const rawTasks = taskSelectorCacheByAccount[accountId] || Task.getTaskSelectorDataForAccount(accountId);
+        taskSelectorCacheByAccount[accountId] = rawTasks;
         let subTaskList = [];
 
         // Always add "No Subtask" entry

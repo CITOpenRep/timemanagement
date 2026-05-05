@@ -283,11 +283,13 @@ Page {
     function finishDraftRestoration() {
         Qt.callLater(function() {
             isRestoringFromDraft = false;
+            draftHandler.trackingSuspended = false;
         });
     }
 
     function restoreFormFromDraft(draftData) {
         isRestoringFromDraft = true;
+        draftHandler.trackingSuspended = true;
         
         if (draftData.name) taskNameField.text = draftData.name;
         if (draftData.description) description_text.setContent(draftData.description);
@@ -391,9 +393,33 @@ Page {
             
             // Initialize draft handler when switching from read-only to edit mode
             // This ensures drafts are loaded if they exist
-            var originalTaskData = getCurrentFormData();
-            draftHandler.initialize(originalTaskData);
+            draftHandler.trackingSuspended = true;
+            Qt.callLater(function() {
+                var originalTaskData = getCurrentFormData();
+                draftHandler.initialize(originalTaskData);
+                if (!draftHandler.currentDraftId) {
+                    draftHandler.trackingSuspended = false;
+                }
+            });
         }
+    }
+
+    function finalizeInitialFormSetup() {
+        Qt.callLater(function() {
+            Qt.callLater(function() {
+                formFullyInitialized = true;
+
+                if (!isReadOnly) {
+                    var originalTaskData = getCurrentFormData();
+                    draftHandler.initialize(originalTaskData);
+                    if (!draftHandler.currentDraftId) {
+                        draftHandler.trackingSuspended = false;
+                    }
+                } else {
+                    draftHandler.trackingSuspended = false;
+                }
+            });
+        });
     }
 
     function validateHoursInput(text) {
@@ -883,6 +909,8 @@ Page {
     
 
     function loadTask() {
+        draftHandler.trackingSuspended = true;
+
         if (recordid != 0) // We are loading a task, depends on readonly value it could be for view/edit
         {
             // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
@@ -992,14 +1020,7 @@ Page {
             }
         }
     
-        // Mark form as fully initialized
-        formFullyInitialized = true;
-        
-        // Initialize draft handler AFTER all form fields are populated
-        if (!isReadOnly) {
-            var originalTaskData = getCurrentFormData();
-            draftHandler.initialize(originalTaskData);
-        }
+        finalizeInitialFormSetup();
     }
 
     Component.onCompleted: {

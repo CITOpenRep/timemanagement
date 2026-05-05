@@ -857,6 +857,50 @@ function getTasksForAccount(accountId) {
     }
     return taskList;
 }
+
+/**
+ * Lightweight task list for selector UIs.
+ * Avoids expensive per-task enrichment like project colors and timesheet sums.
+ *
+ * @param {int} accountId - The account identifier (0 for local).
+ * @returns {Array<Object>} - Minimal task records for selectors.
+ */
+function getTaskSelectorDataForAccount(accountId) {
+    const taskList = [];
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            const results = tx.executeSql(
+                "SELECT id, name, account_id, project_id, sub_project_id, parent_id, odoo_record_id " +
+                "FROM project_task_app WHERE account_id = ? AND (status IS NULL OR status != 'deleted') " +
+                "ORDER BY name COLLATE NOCASE ASC",
+                [accountId]
+            );
+
+            for (let i = 0; i < results.rows.length; i++) {
+                const row = results.rows.item(i);
+                taskList.push({
+                    id: row.id,
+                    name: row.name,
+                    account_id: row.account_id,
+                    project_id: row.project_id,
+                    sub_project_id: row.sub_project_id,
+                    parent_id: row.parent_id,
+                    odoo_record_id: row.odoo_record_id
+                });
+            }
+        });
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+    return taskList;
+}
 /**
  * Fetches all tasks for a specific account from the SQLite DB.
  * Matches exact DB column names from the project_task_app schema.
