@@ -36,6 +36,7 @@ Item {
 
     // account used to fetch data; numeric -1 indicates "all accounts"
     property int selectedAccountId: accountPicker.selectedAccountId
+    property bool autoRefreshOnAccountChange: true
 
     // Custom styled title overlay
     Text {
@@ -277,7 +278,7 @@ Item {
 
     // Re-fetch when the account selector changes
     Connections {
-        target: accountPicker
+        target: autoRefreshOnAccountChange ? accountPicker : null
         onAccepted: function (accountId, accountName) {
             refreshForAccount(accountId);
         }

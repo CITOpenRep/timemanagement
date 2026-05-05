@@ -25,8 +25,6 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtCharts 2.0
-import QtQuick.Layouts 1.11
-import Qt.labs.settings 1.0
 import "../../../../models/Main.js" as Model
 
 /**************************
@@ -40,6 +38,8 @@ Rectangle {
     width: parent.width
     height: units.gu(40)
     color: "transparent"
+    property bool autoRefreshOnAccountChange: true
+    property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
 
     function reloadData() {
         chart3.reloadData();
@@ -105,13 +105,17 @@ Rectangle {
         }
 
         function reloadData() {
-            if (typeof parent.get_project_chart_data === 'function') parent.get_project_chart_data();
-            else if (typeof get_project_chart_data === 'function') get_project_chart_data();
+            var t_proj = [];
+            var t_cat = [];
+            var data = Model.get_projects_spent_hours(rect4.selectedAccountId);
+
+            for (var key in data) {
+                t_proj.push(key);
+                t_cat.push(data[key]);
+            }
 
             mySeries.clear();
-            var t_cat = typeof project_timecat !== 'undefined' ? project_timecat : [];
-            var t_proj = typeof project !== 'undefined' ? project : [];
-            
+
             if (t_cat && t_cat.length > 0) {
                 var barSet = mySeries.append(i18n.dtr("ubtms", "Time"), t_cat);
                 if (barSet) {
@@ -125,6 +129,13 @@ Rectangle {
         }
 
         Component.onCompleted: reloadData()
+
+        Connections {
+            target: rect4.autoRefreshOnAccountChange && typeof accountPicker !== "undefined" ? accountPicker : null
+            onAccepted: function (accountId, accountName) {
+                reloadData();
+            }
+        }
         
         Rectangle {
             id: hoverInfo

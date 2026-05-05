@@ -12,6 +12,7 @@ Item {
     width: parent ? parent.width : units.gu(48)
     implicitHeight: chartFlow.implicitHeight
     height: chartFlow.implicitHeight
+    property bool autoRefreshOnAccountChange: true
 
     property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
     property var projectsModel: []
@@ -21,59 +22,18 @@ Item {
     }
 
     function buildProjectsModel() {
-        var accountId = selectedAccountId;
-        var projectRows = accountId === -1 ? ProjectModel.getAllProjects() : ProjectModel.getProjectsForAccount(accountId);
-        var taskRows = accountId === -1 ? TaskModel.getAllTasks() : TaskModel.getTasksForAccount(accountId);
-        var aggregateByProject = {};
-        var topLevelProjects = [];
-        var seenProjectKeys = {};
+        var rows = ProjectModel.getDashboardProjectTaskSummary(selectedAccountId);
 
-        for (var i = 0; i < taskRows.length; i++) {
-            var task = taskRows[i];
-            if (!task) {
-                continue;
-            }
-
-            var projectKey = String(task.account_id) + ":" + String(task.project_id);
-            if (!aggregateByProject[projectKey]) {
-                aggregateByProject[projectKey] = {
-                    taskCount: 0,
-                    totalHours: 0
-                };
-            }
-
-            aggregateByProject[projectKey].taskCount += 1;
-            aggregateByProject[projectKey].totalHours += Number(task.spent_hours || 0);
-        }
-
-        for (var j = 0; j < projectRows.length; j++) {
-            var project = projectRows[j];
+        for (var i = 0; i < rows.length; i++) {
+            var project = rows[i];
             if (!project) {
                 continue;
             }
-
-            var uniqueKey = String(project.account_id) + ":" + String(project.odoo_record_id);
-            if (seenProjectKeys[uniqueKey]) {
-                continue;
-            }
-            seenProjectKeys[uniqueKey] = true;
-
-            var aggregate = aggregateByProject[uniqueKey] || { taskCount: 0, totalHours: 0 };
-            topLevelProjects.push({
-                id: uniqueKey,
-                accountId: project.account_id,
-                odooRecordId: project.odoo_record_id,
-                localId: project.id,
-                name: project.name || i18n.dtr("ubtms", "Unnamed project"),
-                colour: normalizeProjectColour(project.color_pallet),
-                taskCount: aggregate.taskCount,
-                totalHours: Number(aggregate.totalHours || 0),
-                tasks: [],
-                _tasksLoaded: false
-            });
+            project.name = project.name || i18n.dtr("ubtms", "Unnamed project");
+            project.colour = normalizeProjectColour(project.colour);
         }
 
-        return topLevelProjects;
+        return rows;
     }
 
     function loadTasksForProject(projectId) {
@@ -214,4 +174,11 @@ Item {
     }
 
     Component.onCompleted: reloadData()
+
+    Connections {
+        target: root.autoRefreshOnAccountChange && typeof accountPicker !== "undefined" ? accountPicker : null
+        onAccepted: function(accountId, accountName) {
+            reloadData();
+        }
+    }
 }
