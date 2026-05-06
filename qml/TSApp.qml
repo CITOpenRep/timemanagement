@@ -33,6 +33,7 @@ MainView {
     applicationName: "ubtms"
     property bool init: true
     property alias globalTimerWidget: globalWidgets.globalTimerWidget
+    property alias modelDownloadTimerWidget: globalWidgets.modelDownloadTimerWidget
     property alias backend_bridge: globalWidgets.backend_bridge
     property alias imagePreviewer: globalWidgets.imagePreviewer
     property alias accountPicker: globalWidgets.accountPicker

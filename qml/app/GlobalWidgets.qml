@@ -9,6 +9,7 @@ Item {
     property var rootApp
     property alias globalTimerWidget: globalTimerWidget
     property alias backend_bridge: backend_bridge
+    property alias modelDownloadTimerWidget: modelDownloadTimerWidget
     property alias notifPopup: notifPopup
     property alias imagePreviewer: imagePreviewer
     property alias accountPicker: accountPicker
@@ -18,6 +19,17 @@ Item {
 
     GlobalTimerWidget {
         id: globalTimerWidget
+        z: 999
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0
+        visible: false
+        showNotification: function (title, message, type) {
+            notifPopup.open(title, message, type);
+        }
+    }
+
+    ModelDownloadTimerWidget {
+        id: modelDownloadTimerWidget
         z: 999
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0
