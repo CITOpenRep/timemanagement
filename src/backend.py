@@ -22,7 +22,7 @@
 # SOFTWARE.
 
 
-from config import get_all_accounts, initialize_app_settings_db, update_last_synced_at
+from config import get_all_accounts, initialize_app_settings_db, update_last_synced_at, get_setting
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo,sync_ondemand_tables_from_odoo
 from sync_to_odoo import sync_all_to_odoo
@@ -31,7 +31,19 @@ from bus import send
 
 log = setup_logger()
 import os
+import sys
 from pathlib import Path
+import ctypes
+
+# Add root directory and voice_to_text/lib to sys.path
+root_dir = Path(__file__).parent.parent.resolve()
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
+voice_lib = root_dir / "voice_to_text" / "lib"
+if voice_lib.exists() and str(voice_lib) not in sys.path:
+    sys.path.insert(0, str(voice_lib))
+
 import platform
 import urllib3
 import json
@@ -47,6 +59,14 @@ sync_in_progress = False  # Global flag
 urllib3.disable_warnings()
 
 http = urllib3.PoolManager(cert_reqs="CERT_NONE")
+
+# Voice model download state
+download_status = {
+    "in_progress": False,
+    "progress": 0,
+    "message": "",
+    "error": ""
+}
 
 
 def is_file_present(file_path):
@@ -505,3 +525,314 @@ def start_sync_in_background(settings_db, account_id):
         Wrapper function for sync_background to provide a cleaner interface.
     """
     return sync_background(settings_db, account_id)
+
+
+
+# Voice to Text STarts Here
+_voice_stop_event = threading.Event()
+
+def stop_voice_recognition():
+    """Signals the voice recognition thread to stop recording."""
+    log.info("[VOICE] stop_voice_recognition called")
+    _voice_stop_event.set()
+    return True
+
+def get_voice_models_dir():
+    """
+    Returns the writable directory for voice models.
+    On Ubuntu Touch, this is in ~/.local/share/ubtms/voice_models
+    """
+    data_home = os.environ.get('XDG_DATA_HOME')
+    if data_home:
+        base_dir = Path(data_home) / "ubtms"
+    else:
+        base_dir = Path.home() / ".local" / "share" / "ubtms"
+    
+    models_dir = base_dir / "voice_models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    return models_dir
+
+
+def list_installed_models():
+    """
+    Scans for installed Vosk models in both the app directory and writable data directory.
+    Returns a list of dictionaries with model names, paths, and sizes.
+    """
+    # 1. App directory models (Read-only on device)
+    app_models_dir = root_dir / "voice_to_text"
+    
+    # 2. User data directory models (Writable)
+    user_models_dir = get_voice_models_dir()
+    
+    search_paths = [
+        (app_models_dir, "App"),
+        (user_models_dir, "User")
+    ]
+    
+    models = []
+    seen_paths = set()
+    
+    for root_dir_to_scan, source_label in search_paths:
+        if not root_dir_to_scan.exists():
+            continue
+            
+        # Standard Vosk models are directories containing 'am' and 'graph' subdirectories
+        for item in root_dir_to_scan.iterdir():
+            if item.is_dir() and item not in seen_paths:
+                am_dir = item / "am"
+                graph_dir = item / "graph"
+                
+                if am_dir.exists() and graph_dir.exists():
+                    # Map known model IDs to friendly names
+                    known_names = {
+                        "vosk-model-small-en-in-0.4": "Indian English",
+                        "vosk-model-small-en-us-0.15": "US English",
+                        "vosk-model-small-hi-0.22": "Hindi",
+                        "vosk-model-small-de-0.15": "German",
+                        "vosk-model-small-fr-0.22": "French",
+                        "vosk-model-small-es-0.42": "Spanish",
+                        "model": "Indian English" # The bundled one is usually named 'model'
+                    }
+                    
+                    if item.name in known_names:
+                        model_name = known_names[item.name]
+                    else:
+                        # Fallback to cleaning README or using folder name
+                        model_name = item.name
+                        readme_path = item / "README"
+                        if readme_path.exists():
+                            try:
+                                with open(readme_path, 'r') as f:
+                                    first_line = f.readline().strip()
+                                    if first_line:
+                                        clean_name = first_line
+                                        noise_phrases = [
+                                            "for mobile Vosk applications",
+                                            "for Android and iOS",
+                                            "Vosk mobile model",
+                                            "Vosk model",
+                                            "Vosk",
+                                            "model"
+                                        ]
+                                        for phrase in noise_phrases:
+                                            clean_name = clean_name.replace(phrase, "").strip()
+                                        
+                                        if clean_name:
+                                            model_name = clean_name
+                            except Exception as e:
+                                log.error(f"[VOICE] Error reading README for {item.name}: {e}")
+
+                    # Add (Default) suffix for bundled models
+                    display_name = model_name
+                    if source_label == "App":
+                        display_name = f"{model_name} (Default)"
+
+                    # Calculate directory size
+                    total_size = 0
+                    try:
+                        for f in item.rglob('*'):
+                            if f.is_file():
+                                total_size += f.stat().st_size
+                        size_mb = total_size / (1024 * 1024)
+                        model_size = f"{size_mb:.1f} MB"
+                    except Exception:
+                        model_size = "Unknown"
+
+                    try:
+                        if source_label == "App":
+                            rel_path = item.relative_to(root_dir)
+                        else:
+                            rel_path = item
+                            
+                        models.append({
+                            "m_name": display_name,
+                            "m_path": str(rel_path),
+                            "m_size": model_size,
+                            "m_source": source_label
+                        })
+                    except ValueError:
+                        models.append({
+                            "m_name": display_name,
+                            "m_path": str(item),
+                            "m_size": model_size,
+                            "m_source": source_label
+                        })
+                    seen_paths.add(item)
+    
+    log.info(f"[VOICE] Found {len(models)} installed models")
+    return models
+
+
+def list_available_models():
+    """
+    Returns a list of models available for download.
+    """
+    return [
+        {"id": "vosk-model-small-en-in-0.4", "name": "Indian English (Small)", "size": "36 MB", "url": "https://alphacephei.com/vosk/models/vosk-model-small-en-in-0.4.zip"},
+        {"id": "vosk-model-small-en-us-0.15", "name": "US English (Small)", "size": "40 MB", "url": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"},
+        {"id": "vosk-model-small-hi-0.22", "name": "Hindi (Small)", "size": "42 MB", "url": "https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip"},
+        {"id": "vosk-model-small-de-0.15", "name": "German (Small)", "size": "45 MB", "url": "https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip"},
+        {"id": "vosk-model-small-fr-0.22", "name": "French (Small)", "size": "41 MB", "url": "https://alphacephei.com/vosk/models/vosk-model-small-fr-0.22.zip"},
+        {"id": "vosk-model-small-es-0.42", "name": "Spanish (Small)", "size": "39 MB", "url": "https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip"},
+    ]
+
+
+def get_model_download_status():
+    """Returns the current download status for UI polling."""
+    return download_status
+
+
+def download_voice_model(model_id, url):
+    """
+    Initiates a background thread to download and extract a voice model.
+    """
+    global download_status
+    if download_status["in_progress"]:
+        return {"status": "error", "message": "Download already in progress"}
+    
+    download_status = {
+        "in_progress": True,
+        "progress": 0,
+        "message": "Starting download...",
+        "error": "",
+        "model_id": model_id
+    }
+    
+    def do_download():
+        import zipfile
+        import io
+        try:
+            models_dir = get_voice_models_dir()
+            target_path = models_dir / model_id
+            
+            if target_path.exists():
+                download_status["in_progress"] = False
+                download_status["message"] = "Model already installed"
+                download_status["progress"] = 100
+                return
+
+            log.info(f"[VOICE] Downloading model from {url}")
+            download_status["message"] = "Downloading..."
+            
+            # Using urllib3 for download
+            response = http.request('GET', url, preload_content=False)
+            content_length = response.getheader('Content-Length')
+            total_size = int(content_length) if content_length else None
+            
+            buffer = io.BytesIO()
+            downloaded = 0
+            
+            for chunk in response.stream(1024 * 64):
+                buffer.write(chunk)
+                downloaded += len(chunk)
+                if total_size:
+                    progress = int((downloaded / total_size) * 80) # 80% for download
+                    download_status["progress"] = progress
+                    send("download_progress", progress)
+            
+            download_status["message"] = "Extracting..."
+            send("download_message", "Extracting...")
+            download_status["progress"] = 85
+            send("download_progress", 85)
+            
+            with zipfile.ZipFile(buffer) as z:
+                # Vosk zips usually contain a single top-level folder
+                z.extractall(models_dir)
+                
+            download_status["progress"] = 100
+            download_status["message"] = "Installation complete"
+            download_status["in_progress"] = False
+            send("download_progress", 100)
+            send("download_completed", True)
+            log.info(f"[VOICE] Successfully installed model {model_id}")
+            
+        except Exception as e:
+            log.error(f"[VOICE] Download failed: {e}")
+            download_status["in_progress"] = False
+            download_status["error"] = str(e)
+            download_status["message"] = "Failed"
+            send("download_error", str(e))
+
+    threading.Thread(target=do_download, daemon=True).start()
+    return {"status": "started"}
+
+
+def run_voice_recognition():
+    """
+    Runs voice recognition in a background thread to avoid blocking the UI.
+    Uses the offline Vosk engine.
+    """
+    def do_recognition():
+        try:
+            log.info("[VOICE] Starting offline voice recognition thread")
+            
+            # Fetch the active model path from settings
+            db_path = resolve_qml_db_path()
+            active_model_rel_path = ""
+            if db_path:
+                active_model_rel_path = get_setting(db_path, "active_voice_model", "")
+            
+            # Resolve relative path if necessary
+            root_dir = Path(__file__).parent.parent.resolve()
+            if not active_model_rel_path:
+                log.error("[VOICE] No voice model configured")
+                send("voice_recognition_error", "No voice model configured. Please download one in Settings.")
+                return
+
+            if not os.path.isabs(active_model_rel_path):
+                model_path = root_dir / active_model_rel_path
+            else:
+                model_path = Path(active_model_rel_path)
+
+            if not model_path.exists():
+                log.error(f"[VOICE] Model path does not exist: {model_path}")
+                send("voice_recognition_error", "Selected voice model not found. Please check your settings.")
+                return
+
+            # Paths to search for bundled libraries
+            base_voice_path = Path(__file__).parent.parent / "voice_to_text"
+            lib_path = base_voice_path / "lib"
+            
+            # Pre-load libatomic if it exists in our bundle (fixes arm64 dependency issue)
+            atomic_lib = lib_path / "libatomic.so.1"
+            if atomic_lib.exists():
+                try:
+                    ctypes.CDLL(str(atomic_lib))
+                    log.info(f"[VOICE] Pre-loaded {atomic_lib}")
+                except Exception as e:
+                    log.warning(f"[VOICE] Could not pre-load libatomic: {e}")
+            
+            # Add bundled libs to environment for nested dependencies
+            env_path = str(lib_path)
+            if "LD_LIBRARY_PATH" in os.environ:
+                os.environ["LD_LIBRARY_PATH"] = f"{env_path}:{os.environ['LD_LIBRARY_PATH']}"
+            else:
+                os.environ["LD_LIBRARY_PATH"] = env_path
+            
+            from voice_to_text.voice2text import recognize_from_mic, list_microphones
+            
+            # Reset the stop event
+            _voice_stop_event.clear()
+            
+            # Log available mics for debug
+            log.info(f"[VOICE] mics: {list_microphones()}")
+            
+            def handle_partial(txt):
+                if txt:
+                    send("voice_recognition_partial", txt)
+            
+            text, error = recognize_from_mic(stop_event=_voice_stop_event, partial_callback=handle_partial, model_path=str(model_path))
+            if text:
+                log.info(f"[VOICE] Recognized text: {text}")
+                send("voice_recognition_result", text)
+            else:
+                log.warning(f"[VOICE] Recognition failed: {error or 'No speech detected'}")
+                send("voice_recognition_error", error or "No speech detected")
+        except Exception as e:
+            log.exception(f"[VOICE] Error during voice recognition: {e}")
+            send("voice_recognition_error", f"System Error: {str(e)}")
+
+    thread = threading.Thread(target=do_recognition)
+    thread.daemon = True
+    thread.start()
+    return True

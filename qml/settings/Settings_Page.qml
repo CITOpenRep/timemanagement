@@ -108,6 +108,17 @@ Page {
             }
         }
 
+        // select voice model
+        SettingsListItem {
+            iconName: "audio-input-microphone-symbolic"
+            iconColor: '#ff5100'
+            text: i18n.dtr("ubtms", "Voice Model Settings")
+            showDivider: false
+            onClicked: {
+                apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_VoiceModel.qml'));
+            }
+        }
+
         // Bottom spacer
         Item { width: parent.width; height: units.gu(1) }
     }

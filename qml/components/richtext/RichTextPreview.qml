@@ -21,6 +21,55 @@ Rectangle {
      */
     property bool liveSyncActive: false
 
+    // voice to text 
+    property bool listening: false
+    property bool processing: false
+    property string textBeforeRecording: ""
+
+
+    // voice to text - updating the text in the box
+    Connections {
+        target: mainView.backend_bridge
+        onMessageReceived: {
+            // data is the object sent from Python via bus.send()
+            if (data.event === "voice_recognition_partial") {
+                var partialText = data.payload
+                if (partialText) {
+                    if (root.textBeforeRecording && root.textBeforeRecording.trim().length > 0) {
+                        root.text = root.textBeforeRecording.trim() + " " + partialText + " (Listening...)"
+                    } else {
+                        root.text = partialText + " (Listening...)"
+                    }
+                    cursorTimer.start()
+                }
+            } else if (data.event === "voice_recognition_result") {
+                root.listening = false
+                root.processing = false
+                var recognizedText = data.payload
+                console.log("[RichTextPreview] Received recognition result: " + recognizedText)
+                
+                if (recognizedText) {
+                    if (root.textBeforeRecording && root.textBeforeRecording.trim().length > 0) {
+                        root.text = root.textBeforeRecording.trim() + " " + recognizedText
+                    } else {
+                        root.text = recognizedText
+                    }
+                    root.contentChanged(root.text)
+                    cursorTimer.start()
+                } else {
+                    root.text = root.textBeforeRecording // Restore if no text
+                    cursorTimer.start()
+                }
+            } else if (data.event === "voice_recognition_error") {
+                root.listening = false
+                root.processing = false
+                root.text = root.textBeforeRecording
+                console.log("[RichTextPreview] Voice recognition error: " + data.payload)
+                cursorTimer.start()
+            }
+        }
+    }
+
     // Internal: tracks last synced content to detect external changes
     property string _lastSyncedContent: ""
 
@@ -189,6 +238,18 @@ Rectangle {
             }
         }
     }
+    
+    // puts the cursor at the last as more voice text is comming
+    Timer {
+        id: cursorTimer
+        interval: 10
+        repeat: false
+        onTriggered: {
+            if (previewText) {
+                previewText.cursorPosition = previewText.text.length;
+            }
+        }
+    }
 
     Column {
         id: column
@@ -259,38 +320,90 @@ Rectangle {
                     // z: -1
                 }
 
-                Item {
-                    id: floatingActionButton
-                    width: units.gu(3)
-                    height: units.gu(3)
+                Row { // changes to row for adding the mic button
+                    id: floatingActionButtons
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     anchors.rightMargin: units.gu(1)
                     anchors.bottomMargin: units.gu(1)
+                    spacing: units.gu(1) // space between the buttons
                     z: 10
                     visible: true
 
-                    Rectangle {
 
+                    // mic button
+                    Rectangle {
+                        id: voiceButton
+                        width: units.gu(3)
+                        height: units.gu(3)
+                        radius: units.gu(.5)
+                        color: root.listening ? LomiriColors.red : LomiriColors.orange
+                        
+                        Image {
+                            id: voiceIcon
+                            source: "../../images/mic.svg"
+                            width: units.gu(2)
+                            height: units.gu(2)
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.verticalCenter: parent.verticalCenter
+                            opacity: (root.listening || root.processing) ? 0.5 : 1.0
+                        }
+                        
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (root.listening) {
+                                    console.log("[RichTextPreview] Stopping voice recognition...")
+                                    root.listening = false
+                                    root.processing = true
+                                    // Replace the Listening indicator with Processing
+                                    root.text = root.text.replace(" (Listening...)", " (Processing...)")
+                                    // If no partial came through, it might just be the initial state
+                                    if (root.text.indexOf(" (Processing...)") === -1) {
+                                        root.text = root.text + " (Processing...)"
+                                    }
+                                    backend_bridge.call("backend.stop_voice_recognition", [])
+                                    return;
+                                }
+                                if (root.processing) return; // Prevent double trigger
+                                
+                                console.log("[RichTextPreview] Voice recognition started")
+                                root.textBeforeRecording = root.text
+                                // Use a placeholder if user doesn't say anything immediately
+                                if (root.textBeforeRecording && root.textBeforeRecording.trim().length > 0) {
+                                    root.text = root.textBeforeRecording.trim() + " (Listening...)"
+                                } else {
+                                    root.text = "(Listening...)"
+                                }
+                                cursorTimer.start()
+                                root.listening = true
+                                root.processing = false
+                                backend_bridge.call("backend.run_voice_recognition", [])
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        id: expansionButton
+                        width: units.gu(3)
+                        height: units.gu(3)
                         radius: units.gu(.5)
                         color: LomiriColors.orange
-                        anchors.fill: parent
+                        
                         Image {
                             id: expansionIcon
-
                             source: "../../images/expansion.png"
                             width: units.gu(1.5)
                             height: units.gu(1.5)
-                            // anchors.right: parent.right
-                            //  anchors.rightMargin: units.gu(2)
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
+                        }
 
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.clicked()
-                            }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.clicked()
                         }
                     }
                 }
