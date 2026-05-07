@@ -32,7 +32,7 @@ Item {
     width: parent ? parent.width : units.gu(48)
     
     property int categoryCount: 1
-    property bool showAll: false
+    property int displayLimit: 10
     property int totalProjects: 0
     implicitHeight: mainCol.implicitHeight
     height: implicitHeight
@@ -47,7 +47,7 @@ Item {
         var data = Model.get_projects_spent_hours(root.selectedAccountId);
 
         root.totalProjects = data.length;
-        var limit = root.showAll ? data.length : Math.min(10, data.length);
+        var limit = Math.min(root.displayLimit, data.length);
 
         for (var i = 0; i < limit; i++) {
             var proj = data[i];
@@ -85,7 +85,7 @@ Item {
     Connections {
         target: root.autoRefreshOnAccountChange && typeof accountPicker !== "undefined" ? accountPicker : null
         onAccepted: function (accountId, accountName) {
-            root.showAll = false; // Reset to top 10 on account change
+            root.displayLimit = 10; // Reset to top 10 on account change
             reloadData();
         }
     }
@@ -184,28 +184,63 @@ Item {
             }
         }
 
-        // Show More / Collapse Button
-        Rectangle {
+        // Show More / Collapse Buttons
+        Row {
             visible: root.totalProjects > 10
             width: parent.width - units.gu(6)
             height: units.gu(5)
             anchors.horizontalCenter: parent.horizontalCenter
-            radius: units.gu(1.2)
-            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
+            spacing: units.gu(2)
+            
+            property bool showFewer: root.displayLimit > 10
+            property bool showMore: root.displayLimit < root.totalProjects
 
-            Label {
-                anchors.centerIn: parent
-                text: root.showAll ? i18n.dtr("ubtms", "Show top 10 projects ↑") : i18n.dtr("ubtms", "Show all %1 projects ↓").arg(root.totalProjects)
-                color: LomiriColors.blue
-                font.bold: true
-                font.pixelSize: units.dp(13)
+            Rectangle {
+                visible: parent.showFewer
+                width: parent.showMore ? (parent.width - parent.spacing) / 2 : parent.width
+                height: parent.height
+                radius: units.gu(1.2)
+                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
+
+                Label {
+                    anchors.centerIn: parent
+                    text: i18n.dtr("ubtms", "Show fewer ↑")
+                    color: LomiriColors.blue
+                    font.bold: true
+                    font.pixelSize: units.dp(13)
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        root.displayLimit = Math.max(10, root.displayLimit - 10);
+                        root.reloadData();
+                    }
+                }
             }
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    root.showAll = !root.showAll;
-                    root.reloadData();
+            Rectangle {
+                visible: parent.showMore
+                width: parent.showFewer ? (parent.width - parent.spacing) / 2 : parent.width
+                height: parent.height
+                radius: units.gu(1.2)
+                color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)
+
+                Label {
+                    anchors.centerIn: parent
+                    property int remaining: root.totalProjects - root.displayLimit
+                    text: i18n.dtr("ubtms", "Show next %1 ↓").arg(Math.min(10, remaining))
+                    color: LomiriColors.blue
+                    font.bold: true
+                    font.pixelSize: units.dp(13)
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        root.displayLimit += 10;
+                        root.reloadData();
+                    }
                 }
             }
         }
