@@ -91,7 +91,7 @@ Page {
 
             Rectangle {
                 width: parent.width - units.gu(2)
-                height: load3.item ? load3.item.height : units.gu(40)
+                height: load3.item ? load3.item.implicitHeight : units.gu(40)
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: "transparent"
 
