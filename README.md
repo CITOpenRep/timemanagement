@@ -89,10 +89,14 @@ Migration check helper:
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
- 
 
+## Contributing
 
-References
+- [Pull Request Guidelines](docs/PR-GUIDELINES.md)
+- [High Level Architecture](docs/HLD.drawio)
+- [Phase 1 Refactor Docs](docs/refactor/)
+
+## References
 * https://clickable-ut.dev/en/latest/
 * Location of DB : ~/.clickable/home/.local/share/ubtms/Databases
 
