@@ -70,21 +70,63 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
+            Layout.leftMargin: units.gu(1)
+            Layout.rightMargin: units.gu(1)
+            spacing: units.gu(1)
 
             Label {
                 text: attachmentManager.title
                 font.bold: true
-                Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+                font.pixelSize: units.gu(3)
+                color: theme.palette.normal.baseText
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            Rectangle {
+                width: units.gu(3.5)
+                height: units.gu(3.5)
+                radius: width / 2
+                color: "#E8EAF6"
+                Layout.alignment: Qt.AlignVCenter
+                visible: listView.count > 0
+
+                Label {
+                    anchors.centerIn: parent
+                    text: listView.count
+                    font.pixelSize: units.gu(1.8)
+                    font.bold: true
+                    color: "#3F51B5"
+                }
             }
 
             Item {
                 Layout.fillWidth: true
-            } // spacer
+            }
 
-            Button {
+            Rectangle {
                 id: uploadBtn
-                text: i18n.dtr("ubtms", "Upload")
-                onClicked: openContentPicker()
+                width: units.gu(5)
+                height: units.gu(5)
+                color: uploadMouseArea.pressed ? "#f97316" : "#f97316"
+                radius: units.gu(1)
+                Layout.alignment: Qt.AlignVCenter
+
+                RowLayout {
+                    anchors.centerIn: parent
+                    spacing: units.gu(1)
+                    Icon {
+                        source: "../images/upload-svgrepo-com.svg"
+                        width: units.gu(3)
+                        height: units.gu(3)
+                        color: "white"
+                    }
+                }
+
+                MouseArea {
+                    id: uploadMouseArea
+                    anchors.fill: parent
+                    onClicked: openContentPicker()
+                }
             }
         }
 
@@ -93,25 +135,39 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: "transparent"
-            border.color: "#00000022"
-            border.width: 1
-            radius: units.gu(0.5)
+            clip: true
 
             ListView {
                 id: listView
                 anchors.fill: parent
-                anchors.margins: units.gu(1)
+                anchors.leftMargin: units.gu(1)
+                anchors.rightMargin: units.gu(1)
+                anchors.topMargin: units.gu(1)
                 clip: true
-                spacing: units.gu(0.5)
+                spacing: units.gu(1.5)
+                
+                Scrollbar {
+                    flickableItem: listView
+                    align: Qt.AlignRight
+                }
 
                 // Roles expected: name, url, mimetype, size, created, account_id, odoo_record_id, _raw
-                delegate: Rectangle {
+                delegate: ListItem {
+                    id: attachmentListItem
                     width: listView.width
-                    height: Math.max(units.gu(5), nameLabel.implicitHeight + units.gu(2))
-                    radius: units.gu(0.5)
-                    color: "transparent"
-                    border.color: "#00000022"
+                    height: units.gu(10)
+                    divider.visible: false
 
+                    // Style it to look like the design, placed behind content
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: units.gu(1.5)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? theme.palette.normal.base : "#F8FAFC"
+                        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? theme.palette.normal.outline : "#FFE4E6"
+                        border.width: units.dp(1)
+                        z: -1
+                    }
+                    
                     // Guarded convenience values
                     property string _name: (typeof name !== "undefined" && name) ? name : ((typeof url !== "undefined" && url) ? url : "Unnamed")
                     property string _url: (typeof url !== "undefined" && url) ? url : ""
@@ -122,56 +178,81 @@ Item {
                     property int _odooId: (typeof odoo_record_id !== "undefined") ? odoo_record_id : 0
                     property var rawData: (typeof _raw !== "undefined") ? _raw : null
 
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            var rec = {
-                                name: _name,
-                                url: _url,
-                                mimetype: _mimetype,
-                                size: _size,
-                                created: _created,
-                                account_id: _accId,
-                                odoo_record_id: _odooId,
-                                _raw: rawData
-                            };
-                            // emit for custom handlers
-                            attachmentManager.itemClicked(rec);
-                            // default behavior: download and open
-                            attachmentManager._downloadAndOpen(rec);
-                        }
+                    readonly property var rec: ({
+                        name: _name,
+                        url: _url,
+                        mimetype: _mimetype,
+                        size: _size,
+                        created: _created,
+                        account_id: _accId,
+                        odoo_record_id: _odooId,
+                        _raw: rawData
+                    })
+
+                    leadingActions: ListItemActions {
+                        actions: [
+                            Action {
+                                iconName: "delete"
+                                text: i18n.dtr("ubtms", "Delete")
+                                onTriggered: attachmentManager._deleteAttachment(attachmentListItem.rec)
+                            }
+                        ]
+                    }
+
+                    trailingActions: ListItemActions {
+                        actions: [
+                            Action {
+                                iconSource: "../images/show.png"
+                                text: i18n.dtr("ubtms", "View")
+                                onTriggered: attachmentManager._downloadAndOpen(attachmentListItem.rec)
+                            }
+                        ]
+                    }
+
+                    onClicked: {
+                        attachmentManager.itemClicked(rec);
+                        attachmentManager._downloadAndOpen(rec);
                     }
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: units.gu(1)
-                        spacing: units.gu(1)
+                        anchors.margins: units.gu(1.5)
+                        spacing: units.gu(2)
 
                         Rectangle {
-                            width: units.gu(3)
-                            height: units.gu(3)
-                            radius: units.gu(0.5)
-                            color: _chipColor(_mimetype)
+                            width: units.gu(6)
+                            height: units.gu(6)
+                            radius: units.gu(1)
+                            color: _iconLightBgColor(_mimetype)
                             Layout.alignment: Qt.AlignVCenter
+                            
+                            Icon {
+                                anchors.centerIn: parent
+                                width: units.gu(3)
+                                height: units.gu(3)
+                                color: _iconBoxColor(_mimetype)
+                                name: _iconName(_mimetype)
+                            }
                         }
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: units.gu(0.3)
+                            spacing: 0
 
                             Label {
                                 id: nameLabel
                                 text: _name
-                                  color: '#1d1c1c'
+                                color: theme.palette.normal.baseText
+                                font.bold: true
                                 elide: Label.ElideRight
                                 maximumLineCount: 1
                                 Layout.fillWidth: true
                             }
 
                             Label {
-                                text: _metaLine(_mimetype, _size, _created)
-                                color: "#808080"
-                                font.pixelSize: units.gu(1.5)
+                                text: _metaLineLabel(_mimetype, _size)
+                                color: "#888888"
+                                font.pixelSize: units.gu(1.8)
                                 elide: Label.ElideRight
                                 maximumLineCount: 1
                                 Layout.fillWidth: true
@@ -184,7 +265,7 @@ Item {
             // Busy overlay (optional)
             Rectangle {
                 anchors.fill: parent
-                color: "#00000022"
+               color: '#00d3d3e3'
                 visible: attachmentManager._busy
                 BusyIndicator {
                     anchors.centerIn: parent
@@ -398,6 +479,17 @@ Item {
         return parts.join(" • ");
     }
 
+    function _metaLineLabel(mime, sz) {
+        var label = "Document";
+        if (mime.indexOf("image/") === 0) label = "Image";
+        else if (mime.indexOf("application/pdf") === 0) label = "PDF Document";
+        else if (mime.indexOf("audio/") === 0) label = "Audio file";
+        else if (mime.indexOf("video/") === 0) label = "Video file";
+        else if (mime.indexOf("spreadsheet") !== -1 || mime.indexOf("excel") !== -1 || mime.indexOf("sheet") !== -1) label = "Spreadsheet";
+
+        return label;
+    }
+
     function _fmtSize(bytes) {
         if (typeof bytes !== "number")
             return bytes;
@@ -413,20 +505,44 @@ Item {
         return bytes.toFixed(1) + " " + units[u];
     }
 
-    function _chipColor(mime) {
-        if (!mime)
-            return "#607D8B";
-        if (mime.indexOf("image/") === 0)
-            return "#4CAF50";
-        if (mime.indexOf("video/") === 0)
-            return "#9C27B0";
-        if (mime.indexOf("audio/") === 0)
-            return "#03A9F4";
-        if (mime.indexOf("text/") === 0)
-            return "#FFC107";
-        if (mime.indexOf("application/pdf") === 0)
-            return "#F44336";
+    function _iconBoxColor(mime) {
+        if (!mime) return "#607D8B";
+        if (mime.indexOf("image/") === 0) return "#009688"; // Teal
+        if (mime.indexOf("application/pdf") === 0) return "#D32F2F"; // Red
+        if (mime.indexOf("word") !== -1 || mime.indexOf("opendocument.text") === 0 || mime.indexOf("document") !== -1) return "#1976D2"; // Blue
+        if (mime.indexOf("audio/") === 0) return "#7B1FA2"; // Purple
+        if (mime.indexOf("video/") === 0) return "#388E3C"; // Green
+        if (mime.indexOf("spreadsheet") !== -1 || mime.indexOf("excel") !== -1 || mime.indexOf("sheet") !== -1) return "#F57C00"; // Orange
         return "#607D8B";
+    }
+
+    function _iconLightBgColor(mime) {
+        if (!mime) return "#F5F5F5";
+        if (mime.indexOf("image/") === 0) return "#E0F2F1";
+        if (mime.indexOf("application/pdf") === 0) return "#FFEBEE";
+        if (mime.indexOf("word") !== -1 || mime.indexOf("opendocument.text") === 0 || mime.indexOf("document") !== -1) return "#E3F2FD";
+        if (mime.indexOf("audio/") === 0) return "#F3E5F5";
+        if (mime.indexOf("video/") === 0) return "#E8F5E9";
+        if (mime.indexOf("spreadsheet") !== -1 || mime.indexOf("excel") !== -1 || mime.indexOf("sheet") !== -1) return "#FFF3E0";
+        return "#F5F5F5";
+    }
+
+    function _iconName(mime) {
+        if (!mime)
+            return "document-open";
+        if (mime.indexOf("image/") === 0)
+            return "image-x-generic-symbolic";
+        if (mime.indexOf("video/") === 0)
+            return "video-x-generic-symbolic";
+        if (mime.indexOf("audio/") === 0)
+            return "audio-x-generic-symbolic";
+        if (mime.indexOf("application/pdf") === 0)
+            return "application-pdf-symbolic";
+        if (mime.indexOf("spreadsheet") !== -1 || mime.indexOf("excel") !== -1 || mime.indexOf("sheet") !== -1)
+            return "x-office-spreadsheet-symbolic";
+        if (mime.indexOf("word") !== -1 || mime.indexOf("document") !== -1)
+            return "x-office-document-symbolic";
+        return "document";
     }
 
     //  FileSmart(record) – avoids Gallery duplicates for images
@@ -459,6 +575,65 @@ Item {
             Qt.openUrlExternally(url);
         }
     }
+
+    function _deleteAttachment(rec) {
+        if (!rec || !rec.odoo_record_id) {
+            _notify(i18n.dtr("ubtms", "Cannot delete: missing Odoo ID"), 2500);
+            return;
+        }
+        
+        var dialog = PopupUtils.open(deleteConfirmationComponent, attachmentManager, {
+            attachmentName: rec.name,
+            attachmentRecord: rec
+        });
+    }
+
+    Component {
+        id: deleteConfirmationComponent
+        Dialog {
+            id: diag
+            property string attachmentName: ""
+            property var attachmentRecord: null
+            
+            title: i18n.dtr("ubtms", "Delete Attachment")
+            text: i18n.dtr("ubtms", "Are you sure you want to delete '%1'?").arg(attachmentName)
+            
+            Button {
+                text: i18n.dtr("ubtms", "Cancel")
+                onClicked: PopupUtils.close(diag)
+            }
+            
+            Button {
+                text: i18n.dtr("ubtms", "Delete")
+                color: LomiriColors.red
+                onClicked: {
+                    PopupUtils.close(diag);
+                    _executeDelete(attachmentRecord);
+                }
+            }
+        }
+    }
+
+    function _executeDelete(rec) {
+        _busy = true;
+        python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+            if (!path) {
+                _busy = false;
+                _notify(i18n.dtr("ubtms", "Database not found"), 2500);
+                return;
+            }
+            python.call("backend.attachment_delete", [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id], function (res) {
+                _busy = false;
+                if (res) {
+                    _notify(i18n.dtr("ubtms", "Attachment deleted"), 2000);
+                    attachmentManager.uploadCompleted(); // Refresh
+                } else {
+                    _notify(i18n.dtr("ubtms", "Failed to delete attachment"), 2500);
+                }
+            });
+        });
+    }
+
 
     function _showImageInApp(record) {
         try {
