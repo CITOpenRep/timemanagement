@@ -88,16 +88,17 @@ function get_projects_spent_hours(account) {
         db.transaction(function (tx) {
             var params = [];
             var query =
-                "SELECT p.name AS entity_name, SUM(a.unit_amount) AS total " +
+                "SELECT p.name AS entity_name, SUM(a.unit_amount) AS total, s.name AS stage_name " +
                 "FROM account_analytic_line_app a " +
-                "LEFT JOIN project_project_app p ON p.odoo_record_id = a.project_id AND p.account_id = a.account_id ";
+                "LEFT JOIN project_project_app p ON p.odoo_record_id = a.project_id AND p.account_id = a.account_id " +
+                "LEFT JOIN project_project_stage_app s ON s.odoo_record_id = p.stage AND s.account_id = p.account_id ";
 
             if (account !== -1 && account !== undefined && account !== null) {
                 query += "WHERE a.account_id = ? ";
                 params.push(account);
             }
 
-            query += "GROUP BY a.project_id, a.account_id, p.name ORDER BY total DESC";
+            query += "GROUP BY a.project_id, a.account_id, p.name, s.name ORDER BY total DESC";
 
             var result = tx.executeSql(query, params);
             for (var i = 0; i < result.rows.length; i++) {
@@ -105,7 +106,8 @@ function get_projects_spent_hours(account) {
                 var name = row.entity_name || "Unknown Project";
                 project_details.push({
                     name: name,
-                    total: row.total
+                    total: row.total,
+                    stage_name: row.stage_name
                 });
             }
         });

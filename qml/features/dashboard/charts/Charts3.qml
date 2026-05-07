@@ -42,7 +42,6 @@ Item {
 
     function reloadData() {
         var t_proj = [];
-        var t_cat = [];
         var maxVal = 0;
         var data = Model.get_projects_spent_hours(root.selectedAccountId);
 
@@ -58,19 +57,37 @@ Item {
             }
             
             t_proj.push(projName);
-            t_cat.push(proj.total);
             if (proj.total > maxVal) maxVal = proj.total;
         }
 
-        root.categoryCount = Math.max(1, t_cat.length);
+        root.categoryCount = Math.max(1, t_proj.length);
         mySeries.clear();
 
-        if (t_cat && t_cat.length > 0) {
-            var barSet = mySeries.append(i18n.dtr("ubtms", "Time"), t_cat);
-            if (barSet) {
-                // Use a nice accent color
-                barSet.color = LomiriColors.blue;
-                barSet.borderColor = "transparent";
+        if (t_proj && t_proj.length > 0) {
+            for (var i = 0; i < limit; i++) {
+                var proj = data[i];
+                var values = [];
+                for (var j = 0; j < limit; j++) {
+                    values.push(0);
+                }
+                values[i] = proj.total;
+
+                var barSet = mySeries.append(proj.name, values);
+                if (barSet) {
+                    var stageName = proj.stage_name ? proj.stage_name.toLowerCase() : "";
+                    var barColor = LomiriColors.blue;
+                    
+                    if (stageName.indexOf("done") !== -1 || stageName.indexOf("completed") !== -1) {
+                        barColor = "#388E3C"; // Green
+                    } else if (stageName.indexOf("cancel") !== -1) {
+                        barColor = "#D32F2F"; // Red
+                    } else if (stageName.indexOf("hold") !== -1 || stageName.indexOf("pause") !== -1) {
+                        barColor = "#F57C00"; // Orange
+                    }
+                    
+                    barSet.color = barColor;
+                    barSet.borderColor = "transparent";
+                }
             }
             mySeries.axisY.categories = t_proj;
             mySeries.axisX.max = maxVal > 0 ? Math.ceil(maxVal * 1.1) : 50;
@@ -137,22 +154,20 @@ Item {
                 legend.labelColor: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
                 legend.font.pixelSize: units.dp(12)
 
-                HorizontalBarSeries {
+                HorizontalStackedBarSeries {
                     id: mySeries
                     onHovered: function(status, index, barset) {
                         if (status) {
                             var cat = mySeries.axisY.categories[index];
                             var val = barset.at(index);
+                            // Avoid showing tooltip for the 0-value bars
+                            if (val <= 0) return;
+                            
                             hoverText.text = cat.trim() + " — " + Number(val).toFixed(1) + i18n.dtr("ubtms", " hrs");
 
                             var barCount = Math.max(1, mySeries.axisY.categories.length);
                             var barHeight = chart3.plotArea.height / barCount;
                             
-                            // Calculate intended position relative to the plot area
-                            // QtCharts plots categories from bottom to top usually, but index 0 might be at the bottom or top depending on the axis.
-                            // We map it such that the hover info tracks the mouse roughly or is just placed correctly.
-                            // Assuming index 0 is at bottom, then index is offset from bottom.
-                            // But to be safe, just place it near the bar center.
                             var intendedY = chart3.plotArea.y + chart3.plotArea.height - (index + 0.5) * barHeight - hoverInfo.height / 2;
                             
                             if (intendedY < chart3.plotArea.y) intendedY = chart3.plotArea.y + units.gu(1);

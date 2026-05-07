@@ -30,7 +30,7 @@ Item {
                 continue;
             }
             project.name = project.name || i18n.dtr("ubtms", "Unnamed project");
-            project.colour = normalizeProjectColour(project.colour);
+            project.colour = normalizeProjectColour(project.colour, project.stageName);
         }
 
         return rows;
@@ -122,7 +122,14 @@ Item {
         return null;
     }
 
-    function normalizeProjectColour(colourValue) {
+    function normalizeProjectColour(colourValue, stageName) {
+        if (stageName) {
+            var sn = stageName.toLowerCase();
+            if (sn.indexOf("done") !== -1 || sn.indexOf("completed") !== -1) return "#388E3C"; // Green
+            if (sn.indexOf("cancel") !== -1) return "#D32F2F"; // Red
+            if (sn.indexOf("hold") !== -1 || sn.indexOf("pause") !== -1) return "#F57C00"; // Orange
+        }
+
         if (typeof colourValue === "string" && colourValue.indexOf("#") === 0) {
             // Reject white / near-white colours that become invisible in light mode
             var c = Qt.darker(colourValue, 1.0); // parse to a Qt color
