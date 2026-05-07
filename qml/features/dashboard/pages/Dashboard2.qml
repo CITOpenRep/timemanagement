@@ -24,6 +24,8 @@
 
 import QtQuick 2.7
 import Lomiri.Components 1.3
+import Lomiri.Components.Popups 1.3
+
 Page {
     id: dashboard
     title: i18n.dtr("ubtms", "Charts")
@@ -36,6 +38,17 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+        
+        trailingActionBar.actions: [
+            Action {
+                id: infoAction
+                iconName: "info"
+                text: i18n.dtr("ubtms", "Chart Info")
+                onTriggered: {
+                    PopupUtils.open(Qt.resolvedUrl("../components/ChartInfoPopup.qml"))
+                }
+            }
+        ]
     }
 
     function refreshData() {
