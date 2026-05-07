@@ -31,6 +31,9 @@ Item {
     /** Title shown above the list */
     property string title: i18n.dtr("ubtms", "Attachments")
 
+    /** Title color */
+    property color titleColor: theme.palette.normal.baseText
+
     /** Read-only: live transfer (for hint) */
     property var activeTransfer: null
 
@@ -78,7 +81,7 @@ Item {
                 text: attachmentManager.title
                 font.bold: true
                 font.pixelSize: units.gu(3)
-                color: theme.palette.normal.baseText
+                color: attachmentManager.titleColor
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -86,7 +89,7 @@ Item {
                 width: units.gu(3.5)
                 height: units.gu(3.5)
                 radius: width / 2
-                color: "#E8EAF6"
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? theme.palette.normal.base : "#E8EAF6"
                 Layout.alignment: Qt.AlignVCenter
                 visible: listView.count > 0
 
@@ -95,7 +98,7 @@ Item {
                     text: listView.count
                     font.pixelSize: units.gu(1.8)
                     font.bold: true
-                    color: "#3F51B5"
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? theme.palette.normal.baseText : "#3F51B5"
                 }
             }
 

@@ -1601,17 +1601,17 @@ Page {
                 }
             }
         }
-        Rectangle {
-            //color:"yellow"
-            id: attachmentRow
-            anchors.top: deadlineRow.bottom
-            //anchors.top: attachmentuploadRow.bottom
-            height: units.gu(50)
-            width: parent.width
-            anchors.margins: units.gu(0.1)
-            AttachmentManager {
-                id: attachments_widget
-                anchors.fill: parent
+            Rectangle {
+                id: attachmentRow
+                anchors.top: deadlineRow.bottom
+                height: units.gu(50)
+                width: parent.width
+                anchors.margins: units.gu(0.1)
+                color: "transparent"
+
+                AttachmentManager {
+                    id: attachments_widget
+                    anchors.fill: parent
                 resource_type: "project.task"   // keep as-is if that's your default
                 resource_id: (currentTask && currentTask.odoo_record_id) ? currentTask.odoo_record_id : 0
                 account_id: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
