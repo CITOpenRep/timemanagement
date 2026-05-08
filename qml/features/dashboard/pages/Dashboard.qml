@@ -25,6 +25,7 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtQuick.Controls 2.2 as Controls
+import Lomiri.Components.Popups 1.3
 import "../../../../models/timesheet.js" as TimesheetModel
 import "../../../../models/accounts.js" as Account
 import "../../../../models/global.js" as Global
@@ -99,6 +100,15 @@ Page {
         trailingActionBar.numberOfSlots: 5
 
         trailingActionBar.actions: [
+            Action {
+                id: infoAction
+                iconName: "info"
+                visible:!isMultiColumn
+                text: i18n.dtr("ubtms", "Chart Info")
+                onTriggered: {
+                    PopupUtils.open(Qt.resolvedUrl("../components/ChartInfoPopup.qml"))
+                }
+            },
             Action {
                 id: notificationAction
                 iconSource: notificationBell.totalCount > 0 ? "../../../images/notification_active.png" : "../../../images/notification.png"
@@ -363,6 +373,7 @@ Page {
                         id: mobileChartsView
                         width: parent.width
                         height: currentIndex === 0 ? projectchart.implicitHeight
+                               : currentIndex === 1 && mobileProjectChartLoader.item ? mobileProjectChartLoader.item.implicitHeight
                                : currentIndex === 2 && mobileTaskChartLoader.item ? mobileTaskChartLoader.item.implicitHeight
                                : units.gu(40)
                         currentIndex: 0

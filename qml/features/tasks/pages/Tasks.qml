@@ -881,11 +881,15 @@ Page {
                 }
             }
         }
+        //changed the attachment color
         Rectangle {
-            id: attachmentRow
-            height: units.gu(50)
-            width: parent.width
-            AttachmentManager {
+                id: attachmentRow
+                anchors.top: deadlineRow.bottom
+                height: units.gu(50)
+                width: parent.width
+                anchors.margins: units.gu(0.1)
+                color: "transparent"
+                AttachmentManager {
                 id: attachments_widget
                 anchors.fill: parent
                 resource_type: "project.task"   // keep as-is if that's your default

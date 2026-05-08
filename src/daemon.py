@@ -162,7 +162,7 @@ def get_app_version():
                     return match.group(1)
     except Exception as e:
         log.error(f"[DAEMON] Failed to read app version: {e}")
-    return "1.2.7"  # Fallback version
+    return "1.2.8"  # Fallback version
 
 APP_VERSION = get_app_version()
 
