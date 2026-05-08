@@ -23,10 +23,10 @@
 ## Testing
 <!-- How was this tested? -->
 
-- [ ] Tested on desktop (`clickable desktop`)
+- [ ] Tested on Emulator (`clickable build && clickable review`)
 - [ ] Tested on device (`clickable install`)
 - [ ] Unit tests added/updated
-- [ ] No existing tests broken
+- [ ] No existing Functionality/Tests broken
 
 ## Screenshots (if UI change)
 <!-- Attach before/after screenshots or screen recordings -->
@@ -42,7 +42,7 @@
 - [ ] No debug logs left in production code
 - [ ] Documentation updated (if applicable)
 - [ ] Squash commits before review (if needed)
-- [ ] PR is up-to-date with `main`
+- [ ] PR is up-to-date with `main` or `release\x.x.x` branch
 
 ## Related Issues
 <!-- Link to related issues (e.g., "Closes #123", "Fixes #456") -->
