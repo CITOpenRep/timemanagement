@@ -192,15 +192,15 @@ Item {
                         _raw: rawData
                     })
 
-                    leadingActions: ListItemActions {
-                        actions: [
-                            Action {
-                                iconName: "delete"
-                                text: i18n.dtr("ubtms", "Delete")
-                                onTriggered: attachmentManager._deleteAttachment(attachmentListItem.rec)
-                            }
-                        ]
-                    }
+                    // leadingActions: ListItemActions {
+                    //     actions: [
+                    //         Action {
+                    //             iconName: "delete"
+                    //             text: i18n.dtr("ubtms", "Delete")
+                    //             onTriggered: attachmentManager._deleteAttachment(attachmentListItem.rec)
+                    //         }
+                    //     ]
+                    // }
 
                     trailingActions: ListItemActions {
                         actions: [
