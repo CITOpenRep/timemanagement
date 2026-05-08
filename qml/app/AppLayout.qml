@@ -6,6 +6,7 @@ import "../"
 import "pages" as AppPages
 import "../features/dashboard/pages" as DashboardPages
 import "../features/settings/pages" as SettingsPages
+import "../features/tasks/pages" as TaskPages
 import "navigation/NavigationRoutes.js" as NavigationRoutes
 
 AdaptivePageLayout {
@@ -135,7 +136,7 @@ AdaptivePageLayout {
         }
     }
 
-    Task_Page {
+    TaskPages.Task_Page {
         id: task_page
 
         Connections {

@@ -795,7 +795,7 @@ Page {
                         let isSubProject = project.parent_id && project.parent_id > 0;
                         let parentProjectId = isSubProject ? project.parent_id : -1;
 
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Tasks.qml"), {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("features/tasks/pages/Tasks.qml"), {
                             "recordid": 0,
                             "isReadOnly": false,
                             "prefilledAccountId": project.account_id,
@@ -820,7 +820,7 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Task_Page.qml"), {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("features/tasks/pages/Task_Page.qml"), {
                             "filterByProject": true,
                             "projectOdooRecordId": project.odoo_record_id,
                             "projectAccountId": project.account_id,

@@ -49,6 +49,7 @@ Page {
     property bool isMultiColumn: apLayout.columns > 1
     property var page: 0
     property bool isLoading: false
+    property string loadingMessage: i18n.dtr("ubtms", "Loading dashboard...")
 
     // Timer for deferred loading - gives UI time to render loading indicator
     Timer {
@@ -63,11 +64,7 @@ Page {
             // Update navigation tracking when Dashboard becomes visible
             Global.setLastVisitedPage("Dashboard");
 
-            // Prefer the selected account from the account selector (NOT the default account)
-            var selected = accountPicker.selectedAccountId;
-            if (typeof projectchart !== "undefined")
-                projectchart.refreshForAccount(selected);
-            // Also refresh other dashboard data
+            // Refresh all dashboard sections through a single load path.
             refreshData();
         }
     }
@@ -195,6 +192,9 @@ Page {
 
     function refreshData() {
         console.log("🔄 Refreshing Dashboard data...");
+        loadingMessage = accountPicker.selectedAccountId === -1
+            ? i18n.dtr("ubtms", "Loading all-account dashboard...")
+            : i18n.dtr("ubtms", "Loading dashboard...");
         isLoading = true;
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
@@ -204,10 +204,20 @@ Page {
     function _doRefreshData() {
         console.log("🟢 _doRefreshData START");
         try {
+            loadingMessage = i18n.dtr("ubtms", "Loading project summary...");
             get_project_chart_data();
             console.log("🟠 get_project_chart_data DONE");
+
+            loadingMessage = i18n.dtr("ubtms", "Loading task summary...");
             get_task_chart_data();
             console.log("🟡 get_task_chart_data DONE");
+
+            loadingMessage = i18n.dtr("ubtms", "Loading priority matrix...");
+            if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
+                ehoverMatrix.refreshQuadrants();
+            }
+
+            loadingMessage = i18n.dtr("ubtms", "Loading charts...");
             if (typeof projectchart !== 'undefined') {
                 var selected = accountPicker.selectedAccountId;
                 console.log("🔵 selected: ", selected);
@@ -221,6 +231,7 @@ Page {
         } catch(e) {
             console.error("🔴 _doRefreshData ERROR: ", e);
         }
+        loadingMessage = i18n.dtr("ubtms", "Loading dashboard...");
         isLoading = false;
     }
 
@@ -241,7 +252,7 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Tasks.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
                 });
@@ -428,14 +439,6 @@ Page {
                 }
             }
 
-            Component.onCompleted: {
-                try {
-                    projectchart.refreshForAccount(accountPicker.selectedAccountId);
-                } catch (e) {
-                    console.error("Dashboard: error determining initial account for project chart:", e);
-                    projectchart.refreshForAccount(-1);
-                }
-            }
         } // end Column
 
         onFlickEnded: {
@@ -525,7 +528,7 @@ Page {
         // Handle navigation from notification clicks
         onNavigateToRecord: {
             if (navType === "Task" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Tasks.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
@@ -573,6 +576,6 @@ Page {
     LoadingIndicator {
         anchors.fill: parent
         visible: isLoading
-        message: i18n.dtr("ubtms", "Loading dashboard...")
+        message: loadingMessage
     }
 }

@@ -23,12 +23,13 @@
 */
 import QtQuick 2.12
 import QtQuick.Controls 2.2
-import "../../models/constants.js" as AppConst
-import "../../models/utils.js" as Utils
-import "../../models/timesheet.js" as Timesheet
-import "../../models/timer_service.js" as TimerService
-import "../../models/task.js" as Task
-import "../../models/accounts.js" as Account
+import "../../../../models/constants.js" as AppConst
+import "../../../../models/utils.js" as Utils
+import "../../../../models/timesheet.js" as Timesheet
+import "../../../../models/timer_service.js" as TimerService
+import "../../../../models/task.js" as Task
+import "../../../../models/accounts.js" as Account
+import "../../../components"
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import QtQuick.Layouts 1.1
@@ -237,7 +238,7 @@ ListItem {
             },
             Action {
                 id: playpauseaction
-                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../images/play.png" : "../images/pause.png") : "../images/play.png"
+                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../../../images/play.png" : "../../../images/pause.png") : "../../../images/play.png"
                 visible: recordId > 0
                 text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
@@ -247,7 +248,7 @@ ListItem {
             Action {
                 id: startstopaction
                 visible: recordId > 0
-                iconSource: "../images/stop.png"
+                iconSource: "../../../images/stop.png"
                 text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     stop_workflow();
@@ -488,7 +489,7 @@ ListItem {
                                     model: 3 // 3 stars for priority levels 1-3
 
                                     Image {
-                                        source: (index + 1) <= taskCard.priority ? "../images/star.png" : "../images/star-inactive.png"
+                                        source: (index + 1) <= taskCard.priority ? "../../../images/star.png" : "../../../images/star-inactive.png"
                                         fillMode: Image.PreserveAspectFit
                                         width: units.gu(1.5)
                                         height: units.gu(1.5)
