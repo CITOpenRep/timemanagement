@@ -1299,9 +1299,10 @@ function getDashboardProjectTaskSummary(accountId) {
 
             var query =
                 "SELECT " +
-                "p.account_id, p.odoo_record_id, p.id AS local_id, p.name, p.color_pallet, " +
+                "p.account_id, p.odoo_record_id, p.id AS local_id, p.name, p.color_pallet, s.name AS stage_name, " +
                 "COUNT(t.id) AS task_count, COALESCE(SUM(ts.total_hours), 0) AS total_hours " +
                 "FROM project_project_app p " +
+                "LEFT JOIN project_project_stage_app s ON s.odoo_record_id = p.stage AND s.account_id = p.account_id " +
                 "LEFT JOIN project_task_app t ON t.account_id = p.account_id " +
                 "AND t.project_id = p.odoo_record_id " +
                 "AND (t.status IS NULL OR t.status != 'deleted') " +
@@ -1312,7 +1313,7 @@ function getDashboardProjectTaskSummary(accountId) {
                 "GROUP BY account_id, task_id " +
                 ") ts ON ts.account_id = t.account_id AND ts.task_id = t.odoo_record_id " +
                 accountWhere +
-                "GROUP BY p.account_id, p.odoo_record_id, p.id, p.name, p.color_pallet " +
+                "GROUP BY p.account_id, p.odoo_record_id, p.id, p.name, p.color_pallet, s.name " +
                 "ORDER BY total_hours DESC, p.name COLLATE NOCASE ASC";
 
             var result = tx.executeSql(query, params);
@@ -1326,6 +1327,7 @@ function getDashboardProjectTaskSummary(accountId) {
                     localId: row.local_id,
                     name: row.name || "Unnamed project",
                     colour: row.color_pallet,
+                    stageName: row.stage_name || "",
                     taskCount: row.task_count || 0,
                     totalHours: Number(row.total_hours || 0),
                     tasks: [],
