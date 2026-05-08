@@ -65,6 +65,114 @@ Item {
     /** Emitted when editor has finished loading */
     signal contentLoaded()
 
+     // ============ VOICE RECOGNITION ============
+    
+    /** Whether the editor is currently listening for voice input */
+    property bool listening: false
+    
+    /** Whether the editor is processing voice input */
+    property bool processing: false
+    
+    /** Partial voice recognition text (for UI feedback) */
+    property string _partialVoiceText: ""
+
+    Connections {
+        target: mainView.backend_bridge
+        onMessageReceived: {
+            if (data.event === "voice_recognition_partial") {
+                // Only handle voice events if this instance is active
+                if (!listening && !processing) return;
+                
+                var partialText = data.payload
+                if (partialText) {
+                    var jsCode = "var spans = document.getElementsByTagName('span'); " +
+                                 "for(var i=spans.length-1; i>=0; i--) { " +
+                                 "  if(spans[i].innerText.indexOf('Listening...') !== -1) { " +
+                                 "    spans[i].innerText = " + JSON.stringify(partialText + " (Listening...)") + "; " +
+                                 "    window.editor.moveCursorToEnd(); " +
+                                 "    break; " +
+                                 "  } " +
+                                 "}";
+                    wv.runJavaScript(jsCode);
+                }
+            } else if (data.event === "voice_recognition_result") {
+                editor.listening = false
+                editor.processing = false
+                var recognizedText = data.payload
+                console.log("[RichTextEditor] Received recognition result: " + recognizedText)
+                
+                // Replace the partial span with the final text
+                var jsCode = "var found = false; " +
+                             "var spans = document.getElementsByTagName('span'); " +
+                             "for(var i=spans.length-1; i>=0; i--) { " +
+                             "  if(spans[i].innerText.indexOf('Listening...') !== -1) { " +
+                             "    spans[i].outerHTML = " + JSON.stringify(recognizedText ? (recognizedText + " ") : "") + "; " +
+                             "    found = true; " +
+                             "    break; " +
+                             "  } " +
+                             "} " +
+                             "if (!found && " + JSON.stringify(recognizedText) + ") { " +
+                             "  window.editor.focus(); window.editor.insertHTML(" + JSON.stringify(recognizedText + " ") + "); " +
+                             "}";
+                wv.runJavaScript(jsCode);
+                
+                // Force a sync to update the 'text' property and emit contentChanged
+                editor.syncContent();
+            } else if (data.event === "voice_recognition_error") {
+                editor.listening = false
+                editor.processing = false
+                console.log("[RichTextEditor] Voice recognition error: " + data.payload)
+                
+                // Remove the partial span on error
+                var jsCode = "var spans = document.getElementsByTagName('span'); " +
+                             "for(var i=spans.length-1; i>=0; i--) { " +
+                             "  if(spans[i].innerText.indexOf('Listening...') !== -1) { " +
+                             "    spans[i].outerHTML = ''; " +
+                             "    break; " +
+                             "  } " +
+                             "}";
+                wv.runJavaScript(jsCode);
+            }
+        }
+    }
+
+    /** Toggle voice recognition state */
+    function toggleVoiceRecognition() {
+        if (listening) {
+            console.log("[RichTextEditor] Stopping voice recognition...")
+            listening = false
+            processing = true
+            mainView.backend_bridge.call("backend.stop_voice_recognition", [])
+        } else {
+            if (processing) return;
+            console.log("[RichTextEditor] Starting voice recognition...")
+            listening = true
+            processing = false
+            _partialVoiceText = ""
+            
+            // Move cursor to the end and insert a new line if there's already text,
+            // then insert a temporary span for live partial text
+            var jsCode = "try { " +
+                         "  window.editor.focus(); " +
+                         "  window.editor.moveCursorToEnd(); " +
+                         
+                         "  var currentHTML = window.editor.getHTML(); " +
+                         "  var hasContent = currentHTML.replace(/<[^>]*>/g, '').trim().length > 0; " +
+                         "  var marker = '<span id=\"voice-partial-marker\" style=\"color: #888888; font-style: italic;\">Listening...</span>'; " +
+                         
+                         "  if (hasContent) { " +
+                         "    window.editor.insertHTML('<div><br></div>' + marker); " +
+                         "  } else { " +
+                         "    window.editor.insertHTML(marker); " +
+                         "  } " +
+                         "  window.editor.moveCursorToEnd(); " +
+                         "} catch(e) { console.error('Error inserting voice marker: ', e); }";
+            wv.runJavaScript(jsCode);
+            
+            mainView.backend_bridge.call("backend.run_voice_recognition", [])
+        }
+    }
+
     // ============ PRIVATE PROPERTIES ============
     
     property bool _isLoaded: false
