@@ -38,7 +38,7 @@ Thank you for your interest in contributing! Please follow these rules to ensure
 
 Every PR must include:
 
-> **Note**: When you open a new PR on GitHub, the [PR template](https://github.com/cit-services/ubtms/blob/main/.github/PULL_REQUEST_TEMPLATE/pull_request_template.md) will auto-populate with the required sections.
+> **Note**: When you open a new PR on GitHub, the [PR template](https://github.com/CITOpenRep/timemanagement/blob/Enhancement-Docs/.github/PULL_REQUEST_TEMPLATE/pull_request_template.md) will auto-populate with the required sections.
 
 ```
 ## Summary
