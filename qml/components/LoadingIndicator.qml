@@ -65,25 +65,39 @@ Item {
     }
 
     // Centered loading content
-    Column {
+    Rectangle {
         anchors.centerIn: parent
-        spacing: units.gu(2)
+        width: Math.min(parent.width - units.gu(6), units.gu(34))
+        height: loadingColumn.implicitHeight + units.gu(4)
+        radius: units.gu(1.2)
+        color: darkMode ? "#dd1f1f24" : "#f7ffffff"
+        border.width: 1
+        border.color: darkMode ? "#55ffffff" : "#22000000"
 
-        // Spinner
-        ActivityIndicator {
-            id: spinner
-            anchors.horizontalCenter: parent.horizontalCenter
-            running: loadingIndicator.visible
-        }
+        Column {
+            id: loadingColumn
+            anchors.centerIn: parent
+            width: parent.width - units.gu(4)
+            spacing: units.gu(2)
 
-        // Optional message label
-        Label {
-            id: messageLabel
-            visible: loadingIndicator.message !== ""
-            text: loadingIndicator.message
-            anchors.horizontalCenter: parent.horizontalCenter
-            color: darkMode ? "#FFFFFF" : "#333333"
-            fontSize: "medium"
+            // Spinner
+            ActivityIndicator {
+                id: spinner
+                anchors.horizontalCenter: parent.horizontalCenter
+                running: loadingIndicator.visible
+            }
+
+            // Optional message label
+            Label {
+                id: messageLabel
+                visible: loadingIndicator.message !== ""
+                text: loadingIndicator.message
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                color: darkMode ? "#FFFFFF" : "#333333"
+                fontSize: "medium"
+            }
         }
     }
 }
