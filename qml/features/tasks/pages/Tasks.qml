@@ -888,7 +888,7 @@ Page {
                 width: parent.width
                 anchors.margins: units.gu(0.1)
                 color: "transparent"
-            AttachmentManager {
+                AttachmentManager {
                 id: attachments_widget
                 anchors.fill: parent
                 resource_type: "project.task"   // keep as-is if that's your default
