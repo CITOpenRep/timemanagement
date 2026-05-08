@@ -24,19 +24,10 @@
 
 import QtQuick 2.7
 import Lomiri.Components 1.3
-import Ubuntu.Components 1.3 as Ubuntu
-import QtCharts 2.0
-import QtQuick.Layouts 1.11
 import QtQuick.Controls 2.2 as Controls
-import Qt.labs.settings 1.0
-import "../../../../models/Main.js" as Model
-import "../../../../models/project.js" as Project
-import "../../../../models/notifications.js" as Notifications
-import "../../../../models/utils.js" as Utils
 import "../../../../models/timesheet.js" as TimesheetModel
 import "../../../../models/accounts.js" as Account
 import "../../../../models/global.js" as Global
-import io.thp.pyotherside 1.4
 import "../../../components"
 
 Page {
@@ -47,8 +38,10 @@ Page {
     title: i18n.dtr("ubtms", "Time Manager - Time Management Dashboard")
     anchors.fill: parent
     property bool isMultiColumn: apLayout.columns > 1
-    property var page: 0
     property bool isLoading: false
+    property string loadingMessage: i18n.dtr("ubtms", "Loading dashboard...")
+    property int refreshStage: -1
+    property int lastRefreshAccountId: -999999
 
     // Timer for deferred loading - gives UI time to render loading indicator
     Timer {
@@ -63,11 +56,6 @@ Page {
             // Update navigation tracking when Dashboard becomes visible
             Global.setLastVisitedPage("Dashboard");
 
-            // Prefer the selected account from the account selector (NOT the default account)
-            var selected = accountPicker.selectedAccountId;
-            if (typeof projectchart !== "undefined")
-                projectchart.refreshForAccount(selected);
-            // Also refresh other dashboard data
             refreshData();
         }
     }
@@ -145,83 +133,69 @@ Page {
         ]
     }
 
-    property variant project_timecat: []
-    property variant project: []
-    property variant project_data: []
-
-    property variant task_timecat: []
-    property variant task: []
-    property variant task_data: []
-
-    function get_project_chart_data() {
-        var account = accountPicker.selectedAccountId;
-        project_data = Model.get_projects_spent_hours(account);
-        var count = 0;
-        var temp_project = [];
-        var timeval;
-        for (var key in project_data) {
-            temp_project[count] = key;
-            timeval = project_data[key];
-            count = count + 1;
-        }
-        var count2 = Object.keys(project_data).length;
-        var temp_timecat = [];
-        for (count = 0; count < count2; count++) {
-            temp_timecat[count] = project_data[temp_project[count]];
-        }
-        project = temp_project;
-        project_timecat = temp_timecat;
-    }
-
-    function get_task_chart_data() {
-        var account = accountPicker.selectedAccountId;
-        task_data = Model.get_tasks_spent_hours(account);
-        var count = 0;
-        var temp_task = [];
-        var timeval;
-        for (var key in task_data) {
-            temp_task[count] = key;
-            timeval = task_data[key];
-            count = count + 1;
-        }
-        var count2 = Object.keys(task_data).length;
-        var temp_timecat = [];
-        for (count = 0; count < count2; count++) {
-            temp_timecat[count] = task_data[temp_task[count]];
-        }
-        task = temp_task;
-        task_timecat = temp_timecat;
-    }
-
     function refreshData() {
         console.log("🔄 Refreshing Dashboard data...");
+        var targetAccountId = accountPicker.selectedAccountId;
+        if (isLoading && refreshStage >= 0 && lastRefreshAccountId === targetAccountId) {
+            return;
+        }
+
+        lastRefreshAccountId = targetAccountId;
+        refreshStage = 0;
+        loadingTimer.stop();
+        loadingMessage = targetAccountId === -1
+            ? i18n.dtr("ubtms", "Preparing all-account dashboard...")
+            : i18n.dtr("ubtms", "Preparing dashboard...");
         isLoading = true;
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
+        loadingTimer.interval = 50;
         loadingTimer.start();
     }
 
+    function finishRefreshData() {
+        loadingTimer.stop();
+        refreshStage = -1;
+        loadingMessage = i18n.dtr("ubtms", "Loading dashboard...");
+        isLoading = false;
+    }
+
     function _doRefreshData() {
-        console.log("🟢 _doRefreshData START");
         try {
-            get_project_chart_data();
-            console.log("🟠 get_project_chart_data DONE");
-            get_task_chart_data();
-            console.log("🟡 get_task_chart_data DONE");
-            if (typeof projectchart !== 'undefined') {
-                var selected = accountPicker.selectedAccountId;
-                console.log("🔵 selected: ", selected);
-                projectchart.refreshForAccount(selected);
+            switch (refreshStage) {
+            case 0:
+                console.log("🟢 Dashboard refresh stage 0: priority matrix");
+                if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
+                    ehoverMatrix.refreshQuadrants();
+                }
+                loadingMessage = i18n.dtr("ubtms", "Loading project chart...");
+                refreshStage = 1;
+                loadingTimer.interval = 0;
+                loadingTimer.start();
+                return;
+            case 1:
+                console.log("🟢 Dashboard refresh stage 1: project chart");
+                if (typeof projectchart !== "undefined") {
+                    projectchart.refreshForAccount(accountPicker.selectedAccountId);
+                }
+                loadingMessage = i18n.dtr("ubtms", "Loading additional charts...");
+                refreshStage = 2;
+                loadingTimer.start();
+                return;
+            case 2:
+                console.log("🟢 Dashboard refresh stage 2: additional charts");
+                if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
+                    mobileProjectChartLoader.item.reloadData();
+                if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
+                    mobileTaskChartLoader.item.reloadData();
+                break;
+            default:
+                break;
             }
-            if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
-                mobileProjectChartLoader.item.reloadData();
-            if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
-                mobileTaskChartLoader.item.reloadData();
-            console.log("🟣 _doRefreshData SUCCESS");
         } catch(e) {
             console.error("🔴 _doRefreshData ERROR: ", e);
         }
-        isLoading = false;
+        finishRefreshData();
     }
 
     DialerMenu {
@@ -241,7 +215,7 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Tasks.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
                 });
@@ -307,6 +281,7 @@ Page {
                         id: ehoverMatrix
                         width: parent.width * 0.98
                         height: width
+                        autoRefreshOnAccountChange: false
                         anchors.centerIn: parent
                         quadrant1Hours: "120.2"
                         quadrant2Hours: "65.5"
@@ -403,6 +378,7 @@ Page {
                                 id: projectchart
                                 width: parent.width * 0.95
                                 height: implicitHeight
+                                autoRefreshOnAccountChange: false
                                 anchors.horizontalCenter: parent.horizontalCenter
                             }
                         }
@@ -413,6 +389,11 @@ Page {
                                 anchors.fill: parent
                                 active: !isMultiColumn && mobileChartsView.currentIndex === 1
                                 source: "../charts/Charts3.qml"
+                                onLoaded: {
+                                    if (item) {
+                                        item.autoRefreshOnAccountChange = false;
+                                    }
+                                }
                             }
                         }
 
@@ -422,25 +403,18 @@ Page {
                                 anchors.fill: parent
                                 active: !isMultiColumn && mobileChartsView.currentIndex === 2
                                 source: "../charts/Charts4.qml"
+                                onLoaded: {
+                                    if (item) {
+                                        item.autoRefreshOnAccountChange = false;
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
 
-            Component.onCompleted: {
-                try {
-                    projectchart.refreshForAccount(accountPicker.selectedAccountId);
-                } catch (e) {
-                    console.error("Dashboard: error determining initial account for project chart:", e);
-                    projectchart.refreshForAccount(-1);
-                }
-            }
         } // end Column
-
-        onFlickEnded: {
-            if (apLayout.columns === 1) {}
-        }
     } // end Flickable
 
     Scrollbar {
@@ -496,8 +470,8 @@ Page {
     Connections {
         target: accountPicker
         onAccepted: function (accountId, accountName) {
+            header.title = i18n.dtr("ubtms", "Account") + " [" + accountName + "]";
             refreshData();
-            header.title = i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]";
         }
     }
 
@@ -525,7 +499,7 @@ Page {
         // Handle navigation from notification clicks
         onNavigateToRecord: {
             if (navType === "Task" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Tasks.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
@@ -565,14 +539,12 @@ Page {
         console.log("Dashboard status is: " + mainPage.status);
         // Load notifications on startup
         notificationBell.loadNotifications();
-        // Trigger initial data load with loading indicator
-        refreshData();
     }
 
     // Loading indicator overlay
     LoadingIndicator {
         anchors.fill: parent
         visible: isLoading
-        message: i18n.dtr("ubtms", "Loading dashboard...")
+        message: loadingMessage
     }
 }

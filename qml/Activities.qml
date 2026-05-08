@@ -338,7 +338,7 @@ Page {
                 // Get the local task id from odoo_record_id
                 var taskLocalId = Task.getLocalIdFromOdooId(taskOdooRecordId, currentActivity.account_id);
                 if (taskLocalId > 0) {
-                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Tasks.qml"), {
+                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("features/tasks/pages/Tasks.qml"), {
                         "recordid": taskLocalId,
                         "isReadOnly": true,
                         "editVisible": false

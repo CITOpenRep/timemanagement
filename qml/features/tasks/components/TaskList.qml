@@ -26,8 +26,9 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.1
 import Lomiri.Components 1.3
 import QtQuick.LocalStorage 2.7 as Sql
-import "../../models/task.js" as Task
-import "../../models/project.js" as Project
+import "../../../../models/task.js" as Task
+import "../../../../models/project.js" as Project
+import "../../../components"
 import "." // Import the current directory to make TaskDetailsCard available
 
 Item {

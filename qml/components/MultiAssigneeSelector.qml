@@ -30,8 +30,9 @@ import "../../models/accounts.js" as Accounts
 
 Item {
     id: multiAssigneeSelector
-    width: width * 0.5
-    height: units.gu(50)
+    width: parent ? parent.width : 0
+    height: mainColumn.implicitHeight + (2 * units.gu(1))
+    implicitHeight: height
 
     property bool readOnly: false
     property string labelText: i18n.dtr("ubtms", "Assignees")
@@ -134,7 +135,7 @@ Item {
             // Grid layout for selected assignees
             Grid {
                 id: assigneeGrid
-                width: parent.width
+                width: parent.width - displayButton.width - parent.spacing
                 columns: Math.floor(parent.width / units.gu(20)) // Adjust column width as needed
                 spacing: units.gu(0.5)
                 visible: selectedAssignees.length > 0

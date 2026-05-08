@@ -27,7 +27,8 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.1
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
-import "../../models/utils.js" as Utils
+import "../../../../models/utils.js" as Utils
+import "../../../components"
 
 Item {
     id: dialogWrapper

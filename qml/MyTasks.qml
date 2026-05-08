@@ -35,6 +35,7 @@ import "../models/utils.js" as Utils
 import "../models/accounts.js" as Account
 import "../models/global.js" as Global
 import "components"
+import "features/tasks/components"
 
 Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
@@ -69,7 +70,7 @@ Page {
                 iconName: "add"
                 text: "New"
                 onTriggered: {
-                    apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
+                    apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("features/tasks/pages/Tasks.qml"), {
                         "recordid": 0,
                         "isReadOnly": false
                     });
@@ -440,13 +441,13 @@ Page {
             isMyTasksContext: true
 
             onTaskEditRequested: {
-                apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
+                apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("features/tasks/pages/Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": false
                 });
             }
             onTaskSelected: {
-                apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
+                apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("features/tasks/pages/Tasks.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
@@ -505,7 +506,7 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
+                apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("features/tasks/pages/Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
                 });

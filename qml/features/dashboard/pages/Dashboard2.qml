@@ -24,12 +24,10 @@
 
 import QtQuick 2.7
 import Lomiri.Components 1.3
-import QtCharts 2.0
-import "../../../../models/Main.js" as Model
-
 Page {
     id: dashboard
     title: i18n.dtr("ubtms", "Charts")
+    property int lastRefreshAccountId: -999999
     header: PageHeader {
         title: dashboard.title
         StyleHints {
@@ -40,26 +38,18 @@ Page {
         }
     }
 
-    property variant project_timecat: []
-    property variant project: []
-    property variant project_data: []
-
-    property variant task_timecat: []
-    property variant task: []
-    property variant task_data: []
-
     function refreshData() {
-        console.log("Refreshing Dashboard2 charts for account: " + (typeof accountPicker !== 'undefined' ? accountPicker.selectedAccountId : "unknown"));
-        get_project_chart_data();
-        get_task_chart_data();
-        
-        // Re-construct the Loaders directly to forcefully update the inner Charts3 and Charts4 bindings
-        var prev3 = load3.source;
-        var prev4 = load4.source;
-        load3.source = "";
-        load4.source = "";
-        load3.source = prev3;
-        load4.source = prev4;
+        var accountId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+        if (lastRefreshAccountId === accountId) {
+            return;
+        }
+
+        lastRefreshAccountId = accountId;
+        console.log("Refreshing Dashboard2 charts for account: " + accountId);
+        if (load3.item && typeof load3.item.reloadData === "function")
+            load3.item.reloadData();
+        if (load4.item && typeof load4.item.reloadData === "function")
+            load4.item.reloadData();
     }
 
     Connections {
@@ -67,48 +57,6 @@ Page {
         onAccepted: function (accountId, accountName) {
             refreshData();
         }
-    }
-
-    function get_project_chart_data() {
-        //  console.log("get_project_chart_data called");
-        var accountId = typeof accountPicker !== 'undefined' ? accountPicker.selectedAccountId : -1;
-        project_data = Model.get_projects_spent_hours(accountId);
-        var count = 0;
-        var temp_project = [];
-        var timeval;
-        for (var key in project_data) {
-            temp_project[count] = key;
-            timeval = project_data[key];
-            count = count + 1;
-        }
-        var count2 = Object.keys(project_data).length;
-        var temp_timecat = [];
-        for (count = 0; count < count2; count++) {
-            temp_timecat[count] = project_data[temp_project[count]];
-        }
-        project = temp_project;
-        project_timecat = temp_timecat;
-    }
-
-    function get_task_chart_data() {
-        //  console.log("get_task_chart_data called");
-        var accountId = typeof accountPicker !== 'undefined' ? accountPicker.selectedAccountId : -1;
-        task_data = Model.get_tasks_spent_hours(accountId);
-        var count = 0;
-        var temp_task = [];
-        var timeval;
-        for (var key in task_data) {
-            temp_task[count] = key;
-            timeval = task_data[key];
-            count = count + 1;
-        }
-        var count2 = Object.keys(task_data).length;
-        var temp_timecat = [];
-        for (count = 0; count < count2; count++) {
-            temp_timecat[count] = task_data[temp_task[count]];
-        }
-        task = temp_task;
-        task_timecat = temp_timecat;
     }
 
     Flickable {
@@ -151,6 +99,11 @@ Page {
                     id: load3
                     anchors.fill: parent
                     source: "../charts/Charts3.qml"
+                    onLoaded: {
+                        if (item) {
+                            item.autoRefreshOnAccountChange = false;
+                        }
+                    }
                 }
             }
 
@@ -164,6 +117,11 @@ Page {
                     id: load4
                     anchors.fill: parent
                     source: "../charts/Charts4.qml"
+                    onLoaded: {
+                        if (item) {
+                            item.autoRefreshOnAccountChange = false;
+                        }
+                    }
                 }
             }
 
