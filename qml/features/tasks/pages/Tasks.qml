@@ -881,6 +881,7 @@ Page {
                 }
             }
         }
+        //changed the attachment color
         Rectangle {
                 id: attachmentRow
                 anchors.top: deadlineRow.bottom
