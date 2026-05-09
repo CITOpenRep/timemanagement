@@ -398,7 +398,7 @@ Page {
                             Loader {
                                 id: mobileProjectChartLoader
                                 anchors.fill: parent
-                                active: !isMultiColumn && mobileChartsView.currentIndex === 1
+                                active: !isMultiColumn
                                 source: "../charts/Charts3.qml"
                                 onLoaded: {
                                     if (item) {
@@ -412,7 +412,7 @@ Page {
                             Loader {
                                 id: mobileTaskChartLoader
                                 anchors.fill: parent
-                                active: !isMultiColumn && mobileChartsView.currentIndex === 2
+                                active: !isMultiColumn
                                 source: "../charts/Charts4.qml"
                                 onLoaded: {
                                     if (item) {
