@@ -1,12 +1,14 @@
 import QtQuick 2.6
 import Lomiri.Components 1.3
 import Pparent.Notifications 1.0
+import "navigation/NavigationRoutes.js" as NavigationRoutes
 
 Item {
     id: systemIntegrationManager
 
     property var rootApp
     property var apLayout
+    property var navigationController
 
     property var pendingNavigation: null
     property alias notificationSystem: notificationSystem
@@ -78,22 +80,20 @@ Item {
     }
 
     function navigateToRecord(navType, recordId, accountId, isOdooId) {
-        if (!apLayout || !apLayout.primaryPage)
+        var targetPage = NavigationRoutes.pageUrlForNavType(navType);
+        if (!targetPage || recordId <= 0)
             return;
 
         var options = { "recordid": recordId, "isOdooRecordId": isOdooId || false, "isReadOnly": true };
-        if (navType === "Task" && recordId > 0) {
-            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("../Tasks.qml"), options);
-        } else if (navType === "Activity" && recordId > 0) {
+
+        if (navType === "Activity" || navType === "ProjectUpdate") {
             options["accountid"] = accountId;
-            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("../Activities.qml"), options);
-        } else if (navType === "ProjectUpdate" && recordId > 0) {
-            options["accountid"] = accountId;
-            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("../Updates.qml"), options);
-        } else if (navType === "Project" && recordId > 0) {
-            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("../Projects.qml"), options);
-        } else if (navType === "Timesheet" && recordId > 0) {
-            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("../Timesheet.qml"), options);
+        }
+
+        if (navigationController && typeof navigationController.pushPageFromPrimary === "function") {
+            navigationController.pushPageFromPrimary(targetPage, options);
+        } else if (apLayout && apLayout.primaryPage && typeof apLayout.addPageToNextColumn === "function") {
+            apLayout.addPageToNextColumn(apLayout.primaryPage, Qt.resolvedUrl("../" + targetPage), options);
         }
     }
 

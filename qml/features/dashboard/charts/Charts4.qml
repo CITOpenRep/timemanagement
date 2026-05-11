@@ -1,0 +1,191 @@
+// Chart 4 compatibility wrapper that adapts dashboard data into the new drilldown flow.
+import QtQuick 2.12
+import Lomiri.Components 1.3
+import "../../../../models/project.js" as ProjectModel
+import "../../../../models/task.js" as TaskModel
+import "../../../../models/timesheet.js" as TimesheetModel
+import "../../../../models/utils.js" as Utils
+
+Item {
+    id: root
+
+    width: parent ? parent.width : units.gu(48)
+    implicitHeight: chartFlow.implicitHeight
+    height: chartFlow.implicitHeight
+    property bool autoRefreshOnAccountChange: true
+
+    property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
+    property var projectsModel: []
+
+    function reloadData() {
+        projectsModel = buildProjectsModel();
+    }
+
+    function buildProjectsModel() {
+        var rows = ProjectModel.getDashboardProjectTaskSummary(selectedAccountId);
+
+        for (var i = 0; i < rows.length; i++) {
+            var project = rows[i];
+            if (!project) {
+                continue;
+            }
+            project.name = project.name || i18n.dtr("ubtms", "Unnamed project");
+            project.colour = normalizeProjectColour(project.colour, project.stageName);
+        }
+
+        return rows;
+    }
+
+    function loadTasksForProject(projectId) {
+        var project = findProject(projectId);
+        if (!project) {
+            return [];
+        }
+
+        var taskRows = TaskModel.getTasksForProject(project.odooRecordId, project.accountId);
+        var mappedTasks = [];
+
+        for (var i = 0; i < taskRows.length; i++) {
+            var task = taskRows[i];
+            if (!task) {
+                continue;
+            }
+
+            var assignee = Utils.getTaskAssignerName(project.accountId, task.id);
+            mappedTasks.push({
+                id: String(project.id) + ":" + String(task.odoo_record_id),
+                localId: task.id,
+                odooRecordId: task.odoo_record_id,
+                projectId: project.id,
+                name: task.name || i18n.dtr("ubtms", "Unnamed task"),
+                totalHours: Number(task.spent_hours || 0),
+                description: task.description || "",
+                assignee: assignee || i18n.dtr("ubtms", "Unassigned"),
+                status: (task.state && task.state > 0) ? TaskModel.getTaskStageName(task.state, project.accountId) : (task.status || i18n.dtr("ubtms", "Unknown")),
+                projectName: project.name,
+                logs: [],
+                _logsLoaded: false
+            });
+        }
+
+        project.tasks = mappedTasks;
+        project._tasksLoaded = true;
+        project.taskCount = mappedTasks.length;
+
+        return mappedTasks;
+    }
+
+    function loadLogsForTask(projectId, taskId) {
+        var project = findProject(projectId);
+        var task = findTask(project, taskId);
+        if (!project || !task) {
+            return [];
+        }
+
+        var timesheets = TimesheetModel.getTimesheetsForTask(task.odooRecordId, project.accountId, "all");
+        var logs = [];
+
+        for (var i = 0; i < timesheets.length; i++) {
+            var entry = timesheets[i];
+            logs.push({
+                id: entry.id,
+                date: toIsoDate(entry.date),
+                hours: parseHours(entry.spentHours),
+                note: entry.name || ""
+            });
+        }
+
+        task.logs = logs;
+        task._logsLoaded = true;
+        return logs;
+    }
+
+    function findProject(projectId) {
+        for (var i = 0; i < projectsModel.length; i++) {
+            if (projectsModel[i].id === projectId) {
+                return projectsModel[i];
+            }
+        }
+        return null;
+    }
+
+    function findTask(project, taskId) {
+        if (!project || !project.tasks) {
+            return null;
+        }
+
+        for (var i = 0; i < project.tasks.length; i++) {
+            if (project.tasks[i].id === taskId) {
+                return project.tasks[i];
+            }
+        }
+        return null;
+    }
+
+    function normalizeProjectColour(colourValue, stageName) {
+        if (stageName) {
+            var sn = stageName.toLowerCase();
+            if (sn.indexOf("done") !== -1 || sn.indexOf("completed") !== -1) return "#388E3C"; // Green
+            if (sn.indexOf("cancel") !== -1) return "#D32F2F"; // Red
+            if (sn.indexOf("hold") !== -1 || sn.indexOf("pause") !== -1) return "#F57C00"; // Orange
+        }
+
+        if (typeof colourValue === "string" && colourValue.indexOf("#") === 0) {
+            // Reject white / near-white colours that become invisible in light mode
+            var c = Qt.darker(colourValue, 1.0); // parse to a Qt color
+            // Perceived lightness: if all RGB channels are very high, fall back
+            if (c.r > 0.85 && c.g > 0.85 && c.b > 0.85) {
+                return "#E95420";
+            }
+            return colourValue;
+        }
+        return "#E95420";
+    }
+
+    function toIsoDate(dateValue) {
+        if (!dateValue) {
+            return "";
+        }
+
+        var stringValue = String(dateValue);
+        return stringValue.length >= 10 ? stringValue.slice(0, 10) : stringValue;
+    }
+
+    function parseHours(hoursValue) {
+        if (typeof hoursValue === "number") {
+            return hoursValue;
+        }
+
+        if (!hoursValue) {
+            return 0;
+        }
+
+        var text = String(hoursValue);
+        if (text.indexOf(":") !== -1) {
+            var parts = text.split(":");
+            var hours = Number(parts[0] || 0);
+            var minutes = Number(parts[1] || 0);
+            return hours + (minutes / 60);
+        }
+
+        return Number(text) || 0;
+    }
+
+    TaskTimeChart {
+        id: chartFlow
+        width: parent.width
+        height: currentContentHeight + units.gu(7)
+        projectsModel: root.projectsModel
+        projectTasksProvider: root.loadTasksForProject
+        taskLogsProvider: root.loadLogsForTask
+    }
+
+    Component.onCompleted: reloadData()
+
+    Connections {
+        target: root.autoRefreshOnAccountChange && typeof accountPicker !== "undefined" ? accountPicker : null
+        onAccepted: function(accountId, accountName) {
+            reloadData();
+        }
+    }
+}

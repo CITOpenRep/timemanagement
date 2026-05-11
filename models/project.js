@@ -1184,7 +1184,6 @@ function markProjectUpdateAsDeleted(updateId) {
 function getProjectSpentHoursList(is_work_state, accountId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var resultList = [];
-    var projectSpentMap = {};
 
     // Determine account to use.
     // If accountId explicitly passed (could be number or string), use it.
@@ -1212,45 +1211,29 @@ function getProjectSpentHoursList(is_work_state, accountId) {
         if (isAllAccounts) {
             console.log("   Aggregating spent hours for ALL accounts");
 
-            /*
-             * For all accounts, group by project_id and account_id so entries for the same project
-             * but different accounts are kept distinct (same behavior as before).
-             */
             result = tx.executeSql(
-                "SELECT aal.project_id, aal.account_id, COALESCE(u.name, 'Unknown') as account_name, SUM(aal.unit_amount) as total_spent " +
+                "SELECT aal.project_id, aal.account_id, COALESCE(u.name, 'Unknown') AS account_name, " +
+                "COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
                 "FROM account_analytic_line_app aal " +
                 "LEFT JOIN users u ON aal.account_id = u.id " +
+                "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
                 "WHERE " + (is_work_state ? "aal.account_id != 0 " : "aal.account_id = 0 ") +
-                "GROUP BY aal.project_id, aal.account_id"
+                "GROUP BY aal.project_id, aal.account_id, u.name, p.name " +
+                "ORDER BY total_spent DESC"
             );
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                var projectId = row.project_id;
-                var accountIdRow = row.account_id;
-                var accountName = row.account_name;
-                var spent = parseFloat(row.total_spent || 0);
-
-                // resolve project name scoped to this account
-                var pname = tx.executeSql(
-                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
-                    [projectId, accountIdRow]
-                );
-                var projectName = pname.rows.length ? pname.rows.item(0).name : "Unknown";
-
-                var uniqueKey = projectName + " (" + accountName + ")";
-
-                if (!projectSpentMap[uniqueKey]) {
-                    projectSpentMap[uniqueKey] = {
-                        project_id: projectId,
-                        name: uniqueKey,
-                        spentHours: 0,
-                        account_id: accountIdRow,
-                        account_name: accountName,
-                        original_project_name: projectName
-                    };
-                }
-                projectSpentMap[uniqueKey].spentHours += spent;
+                var projectName = row.project_name || "Unknown";
+                var accountName = row.account_name || "Unknown";
+                resultList.push({
+                    project_id: row.project_id,
+                    name: projectName + " (" + accountName + ")",
+                    spentHours: parseFloat((parseFloat(row.total_spent || 0)).toFixed(1)),
+                    account_id: row.account_id,
+                    account_name: accountName,
+                    original_project_name: projectName
+                });
             }
 
         } else {
@@ -1264,45 +1247,97 @@ function getProjectSpentHoursList(is_work_state, accountId) {
             console.log("   Aggregating spent hours for single account:", acctNum);
 
             result = tx.executeSql(
-                "SELECT project_id, SUM(unit_amount) as total_spent FROM account_analytic_line_app WHERE account_id = ? " +
-                (is_work_state ? "" : "") + " GROUP BY project_id",
+                "SELECT aal.project_id, COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
+                "FROM account_analytic_line_app aal " +
+                "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
+                "WHERE aal.account_id = ? " +
+                "GROUP BY aal.project_id, p.name " +
+                "ORDER BY total_spent DESC",
                 [acctNum]
             );
 
             for (var j = 0; j < result.rows.length; j++) {
                 var r = result.rows.item(j);
-                var projectIdSingle = r.project_id;
-                var spentSingle = parseFloat(r.total_spent || 0);
-
-                var pnameSingle = tx.executeSql(
-                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
-                    [projectIdSingle, acctNum]
-                );
-                var projectNameSingle = pnameSingle.rows.length ? pnameSingle.rows.item(0).name : "Unknown";
-
-                projectSpentMap[projectIdSingle] = {
-                    project_id: projectIdSingle,
+                var projectNameSingle = r.project_name || "Unknown";
+                resultList.push({
+                    project_id: r.project_id,
                     name: projectNameSingle,
-                    spentHours: spentSingle,
-                    account_id: acctNum
-                };
+                    spentHours: parseFloat((parseFloat(r.total_spent || 0)).toFixed(1)),
+                    account_id: acctNum,
+                    account_name: undefined,
+                    original_project_name: projectNameSingle
+                });
             }
         }
-
-        // Convert map to array
-        for (var key in projectSpentMap) {
-            if (!projectSpentMap.hasOwnProperty(key)) continue;
-            var project = projectSpentMap[key];
-            resultList.push({
-                project_id: project.project_id,
-                name: project.name,
-                spentHours: parseFloat((project.spentHours || 0).toFixed(1)),
-                account_id: project.account_id,
-                account_name: project.account_name || undefined,
-                original_project_name: project.original_project_name || project.name
-            });
-        }
     });
+
+    return resultList;
+}
+
+/**
+ * Lightweight dashboard summary used by the project/task drilldown chart.
+ * Computes task counts and spent hours in SQL instead of loading every task and
+ * calculating totals one record at a time in QML.
+ *
+ * @param {number} accountId - Account ID, or -1 for all accounts.
+ * @returns {Array<Object>} Project summary rows for dashboard charts.
+ */
+function getDashboardProjectTaskSummary(accountId) {
+    var resultList = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var params = [];
+            var accountWhere = "";
+
+            if (accountId !== -1 && accountId !== undefined && accountId !== null) {
+                accountWhere = "WHERE p.account_id = ? ";
+                params.push(accountId);
+            }
+
+            var query =
+                "SELECT " +
+                "p.account_id, p.odoo_record_id, p.id AS local_id, p.name, p.color_pallet, s.name AS stage_name, " +
+                "COUNT(t.id) AS task_count, COALESCE(SUM(ts.total_hours), 0) AS total_hours " +
+                "FROM project_project_app p " +
+                "LEFT JOIN project_project_stage_app s ON s.odoo_record_id = p.stage AND s.account_id = p.account_id " +
+                "LEFT JOIN project_task_app t ON t.account_id = p.account_id " +
+                "AND t.project_id = p.odoo_record_id " +
+                "AND (t.status IS NULL OR t.status != 'deleted') " +
+                "LEFT JOIN ( " +
+                "SELECT account_id, task_id, SUM(unit_amount) AS total_hours " +
+                "FROM account_analytic_line_app " +
+                "WHERE status IS NULL OR status != 'deleted' " +
+                "GROUP BY account_id, task_id " +
+                ") ts ON ts.account_id = t.account_id AND ts.task_id = t.odoo_record_id " +
+                accountWhere +
+                "GROUP BY p.account_id, p.odoo_record_id, p.id, p.name, p.color_pallet, s.name " +
+                "ORDER BY total_hours DESC, p.name COLLATE NOCASE ASC";
+
+            var result = tx.executeSql(query, params);
+
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                resultList.push({
+                    id: String(row.account_id) + ":" + String(row.odoo_record_id),
+                    accountId: row.account_id,
+                    odooRecordId: row.odoo_record_id,
+                    localId: row.local_id,
+                    name: row.name || "Unnamed project",
+                    colour: row.color_pallet,
+                    stageName: row.stage_name || "",
+                    taskCount: row.task_count || 0,
+                    totalHours: Number(row.total_hours || 0),
+                    tasks: [],
+                    _tasksLoaded: false
+                });
+            }
+        });
+    } catch (e) {
+        console.error("getDashboardProjectTaskSummary failed:", e);
+    }
 
     return resultList;
 }

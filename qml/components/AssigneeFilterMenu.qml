@@ -233,18 +233,10 @@ Item {
     }
 
     function getDisplayAssigneeCount() {
-        // Lazily initialize cache in case it hasn't been recomputed yet.
-        if (!cachedDisplayAssignees || cachedDisplayAssignees.length !== cachedDisplayAssigneeCount) {
-            recomputeDisplayAssigneeCache();
-        }
         return cachedDisplayAssigneeCount;
     }
 
     function getSelectedDisplayAssigneeCount() {
-        // Lazily initialize cache in case it hasn't been recomputed yet.
-        if (!cachedDisplayAssignees || cachedDisplayAssignees.length !== cachedDisplayAssigneeCount) {
-            recomputeDisplayAssigneeCache();
-        }
         return cachedSelectedDisplayAssigneeCount;
     }
 

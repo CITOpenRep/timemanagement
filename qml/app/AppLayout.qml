@@ -3,13 +3,18 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
 import "../"
-import "../settings"
+import "pages" as AppPages
+import "../features/dashboard/pages" as DashboardPages
+import "../features/settings/pages" as SettingsPages
+import "../features/tasks/pages" as TaskPages
+import "navigation/NavigationRoutes.js" as NavigationRoutes
 
 AdaptivePageLayout {
     id: apLayout
 
     property var rootApp
     property var globalDrawer
+    property var navigationController
 
     anchors.top: parent.top
     anchors.left: parent.left
@@ -19,7 +24,7 @@ AdaptivePageLayout {
     property bool isMultiColumn: true
     property Page currentPage: splash_page
     property Page thirdPage: dashboard_page2
-    property string currentMenuPageUrl: "Dashboard.qml"
+    property string currentMenuPageUrl: "features/dashboard/pages/Dashboard.qml"
 
     primaryPage: splash_page
 
@@ -67,15 +72,16 @@ AdaptivePageLayout {
         }
     ]
 
-    Splash {
+    AppPages.Splash {
         id: splash_page
     }
 
     Menu {
         id: menu_page
+        navigationController: apLayout.navigationController
     }
 
-    Dashboard {
+    DashboardPages.Dashboard {
         id: dashboard_page
 
         Connections {
@@ -88,7 +94,7 @@ AdaptivePageLayout {
         }
     }
 
-    Dashboard2 {
+    DashboardPages.Dashboard2 {
         id: dashboard_page2
 
         Connections {
@@ -130,7 +136,7 @@ AdaptivePageLayout {
         }
     }
 
-    Task_Page {
+    TaskPages.Task_Page {
         id: task_page
 
         Connections {
@@ -166,7 +172,7 @@ AdaptivePageLayout {
         id: aboutus_page
     }
 
-    Settings_Page {
+    SettingsPages.Settings_Page {
         id: settings_page
     }
 
@@ -189,18 +195,18 @@ AdaptivePageLayout {
         case 1:
             primaryPage = dashboard_page;
             currentPage = dashboard_page;
-            currentMenuPageUrl = "Dashboard.qml";
+            currentMenuPageUrl = "features/dashboard/pages/Dashboard.qml";
             break;
         case 2:
             primaryPage = menu_page;
             currentPage = dashboard_page;
-            currentMenuPageUrl = "Dashboard.qml";
+            currentMenuPageUrl = "features/dashboard/pages/Dashboard.qml";
             addPageToNextColumn(primaryPage, currentPage);
             break;
         case 3:
             primaryPage = menu_page;
             currentPage = dashboard_page;
-            currentMenuPageUrl = "Dashboard.qml";
+            currentMenuPageUrl = "features/dashboard/pages/Dashboard.qml";
             addPageToNextColumn(primaryPage, currentPage);
             addPageToNextColumn(currentPage, thirdPage);
             break;
@@ -216,22 +222,23 @@ AdaptivePageLayout {
 
     function setPageGlobal(url, pageNum) {
         var targetPage = null;
+        var pageKey = NavigationRoutes.resolvePageKey(pageNum, url);
 
-        if (pageNum === 0)
+        if (pageKey === "dashboard")
             targetPage = dashboard_page;
-        else if (pageNum === 1)
+        else if (pageKey === "timesheet_list")
             targetPage = timesheet_list || timesheet_page;
-        else if (pageNum === 2)
+        else if (pageKey === "activity")
             targetPage = activity_page;
-        else if (pageNum === 3 && url.indexOf("MyTasks") === -1)
+        else if (pageKey === "task")
             targetPage = task_page;
-        else if (pageNum === 4)
+        else if (pageKey === "project")
             targetPage = project_page;
-        else if (pageNum === 5)
+        else if (pageKey === "updates")
             targetPage = updates_page;
-        else if (pageNum === 6)
+        else if (pageKey === "settings")
             targetPage = settings_page;
-        else if (pageNum === 7)
+        else if (pageKey === "about")
             targetPage = aboutus_page;
 
         if (targetPage !== null) {
@@ -281,6 +288,7 @@ AdaptivePageLayout {
             currentPage = dashboard_page;
             thirdPage = dashboard_page2;
             if (apLayout.columns === 3) {
+                apLayout.addPageToNextColumn(currentPage, thirdPage);
             }
             break;
         case 1:

@@ -263,7 +263,7 @@ Page {
                 // preserve timer behavior (normalize comparison to string to be safe)
                 'activetimer': (currentFilter === "active") && (String(TimerService.getActiveTimesheetId()) === String(t.id)),
                 // IMPORTANT: keep the same key name that your delegate expects
-                'color_pallet': (typeof t.color_pallet !== "undefined" ? t.color_pallet : ""),
+                'color_pallet': (typeof t.color_pallet !== "undefined" && t.color_pallet !== null && t.color_pallet !== "") ? Number(t.color_pallet) : 0,
                 'has_draft': t.has_draft || 0
             });
         }

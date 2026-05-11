@@ -75,13 +75,46 @@ function get_quadrant_current_month() {
 */
 
 function get_projects_spent_hours(account) {
-    var spent_hours = get_spent_hours({ 'group_by': 'project_id' },account);
-    var project_details = {};
-    for (var fetch = 0; fetch < spent_hours.length; fetch++) {
-        var project = get_project_name(spent_hours[fetch].project_id)
-        project_details[project] = spent_hours[fetch].total;
-        //        console.log("In get_projects_spent_hours, project is: " + project)
+    var project_details = [];
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            var params = [];
+            var query =
+                "SELECT p.name AS entity_name, SUM(a.unit_amount) AS total, s.name AS stage_name " +
+                "FROM account_analytic_line_app a " +
+                "LEFT JOIN project_project_app p ON p.odoo_record_id = a.project_id AND p.account_id = a.account_id " +
+                "LEFT JOIN project_project_stage_app s ON s.odoo_record_id = p.stage AND s.account_id = p.account_id ";
+
+            if (account !== -1 && account !== undefined && account !== null) {
+                query += "WHERE a.account_id = ? ";
+                params.push(account);
+            }
+
+            query += "GROUP BY a.project_id, a.account_id, p.name, s.name ORDER BY total DESC";
+
+            var result = tx.executeSql(query, params);
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                var name = row.entity_name || "Unknown Project";
+                project_details.push({
+                    name: name,
+                    total: row.total,
+                    stage_name: row.stage_name
+                });
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("get_projects_spent_hours", e);
     }
+
     return project_details;
 }
 
@@ -91,12 +124,41 @@ function get_projects_spent_hours(account) {
 */
 
 function get_tasks_spent_hours(account) {
-    var spent_hours = get_spent_hours({ 'group_by': 'task_id' },account);
     var task_details = {};
-    for (var fetch = 0; fetch < spent_hours.length; fetch++) {
-        var task = get_task_name(spent_hours[fetch].task_id)
-        task_details[task] = spent_hours[fetch].total;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            var params = [];
+            var query =
+                "SELECT t.name AS entity_name, SUM(a.unit_amount) AS total " +
+                "FROM account_analytic_line_app a " +
+                "LEFT JOIN project_task_app t ON t.id = a.task_id ";
+
+            if (account !== -1 && account !== undefined && account !== null) {
+                query += "WHERE a.account_id = ? ";
+                params.push(account);
+            }
+
+            query += "GROUP BY a.task_id, t.name ORDER BY total DESC";
+
+            var result = tx.executeSql(query, params);
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                var name = row.entity_name || "Unknown Task";
+                task_details[name] = row.total;
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("get_tasks_spent_hours", e);
     }
+
     return task_details;
 }
 

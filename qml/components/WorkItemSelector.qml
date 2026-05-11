@@ -30,6 +30,7 @@ Rectangle {
     // Add counter to track when all deferred loading is complete
     property int deferredLoadingCounter: 0
     property int expectedDeferredLoads: 0
+    property var taskSelectorCacheByAccount: ({})
 
     // Watch for readOnly property changes and update all selectors
     onReadOnlyChanged: {
@@ -248,48 +249,48 @@ Rectangle {
         expectedDeferredLoads = 0;
 
         // Count expected loads
-        if (accountId !== -1)
+        if (showAccountSelector && accountId !== -1)
             expectedDeferredLoads++;
-        if (accountId !== -1)
+        if (showProjectSelector && accountId !== -1)
             expectedDeferredLoads++; // Projects
-        if (accountId !== -1 && projectId !== -1)
+        if (showSubProjectSelector && accountId !== -1 && projectId !== -1)
             expectedDeferredLoads++; // Subprojects
-        if (accountId !== -1 && (projectId !== -1 || subProjectId !== -1))
+        if (showTaskSelector && accountId !== -1 && (projectId !== -1 || subProjectId !== -1))
             expectedDeferredLoads++; // Tasks
-        if (accountId !== -1 && taskId !== -1)
+        if (showSubTaskSelector && accountId !== -1 && taskId !== -1)
             expectedDeferredLoads++; // Subtasks
-        if (accountId !== -1)
+        if (showAssigneeSelector && accountId !== -1)
             expectedDeferredLoads++; // Assignees
 
 
-        if (accountId !== -1) {
+        if (showAccountSelector && accountId !== -1) {
             loadAccounts(accountId);
         }
 
         // Load Projects under account with selected projectId
-        if (accountId !== -1) {
+        if (showProjectSelector && accountId !== -1) {
             loadProjects(accountId, projectId);
         }
 
         // Load Subprojects under project with selected subProjectId
-        if (accountId !== -1 && projectId !== -1) {
+        if (showSubProjectSelector && accountId !== -1 && projectId !== -1) {
             loadSubProjects(accountId, projectId, subProjectId);
         }
 
         // Load Tasks under project/subproject with selected taskId
-        if (accountId !== -1 && (projectId !== -1 || subProjectId !== -1)) {
+        if (showTaskSelector && accountId !== -1 && (projectId !== -1 || subProjectId !== -1)) {
             // Use subproject ID if available, otherwise use project ID
             var parentIdForTasks = subProjectId !== -1 ? subProjectId : projectId;
             loadTasks(accountId, parentIdForTasks, taskId);
         }
 
         // Load Subtasks under task with selected subTaskId
-        if (accountId !== -1 && taskId !== -1) {
+        if (showSubTaskSelector && accountId !== -1 && taskId !== -1) {
             loadSubTasks(accountId, taskId, subTaskId);
         }
 
         // Load Assignees with selected assigneeId
-        if (accountId !== -1) {
+        if (showAssigneeSelector && accountId !== -1) {
             loadAssignees(accountId, assigneeId);
 
             // Also load assignees for MultiAssigneeSelector if enabled
@@ -533,7 +534,8 @@ Rectangle {
     function loadTasks(accountId, projectIdOrSubprojectId, selectedId = -1) {
         // console.log("Loading tasks for account:", accountId, "parentId (project/subproject):", projectIdOrSubprojectId, "selectedId:", selectedId);
 
-        const rawTasks = Task.getTasksForAccount(accountId);
+        const rawTasks = taskSelectorCacheByAccount[accountId] || Task.getTaskSelectorDataForAccount(accountId);
+        taskSelectorCacheByAccount[accountId] = rawTasks;
         let taskList = [];
 
         // Always add "No Task" entry
@@ -608,7 +610,8 @@ Rectangle {
     }
 
     function loadSubTasks(accountId, parentTaskId, selectedId = -1) {
-        const rawTasks = Task.getTasksForAccount(accountId);
+        const rawTasks = taskSelectorCacheByAccount[accountId] || Task.getTaskSelectorDataForAccount(accountId);
+        taskSelectorCacheByAccount[accountId] = rawTasks;
         let subTaskList = [];
 
         // Always add "No Subtask" entry
@@ -977,4 +980,3 @@ responsibilities, and how data flows between the selectors.
 Last updated: [2025-07-01]
 ---------------------------------
 */
-

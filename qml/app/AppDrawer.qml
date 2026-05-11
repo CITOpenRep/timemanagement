@@ -2,7 +2,7 @@ import QtQuick 2.6
 import QtQuick.Controls 2.2 as Controls
 import Lomiri.Components 1.3
 import "../components"
-import "../components/MenuData.js" as MenuData
+import "navigation/NavigationRoutes.js" as NavigationRoutes
 
 Controls.Drawer {
     id: drawerRoot
@@ -10,6 +10,7 @@ Controls.Drawer {
     interactive: true
 
     property var apLayout
+    property var navigationController
 
     Connections {
         target: apLayout
@@ -110,11 +111,15 @@ Controls.Drawer {
 
                         NavigationMenuList {
                             width: parent.width
-                            menuItems: MenuData.items()
+                            menuItems: NavigationRoutes.menuItems()
                             selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
                             onItemSelected: function (item) {
                                 drawerRoot.close();
-                                apLayout.setPageGlobal(item.pageUrl, item.pageNum);
+                                if (navigationController && typeof navigationController.navigateMenuItem === "function") {
+                                    navigationController.navigateMenuItem(item);
+                                } else if (apLayout && typeof apLayout.setPageGlobal === "function") {
+                                    apLayout.setPageGlobal(item.pageUrl, item.pageNum);
+                                }
                             }
                         }
                     }

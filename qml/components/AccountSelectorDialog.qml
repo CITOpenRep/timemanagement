@@ -175,10 +175,14 @@ Item {
                             }
 
                             onClicked: {
-                                root.selectedAccountId   = model.accountId
-                                root.selectedAccountName = model.name
+                                var accountId = model.accountId
+                                var accountName = model.name
+                                root.selectedAccountId = accountId
+                                root.selectedAccountName = accountName
                                 PopupUtils.close(dlg)
-                                root.accepted(model.accountId, model.name)
+                                Qt.callLater(function() {
+                                    root.accepted(accountId, accountName)
+                                })
                             }
                         }
 

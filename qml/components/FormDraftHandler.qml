@@ -115,6 +115,11 @@ Item {
     property bool _pendingDraftSave: false
     
     /**
+     * Temporarily suspend change tracking for programmatic UI updates
+     */
+    property bool trackingSuspended: false
+    
+    /**
      * Snapshot of the last successfully saved form data
      */
     property string _lastSavedSnapshot: "{}"
@@ -223,7 +228,7 @@ Item {
     function markFieldChanged(fieldName, value) {
       //  console.log("📝 FormDraftHandler.markFieldChanged called - field:", fieldName, "value:", value, "enabled:", enabled, "_initialized:", _initialized, "_preventAutoSave:", _preventAutoSave);
         
-        if (!enabled || !_initialized) {
+        if (!enabled || !_initialized || trackingSuspended) {
             console.log("⚠️ FormDraftHandler.markFieldChanged - returning early (checks failed)");
             return;
         }

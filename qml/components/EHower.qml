@@ -37,6 +37,7 @@ Item {
     height: parent.height
     signal quadrantClicked(int quadrant)
     property int selectedAccountId: accountPicker.selectedAccountId
+    property bool autoRefreshOnAccountChange: true
     property string quadrant1Hours: "0"
     property string quadrant2Hours: "0"
     property string quadrant3Hours: "0"
@@ -434,7 +435,7 @@ Item {
     }
 
     Connections {
-        target: accountPicker
+        target: autoRefreshOnAccountChange ? accountPicker : null
 
         onAccepted: function (id, name) {
             ehoverMatrix.selectedAccountId = id;
