@@ -131,7 +131,7 @@ Page {
                     const defaultAccountId = Account.getDefaultAccountId();
                     const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
                     if (result.success) {
-                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                             "recordid": result.id,
                             "isReadOnly": false
                         });
@@ -233,7 +233,7 @@ Page {
             if (index === 1) {
                 const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
                 if (result.success) {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
                     });
@@ -467,7 +467,7 @@ Page {
         onCommitCompleted: {
             const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
             if (result.success) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                     "recordid": result.id,
                     "isReadOnly": false
                 });
@@ -533,7 +533,7 @@ Page {
                     "isReadOnly": true
                 });
             } else if (navType === "Timesheet" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });

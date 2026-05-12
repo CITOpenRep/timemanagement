@@ -26,9 +26,9 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components 1.3
-import "../../models/timesheet.js" as Model
-import "../../models/accounts.js" as Accounts
-import "../../models/utils.js" as Utils
+import "../../../../models/timesheet.js" as Model
+import "../../../../models/accounts.js" as Accounts
+import "../../../../models/utils.js" as Utils
 
 Item {
     id: popupWrapper

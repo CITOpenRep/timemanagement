@@ -355,7 +355,7 @@ Page {
             onTaskTimesheetRequested: {
                 let result = Timesheet.createTimesheetFromTask(localId);
                 if (result.success) {
-                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Timesheet.qml"), {
+                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
                     });

@@ -109,7 +109,7 @@ Page {
             onProjectTimesheetRequested: localId => {
                 let result = Timesheet.createTimesheetFromProject(localId);
                 if (result.success) {
-                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Timesheet.qml"), {
+                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("features/timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
                     });
