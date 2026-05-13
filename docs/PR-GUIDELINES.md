@@ -100,11 +100,11 @@ PRs require:
 
 ## 7. What NOT to Submit
 
-- ❌ Work-in-progress PRs without description
-- ❌ PRs with failing builds
-- ❌ Code with debug logs or TODO comments left in
-- ❌ Large refactors without prior discussion
-- ❌ Files with secrets or credentials
+-  Work-in-progress PRs without description
+-  PRs with failing builds
+-  Code with debug logs or TODO comments left in
+-  Large refactors without prior discussion
+-  Files with secrets or credentials
 
 ---
 
