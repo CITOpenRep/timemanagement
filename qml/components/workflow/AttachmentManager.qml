@@ -726,6 +726,11 @@ Item {
                             return;
                         }
 
+                        if (res.success === false) {
+                            attachmentManager._notify(res.error || "Attachment could not be downloaded", 3500);
+                            return;
+                        }
+
                         if (res.type === "binary" && res.data) {
                             var dlName = (res.name && res.name.length) ? res.name : fname;
                             var dlMime = res.mimetype || mime;
