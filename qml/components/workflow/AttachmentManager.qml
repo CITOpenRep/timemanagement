@@ -293,7 +293,7 @@ Item {
     Python {
         id: python
         Component.onCompleted: {
-            addImportPath(Qt.resolvedUrl("../src/"));
+            addImportPath(Qt.resolvedUrl("../../../src/"));
             importModule("backend", function () {
                 console.log("backend imported");
             });

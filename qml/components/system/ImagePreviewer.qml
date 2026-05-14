@@ -46,7 +46,7 @@ Rectangle {
     Python {
         id: python
         Component.onCompleted: {
-            addImportPath(Qt.resolvedUrl("../src/"));
+            addImportPath(Qt.resolvedUrl("../../../src/"));
             importModule("backend", function () { console.log("[ImagePreviewer] backend imported"); });
         }
         onError: function (name, msg, tb) { console.error("[ImagePreviewer][py] " + name + ": " + msg + "\n" + tb); }

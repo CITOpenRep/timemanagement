@@ -32,8 +32,8 @@ Item {
     id: bridge
 
     // --- Configuration ---
-    // Path where Python modules live. Default points to ../../src/
-    property url pythonImportPath: Qt.resolvedUrl("../../src/")
+    // Path where Python modules live.
+    property url pythonImportPath: Qt.resolvedUrl("../../../src/")
 
     // True once the Python module is imported and ready
     property bool ready: false
@@ -83,6 +83,7 @@ Item {
 
         // Forward Python errors to QML
         onError: function (traceback) {
+            console.error("PyOtherSide error:", traceback);
             bridge.pythonError(traceback);
         }
 
