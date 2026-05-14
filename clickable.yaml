@@ -2,3 +2,7 @@ clickable_minimum_required: 8.0.0
 builder: cmake
 kill: qmlscene
 skip_review: true
+dependencies_target:
+  - libatomic1
+dependencies_host:
+  - python3-pip

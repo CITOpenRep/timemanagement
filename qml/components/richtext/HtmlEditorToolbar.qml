@@ -62,6 +62,31 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             spacing: units.gu(0.5)
 
+
+             // Mic / Voice Input
+            Button {
+                width: units.gu(5)
+                height: units.gu(4)
+                color: (editor && editor.listening) ? LomiriColors.red : (darkMode ? "#555555" : "#F0F0F0")
+                
+                Icon {
+                    anchors.centerIn: parent
+                    name: "microphone"
+                    width: units.gu(2)
+                    height: units.gu(2)
+                    opacity: (editor && (editor.listening || editor.processing)) ? 0.5 : 1.0
+                }
+                
+                onClicked: {
+                    if (editor) {
+                        editor.toggleVoiceRecognition()
+                    }
+                }
+            }
+
+            ToolbarSeparator {}
+
+
             // Bold
             Button {
                 width: units.gu(5)
