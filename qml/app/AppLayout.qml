@@ -7,6 +7,7 @@ import "pages" as AppPages
 import "../features/dashboard/pages" as DashboardPages
 import "../features/settings/pages" as SettingsPages
 import "../features/tasks/pages" as TaskPages
+import "../features/timesheets/pages" as TimesheetPages
 import "navigation/NavigationRoutes.js" as NavigationRoutes
 
 AdaptivePageLayout {
@@ -108,7 +109,7 @@ AdaptivePageLayout {
         }
     }
 
-    Timesheet {
+    TimesheetPages.Timesheet {
         id: timesheet_page
 
         Connections {
@@ -176,7 +177,7 @@ AdaptivePageLayout {
         id: settings_page
     }
 
-    Timesheet_Page {
+    TimesheetPages.Timesheet_Page {
         id: timesheet_list
 
         Connections {

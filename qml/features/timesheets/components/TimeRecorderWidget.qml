@@ -7,10 +7,11 @@ import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.11
 import QtQuick.Controls 2.2
-import "../../models/constants.js" as AppConst
-import "../../models/timer_service.js" as TimerService
-import "../../models/timesheet.js" as TimeSheet
-import "../../models/utils.js" as Utils
+import "../../../../models/constants.js" as AppConst
+import "../../../../models/timer_service.js" as TimerService
+import "../../../../models/timesheet.js" as TimeSheet
+import "../../../../models/utils.js" as Utils
+import "../../../components"
 
 Item {
     id: autoRecorder
@@ -151,12 +152,12 @@ Item {
 
                     source: {
                         if (!autoMode)
-                            return "../images/play (1).png";
+                            return "../../../images/play (1).png";
 
                         if (isRecording) {
-                            return "../images/pause.png";
+                            return "../../../images/pause.png";
                         } else {
-                            return "../images/play (1).png";
+                            return "../../../images/play (1).png";
                         }
                     }
 
@@ -200,7 +201,7 @@ Item {
                     id: finalizeIcon
                     anchors.fill: parent
                     anchors.margins: units.gu(0.3)
-                    source: "../images/stop.png"
+                    source: "../../../images/stop.png"
                     fillMode: Image.PreserveAspectFit
                 }
 

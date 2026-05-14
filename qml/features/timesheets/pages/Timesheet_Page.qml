@@ -27,12 +27,13 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import Ubuntu.Components 1.3 as Ubuntu
 import QtQuick.LocalStorage 2.7
-import "../models/timesheet.js" as Model
-import "../models/project.js" as Project
-import "../models/accounts.js" as Account
-import "../models/global.js" as Global
-import "components"
-import "../models/timer_service.js" as TimerService
+import "../../../../models/timesheet.js" as Model
+import "../../../../models/project.js" as Project
+import "../../../../models/accounts.js" as Account
+import "../../../../models/global.js" as Global
+import "../../../../models/timer_service.js" as TimerService
+import "../../../components"
+import "../components"
 
 Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false

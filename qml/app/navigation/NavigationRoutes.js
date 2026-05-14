@@ -2,7 +2,7 @@
 
 var _menuItems = [
     { textKey: "Dashboard", iconName: "home", iconColor: "#3498db", pageUrl: "features/dashboard/pages/Dashboard.qml", pageNum: 0 },
-    { textKey: "Timesheet", iconName: "alarm-clock", iconColor: "#e67e22", pageUrl: "Timesheet_Page.qml", pageNum: 1 },
+    { textKey: "Timesheet", iconName: "alarm-clock", iconColor: "#e67e22", pageUrl: "features/timesheets/pages/Timesheet_Page.qml", pageNum: 1 },
     { textKey: "Activities", iconName: "calendar", iconColor: "#e74c3c", pageUrl: "Activity_Page.qml", pageNum: 2 },
     { textKey: "My Tasks", iconName: "scope-manager", iconColor: "#2ecc71", pageUrl: "MyTasks.qml", pageNum: 3 },
     { textKey: "All Tasks", iconName: "view-list-symbolic", iconColor: "#1abc9c", pageUrl: "features/tasks/pages/Task_Page.qml", pageNum: 3 },
@@ -17,7 +17,7 @@ var _deepLinkPages = {
     "Activity": "Activities.qml",
     "ProjectUpdate": "Updates.qml",
     "Project": "Projects.qml",
-    "Timesheet": "Timesheet.qml"
+    "Timesheet": "features/timesheets/pages/Timesheet.qml"
 };
 
 function menuItems() {

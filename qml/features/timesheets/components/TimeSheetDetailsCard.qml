@@ -25,10 +25,11 @@ import QtQuick 2.12
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Layouts 1.1
-import "../../models/utils.js" as Utils
-import "../../models/constants.js" as AppConst
-import "../../models/timer_service.js" as TimerService
-import "../../models/timesheet.js" as Timesheet
+import "../../../../models/utils.js" as Utils
+import "../../../../models/constants.js" as AppConst
+import "../../../../models/timer_service.js" as TimerService
+import "../../../../models/timesheet.js" as Timesheet
+import "../../../components"
 
 ListItem {
     id: timesheetItem
@@ -135,12 +136,12 @@ ListItem {
                 iconSource: {
                     if (recordId === TimerService.getActiveTimesheetId()) {
                         if (TimerService.isPaused()) {
-                            return "../images/play.png";
+                            return "../../../images/play.png";
                         } else {
-                            return "../images/pause.png";
+                            return "../../../images/pause.png";
                         }
                     } else {
-                        return "../images/play.png";
+                        return "../../../images/play.png";
                     }
                 }
                 visible: recordId > 0
@@ -151,7 +152,7 @@ ListItem {
             },
             Action {
                 id: startstopaction
-                iconSource: "../images/stop.png"
+                iconSource: "../../../images/stop.png"
                 visible: ((recordId === TimerService.getActiveTimesheetId()) && (TimerService.isRunning()))
                 text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
@@ -161,7 +162,7 @@ ListItem {
             Action {
                 id: readyAction
                 visible: (recordId !== TimerService.getActiveTimesheetId()) //Dont show this for the active running entry
-                iconSource: "../images/save.svg"
+                iconSource: "../../../images/save.svg"
                 text: i18n.dtr("ubtms", "Mark Ready for Sync")
                 onTriggered: {
                     save_workflow();

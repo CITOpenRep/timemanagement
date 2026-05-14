@@ -3,6 +3,7 @@ import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import "../../models/timer_service.js" as TimerService
 import "../../models/utils.js" as Utils
+import "../features/timesheets/components" as TimesheetComponents
 
 Rectangle {
     id: globalTimer
@@ -472,7 +473,7 @@ Rectangle {
     property var showNotification: null
 
     // Description popup for when timer is stopped
-    TimeSheetDescriptionPopup {
+    TimesheetComponents.TimeSheetDescriptionPopup {
         id: descriptionPopup
 
         onSaved: function (description, status) {

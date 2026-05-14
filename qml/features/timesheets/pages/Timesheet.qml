@@ -31,13 +31,14 @@ import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
 import QtQuick.Window 2.2
 import Qt.labs.settings 1.0
-import "../models/timesheet.js" as Model
-import "../models/accounts.js" as Accounts
-import "../models/timer_service.js" as TimerService
-import "../models/utils.js" as Utils
-import "../models/global.js" as Global
-import "components"
-import "components/richtext"
+import "../../../../models/timesheet.js" as Model
+import "../../../../models/accounts.js" as Accounts
+import "../../../../models/timer_service.js" as TimerService
+import "../../../../models/utils.js" as Utils
+import "../../../../models/global.js" as Global
+import "../../../components"
+import "../../../components/richtext"
+import "../components"
 
 Page {
     id: timeSheet
@@ -75,7 +76,7 @@ Page {
 
         trailingActionBar.actions: [
             Action {
-                iconSource: "images/save.svg"
+                iconSource: "../../../images/save.svg"
                 visible: !isReadOnly
                 text: "Save"
                 onTriggered: {
@@ -795,7 +796,7 @@ Page {
                             //set the data to a global store and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
                             description_text.liveSyncActive = true;
-                            apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("ReadMorePage.qml"), {
+                            apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 useRichText: false,
                                 parentDraftHandler: draftHandler // Pass draft handler reference

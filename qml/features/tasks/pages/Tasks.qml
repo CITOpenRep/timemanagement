@@ -840,7 +840,7 @@ Page {
             onCreateTimesheetRequested: {
                 const result = Timesheet.createTimesheetFromTask(currentTask.odoo_record_id);
                 if (result.success) {
-                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
                     });
@@ -851,7 +851,7 @@ Page {
             }
             onViewTimesheetsRequested: {
                 console.log("Viewing timesheets for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
-                apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Timesheet_Page.qml"), {
+                apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../timesheets/pages/Timesheet_Page.qml"), {
                     "filterByTask": true,
                     "taskOdooRecordId": currentTask.odoo_record_id,
                     "taskAccountId": currentTask.account_id,
