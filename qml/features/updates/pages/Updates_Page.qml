@@ -27,11 +27,11 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import Ubuntu.Components 1.3 as Ubuntu
 import QtQuick.LocalStorage 2.7
-import "../models/project.js" as Project
-import "../models/accounts.js" as Account
-import "../models/global.js" as Global
-import "components"
-import "../models/timer_service.js" as TimerService
+import "../../../../models/project.js" as Project
+import "../../../../models/accounts.js" as Account
+import "../../../../models/global.js" as Global
+import "../../../components"
+import "../../../../models/timer_service.js" as TimerService
 
 Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
@@ -336,7 +336,7 @@ Page {
             onShowDescription: {
                 Global.description_temporary_holder = description;
                 Global.description_context = "update_description";
-                apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("ReadMorePage.qml"), {
+                apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
                     "isReadOnly": true
                 });
             }

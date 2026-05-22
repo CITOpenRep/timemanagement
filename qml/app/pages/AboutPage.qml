@@ -27,8 +27,8 @@ import Lomiri.Components 1.3
 import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
-import "../models/Main.js" as Model
-import "../models/constants.js" as AppConst
+import "../../../models/Main.js" as Model
+import "../../../models/constants.js" as AppConst
 
 Page {
     id: aboutPage
@@ -39,7 +39,7 @@ Page {
 
     Component.onCompleted: {
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", Qt.resolvedUrl("release_notes.txt"));
+        xhr.open("GET", Qt.resolvedUrl("../../release_notes.txt"));
         xhr.onreadystatechange = function () {
             if (xhr.readyState === XMLHttpRequest.DONE) {
                 releaseNotesHtml = (xhr.status === 200) ? xhr.responseText : "<p><i>Release notes could not be loaded.</i></p>";

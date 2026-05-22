@@ -30,12 +30,12 @@ import Ubuntu.Components 1.3 as Ubuntu
 import QtQuick.LocalStorage 2.7
 import Lomiri.Components.ListItems 1.3 as ListItem
 
-import "../models/project.js" as Project
-import "../models/utils.js" as Utils
-import "../models/accounts.js" as Account
-import "../models/global.js" as Global
+import "../../../../models/project.js" as Project
+import "../../../../models/utils.js" as Utils
+import "../../../../models/accounts.js" as Account
+import "../../../../models/global.js" as Global
 
-import "components"
+import "../../../components"
 
 Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
@@ -109,7 +109,7 @@ Page {
             onProjectTimesheetRequested: localId => {
                 let result = Timesheet.createTimesheetFromProject(localId);
                 if (result.success) {
-                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("features/timesheets/pages/Timesheet.qml"), {
+                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
                     });

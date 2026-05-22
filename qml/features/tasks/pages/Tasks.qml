@@ -819,7 +819,7 @@ Page {
             onCreateActivityRequested: {
                 let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
                 if (result.success) {
-                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Activities.qml"), {
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                         "recordid": result.record_id,
                         "accountid": currentTask.account_id,
                         "isReadOnly": false
@@ -830,7 +830,7 @@ Page {
             }
             onViewActivitiesRequested: {
                 console.log("Viewing activities for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
-                apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Activity_Page.qml"), {
+                apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activity_Page.qml"), {
                     "filterByTasks": true,
                     "taskOdooRecordId": currentTask.odoo_record_id,
                     "projectAccountId": currentTask.account_id,

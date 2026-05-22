@@ -6,14 +6,14 @@ import Qt.labs.settings 1.0
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
-import "../models/utils.js" as Utils
-import "../models/activity.js" as Activity
-import "../models/accounts.js" as Accounts
-import "../models/task.js" as Task
-import "../models/project.js" as Project
-import "../models/global.js" as Global
-import "components"
-import "components/richtext"
+import "../../../../models/utils.js" as Utils
+import "../../../../models/activity.js" as Activity
+import "../../../../models/accounts.js" as Accounts
+import "../../../../models/task.js" as Task
+import "../../../../models/project.js" as Project
+import "../../../../models/global.js" as Global
+import "../../../components"
+import "../../../components/richtext"
 
 Page {
     id: activityDetailsPage
@@ -88,7 +88,7 @@ Page {
         }
         trailingActionBar.actions: [
             Action {
-                iconSource: "images/save.svg"
+                iconSource: "../../../images/save.svg"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms", "Save")
                 onTriggered: {
@@ -338,7 +338,7 @@ Page {
                 // Get the local task id from odoo_record_id
                 var taskLocalId = Task.getLocalIdFromOdooId(taskOdooRecordId, currentActivity.account_id);
                 if (taskLocalId > 0) {
-                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("features/tasks/pages/Tasks.qml"), {
+                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                         "recordid": taskLocalId,
                         "isReadOnly": true,
                         "editVisible": false
@@ -362,7 +362,7 @@ Page {
                 // Get the local project id from odoo_record_id
                 var projectLocalId = Project.getLocalIdFromOdooId(projectOdooRecordId, currentActivity.account_id);
                 if (projectLocalId > 0) {
-                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Projects.qml"), {
+                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("../../projects/pages/Projects.qml"), {
                         "recordid": projectLocalId,
                         "isReadOnly": true
                     });
@@ -380,7 +380,7 @@ Page {
                 // Get the local update id from odoo_record_id
                 var updateLocalId = Project.getUpdateLocalIdFromOdooId(updateOdooRecordId, currentActivity.account_id);
                 if (updateLocalId > 0) {
-                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("Updates.qml"), {
+                    apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("../../updates/pages/Updates.qml"), {
                         "recordid": updateLocalId,
                         "accountid": currentActivity.account_id,
                         "isReadOnly": true
@@ -764,7 +764,7 @@ Page {
                             Global.description_context = "activity_notes";
                             navigatingToReadMore = true;
                             notes.liveSyncActive = true;
-                            apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
+                            apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 parentDraftHandler: draftHandler
                                 //useRichText: false
