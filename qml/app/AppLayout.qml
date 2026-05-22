@@ -3,6 +3,7 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
 import "../"
+import "navigation" as AppNavigation
 import "pages" as AppPages
 import "../features/dashboard/pages" as DashboardPages
 import "../features/settings/pages" as SettingsPages
@@ -77,7 +78,7 @@ AdaptivePageLayout {
         id: splash_page
     }
 
-    Menu {
+    AppNavigation.MenuPage {
         id: menu_page
         navigationController: apLayout.navigationController
     }
@@ -146,6 +147,20 @@ AdaptivePageLayout {
                 console.debug("🔄 Refreshing Task data for account:", accountId);
                 if (task_page.visible && typeof task_page.getTaskList === "function") {
                     task_page.getTaskList(task_page.currentFilter || "today", "");
+                }
+            }
+        }
+    }
+
+    TaskPages.MyTasksPage {
+        id: my_tasks_page
+
+        Connections {
+            target: rootApp
+            onAccountDataRefreshRequested: function(accountId) {
+                console.debug("🔄 Refreshing My Tasks data for account:", accountId);
+                if (my_tasks_page.visible && typeof my_tasks_page.refreshData === "function") {
+                    my_tasks_page.refreshData();
                 }
             }
         }
@@ -233,6 +248,8 @@ AdaptivePageLayout {
             targetPage = activity_page;
         else if (pageKey === "task")
             targetPage = task_page;
+        else if (pageKey === "my_tasks")
+            targetPage = my_tasks_page;
         else if (pageKey === "project")
             targetPage = project_page;
         else if (pageKey === "updates")
@@ -275,14 +292,14 @@ AdaptivePageLayout {
             }
         }
 
-        setCurrentPage(pageNum);
+        setCurrentPage(pageNum, url);
 
         if (globalDrawer) {
             globalDrawer.close();
         }
     }
 
-    function setCurrentPage(page) {
+    function setCurrentPage(page, url) {
         console.debug("📄 Setting current page to:", page);
         switch (page) {
         case 0:
@@ -301,7 +318,7 @@ AdaptivePageLayout {
             thirdPage = null;
             break;
         case 3:
-            currentPage = task_page;
+            currentPage = String(url || "").indexOf("MyTasks") >= 0 ? my_tasks_page : task_page;
             thirdPage = null;
             break;
         case 4:
@@ -400,6 +417,9 @@ AdaptivePageLayout {
         }
         if (task_page && typeof task_page.getTaskList === "function") {
             task_page.getTaskList(task_page.currentFilter || "today", "");
+        }
+        if (my_tasks_page && typeof my_tasks_page.refreshData === "function") {
+            my_tasks_page.refreshData();
         }
         if (project_page && project_page.projectlist && typeof project_page.projectlist.refresh === "function") {
             project_page.projectlist.refresh();

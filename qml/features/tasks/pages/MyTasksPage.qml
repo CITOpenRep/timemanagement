@@ -271,6 +271,25 @@ Page {
         }
     }
 
+    function refreshData() {
+        if (typeof mainView !== "undefined" && mainView !== null && typeof mainView.currentAccountId !== "undefined") {
+            var acctId = mainView.currentAccountId;
+            if (acctId !== selectedAccountId && acctId >= -1) {
+                handleAccountChange(acctId);
+                return;
+            }
+        }
+
+        updateCurrentUser();
+        loadPersonalStages();
+
+        if (currentUserOdooId > 0) {
+            startPaginatedLoad();
+        } else {
+            clearCurrentTasks();
+        }
+    }
+
     ListHeader {
         id: myTaskListHeader
         anchors.top: myTasksHeader.bottom
@@ -440,21 +459,7 @@ Page {
     onVisibleChanged: {
         if (visible) {
             Global.setLastVisitedPage("MyTasks");
-
-            if (typeof mainView !== "undefined" && mainView !== null && typeof mainView.currentAccountId !== "undefined") {
-                var acctId = mainView.currentAccountId;
-                if (acctId !== selectedAccountId && acctId >= -1) {
-                    handleAccountChange(acctId);
-                    return;
-                }
-            }
-
-            updateCurrentUser();
-            loadPersonalStages();
-
-            if (currentUserOdooId > 0) {
-                startPaginatedLoad();
-            }
+            refreshData();
         }
     }
 
