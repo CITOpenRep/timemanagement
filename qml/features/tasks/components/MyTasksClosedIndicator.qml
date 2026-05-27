@@ -22,7 +22,34 @@
  * SOFTWARE.
  */
 
-import QtQuick 2.7
-import "app/navigation"
+import QtQuick 2.9
+import Lomiri.Components 1.3
 
-MenuPage {}
+Rectangle {
+    id: root
+
+    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d5016" : "#dff0d8"
+    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4caf50" : "#5cb85c"
+    border.width: 1
+
+    Row {
+        anchors.centerIn: parent
+        spacing: units.gu(1)
+
+        Icon {
+            name: "info"
+            width: units.gu(2)
+            height: units.gu(2)
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4caf50" : "#3c763d"
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        Text {
+            text: i18n.dtr("ubtms", "Showing closed/completed tasks")
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4caf50" : "#3c763d"
+            font.pixelSize: units.gu(1.5)
+            font.bold: true
+            anchors.verticalCenter: parent.verticalCenter
+        }
+    }
+}
