@@ -1,6 +1,6 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
-import "../models/accounts.js" as Accounts
+import "../../../../models/accounts.js" as Accounts
 
 Page {
     id: syncLogPage
