@@ -92,6 +92,7 @@ Examples:
 - `qml/components/richtext/ReadMorePage.qml`
 - `qml/components/base/UbuntuShape.qml`
 - `qml/components/dialogs/CreateUpdateDialog.qml`
+- `qml/components/system/ModelDownloadTimerWidget.qml`
 
 #### `qml/features/`
 

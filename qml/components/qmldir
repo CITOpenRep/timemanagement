@@ -25,6 +25,7 @@ InlineOptionSelector 1.0 selectors/InlineOptionSelector.qml
 ListHeader 1.0 navigation/ListHeader.qml
 LoadMoreFooter 1.0 feedback/LoadMoreFooter.qml
 LoadingIndicator 1.0 feedback/LoadingIndicator.qml
+ModelDownloadTimerWidget 1.0 system/ModelDownloadTimerWidget.qml
 MultiAssigneeSelector 1.0 selectors/MultiAssigneeSelector.qml
 NavigationMenuList 1.0 navigation/NavigationMenuList.qml
 NotificationBell 1.0 feedback/NotificationBell.qml
