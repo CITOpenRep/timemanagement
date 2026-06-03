@@ -45,7 +45,7 @@ Page {
             Action {
                 iconName: "add"
                 onTriggered: {
-                    apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('../../../Account_Page.qml'));
+                    apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'));
                 }
             }
         ]
@@ -277,7 +277,7 @@ Page {
 
                 onClicked: {
                     if (model.id !== 0) {
-                        apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('../../../Account_Page.qml'), {
+                        apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'), {
                             "accountId": model.id
                         });
                     }
@@ -290,7 +290,7 @@ Page {
                             iconName: "edit"
                             enabled: model.id !== 0
                             onTriggered: {
-                                apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('../../../Account_Page.qml'), {
+                                apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'), {
                                     "accountId": model.id,
                                     "openInEditMode": true
                                 });
@@ -307,7 +307,7 @@ Page {
                             text: i18n.dtr("ubtms", "Log")
                             enabled: model.id !== 0
                             onTriggered: {
-                                apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl("../../../SyncLog.qml"), {
+                                apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl("SyncLog.qml"), {
                                     "recordid": model.id
                                 });
                             }

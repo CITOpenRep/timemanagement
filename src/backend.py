@@ -301,7 +301,7 @@ def ensure_export_file_from_base64(suggested_name, b64_data, mime):
         return None
 
 
-def attachment_ondemand_download(settings_db,account_id, remote_record_id):
+def attachment_ondemand_download(settings_db, account_id, remote_record_id):
     accounts = get_all_accounts(settings_db)
     selected = None
     for acc in accounts:
@@ -310,15 +310,37 @@ def attachment_ondemand_download(settings_db,account_id, remote_record_id):
             break
 
     if not selected:
-        return None
+        return {
+            "success": False,
+            "error": "Account not found",
+        }
 
-    client = OdooClient(
-        selected["link"],
-        selected["database"],
-        selected["username"],
-        selected["api_key"],
-    )
-    return client.ondemanddownload(remote_record_id,selected["username"],selected["api_key"],False)
+    try:
+        client = OdooClient(
+            selected["link"],
+            selected["database"],
+            selected["username"],
+            selected["api_key"],
+        )
+        result = client.ondemanddownload(
+            remote_record_id,
+            selected["username"],
+            selected["api_key"],
+            False,
+        )
+        if isinstance(result, dict):
+            result["success"] = True
+        return result
+    except Exception as e:
+        log.exception(
+            "[ATTACHMENT] Failed to download attachment %s for account %s",
+            remote_record_id,
+            account_id,
+        )
+        return {
+            "success": False,
+            "error": str(e),
+        }
 
 def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
     send("ondemand_upload_message","Initiating upload")

@@ -49,20 +49,6 @@ clickable install
 ```
 to install the app on the connected device.
 
-## Refactor guardrails
-
-Phase 1 refactor guardrails and naming contract are documented here:
-
-- docs/refactor/phase-1-architecture-contract.md
-- docs/refactor/phase-1-naming-map.md
-- docs/refactor/phase-1-smoke-checklist.md
-
-Migration check helper:
-
-```bash
-./scripts/refactor_phase1_checks.sh report
-```
-
 
 ## License
 
@@ -93,10 +79,8 @@ Migration check helper:
 ## Contributing
 
 - [Pull Request Guidelines](docs/PR-GUIDELINES.md)
-- [High Level Architecture](docs/HLD.drawio)
-- [Phase 1 Refactor Docs](docs/refactor/)
+- [Technical File Organization](docs/TECHNICAL-FILE-ORGANIZATION.md)
 
 ## References
 * https://clickable-ut.dev/en/latest/
 * Location of DB : ~/.clickable/home/.local/share/ubtms/Databases
-

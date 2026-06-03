@@ -778,7 +778,7 @@ Page {
                             var contentToPass = getFormattedText();
                             Global.description_temporary_holder = contentToPass;
                             description_text.liveSyncActive = true;
-                            apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
+                            apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../components/richtext/ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 parentDraftHandler: draftHandler // Pass draft handler reference
                             });
@@ -819,7 +819,7 @@ Page {
             onCreateActivityRequested: {
                 let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
                 if (result.success) {
-                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Activities.qml"), {
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                         "recordid": result.record_id,
                         "accountid": currentTask.account_id,
                         "isReadOnly": false
@@ -830,7 +830,7 @@ Page {
             }
             onViewActivitiesRequested: {
                 console.log("Viewing activities for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
-                apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Activity_Page.qml"), {
+                apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activity_Page.qml"), {
                     "filterByTasks": true,
                     "taskOdooRecordId": currentTask.odoo_record_id,
                     "projectAccountId": currentTask.account_id,
@@ -840,7 +840,7 @@ Page {
             onCreateTimesheetRequested: {
                 const result = Timesheet.createTimesheetFromTask(currentTask.odoo_record_id);
                 if (result.success) {
-                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                    apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
                     });
@@ -851,7 +851,7 @@ Page {
             }
             onViewTimesheetsRequested: {
                 console.log("Viewing timesheets for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
-                apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../Timesheet_Page.qml"), {
+                apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../timesheets/pages/Timesheet_Page.qml"), {
                     "filterByTask": true,
                     "taskOdooRecordId": currentTask.odoo_record_id,
                     "taskAccountId": currentTask.account_id,
