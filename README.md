@@ -79,8 +79,8 @@ to install the app on the connected device.
 ## Contributing
 
 - [Pull Request Guidelines](docs/PR-GUIDELINES.md)
+- [Technical File Organization](docs/TECHNICAL-FILE-ORGANIZATION.md)
 
 ## References
 * https://clickable-ut.dev/en/latest/
 * Location of DB : ~/.clickable/home/.local/share/ubtms/Databases
-
