@@ -1,8 +1,6 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
-import "../models/global.js" as Global
-import "components"
-import "components/richtext"
+import "../../../models/global.js" as Global
 
 Page {
     id: readmepage

@@ -30,14 +30,14 @@ import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
-import "../models/task.js" as Task
-import "../models/utils.js" as Utils
-import "../models/accounts.js" as Accounts
-import "../models/activity.js" as Activity
-import "../models/project.js" as Project
-import "../models/global.js" as Global
-import "components"
-import "components/richtext"
+import "../../../../models/task.js" as Task
+import "../../../../models/utils.js" as Utils
+import "../../../../models/accounts.js" as Accounts
+import "../../../../models/activity.js" as Activity
+import "../../../../models/project.js" as Project
+import "../../../../models/global.js" as Global
+import "../../../components"
+import "../../../components/richtext"
 
 Page {
     id: projectCreate
@@ -64,7 +64,7 @@ Page {
 
         trailingActionBar.actions: [
             Action {
-                iconSource: "images/save.svg"
+                iconSource: "../../../images/save.svg"
                 text: i18n.dtr("ubtms", "Save")
                 visible: !isReadOnly
                 onTriggered: {
@@ -625,7 +625,7 @@ Page {
                         Global.richTextSaveCallback = saveProjectDescriptionFromEditor;
                         navigatingToReadMore = true;
                         description_text.liveSyncActive = true;
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("ReadMorePage.qml"), {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../../components/richtext/ReadMorePage.qml"), {
                             isReadOnly: isReadOnly,
                             parentDraftHandler: draftHandler,
                             parentFormPage: projectCreate,
@@ -735,7 +735,7 @@ Page {
                         let project = Project.getProjectDetails(recordid);
                         let result = Activity.createActivityFromProjectOrTask(true, project.account_id, project.odoo_record_id);
                         if (result.success) {
-                            apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activities.qml"), {
+                            apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                                 "recordid": result.record_id,
                                 "accountid": project.account_id,
                                 "isReadOnly": false
@@ -759,7 +759,7 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Activity_Page.qml"), {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../activities/pages/Activity_Page.qml"), {
                             "filterByProject": true,
                             "projectOdooRecordId": project.odoo_record_id,
                             "projectAccountId": project.account_id,
@@ -795,7 +795,7 @@ Page {
                         let isSubProject = project.parent_id && project.parent_id > 0;
                         let parentProjectId = isSubProject ? project.parent_id : -1;
 
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("features/tasks/pages/Tasks.qml"), {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                             "recordid": 0,
                             "isReadOnly": false,
                             "prefilledAccountId": project.account_id,
@@ -820,7 +820,7 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("features/tasks/pages/Task_Page.qml"), {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../tasks/pages/Task_Page.qml"), {
                             "filterByProject": true,
                             "projectOdooRecordId": project.odoo_record_id,
                             "projectAccountId": project.account_id,
@@ -862,7 +862,7 @@ Page {
                             }
                             Global.createUpdateCallback = null;
                         };
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("components/CreateUpdatePage.qml"), {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../../components/CreateUpdatePage.qml"), {
                             "projectId": project.odoo_record_id,
                             "accountId": project.account_id
                         });
@@ -882,7 +882,7 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("Updates_Page.qml"), {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../updates/pages/Updates_Page.qml"), {
                             "filterByProject": true,
                             "projectOdooRecordId": project.odoo_record_id,
                             "projectAccountId": project.account_id,

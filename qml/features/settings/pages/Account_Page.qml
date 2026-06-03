@@ -28,9 +28,9 @@ import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import io.thp.pyotherside 1.4
-import "../models/accounts.js" as Accounts
-import "../models/utils.js" as Utils
-import "components"
+import "../../../../models/accounts.js" as Accounts
+import "../../../../models/utils.js" as Utils
+import "../../../components"
 
 Page {
     id: createAccountPage
@@ -63,7 +63,7 @@ Page {
         }
         trailingActionBar.actions: [
             Action {
-                iconSource: "images/save.svg"
+                iconSource: "../../../images/save.svg"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms","Save")
                 
@@ -326,7 +326,7 @@ Page {
         id: python
 
         Component.onCompleted: {
-            addImportPath(Qt.resolvedUrl('../src/'));
+            addImportPath(Qt.resolvedUrl('../../../../src/'));
             importModule_sync("backend");
         }
 

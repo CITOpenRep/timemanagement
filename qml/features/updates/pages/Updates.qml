@@ -30,12 +30,12 @@ import Qt.labs.settings 1.0
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
-import "../models/utils.js" as Utils
-import "../models/project.js" as Project
-import "../models/accounts.js" as Accounts
-import "../models/global.js" as Global
-import "components"
-import "components/richtext"
+import "../../../../models/utils.js" as Utils
+import "../../../../models/project.js" as Project
+import "../../../../models/accounts.js" as Accounts
+import "../../../../models/global.js" as Global
+import "../../../components"
+import "../../../components/richtext"
 
 Page {
     id: updateDetailsPage
@@ -118,7 +118,7 @@ Page {
         }
         trailingActionBar.actions: [
             Action {
-                iconSource: "images/save.svg"
+                iconSource: "../../../images/save.svg"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms", "Save")
                 onTriggered: {
@@ -545,7 +545,7 @@ Page {
                                 Global.description_context = "update_description";
                                 navigatingToReadMore = true;
                                 description_text.liveSyncActive = true;
-                                apLayout.addPageToNextColumn(updateDetailsPage, Qt.resolvedUrl("ReadMorePage.qml"), {
+                                apLayout.addPageToNextColumn(updateDetailsPage, Qt.resolvedUrl("../../../components/richtext/ReadMorePage.qml"), {
                                     isReadOnly: isReadOnly,
                                     parentDraftHandler: draftHandler
                                 });

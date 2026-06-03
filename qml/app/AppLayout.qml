@@ -5,10 +5,13 @@ import QtQuick.Layouts 1.11
 import "../"
 import "navigation" as AppNavigation
 import "pages" as AppPages
+import "../features/activities/pages" as ActivityPages
 import "../features/dashboard/pages" as DashboardPages
+import "../features/projects/pages" as ProjectPages
 import "../features/settings/pages" as SettingsPages
 import "../features/tasks/pages" as TaskPages
 import "../features/timesheets/pages" as TimesheetPages
+import "../features/updates/pages" as UpdatePages
 import "navigation/NavigationRoutes.js" as NavigationRoutes
 
 AdaptivePageLayout {
@@ -124,7 +127,7 @@ AdaptivePageLayout {
         }
     }
 
-    Activity_Page {
+    ActivityPages.Activity_Page {
         id: activity_page
 
         Connections {
@@ -166,7 +169,7 @@ AdaptivePageLayout {
         }
     }
 
-    Project_Page {
+    ProjectPages.Project_Page {
         id: project_page
 
         Connections {
@@ -180,11 +183,11 @@ AdaptivePageLayout {
         }
     }
 
-    Updates_Page {
+    UpdatePages.Updates_Page {
         id: updates_page
     }
 
-    Aboutus {
+    AppPages.AboutPage {
         id: aboutus_page
     }
 
