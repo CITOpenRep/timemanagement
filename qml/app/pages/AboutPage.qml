@@ -39,7 +39,7 @@ Page {
 
     Component.onCompleted: {
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", Qt.resolvedUrl("../../release_notes.txt"));
+        xhr.open("GET", Qt.resolvedUrl("release_notes.txt"));
         xhr.onreadystatechange = function () {
             if (xhr.readyState === XMLHttpRequest.DONE) {
                 releaseNotesHtml = (xhr.status === 200) ? xhr.responseText : "<p><i>Release notes could not be loaded.</i></p>";

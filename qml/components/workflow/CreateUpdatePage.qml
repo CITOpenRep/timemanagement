@@ -334,7 +334,7 @@ Page {
                     descriptionField.liveSyncActive = true;
                     
                     if (typeof apLayout !== "undefined" && apLayout) {
-                        apLayout.addPageToNextColumn(createUpdatePage, Qt.resolvedUrl("../ReadMorePage.qml"), {
+                        apLayout.addPageToNextColumn(createUpdatePage, Qt.resolvedUrl("../richtext/ReadMorePage.qml"), {
                             isReadOnly: false,
                             parentDraftHandler: draftHandler
                         });

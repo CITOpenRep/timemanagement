@@ -336,7 +336,7 @@ Page {
             onShowDescription: {
                 Global.description_temporary_holder = description;
                 Global.description_context = "update_description";
-                apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
+                apLayout.addPageToNextColumn(updates, Qt.resolvedUrl("../../../components/richtext/ReadMorePage.qml"), {
                     "isReadOnly": true
                 });
             }

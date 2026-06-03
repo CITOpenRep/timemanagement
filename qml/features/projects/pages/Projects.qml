@@ -625,7 +625,7 @@ Page {
                         Global.richTextSaveCallback = saveProjectDescriptionFromEditor;
                         navigatingToReadMore = true;
                         description_text.liveSyncActive = true;
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../../components/richtext/ReadMorePage.qml"), {
                             isReadOnly: isReadOnly,
                             parentDraftHandler: draftHandler,
                             parentFormPage: projectCreate,

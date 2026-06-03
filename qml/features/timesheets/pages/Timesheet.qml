@@ -796,7 +796,7 @@ Page {
                             //set the data to a global store and pass the key to the page
                             Global.description_temporary_holder = getFormattedText();
                             description_text.liveSyncActive = true;
-                            apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
+                            apLayout.addPageToNextColumn(timeSheet, Qt.resolvedUrl("../../../components/richtext/ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 useRichText: false,
                                 parentDraftHandler: draftHandler // Pass draft handler reference

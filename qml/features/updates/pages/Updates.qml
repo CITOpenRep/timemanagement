@@ -545,7 +545,7 @@ Page {
                                 Global.description_context = "update_description";
                                 navigatingToReadMore = true;
                                 description_text.liveSyncActive = true;
-                                apLayout.addPageToNextColumn(updateDetailsPage, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
+                                apLayout.addPageToNextColumn(updateDetailsPage, Qt.resolvedUrl("../../../components/richtext/ReadMorePage.qml"), {
                                     isReadOnly: isReadOnly,
                                     parentDraftHandler: draftHandler
                                 });

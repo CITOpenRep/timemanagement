@@ -764,7 +764,7 @@ Page {
                             Global.description_context = "activity_notes";
                             navigatingToReadMore = true;
                             notes.liveSyncActive = true;
-                            apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
+                            apLayout.addPageToNextColumn(activityDetailsPage, Qt.resolvedUrl("../../../components/richtext/ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 parentDraftHandler: draftHandler
                                 //useRichText: false

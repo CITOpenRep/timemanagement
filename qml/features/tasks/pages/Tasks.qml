@@ -778,7 +778,7 @@ Page {
                             var contentToPass = getFormattedText();
                             Global.description_temporary_holder = contentToPass;
                             description_text.liveSyncActive = true;
-                            apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../ReadMorePage.qml"), {
+                            apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../../components/richtext/ReadMorePage.qml"), {
                                 isReadOnly: isReadOnly,
                                 parentDraftHandler: draftHandler // Pass draft handler reference
                             });

@@ -116,7 +116,7 @@ Item {
                         // Access apLayout (global AdaptivePageLayout) and add ReadMorePage
                         // apLayout is the global ID from TSApp.qml
                         if (typeof apLayout !== "undefined" && apLayout) {
-                            apLayout.addPageToNextColumn(popupWrapper.parentPage || createUpdateDialog, Qt.resolvedUrl("../ReadMorePage.qml"), {
+                            apLayout.addPageToNextColumn(popupWrapper.parentPage || createUpdateDialog, Qt.resolvedUrl("../richtext/ReadMorePage.qml"), {
                                 isReadOnly: false
                             });
                         } else {

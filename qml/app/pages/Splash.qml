@@ -54,7 +54,7 @@ Page {
             anchors.centerIn: parent
             width: units.gu(30)
             height: units.gu(30)
-            source: "../../logo.png"
+            source: "../../images/logo.png"
             opacity: 0.3
 
             // Animate the opacity to fade in
