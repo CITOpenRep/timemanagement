@@ -1,0 +1,32 @@
+:root {
+  --ifm-color-primary: #b35a16;
+  --ifm-color-primary-dark: #a45214;
+  --ifm-color-primary-darker: #9b4d13;
+  --ifm-color-primary-darkest: #80400f;
+  --ifm-color-primary-light: #c7661c;
+  --ifm-color-primary-lighter: #d56f1f;
+  --ifm-color-primary-lightest: #de8742;
+  --ifm-background-color: #fffef9;
+  --ifm-navbar-background-color: rgba(255, 254, 249, 0.92);
+  --ifm-footer-background-color: #243125;
+  --ifm-code-font-size: 95%;
+  --ifm-heading-color: #1f2a1f;
+  --ifm-font-family-base: "Fira Sans", "Segoe UI", sans-serif;
+  --ifm-font-family-monospace: "Fira Code", "SFMono-Regular", monospace;
+}
+
+html[data-theme="dark"] {
+  --ifm-background-color: #152019;
+  --ifm-navbar-background-color: rgba(21, 32, 25, 0.92);
+  --ifm-heading-color: #f6f2e8;
+  --ifm-color-content: #e8e1d2;
+  --ifm-color-primary: #de8742;
+}
+
+.navbar {
+  backdrop-filter: blur(14px);
+}
+
+.footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
