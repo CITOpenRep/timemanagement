@@ -8,6 +8,12 @@ const config = {
   projectName: "timemanagement",
   trailingSlash: false,
   onBrokenLinks: "throw",
+  stylesheets: [
+    {
+      href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap",
+      type: "text/css"
+    }
+  ],
   markdown: {
     hooks: {
       onBrokenMarkdownLinks: "warn"
