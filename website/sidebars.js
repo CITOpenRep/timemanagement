@@ -4,6 +4,7 @@ const sidebars = {
       type: "category",
       label: "Functional",
       items: [
+        "functional/user-manual",
         "user/overview",
         "user/install-and-run",
         "user/setup-and-sync",

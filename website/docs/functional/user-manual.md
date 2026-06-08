@@ -1,3 +1,8 @@
+---
+title: Functional Documentation
+sidebar_label: User Manual
+---
+
 # UT Time Management App Documentation
 
 # Time Management App – Functional Documentation (v1.2.7)
