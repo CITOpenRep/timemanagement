@@ -112,7 +112,24 @@ const config = {
       darkTheme: require("prism-react-renderer").themes.vsDark
     }
   },
-  themes: []
+  themes: [
+    [
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      /** @type {import("@easyops-cn/docusaurus-search-local").Options} */
+      ({
+        hashed: true,
+        language: ["en"],
+        docsRouteBasePath: "docs",
+        docsDir: "docs",
+        indexBlog: false,
+        indexDocs: true,
+        indexPages: true,
+        highlightSearchTermsOnTargetPage: true,
+        searchResultLimits: 8,
+        searchResultContextMaxLength: 50
+      })
+    ]
+  ]
 };
 
 module.exports = config;
