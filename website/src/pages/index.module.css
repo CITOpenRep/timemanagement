@@ -191,6 +191,8 @@
   font-size: 0.82rem;
   line-height: 1.8;
   color: #9aa89c;
+  background: transparent;
+  border: none;
 }
 
 .terminalCode .terminalPrompt {
