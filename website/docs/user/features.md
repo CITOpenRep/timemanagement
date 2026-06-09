@@ -1,3 +1,4 @@
+---
 title: Features and Workflows
 sidebar_label: Features
 ---
@@ -25,11 +26,22 @@ This feature organization helps with:
 - issue reporting with more precise page references
 - future release notes grouped by product area
 
-## Suggested future additions
+## App Visual Gallery (Snapshots)
 
-This page is a good place to add:
+Here are placeholders for visual guides across the main application views:
 
-- workflow screenshots
-- short videos or GIFs
-- page-by-page capability summaries
-- platform-specific notes when desktop and device behavior differs
+### Timesheets & Logging
+![Timesheet Recording Snapshot](/img/snapshots/timesheets.png)
+*Figure 1: Interface for logging work hours, tracking entries, and editing timesheets.*
+
+### Task Management
+![Task Management Snapshot](/img/snapshots/tasks.png)
+*Figure 2: Kanban/list layouts showing active tasks, stages, and project assignments.*
+
+### Dashboard & Analytics
+![Dashboard Snapshot](/img/snapshots/dashboard.png)
+*Figure 3: Dynamic charts showing project time breakdown and weekly summaries.*
+
+### Settings & Configurations
+![Settings Snapshot](/img/snapshots/settings.png)
+*Figure 4: Settings page including sync options, server connection settings, and device properties.*

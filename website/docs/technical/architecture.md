@@ -1,3 +1,4 @@
+---
 title: Architecture Overview
 sidebar_label: Architecture
 ---
@@ -26,6 +27,33 @@ At a high level:
 - `assets/`: branding and package-level artwork
 - `docs/`: source documentation kept in the main repository
 - `website/`: Docusaurus-based website and documentation portal
+
+## System Architecture Model
+
+Here is the high-level representation of the TimeManagement three-layer architecture and component integration.
+
+### Architectural Diagram
+```mermaid
+graph TD
+    subgraph UI ["QML Client Layer"]
+        A[QML Pages] --> B[Shared QML Components]
+    end
+    
+    subgraph State ["JavaScript Logic Layer"]
+        C[Shared State Models] --> D[API Helpers]
+    end
+
+    subgraph Service ["Python Service Layer"]
+        E[Sync Daemon] --> F[Odoo API Client]
+        E --> G[Local SQLite DB]
+    end
+
+    UI -->|Import / Call| State
+    State -->|D-Bus / Sync Commands| Service
+```
+
+![Architecture Flow Diagram](/img/snapshots/architecture.png)
+*Figure 1: Component layout and communication lines between UI, JavaScript models, and Python backend services.*
 
 ## Documentation intent
 
