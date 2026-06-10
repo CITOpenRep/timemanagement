@@ -106,7 +106,7 @@ const config = {
           ]
         }
       ],
-      copyright: `Copyright ${new Date().getFullYear()} CIT-Services`
+      copyright: `Made with ❤️ by CIT Services · Copyright ${new Date().getFullYear()} CIT-Services`
     },
     prism: {
       theme: require("prism-react-renderer").themes.github,
