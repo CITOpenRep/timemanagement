@@ -19,16 +19,14 @@ The Activities module helps users schedule, manage, and track follow-up tasks an
 *   Mark activities or tasks as Completed.
 *   Display Days Remaining (shows "Overdue" status if past due).
 *   "Read More" truncation for long Notes.
-*   Notification Bubble on the header for new activities.
 *   Tabs to filter by Open / Closed / All.
-*   Add a remark before completing an activity.
-*   Attach files/documents to Activities.
-*   Swipe right to Favorite.
+*   Add a remark before completing an activity [Upcoming].
+*   Attach files/documents to Activities [Upcoming].
 *   Create follow-up activities directly from the same screen.
 *   Shortcut to create an activity directly from a Project or Task detail page.
 *   Swipe left to enter Edit mode.
 *   Swipe left to Cancel/Delete an activity.
-*   Cancel confirmation prompt before deletion.
+*   Cancel confirmation prompt before deletion [Upcoming].
 
 ### Form Fields
 *   **Required Fields:** Instance, Activity Type, Assignee, Summary (single line), Notes (multi-line), Due Date, Linked Entity (Project/Task/Contact).
