@@ -18,6 +18,22 @@ const sidebars = {
       items: [
         "technical/architecture",
         "technical/repository-organization",
+        {
+          type: "category",
+          label: "Module Implementations",
+          items: [
+            "technical/activities",
+            "technical/projects",
+            "technical/tasks",
+            "technical/timesheets",
+            "technical/dashboard",
+            "technical/sync-settings",
+            "technical/ui-ux-navigation",
+            "technical/notifications",
+            "technical/onboarding",
+            "technical/profiles"
+          ]
+        },
         "technical/build-and-packaging",
         "technical/release-process"
       ]

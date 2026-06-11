@@ -33,7 +33,7 @@ The Activities module helps users schedule, manage, and track follow-up tasks an
 *   **Default Values:** Date defaults to Today.
 
 ### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/activities.md)**
 
 ---
 
@@ -69,7 +69,7 @@ The Projects module organizes high-level work items and links them to instances.
 *   Project progress bar.
 
 ### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/projects.md)**
 
 ---
 
@@ -107,7 +107,7 @@ The Tasks module manages task execution, tracking, and parent-child hierarchies.
 *   Task Name, Stage, Instance, Project, Sub-project, Parent task, Deadline, Assignee, Favorite, Hours, Dates (start & end), Number of Subtasks, Details link.
 
 ### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/tasks.md)**
 
 ---
 
@@ -142,7 +142,7 @@ The Timesheets module handles work hour registration, automated timers, and logg
 *   Delete confirmation prompt.
 
 ### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/timesheets.md)**
 
 ---
 
@@ -164,7 +164,7 @@ The Dashboard provides visual analytics, charts, and priority management.
 *   Summary of activities and tasks completed based on user.
 
 ### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/dashboard.md)**
 
 ---
 
@@ -195,7 +195,7 @@ This module configures Odoo/Local accounts, manual/auto synchronization, and con
 *   Name, URL, DB (Auto-fetched), Username, Password.
 
 ### Documentation References
-*   **[Functional Guide](../user/setup-and-sync.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/setup-and-sync.md)** | **[Technical Docs](../technical/sync-settings.md)**
 
 ---
 
@@ -247,7 +247,7 @@ Layout guidelines, theme configuration, and content hub integrations.
 *   Snap install support.
 
 ### Documentation References
-*   **[Functional Guide](../user/install-and-run.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/install-and-run.md)** | **[Technical Docs](../technical/ui-ux-navigation.md)**
 
 ---
 
@@ -261,7 +261,7 @@ Automated and smart push notifications for time and work management.
 *   Integration with Ubuntu Touch Notification Server for activities.
 
 ### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/notifications.md)**
 
 ---
 
@@ -277,7 +277,7 @@ First-launch interactive guidance for new users.
 *   Onboarding persistence (completed/skipped state).
 
 ### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/onboarding.md)**
 
 ---
 
@@ -290,4 +290,4 @@ User profile and work/personal scope switching.
 *   Toggle or dropdown to switch modes.
 
 ### Documentation References
-*   **[Functional Guide](../user/setup-and-sync.md)** | **[Technical Docs](../technical/architecture.md)**
+*   **[Functional Guide](../user/setup-and-sync.md)** | **[Technical Docs](../technical/profiles.md)**
