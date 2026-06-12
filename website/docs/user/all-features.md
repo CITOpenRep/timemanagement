@@ -27,13 +27,29 @@ The Activities module helps users schedule, manage, and track follow-up tasks an
 *   Swipe left to enter Edit mode.
 *   Swipe left to Cancel/Delete an activity.
 *   Cancel confirmation prompt before deletion [Upcoming].
+*   **Tabbed View Filters:** Quickly filter activities by schedule/state: **Today**, **This Week**, **This Month**, **Later**, **Overdue**, **All**, and **Done**.
+*   **Reschedule Activity:** Easily modify due dates through swipe actions or the detailed view date picker.
 
 ### Form Fields
 *   **Required Fields:** Instance, Activity Type, Assignee, Summary (single line), Notes (multi-line), Due Date, Linked Entity (Project/Task/Contact).
 *   **Default Values:** Date defaults to Today.
 
-### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/activities.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Frontend UI** | `qml/features/activities/pages/Activity_Page.qml`<br/>`qml/components/cards/ActivityDetailsCard.qml` | Renders list views, handles tab clicks (Today/Week/Month/etc.), triggers date pickers, and binds swipe interactions. |
+| **Logic & State** | `models/activity.js` | JavaScript backend model containing `getFilteredActivities()`, `updateActivityDate()`, `markAsDone()`, and `createFollowupActivity()`. |
+| **Database Schema** | SQLite table: `mail_activity_app` | Stores activity properties: `summary`, `due_date`, `notes`, `state` (planned/done), `user_id`, and `resModel`/`resId` (linkage to tasks or projects). |
+| **Backend & Sync** | `src/daemon.py` | Syncs local activity states bidirectionally with Odoo's `mail.activity` via XML-RPC. |
+
+:::tip Functional Guide
+Learn how to use activities in the [Activities User Manual](../functional/user-manual/activities.md).
+:::
+
+:::info Technical Reference
+For schema definitions and sync sequence flows, see the [Activities Module Technical Reference](../technical/activities.md).
+:::
 
 ---
 
@@ -68,8 +84,22 @@ The Projects module organizes high-level work items and links them to instances.
 *   Favorite indicator, Instance, Start & End Dates, Number of Sub-projects, View details link, Remaining days and proximity to deadlines.
 *   Project progress bar.
 
-### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/projects.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Frontend UI** | `qml/features/projects/` | Projects directory pages, sub-project panels, progress bars, and detail cards. |
+| **Logic & State** | `models/project.js` | Exposes SQLite queries for listing, detail loading, and favorite toggles. |
+| **Database Schema** | SQLite table: `project_project_app` | Stores project metadata, parent-child project relationships, and color palette indicators. |
+| **Backend & Sync** | `src/sync_to_odoo.py` | Pulls remote projects and publishes locally created project entries. |
+
+:::tip Functional Guide
+For details on updates and lists, read the [Projects User Manual](../functional/user-manual/projects.md) and the [Project Updates Guide](../functional/user-manual/project-updates.md).
+:::
+
+:::info Technical Reference
+Understand the query mappings in the [Projects Module Technical Reference](../technical/projects.md).
+:::
 
 ---
 
@@ -96,6 +126,12 @@ The Tasks module manages task execution, tracking, and parent-child hierarchies.
 *   Display only relevant subtasks to reduce clutter.
 *   Delete confirmation prompt.
 *   Reschedule button for tasks and activities.
+*   **Tabbed Date Filters:** Segment task lists using tabs: **Today**, **Week**, **Month**, and **Later**.
+*   **Reschedule Task:** A quick reschedule button updates task deadline ranges in the database.
+*   **Two-Fold Stage System:**
+    *   *Global Kanban Stages:* Standard workflow stages (e.g. To Do, In Progress, Done) synced with Odoo's global project configuration.
+    *   *Personal Stages ("My Tasks"):* Custom, user-specific stages to organize personal work progress independently.
+*   **Priority Stars:** High-priority tasks display visual star badges (0 to 3 levels) mapped to the Odoo priority schema.
 
 ### Form Fields
 *   **Required Fields:** Instance, Parent Project/Subproject/Parent Task, Period (Today/This Week/Next Week/This Month/Next Month), Date (auto-fill), Description (multi-line), Assignee, Hours (HH), Favorite Star.
@@ -106,8 +142,22 @@ The Tasks module manages task execution, tracking, and parent-child hierarchies.
 ### Overview List Fields
 *   Task Name, Stage, Instance, Project, Sub-project, Parent task, Deadline, Assignee, Favorite, Hours, Dates (start & end), Number of Subtasks, Details link.
 
-### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/tasks.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Frontend UI** | `qml/features/tasks/pages/Tasks.qml`<br/>`qml/features/tasks/pages/MyTasksPage.qml`<br/>`qml/features/tasks/components/TaskDetailsCard.qml`<br/>`qml/features/tasks/components/TaskDateRangeDialog.qml` | Manages list layouts, swipe menus, personal stage popup triggers, and date rescheduling selectors. |
+| **Logic & State** | `models/task.js` | Implements database CRUD functions including `saveOrUpdateTask()`, `updateTaskPersonalStage()`, and `setTaskPriority()`. Handles multiple assignee arrays. |
+| **Database Schema** | SQLite tables: `project_task_app`<br/>`project_task_type_app` | `project_task_app` tracks fields like `stage_id` and `personal_stage`. `project_task_type_app` stores global stages and personal stages (where `is_global = '[]'`). |
+| **Backend & Sync** | `src/sync_to_odoo.py` / `src/backend.py` | Daemon handlers for pushing task deadlines and D-Bus interfaces for task mutations. |
+
+:::tip Functional Guide
+Explore detailed task manuals in the [All Tasks Guide](../functional/user-manual/all-tasks.md) and [My Tasks Guide](../functional/user-manual/my-tasks.md).
+:::
+
+:::info Technical Reference
+See sequence diagrams and DBUS interfaces in the [Tasks Module Technical Reference](../technical/tasks.md).
+:::
 
 ---
 
@@ -126,6 +176,8 @@ The Timesheets module handles work hour registration, automated timers, and logg
 *   Pop-up to add description/notes immediately after recording time.
 *   Search option for timesheets.
 *   Optional default project selection.
+*   **Eisenhower Priority Matrix:** Classify timesheet tasks to support urgent vs. important sorting on dashboard quadrants.
+*   **Decimal Formats:** Time spent is saved in standard decimal format (e.g. 1.5 equals 1 hour 30 minutes).
 
 ### Form Fields
 *   **Required Fields:** Instance (Odoo or Local), Project, Subproject, Task, Sub Tasks, Date, Description (multi-line), Priority (Eisenhower Matrix).
@@ -141,8 +193,22 @@ The Timesheets module handles work hour registration, automated timers, and logg
 *   Trailing swipe for Edit / Delete.
 *   Delete confirmation prompt.
 
-### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/timesheets.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Frontend UI** | `qml/features/timesheets/` | Logs, timesheet input forms, and overlay timers. |
+| **Logic & State** | `models/timesheet.js`<br/>`models/timer_service.js` | Coordinates active timers, local storage timer persistence, and stopwatch actions. |
+| **Database Schema** | SQLite table: `account_analytic_line_app` | Stores logged duration `unit_amount`, date, linked task/project, description, and sync status. |
+| **Backend & Sync** | `src/sync_to_odoo.py` | Sync worker identifying local timesheets marked as "dirty" to sync remotely via XML-RPC. |
+
+:::tip Functional Guide
+Read how to log timesheets in the [Timesheets User Manual](../functional/user-manual/timesheets.md).
+:::
+
+:::info Technical Reference
+Review timer persistence rules in the [Timesheets Module Technical Reference](../technical/timesheets.md).
+:::
 
 ---
 
@@ -163,8 +229,20 @@ The Dashboard provides visual analytics, charts, and priority management.
 *   Set default chart in settings/user profile.
 *   Summary of activities and tasks completed based on user.
 
-### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/dashboard.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Frontend UI** | `qml/features/dashboard/pages/Dashboard.qml` | Eisenhower grid, chart selectors, swipe container pagination. |
+| **Logic & State** | `models/Main.js` | Performs LocalStorage SQLite query projections (e.g. Top 10 project SUM groupings and Urgency status counts). |
+
+:::tip Functional Guide
+For details on matrix items and chart reports, see the [Dashboard User Manual](../functional/user-manual/dashboard.md).
+:::
+
+:::info Technical Reference
+Check metrics queries in the [Dashboard Module Technical Reference](../technical/dashboard.md).
+:::
 
 ---
 
@@ -194,8 +272,21 @@ This module configures Odoo/Local accounts, manual/auto synchronization, and con
 ### Mandatory Fields
 *   Name, URL, DB (Auto-fetched), Username, Password.
 
-### Documentation References
-*   **[Functional Guide](../user/setup-and-sync.md)** | **[Technical Docs](../technical/sync-settings.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Frontend UI** | `qml/features/settings/` | Account list editor, URL inputs, and synchronization status indicator bars. |
+| **Logic & State** | `models/accounts.js`<br/>`models/dbinit.js` | Manages credentials, tokens, session checks, and database table creation. |
+| **Backend & Sync** | `src/daemon.py`<br/>`src/backend.py` | Implements network sync routines, connection testing, and multi-threaded sync managers. |
+
+:::tip Functional Guide
+Read how to configure Odoo instances in the [Settings User Manual](../functional/user-manual/settings.md).
+:::
+
+:::info Technical Reference
+Review the sync routines in the [Sync Settings Technical Reference](../technical/sync-settings.md).
+:::
 
 ---
 
@@ -246,8 +337,20 @@ Layout guidelines, theme configuration, and content hub integrations.
 *   App pinning to Homescreen.
 *   Snap install support.
 
-### Documentation References
-*   **[Functional Guide](../user/install-and-run.md)** | **[Technical Docs](../technical/ui-ux-navigation.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Frontend UI** | `qml/TSApp.qml`<br/>`qml/app/` | Root app window layout, page routing, and theme switching context. |
+| **Logic & Utilities** | `models/utils.js`<br/>`models/global.js` | Shared QML helpers (date formatting, color generation, navigation history). |
+
+:::tip Functional Guide
+For navigation guidelines, refer to the [Introduction Guide](../functional/user-manual/introduction.md) and the [Kebab Menu Navigation Guide](../functional/user-manual/kebab-menu.md).
+:::
+
+:::info Technical Reference
+For details on layout convergence, check the [UI-UX Navigation Technical Reference](../technical/ui-ux-navigation.md).
+:::
 
 ---
 
@@ -260,8 +363,16 @@ Automated and smart push notifications for time and work management.
 *   Smart Notifications: Tasks/Activities notifications delivered only during defined working hours.
 *   Integration with Ubuntu Touch Notification Server for activities.
 
-### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/notifications.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Logic** | `models/notifications.js` | Orchestrates scheduler timers and trigger thresholds. |
+| **Daemon** | `qml-notify-module/` | Native notifications interface bindings. |
+
+:::info Technical Reference
+See details in the [Notifications Technical Reference](../technical/notifications.md).
+:::
 
 ---
 
@@ -276,8 +387,19 @@ First-launch interactive guidance for new users.
 *   "Get Started" option.
 *   Onboarding persistence (completed/skipped state).
 
-### Documentation References
-*   **[Functional Guide](../user/overview.md)** | **[Technical Docs](../technical/onboarding.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Frontend UI** | `qml/features/settings/Onboarding.qml` (or similar tutorial slides) | Renders onboarding screens and skip selectors. |
+
+:::tip Functional Guide
+Review first-launch instructions in the [Introduction Guide](../functional/user-manual/introduction.md).
+:::
+
+:::info Technical Reference
+Check properties in the [Onboarding Technical Reference](../technical/onboarding.md).
+:::
 
 ---
 
@@ -288,6 +410,20 @@ User profile and work/personal scope switching.
 ### Features
 *   Switch between Work and Personal profiles.
 *   Toggle or dropdown to switch modes.
+*   **Relational Account Isolation:** Multi-account database isolation prevents cross-profile data leakage.
 
-### Documentation References
-*   **[Functional Guide](../user/setup-and-sync.md)** | **[Technical Docs](../technical/profiles.md)**
+### Technical Architecture Map (For Contributors)
+
+| Layer | Path / Files | Implementation Details |
+| :--- | :--- | :--- |
+| **Frontend UI** | `qml/features/settings/Profiles.qml` | Renders user picker list and switches active context. |
+| **Logic & State** | `models/accounts.js` | Session validation and active instance token switching. |
+| **Database Schema** | SQLite relational mapping | Enforces `user_id = (SELECT value FROM app_settings WHERE key = 'active_user_id')` to filter Task and Timesheet replica tables. |
+
+:::tip Functional Guide
+Review profile configurations in the [Settings User Manual](../functional/user-manual/settings.md).
+:::
+
+:::info Technical Reference
+For details on context isolation, read the [Profiles Technical Reference](../technical/profiles.md).
+:::
