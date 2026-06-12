@@ -1,3 +1,4 @@
+/* <label placeholder aria-label> */
 /* ── Reset & Reveal System ── */
 [data-reveal] {
   opacity: 0;
@@ -167,10 +168,34 @@
 
 .terminalBar {
   display: flex;
-  gap: 6px;
-  padding: 10px 14px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
   background: #152019;
   border-bottom: 1px solid #2d3e32;
+}
+
+.terminalDots {
+  display: flex;
+  gap: 6px;
+}
+
+.copyButton {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9aa89c;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: var(--ifm-font-family-base);
+  transition: all 0.2s ease;
+}
+
+.copyButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f0ebe0;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .terminalDot {
@@ -191,6 +216,8 @@
   font-size: 0.82rem;
   line-height: 1.8;
   color: #9aa89c;
+  background: transparent;
+  border: none;
 }
 
 .terminalCode .terminalPrompt {

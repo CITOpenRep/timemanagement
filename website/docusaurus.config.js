@@ -15,6 +15,7 @@ const config = {
     }
   ],
   markdown: {
+    mermaid: true,
     hooks: {
       onBrokenMarkdownLinks: "warn"
     }
@@ -105,14 +106,32 @@ const config = {
           ]
         }
       ],
-      copyright: `Copyright ${new Date().getFullYear()} CIT-Services`
+      copyright: `Made with ❤️ by CIT Services · Copyright ${new Date().getFullYear()} CIT-Services`
     },
     prism: {
       theme: require("prism-react-renderer").themes.github,
       darkTheme: require("prism-react-renderer").themes.vsDark
     }
   },
-  themes: []
+  themes: [
+    "@docusaurus/theme-mermaid",
+    [
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      /** @type {import("@easyops-cn/docusaurus-search-local").Options} */
+      ({
+        hashed: true,
+        language: ["en"],
+        docsRouteBasePath: "docs",
+        docsDir: "docs",
+        indexBlog: false,
+        indexDocs: true,
+        indexPages: true,
+        highlightSearchTermsOnTargetPage: true,
+        searchResultLimits: 8,
+        searchResultContextMaxLength: 50
+      })
+    ]
+  ]
 };
 
 module.exports = config;

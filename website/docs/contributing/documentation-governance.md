@@ -1,3 +1,4 @@
+---
 title: Documentation Governance
 sidebar_label: Documentation Governance
 ---

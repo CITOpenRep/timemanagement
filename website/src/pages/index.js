@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import Layout from "@theme/Layout";
 import Link from "@docusaurus/Link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./index.module.css";
 
 const features = [
@@ -137,12 +137,31 @@ function useScrollReveal() {
 }
 
 function TerminalPreview() {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const textToCopy = "git clone https://github.com/CITOpenRep/timemanagement.git\ncd timemanagement\nclickable build && clickable install";
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <div className={styles.terminal}>
       <div className={styles.terminalBar}>
-        <span className={styles.terminalDot} />
-        <span className={styles.terminalDot} />
-        <span className={styles.terminalDot} />
+        <div className={styles.terminalDots}>
+          <span className={styles.terminalDot} />
+          <span className={styles.terminalDot} />
+          <span className={styles.terminalDot} />
+        </div>
+        <button 
+          className={styles.copyButton}
+          onClick={handleCopy}
+          aria-label="Copy code to clipboard"
+        >
+          {copied ? "Copied!" : "Copy"}
+        </button>
       </div>
       <pre className={styles.terminalCode}>
         <span className={styles.terminalPrompt}>$ </span>

@@ -1,3 +1,4 @@
+---
 title: Contributor Getting Started
 sidebar_label: Getting Started
 ---

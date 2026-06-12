@@ -1,3 +1,4 @@
+---
 title: Setup and Sync
 sidebar_label: Setup and Sync
 ---
