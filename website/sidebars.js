@@ -4,31 +4,31 @@ const sidebars = {
       type: "category",
       label: "Functional",
       items: [
-        {
-          type: "category",
-          label: "User Manual",
-          // Uncomment the line below if 'functional/user-manual' is an actual Markdown file you want to link to when clicking the category title
-          // link: { type: 'doc', id: 'functional/user-manual' }, 
-          items: [
-            "functional/user-manual/introduction",
-            "functional/user-manual/dashboard",
-            "functional/user-manual/kebab-menu",
-            "functional/user-manual/about-us",
-            "functional/user-manual/settings",
-            "functional/user-manual/projects",
-            "functional/user-manual/all-tasks",
-            "functional/user-manual/my-tasks",
-            "functional/user-manual/project-updates",
-            "functional/user-manual/activities",
-            "functional/user-manual/timesheets"
-          ],
-        },
         "user/overview",
         "user/install-and-run",
         "user/setup-and-sync",
         "user/features",
         "user/all-features",
-        "user/troubleshooting"
+        "user/troubleshooting",
+        {
+          type: "category",
+          label: "User Manual",
+          // Uncomment the line below if 'user/user-manual' is an actual Markdown file you want to link to when clicking the category title
+          // link: { type: 'doc', id: 'user/user-manual' }, 
+          items: [
+            "user/user-manual/introduction",
+            "user/user-manual/dashboard",
+            "user/user-manual/kebab-menu",
+            "user/user-manual/about-us",
+            "user/user-manual/settings",
+            "user/user-manual/projects",
+            "user/user-manual/all-tasks",
+            "user/user-manual/my-tasks",
+            "user/user-manual/project-updates",
+            "user/user-manual/activities",
+            "user/user-manual/timesheets"
+          ],
+        }
       ]
     },
   

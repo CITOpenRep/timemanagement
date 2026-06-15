@@ -44,7 +44,7 @@ The Activities module helps users schedule, manage, and track follow-up tasks an
 | **Backend & Sync** | `src/daemon.py` | Syncs local activity states bidirectionally with Odoo's `mail.activity` via XML-RPC. |
 
 :::tip Functional Guide
-Learn how to use activities in the [Activities User Manual](../functional/user-manual/activities.md).
+Learn how to use activities in the [Activities User Manual](./user-manual/activities.md).
 :::
 
 :::info Technical Reference
@@ -94,7 +94,7 @@ The Projects module organizes high-level work items and links them to instances.
 | **Backend & Sync** | `src/sync_to_odoo.py` | Pulls remote projects and publishes locally created project entries. |
 
 :::tip Functional Guide
-For details on updates and lists, read the [Projects User Manual](../functional/user-manual/projects.md) and the [Project Updates Guide](../functional/user-manual/project-updates.md).
+For details on updates and lists, read the [Projects User Manual](./user-manual/projects.md) and the [Project Updates Guide](./user-manual/project-updates.md).
 :::
 
 :::info Technical Reference
@@ -152,7 +152,7 @@ The Tasks module manages task execution, tracking, and parent-child hierarchies.
 | **Backend & Sync** | `src/sync_to_odoo.py` / `src/backend.py` | Daemon handlers for pushing task deadlines and D-Bus interfaces for task mutations. |
 
 :::tip Functional Guide
-Explore detailed task manuals in the [All Tasks Guide](../functional/user-manual/all-tasks.md) and [My Tasks Guide](../functional/user-manual/my-tasks.md).
+Explore detailed task manuals in the [All Tasks Guide](./user-manual/all-tasks.md) and [My Tasks Guide](./user-manual/my-tasks.md).
 :::
 
 :::info Technical Reference
@@ -203,7 +203,7 @@ The Timesheets module handles work hour registration, automated timers, and logg
 | **Backend & Sync** | `src/sync_to_odoo.py` | Sync worker identifying local timesheets marked as "dirty" to sync remotely via XML-RPC. |
 
 :::tip Functional Guide
-Read how to log timesheets in the [Timesheets User Manual](../functional/user-manual/timesheets.md).
+Read how to log timesheets in the [Timesheets User Manual](./user-manual/timesheets.md).
 :::
 
 :::info Technical Reference
@@ -237,7 +237,7 @@ The Dashboard provides visual analytics, charts, and priority management.
 | **Logic & State** | `models/Main.js` | Performs LocalStorage SQLite query projections (e.g. Top 10 project SUM groupings and Urgency status counts). |
 
 :::tip Functional Guide
-For details on matrix items and chart reports, see the [Dashboard User Manual](../functional/user-manual/dashboard.md).
+For details on matrix items and chart reports, see the [Dashboard User Manual](./user-manual/dashboard.md).
 :::
 
 :::info Technical Reference
@@ -281,7 +281,7 @@ This module configures Odoo/Local accounts, manual/auto synchronization, and con
 | **Backend & Sync** | `src/daemon.py`<br/>`src/backend.py` | Implements network sync routines, connection testing, and multi-threaded sync managers. |
 
 :::tip Functional Guide
-Read how to configure Odoo instances in the [Settings User Manual](../functional/user-manual/settings.md).
+Read how to configure Odoo instances in the [Settings User Manual](./user-manual/settings.md).
 :::
 
 :::info Technical Reference
@@ -345,7 +345,7 @@ Layout guidelines, theme configuration, and content hub integrations.
 | **Logic & Utilities** | `models/utils.js`<br/>`models/global.js` | Shared QML helpers (date formatting, color generation, navigation history). |
 
 :::tip Functional Guide
-For navigation guidelines, refer to the [Introduction Guide](../functional/user-manual/introduction.md) and the [Kebab Menu Navigation Guide](../functional/user-manual/kebab-menu.md).
+For navigation guidelines, refer to the [Introduction Guide](./user-manual/introduction.md) and the [Kebab Menu Navigation Guide](./user-manual/kebab-menu.md).
 :::
 
 :::info Technical Reference
@@ -394,7 +394,7 @@ First-launch interactive guidance for new users.
 | **Frontend UI** | `qml/features/settings/Onboarding.qml` (or similar tutorial slides) | Renders onboarding screens and skip selectors. |
 
 :::tip Functional Guide
-Review first-launch instructions in the [Introduction Guide](../functional/user-manual/introduction.md).
+Review first-launch instructions in the [Introduction Guide](./user-manual/introduction.md).
 :::
 
 :::info Technical Reference
@@ -421,7 +421,7 @@ User profile and work/personal scope switching.
 | **Database Schema** | SQLite relational mapping | Enforces `user_id = (SELECT value FROM app_settings WHERE key = 'active_user_id')` to filter Task and Timesheet replica tables. |
 
 :::tip Functional Guide
-Review profile configurations in the [Settings User Manual](../functional/user-manual/settings.md).
+Review profile configurations in the [Settings User Manual](./user-manual/settings.md).
 :::
 
 :::info Technical Reference

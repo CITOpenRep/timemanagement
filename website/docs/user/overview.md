@@ -13,6 +13,7 @@ Use this section when you want to:
 - install or run it on desktop or Ubuntu Touch
 - configure accounts and sync behavior
 - learn where key workflows live in the app
+- learn how to navigate and use specific app features (refer to the [User Manual](./user-manual/introduction.md))
 - troubleshoot common setup and runtime issues
 
 ## What the product covers
@@ -33,3 +34,4 @@ If you are new to the project, read these pages in order:
 2. [Setup and sync](./setup-and-sync.md)
 3. [Features and workflows](./features.md)
 4. [Troubleshooting](./troubleshooting.md)
+5. [User Manual](./user-manual/introduction.md) for detailed step-by-step guides on each feature.
