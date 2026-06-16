@@ -111,7 +111,7 @@ Column {
     // ── Date Range Row ──
     Row {
         width: root.availableWidth
-        height: units.gu(30)
+        height: date_range_widget.height
 
         Column {
             leftPadding: units.gu(1)
