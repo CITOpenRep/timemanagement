@@ -317,6 +317,13 @@ function DeviceSimulator() {
     },
     {
       title: "UI Improvements And Bug Fixes",
+      project: "UT time management",
+      stage: "Development",
+      stars: [false, false, false],
+      planned: "N/A",
+      start: "2026-01-21",
+      end: "Not set",
+      overdue: null,
       borderColor: "#999999"
     }
   ];

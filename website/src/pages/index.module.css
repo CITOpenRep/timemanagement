@@ -2119,6 +2119,42 @@
   color: #888888;
 }
 
+/* Dark Mode Overrides for Menu & Convergent Layout */
+.themeDark .menuPanelActual {
+  background: #222222;
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.4);
+}
+
+.themeDark .menuItemActual {
+  color: #cccccc;
+}
+
+.themeDark .menuItemActual:hover {
+  background: #2b2b2b;
+  color: #e05a2b;
+}
+
+.themeDark .menuItemActiveActual {
+  background: #2b211a;
+  color: #e05a2b !important;
+  border-left-color: #e05a2b;
+}
+
+.themeDark .convergedSidebar {
+  background: #222222;
+  border-right: 1px solid #333333;
+}
+
+.themeDark .convergedCenter {
+  background: #151515;
+  border-right: 1px solid #333333;
+}
+
+.themeDark .convergedRight {
+  background: #1e1e1e;
+}
+
+
 
 
 
