@@ -580,3 +580,908 @@
     border-right: none;
   }
 }
+
+/* ── Interactive Device Workbench ── */
+.workbenchSection {
+  background: #0b110e;
+  border-top: 1px solid rgba(224, 122, 36, 0.15);
+  border-bottom: 1px solid rgba(224, 122, 36, 0.15);
+  padding: 6rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.workbenchSection::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(224, 122, 36, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(224, 122, 36, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.workbenchGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+@media (min-width: 1200px) {
+  .workbenchGrid {
+    grid-template-columns: 360px 1fr;
+  }
+}
+
+.workbenchPanel {
+  z-index: 2;
+}
+
+.panelTitle {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #f0ebe0;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.panelDesc {
+  color: #9aa89c;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: #111a14;
+  border: 1px solid rgba(224, 122, 36, 0.15);
+  padding: 1.5rem;
+  border-radius: 2px;
+}
+
+.controlLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8f9e91;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.toggleRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.toggleRow:last-child {
+  margin-bottom: 0;
+}
+
+.toggleBtn {
+  flex: 1;
+  background: rgba(224, 122, 36, 0.05);
+  border: 1px solid rgba(224, 122, 36, 0.2);
+  color: #c8bfa8;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.toggleBtn:hover {
+  background: rgba(224, 122, 36, 0.1);
+  color: #f0ebe0;
+  border-color: rgba(224, 122, 36, 0.4);
+}
+
+.toggleBtnActive {
+  background: #e07a24;
+  color: #0f1a14 !important;
+  border-color: #e07a24;
+  box-shadow: 0 4px 12px rgba(224, 122, 36, 0.2);
+}
+
+.gestureHint {
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: #8a9b8c;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: rgba(224, 122, 36, 0.05);
+  border-left: 2px solid #e07a24;
+  padding: 0.75rem;
+}
+
+/* ── Device Simulator Canvas ── */
+.deviceCanvas {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  min-height: 680px;
+  z-index: 1;
+  width: 100%;
+}
+
+.deviceTurntable {
+  position: relative;
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+}
+
+/* Phone Bezel Frame */
+.deviceFrame {
+  background: #1e1e1e;
+  border: 14px solid #282828;
+  border-radius: 36px;
+  box-shadow: 
+    0 30px 60px -15px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 8px rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: width, height;
+  display: flex;
+  flex-direction: column;
+}
+
+.portrait {
+  width: 360px;
+  height: 720px;
+}
+
+.landscape {
+  width: 900px;
+  height: 520px;
+}
+
+/* Earpiece notch area for portrait */
+.deviceFrame::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 130px;
+  height: 20px;
+  background: #282828;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  z-index: 120;
+  transition: opacity 0.3s ease;
+}
+
+.landscape .deviceFrame::before {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Screen container */
+.deviceScreen {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #ffffff;
+}
+
+/* Status Bar */
+.statusBarActual {
+  height: 24px;
+  padding: 0 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  z-index: 80;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: #f4f2ea;
+  color: #5d6d60;
+  flex-shrink: 0;
+}
+
+/* App Header Actual */
+.appHeaderActual {
+  height: 48px;
+  background: #e05a2b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  z-index: 10;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.headerTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: #ffffff;
+}
+
+.headerIcons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerIconBtn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.headerIconBtn:hover {
+  opacity: 0.8;
+}
+
+/* Page content wrapper */
+.pageScrollContent {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  background: #ffffff;
+  color: #333333;
+}
+
+/* Matrix Layout CSS */
+.matrixSection {
+  padding: 12px;
+}
+
+.matrixTitle {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666666;
+  margin: 6px 0 12px;
+  font-weight: 400;
+}
+
+.matrixWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.matrixHeaderRow {
+  display: flex;
+  align-items: center;
+}
+
+.matrixColHeader {
+  flex: 1;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: 0.05em;
+  padding: 2px 0;
+}
+
+.matrixBodyRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.matrixRowHeader {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.matrixRowHeader span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.matrixCard {
+  flex: 1;
+  border-radius: 8px;
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  min-height: 124px;
+  position: relative;
+  box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15);
+}
+
+.matrixCardUrgentImportant {
+  background: #e53935; /* Red */
+}
+
+.matrixCardNoturgentImportant {
+  background: #1e88e5; /* Blue */
+}
+
+.matrixCardUrgentNotimportant {
+  background: #43a047; /* Green */
+}
+
+.matrixCardNoturgentNotimportant {
+  background: #757575; /* Grey */
+}
+
+.matrixCardIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+}
+
+.matrixCardLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  opacity: 0.9;
+}
+
+.matrixCardValue {
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* Secondary Tab Bar */
+.tabBarActual {
+  display: flex;
+  background: #2d2d2d;
+  padding: 0;
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+
+.tabBtnActual {
+  flex: 1;
+  background: #2d2d2d;
+  color: #c8bfa8;
+  border: none;
+  padding: 10px 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tabBtnActiveActual {
+  background: #ffffff !important;
+  color: #2b3a30 !important;
+}
+
+/* Donut Chart section */
+.chartHeading {
+  font-size: 0.82rem;
+  color: #666666;
+  text-align: center;
+  margin: 16px 0 10px;
+  font-weight: 600;
+}
+
+.pieChartContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 24px;
+}
+
+.pieChartSvg {
+  width: 140px;
+  height: 140px;
+  transform: rotate(-90deg);
+}
+
+/* Circular Pie Slice classes */
+.pieSlice {
+  fill: none;
+  stroke-width: 28;
+}
+
+.pieSlice1 { stroke: #e53935; }
+.pieSlice2 { stroke: #1e88e5; }
+.pieSlice3 { stroke: #43a047; }
+.pieSlice4 { stroke: #ffb300; }
+.pieSlice5 { stroke: #00acc1; }
+.pieSlice6 { stroke: #8e24aa; }
+.pieSlice7 { stroke: #d81b60; }
+.pieSlice8 { stroke: #3949ab; }
+
+/* Floating Action Button (FAB) */
+.fabButtonActual {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #00bcd4;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 188, 212, 0.45);
+  font-size: 1.2rem;
+  z-index: 90;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s;
+}
+
+.fabButtonActual:hover {
+  transform: scale(1.05);
+  background: #00acc1;
+}
+
+.fabButtonActual:active {
+  transform: scale(0.95);
+}
+
+/* Slide-out Menu drawer */
+.menuPanelActual {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 240px;
+  background: #ffffff;
+  z-index: 110;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 4px 0 15px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.menuPanelOpen {
+  transform: translateX(0);
+}
+
+.menuHeaderActual {
+  height: 48px;
+  background: #e05a2b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.menuHeaderTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.menuHeaderControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menuListActual {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  list-style: none;
+  margin: 0;
+}
+
+.menuItemActual {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  color: #555555;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-left: 4px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.menuItemActual:hover {
+  background: #fdfaf2;
+  color: #e05a2b;
+}
+
+.menuItemActiveActual {
+  background: #faf2eb;
+  color: #e05a2b !important;
+  border-left-color: #e05a2b;
+  font-weight: 700;
+}
+
+.menuItemIcon {
+  font-size: 1.05rem;
+  width: 20px;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.menuBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.menuBackdropVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Swipe boundary tip hotspot */
+.leftEdgeSwipeBoundary {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 100%;
+  z-index: 95;
+  cursor: ew-resize;
+  background: linear-gradient(90deg, rgba(224, 90, 43, 0.1) 0%, transparent 100%);
+}
+
+.leftEdgeSwipeBoundary:hover {
+  background: linear-gradient(90deg, rgba(224, 90, 43, 0.2) 0%, transparent 100%);
+}
+
+/* ── Converged Landscape 3-Column Grid ── */
+.convergedGrid {
+  display: grid;
+  grid-template-columns: 200px 330px 1fr;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+/* Sidebar Column */
+.convergedSidebar {
+  background: #ffffff;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.convergedSidebar .menuListActual {
+  padding-top: 10px;
+}
+
+/* Center Dashboard Column */
+.convergedCenter {
+  background: #ffffff;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Right Charts Column */
+.convergedRight {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+}
+
+.rightHeader {
+  height: 48px;
+  background: #e05a2b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.rightContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* Project wise horizontal bar chart */
+.barChartTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333333;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.barChartContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.barChartRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.65rem;
+}
+
+.barChartLabel {
+  width: 110px;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #555555;
+  font-weight: 500;
+}
+
+.barChartValueWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.barChartBarBg {
+  flex: 1;
+  height: 8px;
+  background: #eeeeee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.barChartBarFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.barChartValText {
+  width: 45px;
+  font-weight: 700;
+  color: #333333;
+  text-align: left;
+}
+
+/* Show Next 10 button */
+.showNextBtn {
+  width: 100%;
+  background: #f5f5f5;
+  color: #666666;
+  border: 1px solid #e0e0e0;
+  padding: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  transition: background 0.15s;
+}
+
+.showNextBtn:hover {
+  background: #eeeeee;
+}
+
+/* Projects header with badge */
+.projectsSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.projectsSectionTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #333333;
+  margin: 0;
+}
+
+.projectsTotalBadge {
+  background: #e05a2b;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+/* Search Box */
+.projectSearchBox {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-bottom: 12px;
+  outline: none;
+  font-family: inherit;
+}
+
+.projectSearchBox:focus {
+  border-color: #e05a2b;
+}
+
+/* Projects Filters */
+.projectFilterTabs {
+  display: flex;
+  background: #eeeeee;
+  padding: 2px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+
+.projectFilterBtn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 5px 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #666666;
+  cursor: pointer;
+  border-radius: 3px;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.projectFilterBtnActive {
+  background: #e05a2b;
+  color: #ffffff;
+}
+
+/* Project Cards list */
+.projectListLandscape {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.projectListItemCard {
+  border-left: 3px solid #e05a2b;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 10px 12px;
+  background: #ffffff;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  cursor: pointer;
+}
+
+.projectListItemCard:hover {
+  background: #fafafa;
+}
+
+.projectListItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.projectListItemName {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #333333;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.projectListItemTime {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #e05a2b;
+  white-space: nowrap;
+}
+
+.projectListItemTasks {
+  font-size: 0.65rem;
+  color: #777777;
+}
+
+.projectProgressBg {
+  width: 100%;
+  height: 4px;
+  background: #eeeeee;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.projectProgressBar {
+  height: 100%;
+  background: #e05a2b;
+  border-radius: 2px;
+}
+
+/* Home collapsed bar in bottom */
+.indicatorBarActual {
+  height: 10px;
+  background: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border-top: 1px solid rgba(0,0,0,0.04);
+  flex-shrink: 0;
+}
+
+.indicatorBarActual::after {
+  content: "";
+  width: 32px;
+  height: 4px;
+  background: #cccccc;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.indicatorBarActual:hover::after {
+  background: #e05a2b;
+}
+
+
