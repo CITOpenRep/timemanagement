@@ -317,13 +317,100 @@ function DeviceSimulator() {
     },
     {
       title: "UI Improvements And Bug Fixes",
-      project: "UT time management",
-      stage: "Development",
-      stars: [false, false, false],
-      planned: "N/A",
-      start: "2026-01-21",
+      borderColor: "#999999"
+    }
+  ];
+
+  const allTasksData = [
+    {
+      title: "Design app launch icon",
+      project: "Mobile App Core",
+      stage: "Completed",
+      stars: [true, true, true],
+      planned: "8.0 H",
+      start: "2026-06-01",
+      end: "2026-06-03",
+      overdue: null,
+      status: "complete",
+      borderColor: "#43a047"
+    },
+    {
+      title: "Implement Docusaurus Search Option",
+      project: "Docs Integration",
+      stage: "Active",
+      stars: [true, true, false],
+      planned: "12.0 H",
+      start: "2026-06-10",
+      end: "2026-06-15",
+      overdue: "2 days overdue",
+      status: "active",
+      borderColor: "#1e88e5"
+    },
+    {
+      title: "Refactor navigation drawer layout",
+      project: "QML Layout Refactoring",
+      stage: "Draft",
+      stars: [true, false, false],
+      planned: "4.0 H",
+      start: "2026-06-15",
       end: "Not set",
-      overdue: null
+      overdue: null,
+      status: "draft",
+      borderColor: "#e07a24"
+    },
+    {
+      title: "Write unit tests for Timesheet model",
+      project: "Mobile App Core",
+      stage: "Active",
+      stars: [true, true, true],
+      planned: "16.0 H",
+      start: "2026-06-11",
+      end: "2026-06-18",
+      overdue: null,
+      status: "active",
+      borderColor: "#43a047"
+    }
+  ];
+
+  const projectUpdatesData = [
+    {
+      log: "Suraj Yadav logged 3:30 H on 'QML Layout Refactoring' (Task: Fix layout spacing)",
+      time: "2 hours ago"
+    },
+    {
+      log: "Parvathy Yadav updated status of 'Website Redesign' to Active",
+      time: "5 hours ago"
+    },
+    {
+      log: "Automated Sync completed: 42 tasks synchronized with server",
+      time: "Yesterday"
+    },
+    {
+      log: "Anisha PP created new task 'Add search filter' in 'Mobile App Core'",
+      time: "2 days ago"
+    },
+    {
+      log: "System database backup successfully created: 1.24 MB",
+      time: "3 days ago"
+    }
+  ];
+
+  const activitiesData = [
+    {
+      log: "Reviewed Voice-To-Text PR changes and validated models",
+      time: "2026-06-16"
+    },
+    {
+      log: "Optimized Docusaurus landing page layout structure",
+      time: "2026-06-15"
+    },
+    {
+      log: "Verified Ubuntu Touch QML compile flags on build server",
+      time: "2026-06-14"
+    },
+    {
+      log: "Validated color palette variables for Eisenhower Matrix",
+      time: "2026-06-12"
     }
   ];
 
@@ -648,6 +735,223 @@ function DeviceSimulator() {
     </div>
   );
 
+  // Render Projects List
+  const renderProjectsList = () => (
+    <div className={styles.timesheetListContainer}>
+      <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+        {projectsData.map((project, idx) => (
+          <div key={idx} style={{ 
+            padding: "12px", 
+            background: themeMode === "dark" ? "#222222" : "#ffffff", 
+            borderRadius: "6px",
+            border: themeMode === "dark" ? "1px solid #333333" : "1px solid #e0e0e0",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+              <h4 style={{ margin: 0, fontSize: "0.82rem", fontWeight: "700" }}>{project.name}</h4>
+              <span className={styles.taskItemStageBadge} style={{ background: project.color, color: "#ffffff", padding: "2px 6px" }}>
+                {project.tasks} Tasks
+              </span>
+            </div>
+            
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", color: "#888888" }}>
+              <span>Total Logged: <strong>{project.time}</strong></span>
+              <span>{project.percent}%</span>
+            </div>
+
+            {/* Simulated Progress Bar */}
+            <div style={{ height: "4px", background: themeMode === "dark" ? "#151515" : "#f0f0f0", borderRadius: "2px", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${project.percent}%`, background: project.color }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Render Project Updates
+  const renderProjectUpdates = () => (
+    <div className={styles.logListContainer}>
+      {projectUpdatesData.map((log, idx) => (
+        <div key={idx} className={styles.logItem}>
+          <div className={styles.logDot} />
+          <div className={styles.logContent}>
+            <p className={styles.logTitle}>{log.log}</p>
+            <span className={styles.logTime}>{log.time}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Render Activities
+  const renderActivitiesList = () => (
+    <div className={styles.logListContainer}>
+      {activitiesData.map((act, idx) => (
+        <div key={idx} className={styles.logItem}>
+          <div className={styles.logDot} style={{ backgroundColor: "#43a047" }} />
+          <div className={styles.logContent}>
+            <p className={styles.logTitle}>{act.log}</p>
+            <span className={styles.logTime}>{act.time}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Render All Tasks List
+  const renderAllTasksList = () => (
+    <div className={styles.timesheetListContainer}>
+      <div className={styles.tabBarActual}>
+        <button className={clsx(styles.tabBtnActual, styles.tabBtnActiveActual)}>All</button>
+        <button className={styles.tabBtnActual}>Active</button>
+        <button className={styles.tabBtnActual}>Completed</button>
+      </div>
+
+      <div className={styles.taskListContainer}>
+        {allTasksData.map((task, idx) => (
+          <div key={idx} className={styles.taskListItemCardActual}>
+            <div className={styles.timesheetLeftBorder} style={{ backgroundColor: task.borderColor }} />
+            <div className={styles.taskItemLeftCol}>
+              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <span style={{ 
+                  color: task.status === "complete" ? "#43a047" : "#888888", 
+                  fontSize: "0.85rem",
+                  fontWeight: "bold"
+                }}>
+                  {task.status === "complete" ? "☑" : "☐"}
+                </span>
+                <h4 className={styles.taskItemTitleActual} style={{
+                  textDecoration: task.status === "complete" ? "line-through" : "none",
+                  opacity: task.status === "complete" ? 0.6 : 1
+                }}>
+                  {task.title}
+                </h4>
+              </div>
+              <span className={styles.taskItemSubProjectText}>
+                {task.project}
+              </span>
+              <div className={styles.taskCardStarRowActual}>
+                {task.stars.map((filled, sIdx) => (
+                  <span key={sIdx} style={{ color: filled ? "#ffb300" : "#bbb" }}>
+                    ★
+                  </span>
+                ))}
+              </div>
+              <span className={styles.taskItemStageBadge}>{task.stage}</span>
+            </div>
+            <div className={styles.taskItemRightCol}>
+              <span>Planned: {task.planned}</span>
+              <span>Start: {task.start}</span>
+              <span>End: {task.end}</span>
+              {task.overdue && (
+                <span className={styles.taskOverdueBadgeActual}>{task.overdue}</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Render Settings Screen
+  const renderSettingsScreen = () => (
+    <div style={{ paddingBottom: "20px" }}>
+      <div className={styles.settingsGroup}>
+        <div className={styles.settingsGroupTitle}>Profile Settings</div>
+        <div className={styles.settingsItem}>
+          <span>Username</span>
+          <span className={styles.settingsItemValue}>surajyadav</span>
+        </div>
+        <div className={styles.settingsItem}>
+          <span>Email</span>
+          <span className={styles.settingsItemValue}>suraj@example.com</span>
+        </div>
+      </div>
+
+      <div className={styles.settingsGroup}>
+        <div className={styles.settingsGroupTitle}>Synchronization</div>
+        <div className={styles.settingsItem}>
+          <span>Sync Server</span>
+          <span className={styles.settingsItemValue}>https://sync.timemanagement.org</span>
+        </div>
+        <div className={styles.settingsItem}>
+          <span>Interval</span>
+          <select className={styles.settingsSelect} defaultValue="15m">
+            <option value="5m">Every 5 mins</option>
+            <option value="15m">Every 15 mins</option>
+            <option value="1h">Every hour</option>
+            <option value="manual">Manual only</option>
+          </select>
+        </div>
+      </div>
+
+      <div className={styles.settingsGroup}>
+        <div className={styles.settingsGroupTitle}>Voice-To-Text</div>
+        <div className={styles.settingsItem}>
+          <span>Detection Engine</span>
+          <span className={styles.settingsItemValue}>whisper-base-en</span>
+        </div>
+        <div className={styles.settingsItem}>
+          <span>Input Language</span>
+          <select className={styles.settingsSelect} defaultValue="en-US">
+            <option value="en-US">English (US)</option>
+            <option value="de-DE">Deutsch</option>
+            <option value="tr-TR">Türkçe</option>
+            <option value="hi-IN">Hindi</option>
+          </select>
+        </div>
+      </div>
+
+      <div className={styles.settingsGroup}>
+        <div className={styles.settingsGroupTitle}>Database Maintenance</div>
+        <div className={styles.settingsItem}>
+          <span>Database Size</span>
+          <span className={styles.settingsItemValue}>1.24 MB</span>
+        </div>
+        <div className={styles.settingsItem}>
+          <span>Cached Tasks</span>
+          <span className={styles.settingsItemValue}>186</span>
+        </div>
+        <button className={styles.settingsButton}>
+          Clear Local Cache
+        </button>
+      </div>
+    </div>
+  );
+
+  // Render About Screen
+  const renderAboutScreen = () => (
+    <div className={styles.aboutContainer}>
+      <div className={styles.aboutLogo}>⏱</div>
+      <h3 className={styles.aboutAppName}>TimeManagement</h3>
+      <div className={styles.aboutAppVersion}>Version 2.4.1 (GPL-3.0)</div>
+      
+      <div className={styles.aboutDivider} />
+      
+      <p className={styles.aboutText}>
+        A convergent time tracking and task management application designed for Ubuntu Touch and Debian-based systems.
+      </p>
+
+      <div className={styles.aboutDivider} />
+
+      <div className={styles.aboutSectionTitle}>Project Team</div>
+      <div className={styles.aboutContributorList}>
+        <div className={styles.aboutContributor}>• Suraj Yadav (Lead Developer)</div>
+        <div className={styles.aboutContributor}>• Parvathy (Core Architect)</div>
+        <div className={styles.aboutContributor}>• Anisha PP (UI/UX Designer)</div>
+      </div>
+
+      <div className={styles.aboutDivider} />
+
+      <button className={styles.settingsButton} style={{ backgroundColor: "#43a047" }}>
+        Check for Updates
+      </button>
+    </div>
+  );
+
   return (
     <section className={styles.workbenchSection}>
       <div className="container">
@@ -725,6 +1029,34 @@ function DeviceSimulator() {
                     onClick={() => setActiveScreen("My Tasks")}
                   >
                     ⭐ Tasks
+                  </button>
+                </div>
+                <div className={styles.toggleRow}>
+                  <button 
+                    className={clsx(styles.toggleBtn, activeScreen === "Projects" && styles.toggleBtnActive)}
+                    onClick={() => setActiveScreen("Projects")}
+                  >
+                    📁 Projects
+                  </button>
+                  <button 
+                    className={clsx(styles.toggleBtn, activeScreen === "Project Updates" && styles.toggleBtnActive)}
+                    onClick={() => setActiveScreen("Project Updates")}
+                  >
+                    🕒 Updates
+                  </button>
+                </div>
+                <div className={styles.toggleRow}>
+                  <button 
+                    className={clsx(styles.toggleBtn, activeScreen === "Settings" && styles.toggleBtnActive)}
+                    onClick={() => setActiveScreen("Settings")}
+                  >
+                    ⚙ Settings
+                  </button>
+                  <button 
+                    className={clsx(styles.toggleBtn, activeScreen === "About Us" && styles.toggleBtnActive)}
+                    onClick={() => setActiveScreen("About Us")}
+                  >
+                    ℹ About Us
                   </button>
                 </div>
               </div>
@@ -835,12 +1167,12 @@ function DeviceSimulator() {
                       {activeScreen === "Timesheets" && renderTimesheetsList()}
                       {activeScreen === "Timesheet" && renderTimesheetEntryForm()}
                       {activeScreen === "My Tasks" && renderMyTasksList()}
-                      {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "Timesheet" && activeScreen !== "My Tasks" && (
-                        <div style={{ padding: "30px 16px", textAlign: "center", opacity: 0.6 }}>
-                          <h3>{activeScreen} View</h3>
-                          <p>Simulating the active Ubuntu Touch component. Switch back to Dashboard, Timesheets, or Tasks using the control panel.</p>
-                        </div>
-                      )}
+                      {activeScreen === "All Tasks" && renderAllTasksList()}
+                      {activeScreen === "Projects" && renderProjectsList()}
+                      {activeScreen === "Project Updates" && renderProjectUpdates()}
+                      {activeScreen === "Activities" && renderActivitiesList()}
+                      {activeScreen === "Settings" && renderSettingsScreen()}
+                      {activeScreen === "About Us" && renderAboutScreen()}
                     </div>
 
                     {/* Floating Action Button (FAB) */}
@@ -957,12 +1289,12 @@ function DeviceSimulator() {
                           {activeScreen === "Timesheets" && renderTimesheetsList()}
                           {activeScreen === "Timesheet" && renderTimesheetEntryForm()}
                           {activeScreen === "My Tasks" && renderMyTasksList()}
-                          {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "Timesheet" && activeScreen !== "My Tasks" && (
-                            <div style={{ padding: "30px 16px", textAlign: "center", opacity: 0.6 }}>
-                              <h3>{activeScreen} View</h3>
-                              <p>Simulating view. Switch tabs in the left sidebar menu.</p>
-                            </div>
-                          )}
+                          {activeScreen === "All Tasks" && renderAllTasksList()}
+                          {activeScreen === "Projects" && renderProjectsList()}
+                          {activeScreen === "Project Updates" && renderProjectUpdates()}
+                          {activeScreen === "Activities" && renderActivitiesList()}
+                          {activeScreen === "Settings" && renderSettingsScreen()}
+                          {activeScreen === "About Us" && renderAboutScreen()}
                         </div>
                         
                         <button 
