@@ -638,6 +638,7 @@ Page {
             id: contentColumn
             width: parent.width
             spacing: units.gu(1)
+            topPadding: units.gu(2)
 
         Row {
             id: myRow1a
