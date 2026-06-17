@@ -183,17 +183,18 @@ function DeviceSimulator() {
   const [activeScreen, setActiveScreen] = useState("Dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("most-time");
+  const [themeMode, setThemeMode] = useState("dark"); // Default dark mode to match the visual screenshots
 
   const menuItems = [
-    { name: "Dashboard", icon: "🏠" },
-    { name: "Timesheet", icon: "⏱" },
-    { name: "Activities", icon: "📅" },
-    { name: "My Tasks", icon: "⭐" },
-    { name: "All Tasks", icon: "☑" },
-    { name: "Projects", icon: "📁" },
-    { name: "Project Updates", icon: "🕒" },
-    { name: "About Us", icon: "ℹ" },
-    { name: "Settings", icon: "⚙" }
+    { name: "Dashboard", icon: "🏠", target: "Dashboard" },
+    { name: "Timesheet", icon: "⏱", target: "Timesheets" },
+    { name: "Activities", icon: "📅", target: "Activities" },
+    { name: "My Tasks", icon: "⭐", target: "My Tasks" },
+    { name: "All Tasks", icon: "☑", target: "All Tasks" },
+    { name: "Projects", icon: "📁", target: "Projects" },
+    { name: "Project Updates", icon: "🕒", target: "Project Updates" },
+    { name: "About Us", icon: "ℹ", target: "About Us" },
+    { name: "Settings", icon: "⚙", target: "Settings" }
   ];
 
   const projectsData = [
@@ -205,6 +206,125 @@ function DeviceSimulator() {
     { name: "Ubuntu Touch Development- Level 1", time: "280.0 h", percent: 18, color: "#00acc1", tasks: 8 },
     { name: "CURQ- Support", time: "230.0 h", percent: 12, color: "#8e24aa", tasks: 5 },
     { name: "CURQ documentation", time: "150.0 h", percent: 8, color: "#d81b60", tasks: 2 }
+  ];
+
+  const timesheetsData = [
+    {
+      title: "test timesheet this thing this...",
+      project: "Main Parent Project / Child pr... (testCit)",
+      task: "User manual",
+      author: "Suraj Yadav",
+      hours: "5:00 H",
+      date: "2026-04-24",
+      action: "Do",
+      borderColor: "#e07a24"
+    },
+    {
+      title: "Test",
+      project: "Main Parent Project / Child pr... (testCit)",
+      task: "This is a Notification Test.",
+      author: "Parvathy",
+      hours: "4500:00 H",
+      date: "2026-05-05",
+      action: "Unknown",
+      borderColor: "#999999"
+    },
+    {
+      title: "sub taSK 2 TIMESHEETY",
+      project: "Main Parent Project / Child pr... (testCit)",
+      task: "HR Bundle",
+      author: "Parvathy",
+      hours: "2:00 H",
+      date: "2026-04-24",
+      action: "Unknown",
+      borderColor: "#e07a24"
+    },
+    {
+      title: "test",
+      project: "UT App Development / Dekko App... (testCit)",
+      task: "Coordination",
+      author: "Parvathy",
+      hours: "3:00 H",
+      date: "2026-04-24",
+      action: "Unknown",
+      borderColor: "#e07a24"
+    },
+    {
+      title: "Time Off (1/1)",
+      project: "Internal (testCit)",
+      task: "Time Off",
+      author: "Suraj Yadav",
+      hours: "8:00 H",
+      date: "2026-05-01",
+      action: "Unknown",
+      borderColor: "#999999"
+    },
+    {
+      title: "Time Off (1/1)",
+      project: "Internal (testCit)",
+      task: "Time Off",
+      author: "Anusha PP",
+      hours: "8:00 H",
+      date: "2026-05-01",
+      action: "Unknown",
+      borderColor: "#999999"
+    }
+  ];
+
+  const tasksData = [
+    {
+      title: "[Req] Content hub",
+      project: "UT time management",
+      stage: "Analysis",
+      stars: [false, false, false],
+      planned: "N/A",
+      start: "2025-08-08",
+      end: "2025-08-22",
+      overdue: "299 days overdue"
+    },
+    {
+      title: "[IMP - Weblates improvements]",
+      project: "UT time management",
+      stage: "Analysis",
+      stars: [true, false, false],
+      planned: "N/A",
+      start: "2025-11-17",
+      end: "2026-01-16",
+      overdue: "152 days overdue"
+    },
+    {
+      title: "Activity Retention",
+      project: "UT time management",
+      stage: "Design",
+      stars: [false, false, false],
+      planned: "N/A",
+      start: "2026-01-20",
+      end: "Not set",
+      overdue: null
+    },
+    {
+      title: "Parent task",
+      project: "Child project of",
+      stage: "Analysis",
+      stars: [false, false, false],
+      planned: "N/A",
+      start: "2026-04-24",
+      end: "2026-06-08",
+      overdue: "9 days overdue",
+      locked: true,
+      hasTasks: true,
+      borderColor: "#e07a24"
+    },
+    {
+      title: "UI Improvements And Bug Fixes",
+      project: "UT time management",
+      stage: "Development",
+      stars: [false, false, false],
+      planned: "N/A",
+      start: "2026-01-21",
+      end: "Not set",
+      overdue: null
+    }
   ];
 
   const filteredProjects = projectsData.filter(p => 
@@ -219,10 +339,10 @@ function DeviceSimulator() {
           key={item.name}
           className={clsx(
             styles.menuItemActual,
-            activeScreen === item.name && styles.menuItemActiveActual
+            activeScreen === item.target && styles.menuItemActiveActual
           )}
           onClick={() => {
-            setActiveScreen(item.name);
+            setActiveScreen(item.target);
             setMenuOpen(false);
           }}
         >
@@ -253,7 +373,7 @@ function DeviceSimulator() {
           <div className={clsx(styles.matrixCard, styles.matrixCardUrgentImportant)}>
             <div className={styles.matrixCardIcon}>✓</div>
             <div className={styles.matrixCardLabel}>Do First</div>
-            <div className={styles.matrixCardValue}>9521H</div>
+            <div className={styles.matrixCardValue}>{themeMode === "dark" ? "100H" : "9521H"}</div>
           </div>
 
           <div className={clsx(styles.matrixCard, styles.matrixCardNoturgentImportant)}>
@@ -277,7 +397,7 @@ function DeviceSimulator() {
           <div className={clsx(styles.matrixCard, styles.matrixCardNoturgentNotimportant)}>
             <div className={styles.matrixCardIcon}>🗑</div>
             <div className={styles.matrixCardLabel}>Don't do</div>
-            <div className={styles.matrixCardValue}>13H</div>
+            <div className={styles.matrixCardValue}>{themeMode === "dark" ? "0H" : "13H"}</div>
           </div>
         </div>
       </div>
@@ -330,7 +450,7 @@ function DeviceSimulator() {
                   stroke="#00acc1" strokeWidth="12"
                   strokeDasharray="19.8 220" strokeDashoffset="-200.2" />
                   
-          <circle cx="50" cy="50" r="22" fill="#ffffff" />
+          <circle cx="50" cy="50" r="22" fill={themeMode === "dark" ? "#151515" : "#ffffff"} />
         </svg>
       </div>
       
@@ -340,6 +460,192 @@ function DeviceSimulator() {
         </button>
       </div>
     </>
+  );
+
+  // Render Timesheets List Screen
+  const renderTimesheetsList = () => (
+    <div className={styles.timesheetListContainer}>
+      <div className={styles.tabBarActual}>
+        <button className={clsx(styles.tabBtnActual, styles.tabBtnActiveActual)}>All</button>
+        <button className={styles.tabBtnActual}>Active</button>
+        <button className={styles.tabBtnActual}>Draft</button>
+      </div>
+
+      {timesheetsData.map((t, idx) => (
+        <div key={idx} className={styles.timesheetListItem}>
+          <div className={styles.timesheetLeftBorder} style={{ backgroundColor: t.borderColor }} />
+          <div className={styles.timesheetMainInfo}>
+            <h4 className={styles.timesheetTitleText}>{t.title}</h4>
+            <span className={styles.timesheetSubtext}>{t.project}</span>
+            <span className={styles.timesheetSubtext}>{t.task}</span>
+            <span className={styles.timesheetSubtext} style={{ fontSize: "0.62rem" }}>{t.author}</span>
+          </div>
+          <div className={styles.timesheetRightInfo}>
+            <span className={styles.timesheetHours}>{t.hours}</span>
+            <span className={styles.timesheetDate}>{t.date}</span>
+            <span className={styles.timesheetActionLink}>{t.action}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Render My Tasks Screen
+  const renderMyTasksList = () => (
+    <div className={styles.timesheetListContainer}>
+      <div className={styles.tabBarActual}>
+        <button className={clsx(styles.tabBtnActual, styles.tabBtnActiveActual)}>Inbox</button>
+        <button className={styles.tabBtnActual}>Today</button>
+        <button className={styles.tabBtnActual}>This Week</button>
+        <button className={styles.tabBtnActual}>This Month</button>
+      </div>
+
+      <div className={styles.taskListContainer}>
+        {tasksData.map((task, idx) => (
+          <div key={idx} className={styles.taskListItemCardActual}>
+            {task.borderColor && (
+              <div className={styles.timesheetLeftBorder} style={{ backgroundColor: task.borderColor }} />
+            )}
+            <div className={styles.taskItemLeftCol}>
+              <h4 className={styles.taskItemTitleActual}>{task.title}</h4>
+              <span className={styles.taskItemSubProjectText}>
+                {task.project} {task.locked && "🔒"}
+              </span>
+              <div className={styles.taskCardStarRowActual}>
+                {task.stars.map((filled, sIdx) => (
+                  <span key={sIdx} style={{ color: filled ? "#ffb300" : "#bbb" }}>
+                    ★
+                  </span>
+                ))}
+              </div>
+              {task.hasTasks && (
+                <span style={{ fontSize: "0.65rem", color: "#e07a24", fontWeight: 600 }}>[+1] Tasks</span>
+              )}
+              <span className={styles.taskItemStageBadge}>{task.stage}</span>
+            </div>
+            <div className={styles.taskItemRightCol}>
+              <span>Planned (H): {task.planned}</span>
+              <span>Start Date: {task.start}</span>
+              <span>End Date: {task.end}</span>
+              {task.overdue && (
+                <span className={styles.taskOverdueBadgeActual}>{task.overdue}</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Render Timesheet Entry Form
+  const renderTimesheetEntryForm = () => (
+    <div className={styles.formContainerActual}>
+      <div className={styles.formRowInput}>
+        <span className={styles.formLabelSmall}>Account</span>
+        <span className={styles.formValueMain}>{themeMode === "dark" ? "dem" : "testCit"}</span>
+      </div>
+
+      <div className={styles.formRowInput}>
+        <span className={styles.formLabelSmall}>Project</span>
+        <span className={styles.formValueMain}>
+          {themeMode === "dark" ? '"Task-wise Time Allocation an...' : "Child project of"}
+        </span>
+      </div>
+
+      <div className={styles.formRowInput}>
+        <span className={styles.formLabelSmall}>Subproject</span>
+        <span className={styles.formValueMain} style={{ fontWeight: 400, color: "#888" }}>Tap to select</span>
+      </div>
+
+      <div className={styles.formRowInput}>
+        <span className={styles.formLabelSmall}>Task</span>
+        <span className={styles.formValueMain}>{themeMode === "dark" ? "111Ojne" : "sub task1"}</span>
+      </div>
+
+      <div className={styles.formRowInput}>
+        <span className={styles.formLabelSmall}>Subtask</span>
+        <span className={styles.formValueMain} style={{ fontWeight: 400, color: "#888" }}>Tap to select</span>
+      </div>
+
+      <div className={styles.prioritySectionTitle}>
+        <span>Priority</span>
+        <span style={{ fontSize: "0.8rem", color: "#888", cursor: "pointer" }}>ⓘ</span>
+      </div>
+
+      <div className={styles.priorityRadioGrid}>
+        <div className={styles.radioOption}>
+          <div className={clsx(styles.radioCircle, styles.radioCircleActive)}>
+            <div className={styles.radioCircleActiveInner} />
+          </div>
+          <span>Important, Urgent (1)</span>
+        </div>
+        <div className={styles.radioOption}>
+          <div className={styles.radioCircle} />
+          <span>Important, Not Urgent (2)</span>
+        </div>
+        <div className={styles.radioOption}>
+          <div className={styles.radioCircle} />
+          <span>Urgent, Not Important (3)</span>
+        </div>
+        <div className={styles.radioOption}>
+          <div className={styles.radioCircle} />
+          <span>Not Urgent, Not Important (4)</span>
+        </div>
+      </div>
+
+      <div className={styles.prioritySectionTitle} style={{ marginTop: 4 }}>
+        <span>Time Tracking</span>
+      </div>
+
+      <div style={{ display: "flex", gap: "20px", fontSize: "0.78rem" }}>
+        <div className={styles.radioOption}>
+          <div className={clsx(styles.radioCircle, styles.radioCircleActive)}>
+            <div className={styles.radioCircleActiveInner} />
+          </div>
+          <span>Manual</span>
+        </div>
+        <div className={styles.radioOption}>
+          <div className={styles.radioCircle} />
+          <span>Automated</span>
+        </div>
+      </div>
+
+      <div className={styles.trackingRowActual}>
+        <button className={styles.cyanDurationBtn}>
+          {themeMode === "dark" ? "5:04" : "5:00"}
+        </button>
+      </div>
+
+      <div className={styles.dateRowActual}>
+        <span>Date</span>
+        {themeMode === "dark" ? (
+          <span style={{ fontWeight: 600 }}>10-03-2026</span>
+        ) : (
+          <select className={styles.dateSelectBox} defaultValue="24-04-2026">
+            <option value="Today">Today</option>
+            <option value="24-04-2026">24-04-2026</option>
+          </select>
+        )}
+      </div>
+
+      <div className={styles.descContainerActual}>
+        <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Description</span>
+        <div className={styles.descTextareaWrapper}>
+          <textarea 
+            className={styles.descTextareaActual} 
+            readOnly
+            value={themeMode === "dark" 
+              ? "hello world, The background sybc works."
+              : "test timesheet this thing this new version of voice to text feature moments voice to text feature is working as expected"
+            }
+          />
+          <div className={styles.descTextareaButtons}>
+            <button className={styles.descMicroBtn} title="Voice Input">🎤</button>
+            <button className={styles.descMicroBtn} title="Expand">⤢</button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 
   return (
@@ -374,6 +680,24 @@ function DeviceSimulator() {
               </div>
 
               <div>
+                <span className={styles.controlLabel}>App Color Theme</span>
+                <div className={styles.toggleRow}>
+                  <button 
+                    className={clsx(styles.toggleBtn, themeMode === "dark" && styles.toggleBtnActive)}
+                    onClick={() => setThemeMode("dark")}
+                  >
+                    🌙 Dark Mode
+                  </button>
+                  <button 
+                    className={clsx(styles.toggleBtn, themeMode === "light" && styles.toggleBtnActive)}
+                    onClick={() => setThemeMode("light")}
+                  >
+                    ☀️ Light Mode
+                  </button>
+                </div>
+              </div>
+
+              <div>
                 <span className={styles.controlLabel}>Quick Navigate</span>
                 <div className={styles.toggleRow}>
                   <button 
@@ -383,10 +707,24 @@ function DeviceSimulator() {
                     🏠 Dashboard
                   </button>
                   <button 
-                    className={clsx(styles.toggleBtn, activeScreen === "Projects" && styles.toggleBtnActive)}
-                    onClick={() => setActiveScreen("Projects")}
+                    className={clsx(styles.toggleBtn, activeScreen === "Timesheets" && styles.toggleBtnActive)}
+                    onClick={() => setActiveScreen("Timesheets")}
                   >
-                    📁 Projects
+                    ⏱ Timesheets
+                  </button>
+                </div>
+                <div className={styles.toggleRow}>
+                  <button 
+                    className={clsx(styles.toggleBtn, activeScreen === "Timesheet" && styles.toggleBtnActive)}
+                    onClick={() => setActiveScreen("Timesheet")}
+                  >
+                    📝 Entry Form
+                  </button>
+                  <button 
+                    className={clsx(styles.toggleBtn, activeScreen === "My Tasks" && styles.toggleBtnActive)}
+                    onClick={() => setActiveScreen("My Tasks")}
+                  >
+                    ⭐ Tasks
                   </button>
                 </div>
               </div>
@@ -405,7 +743,7 @@ function DeviceSimulator() {
                 
                 {orientation === "portrait" ? (
                   /* ── PORTRAIT MOBILE VIEW ── */
-                  <div className={styles.deviceScreen}>
+                  <div className={clsx(styles.deviceScreen, themeMode === "dark" ? styles.themeDark : styles.themeLight)}>
                     {/* Swipe Hotspot */}
                     <div 
                       className={styles.leftEdgeSwipeBoundary} 
@@ -418,39 +756,89 @@ function DeviceSimulator() {
                       <div style={{ display: "flex", gap: "6px" }}>
                         <span>📶</span>
                         <span>🔋 88%</span>
-                        <span>12:00 PM</span>
+                        <span>{themeMode === "dark" ? "12:15 PM" : "5:31 PM"}</span>
                       </div>
                     </div>
 
                     {/* App Header */}
                     <header className={styles.appHeaderActual}>
-                      <button 
-                        className={styles.headerIconBtn}
-                        onClick={() => setMenuOpen(!menuOpen)}
-                      >
-                        ☰
-                      </button>
-                      <h3 className={styles.headerTitle}>
-                        {activeScreen === "Dashboard" ? "Account [TestCIT]" : activeScreen}
-                      </h3>
-                      <div className={styles.headerIcons}>
-                        <button className={styles.headerIconBtn} title="Add Entry">⏱⁺</button>
-                        <button className={styles.headerIconBtn} title="Notifications">🔔</button>
-                        <button className={styles.headerIconBtn} title="Info">ⓘ</button>
-                      </div>
+                      {activeScreen === "Timesheet" ? (
+                        <>
+                          <button 
+                            className={styles.headerIconBtn}
+                            onClick={() => setActiveScreen("Timesheets")}
+                          >
+                            ⟨
+                          </button>
+                          <h3 className={styles.headerTitle}>Timesheet</h3>
+                          <div className={styles.headerIcons}>
+                            <button className={styles.headerIconBtn} title="Save">
+                              {themeMode === "dark" ? "📝" : "✓"}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <button 
+                            className={styles.headerIconBtn}
+                            onClick={() => setMenuOpen(!menuOpen)}
+                          >
+                            ☰
+                          </button>
+                          <h3 className={styles.headerTitle}>
+                            {activeScreen === "Dashboard" && `Account [${themeMode === "dark" ? "dem" : "testCit"}]`}
+                            {activeScreen === "Timesheets" && "Timesheets"}
+                            {activeScreen === "My Tasks" && "My Tasks"}
+                            {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "My Tasks" && activeScreen}
+                          </h3>
+                          <div className={styles.headerIcons}>
+                            {activeScreen === "My Tasks" ? (
+                              <>
+                                <button className={styles.headerIconBtn} title="Sort">🎚</button>
+                                <button className={styles.headerIconBtn} title="Help">ⓘ</button>
+                                <button className={styles.headerIconBtn} title="Search">🔍</button>
+                                <button className={styles.headerIconBtn} title="Grid">⚃</button>
+                                <button 
+                                  className={styles.headerIconBtn} 
+                                  title="Add Task"
+                                  onClick={() => setActiveScreen("Timesheet")}
+                                >
+                                  +
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button 
+                                  className={styles.headerIconBtn} 
+                                  title="Add Entry"
+                                  onClick={() => setActiveScreen("Timesheet")}
+                                >
+                                  ⏱⁺
+                                </button>
+                                <button className={styles.headerIconBtn} title="Notifications">🔔</button>
+                                <button className={styles.headerIconBtn} title="Info">ⓘ</button>
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </header>
 
                     {/* Screen Scrollable Body */}
                     <div className={styles.pageScrollContent}>
-                      {activeScreen === "Dashboard" ? (
+                      {activeScreen === "Dashboard" && (
                         <>
                           {renderDashboardMatrix()}
                           {renderProjectOverview()}
                         </>
-                      ) : (
-                        <div style={{ padding: "30px 16px", textAlign: "center", color: "#666" }}>
+                      )}
+                      {activeScreen === "Timesheets" && renderTimesheetsList()}
+                      {activeScreen === "Timesheet" && renderTimesheetEntryForm()}
+                      {activeScreen === "My Tasks" && renderMyTasksList()}
+                      {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "Timesheet" && activeScreen !== "My Tasks" && (
+                        <div style={{ padding: "30px 16px", textAlign: "center", opacity: 0.6 }}>
                           <h3>{activeScreen} View</h3>
-                          <p>Simulating the active Ubuntu Touch component. Switch back to Dashboard to view the Eisenhower priority matrix.</p>
+                          <p>Simulating the active Ubuntu Touch component. Switch back to Dashboard, Timesheets, or Tasks using the control panel.</p>
                         </div>
                       )}
                     </div>
@@ -458,9 +846,15 @@ function DeviceSimulator() {
                     {/* Floating Action Button (FAB) */}
                     <button 
                       className={styles.fabButtonActual}
-                      onClick={() => setMenuOpen(!menuOpen)}
+                      onClick={() => {
+                        if (activeScreen === "Timesheet") {
+                          setActiveScreen("Timesheets");
+                        } else {
+                          setMenuOpen(!menuOpen);
+                        }
+                      }}
                     >
-                      ☰
+                      {activeScreen === "Timesheet" ? "⟨" : "☰"}
                     </button>
 
                     {/* Ubuntu Left Menu Drawer */}
@@ -469,7 +863,12 @@ function DeviceSimulator() {
                         <h4 className={styles.menuHeaderTitle}>Menu</h4>
                         <div className={styles.menuHeaderControls}>
                           <span style={{ fontSize: "1.1rem", cursor: "pointer" }}>👤</span>
-                          <span style={{ fontSize: "1.1rem", cursor: "pointer" }}>🌙</span>
+                          <span 
+                            style={{ fontSize: "1.1rem", cursor: "pointer" }}
+                            onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
+                          >
+                            {themeMode === "dark" ? "☀️" : "🌙"}
+                          </span>
                         </div>
                       </div>
                       {renderMenuList()}
@@ -489,14 +888,14 @@ function DeviceSimulator() {
                   </div>
                 ) : (
                   /* ── LANDSCAPE CONVERGENT VIEW ── */
-                  <div className={styles.deviceScreen}>
+                  <div className={clsx(styles.deviceScreen, themeMode === "dark" ? styles.themeDark : styles.themeLight)}>
                     {/* Top Status Bar */}
                     <div className={styles.statusBarActual}>
                       <span>Ubuntu Touch converged workspace</span>
                       <div style={{ display: "flex", gap: "6px" }}>
                         <span>📶</span>
                         <span>🔋 88%</span>
-                        <span>12:00 PM</span>
+                        <span>{themeMode === "dark" ? "12:15 PM" : "5:31 PM"}</span>
                       </div>
                     </div>
 
@@ -506,7 +905,12 @@ function DeviceSimulator() {
                         <div className={styles.menuHeaderActual}>
                           <h4 className={styles.menuHeaderTitle}>Menu</h4>
                           <div className={styles.menuHeaderControls}>
-                            <span style={{ fontSize: "1rem" }}>🌙</span>
+                            <span 
+                              style={{ fontSize: "1rem", cursor: "pointer" }}
+                              onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
+                            >
+                              {themeMode === "dark" ? "☀️" : "🌙"}
+                            </span>
                             <span style={{ fontSize: "1rem" }}>👤</span>
                           </div>
                         </div>
@@ -514,59 +918,118 @@ function DeviceSimulator() {
                       </aside>
 
                       {/* Column 2: Dashboard/Account Main View */}
-                      <main className={styles.convergedCenter}>
+                      <main className={styles.convergedCenter} style={{ background: "transparent" }}>
                         <header className={styles.appHeaderActual}>
-                          <h3 className={styles.headerTitle}>Account [TestCIT]</h3>
+                          <h3 className={styles.headerTitle}>
+                            {activeScreen === "Dashboard" && `Account [${themeMode === "dark" ? "dem" : "testCit"}]`}
+                            {activeScreen === "Timesheets" && "Timesheets"}
+                            {activeScreen === "Timesheet" && "Timesheet"}
+                            {activeScreen === "My Tasks" && "My Tasks"}
+                            {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "Timesheet" && activeScreen !== "My Tasks" && activeScreen}
+                          </h3>
                           <div className={styles.headerIcons}>
-                            <button className={styles.headerIconBtn}>⏱⁺</button>
-                            <button className={styles.headerIconBtn}>🔔</button>
-                            <button className={styles.headerIconBtn}>ⓘ</button>
+                            {activeScreen === "Timesheet" ? (
+                              <button className={styles.headerIconBtn}>
+                                {themeMode === "dark" ? "📝" : "✓"}
+                              </button>
+                            ) : (
+                              <>
+                                <button 
+                                  className={styles.headerIconBtn}
+                                  onClick={() => setActiveScreen("Timesheet")}
+                                >
+                                  ⏱⁺
+                                </button>
+                                <button className={styles.headerIconBtn}>🔔</button>
+                                <button className={styles.headerIconBtn}>ⓘ</button>
+                              </>
+                            )}
                           </div>
                         </header>
+                        
                         <div className={styles.pageScrollContent}>
-                          {renderDashboardMatrix()}
-                          {renderProjectOverview()}
+                          {activeScreen === "Dashboard" && (
+                            <>
+                              {renderDashboardMatrix()}
+                              {renderProjectOverview()}
+                            </>
+                          )}
+                          {activeScreen === "Timesheets" && renderTimesheetsList()}
+                          {activeScreen === "Timesheet" && renderTimesheetEntryForm()}
+                          {activeScreen === "My Tasks" && renderMyTasksList()}
+                          {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "Timesheet" && activeScreen !== "My Tasks" && (
+                            <div style={{ padding: "30px 16px", textAlign: "center", opacity: 0.6 }}>
+                              <h3>{activeScreen} View</h3>
+                              <p>Simulating view. Switch tabs in the left sidebar menu.</p>
+                            </div>
+                          )}
                         </div>
                         
-                        <button className={styles.fabButtonActual}>
-                          ☰
+                        <button 
+                          className={styles.fabButtonActual}
+                          onClick={() => setActiveScreen("Timesheet")}
+                        >
+                          ⏱⁺
                         </button>
                       </main>
 
                       {/* Column 3: Charts / Projects View */}
-                      <section className={styles.convergedRight}>
+                      <section className={styles.convergedRight} style={{ background: themeMode === "dark" ? "#1e1e1e" : "#ffffff" }}>
                         <header className={styles.rightHeader}>
                           Charts
                         </header>
                         
                         <div className={styles.rightContent}>
-                          <div className={styles.barChartTitle}>Projectwise Time Spent</div>
+                          <div className={styles.barChartTitle} style={{ color: themeMode === "dark" ? "#f0ebe0" : "#333333" }}>
+                            Projectwise Time Spent
+                          </div>
                           
                           <div className={styles.barChartContainer}>
                             {projectsData.map((p) => (
                               <div key={p.name} className={styles.barChartRow}>
-                                <span className={styles.barChartLabel} title={p.name}>
+                                <span 
+                                  className={styles.barChartLabel} 
+                                  title={p.name}
+                                  style={{ color: themeMode === "dark" ? "#aaaaaa" : "#555555" }}
+                                >
                                   {p.name}
                                 </span>
                                 <div className={styles.barChartValueWrapper}>
-                                  <div className={styles.barChartBarBg}>
+                                  <div className={styles.barChartBarBg} style={{ background: themeMode === "dark" ? "#333" : "#eee" }}>
                                     <div 
                                       className={styles.barChartBarFill} 
                                       style={{ width: `${p.percent}%`, backgroundColor: p.color }}
                                     />
                                   </div>
-                                  <span className={styles.barChartValText}>{p.time.split(" ")[0]}</span>
+                                  <span 
+                                    className={styles.barChartValText}
+                                    style={{ color: themeMode === "dark" ? "#f0ebe0" : "#333333" }}
+                                  >
+                                    {p.time.split(" ")[0]}
+                                  </span>
                                 </div>
                               </div>
                             ))}
                           </div>
 
-                          <button className={styles.showNextBtn}>
+                          <button 
+                            className={styles.showNextBtn}
+                            style={{
+                              background: themeMode === "dark" ? "#2a2a2a" : "#f5f5f5",
+                              borderColor: themeMode === "dark" ? "#444" : "#e0e0e0",
+                              color: themeMode === "dark" ? "#ccc" : "#666"
+                            }}
+                          >
                             Show next 10 ↓
                           </button>
 
-                          <div className={styles.projectsSectionHeader}>
-                            <h4 className={styles.projectsSectionTitle}>Projects</h4>
+                          <div className={styles.projectsSectionHeader} style={{ borderBottomColor: themeMode === "dark" ? "#444" : "#e0e0e0" }}>
+                            <h4 
+                              className={styles.projectsSectionTitle}
+                              style={{ color: themeMode === "dark" ? "#f0ebe0" : "#333333" }}
+                            >
+                              Projects
+                            </h4>
                             <span className={styles.projectsTotalBadge}>9490.0 h</span>
                           </div>
 
@@ -576,24 +1039,35 @@ function DeviceSimulator() {
                             placeholder="Search projects..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                              background: themeMode === "dark" ? "#222" : "#fff",
+                              borderColor: themeMode === "dark" ? "#444" : "#ccc",
+                              color: themeMode === "dark" ? "#fff" : "#333"
+                            }}
                           />
 
-                          <div className={styles.projectFilterTabs}>
+                          <div 
+                            className={styles.projectFilterTabs}
+                            style={{ background: themeMode === "dark" ? "#2a2a2a" : "#eeeeee" }}
+                          >
                             <button 
                               className={clsx(styles.projectFilterBtn, filterType === "most-time" && styles.projectFilterBtnActive)}
                               onClick={() => setFilterType("most-time")}
+                              style={{ color: themeMode === "dark" ? "#aaa" : "#666" }}
                             >
                               Most time
                             </button>
                             <button 
                               className={clsx(styles.projectFilterBtn, filterType === "tasks" && styles.projectFilterBtnActive)}
                               onClick={() => setFilterType("tasks")}
+                              style={{ color: themeMode === "dark" ? "#aaa" : "#666" }}
                             >
                               Tasks
                             </button>
                             <button 
                               className={clsx(styles.projectFilterBtn, filterType === "a-z" && styles.projectFilterBtnActive)}
                               onClick={() => setFilterType("a-z")}
+                              style={{ color: themeMode === "dark" ? "#aaa" : "#666" }}
                             >
                               A-Z
                             </button>
@@ -601,15 +1075,29 @@ function DeviceSimulator() {
 
                           <div className={styles.projectListLandscape}>
                             {filteredProjects.map((p) => (
-                              <div key={p.name} className={styles.projectListItemCard}>
+                              <div 
+                                key={p.name} 
+                                className={styles.projectListItemCard}
+                                style={{
+                                  background: themeMode === "dark" ? "#222" : "#fff",
+                                  borderLeftColor: p.color
+                                }}
+                              >
                                 <div className={styles.projectListItemHeader}>
-                                  <h4 className={styles.projectListItemName}>{p.name}</h4>
-                                  <span className={styles.projectListItemTime}>{p.time}</span>
+                                  <h4 
+                                    className={styles.projectListItemName}
+                                    style={{ color: themeMode === "dark" ? "#f0ebe0" : "#333" }}
+                                  >
+                                    {p.name}
+                                  </h4>
+                                  <span className={styles.projectListItemTime} style={{ color: p.color }}>
+                                    {p.time}
+                                  </span>
                                 </div>
-                                <div className={styles.projectListItemTasks}>
+                                <div className={styles.projectListItemTasks} style={{ color: themeMode === "dark" ? "#aaa" : "#777" }}>
                                   {p.tasks} tasks
                                 </div>
-                                <div className={styles.projectProgressBg}>
+                                <div className={styles.projectProgressBg} style={{ background: themeMode === "dark" ? "#333" : "#eee" }}>
                                   <div 
                                     className={styles.projectProgressBar}
                                     style={{ width: `${p.percent}%`, backgroundColor: p.color }}
