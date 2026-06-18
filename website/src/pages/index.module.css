@@ -853,10 +853,19 @@
 /* Page content wrapper */
 .pageScrollContent {
   flex: 1;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   position: relative;
   background: #ffffff;
   color: #333333;
+}
+
+.utScrollContainer {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 20px;
+  width: 100%;
 }
 
 /* Matrix Layout CSS */

@@ -184,6 +184,10 @@ function DeviceSimulator() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("most-time");
   const [themeMode, setThemeMode] = useState("dark"); // Default dark mode to match the visual screenshots
+  const [portraitWidth, setPortraitWidth] = useState(360);
+  const [portraitHeight, setPortraitHeight] = useState(720);
+  const [landscapeWidth, setLandscapeWidth] = useState(900);
+  const [landscapeHeight, setLandscapeHeight] = useState(520);
 
   const menuItems = [
     { name: "Dashboard", icon: "🏠", target: "Dashboard" },
@@ -824,7 +828,7 @@ function DeviceSimulator() {
 
   // Render Project Updates
   const renderProjectUpdates = () => (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Tab Bar sticky */}
       <div className={styles.utTabBar}>
         <div className={clsx(styles.utTabBtn, styles.utTabBtnActive)}>
@@ -837,7 +841,7 @@ function DeviceSimulator() {
       </div>
 
       {/* Project Updates Card list */}
-      <div className={styles.logListContainer}>
+      <div className={clsx(styles.logListContainer, styles.utScrollContainer)}>
         {projectUpdatesData.map((log, idx) => (
           <div key={idx} className={styles.utUpdateCard}>
             
@@ -878,7 +882,7 @@ function DeviceSimulator() {
 
   // Render Activities
   const renderActivitiesList = () => (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Tab Bar sticky */}
       <div className={styles.utTabBar}>
         <div className={clsx(styles.utTabBtn, styles.utTabBtnActive)}>
@@ -891,7 +895,7 @@ function DeviceSimulator() {
       </div>
 
       {/* Activity Card list */}
-      <div className={styles.logListContainer}>
+      <div className={clsx(styles.logListContainer, styles.utScrollContainer)}>
         {activitiesData.map((act, idx) => (
           <div key={idx} className={styles.utActivityCard}>
             {/* Left border strip */}
@@ -1250,16 +1254,100 @@ function DeviceSimulator() {
               </div>
             </div>
 
-            <div className={styles.gestureHint}>
-              <span>💡</span>
-              <p>Ubuntu Touch gesture: Hover or swipe from the <strong>left screen border</strong> to toggle the menu drawer, or tap the blue Floating Action Button (FAB).</p>
+              <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px dashed rgba(255, 255, 255, 0.15)" }}>
+                <span className={styles.controlLabel}>Resize Simulator</span>
+                
+                {orientation === "portrait" ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", marginBottom: "4px" }}>
+                        <span>Width: <strong>{portraitWidth}px</strong></span>
+                        <span style={{ opacity: 0.5 }}>300 - 480px</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="300" 
+                        max="480" 
+                        value={portraitWidth} 
+                        onChange={(e) => setPortraitWidth(Number(e.target.value))}
+                        style={{ width: "100%", accentColor: "#e05a2b", cursor: "ew-resize" }}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", marginBottom: "4px" }}>
+                        <span>Height: <strong>{portraitHeight}px</strong></span>
+                        <span style={{ opacity: 0.5 }}>550 - 850px</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="550" 
+                        max="850" 
+                        value={portraitHeight} 
+                        onChange={(e) => setPortraitHeight(Number(e.target.value))}
+                        style={{ width: "100%", accentColor: "#e05a2b", cursor: "ew-resize" }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", marginBottom: "4px" }}>
+                        <span>Width: <strong>{landscapeWidth}px</strong></span>
+                        <span style={{ opacity: 0.5 }}>750 - 1100px</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="750" 
+                        max="1100" 
+                        value={landscapeWidth} 
+                        onChange={(e) => setLandscapeWidth(Number(e.target.value))}
+                        style={{ width: "100%", accentColor: "#e05a2b", cursor: "ew-resize" }}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", marginBottom: "4px" }}>
+                        <span>Height: <strong>{landscapeHeight}px</strong></span>
+                        <span style={{ opacity: 0.5 }}>450 - 700px</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="450" 
+                        max="700" 
+                        value={landscapeHeight} 
+                        onChange={(e) => setLandscapeHeight(Number(e.target.value))}
+                        style={{ width: "100%", accentColor: "#e05a2b", cursor: "ew-resize" }}
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                <button 
+                  className={styles.toggleBtn}
+                  onClick={() => {
+                    setPortraitWidth(360);
+                    setPortraitHeight(720);
+                    setLandscapeWidth(900);
+                    setLandscapeHeight(520);
+                  }}
+                  style={{ marginTop: "12px", width: "100%", display: "block", textAlign: "center", fontSize: "0.75rem", padding: "6px" }}
+                >
+                  🔄 Reset Dimensions
+                </button>
+              </div>
+
+              <div className={styles.gestureHint}>
+                <span>💡</span>
+                <p>Ubuntu Touch gesture: Hover or swipe from the <strong>left screen border</strong> to toggle the menu drawer, or tap the blue Floating Action Button (FAB).</p>
+              </div>
             </div>
-          </div>
 
           {/* Interactive Phone */}
           <div className={styles.deviceCanvas} data-reveal style={{ "--reveal-delay": 1 }}>
             <div className={styles.deviceTurntable}>
-              <div className={clsx(styles.deviceFrame, styles[orientation])}>
+              <div 
+                className={clsx(styles.deviceFrame, styles[orientation])}
+                style={orientation === "portrait" ? { width: `${portraitWidth}px`, height: `${portraitHeight}px` } : { width: `${landscapeWidth}px`, height: `${landscapeHeight}px` }}
+              >
                 
                 {orientation === "portrait" ? (
                   /* ── PORTRAIT MOBILE VIEW ── */
@@ -1359,20 +1447,48 @@ function DeviceSimulator() {
                     {/* Screen Scrollable Body */}
                     <div className={styles.pageScrollContent}>
                       {activeScreen === "Dashboard" && (
-                        <>
+                        <div className={styles.utScrollContainer}>
                           {renderDashboardMatrix()}
                           {renderProjectOverview()}
-                        </>
+                        </div>
                       )}
-                      {activeScreen === "Timesheets" && renderTimesheetsList()}
-                      {activeScreen === "Timesheet" && renderTimesheetEntryForm()}
-                      {activeScreen === "My Tasks" && renderMyTasksList()}
-                      {activeScreen === "All Tasks" && renderAllTasksList()}
-                      {activeScreen === "Projects" && renderProjectsList()}
+                      {activeScreen === "Timesheets" && (
+                        <div className={styles.utScrollContainer}>
+                          {renderTimesheetsList()}
+                        </div>
+                      )}
+                      {activeScreen === "Timesheet" && (
+                        <div className={styles.utScrollContainer}>
+                          {renderTimesheetEntryForm()}
+                        </div>
+                      )}
+                      {activeScreen === "My Tasks" && (
+                        <div className={styles.utScrollContainer}>
+                          {renderMyTasksList()}
+                        </div>
+                      )}
+                      {activeScreen === "All Tasks" && (
+                        <div className={styles.utScrollContainer}>
+                          {renderAllTasksList()}
+                        </div>
+                      )}
+                      {activeScreen === "Projects" && (
+                        <div className={styles.utScrollContainer}>
+                          {renderProjectsList()}
+                        </div>
+                      )}
                       {activeScreen === "Project Updates" && renderProjectUpdates()}
                       {activeScreen === "Activities" && renderActivitiesList()}
-                      {activeScreen === "Settings" && renderSettingsScreen()}
-                      {activeScreen === "About Us" && renderAboutScreen()}
+                      {activeScreen === "Settings" && (
+                        <div className={styles.utScrollContainer}>
+                          {renderSettingsScreen()}
+                        </div>
+                      )}
+                      {activeScreen === "About Us" && (
+                        <div className={styles.utScrollContainer}>
+                          {renderAboutScreen()}
+                        </div>
+                      )}
                     </div>
 
                     {/* Floating Action Button (FAB) */}
@@ -1493,20 +1609,48 @@ function DeviceSimulator() {
                         
                         <div className={styles.pageScrollContent}>
                           {activeScreen === "Dashboard" && (
-                            <>
+                            <div className={styles.utScrollContainer}>
                               {renderDashboardMatrix()}
                               {renderProjectOverview()}
-                            </>
+                            </div>
                           )}
-                          {activeScreen === "Timesheets" && renderTimesheetsList()}
-                          {activeScreen === "Timesheet" && renderTimesheetEntryForm()}
-                          {activeScreen === "My Tasks" && renderMyTasksList()}
-                          {activeScreen === "All Tasks" && renderAllTasksList()}
-                          {activeScreen === "Projects" && renderProjectsList()}
+                          {activeScreen === "Timesheets" && (
+                            <div className={styles.utScrollContainer}>
+                              {renderTimesheetsList()}
+                            </div>
+                          )}
+                          {activeScreen === "Timesheet" && (
+                            <div className={styles.utScrollContainer}>
+                              {renderTimesheetEntryForm()}
+                            </div>
+                          )}
+                          {activeScreen === "My Tasks" && (
+                            <div className={styles.utScrollContainer}>
+                              {renderMyTasksList()}
+                            </div>
+                          )}
+                          {activeScreen === "All Tasks" && (
+                            <div className={styles.utScrollContainer}>
+                              {renderAllTasksList()}
+                            </div>
+                          )}
+                          {activeScreen === "Projects" && (
+                            <div className={styles.utScrollContainer}>
+                              {renderProjectsList()}
+                            </div>
+                          )}
                           {activeScreen === "Project Updates" && renderProjectUpdates()}
                           {activeScreen === "Activities" && renderActivitiesList()}
-                          {activeScreen === "Settings" && renderSettingsScreen()}
-                          {activeScreen === "About Us" && renderAboutScreen()}
+                          {activeScreen === "Settings" && (
+                            <div className={styles.utScrollContainer}>
+                              {renderSettingsScreen()}
+                            </div>
+                          )}
+                          {activeScreen === "About Us" && (
+                            <div className={styles.utScrollContainer}>
+                              {renderAboutScreen()}
+                            </div>
+                          )}
                         </div>
                         
                         <button 
