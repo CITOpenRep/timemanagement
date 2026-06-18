@@ -183,7 +183,7 @@ function DeviceSimulator() {
   const [activeScreen, setActiveScreen] = useState("Dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("most-time");
-  const [themeMode, setThemeMode] = useState("dark"); // Default dark mode to match the visual screenshots
+  const [themeMode, setThemeMode] = useState("light"); // Forced light mode by default
   const [portraitWidth, setPortraitWidth] = useState(360);
   const [portraitHeight, setPortraitHeight] = useState(720);
   const [landscapeWidth, setLandscapeWidth] = useState(900);
@@ -1175,23 +1175,7 @@ function DeviceSimulator() {
                 </div>
               </div>
 
-              <div>
-                <span className={styles.controlLabel}>App Color Theme</span>
-                <div className={styles.toggleRow}>
-                  <button 
-                    className={clsx(styles.toggleBtn, themeMode === "dark" && styles.toggleBtnActive)}
-                    onClick={() => setThemeMode("dark")}
-                  >
-                    🌙 Dark Mode
-                  </button>
-                  <button 
-                    className={clsx(styles.toggleBtn, themeMode === "light" && styles.toggleBtnActive)}
-                    onClick={() => setThemeMode("light")}
-                  >
-                    ☀️ Light Mode
-                  </button>
-                </div>
-              </div>
+
 
               <div>
                 <span className={styles.controlLabel}>Quick Navigate</span>
@@ -1511,12 +1495,6 @@ function DeviceSimulator() {
                         <h4 className={styles.menuHeaderTitle}>Menu</h4>
                         <div className={styles.menuHeaderControls}>
                           <span style={{ fontSize: "1.1rem", cursor: "pointer" }}>👤</span>
-                          <span 
-                            style={{ fontSize: "1.1rem", cursor: "pointer" }}
-                            onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
-                          >
-                            {themeMode === "dark" ? "☀️" : "🌙"}
-                          </span>
                         </div>
                       </div>
                       {renderMenuList()}
@@ -1553,12 +1531,6 @@ function DeviceSimulator() {
                         <div className={styles.menuHeaderActual}>
                           <h4 className={styles.menuHeaderTitle}>Menu</h4>
                           <div className={styles.menuHeaderControls}>
-                            <span 
-                              style={{ fontSize: "1rem", cursor: "pointer" }}
-                              onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
-                            >
-                              {themeMode === "dark" ? "☀️" : "🌙"}
-                            </span>
                             <span style={{ fontSize: "1rem" }}>👤</span>
                           </div>
                         </div>
