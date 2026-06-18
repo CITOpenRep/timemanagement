@@ -1073,31 +1073,70 @@ function DeviceSimulator() {
 
   // Render About Screen
   const renderAboutScreen = () => (
-    <div className={styles.aboutContainer}>
-      <div className={styles.aboutLogo}>⏱</div>
-      <h3 className={styles.aboutAppName}>TimeManagement</h3>
-      <div className={styles.aboutAppVersion}>Version 2.4.1 (GPL-3.0)</div>
+    <div className={styles.utAboutPage}>
+      <h4 className={styles.utAboutHeaderBlue}>Time Management - Alpha Draft</h4>
       
-      <div className={styles.aboutDivider} />
-      
-      <p className={styles.aboutText}>
-        A convergent time tracking and task management application designed for Ubuntu Touch and Debian-based systems.
+      <div className={styles.utAboutVersionLarge}>Version 1.2.9</div>
+
+      <p className={styles.utAboutText}>
+        <strong>Time Management</strong> is a native time-tracking and productivity application built exclusively for Ubuntu Touch phones. It empowers users to manage projects, tasks, timesheets, and activities—both offline and online—through seamless integration with CURQ and Odoo servers.
       </p>
 
-      <div className={styles.aboutDivider} />
+      <h4 className={styles.utAboutSectionTitle}>What Does This App Do?</h4>
+      <p className={styles.utAboutText}>
+        This app is your all-in-one productivity companion on Ubuntu Touch. Whether you're a freelancer tracking billable hours, a project manager overseeing team tasks, or simply someone who wants to stay organized, Time Management has you covered.
+      </p>
 
-      <div className={styles.aboutSectionTitle}>Project Team</div>
-      <div className={styles.aboutContributorList}>
-        <div className={styles.aboutContributor}>• Suraj Yadav (Lead Developer)</div>
-        <div className={styles.aboutContributor}>• Parvathy (Core Architect)</div>
-        <div className={styles.aboutContributor}>• Anisha PP (UI/UX Designer)</div>
+      <h4 className={styles.utAboutSectionTitle}>Key Features</h4>
+      <ul className={styles.utAboutList}>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Project Management:</span> Create and organize projects with full hierarchy support (Projects → Subprojects → Tasks → Subtasks)
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Task Tracking:</span> Manage tasks with deadlines, priorities, stages, and assignees
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Timesheet Logging:</span> Track your work hours with built-in timers and sync to your server
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Activity Management:</span> Log and schedule activities linked to projects and tasks
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Project Updates:</span> Create and share project status updates with rich text support
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Push Notifications:</span> Stay informed with real-time notifications for assignments and updates
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Auto-Sync:</span> Automatic bidirectional synchronization with your CURQ/Odoo server
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Offline Support:</span> Work offline and sync when connected
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Visual Dashboard:</span> See where your time goes with charts and analytics
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Multi-Account:</span> Connect to multiple server instances simultaneously
+        </li>
+        <li className={styles.utAboutListItem}>
+          <span className={styles.utAboutListItemBold}>Dark Mode:</span> Full dark theme support for comfortable viewing
+        </li>
+      </ul>
+
+      <div className={styles.utAboutServerBand}>
+        Recommended Server: CURQ
       </div>
-
-      <div className={styles.aboutDivider} />
-
-      <button className={styles.settingsButton} style={{ backgroundColor: "#43a047" }}>
-        Check for Updates
-      </button>
+      <p className={styles.utAboutText}>
+        <a 
+          href="https://curq.nl" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className={styles.utAboutLink}
+        >
+          CURQ
+        </a> is the all-in-one platform for your business, fully Open Source and tailored to your needs.
+      </p>
     </div>
   );
 
@@ -1270,7 +1309,8 @@ function DeviceSimulator() {
                             {activeScreen === "Dashboard" && `Account [${themeMode === "dark" ? "dem" : "testCit"}]`}
                             {activeScreen === "Timesheets" && "Timesheets"}
                             {activeScreen === "My Tasks" && "My Tasks"}
-                            {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "My Tasks" && activeScreen}
+                            {activeScreen === "About Us" && "About"}
+                            {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "My Tasks" && activeScreen !== "About Us" && activeScreen}
                           </h3>
                           <div className={styles.headerIcons}>
                             {activeScreen === "My Tasks" ? (
@@ -1417,7 +1457,8 @@ function DeviceSimulator() {
                             {activeScreen === "Timesheets" && "Timesheets"}
                             {activeScreen === "Timesheet" && "Timesheet"}
                             {activeScreen === "My Tasks" && "My Tasks"}
-                            {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "Timesheet" && activeScreen !== "My Tasks" && activeScreen}
+                            {activeScreen === "About Us" && "About"}
+                            {activeScreen !== "Dashboard" && activeScreen !== "Timesheets" && activeScreen !== "Timesheet" && activeScreen !== "My Tasks" && activeScreen !== "About Us" && activeScreen}
                           </h3>
                           <div className={styles.headerIcons}>
                             {activeScreen === "Timesheet" ? (

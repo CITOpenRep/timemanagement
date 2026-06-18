@@ -2525,6 +2525,126 @@
   color: #f07f56;
 }
 
+/* About Screen Styles */
+.utAboutPage {
+  padding: 20px 24px;
+  background: #ffffff;
+  color: #333333;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.themeDark .utAboutPage {
+  background: #151515;
+  color: #cccccc;
+}
+
+.utAboutHeaderBlue {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #2e5b82;
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+
+.themeDark .utAboutHeaderBlue {
+  color: #72a8d6;
+}
+
+.utAboutVersionLarge {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #3fa6f2;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.utAboutSectionTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2e5b82;
+  margin-top: 25px;
+  margin-bottom: 12px;
+}
+
+.themeDark .utAboutSectionTitle {
+  color: #72a8d6;
+}
+
+.utAboutText {
+  font-size: 0.92rem;
+  color: #444444;
+  margin-bottom: 16px;
+}
+
+.themeDark .utAboutText {
+  color: #bbbbbb;
+}
+
+.utAboutList {
+  list-style: none;
+  padding-left: 0;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.utAboutListItem {
+  font-size: 0.9rem;
+  color: #333333;
+  position: relative;
+  padding-left: 14px;
+}
+
+.themeDark .utAboutListItem {
+  color: #cccccc;
+}
+
+.utAboutListItem::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #333333;
+  font-weight: bold;
+}
+
+.themeDark .utAboutListItem::before {
+  color: #cccccc;
+}
+
+.utAboutListItemBold {
+  font-weight: 700;
+}
+
+.utAboutServerBand {
+  background: #f2f5f8;
+  padding: 10px 24px;
+  margin-left: -24px;
+  margin-right: -24px;
+  margin-top: 25px;
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2e5b82;
+}
+
+.themeDark .utAboutServerBand {
+  background: #202020;
+  color: #72a8d6;
+}
+
+.utAboutLink {
+  color: #3fa6f2;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.utAboutLink:hover {
+  text-decoration: underline;
+}
+
+
 
 
 
