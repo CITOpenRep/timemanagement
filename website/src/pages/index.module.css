@@ -2406,6 +2406,126 @@
   line-height: 1.3;
 }
 
+/* Project Updates layout */
+.utUpdateCard {
+  display: flex;
+  padding: 14px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  position: relative;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.themeDark .utUpdateCard {
+  background: #151515;
+  border-bottom: 1px solid #282828;
+}
+
+.utUpdateMainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.utUpdateTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333333;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.themeDark .utUpdateTitle {
+  color: #e0e0e0;
+}
+
+.utUpdateMeta {
+  font-size: 0.78rem;
+  color: #777777;
+  margin: 0;
+}
+
+.themeDark .utUpdateMeta {
+  color: #999999;
+}
+
+.utUpdateProject {
+  font-size: 0.8rem;
+  color: #555555;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.themeDark .utUpdateProject {
+  color: #aaaaaa;
+}
+
+.utProgressBarTrack {
+  height: 4px;
+  background: #e5e5e5;
+  border-radius: 2px;
+  width: 100%;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.themeDark .utProgressBarTrack {
+  background: #333333;
+}
+
+.utProgressBarFill {
+  height: 100%;
+  background: #254a8a;
+  border-radius: 2px;
+}
+
+.utUpdateRightCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 85px;
+  flex-shrink: 0;
+}
+
+.utUpdateStatusBadge {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #ffffff;
+  padding: 3px 12px;
+  border-radius: 6px;
+  text-align: center;
+  min-width: 85px;
+  line-height: 1.3;
+}
+
+.utUpdateDetailsBtn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #e05a2b;
+  background: #fdf2ee;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 16px;
+  min-width: 85px;
+  text-align: center;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.themeDark .utUpdateDetailsBtn {
+  background: #2c1e19;
+  color: #f07f56;
+}
+
+
 
 
 

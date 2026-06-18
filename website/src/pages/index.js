@@ -381,24 +381,44 @@ function DeviceSimulator() {
 
   const projectUpdatesData = [
     {
-      log: "Suraj Yadav logged 3:30 H on 'QML Layout Refactoring' (Task: Fix layout spacing)",
-      time: "2 hours ago"
+      title: "New Project Update.",
+      author: "Suraj Yadav",
+      date: "2026-06-04",
+      project: "25-00005 - UT App Developmutent",
+      status: "on_track",
+      completion: 40
     },
     {
-      log: "Parvathy Yadav updated status of 'Website Redesign' to Active",
-      time: "5 hours ago"
+      title: "New Update.",
+      author: "Suraj Yadav",
+      date: "2026-05-14",
+      project: "25-00005 - UT App Developmutent",
+      status: "at_risk",
+      completion: 90
     },
     {
-      log: "Automated Sync completed: 42 tasks synchronized with server",
-      time: "Yesterday"
+      title: "project update edit after notificat...",
+      author: "Suraj Yadav",
+      date: "2026-04-28",
+      project: "Child project of main instancfe nnmhbbnn...",
+      status: "at_risk",
+      completion: 15
     },
     {
-      log: "Anisha PP created new task 'Add search filter' in 'Mobile App Core'",
-      time: "2 days ago"
+      title: "project update edit after notificat...",
+      author: "Suraj Yadav",
+      date: "2026-04-27",
+      project: "Child project of main instancfe nnmhbbnn...",
+      status: "on_hold",
+      completion: 30
     },
     {
-      log: "System database backup successfully created: 1.24 MB",
-      time: "3 days ago"
+      title: "New project Update",
+      author: "Suraj Yadav",
+      date: "2026-04-27",
+      project: "Child project of main instancfe nnmhbbnn...",
+      status: "on_track",
+      completion: 10
     }
   ];
 
@@ -804,16 +824,55 @@ function DeviceSimulator() {
 
   // Render Project Updates
   const renderProjectUpdates = () => (
-    <div className={styles.logListContainer}>
-      {projectUpdatesData.map((log, idx) => (
-        <div key={idx} className={styles.logItem}>
-          <div className={styles.logDot} />
-          <div className={styles.logContent}>
-            <p className={styles.logTitle}>{log.log}</p>
-            <span className={styles.logTime}>{log.time}</span>
-          </div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Tab Bar sticky */}
+      <div className={styles.utTabBar}>
+        <div className={clsx(styles.utTabBtn, styles.utTabBtnActive)}>
+          All
+          <div className={styles.utTabIndicator} />
         </div>
-      ))}
+        <div className={styles.utTabBtn}>On Track</div>
+        <div className={styles.utTabBtn}>At Risk</div>
+        <div className={styles.utTabBtn}>Off Track</div>
+      </div>
+
+      {/* Project Updates Card list */}
+      <div className={styles.logListContainer}>
+        {projectUpdatesData.map((log, idx) => (
+          <div key={idx} className={styles.utUpdateCard}>
+            
+            {/* Left description col */}
+            <div className={styles.utUpdateMainContent}>
+              <h4 className={styles.utUpdateTitle}>{log.title}</h4>
+              <p className={styles.utUpdateMeta}>By: {log.author} | {log.date}</p>
+              <p className={styles.utUpdateProject}>{log.project}</p>
+              
+              {/* Progress Bar representing Project Completion */}
+              <div className={styles.utProgressBarTrack}>
+                <div 
+                  className={styles.utProgressBarFill} 
+                  style={{ width: `${log.completion}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Right status details col */}
+            <div className={styles.utUpdateRightCol}>
+              <span 
+                className={styles.utUpdateStatusBadge}
+                style={{ 
+                  backgroundColor: 
+                    log.status === "on_track" ? "#4cae80" : 
+                    log.status === "at_risk" ? "#e68a45" : "#757575" 
+                }}
+              >
+                {log.status}
+              </span>
+              <button className={styles.utUpdateDetailsBtn}>Details</button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -1234,6 +1293,11 @@ function DeviceSimulator() {
                                 <button className={styles.headerIconBtn} title="Add Activity">+</button>
                                 <button className={styles.headerIconBtn} title="Search">🔍</button>
                               </>
+                            ) : activeScreen === "Project Updates" ? (
+                              <>
+                                <button className={styles.headerIconBtn} title="Add Update">+</button>
+                                <button className={styles.headerIconBtn} title="Search">🔍</button>
+                              </>
                             ) : (
                               <>
                                 <button 
@@ -1364,6 +1428,11 @@ function DeviceSimulator() {
                               <>
                                 <button className={styles.headerIconBtn} title="Accounts">👥</button>
                                 <button className={styles.headerIconBtn} title="Add Activity">+</button>
+                                <button className={styles.headerIconBtn} title="Search">🔍</button>
+                              </>
+                            ) : activeScreen === "Project Updates" ? (
+                              <>
+                                <button className={styles.headerIconBtn} title="Add Update">+</button>
                                 <button className={styles.headerIconBtn} title="Search">🔍</button>
                               </>
                             ) : (
