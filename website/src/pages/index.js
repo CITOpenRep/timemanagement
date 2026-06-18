@@ -404,20 +404,44 @@ function DeviceSimulator() {
 
   const activitiesData = [
     {
-      log: "Reviewed Voice-To-Text PR changes and validated models",
-      time: "2026-06-16"
+      title: "Activity test for sU...",
+      notes: "No Notes",
+      assigned: "Assigned to: Suraj Yadav",
+      type: "To Do",
+      date: "08 May",
+      status: "overdue",
+      iconType: "ellipsis",
+      hasDraft: true
     },
     {
-      log: "Optimized Docusaurus landing page layout structure",
-      time: "2026-06-15"
+      title: "This is a Activity- ...",
+      notes: "Hello World.",
+      assigned: "Assigned to: Suraj Yadav",
+      type: "Meeting",
+      date: "14 May",
+      status: "overdue",
+      iconType: "meeting",
+      hasDraft: false
     },
     {
-      log: "Verified Ubuntu Touch QML compile flags on build server",
-      time: "2026-06-14"
+      title: "Activity assigned to...",
+      notes: "No Notes",
+      assigned: "Assigned to: Suraj Yadav",
+      type: "Call",
+      date: "17 May",
+      status: "overdue",
+      iconType: "call",
+      hasDraft: false
     },
     {
-      log: "Validated color palette variables for Eisenhower Matrix",
-      time: "2026-06-12"
+      title: "New Activity",
+      notes: "Hello World.",
+      assigned: "Assigned to: Suraj Yadav",
+      type: "Call",
+      date: "18 Jun",
+      status: "today",
+      iconType: "call",
+      hasDraft: false
     }
   ];
 
@@ -795,16 +819,73 @@ function DeviceSimulator() {
 
   // Render Activities
   const renderActivitiesList = () => (
-    <div className={styles.logListContainer}>
-      {activitiesData.map((act, idx) => (
-        <div key={idx} className={styles.logItem}>
-          <div className={styles.logDot} style={{ backgroundColor: "#43a047" }} />
-          <div className={styles.logContent}>
-            <p className={styles.logTitle}>{act.log}</p>
-            <span className={styles.logTime}>{act.time}</span>
-          </div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Tab Bar sticky */}
+      <div className={styles.utTabBar}>
+        <div className={clsx(styles.utTabBtn, styles.utTabBtnActive)}>
+          Today
+          <div className={styles.utTabIndicator} />
         </div>
-      ))}
+        <div className={styles.utTabBtn}>This Week</div>
+        <div className={styles.utTabBtn}>This Month</div>
+        <div className={styles.utTabBtn}>Later</div>
+      </div>
+
+      {/* Activity Card list */}
+      <div className={styles.logListContainer}>
+        {activitiesData.map((act, idx) => (
+          <div key={idx} className={styles.utActivityCard}>
+            {/* Left border strip */}
+            <div className={styles.utActivityAccentStrip} />
+
+            {/* Left circular icon */}
+            <div className={styles.utActivityIconCircle}>
+              {act.iconType === "ellipsis" && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="19" cy="12" r="1" />
+                  <circle cx="5" cy="12" r="1" />
+                </svg>
+              )}
+              {act.iconType === "meeting" && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              )}
+              {act.iconType === "call" && (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff" stroke="none">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+              )}
+            </div>
+
+            {/* Middle description col */}
+            <div className={styles.utActivityMainContent}>
+              <h4 className={styles.utActivityTitle}>{act.title}</h4>
+              <p className={styles.utActivityNotes}>{act.notes}</p>
+              <p className={styles.utActivityAssigned}>{act.assigned}</p>
+              {act.hasDraft && (
+                <span className={styles.utActivityDraftBadge}>Draft</span>
+              )}
+            </div>
+
+            {/* Right meta details col */}
+            <div className={styles.utActivityRightCol}>
+              <span className={styles.utActivityType}>{act.type}</span>
+              <span className={styles.utActivityDate}>{act.date}</span>
+              <span 
+                className={styles.utActivityStatusBadge}
+                style={{ backgroundColor: act.status === "overdue" ? "#ff5e5b" : "#ffa726" }}
+              >
+                {act.status}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -1147,6 +1228,12 @@ function DeviceSimulator() {
                                   +
                                 </button>
                               </>
+                            ) : activeScreen === "Activities" ? (
+                              <>
+                                <button className={styles.headerIconBtn} title="Accounts">👥</button>
+                                <button className={styles.headerIconBtn} title="Add Activity">+</button>
+                                <button className={styles.headerIconBtn} title="Search">🔍</button>
+                              </>
                             ) : (
                               <>
                                 <button 
@@ -1273,6 +1360,12 @@ function DeviceSimulator() {
                               <button className={styles.headerIconBtn}>
                                 {themeMode === "dark" ? "📝" : "✓"}
                               </button>
+                            ) : activeScreen === "Activities" ? (
+                              <>
+                                <button className={styles.headerIconBtn} title="Accounts">👥</button>
+                                <button className={styles.headerIconBtn} title="Add Activity">+</button>
+                                <button className={styles.headerIconBtn} title="Search">🔍</button>
+                              </>
                             ) : (
                               <>
                                 <button 

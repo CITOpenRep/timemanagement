@@ -2221,6 +2221,192 @@
   background: #2a2a2a;
 }
 
+/* Ubuntu Touch Style Activities */
+.utTabBar {
+  display: flex;
+  background: #eeeeee;
+  border-bottom: 1px solid #d8d8d8;
+  height: 40px;
+  align-items: stretch;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.themeDark .utTabBar {
+  background: #202020;
+  border-bottom: 1px solid #333333;
+}
+
+.utTabBtn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #dcdcdc;
+  font-size: 0.82rem;
+  color: #666666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  position: relative;
+  font-weight: 500;
+}
+
+.utTabBtn:last-child {
+  border-right: none;
+}
+
+.themeDark .utTabBtn {
+  border-right: 1px solid #2d2d2d;
+  color: #aaaaaa;
+}
+
+.utTabBtnActive {
+  color: #e05a2b;
+  font-weight: 700;
+}
+
+.utTabIndicator {
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  height: 3px;
+  background: #e05a2b;
+  border-radius: 2px;
+}
+
+.utActivityCard {
+  display: flex;
+  padding: 14px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  position: relative;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.themeDark .utActivityCard {
+  background: #151515;
+  border-bottom: 1px solid #282828;
+}
+
+.utActivityAccentStrip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #8b3d88;
+}
+
+.utActivityIconCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f48152;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.utActivityMainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.utActivityTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333333;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.themeDark .utActivityTitle {
+  color: #e0e0e0;
+}
+
+.utActivityNotes {
+  font-size: 0.8rem;
+  color: #555555;
+  margin: 0;
+}
+
+.themeDark .utActivityNotes {
+  color: #a0a0a0;
+}
+
+.utActivityAssigned {
+  font-size: 0.76rem;
+  color: #888888;
+  margin: 0;
+}
+
+.utActivityDraftBadge {
+  align-self: flex-start;
+  border: 1.2px solid #e05a2b;
+  border-radius: 10px;
+  padding: 0px 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #e05a2b;
+  text-transform: uppercase;
+  margin-top: 3px;
+  display: inline-block;
+  line-height: 1.4;
+}
+
+.utActivityRightCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  min-width: 75px;
+  flex-shrink: 0;
+}
+
+.utActivityType {
+  font-size: 0.78rem;
+  color: #777777;
+}
+
+.themeDark .utActivityType {
+  color: #999999;
+}
+
+.utActivityDate {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #555555;
+}
+
+.themeDark .utActivityDate {
+  color: #bbbbbb;
+}
+
+.utActivityStatusBadge {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #ffffff;
+  padding: 1.5px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  min-width: 62px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+
 
 
 
