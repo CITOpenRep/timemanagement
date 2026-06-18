@@ -865,66 +865,68 @@ function DeviceSimulator() {
 
   // Render Settings Screen
   const renderSettingsScreen = () => (
-    <div style={{ paddingBottom: "20px" }}>
-      <div className={styles.settingsGroup}>
-        <div className={styles.settingsGroupTitle}>Profile Settings</div>
-        <div className={styles.settingsItem}>
-          <span>Username</span>
-          <span className={styles.settingsItemValue}>surajyadav</span>
+    <div className={styles.utSettingsList}>
+      <div className={styles.utSettingsRow}>
+        <div className={styles.utSettingsIconWrapper}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a90e2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
         </div>
-        <div className={styles.settingsItem}>
-          <span>Email</span>
-          <span className={styles.settingsItemValue}>suraj@example.com</span>
-        </div>
+        <span className={styles.utSettingsLabel}>Connected Accounts</span>
+        <span className={styles.utSettingsChevron}>›</span>
       </div>
+      <div className={styles.utSettingsDivider} />
 
-      <div className={styles.settingsGroup}>
-        <div className={styles.settingsGroupTitle}>Synchronization</div>
-        <div className={styles.settingsItem}>
-          <span>Sync Server</span>
-          <span className={styles.settingsItemValue}>https://sync.timemanagement.org</span>
+      <div className={styles.utSettingsRow}>
+        <div className={styles.utSettingsIconWrapper}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff5e5b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
         </div>
-        <div className={styles.settingsItem}>
-          <span>Interval</span>
-          <select className={styles.settingsSelect} defaultValue="15m">
-            <option value="5m">Every 5 mins</option>
-            <option value="15m">Every 15 mins</option>
-            <option value="1h">Every hour</option>
-            <option value="manual">Manual only</option>
-          </select>
-        </div>
+        <span className={styles.utSettingsLabel}>Notifications</span>
+        <span className={styles.utSettingsChevron}>›</span>
       </div>
+      <div className={styles.utSettingsDivider} />
 
-      <div className={styles.settingsGroup}>
-        <div className={styles.settingsGroupTitle}>Voice-To-Text</div>
-        <div className={styles.settingsItem}>
-          <span>Detection Engine</span>
-          <span className={styles.settingsItemValue}>whisper-base-en</span>
+      <div className={styles.utSettingsRow}>
+        <div className={styles.utSettingsIconWrapper}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3cb371" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 10h-.01M17 10a5 5 0 0 0-9.13-2.58A6.5 6.5 0 0 0 8 20h10a5 5 0 0 0 0-10z" />
+          </svg>
         </div>
-        <div className={styles.settingsItem}>
-          <span>Input Language</span>
-          <select className={styles.settingsSelect} defaultValue="en-US">
-            <option value="en-US">English (US)</option>
-            <option value="de-DE">Deutsch</option>
-            <option value="tr-TR">Türkçe</option>
-            <option value="hi-IN">Hindi</option>
-          </select>
-        </div>
+        <span className={styles.utSettingsLabel}>Background Sync</span>
+        <span className={styles.utSettingsChevron}>›</span>
       </div>
+      <div className={styles.utSettingsDivider} />
 
-      <div className={styles.settingsGroup}>
-        <div className={styles.settingsGroupTitle}>Database Maintenance</div>
-        <div className={styles.settingsItem}>
-          <span>Database Size</span>
-          <span className={styles.settingsItemValue}>1.24 MB</span>
+      <div className={styles.utSettingsRow}>
+        <div className={styles.utSettingsIconWrapper}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="#cccccc" strokeWidth="1" />
+            <path d="M3 5l8 9v7h2v-7l8-9" />
+            <path d="M9 3l3 4 3-4" />
+            <path d="M12 5.5l-1 1.5h2l-1-1.5z" fill="#e05a2b" stroke="#e05a2b" />
+            <path d="M12 7l-1.5 3 1.5 2 1.5-2-1.5-3z" fill="#e05a2b" stroke="#e05a2b" />
+          </svg>
         </div>
-        <div className={styles.settingsItem}>
-          <span>Cached Tasks</span>
-          <span className={styles.settingsItemValue}>186</span>
+        <span className={styles.utSettingsLabel}>Theme Settings</span>
+        <span className={styles.utSettingsChevron}>›</span>
+      </div>
+      <div className={styles.utSettingsDivider} />
+
+      <div className={styles.utSettingsRow}>
+        <div className={styles.utSettingsIconWrapper}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9b5de5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
+          </svg>
         </div>
-        <button className={styles.settingsButton}>
-          Clear Local Cache
-        </button>
+        <span className={styles.utSettingsLabel}>Voice Model Settings</span>
+        <span className={styles.utSettingsChevron}>›</span>
       </div>
     </div>
   );

@@ -2154,6 +2154,74 @@
   background: #1e1e1e;
 }
 
+/* Ubuntu Touch Style Settings */
+.utSettingsList {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  min-height: 100%;
+}
+
+.themeDark .utSettingsList {
+  background: #151515;
+}
+
+.utSettingsRow {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.utSettingsRow:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.themeDark .utSettingsRow:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.utSettingsIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 18px;
+  flex-shrink: 0;
+}
+
+.utSettingsLabel {
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #333333;
+  flex-grow: 1;
+}
+
+.themeDark .utSettingsLabel {
+  color: #dddddd;
+}
+
+.utSettingsChevron {
+  font-size: 1.2rem;
+  color: #cccccc;
+  font-weight: 300;
+  margin-left: auto;
+  user-select: none;
+}
+
+.utSettingsDivider {
+  height: 1px;
+  background: #eeeeee;
+  margin-left: 66px;
+}
+
+.themeDark .utSettingsDivider {
+  background: #2a2a2a;
+}
+
+
 
 
 
