@@ -202,22 +202,22 @@ function DeviceSimulator() {
   ];
 
   const projectsData = [
-    { name: "Child project of main instance nnmhbbnnn kkkk", time: "4507.0 h", percent: 92, color: "#e07a24", tasks: 6 },
-    { name: "UT time management", time: "2187.6 h", percent: 75, color: "#e53935", tasks: 124 },
-    { name: "CURQ migration v18", time: "1240.0 h", percent: 55, color: "#1e88e5", tasks: 28 },
-    { name: "UT App Development", time: "680.0 h", percent: 40, color: "#43a047", tasks: 15 },
-    { name: "Notes App Development", time: "420.0 h", percent: 28, color: "#ffb300", tasks: 10 },
-    { name: "Ubuntu Touch Development- Level 1", time: "280.0 h", percent: 18, color: "#00acc1", tasks: 8 },
-    { name: "CURQ- Support", time: "230.0 h", percent: 12, color: "#8e24aa", tasks: 5 },
-    { name: "CURQ documentation", time: "150.0 h", percent: 8, color: "#d81b60", tasks: 2 }
+    { name: "Project Alpha - Phase 1", time: "4507.0 h", percent: 92, color: "#e07a24", tasks: 6 },
+    { name: "Core Productivity Suite", time: "2187.6 h", percent: 75, color: "#e53935", tasks: 124 },
+    { name: "Database Migration v18", time: "1240.0 h", percent: 55, color: "#1e88e5", tasks: 28 },
+    { name: "Mobile Client App", time: "680.0 h", percent: 40, color: "#43a047", tasks: 15 },
+    { name: "Collaborative Editor", time: "420.0 h", percent: 28, color: "#ffb300", tasks: 10 },
+    { name: "OS Platform Layer", time: "280.0 h", percent: 18, color: "#00acc1", tasks: 8 },
+    { name: "Technical Support Queue", time: "230.0 h", percent: 12, color: "#8e24aa", tasks: 5 },
+    { name: "API Documentation", time: "150.0 h", percent: 8, color: "#d81b60", tasks: 2 }
   ];
 
   const timesheetsData = [
     {
       title: "test timesheet this thing this...",
-      project: "Main Parent Project / Child pr... (testCit)",
+      project: "Project Alpha / Child A (Demo)",
       task: "User manual",
-      author: "Suraj Yadav",
+      author: "Alex Mercer",
       hours: "5:00 H",
       date: "2026-04-24",
       action: "Do",
@@ -225,9 +225,9 @@ function DeviceSimulator() {
     },
     {
       title: "Test",
-      project: "Main Parent Project / Child pr... (testCit)",
+      project: "Project Alpha / Child A (Demo)",
       task: "This is a Notification Test.",
-      author: "Parvathy",
+      author: "Sarah Connor",
       hours: "4500:00 H",
       date: "2026-05-05",
       action: "Unknown",
@@ -235,9 +235,9 @@ function DeviceSimulator() {
     },
     {
       title: "sub taSK 2 TIMESHEETY",
-      project: "Main Parent Project / Child pr... (testCit)",
+      project: "Project Alpha / Child A (Demo)",
       task: "HR Bundle",
-      author: "Parvathy",
+      author: "Sarah Connor",
       hours: "2:00 H",
       date: "2026-04-24",
       action: "Unknown",
@@ -245,9 +245,9 @@ function DeviceSimulator() {
     },
     {
       title: "test",
-      project: "UT App Development / Dekko App... (testCit)",
+      project: "Mobile Client App / Email module (Demo)",
       task: "Coordination",
-      author: "Parvathy",
+      author: "Sarah Connor",
       hours: "3:00 H",
       date: "2026-04-24",
       action: "Unknown",
@@ -255,9 +255,9 @@ function DeviceSimulator() {
     },
     {
       title: "Time Off (1/1)",
-      project: "Internal (testCit)",
+      project: "Internal (Demo)",
       task: "Time Off",
-      author: "Suraj Yadav",
+      author: "Alex Mercer",
       hours: "8:00 H",
       date: "2026-05-01",
       action: "Unknown",
@@ -265,9 +265,9 @@ function DeviceSimulator() {
     },
     {
       title: "Time Off (1/1)",
-      project: "Internal (testCit)",
+      project: "Internal (Demo)",
       task: "Time Off",
-      author: "Anusha PP",
+      author: "David Miller",
       hours: "8:00 H",
       date: "2026-05-01",
       action: "Unknown",
@@ -278,7 +278,7 @@ function DeviceSimulator() {
   const tasksData = [
     {
       title: "[Req] Content hub",
-      project: "UT time management",
+      project: "Core Productivity Suite",
       stage: "Analysis",
       stars: [false, false, false],
       planned: "N/A",
@@ -288,7 +288,7 @@ function DeviceSimulator() {
     },
     {
       title: "[IMP - Weblates improvements]",
-      project: "UT time management",
+      project: "Core Productivity Suite",
       stage: "Analysis",
       stars: [true, false, false],
       planned: "N/A",
@@ -298,7 +298,7 @@ function DeviceSimulator() {
     },
     {
       title: "Activity Retention",
-      project: "UT time management",
+      project: "Core Productivity Suite",
       stage: "Design",
       stars: [false, false, false],
       planned: "N/A",
@@ -308,7 +308,7 @@ function DeviceSimulator() {
     },
     {
       title: "Parent task",
-      project: "Child project of",
+      project: "Project Alpha - Phase 1",
       stage: "Analysis",
       stars: [false, false, false],
       planned: "N/A",
@@ -321,7 +321,7 @@ function DeviceSimulator() {
     },
     {
       title: "UI Improvements And Bug Fixes",
-      project: "UT time management",
+      project: "Core Productivity Suite",
       stage: "Development",
       stars: [false, false, false],
       planned: "N/A",
@@ -386,41 +386,41 @@ function DeviceSimulator() {
   const projectUpdatesData = [
     {
       title: "New Project Update.",
-      author: "Suraj Yadav",
+      author: "Alex Mercer",
       date: "2026-06-04",
-      project: "25-00005 - UT App Developmutent",
+      project: "25-00005 - Mobile Client App",
       status: "on_track",
       completion: 40
     },
     {
       title: "New Update.",
-      author: "Suraj Yadav",
+      author: "Alex Mercer",
       date: "2026-05-14",
-      project: "25-00005 - UT App Developmutent",
+      project: "25-00005 - Mobile Client App",
       status: "at_risk",
       completion: 90
     },
     {
       title: "project update edit after notificat...",
-      author: "Suraj Yadav",
+      author: "Alex Mercer",
       date: "2026-04-28",
-      project: "Child project of main instancfe nnmhbbnn...",
+      project: "Project Alpha - Phase 1...",
       status: "at_risk",
       completion: 15
     },
     {
       title: "project update edit after notificat...",
-      author: "Suraj Yadav",
+      author: "Alex Mercer",
       date: "2026-04-27",
-      project: "Child project of main instancfe nnmhbbnn...",
+      project: "Project Alpha - Phase 1...",
       status: "on_hold",
       completion: 30
     },
     {
       title: "New project Update",
-      author: "Suraj Yadav",
+      author: "Alex Mercer",
       date: "2026-04-27",
-      project: "Child project of main instancfe nnmhbbnn...",
+      project: "Project Alpha - Phase 1...",
       status: "on_track",
       completion: 10
     }
@@ -428,9 +428,9 @@ function DeviceSimulator() {
 
   const activitiesData = [
     {
-      title: "Activity test for sU...",
+      title: "Activity test for Al...",
       notes: "No Notes",
-      assigned: "Assigned to: Suraj Yadav",
+      assigned: "Assigned to: Alex Mercer",
       type: "To Do",
       date: "08 May",
       status: "overdue",
@@ -440,7 +440,7 @@ function DeviceSimulator() {
     {
       title: "This is a Activity- ...",
       notes: "Hello World.",
-      assigned: "Assigned to: Suraj Yadav",
+      assigned: "Assigned to: Alex Mercer",
       type: "Meeting",
       date: "14 May",
       status: "overdue",
@@ -450,7 +450,7 @@ function DeviceSimulator() {
     {
       title: "Activity assigned to...",
       notes: "No Notes",
-      assigned: "Assigned to: Suraj Yadav",
+      assigned: "Assigned to: Alex Mercer",
       type: "Call",
       date: "17 May",
       status: "overdue",
@@ -460,7 +460,7 @@ function DeviceSimulator() {
     {
       title: "New Activity",
       notes: "Hello World.",
-      assigned: "Assigned to: Suraj Yadav",
+      assigned: "Assigned to: Alex Mercer",
       type: "Call",
       date: "18 Jun",
       status: "today",
@@ -684,13 +684,13 @@ function DeviceSimulator() {
     <div className={styles.formContainerActual}>
       <div className={styles.formRowInput}>
         <span className={styles.formLabelSmall}>Account</span>
-        <span className={styles.formValueMain}>{themeMode === "dark" ? "dem" : "testCit"}</span>
+        <span className={styles.formValueMain}>{themeMode === "dark" ? "demo" : "demo_db"}</span>
       </div>
 
       <div className={styles.formRowInput}>
         <span className={styles.formLabelSmall}>Project</span>
         <span className={styles.formValueMain}>
-          {themeMode === "dark" ? '"Task-wise Time Allocation an...' : "Child project of"}
+          {themeMode === "dark" ? "Project Alpha - Phase 1..." : "Project Alpha - Phase 1"}
         </span>
       </div>
 
@@ -701,7 +701,7 @@ function DeviceSimulator() {
 
       <div className={styles.formRowInput}>
         <span className={styles.formLabelSmall}>Task</span>
-        <span className={styles.formValueMain}>{themeMode === "dark" ? "111Ojne" : "sub task1"}</span>
+        <span className={styles.formValueMain}>{themeMode === "dark" ? "Database Migration" : "sub task1"}</span>
       </div>
 
       <div className={styles.formRowInput}>
@@ -1378,7 +1378,7 @@ function DeviceSimulator() {
                             ☰
                           </button>
                           <h3 className={styles.headerTitle}>
-                            {activeScreen === "Dashboard" && `Account [${themeMode === "dark" ? "dem" : "testCit"}]`}
+                            {activeScreen === "Dashboard" && `Account [${themeMode === "dark" ? "demo" : "demo_db"}]`}
                             {activeScreen === "Timesheets" && "Timesheets"}
                             {activeScreen === "My Tasks" && "My Tasks"}
                             {activeScreen === "About Us" && "About"}
@@ -1541,7 +1541,7 @@ function DeviceSimulator() {
                       <main className={styles.convergedCenter} style={{ background: "transparent" }}>
                         <header className={styles.appHeaderActual}>
                           <h3 className={styles.headerTitle}>
-                            {activeScreen === "Dashboard" && `Account [${themeMode === "dark" ? "dem" : "testCit"}]`}
+                            {activeScreen === "Dashboard" && `Account [${themeMode === "dark" ? "demo" : "demo_db"}]`}
                             {activeScreen === "Timesheets" && "Timesheets"}
                             {activeScreen === "Timesheet" && "Timesheet"}
                             {activeScreen === "My Tasks" && "My Tasks"}
