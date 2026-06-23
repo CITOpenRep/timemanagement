@@ -68,6 +68,7 @@ Rectangle {
                 width: units.gu(5)
                 height: units.gu(4)
                 color: (editor && editor.listening) ? LomiriColors.red : (darkMode ? "#555555" : "#F0F0F0")
+                visible: editor ? editor.isVoiceInputEnabled : false
                 
                 Icon {
                     anchors.centerIn: parent

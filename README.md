@@ -1,86 +1,42 @@
-# Time Management 
+# TimeManagement
 
-Time Management 
+TimeManagement is a desktop and Ubuntu Touch project for task, timesheet, dashboard, and sync-oriented workflows.
 
-This guide explains how to install `clickable`, build the `TimeManagement` project, and run it on both desktop and Ubuntu Touch devices.
+## Documentation site
 
-## Prerequisites
+The project now includes a Docusaurus website in `website/` that is intended to become the main home for:
 
-- Ubuntu or Debian-based system
-- Git
-- Python 3
-- Docker (for cross-compilation and device builds)
+- product-facing overview content
+- user and setup documentation
+- technical architecture and repository guidance
+- contributor workflow documentation
 
-## Install Clickable
+Planned published URL:
 
-Follow the official steps to install `clickable`:
+- `https://citopenrep.github.io/timemanagement/`
+
+## Local docs development
 
 ```bash
-# Install required dependencies
-sudo apt update
-sudo apt install git python3 python3-pip
-
-# Install Clickable using pip
-pip3 install --user clickable-ut
-
-# Add Clickable to your PATH
-echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
-source ~/.bashrc
+cd website
+npm install
+npm run start
 ```
 
-Verify installation:
+## App build and run
+
+For the current application workflow:
 
 ```bash
-clickable --version
-```
-
-
-## Build the project
-To build the project, clone this repo and then you can run 
-
-```bash
-clickable desktop 
-```
-
-The above command will run the project on desktop
-
-```bash
+clickable desktop
 clickable install
 ```
-to install the app on the connected device.
 
+## Existing source docs
 
-## License
+The legacy Markdown docs in `docs/` remain available during the migration into the Docusaurus site.
 
-/*
- * MIT License
- *
- * Copyright (c) 2025 CIT-Services
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+## Repository references
 
-## Contributing
-
-- [Pull Request Guidelines](docs/PR-GUIDELINES.md)
-- [Technical File Organization](docs/TECHNICAL-FILE-ORGANIZATION.md)
-
-## References
-* https://clickable-ut.dev/en/latest/
-* Location of DB : ~/.clickable/home/.local/share/ubtms/Databases
+- [Technical file organization](docs/TECHNICAL-FILE-ORGANIZATION.md)
+- [Pull request guidelines](docs/PR-GUIDELINES.md)
