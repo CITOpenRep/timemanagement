@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Rich Text Editor</title>
     <script>
         // Apply dark mode to <html> IMMEDIATELY before first paint to prevent white flash
-        (function() {
+        (function () {
             var search = window.location.search.substring(1);
             if (search.indexOf('darkMode=true') !== -1) {
                 document.documentElement.classList.add('dark-mode');
@@ -64,18 +65,20 @@
             word-wrap: break-word;
             white-space: normal;
         }
-        
+
         /* Ensure DIV elements (Squire's default block) don't have extra spacing */
-        body > div:first-child {
+        body>div:first-child {
             margin-top: 0;
             padding-top: 0;
         }
-        
-        body > div, body > p {
+
+        body>div,
+        body>p {
             margin: 0 0 0.5em 0;
         }
-        
-        body > div:last-child, body > p:last-child {
+
+        body>div:last-child,
+        body>p:last-child {
             margin-bottom: 0;
         }
 
@@ -111,7 +114,8 @@
         }
 
         /* List styling */
-        ul, ol {
+        ul,
+        ol {
             margin-left: 20px;
             padding-left: 10px;
         }
@@ -161,15 +165,16 @@
         }
     </style>
 </head>
+
 <body contenteditable="true" data-placeholder="Write something...">
     <!-- Load the QtWebEngine bridge first -->
     <script src="squire-qtwebengine-bridge.js"></script>
-    
+
     <!-- Load Squire.js - this initializes window.editor on document.body and registers all handlers -->
     <script src="squire-raw.js"></script>
 
     <script>
-        (function() {
+        (function () {
             'use strict';
 
             // Parse URL parameters for configuration
@@ -223,7 +228,7 @@
                  * Called from QML to inform JS about the on-screen keyboard
                  * height in CSS pixels (already divided by zoomFactor).
                  */
-                window.setKeyboardHeight = function(h) {
+                window.setKeyboardHeight = function (h) {
                     window._kbHeight = h || 0;
                     console.log('[Editor] Keyboard height set to', window._kbHeight, 'CSS px');
                     scrollCursorIntoView();
@@ -232,7 +237,7 @@
                 // Scroll the cursor into the visible area.
                 // Exposed globally so QML can call it via runJavaScript
                 // when the on-screen keyboard appears or resizes.
-                window.scrollCursorIntoView = function() {
+                window.scrollCursorIntoView = function () {
                     try {
                         var selection = window.getSelection();
                         if (!selection || selection.rangeCount === 0) return;
@@ -269,8 +274,8 @@
 
                 // Track content changes
                 var lastContent = '';
-                
-                window.editor.addEventListener('input', function() {
+
+                window.editor.addEventListener('input', function () {
                     var content = window.editor.getHTML();
                     if (content !== lastContent) {
                         lastContent = content;
@@ -282,7 +287,7 @@
                 });
 
                 // Also scroll cursor into view on Enter / new-line
-                document.body.addEventListener('keydown', function(e) {
+                document.body.addEventListener('keydown', function (e) {
                     if (e.key === 'Enter' || e.keyCode === 13) {
                         setTimeout(scrollCursorIntoView, 50);
                     }
@@ -290,17 +295,17 @@
 
                 // Listen for window resize (e.g. QML resizing the WebEngineView
                 // when the on-screen keyboard appears)
-                window.addEventListener('resize', function() {
+                window.addEventListener('resize', function () {
                     setTimeout(scrollCursorIntoView, 150);
                 });
 
                 // Track path changes (formatting state)
-                window.editor.addEventListener('pathChange', function(e) {
+                window.editor.addEventListener('pathChange', function (e) {
                     oxide.sendMessage('pathChanged', { path: e.path || '' });
                 });
 
                 // Track selection changes
-                window.editor.addEventListener('select', function() {
+                window.editor.addEventListener('select', function () {
                     var selection = window.getSelection();
                     if (selection && selection.toString()) {
                         oxide.sendMessage('textSelected', { text: selection.toString() });
@@ -308,7 +313,7 @@
                 });
 
                 // Track cursor position
-                window.editor.addEventListener('cursor', function() {
+                window.editor.addEventListener('cursor', function () {
                     try {
                         var selection = window.getSelection();
                         if (selection.rangeCount > 0) {
@@ -327,7 +332,7 @@
                 });
 
                 // Track undo state
-                window.editor.addEventListener('undoStateChange', function(e) {
+                window.editor.addEventListener('undoStateChange', function (e) {
                     oxide.sendMessage('undoStateChanged', {
                         canUndo: e.canUndo,
                         canRedo: e.canRedo
@@ -335,16 +340,16 @@
                 });
 
                 // Register additional handlers not in squire-raw.js
-                oxide.addMessageHandler('setReadOnly', function(msg) {
+                oxide.addMessageHandler('setReadOnly', function (msg) {
                     var readOnly = msg.payload.readOnly !== undefined ? msg.payload.readOnly : msg.payload;
                     document.body.contentEditable = !readOnly;
                 });
 
-                oxide.addMessageHandler('moveCursorToStart', function(msg) {
+                oxide.addMessageHandler('moveCursorToStart', function (msg) {
                     window.editor.moveCursorToStart();
                 });
 
-                oxide.addMessageHandler('moveCursorToEnd', function(msg) {
+                oxide.addMessageHandler('moveCursorToEnd', function (msg) {
                     window.editor.moveCursorToEnd();
                 });
 
@@ -359,4 +364,5 @@
         })();
     </script>
 </body>
+
 </html>

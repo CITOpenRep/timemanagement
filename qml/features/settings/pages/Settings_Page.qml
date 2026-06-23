@@ -111,9 +111,11 @@ Page {
         SettingsListItem {
             iconName: "audio-input-microphone-symbolic"
             iconColor: "#8e44ad"
-            text: i18n.dtr("ubtms", "Voice Model Settings")
+            text: i18n.dtr("ubtms", "Voice Model (Beta)")
+            active: settings.selectedSettingsPageUrl === "Settings_VoiceModel.qml"
             showDivider: false
             onClicked: {
+                settings.selectedSettingsPageUrl = "Settings_VoiceModel.qml";
                 apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_VoiceModel.qml'));
             }
         }

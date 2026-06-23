@@ -19,6 +19,8 @@ import QtQuick 2.7
 import QtQuick.Window 2.2
 import Lomiri.Components 1.3
 import QtWebEngine 1.5
+import QtQuick.LocalStorage 2.7 as Sql
+import "../system"
 import "js/html-sanitizer.js" as HtmlSanitizer
 
 Item {
@@ -73,8 +75,36 @@ Item {
     /** Whether the editor is processing voice input */
     property bool processing: false
     
+    /** Ignore the final result from the backend if stop was explicitly clicked */
+    property bool ignoreNextVoiceResult: false
+    
     /** Partial voice recognition text (for UI feedback) */
     property string _partialVoiceText: ""
+    property string _currentVoiceStatus: ""
+    
+    /** Whether voice input is enabled globally */
+    property bool isVoiceInputEnabled: true
+
+    function checkVoiceInputEnabled() {
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var result = true;
+            db.transaction(function (tx) {
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+                var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = "voice_input_enabled"');
+                if (rs.rows.length > 0) {
+                    result = rs.rows.item(0).value === "true";
+                }
+            });
+            isVoiceInputEnabled = result;
+        } catch (e) {
+            console.warn("Error reading voice_input_enabled:", e);
+        }
+    }
+
+    Component.onCompleted: {
+        checkVoiceInputEnabled()
+    }
 
     Connections {
         target: mainView.backend_bridge
@@ -85,42 +115,129 @@ Item {
                 
                 var partialText = data.payload
                 if (partialText) {
-                    var jsCode = "var marker = document.getElementById('voice-partial-marker'); " +
-                                 "if (marker) { " +
-                                 "  marker.innerText = " + JSON.stringify(partialText + " (Listening...)") + "; " +
-                                 "  window.editor.moveCursorToEnd(); " +
-                                 "}";
-                    wv.runJavaScript(jsCode);
+                    editor._currentVoiceStatus = "Listening...";
+                    var script = "
+                        var el = document.getElementById('voice-live-transcription');
+                        if (el) {
+                            el.innerText = ' ' + " + JSON.stringify(partialText) + ";
+                        }
+                    ";
+                    wv.runJavaScript(script);
                 }
             } else if (data.event === "voice_recognition_result") {
+                if (editor.ignoreNextVoiceResult) {
+                    editor.ignoreNextVoiceResult = false;
+                    editor.listening = false;
+                    editor.processing = false;
+                    editor._currentVoiceStatus = "";
+                    
+                    var finalScript = "
+                        var el = document.getElementById('voice-live-transcription');
+                        if (el) {
+                            var txt = el.innerText.trim();
+                            var parent = el.parentNode;
+                            if (txt) {
+                                var textNode = document.createTextNode(txt);
+                                parent.replaceChild(textNode, el);
+                            } else {
+                                parent.parentNode.removeChild(parent);
+                            }
+                        }
+                        document.body.contentEditable = " + (!readOnly).toString() + ";
+                    ";
+                    wv.runJavaScript(finalScript);
+                    editor.syncContent();
+                    return;
+                }
+                
                 editor.listening = false
                 editor.processing = false
                 var recognizedText = data.payload
                 console.log("[RichTextEditor] Received recognition result: " + recognizedText)
                 
-                // Replace the partial span with the final text
-                var jsCode = "var marker = document.getElementById('voice-partial-marker'); " +
-                             "if (marker) { " +
-                             "  marker.outerHTML = " + JSON.stringify(recognizedText ? (recognizedText + " ") : "") + "; " +
-                             "} else if (" + JSON.stringify(recognizedText) + ") { " +
-                             "  window.editor.focus(); window.editor.insertHTML(" + JSON.stringify(recognizedText + " ") + "); " +
-                             "}";
+                editor._currentVoiceStatus = "";
+                
+                var jsCode = "
+                    var el = document.getElementById('voice-live-transcription');
+                    var finalTxt = " + JSON.stringify(recognizedText) + ";
+                    if (el) {
+                        var parent = el.parentNode;
+                        if (finalTxt && finalTxt.trim()) {
+                            var textNode = document.createTextNode(finalTxt);
+                            parent.replaceChild(textNode, el);
+                        } else {
+                            parent.parentNode.removeChild(parent);
+                        }
+                    }
+                    document.body.contentEditable = " + (!readOnly).toString() + ";
+                ";
                 wv.runJavaScript(jsCode);
                 
                 // Force a sync to update the 'text' property and emit contentChanged
                 editor.syncContent();
+            } else if (data.event === "voice_recognition_status") {
+                if (!listening && !processing) return;
+                var statusText = data.payload;
+                if (statusText) {
+                    editor._currentVoiceStatus = statusText;
+                }
             } else if (data.event === "voice_recognition_error") {
                 editor.listening = false
                 editor.processing = false
+                editor._partialVoiceText = "";
+                editor._currentVoiceStatus = "";
                 console.log("[RichTextEditor] Voice recognition error: " + data.payload)
+                if (data.payload.indexOf("Please download one") !== -1 || data.payload.indexOf("No language model") !== -1) {
+                    if (typeof notifPopup !== "undefined") notifPopup.open(i18n.dtr("ubtms", "Action Required"), data.payload, "warning");
+                } else {
+                    if (typeof notifPopup !== "undefined") notifPopup.open(i18n.dtr("ubtms", "Error"), data.payload, "error");
+                }
                 
-                // Remove the partial span on error
-                var jsCode = "var marker = document.getElementById('voice-partial-marker'); " +
-                             "if (marker) { " +
-                             "  marker.remove(); " +
-                             "}";
-                wv.runJavaScript(jsCode);
+                wv.runJavaScript("document.body.contentEditable = " + (!readOnly).toString() + ";");
             }
+        }
+    }
+
+    Component.onDestruction: {
+        if (listening || processing) {
+            console.log("[RichTextEditor] destruction: Stopping voice recognition...")
+            stopAndFinalizeVoice();
+        }
+    }
+
+    /**
+     * Stop voice recognition and finalize any in-progress transcription.
+     * Replaces the live transcription span with its text content so it
+     * persists correctly in the saved HTML. Call this before saving.
+     */
+    function stopAndFinalizeVoice(callback) {
+        ignoreNextVoiceResult = true;
+        listening = false;
+        processing = false;
+        _currentVoiceStatus = "";
+        
+        wv.runJavaScript("
+            var el = document.getElementById('voice-live-transcription');
+            if (el) {
+                var txt = el.innerText.trim();
+                var parent = el.parentNode;
+                if (txt) {
+                    var textNode = document.createTextNode(txt);
+                    parent.replaceChild(textNode, el);
+                } else {
+                    parent.parentNode.removeChild(parent);
+                }
+            }
+            document.body.contentEditable = " + (!readOnly).toString() + ";
+        ");
+        
+        mainView.backend_bridge.call("backend.stop_voice_recognition", []);
+        
+        // Sync content so the finalized text is captured
+        syncContent();
+        
+        if (callback && typeof callback === 'function') {
+            callback();
         }
     }
 
@@ -130,6 +247,7 @@ Item {
             console.log("[RichTextEditor] Stopping voice recognition...")
             listening = false
             processing = true
+            editor._currentVoiceStatus = "Processing..."
             mainView.backend_bridge.call("backend.stop_voice_recognition", [])
         } else {
             if (processing) return;
@@ -137,25 +255,35 @@ Item {
             listening = true
             processing = false
             _partialVoiceText = ""
+            editor._currentVoiceStatus = "Starting..."
             
-            // Move cursor to the end and insert a new line if there's already text,
-            // then insert a temporary span for live partial text
-            var jsCode = "try { " +
-                         "  window.editor.focus(); " +
-                         "  window.editor.moveCursorToEnd(); " +
-                         
-                         "  var currentHTML = window.editor.getHTML(); " +
-                         "  var hasContent = currentHTML.replace(/<[^>]*>/g, '').trim().length > 0; " +
-                         "  var marker = '<span id=\"voice-partial-marker\" style=\"color: #888888; font-style: italic;\">Listening...</span>'; " +
-                         
-                         "  if (hasContent) { " +
-                         "    window.editor.insertHTML('<div><br></div>' + marker); " +
-                         "  } else { " +
-                         "    window.editor.insertHTML(marker); " +
-                         "  } " +
-                         "  window.editor.moveCursorToEnd(); " +
-                         "} catch(e) { console.error('Error inserting voice marker: ', e); }";
-            wv.runJavaScript(jsCode);
+            wv.runJavaScript("
+                if (window.editor) {
+                    // Clean up any stale span from a previous session
+                    var oldEl = document.getElementById('voice-live-transcription');
+                    if (oldEl) {
+                        var txt = oldEl.innerText.trim();
+                        var oldParent = oldEl.parentNode;
+                        if (txt) {
+                            var tn = document.createTextNode(txt);
+                            oldParent.replaceChild(tn, oldEl);
+                        } else {
+                            oldParent.parentNode.removeChild(oldParent);
+                        }
+                    }
+                    
+                    var el = document.createElement('span');
+                    el.id = 'voice-live-transcription';
+                    el.innerText = ' ';
+                    
+                    var wrapper = document.createElement('div');
+                    wrapper.appendChild(el);
+                    document.body.appendChild(wrapper);
+                    
+                    document.body.contentEditable = false;
+                    el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+                }
+            ");
             
             mainView.backend_bridge.call("backend.run_voice_recognition", [])
         }
@@ -733,6 +861,22 @@ Item {
                     wv.reload();
                 }
             }
+        }
+    }
+
+    VoiceTimerWidget {
+        id: voiceTimerWidget
+        parent: mainView
+        anchors.bottomMargin: editor._oskHeight + units.gu(1)
+        
+        isListening: editor.listening
+        isProcessing: editor.processing
+        partialText: "" // Don't show partial text in the widget anymore
+        voiceStatus: editor._currentVoiceStatus
+        
+        onStopClicked: {
+            console.log("[RichTextEditor] Stopping voice recognition from widget...")
+            editor.stopAndFinalizeVoice();
         }
     }
 }

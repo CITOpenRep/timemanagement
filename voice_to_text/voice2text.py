@@ -17,7 +17,7 @@ try:
 except ImportError:
     pass
 
-def recognize_from_mic(verbose=True, stop_event=None, timeout=30, partial_callback=None, model_path=None):
+def recognize_from_mic(verbose=True, stop_event=None, timeout=30, partial_callback=None, status_callback=None, model_path=None):
     """
     Records audio using arecord and recognizes it using Vosk (offline).
     Returns (text, error_message).
@@ -37,11 +37,17 @@ def recognize_from_mic(verbose=True, stop_event=None, timeout=30, partial_callba
         if not model_path.exists():
             return None, f"Vosk model not found at {model_path}"
 
+        if status_callback:
+            status_callback("Preparing...~$")
+
         # Load the model and initialize recognizer
         if verbose: logger.info(f"Loading Vosk model from {model_path} for live processing...")
         model = Model(str(model_path))
         rec = KaldiRecognizer(model, 16000)
         rec.SetWords(True)
+
+        if status_callback:
+            status_callback("Listening...~$")
 
         try:
             arecord_cmd = "arecord"
@@ -67,45 +73,73 @@ def recognize_from_mic(verbose=True, stop_event=None, timeout=30, partial_callba
             import time
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
             
-            start_time = time.time()
-            max_duration = timeout
-            
-            results = []
-            
-            # Read from stdout in chunks
-            # `read(4000)` might block until 4000 bytes are available, which is fine for live streams.
-            while process.poll() is None:
-                if stop_event and stop_event.is_set():
-                    logger.info("[VOICE] Stop signal received, terminating record process.")
-                    process.terminate()
-                    break
-                if (time.time() - start_time) > max_duration:
-                    logger.info("[VOICE] Max duration reached, stopping.")
-                    process.terminate()
-                    break
+            try:
+                start_time = time.time()
+                last_speech_time = start_time
+                hard_max_duration = 300  # 5 minutes absolute max
+                silence_timeout = 7.0    # Stop after 7 seconds of silence
                 
-                # We use a non-blocking-ish approach or just read. 
-                # read 4000 bytes (125ms of 16kHz 16-bit mono)
-                data = process.stdout.read(4000)
-                if len(data) == 0:
-                    break
+                results = []
+                last_partial = ""
                 
-                if rec.AcceptWaveform(data):
-                    res = json.loads(rec.Result())
-                    if res.get("text"):
-                        results.append(res["text"])
-                        if partial_callback:
-                            combined = " ".join(results).strip()
-                            partial_callback(combined)
+                # Read from stdout in chunks
+                # `read(4000)` might block until 4000 bytes are available, which is fine for live streams.
+                while process.poll() is None:
+                    current_time = time.time()
+                    
+                    if stop_event and stop_event.is_set():
+                        logger.info("[VOICE] Stop signal received, terminating record process.")
+                        break
+                        
+                    if (current_time - start_time) > hard_max_duration:
+                        logger.info("[VOICE] Absolute max duration reached, stopping.")
+                        break
+                        
+                    if (current_time - last_speech_time) > silence_timeout:
+                        logger.info("[VOICE] Silence timeout reached, stopping auto-record.")
+                        break
+                    
+                    # We use a non-blocking-ish approach or just read. 
+                    # read 4000 bytes (125ms of 16kHz 16-bit mono)
+                    data = process.stdout.read(4000)
+                    if len(data) == 0:
+                        break
+                    
+                    if rec.AcceptWaveform(data):
+                        res = json.loads(rec.Result())
+                        if res.get("text"):
+                            results.append(res["text"])
+                            last_speech_time = time.time() # Just finished a phrase
+                            last_partial = ""
+                            if partial_callback:
+                                combined = " ".join(results).strip()
+                                partial_callback(combined)
+                    else:
+                        res = json.loads(rec.PartialResult())
+                        current_partial = res.get("partial", "")
+                        if current_partial:
+                            # User is actively speaking if partial result changes
+                            if current_partial != last_partial:
+                                last_speech_time = time.time()
+                                last_partial = current_partial
+                                
+                            if partial_callback:
+                                combined = " ".join(results + [current_partial]).strip()
+                                partial_callback(combined)
+            finally:
+                if process.stdout:
+                    process.stdout.close()
+                if process.poll() is None:
+                    try:
+                        process.terminate()
+                        process.wait(timeout=1)
+                    except Exception:
+                        try:
+                            process.kill()
+                        except Exception:
+                            pass
                 else:
-                    res = json.loads(rec.PartialResult())
-                    if res.get("partial"):
-                        current_partial = res["partial"]
-                        if partial_callback:
-                            combined = " ".join(results + [current_partial]).strip()
-                            partial_callback(combined)
-            
-            process.wait() # Ensure it's fully closed
+                    process.wait()
                 
         except (FileNotFoundError, Exception) as e:
             logger.exception(f"[VOICE] System error running {arecord_cmd}: {e}")
