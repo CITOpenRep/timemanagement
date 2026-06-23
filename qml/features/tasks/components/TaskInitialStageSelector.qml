@@ -7,55 +7,63 @@ import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import "../../../components"
 
-Row {
+Item {
     id: root
 
-    property alias currentIndex: stageComboBox.currentIndex
+    property int currentIndex: -1
     property alias model: stageListModel
     property bool isReadOnly: false
 
     signal stageSelected(int odooRecordId)
 
     width: parent ? parent.width : 0
-    height: units.gu(6)
-    spacing: units.gu(2)
-    topPadding: units.gu(1)
+    height: inlineSelector.height
 
-    TSLabel {
-        text: i18n.dtr("ubtms", "Initial Stage")
-        width: parent.width * 0.25
-        anchors.verticalCenter: parent.verticalCenter
+    InlineOptionSelector {
+        id: inlineSelector
+        anchors.left: parent.left
+        anchors.right: parent.right
+        
+        labelText: i18n.dtr("ubtms", "Initial Stage")
+        enabledState: !root.isReadOnly
+        readOnly: root.isReadOnly
+
+        onSelectionMade: {
+            for (var i = 0; i < stageListModel.count; i++) {
+                if (stageListModel.get(i).odoo_record_id === id) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+        }
     }
 
-    ComboBox {
-        id: stageComboBox
-        width: parent.width * 0.65
-        height: units.gu(5)
-        anchors.verticalCenter: parent.verticalCenter
-        enabled: !root.isReadOnly
-        displayText: currentIndex >= 0 ? stageListModel.get(currentIndex).name : "Select Stage"
-
-        model: ListModel {
-            id: stageListModel
+    ListModel {
+        id: stageListModel
+        onCountChanged: {
+            updateModelData();
         }
+    }
 
-        delegate: ItemDelegate {
-            width: stageComboBox.width
-            contentItem: Text {
-                text: model.name
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                font: stageComboBox.font
-                elide: Text.ElideRight
-                verticalAlignment: Text.AlignVCenter
-            }
-            highlighted: stageComboBox.highlightedIndex === index
+    function updateModelData() {
+        var arr = [];
+        for (var i = 0; i < stageListModel.count; i++) {
+            var item = stageListModel.get(i);
+            arr.push({
+                id: item.odoo_record_id,
+                name: item.name
+            });
         }
+        inlineSelector.modelData = arr;
+    }
 
-        onCurrentIndexChanged: {
-            if (currentIndex >= 0) {
-                var stage = stageListModel.get(currentIndex);
-                root.stageSelected(stage.odoo_record_id);
-            }
+    onCurrentIndexChanged: {
+        if (currentIndex >= 0 && currentIndex < stageListModel.count) {
+            var stage = stageListModel.get(currentIndex);
+            inlineSelector.selectedId = stage.odoo_record_id;
+            root.stageSelected(stage.odoo_record_id);
+        } else {
+            inlineSelector.selectedId = -1;
         }
     }
 }

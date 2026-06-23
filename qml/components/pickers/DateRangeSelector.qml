@@ -9,7 +9,8 @@ Item {
     id: dateRangeSelector
     width: parent ? parent.width : units.gu(50)
     implicitHeight: layout.implicitHeight
-    property alias labelText: rangeLabel.text
+    height: layout.implicitHeight
+    property alias labelText: presetSelector.labelText
     property date startDate: new Date()
     property date endDate: new Date()
     signal rangeChanged(date start, date end)
@@ -72,55 +73,27 @@ Item {
         id: layout
         width: parent.width
 
-        RowLayout {
-            spacing: units.gu(1.2)
+        InlineOptionSelector {
+            id: presetSelector
+            Layout.fillWidth: true
+            Layout.preferredHeight: height
+            labelText: "Date Range"
+            enabledState: !dateRangeSelector.readOnly
+            readOnly: dateRangeSelector.readOnly
+            visible: !dateRangeSelector.readOnly
 
-            TSLabel {
-                id: rangeLabel
-                text: "Date Range"
-            }
-            Item {
-                Layout.fillWidth: true
+            modelData: [
+                {id: 0, name: i18n.dtr("ubtms", "Today")},
+                {id: 1, name: i18n.dtr("ubtms", "This Week")},
+                {id: 2, name: i18n.dtr("ubtms", "Next Week")},
+                {id: 3, name: i18n.dtr("ubtms", "This Month")},
+                {id: 4, name: i18n.dtr("ubtms", "Next Month")}
+            ]
 
-                ComboBox {
-                    id: presetCombo
-                    height: units.gu(5)
-                    width: parent.width / 1.5
-                    model: ["Today", "This Week", "Next Week", "This Month", "Next Month"]
-                    currentIndex: 1
-                    visible: !dateRangeSelector.readOnly
-                    background: Rectangle {
-                        color: "transparent"
-                        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#636161"
-                        border.width: 1
-                        radius: units.gu ? units.gu(0.5) : units.gu(0.5)
-                    }
-                    contentItem: Text {
-                        text: presetCombo.displayText
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                        anchors.verticalCenter: parent.verticalCenter
-                        leftPadding: units.gu ? units.gu(2) : units.gu(1)
-                    }
-                    delegate: ItemDelegate {
-                        width: presetCombo.width
-                        hoverEnabled: true
-                        contentItem: Text {
-                            text: modelData
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black"
-                            leftPadding: units.gu ? units.gu(1) : units.gu(0.5)
-                            elide: Text.ElideRight
-                        }
-                        background: Rectangle {
-                            color: (hovered ? "skyblue" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e2e0da"))
-                            radius: units.gu(0.5)
-                            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#d3d1d1" : "#999"
-                        }
-                    }
-                    onActivated: updateDates()
-                    onAccepted: updateDates()
-                }
+            selectedId: 1 // default is "This Week" (id: 1)
+
+            onSelectionMade: {
+                dateRangeSelector.updateDates();
             }
         }
 
@@ -220,7 +193,7 @@ Item {
         let newStart = new Date(today);
         let newEnd = new Date(today);
 
-        switch (presetCombo.currentIndex) {
+        switch (presetSelector.selectedId) {
         case 0 // Today
         :
             break;
