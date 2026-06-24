@@ -786,18 +786,15 @@ Page {
             id: row4
             anchors.top: myRow9.bottom
             anchors.left: parent.left
-            anchors.right: parent.right
             topPadding: units.gu(1)
             anchors.topMargin: units.gu(3)
             
             Column {
-                width: parent.width
                 leftPadding: units.gu(1)
-                rightPadding: units.gu(1)
                 
                 InlineOptionSelector {
                     id: activityTypeSelector
-                    width: parent.width
+                    width: flickable.width - units.gu(2)
                     labelText: i18n.dtr("ubtms", "Activity Type")
                     selectorType: "activity_type"
                     readOnly: isReadOnly
@@ -816,14 +813,15 @@ Page {
             id: row5
             anchors.top: row4.bottom
             anchors.left: parent.left
+            anchors.topMargin: units.gu(1.5)
+            
             Column {
                 leftPadding: units.gu(1)
+                
                 DaySelector {
                     id: date_widget
                     readOnly: isReadOnly
                     width: flickable.width - units.gu(2)
-                    height: units.gu(5)
-                    anchors.centerIn: parent.centerIn
                     onDateChanged: function(selectedDate) {
                         // Track changes in draft handler (only after initialization and when not read-only)
                         // Exception: allow tracking during draft restoration to preserve changes
