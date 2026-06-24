@@ -36,6 +36,7 @@ import "../../../../models/accounts.js" as Accounts
 import "../../../../models/timer_service.js" as TimerService
 import "../../../../models/utils.js" as Utils
 import "../../../../models/global.js" as Global
+import "../../../../models/task.js" as Task
 import "../../../components"
 import "../../../components/richtext"
 import "../components"
@@ -394,6 +395,17 @@ Page {
             let taskId = (currentTimesheet.task_id !== undefined && currentTimesheet.task_id !== null) ? currentTimesheet.task_id : -1;
             let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
             let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
+
+            // If a timesheet was saved with a subtask, the subtask ID was saved to the task_id column
+            // and the sub_task_id column was set to null. We need to check if the loaded taskId has a parent
+            // task to restore the visual distinction between task and subtask in the selector.
+            if (taskId !== -1) {
+                var taskDetails = (instanceId === 0) ? Task.getTaskDetails(taskId) : Task.getTaskDetailsByOdooId(taskId, instanceId);
+                if (taskDetails && taskDetails.parent_id !== undefined && taskDetails.parent_id !== null && taskDetails.parent_id > 0) {
+                    subTaskId = taskId;
+                    taskId = taskDetails.parent_id;
+                }
+            }
 
             // Check if this is a newly created timesheet (has recordid but no project/task data)
             if (projectId === -1 && taskId === -1) {
