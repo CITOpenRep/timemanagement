@@ -755,8 +755,6 @@ Page {
                     id: date_widget
                     readOnly: isReadOnly
                     width: timesheetsDetailsPageFlickable.width - units.gu(2)
-                    height: units.gu(5)
-                    anchors.centerIn: parent.centerIn
                     
                     onDateChanged: {
                         if (draftHandler.enabled && draftHandler._initialized) {
