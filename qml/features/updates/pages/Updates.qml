@@ -240,7 +240,7 @@ Page {
         if (draftData.project_status !== undefined) {
             var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(draftData.project_status);
             if (statusIndex !== -1) {
-                statusSelector.currentIndex = statusIndex;
+                statusSelector.applyDeferredSelection(statusIndex, false);
             }
         }
         if (draftData.progress !== undefined) {
@@ -262,7 +262,7 @@ Page {
         if (originalData.project_status !== undefined) {
             var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(originalData.project_status);
             if (statusIndex !== -1) {
-                statusSelector.currentIndex = statusIndex;
+                statusSelector.applyDeferredSelection(statusIndex, false);
             }
         }
         if (originalData.progress !== undefined) progressSlider.value = originalData.progress;
@@ -455,21 +455,24 @@ Page {
                 Column {
                     width: parent.width - units.gu(2)
                     
-                    TSLabel {
-                        text: i18n.dtr("ubtms", "Project Status")
-                        width: parent.width
-                    }
-                    
-                    ComboBox {
+                    InlineOptionSelector {
                         id: statusSelector
                         width: parent.width
-                        model: updateDetailsPage.projectUpdateStatus
-                        currentIndex: updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status) >= 0 ? updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status) : 0
-                        enabled: !isReadOnly
+                        labelText: i18n.dtr("ubtms", "Project Status")
+                        selectorType: "project_status"
+                        modelData: [
+                            {id: 0, name: i18n.dtr("ubtms", "On Track")},
+                            {id: 1, name: i18n.dtr("ubtms", "At Risk")},
+                            {id: 2, name: i18n.dtr("ubtms", "Off Track")},
+                            {id: 3, name: i18n.dtr("ubtms", "On Hold")}
+                        ]
+                        selectedId: updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status) >= 0 ? updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status) : 0
+                        readOnly: isReadOnly
+                        enabledState: !isReadOnly
                         
-                        onCurrentIndexChanged: {
-                            if (!isInitializing && currentIndex >= 0) {
-                                draftHandler.markFieldChanged("project_status", updateDetailsPage.projectUpdateStatus[currentIndex]);
+                        onSelectionMade: {
+                            if (!isInitializing && id >= 0) {
+                                draftHandler.markFieldChanged("project_status", updateDetailsPage.projectUpdateStatus[id]);
                             }
                         }
                     }
@@ -587,7 +590,7 @@ Page {
         var formData = {
             name: name_text.text || "",
             description: description_text.getFormattedText() || "",
-            project_status: updateDetailsPage.projectUpdateStatus[statusSelector.currentIndex] || "",
+            project_status: (statusSelector.selectedId >= 0 && statusSelector.selectedId < updateDetailsPage.projectUpdateStatus.length) ? updateDetailsPage.projectUpdateStatus[statusSelector.selectedId] : "",
             progress: progressSlider.value || 0,
             account_id: currentUpdate.account_id || 0,
             project_id: currentUpdate.project_id || -1,
@@ -649,7 +652,7 @@ Page {
             return;
         }
         
-        if (!updateDetailsPage.projectUpdateStatus[statusSelector.currentIndex]) {
+        if (statusSelector.selectedId < 0 || statusSelector.selectedId >= updateDetailsPage.projectUpdateStatus.length) {
             notifPopup.open("Error", "Please select a project status", "error");
             return;
         }
@@ -658,7 +661,7 @@ Page {
             account_id: accountId,
             project_id: projectId,
             name: Utils.cleanText(name_text.text),
-            project_status: updateDetailsPage.projectUpdateStatus[statusSelector.currentIndex],
+            project_status: updateDetailsPage.projectUpdateStatus[statusSelector.selectedId],
             progress: progressSlider.value,
             description: Utils.cleanText(description_text.getFormattedText()),
             user_id: currentUpdate.user_id || Accounts.getCurrentUserOdooId(accountId)
@@ -729,7 +732,7 @@ Page {
             name_text.text = currentUpdate.name || "";
             description_text.setContent(currentUpdate.description || "");
             var statusIndex = updateDetailsPage.projectUpdateStatus.indexOf(currentUpdate.project_status || "");
-            statusSelector.currentIndex = statusIndex >= 0 ? statusIndex : 0;
+            statusSelector.applyDeferredSelection(statusIndex >= 0 ? statusIndex : 0, false);
             progressSlider.value = currentUpdate.progress || 0;
             
             // Update display names for existing update
@@ -767,7 +770,7 @@ Page {
             // Set initial values FIRST
             name_text.text = "";
             description_text.setContent("");
-            statusSelector.currentIndex = 0; // "on_track" is at index 0
+            statusSelector.applyDeferredSelection(0, false);
             progressSlider.value = 0;
             
             // Mark form as fully initialized
