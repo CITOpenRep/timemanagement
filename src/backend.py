@@ -403,6 +403,36 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
     send("ondemand_upload_completed",True)
     return attachment_id
 
+def attachment_delete(settings_db, account_id, remote_record_id):
+    log.debug(f"[SYNC] Starting attachment_delete for account {account_id}, attachment {remote_record_id}")
+    accounts = get_all_accounts(settings_db)
+    selected = None
+    for acc in accounts:
+        if acc.get("id") == account_id:
+            selected = acc
+            break
+
+    if not selected:
+        return False
+
+    try:
+        client = OdooClient(
+            selected["link"],
+            selected["database"],
+            selected["username"],
+            selected["api_key"],
+        )
+        res = client.call('ir.attachment', 'unlink', [[remote_record_id]])
+        if not res:
+            log.warning(f"Unlink returned false or empty response for attachment {remote_record_id}")
+            return False
+
+        sync_ondemand_tables_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
+        return True
+    except Exception as e:
+        log.exception(f"[ATTACHMENT] Failed to delete attachment {remote_record_id} for account {account_id}")
+        return False
+
 def sync(settings_db, account_id):
     """
     Perform synchronous bidirectional sync between local database and Odoo.
