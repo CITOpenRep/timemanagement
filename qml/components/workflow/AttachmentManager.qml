@@ -670,19 +670,23 @@ Item {
 
     function _executeDelete(rec) {
         _busy = true;
+        _statusMessage = i18n.dtr("ubtms", "Deleting attachment...");
         python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
             if (!path) {
                 _busy = false;
+                _statusMessage = "";
                 _notify(i18n.dtr("ubtms", "Database not found"), 2500);
                 return;
             }
             python.call("backend.attachment_delete", [path, rec.account_id || attachmentManager.account_id, rec.odoo_record_id], function (res) {
                 _busy = false;
-                if (res) {
+                _statusMessage = "";
+                if (res && res.success) {
                     _notify(i18n.dtr("ubtms", "Attachment deleted"), 2000);
                     attachmentManager.uploadCompleted(); // Refresh
                 } else {
-                    _notify(i18n.dtr("ubtms", "Failed to delete attachment"), 2500);
+                    var errMsg = (res && res.error) ? res.error : i18n.dtr("ubtms", "Failed to delete attachment");
+                    _notify(errMsg, 3500);
                 }
             });
         });

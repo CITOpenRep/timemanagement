@@ -68,6 +68,42 @@ download_status = {
 }
 
 
+from urllib.parse import urlparse
+import socket
+
+def check_server_reachability(url, timeout=3):
+    """
+    Check if the Odoo server is reachable before attempting connection.
+    This provides a fast fail-fast mechanism for offline states.
+    """
+    try:
+        normalized = (url or "").strip().rstrip("/")
+        if not normalized:
+            return False
+            
+        if "://" not in normalized:
+            normalized = f"https://{normalized}"
+            
+        parsed = urlparse(normalized)
+        host = parsed.hostname
+        if not host:
+            return False
+            
+        port = parsed.port
+        if not port:
+            port = 443 if parsed.scheme == "https" else 80
+            
+        # Try DNS resolution
+        socket.gethostbyname(host)
+        
+        # Try establishing connection with small timeout
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except Exception as e:
+        log.debug(f"[REACHABILITY] Server {url} is unreachable: {e}")
+        return False
+
+
 def is_file_present(file_path):
     """
     Check if a file exists at the specified path.
@@ -358,6 +394,13 @@ def attachment_upload(settings_db, account_id, filepath, res_type, res_id):
             send("ondemand_upload_completed", False)
             return None
 
+        # Check server reachability before proceeding
+        send("ondemand_upload_message", "Checking server connection...")
+        if not check_server_reachability(selected["link"]):
+            send("ondemand_upload_message", "Error: No internet connection or server unreachable")
+            send("ondemand_upload_completed", False)
+            return None
+
         send("ondemand_upload_message", "Checking file...")
         if not os.path.exists(filepath):
             send("ondemand_upload_message", "Error: File does not exist")
@@ -450,9 +493,13 @@ def attachment_delete(settings_db, account_id, remote_record_id):
             break
 
     if not selected:
-        return False
+        return {"success": False, "error": "Account not found"}
 
     try:
+        # Check server reachability before proceeding
+        if not check_server_reachability(selected["link"]):
+            return {"success": False, "error": "No internet connection or server unreachable"}
+
         client = OdooClient(
             selected["link"],
             selected["database"],
@@ -462,13 +509,27 @@ def attachment_delete(settings_db, account_id, remote_record_id):
         res = client.call('ir.attachment', 'unlink', [[remote_record_id]])
         if not res:
             log.warning(f"Unlink returned false or empty response for attachment {remote_record_id}")
-            return False
+            return {"success": False, "error": "Server failed to delete attachment"}
 
         sync_ondemand_tables_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
-        return True
+        return {"success": True}
     except Exception as e:
+        error_msg = str(e)
         log.exception(f"[ATTACHMENT] Failed to delete attachment {remote_record_id} for account {account_id}")
-        return False
+        
+        friendly_error = "Delete failed"
+        if "connection" in error_msg.lower() or "refused" in error_msg.lower():
+            friendly_error = "Connection failed: Check network/server"
+        elif "timeout" in error_msg.lower():
+            friendly_error = "Request timed out"
+        elif "authentication" in error_msg.lower() or "access denied" in error_msg.lower() or "uid" in error_msg.lower():
+            friendly_error = "Authentication failed: Check credentials"
+        elif "xmlrpc" in error_msg.lower() or "fault" in error_msg.lower():
+            friendly_error = f"Server error: {error_msg[:60]}"
+        else:
+            friendly_error = f"Error: {error_msg[:60]}"
+            
+        return {"success": False, "error": friendly_error}
 
 def sync(settings_db, account_id):
     """
