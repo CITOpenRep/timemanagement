@@ -342,66 +342,103 @@ def attachment_ondemand_download(settings_db, account_id, remote_record_id):
             "error": str(e),
         }
 
-def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
-    send("ondemand_upload_message","Initiating upload")
-    log.debug(f"[SYNC] Starting attachment_upload  to {account_id} : {filepath} , {res_type} ,{res_id}")
-    accounts = get_all_accounts(settings_db)
-    selected = None
-    for acc in accounts:
-        if acc.get("id") == account_id:
-            selected = acc
-            break
+def attachment_upload(settings_db, account_id, filepath, res_type, res_id):
+    try:
+        send("ondemand_upload_message", "Initiating upload...")
+        log.debug(f"[SYNC] Starting attachment_upload to {account_id} : {filepath} , {res_type} ,{res_id}")
+        accounts = get_all_accounts(settings_db)
+        selected = None
+        for acc in accounts:
+            if acc.get("id") == account_id:
+                selected = acc
+                break
 
-    if not selected:
+        if not selected:
+            send("ondemand_upload_message", "Error: Account not found")
+            send("ondemand_upload_completed", False)
+            return None
+
+        send("ondemand_upload_message", "Checking file...")
+        if not os.path.exists(filepath):
+            send("ondemand_upload_message", "Error: File does not exist")
+            send("ondemand_upload_completed", False)
+            return None
+
+        # 25 MB limit to prevent memory exhaustion and large payload failures
+        file_size = os.path.getsize(filepath)
+        if file_size > 25 * 1024 * 1024:
+            send("ondemand_upload_message", "Error: File exceeds 25MB limit")
+            send("ondemand_upload_completed", False)
+            return None
+
+        filename = os.path.basename(filepath)
+        EXT_TO_MIME = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.pdf': 'application/pdf',
+            '.txt': 'text/plain',
+            '.csv': 'text/csv',
+            '.mp3': 'audio/mpeg',
+            '.mp4': 'video/mp4',
+            '.zip': 'application/zip'
+        }
+        send("ondemand_upload_message", "Reading file...")
+        ext = os.path.splitext(filename)[1].lower()
+        mimetype = EXT_TO_MIME.get(ext, 'application/octet-stream')
+
+        file_bytes = None
+        with open(filepath, 'rb') as f:
+            file_bytes = f.read()
+
+        client = OdooClient(
+            selected["link"],
+            selected["database"],
+            selected["username"],
+            selected["api_key"],
+        )
+
+        vals = {
+            'name': filename,
+            'type': 'binary',
+            'res_model': res_type,
+            'res_id': res_id,
+            'datas': base64.b64encode(file_bytes).decode('utf-8'),
+            'mimetype': mimetype
+        }
+        send("ondemand_upload_message", "Uploading file to server...")
+        attachment_id = client.call('ir.attachment', 'create', [vals])
+        if not attachment_id or attachment_id <= 0:
+            send("ondemand_upload_message", "Error: Server failed to save attachment")
+            send("ondemand_upload_completed", False)
+            return None
+
+        send("ondemand_upload_message", "Syncing to local device...")
+        sync_ondemand_tables_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
+        send("ondemand_upload_completed", True)
+        return attachment_id
+
+    except Exception as e:
+        error_msg = str(e)
+        log.exception(f"[ATTACHMENT] Failed to upload attachment: {error_msg}")
+        
+        # User-friendly error message
+        friendly_error = "Upload failed"
+        if "connection" in error_msg.lower() or "refused" in error_msg.lower():
+            friendly_error = "Connection failed: Check network/server"
+        elif "timeout" in error_msg.lower():
+            friendly_error = "Request timed out"
+        elif "authentication" in error_msg.lower() or "access denied" in error_msg.lower() or "uid" in error_msg.lower():
+            friendly_error = "Authentication failed: Check credentials"
+        elif "xmlrpc" in error_msg.lower() or "fault" in error_msg.lower():
+            friendly_error = f"Server error: {error_msg[:60]}"
+        else:
+            friendly_error = f"Error: {error_msg[:60]}"
+            
+        send("ondemand_upload_message", friendly_error)
+        send("ondemand_upload_completed", False)
         return None
-    send("ondemand_upload_message","Finding Account")
-    filename = os.path.basename(filepath)
-    EXT_TO_MIME = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.pdf': 'application/pdf',
-        '.txt': 'text/plain',
-        '.csv': 'text/csv',
-        '.mp3': 'audio/mpeg',
-        '.mp4': 'video/mp4',
-        '.zip': 'application/zip'
-        # add more extensions as needed
-    }
-    send("ondemand_upload_message","Reading file ...")
-    ext = os.path.splitext(filename)[1].lower()  # get extension including dot
-    mimetype = EXT_TO_MIME.get(ext, 'application/octet-stream')
-
-    file_bytes=None
-    # Read file content as binary
-    with open(filepath, 'rb') as f:
-       file_bytes = f.read()
-
-    client = OdooClient(
-        selected["link"],
-        selected["database"],
-        selected["username"],
-        selected["api_key"],
-    )
-
-    # Attach a file to the newly created partner
-    vals = {
-        'name': filename,
-        'type': 'binary',
-        'res_model':res_type,
-        'res_id':res_id,
-        'datas': base64.b64encode(file_bytes).decode('utf-8'),
-        'mimetype': mimetype
-    }
-    send("ondemand_upload_message","Uploading file .. ")
-    attachment_id = client.call('ir.attachment', 'create', [vals])
-    if attachment_id <=0:
-        send("ondemand_upload_completed",False)
-    send("ondemand_upload_message","Syncing to local device .. ")
-    sync_ondemand_tables_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
-    send("ondemand_upload_completed",True)
-    return attachment_id
 
 def attachment_delete(settings_db, account_id, remote_record_id):
     log.debug(f"[SYNC] Starting attachment_delete for account {account_id}, attachment {remote_record_id}")

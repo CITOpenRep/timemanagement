@@ -47,6 +47,20 @@ Item {
     // ----------- Internal state -----------
     property list<ContentItem> _importItems
     property bool _busy: false
+    property string _statusMessage: ""
+
+    onUploadStarted: {
+        _statusMessage = i18n.dtr("ubtms", "Starting upload...");
+        _busy = true;
+    }
+    onUploadCompleted: {
+        _busy = false;
+        _statusMessage = "";
+    }
+    onUploadFailed: {
+        _busy = false;
+        _statusMessage = "";
+    }
 
     // Fallback ListModel
     ListModel {
@@ -269,12 +283,36 @@ Item {
             // Busy overlay (optional)
             Rectangle {
                 anchors.fill: parent
-               color: '#00d3d3e3'
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#cc111111" : "#ccffffff"
                 visible: attachmentManager._busy
-                BusyIndicator {
+                
+                MouseArea {
+                    anchors.fill: parent
+                    preventStealing: true
+                    propagateComposedEvents: false
+                }
+
+                Column {
                     anchors.centerIn: parent
-                    running: parent.visible
-                    visible: running
+                    spacing: units.gu(2)
+                    width: parent.width - units.gu(4)
+
+                    BusyIndicator {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        running: parent.parent.visible
+                        visible: running
+                    }
+                    
+                    Label {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
+                        text: attachmentManager._statusMessage || i18n.dtr("ubtms", "Processing...")
+                        font.pixelSize: units.gu(2)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333333"
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.Wrap
+                    }
                 }
             }
         }
@@ -298,7 +336,10 @@ Item {
                 console.log("backend imported");
             });
         }
-        onError: console.log("python error: " + traceback)
+        onError: {
+            console.log("python error: " + traceback);
+            attachmentManager._busy = false;
+        }
     }
 
     // ----------- IMPORT dialog (ContentPickerDialog) -----------
@@ -322,18 +363,20 @@ Item {
 
                     python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                         if (!path) {
-                            host ? host._notify("Failed to upload", 2000) : console.log("[AttachmentManager] Failed to upload");
-                            host && host.uploadFailed();
+                            if (host) {
+                                host._notify(i18n.dtr("ubtms", "Failed to upload: Database path unresolved"), 3000);
+                                host.uploadFailed();
+                            }
                             return;
                         }
                         python.call("backend.attachment_upload", [path, attachmentManager.account_id, filePath, attachmentManager.resource_type, attachmentManager.resource_id], function (res) {
                             if (!res) {
                                 console.warn("No response from attachment_upload");
-                                host ? host._notify("Failed to upload", 2000) : console.log("[AttachmentManager] Failed to upload");
-                                host && host.uploadFailed();
+                                if (host) {
+                                    host.uploadFailed();
+                                }
                                 return;
                             }
-                        // Success via backend_bridge
                         });
                     });
                 }
@@ -356,7 +399,9 @@ Item {
 
     function openContentPicker() {
         try {
-            PopupUtils.open(contentPickerComponent);
+            PopupUtils.open(contentPickerComponent, attachmentManager, {
+                host: attachmentManager
+            });
             console.log("[AttachmentManager] ContentPickerDialog (import) opened");
         } catch (e) {
             console.error("[AttachmentManager] Failed to open import dialog:", e);
@@ -404,14 +449,19 @@ Item {
 
         switch (data.event) {
         case "ondemand_upload_message":
-            attachmentManager._notify(data.payload, 2000);
+            attachmentManager._statusMessage = data.payload;
+            attachmentManager._notify(data.payload, 2500);
             break;
         case "ondemand_upload_completed":
             if (data.payload === true) {
-                attachmentManager._notify("Attachment has been processed", 2000);
+                attachmentManager._notify(i18n.dtr("ubtms", "Attachment has been processed"), 3000);
                 attachmentManager.uploadCompleted();
             } else {
-                attachmentManager._notify("Failed to upload", 2000);
+                var errMsg = attachmentManager._statusMessage ? attachmentManager._statusMessage : i18n.dtr("ubtms", "Failed to upload");
+                if (errMsg.indexOf("Error") === -1 && errMsg.indexOf("failed") === -1 && errMsg.indexOf("Failed") === -1) {
+                    errMsg = i18n.dtr("ubtms", "Failed to upload") + ": " + errMsg;
+                }
+                attachmentManager._notify(errMsg, 4000);
                 attachmentManager.uploadFailed();
             }
             break;
