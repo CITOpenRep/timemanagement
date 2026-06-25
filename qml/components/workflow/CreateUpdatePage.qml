@@ -265,7 +265,12 @@ Page {
             ComboBox {
                 id: statusSelector
                 width: parent.width - units.gu(2)
-                model: createUpdatePage.projectUpdateStatus
+                model: [
+                    i18n.dtr("ubtms", "On Track"),
+                    i18n.dtr("ubtms", "At Risk"),
+                    i18n.dtr("ubtms", "Off Track"),
+                    i18n.dtr("ubtms", "On Hold")
+                ]
                 currentIndex: 0
                 
                 onCurrentIndexChanged: {
