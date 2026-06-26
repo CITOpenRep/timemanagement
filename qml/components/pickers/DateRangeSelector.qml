@@ -98,10 +98,12 @@ Item {
         }
 
         RowLayout {
+            Layout.fillWidth: true
             spacing: units.gu(1.2)
 
             // Start Date Picker Field
             ColumnLayout {
+                Layout.fillWidth: true
                 spacing: units.gu(0.5)
                 TSLabel {
                     text: "Start Date"
@@ -112,7 +114,7 @@ Item {
                 Item {
                     id: startDateItem
                     property date date: new Date()
-                    Layout.preferredWidth: units.gu(20)
+                    Layout.fillWidth: true
                     Layout.preferredHeight: units.gu(5)
 
                     TextField {
@@ -145,6 +147,7 @@ Item {
 
             // End Date Picker Field
             ColumnLayout {
+                Layout.fillWidth: true
                 spacing: units.gu(0.5)
                 TSLabel {
                     text: "End Date"
@@ -155,7 +158,7 @@ Item {
                 Item {
                     id: endDateItem
                     property date date: new Date()
-                    Layout.preferredWidth: units.gu(20)
+                    Layout.fillWidth: true
                     Layout.preferredHeight: units.gu(5)
 
                     TextField {
