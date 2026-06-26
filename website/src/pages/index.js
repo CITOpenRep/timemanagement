@@ -189,6 +189,39 @@ function DeviceSimulator() {
   const [landscapeWidth, setLandscapeWidth] = useState(900);
   const [landscapeHeight, setLandscapeHeight] = useState(520);
 
+  const containerRef = useRef(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !containerRef.current) return;
+
+    const handleResize = () => {
+      if (!containerRef.current) return;
+      const containerWidth = containerRef.current.getBoundingClientRect().width;
+      const frameWidth = (orientation === "portrait" ? portraitWidth : landscapeWidth) + 28;
+      const buffer = 16; // breathing room gutter (8px on each side)
+      const targetWidth = frameWidth + buffer;
+
+      if (containerWidth < targetWidth) {
+        setScale(containerWidth / targetWidth);
+      } else {
+        setScale(1);
+      }
+    };
+
+    handleResize();
+
+    const observer = new ResizeObserver(() => {
+      handleResize();
+    });
+
+    observer.observe(containerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [orientation, portraitWidth, landscapeWidth, portraitHeight, landscapeHeight]);
+
   const menuItems = [
     { name: "Dashboard", icon: "🏠", target: "Dashboard" },
     { name: "Timesheet", icon: "⏱", target: "Timesheets" },
@@ -1325,9 +1358,28 @@ function DeviceSimulator() {
               </div>
             </div>
 
-          {/* Interactive Phone */}
-          <div className={styles.deviceCanvas} data-reveal style={{ "--reveal-delay": 1 }}>
-            <div className={styles.deviceTurntable}>
+          <div 
+            ref={containerRef}
+            className={styles.deviceCanvas} 
+            data-reveal 
+            style={{ 
+              "--reveal-delay": 1,
+              height: `${((orientation === "portrait" ? portraitHeight : landscapeHeight) + 28) * scale}px`,
+              minHeight: "auto",
+              alignItems: "flex-start",
+              overflow: "hidden"
+            }}
+          >
+            <div 
+              className={styles.deviceTurntable}
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin: "top center",
+                width: `${(orientation === "portrait" ? portraitWidth : landscapeWidth) + 28}px`,
+                height: `${(orientation === "portrait" ? portraitHeight : landscapeHeight) + 28}px`,
+                maxWidth: "none"
+              }}
+            >
               <div 
                 className={clsx(styles.deviceFrame, styles[orientation])}
                 style={orientation === "portrait" ? { width: `${portraitWidth}px`, height: `${portraitHeight}px` } : { width: `${landscapeWidth}px`, height: `${landscapeHeight}px` }}
