@@ -584,6 +584,7 @@
 /* ── Interactive Device Workbench ── */
 .workbenchSection {
   background: #0b110e;
+  color: #c8bfa8;
   border-top: 1px solid rgba(224, 122, 36, 0.15);
   border-bottom: 1px solid rgba(224, 122, 36, 0.15);
   padding: 6rem 0;
