@@ -51,10 +51,6 @@ graph TD
     UI -->|Import / Call| State
     State -->|D-Bus / Sync Commands| Service
 ```
-
-![Architecture Flow Diagram](/img/snapshots/architecture.png)
-*Figure 1: Component layout and communication lines between UI, JavaScript models, and Python backend services.*
-
 ## Documentation intent
 
 This technical section should answer:
