@@ -68,13 +68,14 @@ download_status = {
 }
 
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 import socket
 
 def check_server_reachability(url, timeout=3):
     """
-    Check if the Odoo server is reachable before attempting connection.
-    This provides a fast fail-fast mechanism for offline states.
+    Check if the Odoo server is reachable using a lightweight HTTP request.
+    This uses the same HTTP pool manager as the rest of the application
+    to ensure compatibility with Ubuntu Touch AppArmor sandbox rules.
     """
     try:
         normalized = (url or "").strip().rstrip("/")
@@ -84,24 +85,19 @@ def check_server_reachability(url, timeout=3):
         if "://" not in normalized:
             normalized = f"https://{normalized}"
             
-        parsed = urlparse(normalized)
-        host = parsed.hostname
-        if not host:
-            return False
-            
-        port = parsed.port
-        if not port:
-            port = 443 if parsed.scheme == "https" else 80
-            
-        # Try DNS resolution
-        socket.gethostbyname(host)
-        
-        # Try establishing connection with small timeout
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
+        # Try a HEAD request first (fast and lightweight)
+        response = http.request('HEAD', normalized, timeout=timeout, redirect=True)
+        # Any response (even error status codes like 404 or 403) means the server is reachable
+        return True
     except Exception as e:
-        log.debug(f"[REACHABILITY] Server {url} is unreachable: {e}")
-        return False
+        log.warning(f"[REACHABILITY] HTTP HEAD failed for {url}: {e}")
+        # Fallback to GET in case HEAD is blocked by the server
+        try:
+            response = http.request('GET', normalized, timeout=timeout, redirect=True)
+            return True
+        except Exception as e2:
+            log.warning(f"[REACHABILITY] HTTP GET fallback also failed: {e2}")
+            return False
 
 
 def is_file_present(file_path):
@@ -380,6 +376,7 @@ def attachment_ondemand_download(settings_db, account_id, remote_record_id):
 
 def attachment_upload(settings_db, account_id, filepath, res_type, res_id):
     try:
+        filepath = unquote(filepath)
         send("ondemand_upload_message", "Initiating upload...")
         log.debug(f"[SYNC] Starting attachment_upload to {account_id} : {filepath} , {res_type} ,{res_id}")
         accounts = get_all_accounts(settings_db)
