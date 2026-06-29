@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ubtms\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-31 04:44+0000\n"
+"POT-Creation-Date: 2025-11-03 06:19+0000\n"
 "PO-Revision-Date: 2025-10-15 22:45+0200\n"
 "Last-Translator: Gokul Kartha <gokul@cloudify-os-live>\n"
 "Language-Team: Dutch <vertaling@vrijschrift.org>\n"
@@ -37,24 +37,25 @@ msgstr "Release-opmerkingen: "
 msgid "Create Account"
 msgstr "Account aanmaken"
 
-#: ../qml/Account_Page.qml:64 ../qml/Activities.qml:71 ../qml/Tasks.qml:69
-#: ../qml/components/SaveDiscardDialog.qml:64
+#: ../qml/Account_Page.qml:64 ../qml/Activities.qml:78 ../qml/Tasks.qml:69
+#: ../qml/Updates.qml:100 ../qml/components/SaveDiscardDialog.qml:64
 msgid "Save"
 msgstr "Opslaan"
 
-#: ../qml/Account_Page.qml:73 ../qml/Tasks.qml:77
+#: ../qml/Account_Page.qml:73 ../qml/Activities.qml:86 ../qml/Tasks.qml:77
+#: ../qml/Updates.qml:108 ../qml/components/ActivityDetailsCard.qml:177
+#: ../qml/components/UpdatesDetailsCard.qml:50
 msgid "Edit"
 msgstr "Bewerken"
 
-#: ../qml/Account_Page.qml:173
-#, fuzzy
-msgid "Connect With Api Key"
-msgstr "Verbinden met"
+#: ../qml/Account_Page.qml:133
+msgid "Your account has been saved, Enjoy using the app !"
+msgstr ""
 
-#: ../qml/Account_Page.qml:177
+#: ../qml/Account_Page.qml:208 ../qml/Account_Page.qml:222
 #, fuzzy
-msgid "Connect With Password"
-msgstr "Verbinden met"
+msgid "Account Name"
+msgstr "Account"
 
 #: ../qml/Account_Page.qml:255
 msgid "Enter Odoo URL here"
@@ -80,35 +81,43 @@ msgstr "Gebruikersnaam"
 msgid "Connect With"
 msgstr "Verbinden met"
 
+#: ../qml/Account_Page.qml:520
+msgid "Hide"
+msgstr ""
+
+#: ../qml/Account_Page.qml:520
+msgid "show"
+msgstr ""
+
 #: ../qml/Activities.qml:18 ../qml/Dashboard.qml:260
 msgid "Activity"
 msgstr "Activiteit"
 
-#: ../qml/Activities.qml:83 ../qml/Tasks.qml:58
+#: ../qml/Activities.qml:97 ../qml/Tasks.qml:58 ../qml/Updates.qml:118
 #: ../qml/components/CreateUpdatePage.qml:86
 msgid "Back"
 msgstr "Terug"
 
-#: ../qml/Activities.qml:179
+#: ../qml/Activities.qml:330
 msgid "Connected to"
 msgstr "Verbonden met"
 
-#: ../qml/Activities.qml:189 ../qml/Projects.qml:43
+#: ../qml/Activities.qml:340 ../qml/Projects.qml:43
 #: ../qml/components/WorkItemSelector.qml:127
 msgid "Project"
 msgstr "Project"
 
-#: ../qml/Activities.qml:207 ../qml/Dashboard.qml:254 ../qml/Dashboard3.qml:32
+#: ../qml/Activities.qml:362 ../qml/Dashboard.qml:254 ../qml/Dashboard3.qml:32
 #: ../qml/Task_Page.qml:352 ../qml/Tasks.qml:45
 #: ../qml/components/WorkItemSelector.qml:129
 msgid "Task"
 msgstr "Taak"
 
-#: ../qml/Activities.qml:239
+#: ../qml/Activities.qml:398
 msgid "Summary"
 msgstr "Samenvatting"
 
-#: ../qml/Activities.qml:329
+#: ../qml/Activities.qml:498
 #, fuzzy
 msgid "Activity Type"
 msgstr "Activiteit"
@@ -143,7 +152,7 @@ msgstr "Achterstallig "
 msgid "All"
 msgstr "Alle"
 
-#: ../qml/Activity_Page.qml:613
+#: ../qml/Activity_Page.qml:627
 msgid "No Activities Available"
 msgstr "Geen activiteiten beschikbaar"
 
@@ -228,7 +237,7 @@ msgstr "Geen taken aan jou toegewezen"
 msgid "Create"
 msgstr "Aanmaken"
 
-#: ../qml/Project_Page.qml:55
+#: ../qml/Project_Page.qml:55 ../qml/Updates_Page.qml:61
 msgid "New"
 msgstr "Nieuw"
 
@@ -241,6 +250,8 @@ msgid "Project Name"
 msgstr "Projectnaam"
 
 #: ../qml/Projects.qml:333 ../qml/Projects.qml:398 ../qml/Projects.qml:464
+#: ../qml/components/ActivityDetailsCard.qml:182
+#: ../qml/components/UpdatesDetailsCard.qml:55
 msgid "View"
 msgstr "Bekijken"
 
@@ -252,7 +263,8 @@ msgstr "Taken"
 msgid "Allocated Hours"
 msgstr "Toegewezen uren"
 
-#: ../qml/ReadMorePage.qml:23 ../qml/components/CreateUpdateDialog.qml:121
+#: ../qml/ReadMorePage.qml:23 ../qml/Updates.qml:402
+#: ../qml/components/CreateUpdateDialog.qml:121
 #: ../qml/components/CreateUpdatePage.qml:328
 #: ../qml/components/RichTextPreview.qml:7
 msgid "Description"
@@ -292,7 +304,8 @@ msgstr "Taaksynchronisatie forceren"
 
 #: ../qml/Settings_Page.qml:549
 msgid "Reset task timestamps to force fresh sync from Odoo"
-msgstr "Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
+msgstr ""
+"Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
 
 #: ../qml/Settings_Page.qml:567
 msgid "Reset Tasks Without Stages"
@@ -409,7 +422,8 @@ msgid "Select Deadline"
 msgstr "Deadline selecteren"
 
 #: ../qml/Timesheet.qml:542
-msgid "What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom Important."
+msgid ""
+"What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom Important."
 "<br><br><b>1. Important & Urgent:</b><br>Here you write down important "
 "activities, which also have to be done immediately. These are urgent "
 "problems or projects with a hard deadline. I.e. If you manage a restaurant "
@@ -450,11 +464,48 @@ msgid "What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom Importan
 "short break from your work, but usually they are a great excuse to postpone "
 "your important work for a while."
 msgstr ""
-"\"Wat belangrijk is, is zelden urgent, en wat urgent is, is zelden belangrijk.\"<br><br>"
-"<b>1. Belangrijk & Urgent:</b><br>Hier schrijf je belangrijke activiteiten op die ook onmiddellijk gedaan moeten worden. Dit zijn urgente problemen of projecten met een harde deadline. Stel je voor: als je een restaurant runt en een werknemer is niet komen opdagen, dan is dat een tamelijk urgent en acuut probleem. Alle seinen staan op rood, dus dit is een typische activiteit voor het eerste kwadrant."
-"<br><br><b>2. Belangrijk & Niet Urgent:</b><br>Als je de activiteiten in dit kwadrant voor de komende week laat liggen, gaat er niet direct iets mis. Maar wees voorzichtig: dit zijn activiteiten en projecten die je op de lange termijn vooruithelpen. Denk aan nadenken over een strategie, het verbeteren van werkprocessen in je team, investeren in relaties en investeren in jezelf. Bijvoorbeeld: je bent een teamleider die tijdens zijn functioneringsgesprek net te horen heeft gekregen dat er meer creatieve inbreng wordt verwacht. Zo'n uitkomst van een functioneringsgesprek is een opdracht die nooit urgent zal aanvoelen, maar wel zeer belangrijk is. Je kunt de belangrijke & niet-urgente activiteiten snel herkennen door de vraag te beantwoorden: als ik dit niet doe, kom ik dan op de lange termijn in de problemen? Als het antwoord ja is, dan heb je een belangrijke & niet-urgente activiteit. Als het antwoord nee is, dan is het een niet-belangrijke & niet-urgente activiteit."
-"<br><br><b>3. Urgent & Niet Belangrijk:</b><br>Dit kwadrant betreft activiteiten die je op de lange termijn niet helpen, maar die deze week wel schreeuwen om je aandacht. Een aanpassing in een presentatie die nog even snel gedaan moet worden voor een collega, of de melk die bijna op is. Bij taken in dit kwadrant is het erg belangrijk om na te gaan of ze daadwerkelijk urgent zijn. Vooral verzoeken van anderen lijken vaak erg dringend, terwijl ze soms best een dag of week kunnen wachten. Het is doorgaans prima om dit werk uit te stellen naar een geschikter moment, mits ik hier goed over communiceer. Als je de mogelijkheid hebt om deze taken in dit kwadrant te delegeren of uit te besteden, doe dat dan. Als je voor jezelf werkt is dit niet altijd mogelijk. In dat geval raad ik aan om je werkdag zo in te richten dat je zo min mogelijk wordt geleid door deze urgente taken, eventueel door elke dag een vast tijdblok te reserveren voor dit soort 'brandjes'. Op die manier behoud je controle over je agenda."
-"<br><br><b>4. Niet Belangrijk & Niet Urgent:</b><br>Dit soort werk wil je zo min mogelijk op je bord hebben, want het helpt je op geen enkele manier. Constant je mailbox verversen bijvoorbeeld. Maar ook vergaderingen zonder duidelijk doel vallen onder deze categorie. Je kunt ongetwijfeld zelf meer van dit soort 'drukdoenerij' voorbeelden aanwijzen: zaken die je doet, maar waar niemand echt baat bij heeft. Soms zijn deze activiteiten een prima korte onderbreking van je werk, maar meestal zijn ze een uitstekend excuus om je belangrijke werk nog even uit te stellen."
+"\"Wat belangrijk is, is zelden urgent, en wat urgent is, is zelden "
+"belangrijk.\"<br><br><b>1. Belangrijk & Urgent:</b><br>Hier schrijf je "
+"belangrijke activiteiten op die ook onmiddellijk gedaan moeten worden. Dit "
+"zijn urgente problemen of projecten met een harde deadline. Stel je voor: "
+"als je een restaurant runt en een werknemer is niet komen opdagen, dan is "
+"dat een tamelijk urgent en acuut probleem. Alle seinen staan op rood, dus "
+"dit is een typische activiteit voor het eerste kwadrant.<br><br><b>2. "
+"Belangrijk & Niet Urgent:</b><br>Als je de activiteiten in dit kwadrant voor "
+"de komende week laat liggen, gaat er niet direct iets mis. Maar wees "
+"voorzichtig: dit zijn activiteiten en projecten die je op de lange termijn "
+"vooruithelpen. Denk aan nadenken over een strategie, het verbeteren van "
+"werkprocessen in je team, investeren in relaties en investeren in jezelf. "
+"Bijvoorbeeld: je bent een teamleider die tijdens zijn functioneringsgesprek "
+"net te horen heeft gekregen dat er meer creatieve inbreng wordt verwacht. "
+"Zo'n uitkomst van een functioneringsgesprek is een opdracht die nooit urgent "
+"zal aanvoelen, maar wel zeer belangrijk is. Je kunt de belangrijke & niet-"
+"urgente activiteiten snel herkennen door de vraag te beantwoorden: als ik "
+"dit niet doe, kom ik dan op de lange termijn in de problemen? Als het "
+"antwoord ja is, dan heb je een belangrijke & niet-urgente activiteit. Als "
+"het antwoord nee is, dan is het een niet-belangrijke & niet-urgente "
+"activiteit.<br><br><b>3. Urgent & Niet Belangrijk:</b><br>Dit kwadrant "
+"betreft activiteiten die je op de lange termijn niet helpen, maar die deze "
+"week wel schreeuwen om je aandacht. Een aanpassing in een presentatie die "
+"nog even snel gedaan moet worden voor een collega, of de melk die bijna op "
+"is. Bij taken in dit kwadrant is het erg belangrijk om na te gaan of ze "
+"daadwerkelijk urgent zijn. Vooral verzoeken van anderen lijken vaak erg "
+"dringend, terwijl ze soms best een dag of week kunnen wachten. Het is "
+"doorgaans prima om dit werk uit te stellen naar een geschikter moment, mits "
+"ik hier goed over communiceer. Als je de mogelijkheid hebt om deze taken in "
+"dit kwadrant te delegeren of uit te besteden, doe dat dan. Als je voor "
+"jezelf werkt is dit niet altijd mogelijk. In dat geval raad ik aan om je "
+"werkdag zo in te richten dat je zo min mogelijk wordt geleid door deze "
+"urgente taken, eventueel door elke dag een vast tijdblok te reserveren voor "
+"dit soort 'brandjes'. Op die manier behoud je controle over je agenda."
+"<br><br><b>4. Niet Belangrijk & Niet Urgent:</b><br>Dit soort werk wil je zo "
+"min mogelijk op je bord hebben, want het helpt je op geen enkele manier. "
+"Constant je mailbox verversen bijvoorbeeld. Maar ook vergaderingen zonder "
+"duidelijk doel vallen onder deze categorie. Je kunt ongetwijfeld zelf meer "
+"van dit soort 'drukdoenerij' voorbeelden aanwijzen: zaken die je doet, maar "
+"waar niemand echt baat bij heeft. Soms zijn deze activiteiten een prima "
+"korte onderbreking van je werk, maar meestal zijn ze een uitstekend excuus "
+"om je belangrijke werk nog even uit te stellen."
 
 #: ../qml/Timesheet.qml:564
 msgid "Important, Urgent (1)"
@@ -483,6 +534,44 @@ msgstr "Actief"
 #: ../qml/Timesheet_Page.qml:133
 msgid "Draft"
 msgstr "Concept"
+
+#: ../qml/Updates.qml:41
+#, fuzzy
+msgid "Project Update"
+msgstr "Projectupdates"
+
+#: ../qml/Updates.qml:240 ../qml/components/AccountFilter.qml:68
+#: ../qml/components/ProjectSelector.qml:54
+msgid "Account:"
+msgstr "Account:"
+
+#: ../qml/Updates.qml:246
+#, fuzzy
+msgid "Unknown Account"
+msgstr "Onbekende gebruiker"
+
+#: ../qml/Updates.qml:260 ../qml/components/ProjectSelector.qml:76
+#, fuzzy
+msgid "Project:"
+msgstr "Project"
+
+#: ../qml/Updates.qml:266 ../qml/components/UpdatesDetailsCard.qml:127
+#, fuzzy
+msgid "Unknown Project"
+msgstr "Onbekende gebruiker"
+
+#: ../qml/Updates.qml:286 ../qml/components/CreateUpdateDialog.qml:87
+#: ../qml/components/CreateUpdatePage.qml:249
+msgid "Update Title"
+msgstr "Titel bijwerken"
+
+#: ../qml/Updates.qml:324 ../qml/components/CreateUpdatePage.qml:276
+msgid "Project Status"
+msgstr "Projectstatus"
+
+#: ../qml/Updates.qml:353 ../qml/components/CreateUpdatePage.qml:297
+msgid "Progress"
+msgstr "Voortgang"
 
 #: ../qml/components/AccountDrawer.qml:28
 #: ../qml/components/AccountDrawer.qml:61
@@ -517,7 +606,8 @@ msgstr "Gegevens synchroniseren"
 
 #: ../qml/components/AccountDrawer.qml:276
 msgid "Note: Sync is not available for 'All Accounts' view"
-msgstr "Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
+msgstr ""
+"Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
 
 #: ../qml/components/AccountDrawer.qml:285
 msgid "Please select a specific account to sync data"
@@ -602,16 +692,14 @@ msgstr "Gegevens succesvol gesynchroniseerd!"
 msgid "Success"
 msgstr "Succes"
 
-#: ../qml/components/AccountFilter.qml:68
-msgid "Account:"
-msgstr "Account:"
-
 #: ../qml/components/AccountSelector.qml:105
 #: ../qml/components/AccountSelectorDialog.qml:153
 msgid "Select an account"
 msgstr "Selecteer een account"
 
 #: ../qml/components/AccountSelectorDialog.qml:18
+#: ../qml/components/ProjectSelector.qml:61
+#: ../qml/components/ProjectSelector.qml:98
 msgid "Select Account"
 msgstr "Selecteer account"
 
@@ -624,44 +712,55 @@ msgstr "Kies een account om te gebruiken"
 #: ../qml/components/CreateUpdatePage.qml:176
 #: ../qml/components/CustomDatePicker.qml:131
 #: ../qml/components/CustomDatePicker.qml:159
+#: ../qml/components/ProjectSelector.qml:136
+#: ../qml/components/ProjectSelector.qml:183
 #: ../qml/components/SaveDiscardDialog.qml:94
 #: ../qml/components/TimePickerPopup.qml:102
 msgid "Cancel"
 msgstr "Annuleren"
 
-#: ../qml/components/ActivityDetailsCard.qml:70
+#: ../qml/components/ActivityDetailsCard.qml:72
 msgid "OVERDUE"
 msgstr "ACHTERSTALLIG"
 
-#: ../qml/components/ActivityDetailsCard.qml:76
+#: ../qml/components/ActivityDetailsCard.qml:78
 msgid "TODAY"
 msgstr "VANDAAG"
 
-#: ../qml/components/ActivityDetailsCard.qml:82
+#: ../qml/components/ActivityDetailsCard.qml:84
 msgid "PLANNED"
 msgstr "GEPLAND"
 
-#: ../qml/components/ActivityDetailsCard.qml:255
+#: ../qml/components/ActivityDetailsCard.qml:187
+#, fuzzy
+msgid "Mark Done"
+msgstr "Donkere modus"
+
+#: ../qml/components/ActivityDetailsCard.qml:192
+msgid "Follow-up"
+msgstr ""
+
+#: ../qml/components/ActivityDetailsCard.qml:268
 msgid "No Summary"
 msgstr "Geen samenvatting"
 
-#: ../qml/components/ActivityDetailsCard.qml:266
+#: ../qml/components/ActivityDetailsCard.qml:279
 msgid "No Notes"
 msgstr "Geen opmerkingen"
 
-#: ../qml/components/ActivityDetailsCard.qml:278
+#: ../qml/components/ActivityDetailsCard.qml:291
 msgid "Assigned to: "
 msgstr "Toegewezen aan: "
 
-#: ../qml/components/ActivityDetailsCard.qml:278
+#: ../qml/components/ActivityDetailsCard.qml:291
 msgid "Unassigned"
 msgstr "Niet toegewezen"
 
-#: ../qml/components/ActivityDetailsCard.qml:302
+#: ../qml/components/ActivityDetailsCard.qml:315
 msgid "Type ID: "
 msgstr "Type-ID: "
 
-#: ../qml/components/ActivityDetailsCard.qml:344
+#: ../qml/components/ActivityDetailsCard.qml:356
 msgid "Reschedule Activity Date"
 msgstr "Activiteitsdatum opnieuw plannen"
 
@@ -698,11 +797,6 @@ msgstr "Kleur selecteren"
 msgid "New Project Update"
 msgstr "Nieuwe projectupdate"
 
-#: ../qml/components/CreateUpdateDialog.qml:87
-#: ../qml/components/CreateUpdatePage.qml:249
-msgid "Update Title"
-msgstr "Titel bijwerken"
-
 #: ../qml/components/CreateUpdateDialog.qml:102
 msgid "Progress:"
 msgstr "Voortgang:"
@@ -730,9 +824,8 @@ msgstr "Niet-opgeslagen wijzigingen"
 
 #: ../qml/components/CreateUpdatePage.qml:153
 #, fuzzy
-msgid "You have unsaved changes. What would you like to do?\n"
+msgid "You have unsaved changes. What would you like to do?"
 msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
-
 
 #: ../qml/components/CreateUpdatePage.qml:156
 #, fuzzy
@@ -747,14 +840,6 @@ msgstr "Verwerpen"
 #: ../qml/components/CreateUpdatePage.qml:256
 msgid "Enter update title..."
 msgstr "Voer updatetitel in..."
-
-#: ../qml/components/CreateUpdatePage.qml:276
-msgid "Project Status"
-msgstr "Projectstatus"
-
-#: ../qml/components/CreateUpdatePage.qml:297
-msgid "Progress"
-msgstr "Voortgang"
 
 #: ../qml/components/CustomDatePicker.qml:110
 msgid "Next Week"
@@ -897,12 +982,20 @@ msgstr "Meest tijdrovende projecten"
 msgid "Most Time-Consuming Projects(No Data)"
 msgstr "Meest tijdrovende projecten (geen gegevens)"
 
-#: ../qml/components/SaveDiscardDialog.qml:52
-msgid "You have unsaved changes. What would you like to do?\n"
-"\n"
-"Note: If you cancel, you can navigate back to continue editing.\n"
-msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
+#: ../qml/components/ProjectSelector.qml:83
+#: ../qml/components/ProjectSelector.qml:118
+#: ../qml/components/ProjectSelector.qml:147
+#, fuzzy
+msgid "Select Project"
+msgstr "Projecten synchroniseren..."
 
+#: ../qml/components/SaveDiscardDialog.qml:52
+#, fuzzy
+msgid ""
+"You have unsaved changes. What would you like to do?\n"
+"\n"
+"Note: If you cancel, you can navigate back to continue editing."
+msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
 
 #: ../qml/components/StageFilterMenu.qml:179
 #, fuzzy
@@ -912,6 +1005,18 @@ msgstr "Filter op toegewezenen"
 #: ../qml/components/StageFilterMenu.qml:354
 msgid "Current: "
 msgstr "Huidige: "
+
+#: ../qml/components/StatusSelector.qml:25
+msgid "On Track"
+msgstr ""
+
+#: ../qml/components/StatusSelector.qml:37
+msgid "At Risk"
+msgstr ""
+
+#: ../qml/components/StatusSelector.qml:49
+msgid "Off Track"
+msgstr ""
 
 #: ../qml/components/TaskDetailsCard.qml:242
 #: ../qml/components/TaskDetailsCard.qml:251
@@ -970,30 +1075,25 @@ msgstr "Beschrijving toevoegen aan urenstaat"
 msgid "Mark Ready for Sync"
 msgstr "Markeren als gereed voor synchronisatie"
 
-#: ../qml/components/UpdatesDetailsCard.qml:59
+#: ../qml/components/UpdatesDetailsCard.qml:80
 msgid "Untitled Update"
 msgstr "Naamloze update"
 
-#: ../qml/components/UpdatesDetailsCard.qml:89
+#: ../qml/components/UpdatesDetailsCard.qml:110
 msgid "By: "
 msgstr "Door: "
 
-#: ../qml/components/UpdatesDetailsCard.qml:89
+#: ../qml/components/UpdatesDetailsCard.qml:110
 msgid "No Date"
 msgstr "Geen datum"
 
-#: ../qml/components/UpdatesDetailsCard.qml:89
+#: ../qml/components/UpdatesDetailsCard.qml:110
 msgid "Unknown User"
 msgstr "Onbekende gebruiker"
 
-#: ../qml/components/UpdatesDetailsCard.qml:97
+#: ../qml/components/UpdatesDetailsCard.qml:118
 msgid "Details"
 msgstr "Details"
-
-#: ../qml/components/UpdatesDetailsCard.qml:106
-#, fuzzy
-msgid "Unknown Project"
-msgstr "Onbekende gebruiker"
 
 #: ../qml/components/WorkItemSelector.qml:128
 #, fuzzy
@@ -1012,3 +1112,11 @@ msgstr "Toegewezenen"
 #: ubtms.desktop.in.h:1
 msgid "Time Management"
 msgstr "Tijdbeheer"
+
+#, fuzzy
+#~ msgid "Connect With Api Key"
+#~ msgstr "Verbinden met"
+
+#, fuzzy
+#~ msgid "Connect With Password"
+#~ msgstr "Verbinden met"

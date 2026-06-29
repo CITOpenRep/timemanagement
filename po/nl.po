@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ubtms\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-03 06:19+0000\n"
+"POT-Creation-Date: 2026-06-26 13:14+0530\n"
 "PO-Revision-Date: 2025-10-15 22:45+0200\n"
 "Last-Translator: Gokul Kartha <gokul@cloudify-os-live>\n"
 "Language-Team: Dutch <vertaling@vrijschrift.org>\n"
@@ -17,411 +17,2104 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../qml/Aboutus.qml:35 ../qml/Aboutus.qml:51 ../qml/Dashboard.qml:117
-msgid "About"
-msgstr "Over"
+#: ../qml/components/selectors/StatusSelector.qml:26
+#: ../qml/components/cards/UpdatesDetailsCard.qml:102
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:81
+#: ../qml/components/workflow/CreateUpdatePage.qml:269
+#: ../qml/features/updates/pages/Updates.qml:464
+#: ../qml/features/updates/pages/Updates_Page.qml:270
+msgid "On Track"
+msgstr ""
 
-#: ../qml/Aboutus.qml:75
-msgid "Time Management App - Beta"
-msgstr "Tijdbeheer-app - Bèta"
+#: ../qml/components/selectors/StatusSelector.qml:38
+#: ../qml/components/cards/UpdatesDetailsCard.qml:103
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:82
+#: ../qml/components/workflow/CreateUpdatePage.qml:270
+#: ../qml/features/updates/pages/Updates.qml:465
+#: ../qml/features/updates/pages/Updates_Page.qml:271
+msgid "At Risk"
+msgstr ""
 
-#: ../qml/Aboutus.qml:81
-msgid "Version: "
-msgstr "Versie: "
+#: ../qml/components/selectors/StatusSelector.qml:50
+#: ../qml/components/cards/UpdatesDetailsCard.qml:104
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:83
+#: ../qml/components/workflow/CreateUpdatePage.qml:271
+#: ../qml/features/updates/pages/Updates.qml:466
+#: ../qml/features/updates/pages/Updates_Page.qml:272
+msgid "Off Track"
+msgstr ""
 
-#: ../qml/Aboutus.qml:86
-msgid "Release Notes: "
-msgstr "Release-opmerkingen: "
+#: ../qml/components/selectors/ProjectSelector.qml:55
+#: ../qml/features/updates/pages/Updates.qml:375
+msgid "Account:"
+msgstr "Account:"
 
-#: ../qml/Account_Page.qml:36
-msgid "Create Account"
-msgstr "Account aanmaken"
+#: ../qml/components/selectors/ProjectSelector.qml:62
+#: ../qml/components/selectors/ProjectSelector.qml:99
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:21
+msgid "Select Account"
+msgstr "Selecteer account"
 
-#: ../qml/Account_Page.qml:64 ../qml/Activities.qml:78 ../qml/Tasks.qml:69
-#: ../qml/Updates.qml:100 ../qml/components/SaveDiscardDialog.qml:64
-msgid "Save"
-msgstr "Opslaan"
+#: ../qml/components/selectors/ProjectSelector.qml:77
+#: ../qml/features/updates/pages/Updates.qml:395
+#, fuzzy
+msgid "Project:"
+msgstr "Project"
 
-#: ../qml/Account_Page.qml:73 ../qml/Activities.qml:86 ../qml/Tasks.qml:77
-#: ../qml/Updates.qml:108 ../qml/components/ActivityDetailsCard.qml:177
-#: ../qml/components/UpdatesDetailsCard.qml:50
+#: ../qml/components/selectors/ProjectSelector.qml:84
+#: ../qml/components/selectors/ProjectSelector.qml:119
+#: ../qml/components/selectors/ProjectSelector.qml:148
+#, fuzzy
+msgid "Select Project"
+msgstr "Projecten synchroniseren..."
+
+#: ../qml/components/selectors/ProjectSelector.qml:137
+#: ../qml/components/selectors/ProjectSelector.qml:184
+#: ../qml/components/selectors/OptionSelectorPopover.qml:56
+#: ../qml/components/selectors/ProjectStageSelector.qml:228
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:95
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:231
+#: ../qml/components/dialogs/TimePickerPopup.qml:103
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:138
+#: ../qml/components/richtext/FontSizeDialog.qml:72
+#: ../qml/components/richtext/LinkDialog.qml:54
+#: ../qml/components/richtext/ColorPickerDialog.qml:65
+#: ../qml/components/pickers/CustomDatePicker.qml:132
+#: ../qml/components/pickers/CustomDatePicker.qml:160
+#: ../qml/components/workflow/CreateUpdatePage.qml:178
+#: ../qml/components/workflow/AttachmentManager.qml:656
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:470
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:520
+#: ../qml/features/settings/pages/Settings_Accounts.qml:109
+msgid "Cancel"
+msgstr "Annuleren"
+
+#: ../qml/components/selectors/InlineOptionSelector.qml:131
+msgid "Tap to select"
+msgstr ""
+
+#: ../qml/components/selectors/AccountSelector.qml:106
+msgid "Select an account"
+msgstr "Selecteer een account"
+
+#: ../qml/components/selectors/StageFilterMenu.qml:180
+#, fuzzy
+msgid "Filter by Stage"
+msgstr "Filter op toegewezenen"
+
+#: ../qml/components/selectors/StageFilterMenu.qml:355
+msgid "Current: "
+msgstr "Huidige: "
+
+#: ../qml/components/selectors/WorkItemSelector.qml:124
+#: ../qml/features/dashboard/pages/Dashboard.qml:83
+#: ../qml/features/dashboard/pages/Dashboard.qml:484
+msgid "Account"
+msgstr "Account"
+
+#: ../qml/components/selectors/WorkItemSelector.qml:125
+#: ../qml/components/feedback/NotificationBell.qml:663
+#: ../qml/features/projects/pages/Projects.qml:44
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:611
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:96
+#: ../qml/features/activities/pages/Activities.qml:558
+msgid "Project"
+msgstr "Project"
+
+#: ../qml/components/selectors/WorkItemSelector.qml:126
+#, fuzzy
+msgid "Subproject"
+msgstr "Subproject"
+
+#: ../qml/components/selectors/WorkItemSelector.qml:127
+#: ../qml/components/feedback/NotificationBell.qml:661
+#: ../qml/features/tasks/pages/Task_Page.qml:404
+#: ../qml/features/tasks/pages/Tasks.qml:47
+#: ../qml/features/dashboard/pages/Dashboard.qml:217
+#: ../qml/features/dashboard/pages/Dashboard3.qml:32
+#: ../qml/features/activities/pages/Activities.qml:591
+msgid "Task"
+msgstr "Taak"
+
+#: ../qml/components/selectors/WorkItemSelector.qml:128
+msgid "Subtask"
+msgstr "Subtaak"
+
+#: ../qml/components/selectors/WorkItemSelector.qml:129
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:609
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:94
+#, fuzzy
+msgid "Assignee"
+msgstr "Toegewezenen"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:55
+#, fuzzy
+msgid "Change Project Stage"
+msgstr "Persoonlijke fase wijzigen"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:108
+#, fuzzy
+msgid "Current Stage: "
+msgstr "Huidige fase:"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:108
+#: ../qml/components/cards/ProjectDetailsCard.qml:377
+#: ../qml/components/cards/ProjectDetailsCard.qml:385
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:41
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:99
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:37
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:143
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:637
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:644
+#: ../qml/features/projects/pages/Projects.qml:658
+msgid "Not set"
+msgstr "Niet ingesteld"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:115
+#, fuzzy
+msgid "Select New Stage:"
+msgstr "Deadline selecteren"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:173
+msgid "(Folded/Closed Stage)"
+msgstr ""
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:199
+#, fuzzy
+msgid "No stages available"
+msgstr "Geen activiteiten beschikbaar"
+
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:39
+msgid "Assignees"
+msgstr "Toegewezenen"
+
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:123
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:296
+msgid "Select Assignees"
+msgstr "Selecteer toegewezenen"
+
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:423
+#: ../qml/components/feedback/NotificationBell.qml:767
+msgid "Clear All"
+msgstr "Alles wissen"
+
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:436
+#: ../qml/components/system/ImagePreviewer.qml:185
+#: ../qml/features/tasks/pages/Task_Page.qml:263
+#: ../qml/features/activities/pages/Activity_Page.qml:623
+msgid "Done"
+msgstr "Klaar"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:340
+msgid "Filter by Assignees"
+msgstr "Filter op toegewezenen"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:367
+msgid "Search assignees..."
+msgstr "Zoek toegewezenen..."
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:455
+#, fuzzy
+msgid "Selected"
+msgstr "Selecteren"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:455
+msgid "Others"
+msgstr ""
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:619
+msgid "Less"
+msgstr ""
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:619
+msgid "More"
+msgstr ""
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:680
+msgid "Apply Filter"
+msgstr "Filter toepassen"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:699
+msgid "Clear Filter"
+msgstr "Filter wissen"
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:136
+msgid "Stop Timer"
+msgstr "Timer stoppen"
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:341
+#: ../qml/components/cards/ActivityDetailsCard.qml:328
+#: ../qml/components/cards/UpdatesDetailsCard.qml:167
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:622
+#: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:292
+msgid "DRAFT"
+msgstr "CONCEPT"
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:369
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:630
+msgid "Planned (H): "
+msgstr "Gepland (U): "
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:377
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:637
+msgid "Start Date: "
+msgstr "Startdatum: "
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:385
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:644
+msgid "End Date: "
+msgstr "Einddatum: "
+
+#: ../qml/components/cards/TasksForDayWidget.qml:36
+msgid "Plan for Today"
+msgstr "Plan voor vandaag"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:74
+msgid "OVERDUE"
+msgstr "ACHTERSTALLIG"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:80
+msgid "TODAY"
+msgstr "VANDAAG"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:86
+msgid "DONE"
+msgstr ""
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:92
+msgid "PLANNED"
+msgstr "GEPLAND"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:190
+#: ../qml/components/cards/UpdatesDetailsCard.qml:52
+#: ../qml/features/updates/pages/Updates.qml:131
+#: ../qml/features/settings/pages/Account_Page.qml:77
+#: ../qml/features/tasks/pages/Tasks.qml:79
+#: ../qml/features/projects/pages/Projects.qml:136
+#: ../qml/features/activities/pages/Activities.qml:101
 msgid "Edit"
 msgstr "Bewerken"
 
-#: ../qml/Account_Page.qml:133
+#: ../qml/components/cards/ActivityDetailsCard.qml:201
+#, fuzzy
+msgid "Mark Done"
+msgstr "Donkere modus"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:206
+msgid "Follow-up"
+msgstr ""
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:283
+msgid "No Summary"
+msgstr "Geen samenvatting"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:294
+msgid "No Notes"
+msgstr "Geen opmerkingen"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:306
+msgid "Assigned to: "
+msgstr "Toegewezen aan: "
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:306
+#: ../qml/features/dashboard/charts/Charts4.qml:63
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:609
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:94
+msgid "Unassigned"
+msgstr "Niet toegewezen"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:351
+msgid "Type ID: "
+msgstr "Type-ID: "
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:392
+msgid "Reschedule Activity Date"
+msgstr "Activiteitsdatum opnieuw plannen"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:83
+msgid "Untitled Update"
+msgstr "Naamloze update"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:105
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:84
+#: ../qml/components/workflow/CreateUpdatePage.qml:272
+#: ../qml/features/updates/pages/Updates.qml:467
+#: ../qml/features/updates/pages/Updates_Page.qml:273
+msgid "On Hold"
+msgstr ""
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:122
+msgid "By: "
+msgstr "Door: "
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:122
+msgid "Unknown User"
+msgstr "Onbekende gebruiker"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:122
+msgid "No Date"
+msgstr "Geen datum"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:130
+msgid "Details"
+msgstr "Details"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:147
+#: ../qml/features/updates/pages/Updates.qml:83
+#, fuzzy
+msgid "Unknown Project"
+msgstr "Onbekende gebruiker"
+
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:49
+#: ../qml/components/workflow/CreateUpdatePage.qml:154
+msgid "Unsaved Changes"
+msgstr "Niet-opgeslagen wijzigingen"
+
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:53
+#, fuzzy
+msgid ""
+"You have unsaved changes. What would you like to do?\n"
+"\n"
+"Note: If you cancel, you can navigate back to continue editing."
+msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
+
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:65
+#: ../qml/features/updates/pages/Updates.qml:123
+#: ../qml/features/settings/pages/Account_Page.qml:68
+#: ../qml/features/tasks/pages/Tasks.qml:71
+#: ../qml/features/projects/pages/Projects.qml:68
+#: ../qml/features/activities/pages/Activities.qml:93
+msgid "Save"
+msgstr "Opslaan"
+
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:80
+#: ../qml/components/workflow/CreateUpdatePage.qml:168
+msgid "Discard"
+msgstr "Verwerpen"
+
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:72
+#: ../qml/components/navigation/AccountDrawer.qml:366
+#: ../qml/components/navigation/AccountDrawer.qml:416
+#: ../qml/components/navigation/AccountDrawer.qml:417
+msgid "All Accounts"
+msgstr "Alle accounts"
+
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:102
+msgid "Choose an account to use"
+msgstr "Kies een account om te gebruiken"
+
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:195
+#, fuzzy
+msgid "No accounts available"
+msgstr "Geen activiteiten beschikbaar"
+
+#: ../qml/components/dialogs/ColorPicker.qml:24
+msgid "Select Color"
+msgstr "Kleur selecteren"
+
+#: ../qml/components/dialogs/TimePickerPopup.qml:44
+msgid "Select Hours"
+msgstr "Uren selecteren"
+
+#: ../qml/components/dialogs/TimePickerPopup.qml:109
+#: ../qml/components/navigation/AccountDrawer.qml:333
+#: ../qml/components/pickers/CustomDatePicker.qml:167
+msgid "OK"
+msgstr "OK"
+
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:44
+#: ../qml/components/workflow/CreateUpdatePage.qml:19
+msgid "New Project Update"
+msgstr "Nieuwe projectupdate"
+
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:73
+#: ../qml/components/workflow/CreateUpdatePage.qml:234
+#: ../qml/features/updates/pages/Updates.qml:421
+msgid "Update Title"
+msgstr "Titel bijwerken"
+
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:93
+msgid "Progress:"
+msgstr "Voortgang:"
+
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:112
+#: ../qml/components/richtext/RichTextPreview.qml:11
+#: ../qml/components/richtext/ReadMorePage.qml:139
+#: ../qml/components/workflow/CreateUpdatePage.qml:318
+#: ../qml/features/updates/pages/Updates.qml:543
+msgid "Description"
+msgstr "Beschrijving"
+
+#: ../qml/components/visualization/EHower.qml:101
+msgid "Time spent based on priorities"
+msgstr "Tijdsbesteding op basis van prioriteiten"
+
+#: ../qml/components/visualization/EHower.qml:131
+msgid "URGENT"
+msgstr "DRINGEND"
+
+#: ../qml/components/visualization/EHower.qml:141
+msgid "NOT URGENT"
+msgstr "NIET DRINGEND"
+
+#: ../qml/components/visualization/EHower.qml:165
+msgid "IMPORTANT"
+msgstr "BELANGRIJK"
+
+#: ../qml/components/visualization/EHower.qml:182
+msgid "NOT IMPORTANT"
+msgstr "NIET BELANGRIJK"
+
+#: ../qml/components/visualization/EHower.qml:244
+msgid "Do First"
+msgstr "Eerst doen"
+
+#: ../qml/components/visualization/EHower.qml:301
+msgid "Do Next"
+msgstr "Daarna doen"
+
+#: ../qml/components/visualization/EHower.qml:359
+msgid "Do Later"
+msgstr "Later doen"
+
+#: ../qml/components/visualization/EHower.qml:416
+msgid "Don't do"
+msgstr "Niet doen"
+
+#: ../qml/components/visualization/ProjectList.qml:726
+#, fuzzy
+msgid "Search projects"
+msgstr "Projecten synchroniseren..."
+
+#: ../qml/components/visualization/ProjectPieChart.qml:45
+#: ../qml/components/visualization/ProjectPieChart.qml:208
+msgid "Most Time-Consuming Projects"
+msgstr "Meest tijdrovende projecten"
+
+#: ../qml/components/visualization/ProjectPieChart.qml:84
+#: ../qml/features/dashboard/charts/Charts2.qml:69
+#: ../qml/features/dashboard/charts/Charts1.qml:67
+#: ../qml/features/dashboard/charts/Charts3.qml:166
+#: ../qml/features/dashboard/pages/Dashboard3.qml:63
+msgid " hrs"
+msgstr ""
+
+#: ../qml/components/visualization/ProjectPieChart.qml:205
+msgid "Most Time-Consuming Projects(No Data)"
+msgstr "Meest tijdrovende projecten (geen gegevens)"
+
+#: ../qml/components/richtext/FontSizeDialog.qml:25
+msgid "Font Size"
+msgstr ""
+
+#: ../qml/components/richtext/LinkDialog.qml:25
+msgid "Insert Link"
+msgstr ""
+
+#: ../qml/components/richtext/LinkDialog.qml:39
+msgid "URL (e.g., https://example.com)"
+msgstr ""
+
+#: ../qml/components/richtext/LinkDialog.qml:48
+msgid "Link text (optional)"
+msgstr ""
+
+#: ../qml/components/richtext/LinkDialog.qml:59
+msgid "Insert"
+msgstr ""
+
+#: ../qml/components/richtext/ColorPickerDialog.qml:30
+msgid "Choose Color"
+msgstr ""
+
+#: ../qml/components/richtext/RichTextPreview.qml:88
+#: ../qml/components/richtext/ReadMorePage.qml:61
+#, fuzzy
+msgid "Listening..."
+msgstr "Synchroniseren..."
+
+#: ../qml/components/richtext/RichTextPreview.qml:163
+#: ../qml/components/richtext/RichTextEditor.qml:191
+#: ../qml/components/richtext/ReadMorePage.qml:112
+msgid "Action Required"
+msgstr ""
+
+#: ../qml/components/richtext/RichTextPreview.qml:165
+#: ../qml/components/richtext/RichTextEditor.qml:193
+#: ../qml/components/richtext/ReadMorePage.qml:114
+#: ../qml/components/navigation/AccountDrawer.qml:485
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:484
+msgid "Error"
+msgstr "Fout"
+
+#: ../qml/components/richtext/RichTextPreview.qml:484
+#: ../qml/components/richtext/RichTextPreview.qml:550
+#: ../qml/components/richtext/ReadMorePage.qml:166
+#: ../qml/components/workflow/AttachmentManager.qml:309
+#, fuzzy
+msgid "Processing..."
+msgstr "Synchroniseren..."
+
+#: ../qml/components/richtext/RichTextPreview.qml:495
+#: ../qml/components/richtext/ReadMorePage.qml:175
+#, fuzzy
+msgid "Starting..."
+msgstr "Synchroniseren..."
+
+#: ../qml/components/richtext/ReadMorePage.qml:161
+msgid "Stop Recording"
+msgstr ""
+
+#: ../qml/components/richtext/ReadMorePage.qml:161
+#, fuzzy
+msgid "Start Recording"
+msgstr "Concept Hersteld"
+
+#: ../qml/components/richtext/ReadMorePage.qml:185
+msgid "Hide Toolbar"
+msgstr ""
+
+#: ../qml/components/richtext/ReadMorePage.qml:185
+#, fuzzy
+msgid "Show Toolbar"
+msgstr "Logboeken weergeven"
+
+#: ../qml/components/feedback/NotificationBell.qml:168
+msgid "Just now"
+msgstr ""
+
+#: ../qml/components/feedback/NotificationBell.qml:169
+msgid "m ago"
+msgstr ""
+
+#: ../qml/components/feedback/NotificationBell.qml:170
+msgid "h ago"
+msgstr ""
+
+#: ../qml/components/feedback/NotificationBell.qml:171
+msgid "d ago"
+msgstr ""
+
+#: ../qml/components/feedback/NotificationBell.qml:243
+#: ../qml/components/feedback/NotificationBell.qml:316
+#: ../qml/features/settings/pages/Settings_Notifications.qml:34
+#: ../qml/features/settings/pages/Settings_Page.qml:80
+#: ../qml/features/dashboard/pages/Dashboard.qml:116
+#: ../qml/features/dashboard/pages/Dashboard.qml:117
+msgid "Notifications"
+msgstr ""
+
+#: ../qml/components/feedback/NotificationBell.qml:372
+msgid "Sync"
+msgstr "Synchroniseren"
+
+#: ../qml/components/feedback/NotificationBell.qml:435
+msgid "No sync notifications"
+msgstr ""
+
+#: ../qml/components/feedback/NotificationBell.qml:436
+msgid "No notifications"
+msgstr ""
+
+#: ../qml/components/feedback/NotificationBell.qml:444
+msgid "All syncs are running smoothly!"
+msgstr ""
+
+#: ../qml/components/feedback/NotificationBell.qml:445
+msgid "You're all caught up!"
+msgstr ""
+
+#: ../qml/components/feedback/NotificationBell.qml:484
+#: ../qml/components/workflow/AttachmentManager.qml:214
+#: ../qml/components/workflow/AttachmentManager.qml:661
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:475
+#: ../qml/features/settings/pages/Settings_Accounts.qml:118
+#: ../qml/features/settings/pages/Settings_Accounts.qml:317
+msgid "Delete"
+msgstr "Verwijderen"
+
+#: ../qml/components/feedback/NotificationBell.qml:662
+#: ../qml/features/dashboard/pages/Dashboard.qml:223
+#: ../qml/features/activities/pages/Activities.qml:20
+msgid "Activity"
+msgstr "Activiteit"
+
+#: ../qml/components/feedback/NotificationBell.qml:664
+#: ../qml/components/feedback/NotificationBell.qml:667
+#: ../qml/features/activities/pages/Activities.qml:630
+#, fuzzy
+msgid "Update"
+msgstr "Titel bijwerken"
+
+#: ../qml/components/feedback/NotificationBell.qml:665
+#: ../qml/features/dashboard/pages/Dashboard.qml:220
+#: ../qml/features/timesheets/pages/Timesheet.qml:46
+msgid "Timesheet"
+msgstr "Urenstaat"
+
+#: ../qml/components/feedback/NotificationBell.qml:666
+#, fuzzy
+msgid "Sync Error"
+msgstr "Synchronisatielogboek"
+
+#: ../qml/components/feedback/NotificationBell.qml:739
+msgid "Clear Sync Errors"
+msgstr ""
+
+#: ../qml/components/feedback/LoadMoreFooter.qml:82
+msgid "Load more..."
+msgstr ""
+
+#: ../qml/components/feedback/LoadMoreFooter.qml:91
+#, fuzzy
+msgid "Loading..."
+msgstr "Synchroniseren..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:29
+#: ../qml/components/navigation/AccountDrawer.qml:62
+msgid "Account Selection"
+msgstr "Accountselectie"
+
+#: ../qml/components/navigation/AccountDrawer.qml:73
+#: ../qml/components/workflow/CreateUpdatePage.qml:138
+#: ../qml/features/updates/pages/Updates.qml:138
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:431
+#: ../qml/features/tasks/pages/Tasks.qml:86
+#: ../qml/features/projects/pages/Projects.qml:143
+#: ../qml/features/activities/pages/Activities.qml:108
+msgid "Close"
+msgstr "Sluiten"
+
+#: ../qml/components/navigation/AccountDrawer.qml:90
+msgid "Select Account:"
+msgstr "Selecteer account:"
+
+#: ../qml/components/navigation/AccountDrawer.qml:159
+msgid "Current Account:"
+msgstr "Huidig account:"
+
+#: ../qml/components/navigation/AccountDrawer.qml:166
+msgid "No account selected"
+msgstr "Geen account geselecteerd"
+
+#: ../qml/components/navigation/AccountDrawer.qml:184
+msgid "Last Sync:"
+msgstr "Laatste synchronisatie:"
+
+#: ../qml/components/navigation/AccountDrawer.qml:191
+#: ../qml/components/navigation/AccountDrawer.qml:427
+msgid "Never"
+msgstr "Nooit"
+
+#: ../qml/components/navigation/AccountDrawer.qml:213
+msgid "Syncing..."
+msgstr "Synchroniseren..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:213
+msgid "Sync Data"
+msgstr "Gegevens synchroniseren"
+
+#: ../qml/components/navigation/AccountDrawer.qml:277
+msgid "Note: Sync is not available for 'All Accounts' view"
+msgstr ""
+"Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
+
+#: ../qml/components/navigation/AccountDrawer.qml:286
+msgid "Please select a specific account to sync data"
+msgstr "Selecteer een specifiek account om gegevens te synchroniseren"
+
+#: ../qml/components/navigation/AccountDrawer.qml:307
+msgid "Syncing data..."
+msgstr "Gegevens synchroniseren..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:430
+msgid "N/A for All Accounts"
+msgstr "N.v.t. voor alle accounts"
+
+#: ../qml/components/navigation/AccountDrawer.qml:453
+msgid "Account not found"
+msgstr "Account niet gevonden"
+
+#: ../qml/components/navigation/AccountDrawer.qml:461
+#: ../qml/components/navigation/AccountDrawer.qml:463
+msgid "Local account - no sync required"
+msgstr "Lokaal account - geen synchronisatie vereist"
+
+#: ../qml/components/navigation/AccountDrawer.qml:463
+msgid "Info"
+msgstr "Info"
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Connecting to server..."
+msgstr "Verbinding maken met server..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Syncing projects..."
+msgstr "Projecten synchroniseren..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Syncing tasks..."
+msgstr "Taken synchroniseren..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Syncing timesheets..."
+msgstr "Urenstaten synchroniseren..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Syncing activities..."
+msgstr "Activiteiten synchroniseren..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Updating local data..."
+msgstr "Lokale gegevens bijwerken..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:482
+#: ../qml/components/navigation/AccountDrawer.qml:485
+msgid "Sync failed: "
+msgstr "Synchronisatie mislukt: "
+
+#: ../qml/components/navigation/AccountDrawer.qml:501
+msgid "Sync completed successfully"
+msgstr "Synchronisatie succesvol voltooid"
+
+#: ../qml/components/navigation/AccountDrawer.qml:505
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:600
+msgid "Success"
+msgstr "Succes"
+
+#: ../qml/components/navigation/AccountDrawer.qml:505
+msgid "Data synchronized successfully!"
+msgstr "Gegevens succesvol gesynchroniseerd!"
+
+#: ../qml/components/navigation/ListHeader.qml:177
+msgid "Search..."
+msgstr "Zoeken..."
+
+#: ../qml/components/pickers/DateRangeSelector.qml:86
+#: ../qml/features/tasks/pages/Task_Page.qml:259
+#: ../qml/features/activities/pages/Activity_Page.qml:617
+msgid "Today"
+msgstr "Vandaag"
+
+#: ../qml/components/pickers/DateRangeSelector.qml:87
+#: ../qml/features/tasks/pages/Task_Page.qml:260
+#: ../qml/features/activities/pages/Activity_Page.qml:618
+msgid "This Week"
+msgstr "Deze week"
+
+#: ../qml/components/pickers/DateRangeSelector.qml:88
+#: ../qml/components/pickers/CustomDatePicker.qml:111
+msgid "Next Week"
+msgstr "Volgende week"
+
+#: ../qml/components/pickers/DateRangeSelector.qml:89
+#: ../qml/features/tasks/pages/Task_Page.qml:261
+#: ../qml/features/activities/pages/Activity_Page.qml:619
+msgid "This Month"
+msgstr "Deze maand"
+
+#: ../qml/components/pickers/DateRangeSelector.qml:90
+#: ../qml/components/pickers/CustomDatePicker.qml:118
+msgid "Next Month"
+msgstr "Volgende maand"
+
+#: ../qml/components/pickers/CustomDatePicker.qml:125
+msgid "Custom"
+msgstr "Aangepast"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:63
+msgid "Draft Recovered"
+msgstr "Concept Hersteld"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:64
+msgid "Your unsaved changes have been recovered."
+msgstr "Je niet-opgeslagen wijzigingen zijn hersteld."
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:88
+#: ../qml/features/updates/pages/Updates.qml:151
+#: ../qml/features/tasks/pages/Tasks.qml:60
+#: ../qml/features/projects/pages/Projects.qml:58
+#: ../qml/features/activities/pages/Activities.qml:122
+msgid "Back"
+msgstr "Terug"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:103
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:91
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:130
+#: ../qml/features/tasks/pages/MyTasksPage.qml:421
+#: ../qml/features/projects/pages/Projects.qml:733
+#: ../qml/features/projects/pages/Projects.qml:792
+#: ../qml/features/projects/pages/Projects.qml:853
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:359
+msgid "Create"
+msgstr "Aanmaken"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:107
+msgid "Validation Error"
+msgstr "Validatiefout"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:108
+msgid "Please fill in all required fields."
+msgstr "Vul alle verplichte velden in."
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:155
+#, fuzzy
+msgid "You have unsaved changes. What would you like to do?"
+msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:158
+#, fuzzy
+msgid "Save Draft"
+msgstr "Concept Opslaan"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:241
+msgid "Enter update title..."
+msgstr "Voer updatetitel in..."
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:261
+#: ../qml/features/updates/pages/Updates.qml:461
+msgid "Project Status"
+msgstr "Projectstatus"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:287
+#: ../qml/features/updates/pages/Updates.qml:494
+msgid "Progress"
+msgstr "Voortgang"
+
+#: ../qml/components/workflow/AttachmentManager.qml:33
+msgid "Attachments"
+msgstr "Bijlagen"
+
+#: ../qml/components/workflow/AttachmentManager.qml:53
+#, fuzzy
+msgid "Starting upload..."
+msgstr "Lokale gegevens bijwerken..."
+
+#: ../qml/components/workflow/AttachmentManager.qml:224
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:106
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:145
+#: ../qml/features/projects/pages/Projects.qml:759
+#: ../qml/features/projects/pages/Projects.qml:820
+#: ../qml/features/projects/pages/Projects.qml:882
+msgid "View"
+msgstr "Bekijken"
+
+#: ../qml/components/workflow/AttachmentManager.qml:367
+msgid "Failed to upload: Database path unresolved"
+msgstr ""
+
+#: ../qml/components/workflow/AttachmentManager.qml:457
+msgid "Attachment has been processed"
+msgstr ""
+
+#: ../qml/components/workflow/AttachmentManager.qml:460
+#: ../qml/components/workflow/AttachmentManager.qml:462
+msgid "Failed to upload"
+msgstr ""
+
+#: ../qml/components/workflow/AttachmentManager.qml:635
+msgid "Cannot delete: missing Odoo ID"
+msgstr ""
+
+#: ../qml/components/workflow/AttachmentManager.qml:652
+#, fuzzy
+msgid "Delete Attachment"
+msgstr "Bijlagen"
+
+#: ../qml/components/workflow/AttachmentManager.qml:653
+msgid "Are you sure you want to delete '%1'?"
+msgstr ""
+
+#: ../qml/components/workflow/AttachmentManager.qml:673
+msgid "Deleting attachment..."
+msgstr ""
+
+#: ../qml/components/workflow/AttachmentManager.qml:678
+#, fuzzy
+msgid "Database not found"
+msgstr "Database: "
+
+#: ../qml/components/workflow/AttachmentManager.qml:685
+#, fuzzy
+msgid "Attachment deleted"
+msgstr "Bijlagen"
+
+#: ../qml/components/workflow/AttachmentManager.qml:688
+msgid "Failed to delete attachment"
+msgstr ""
+
+#: ../qml/components/system/ModelDownloadTimerWidget.qml:51
+msgid "Initializing download..."
+msgstr ""
+
+#: ../qml/components/system/ModelDownloadTimerWidget.qml:53
+msgid "Downloading model files..."
+msgstr ""
+
+#: ../qml/components/system/ModelDownloadTimerWidget.qml:55
+msgid "Extracting and installing..."
+msgstr ""
+
+#: ../qml/components/system/ModelDownloadTimerWidget.qml:57
+msgid "Installation complete!"
+msgstr ""
+
+#: ../qml/components/system/ImagePreviewer.qml:79
+msgid "Download"
+msgstr "Downloaden"
+
+#: ../qml/components/system/ImagePreviewer.qml:131
+msgid "No image to save"
+msgstr "Geen afbeelding om op te slaan"
+
+#: ../qml/components/system/ImagePreviewer.qml:155
+#, fuzzy
+msgid "Saved"
+msgstr "Opgeslagen"
+
+#: ../qml/components/system/ImagePreviewer.qml:158
+msgid "Choose where to save"
+msgstr "Kies waar u wilt opslaan"
+
+#: ../qml/components/system/ImagePreviewer.qml:160
+msgid "Could not open export dialog"
+msgstr "Kon exportdialoog niet openen"
+
+#: ../qml/components/system/ImagePreviewer.qml:164
+#, fuzzy
+msgid "Save failed"
+msgstr "Synchronisatie mislukt: "
+
+#: ../qml/components/system/ImagePreviewer.qml:170
+msgid "No image to open"
+msgstr "Geen afbeelding om te openen"
+
+#: ../qml/components/system/ImagePreviewer.qml:188
+msgid "Could not open chooser"
+msgstr "Kon kiezer niet openen"
+
+#: ../qml/components/system/ImagePreviewer.qml:192
+#, fuzzy
+msgid "Open failed"
+msgstr "Synchronisatie mislukt: "
+
+#: ../qml/app/GlobalWidgets.qml:59
+msgid "Switch account"
+msgstr "Van account wisselen"
+
+#: ../qml/app/AppDrawer.qml:49 ../qml/app/navigation/MenuPage.qml:39
+#: ../qml/app/pages/AboutPage.qml:63
+#: ../qml/features/updates/pages/Updates_Page.qml:70
+#: ../qml/features/settings/pages/Settings_Page.qml:50
+#: ../qml/features/tasks/pages/Task_Page.qml:57
+#: ../qml/features/tasks/pages/MyTasksPage.qml:62
+#: ../qml/features/projects/pages/Project_Page.qml:56
+#: ../qml/features/dashboard/pages/Dashboard.qml:91
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:80
+#: ../qml/features/activities/pages/Activity_Page.qml:55
+msgid "Menu"
+msgstr "Menu"
+
+#: ../qml/app/navigation/MenuPage.qml:55
+msgid "Switch Accounts"
+msgstr "Van account wisselen"
+
+#: ../qml/app/navigation/MenuPage.qml:62
+msgid "Light Mode"
+msgstr "Lichte modus"
+
+#: ../qml/app/navigation/MenuPage.qml:62
+msgid "Dark Mode"
+msgstr "Donkere modus"
+
+#: ../qml/app/pages/AboutPage.qml:35 ../qml/app/pages/AboutPage.qml:52
+msgid "About"
+msgstr "Over"
+
+#: ../qml/features/updates/pages/Updates.qml:42
+#, fuzzy
+msgid "Project Update"
+msgstr "Projectupdates"
+
+#: ../qml/features/updates/pages/Updates.qml:82
+#, fuzzy
+msgid "Unknown Account"
+msgstr "Onbekende gebruiker"
+
+#: ../qml/features/updates/pages/Updates_Page.qml:39
+#: ../qml/features/projects/pages/Projects.qml:835
+msgid "Project Updates"
+msgstr "Projectupdates"
+
+#: ../qml/features/updates/pages/Updates_Page.qml:81
+#: ../qml/features/projects/pages/Project_Page.qml:85
+msgid "Search"
+msgstr "Zoeken"
+
+#: ../qml/features/updates/pages/Updates_Page.qml:88
+#: ../qml/features/projects/pages/Project_Page.qml:68
+msgid "New"
+msgstr "Nieuw"
+
+#: ../qml/features/updates/pages/Updates_Page.qml:269
+#: ../qml/features/tasks/pages/Task_Page.qml:264
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:165
+#: ../qml/features/activities/pages/Activity_Page.qml:622
+msgid "All"
+msgstr "Alle"
+
+#: ../qml/features/updates/pages/Updates_Page.qml:372
+#, fuzzy
+msgid "Loading updates..."
+msgstr "Gegevens synchroniseren..."
+
+#: ../qml/features/settings/pages/SyncLog.qml:7
+msgid "Sync Log"
+msgstr "Synchronisatielogboek"
+
+#: ../qml/features/settings/pages/SyncLog.qml:22
+msgid "Copy Logs"
+msgstr ""
+
+#: ../qml/features/settings/pages/SyncLog.qml:147
+msgid ""
+"No errors or warnings found for this account.\n"
+"Sync logs will appear here when issues occur."
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:35
+#: ../qml/features/settings/pages/Settings_Page.qml:91
+msgid "Background Sync"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:132
+msgid "Background Sync Settings"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:140
+msgid "Configure automatic synchronization with Odoo"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:156
+msgid "Enable AutoSync"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:176
+#: ../qml/features/settings/pages/Account_Page.qml:645
+#, fuzzy
+msgid "Sync Interval"
+msgstr "Gegevens synchroniseren"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:218
+#: ../qml/features/settings/pages/Account_Page.qml:669
+#, fuzzy
+msgid "Sync Direction"
+msgstr "Gegevens synchroniseren"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:261
+msgid ""
+"✨ Recommended: Set sync interval to 5 or 15 minutes for the best balance of "
+"performance and battery life."
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:274
+msgid "Restarting..."
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:274
+msgid "Restart Background Daemon"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:295
+msgid "Daemon Restarted"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:296
+msgid ""
+"The background sync daemon has been successfully restarted and is running."
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:301
+msgid "Daemon Restart"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:302
+msgid ""
+"The daemon restart was initiated. It may take a few moments to fully start. "
+"If sync issues persist, try again."
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:311
+msgid ""
+"Note: These are global defaults. Individual accounts can override these "
+"settings from their account edit page. Changes take effect on the next sync "
+"cycle."
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Theme.qml:33
+#: ../qml/features/settings/pages/Settings_Page.qml:102
+#, fuzzy
+msgid "Theme Settings"
+msgstr "Instellingen"
+
+#: ../qml/features/settings/pages/Settings_Theme.qml:106
+msgid "App Theme Preference"
+msgstr "Voorkeur app-thema"
+
+#: ../qml/features/settings/pages/Settings_Theme.qml:114
+msgid "Choose your preferred theme for the application"
+msgstr "Kies jouw voorkeurthema voor de applicatie"
+
+#: ../qml/features/settings/pages/Settings_Theme.qml:175
+msgid "Light Theme"
+msgstr "Licht thema"
+
+#: ../qml/features/settings/pages/Settings_Theme.qml:240
+msgid "Dark Theme"
+msgstr "Donker thema"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:191
+msgid "Push Notifications"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:199
+msgid "Receive push notifications for task updates and reminders"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:216
+msgid "Enable Notifications"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:238
+msgid "⚠ Notifications are disabled when Background Sync is set to Upload Only"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:272
+msgid "Notification Schedule"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:280
+msgid ""
+"Set your timezone, working days and active hours to receive notifications "
+"only during work time"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:296
+msgid "Enable Schedule"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:325
+msgid "Timezone"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:388
+msgid "Working Days"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:397
+msgid "Notifications will only be sent on selected days"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:485
+msgid "Working Hours (notifications allowed)"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:501
+msgid "From"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:539
+msgid "To"
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:579
+msgid ""
+"Push notifications will only be sent during working hours on working days. "
+"Overnight schedules (e.g., 22:00 to 06:00) are supported."
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Page.qml:35
+msgid "Settings"
+msgstr "Instellingen"
+
+#: ../qml/features/settings/pages/Settings_Page.qml:69
+#: ../qml/features/settings/pages/Settings_Accounts.qml:39
+msgid "Connected Accounts"
+msgstr "Verbonden accounts"
+
+#: ../qml/features/settings/pages/Settings_Page.qml:114
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:36
+msgid "Voice Model (Beta)"
+msgstr "Spraakmodel (Bèta)"
+
+#: ../qml/features/settings/pages/Account_Page.qml:37
+#, fuzzy
+msgid "Edit Account"
+msgstr "Van account wisselen"
+
+#: ../qml/features/settings/pages/Account_Page.qml:37
+msgid "Create Account"
+msgstr "Account aanmaken"
+
+#: ../qml/features/settings/pages/Account_Page.qml:141
+msgid "Your account has been updated successfully!"
+msgstr ""
+
+#: ../qml/features/settings/pages/Account_Page.qml:169
 msgid "Your account has been saved, Enjoy using the app !"
 msgstr ""
 
-#: ../qml/Account_Page.qml:208 ../qml/Account_Page.qml:222
+#: ../qml/features/settings/pages/Account_Page.qml:379
+#, fuzzy
+msgid "Account Details"
+msgstr "Accountselectie"
+
+#: ../qml/features/settings/pages/Account_Page.qml:389
 #, fuzzy
 msgid "Account Name"
 msgstr "Account"
 
-#: ../qml/Account_Page.qml:255
-msgid "Enter Odoo URL here"
-msgstr "Voer hier Odoo URL in"
+#: ../qml/features/settings/pages/Account_Page.qml:413
+msgid "Server Connection"
+msgstr ""
 
-#: ../qml/Account_Page.qml:266
+#: ../qml/features/settings/pages/Account_Page.qml:423
+#, fuzzy
+msgid "URL"
+msgstr "URL: "
+
+#: ../qml/features/settings/pages/Account_Page.qml:430
 msgid "Fetch Databases"
 msgstr "Databases ophalen"
 
-#: ../qml/Account_Page.qml:318
+#: ../qml/features/settings/pages/Account_Page.qml:476
 msgid "Database"
 msgstr "Database"
 
-#: ../qml/Account_Page.qml:379
-msgid "Enter Database Name"
+#: ../qml/features/settings/pages/Account_Page.qml:486
+#, fuzzy
+msgid "Database Name"
 msgstr "Voer databasenaam in"
 
-#: ../qml/Account_Page.qml:397 ../qml/Account_Page.qml:411
+#: ../qml/features/settings/pages/Account_Page.qml:510
+msgid "Credentials"
+msgstr ""
+
+#: ../qml/features/settings/pages/Account_Page.qml:520
 msgid "Username"
 msgstr "Gebruikersnaam"
 
-#: ../qml/Account_Page.qml:430
+#: ../qml/features/settings/pages/Account_Page.qml:526
 msgid "Connect With"
 msgstr "Verbinden met"
 
-#: ../qml/Account_Page.qml:520
-msgid "Hide"
-msgstr ""
-
-#: ../qml/Account_Page.qml:520
-msgid "show"
-msgstr ""
-
-#: ../qml/Activities.qml:18 ../qml/Dashboard.qml:260
-msgid "Activity"
-msgstr "Activiteit"
-
-#: ../qml/Activities.qml:97 ../qml/Tasks.qml:58 ../qml/Updates.qml:118
-#: ../qml/components/CreateUpdatePage.qml:86
-msgid "Back"
-msgstr "Terug"
-
-#: ../qml/Activities.qml:330
-msgid "Connected to"
-msgstr "Verbonden met"
-
-#: ../qml/Activities.qml:340 ../qml/Projects.qml:43
-#: ../qml/components/WorkItemSelector.qml:127
-msgid "Project"
-msgstr "Project"
-
-#: ../qml/Activities.qml:362 ../qml/Dashboard.qml:254 ../qml/Dashboard3.qml:32
-#: ../qml/Task_Page.qml:352 ../qml/Tasks.qml:45
-#: ../qml/components/WorkItemSelector.qml:129
-msgid "Task"
-msgstr "Taak"
-
-#: ../qml/Activities.qml:398
-msgid "Summary"
-msgstr "Samenvatting"
-
-#: ../qml/Activities.qml:498
+#: ../qml/features/settings/pages/Account_Page.qml:529
 #, fuzzy
-msgid "Activity Type"
-msgstr "Activiteit"
+msgid "Connect With Api Key"
+msgstr "Verbinden met"
 
-#: ../qml/Activity_Page.qml:40 ../qml/Dashboard.qml:142 ../qml/Menu.qml:177
-#: ../qml/Projects.qml:288 ../qml/Tasks.qml:1245
-msgid "Activities"
-msgstr "Activiteiten"
+#: ../qml/features/settings/pages/Account_Page.qml:530
+#, fuzzy
+msgid "Connect With Password"
+msgstr "Verbinden met"
 
-#: ../qml/Activity_Page.qml:504 ../qml/Task_Page.qml:207
-msgid "Today"
-msgstr "Vandaag"
+#: ../qml/features/settings/pages/Account_Page.qml:543
+msgid "Password"
+msgstr ""
 
-#: ../qml/Activity_Page.qml:505 ../qml/Task_Page.qml:208
-msgid "This Week"
-msgstr "Deze week"
+#: ../qml/features/settings/pages/Account_Page.qml:543
+msgid "API Key"
+msgstr ""
 
-#: ../qml/Activity_Page.qml:506 ../qml/Task_Page.qml:209
-msgid "This Month"
-msgstr "Deze maand"
-
-#: ../qml/Activity_Page.qml:507 ../qml/Task_Page.qml:210
-msgid "Later"
-msgstr "Later"
-
-#: ../qml/Activity_Page.qml:508
-msgid "OverDue"
-msgstr "Achterstallig "
-
-#: ../qml/Activity_Page.qml:509 ../qml/Task_Page.qml:212
-#: ../qml/Timesheet_Page.qml:131
-msgid "All"
-msgstr "Alle"
-
-#: ../qml/Activity_Page.qml:627
-msgid "No Activities Available"
-msgstr "Geen activiteiten beschikbaar"
-
-#: ../qml/Dashboard.qml:43
-msgid "Time Manager - Time Management Dashboard"
-msgstr "Time Manager - Tijdbeheer Dashboard"
-
-#: ../qml/Dashboard.qml:94 ../qml/Dashboard.qml:434
-#: ../qml/components/WorkItemSelector.qml:126
-msgid "Account"
-msgstr "Account"
-
-#: ../qml/Dashboard.qml:110 ../qml/Menu.qml:81
-msgid "Switch Accounts"
-msgstr "Van account wisselen"
-
-#: ../qml/Dashboard.qml:126 ../qml/Menu.qml:68
-msgid "Dark Mode"
-msgstr "Donkere modus"
-
-#: ../qml/Dashboard.qml:126 ../qml/Menu.qml:68
-msgid "Light Mode"
-msgstr "Lichte modus"
-
-#: ../qml/Dashboard.qml:133 ../qml/Dashboard.qml:257 ../qml/Menu.qml:149
-#: ../qml/Timesheet.qml:43
-msgid "Timesheet"
-msgstr "Urenstaat"
-
-#: ../qml/Dashboard.qml:151 ../qml/Menu.qml:208 ../qml/MyTasks.qml:41
-msgid "My Tasks"
-msgstr "Mijn taken"
-
-#: ../qml/Dashboard.qml:160 ../qml/Menu.qml:239 ../qml/Task_Page.qml:41
-msgid "All Tasks"
-msgstr "Alle taken"
-
-#: ../qml/Dashboard.qml:169 ../qml/Menu.qml:270 ../qml/Project_Page.qml:42
-msgid "Projects"
-msgstr "Projecten"
-
-#: ../qml/Dashboard.qml:178 ../qml/Menu.qml:301 ../qml/Projects.qml:413
-#: ../qml/Updates_Page.qml:38
-msgid "Project Updates"
-msgstr "Projectupdates"
-
-#: ../qml/Dashboard.qml:187 ../qml/Menu.qml:360 ../qml/Settings_Page.qml:36
-msgid "Settings"
-msgstr "Instellingen"
-
-#: ../qml/Dashboard2.qml:32
-msgid "Charts"
-msgstr "Grafieken"
-
-#: ../qml/Dashboard3.qml:45
-msgid "Taskwise Time Spent"
-msgstr "Tijdsbesteding per taak"
-
-#: ../qml/Menu.qml:36
-msgid "Menu"
-msgstr "Menu"
-
-#: ../qml/Menu.qml:118
-msgid "Dashboard"
-msgstr "Dashboard"
-
-#: ../qml/Menu.qml:329
-msgid "About Us"
-msgstr "Over ons"
-
-#: ../qml/MyTasks.qml:302
-msgid "Showing closed/completed tasks"
-msgstr "Gesloten/voltooide taken weergeven"
-
-#: ../qml/MyTasks.qml:380
-msgid "No Tasks Assigned to You"
-msgstr "Geen taken aan jou toegewezen"
-
-#: ../qml/MyTasks.qml:396 ../qml/Projects.qml:307 ../qml/Projects.qml:366
-#: ../qml/Projects.qml:431 ../qml/Tasks.qml:1264 ../qml/Timesheet_Page.qml:272
-#: ../qml/components/CreateUpdatePage.qml:101
-msgid "Create"
-msgstr "Aanmaken"
-
-#: ../qml/Project_Page.qml:55 ../qml/Updates_Page.qml:61
-msgid "New"
-msgstr "Nieuw"
-
-#: ../qml/Project_Page.qml:65
-msgid "Search"
-msgstr "Zoeken"
-
-#: ../qml/Projects.qml:212
-msgid "Project Name"
-msgstr "Projectnaam"
-
-#: ../qml/Projects.qml:333 ../qml/Projects.qml:398 ../qml/Projects.qml:464
-#: ../qml/components/ActivityDetailsCard.qml:182
-#: ../qml/components/UpdatesDetailsCard.qml:55
-msgid "View"
-msgstr "Bekijken"
-
-#: ../qml/Projects.qml:348
-msgid "Tasks"
-msgstr "Taken"
-
-#: ../qml/Projects.qml:489
-msgid "Allocated Hours"
-msgstr "Toegewezen uren"
-
-#: ../qml/ReadMorePage.qml:23 ../qml/Updates.qml:402
-#: ../qml/components/CreateUpdateDialog.qml:121
-#: ../qml/components/CreateUpdatePage.qml:328
-#: ../qml/components/RichTextPreview.qml:7
-msgid "Description"
-msgstr "Beschrijving"
-
-#: ../qml/Settings_Page.qml:305
-msgid "App Theme Preference"
+#: ../qml/features/settings/pages/Account_Page.qml:583
+#, fuzzy
+msgid "Sync Preferences"
 msgstr "Voorkeur app-thema"
 
-#: ../qml/Settings_Page.qml:313
-msgid "Choose your preferred theme for the application"
-msgstr "Kies jouw voorkeurthema voor de applicatie"
-
-#: ../qml/Settings_Page.qml:374
-msgid "Light Theme"
-msgstr "Licht thema"
-
-#: ../qml/Settings_Page.qml:439
-msgid "Dark Theme"
-msgstr "Donker thema"
-
-#: ../qml/Settings_Page.qml:480
-msgid "Personal Stages Diagnostics"
-msgstr "Diagnostiek persoonlijke fasen"
-
-#: ../qml/Settings_Page.qml:488
-msgid "Check personal stage data status and configuration"
-msgstr "Controleer status en configuratie van persoonlijke fasegegevens"
-
-#: ../qml/Settings_Page.qml:503
-msgid "Check Personal Stage Status"
-msgstr "Controleer status persoonlijke fase"
-
-#: ../qml/Settings_Page.qml:541
-msgid "Force Task Re-sync"
-msgstr "Taaksynchronisatie forceren"
-
-#: ../qml/Settings_Page.qml:549
-msgid "Reset task timestamps to force fresh sync from Odoo"
+#: ../qml/features/settings/pages/Account_Page.qml:593
+msgid "Custom Sync Settings"
 msgstr ""
-"Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
 
-#: ../qml/Settings_Page.qml:567
-msgid "Reset Tasks Without Stages"
-msgstr "Reset taken zonder fasen"
+#: ../qml/features/settings/pages/Account_Page.qml:612
+msgid "Using global sync defaults (interval: "
+msgstr ""
 
-#: ../qml/Settings_Page.qml:589
-msgid "Reset All Tasks"
-msgstr "Alle taken resetten"
+#: ../qml/features/settings/pages/Account_Page.qml:614
+msgid ", direction: "
+msgstr ""
 
-#: ../qml/Settings_Page.qml:623
-msgid "Connected Accounts"
-msgstr "Verbonden accounts"
+#: ../qml/features/settings/pages/Account_Page.qml:627
+msgid "Enable Sync"
+msgstr ""
 
-#: ../qml/Settings_Page.qml:687
-msgid "URL : "
-msgstr "URL: "
+#: ../qml/features/settings/pages/Account_Page.qml:648
+msgid "1 minute"
+msgstr ""
 
-#: ../qml/Settings_Page.qml:693
-msgid "Database : "
-msgstr "Database: "
+#: ../qml/features/settings/pages/Account_Page.qml:649
+msgid "5 minutes"
+msgstr ""
 
-#: ../qml/Settings_Page.qml:705
-msgid "Default"
-msgstr "Standaard"
+#: ../qml/features/settings/pages/Account_Page.qml:650
+msgid "15 minutes"
+msgstr ""
 
-#: ../qml/Settings_Page.qml:728
-msgid "Delete"
-msgstr "Verwijderen"
+#: ../qml/features/settings/pages/Account_Page.qml:651
+msgid "30 minutes"
+msgstr ""
 
-#: ../qml/Settings_Page.qml:739
-msgid "Show Log"
-msgstr "Logboeken weergeven"
+#: ../qml/features/settings/pages/Account_Page.qml:652
+msgid "1 hour"
+msgstr ""
 
-#: ../qml/Settings_Page.qml:760
-msgid "Sync"
-msgstr "Synchroniseren"
+#: ../qml/features/settings/pages/Account_Page.qml:653
+msgid "2 hours"
+msgstr ""
 
-#: ../qml/Settings_Page.qml:837 ../qml/components/AccountDrawer.qml:212
-msgid "Syncing..."
-msgstr "Synchroniseren..."
+#: ../qml/features/settings/pages/Account_Page.qml:654
+msgid "6 hours"
+msgstr ""
 
-#: ../qml/SyncLog.qml:7
-msgid "Sync Log"
-msgstr "Synchronisatielogboek"
+#: ../qml/features/settings/pages/Account_Page.qml:655
+msgid "12 hours"
+msgstr ""
 
-#: ../qml/TSApp.qml:95
-msgid "Switch account"
-msgstr "Van account wisselen"
+#: ../qml/features/settings/pages/Account_Page.qml:656
+msgid "1 day"
+msgstr ""
 
-#: ../qml/Task_Page.qml:211 ../qml/components/ImagePreviewer.qml:185
-#: ../qml/components/MultiAssigneeSelector.qml:434
-msgid "Done"
-msgstr "Klaar"
+#: ../qml/features/settings/pages/Account_Page.qml:657
+msgid "3 days"
+msgstr ""
 
-#: ../qml/Task_Page.qml:336
-msgid "No tasks found."
-msgstr "Geen taken gevonden."
+#: ../qml/features/settings/pages/Account_Page.qml:658
+msgid "1 week"
+msgstr ""
 
-#: ../qml/Tasks.qml:84 ../qml/components/AccountDrawer.qml:72
-#: ../qml/components/CreateUpdatePage.qml:136
-msgid "Close"
-msgstr "Sluiten"
+#: ../qml/features/settings/pages/Account_Page.qml:672
+msgid "Both (Up & Down)"
+msgstr ""
 
-#: ../qml/Tasks.qml:821
-msgid "Parent Task"
-msgstr "Ouder taak"
+#: ../qml/features/settings/pages/Account_Page.qml:673
+#, fuzzy
+msgid "Download Only"
+msgstr "Downloaden"
 
-#: ../qml/Tasks.qml:963
-msgid "Name"
-msgstr "Naam"
+#: ../qml/features/settings/pages/Account_Page.qml:674
+#, fuzzy
+msgid "Upload Only"
+msgstr "Uploaden"
 
-#: ../qml/Tasks.qml:1023 ../qml/Timesheet.qml:526
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:256
+msgid "Starting download..."
+msgstr "Download starten..."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:259
+msgid "Download Started"
+msgstr "Download gestart"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:259
+msgid "Downloading %1..."
+msgstr "Bezig met downloaden van %1..."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:267
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:269
+msgid "Could not start download"
+msgstr "Kan download niet starten"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:269
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:594
+msgid "Download Failed"
+msgstr "Download mislukt"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:281
+msgid "Download cancelled"
+msgstr "Download geannuleerd"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:283
+msgid "Download Cancelled"
+msgstr "Download geannuleerd"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:283
+msgid "Download of %1 was cancelled and partial data deleted."
+msgstr "Download van %1 is geannuleerd en de gedeeltelijke gegevens zijn verwijderd."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:348
+msgid "About Voice Models"
+msgstr "Over spraakmodellen"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:363
+msgid ""
+"Voice models allow you to dictate text using your microphone directly into "
+"the app. Because processing happens locally on your device, your voice data "
+"remains completely private and no internet connection is required after the "
+"initial model download.\n"
+"\n"
+"Larger models provide higher accuracy but require more device memory and "
+"space. Smaller models are faster and use fewer resources but may be less "
+"accurate."
+msgstr ""
+"Spraakmodellen stellen je in staat om tekst te dicteren met je microfoon, "
+"rechtstreeks in de app. Omdat de verwerking lokaal op je apparaat "
+"plaatsvindt, blijven je spraakgegevens volledig privé en is er na het "
+"downloaden van het eerste model geen internetverbinding meer vereist.\n"
+"\n"
+"Grotere modellen bieden een hogere nauwkeurigheid, maar vereisen meer "
+"apparaatgeheugen en -ruimte. Kleinere modellen zijn sneller en verbruiken "
+"minder bronnen, maar zijn mogelijk minder nauwkeurig."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:377
+msgid ""
+"<b>Voice Feature Stages:</b> When you click the voice icon, it will show "
+"<b>Starting</b>, then <b>Preparing</b>. Only start speaking once it shows "
+"<b>Listening</b>. When stopped, it will show <b>Processing</b> with a yellow "
+"bar."
+msgstr ""
+"<b>Fases van de spraakfunctie:</b> Wanneer je op het spraakpictogram klikt, "
+"wordt eerst <b>Starten</b> en daarna <b>Voorbereiden</b> weergegeven. Begin "
+"pas te spreken zodra er <b>Luisteren</b> staat. Wanneer het is gestopt, "
+"wordt <b>Verwerken</b> weergegeven met een gele balk."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:387
+msgid ""
+"<b>Auto-Stop & Limits:</b> If you do not speak for 7 seconds, the voice icon "
+"will automatically stop. The maximum duration for a single recording is 5 "
+"minutes."
+msgstr ""
+"<b>Automatische stop & limieten:</b> Als je gedurende 7 seconden niet "
+"spreekt, stopt het spraakpictogram automatisch. De maximale duur voor een "
+"enkele opname is 5 minuten."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:397
+msgid ""
+"<b>Getting Started:</b> Make sure you have enabled the \"Enable voice "
+"input\" feature, under voice model (Beta) settings. "
+msgstr ""
+"<b>Aan de slag:</b> Zorg ervoor dat je de functie \"Spraakgestuurde invoer "
+"inschakelen\" hebt ingeschakeld onder de instellingen voor het spraakmodel "
+"(bèta)."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:407
+msgid ""
+"<b>Compatibility & Errors:</b> A red warning icon indicates the model is "
+"incompatible with your device (usually due to RAM limits), but you can still "
+"attempt to download it."
+msgstr ""
+"<b>Compatibiliteit & fouten:</b> Een rood waarschuwingspictogram geeft aan "
+"dat het model incompatibel is met je apparaat (meestal vanwege RAM-"
+"limieten), maar je kunt nog steeds proberen het te downloaden."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:417
+msgid ""
+"<b>Managing Downloads:</b>Check the internet connectivity before downloading "
+"a file. Once the voice model is downloaded, select the model you want from "
+"the installed models list. Even if only one model is installed, selecting "
+"the model is mandatory. The selected model will be shown in bold text, with "
+"a tick mark to its right. During download, you will see <b>Loading</b> "
+"(downloading), <b>Pause</b>, and <b>Cancel</b> buttons. Pausing or losing "
+"internet will preserve your progress, allowing you to resume later from this "
+"page. Cancelling will delete the partial download."
+msgstr ""
+"<b>Downloads beheren:</b> Controleer de internetverbinding voordat je een "
+"bestand downloadt. Zodra het spraakmodel is gedownload, selecteer je het "
+"gewenste model in de lijst met geïnstalleerde modellen. Zelfs als er "
+"slechts één model is geïnstalleerd, is het selecteren van het model "
+"verplicht. Het geselecteerde model wordt vetgedrukt weergegeven, met een "
+"vinkje er rechts van. Tijdens het downloaden zie je de knoppen <b>Laden</b> "
+"(downloaden), <b>Pauzeren</b> en <b>Annuleren</b>. Als je pauzeert of de "
+"internetverbinding verliest, blijft je voortgang behouden, zodat je later "
+"vanaf deze pagina kunt hervatten. Annuleren verwijdert de gedeeltelijke "
+"download."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:427
+msgid ""
+"<b>Deleting Models:</b> To remove an installed model, swipe its name to the "
+"left and click the delete icon."
+msgstr ""
+"<b>Modellen verwijderen:</b> Om een geïnstalleerd model te verwijderen, "
+"veeg je de naam naar links en klik je op het verwijderpictogram."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:451
+msgid "Delete Model"
+msgstr "Model verwijderen"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:458
+msgid "Are you sure you want to delete the voice model '%1'?"
+msgstr "Weet je zeker dat je het spraakmodel '%1' wilt verwijderen?"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:481
+msgid "Deleted"
+msgstr "Verwijderd"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:481
+msgid "Model %1 deleted successfully."
+msgstr "Model %1 is succesvol verwijderd."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:484
+msgid "Could not delete model"
+msgstr "Kon model niet verwijderen"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:501
+msgid "Warning"
+msgstr "Waarschuwing"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:508
+msgid ""
+"This model is incompatible with your device because it requires more RAM "
+"than available. It may cause the app to crash.\n"
+"\n"
+"But if you want to download it, you can."
+msgstr ""
+"Dit model is incompatibel met je apparaat omdat het meer RAM-geheugen "
+"vereist dan beschikbaar is. Dit kan ertoe leiden dat de app crasht.\n"
+"\n"
+"Maar als je het toch wilt downloaden, is dat mogelijk."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:525
+msgid "Download Anyway"
+msgstr "Toch downloaden"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:572
+msgid "Downloading..."
+msgstr "Downloaden..."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:585
+msgid "Download Interrupted"
+msgstr "Download onderbroken"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:585
+msgid "Failed to download. You can resume it."
+msgstr "Downloaden mislukt. Je kunt de download hervatten."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:587
+msgid "Download Paused"
+msgstr "Download gepauzeerd"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:587
+msgid "Download of %1 is paused."
+msgstr "Download van %1 is gepauzeerd."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:600
+msgid "%1 installed successfully!"
+msgstr "%1 succesvol geïnstalleerd!"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:644
+msgid "Enable Voice Input"
+msgstr "Spraakinvoer inschakelen"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:667
+msgid "INSTALLED MODELS"
+msgstr "GEÏNSTALLEERDE MODELLEN"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:765
+msgid "Scanning for models..."
+msgstr "Scannen naar modellen..."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:765
+msgid "No installed models found."
+msgstr "Geen geïnstalleerde modellen gevonden."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:777
+msgid "AVAILABLE FOR DOWNLOAD"
+msgstr "BESCHIKBAAR VOOR DOWNLOAD"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:963
+msgid "All available models are installed."
+msgstr "Alle beschikbare modellen zijn geïnstalleerd."
+
+#: ../qml/features/settings/pages/Settings_Accounts.qml:101
+#, fuzzy
+msgid "Delete Account"
+msgstr "Selecteer account"
+
+#: ../qml/features/settings/pages/Settings_Accounts.qml:104
+msgid ""
+"Are you sure you want to delete this account? This will permanently remove "
+"the account and all associated data including projects, tasks, and "
+"timesheets."
+msgstr ""
+
+#: ../qml/features/settings/pages/Settings_Accounts.qml:307
+msgid "Log"
+msgstr ""
+
+#: ../qml/features/tasks/components/TaskPrioritySelector.qml:28
+#: ../qml/features/timesheets/pages/Timesheet.qml:613
 msgid "Priority"
 msgstr "Prioriteit"
 
-#: ../qml/Tasks.qml:1087
-msgid "Initial Stage"
-msgstr "Beginfase"
+#: ../qml/features/tasks/components/MyTasksClosedIndicator.qml:48
+msgid "Showing closed/completed tasks"
+msgstr "Gesloten/voltooide taken weergeven"
 
-#: ../qml/Tasks.qml:1187
+#: ../qml/features/tasks/components/TaskStageSelector.qml:55
+msgid "Change Task Stage"
+msgstr "Taakfase wijzigen"
+
+#: ../qml/features/tasks/components/TaskNameField.qml:26
+msgid "Name"
+msgstr "Naam"
+
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:31
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:27
+#: ../qml/features/projects/pages/Projects.qml:648
 msgid "Current Stage:"
 msgstr "Huidige fase:"
 
-#: ../qml/Tasks.qml:1197 ../qml/Tasks.qml:1490
-#: ../qml/components/ProjectDetailsCard.qml:354
-#: ../qml/components/ProjectDetailsCard.qml:362
-#: ../qml/components/TaskDetailsCard.qml:636
-#: ../qml/components/TaskDetailsCard.qml:643
-msgid "Not set"
-msgstr "Niet ingesteld"
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:67
+#, fuzzy
+msgid "Change Stage"
+msgstr "Taakfase wijzigen"
 
-#: ../qml/Tasks.qml:1227
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:87
+#, fuzzy
+msgid "Current Personal Stage:"
+msgstr "Persoonlijke fase wijzigen"
+
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:128
+#: ../qml/features/tasks/components/PersonalStageSelector.qml:59
+msgid "Change Personal Stage"
+msgstr "Persoonlijke fase wijzigen"
+
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:67
+#: ../qml/features/projects/pages/Projects.qml:688
 msgid "Change"
 msgstr "Wijzigen"
 
-#: ../qml/Tasks.qml:1368
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:72
+#: ../qml/features/projects/pages/Projects.qml:715
+#: ../qml/features/activities/pages/Activity_Page.qml:41
+msgid "Activities"
+msgstr "Activiteiten"
+
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:111
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:41
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:69
+msgid "Timesheets"
+msgstr "Urenstaten"
+
+#: ../qml/features/tasks/components/TaskInitialStageSelector.qml:27
+msgid "Initial Stage"
+msgstr "Beginfase"
+
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:43
 msgid "Planned Hours"
 msgstr "Geplande uren"
 
-#: ../qml/Tasks.qml:1380
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:55
 msgid "e.g., 2:30 or 1.5"
 msgstr "bijv. 2:30 of 1,5"
 
-#: ../qml/Tasks.qml:1483
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:136
 msgid "Deadline"
 msgstr "Deadline"
 
-#: ../qml/Tasks.qml:1498
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:151
 msgid "Select"
 msgstr "Selecteren"
 
-#: ../qml/Tasks.qml:1541
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:165
 msgid "Select Deadline"
 msgstr "Deadline selecteren"
 
-#: ../qml/Timesheet.qml:542
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:243
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:252
+#: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:148
+#: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:157
+msgid "update Timesheet"
+msgstr "Urenstaat bijwerken"
+
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:348
+#, fuzzy
+msgid "Unable to track progress – no planned hours"
+msgstr "Kan voortgang niet volgen – geen geplande uren"
+
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:359
+msgid "No progress yet"
+msgstr "Nog geen voortgang"
+
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:630
+msgid "N/A"
+msgstr "N.v.t."
+
+#: ../qml/features/tasks/pages/Task_Page.qml:43
+msgid "All Tasks"
+msgstr "Alle taken"
+
+#: ../qml/features/tasks/pages/Task_Page.qml:87
+#: ../qml/features/tasks/pages/MyTasksPage.qml:83
+#: ../qml/features/projects/pages/Project_Page.qml:78
+#, fuzzy
+msgid "Tree View"
+msgstr "Bekijken"
+
+#: ../qml/features/tasks/pages/Task_Page.qml:87
+#: ../qml/features/tasks/pages/MyTasksPage.qml:83
+#: ../qml/features/projects/pages/Project_Page.qml:78
+#, fuzzy
+msgid "Flat View"
+msgstr "Bekijken"
+
+#: ../qml/features/tasks/pages/Task_Page.qml:262
+#: ../qml/features/activities/pages/Activity_Page.qml:620
+msgid "Later"
+msgstr "Later"
+
+#: ../qml/features/tasks/pages/Task_Page.qml:388
+msgid "No tasks found."
+msgstr "Geen taken gevonden."
+
+#: ../qml/features/tasks/pages/Task_Page.qml:565
+#: ../qml/features/tasks/pages/MyTasksPage.qml:490
+#, fuzzy
+msgid "Loading tasks..."
+msgstr "Taken synchroniseren..."
+
+#: ../qml/features/tasks/pages/Tasks.qml:654
+msgid "Parent Task"
+msgstr "Ouder taak"
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:47
+msgid "My Tasks"
+msgstr "Mijn taken"
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:93
+msgid "Stage Help"
+msgstr ""
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:96
+#, fuzzy
+msgid "Personal Stages Help"
+msgstr "Persoonlijke fase wijzigen"
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:97
+msgid ""
+"If personal stages are not visible, please check the following:<br><br><b>1) "
+"Ensure stages exist in CURQ:</b><br>Ensure the stages are available in the "
+"CURQ instance under 'My Tasks'.<br><br><b>2) Verify the app's Default DB:</"
+"b><br>In the app, confirm that you are checked in to the correct database as "
+"Default, as My Tasks displays tasks based on the selected Default DB."
+msgstr ""
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:405
+msgid "No Tasks Assigned to You"
+msgstr "Geen taken aan jou toegewezen"
+
+#: ../qml/features/projects/pages/Projects.qml:585
+msgid "Project Name"
+msgstr "Projectnaam"
+
+#: ../qml/features/projects/pages/Projects.qml:774
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:277
+#: ../qml/features/dashboard/pages/Dashboard.qml:360
+msgid "Tasks"
+msgstr "Taken"
+
+#: ../qml/features/projects/pages/Projects.qml:903
+msgid "Allocated Hours"
+msgstr "Toegewezen uren"
+
+#: ../qml/features/projects/pages/Projects.qml:976
+#, fuzzy
+msgid "Planned Dates"
+msgstr "Geplande uren"
+
+#: ../qml/features/projects/pages/Project_Page.qml:43
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:166
+#: ../qml/features/dashboard/pages/Dashboard.qml:348
+msgid "Projects"
+msgstr "Projecten"
+
+#: ../qml/features/projects/pages/Project_Page.qml:137
+#, fuzzy
+msgid "Loading projects..."
+msgstr "Projecten synchroniseren..."
+
+#: ../qml/features/dashboard/components/ProjectCard.qml:77
+#, fuzzy
+msgid "tasks"
+msgstr "Taken"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:7
+msgid "Dashboard Charts Guide"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:24
+msgid ""
+"Welcome to the Dashboard! Here is a quick guide to help you understand your "
+"data:"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:33
+msgid "Priority Matrix (Chart 1 & 2)"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:40
+msgid ""
+"These charts give you an overview of where your time goes. Check if you are "
+"spending time on high-priority tasks or getting bogged down by low-priority "
+"ones."
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:49
+msgid "Projectwise Time Spent (Chart 3)"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:56
+msgid ""
+"This horizontal bar chart compares the total hours spent across different "
+"projects. You can incrementally load more projects using the buttons at the "
+"bottom. Hover over any bar to see the exact hours."
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:65
+msgid "Task Drilldown (Chart 4)"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:72
+msgid ""
+"Tap on any project to drill down into its tasks. You can further tap on a "
+"task to view the detailed timesheet logs. This is highly useful for auditing "
+"exactly where your time was spent."
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:81
+msgid "What Do The Colors Mean?"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:88
+msgid ""
+"Projects and tasks are color-coded based on their current stage to give you "
+"immediate visual feedback:"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:95
+msgid "Green: Done / Completed"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:100
+#, fuzzy
+msgid "Red: Cancelled"
+msgstr "Annuleren"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:105
+msgid "Orange: On Hold / Paused"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:110
+msgid "Blue / Other: In Progress"
+msgstr ""
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:118
+msgid "Got it!"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/Charts4.qml:32
+#, fuzzy
+msgid "Unnamed project"
+msgstr "Onbekende gebruiker"
+
+#: ../qml/features/dashboard/charts/Charts4.qml:60
+msgid "Unnamed task"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/Charts4.qml:64
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:610
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:95
+#, fuzzy
+msgid "Unknown"
+msgstr "Onbekende gebruiker"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:248
+#, fuzzy
+msgid "Search projects..."
+msgstr "Projecten synchroniseren..."
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:276
+msgid "Most time"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:278
+msgid "A-Z"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:329
+#, fuzzy
+msgid "No projects found"
+msgstr "Geen taken gevonden."
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:390
+msgid "TOTAL"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:391
+msgid "TASKS"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:392
+msgid "AVERAGE"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:393
+msgid "TOP TASK"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:472
+msgid "Show all %1 tasks ↓"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:488
+msgid "No tasks with tracked time"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:549
+msgid "TIME SPENT"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:575
+msgid "% OF PROJECT"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:610
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:95
+#, fuzzy
+msgid "Status"
+msgstr "Projectstatus"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:612
+msgid "Log entries"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:646
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:129
+msgid "Time log"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:711
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:159
+msgid "No note"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:731
+msgid "No log entries"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/Charts3.qml:138
+#, fuzzy
+msgid "Projectwise Time Spent"
+msgstr "Tijdsbesteding per taak"
+
+#: ../qml/features/dashboard/charts/Charts3.qml:222
+msgid "Show fewer ↑"
+msgstr ""
+
+#: ../qml/features/dashboard/charts/Charts3.qml:247
+msgid "Show next %1 ↓"
+msgstr ""
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:39
+msgid "Time Manager - Time Management Dashboard"
+msgstr "Time Manager - Tijdbeheer Dashboard"
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:43
+#: ../qml/features/dashboard/pages/Dashboard.qml:169
+msgid "Loading dashboard..."
+msgstr ""
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:107
+#: ../qml/features/dashboard/pages/Dashboard2.qml:46
+#, fuzzy
+msgid "Chart Info"
+msgstr "Grafieken"
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:129
+#: ../qml/features/dashboard/pages/Dashboard.qml:454
+#, fuzzy
+msgid "New Timesheet"
+msgstr "Urenstaat"
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:157
+msgid "Preparing all-account dashboard..."
+msgstr ""
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:158
+msgid "Preparing dashboard..."
+msgstr ""
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:181
+#, fuzzy
+msgid "Loading project chart..."
+msgstr "Projecten synchroniseren..."
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:191
+msgid "Loading additional charts..."
+msgstr ""
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:336
+#, fuzzy
+msgid "Overview"
+msgstr "Achterstallig "
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:502
+msgid "New Notifications"
+msgstr ""
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:503
+msgid "You have %1 new notification(s)"
+msgstr ""
+
+#: ../qml/features/dashboard/pages/Dashboard3.qml:45
+msgid "Taskwise Time Spent"
+msgstr "Tijdsbesteding per taak"
+
+#: ../qml/features/dashboard/pages/Dashboard3.qml:112
+#, fuzzy
+msgid "Time"
+msgstr "Urenstaat"
+
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:42
+#, fuzzy
+msgid "Time spent"
+msgstr "Urenstaat"
+
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:46
+#, fuzzy, javascript-format
+msgid "% of project"
+msgstr "Subproject"
+
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:49
+msgid "0.0%"
+msgstr ""
+
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:97
+msgid "Log entries count"
+msgstr ""
+
+#: ../qml/features/dashboard/pages/Dashboard2.qml:31
+msgid "Charts"
+msgstr "Grafieken"
+
+#: ../qml/features/timesheets/components/TimeRecorderWidget.qml:84
+msgid "Time Tracking"
+msgstr "Tijdregistratie"
+
+#: ../qml/features/timesheets/components/TimeRecorderWidget.qml:99
+msgid "Manual"
+msgstr "Handmatig"
+
+#: ../qml/features/timesheets/components/TimeRecorderWidget.qml:115
+msgid "Automated"
+msgstr "Geautomatiseerd"
+
+#: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:166
+msgid "Mark Ready for Sync"
+msgstr "Markeren als gereed voor synchronisatie"
+
+#: ../qml/features/timesheets/components/TimeSheetDescriptionPopup.qml:54
+msgid "Add Description to Timesheet"
+msgstr "Beschrijving toevoegen aan urenstaat"
+
+#: ../qml/features/timesheets/pages/Timesheet.qml:629
 msgid ""
 "What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom Important."
 "<br><br><b>1. Important & Urgent:</b><br>Here you write down important "
@@ -507,616 +2200,122 @@ msgstr ""
 "korte onderbreking van je werk, maar meestal zijn ze een uitstekend excuus "
 "om je belangrijke werk nog even uit te stellen."
 
-#: ../qml/Timesheet.qml:564
+#: ../qml/features/timesheets/pages/Timesheet.qml:651
 msgid "Important, Urgent (1)"
 msgstr "Belangrijk & Urgent (1)"
 
-#: ../qml/Timesheet.qml:583
+#: ../qml/features/timesheets/pages/Timesheet.qml:670
 msgid "Important, Not Urgent (2)"
 msgstr "Belangrijk & Niet Urgent"
 
-#: ../qml/Timesheet.qml:602
+#: ../qml/features/timesheets/pages/Timesheet.qml:689
 msgid "Urgent, Not Important (3)"
 msgstr "Urgent, Niet Belangrijk (3)"
 
-#: ../qml/Timesheet.qml:621
+#: ../qml/features/timesheets/pages/Timesheet.qml:708
 msgid "Not Urgent, Not Important (4)"
 msgstr "Niet Urgent, Niet Belangrijk (4)"
 
-#: ../qml/Timesheet_Page.qml:39
-msgid "Timesheets"
-msgstr "Urenstaten"
-
-#: ../qml/Timesheet_Page.qml:132
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:166
 msgid "Active"
 msgstr "Actief"
 
-#: ../qml/Timesheet_Page.qml:133
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:167
 msgid "Draft"
 msgstr "Concept"
 
-#: ../qml/Updates.qml:41
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:400
 #, fuzzy
-msgid "Project Update"
-msgstr "Projectupdates"
-
-#: ../qml/Updates.qml:240 ../qml/components/AccountFilter.qml:68
-#: ../qml/components/ProjectSelector.qml:54
-msgid "Account:"
-msgstr "Account:"
-
-#: ../qml/Updates.qml:246
-#, fuzzy
-msgid "Unknown Account"
-msgstr "Onbekende gebruiker"
-
-#: ../qml/Updates.qml:260 ../qml/components/ProjectSelector.qml:76
-#, fuzzy
-msgid "Project:"
-msgstr "Project"
-
-#: ../qml/Updates.qml:266 ../qml/components/UpdatesDetailsCard.qml:127
-#, fuzzy
-msgid "Unknown Project"
-msgstr "Onbekende gebruiker"
-
-#: ../qml/Updates.qml:286 ../qml/components/CreateUpdateDialog.qml:87
-#: ../qml/components/CreateUpdatePage.qml:249
-msgid "Update Title"
-msgstr "Titel bijwerken"
-
-#: ../qml/Updates.qml:324 ../qml/components/CreateUpdatePage.qml:276
-msgid "Project Status"
-msgstr "Projectstatus"
-
-#: ../qml/Updates.qml:353 ../qml/components/CreateUpdatePage.qml:297
-msgid "Progress"
-msgstr "Voortgang"
-
-#: ../qml/components/AccountDrawer.qml:28
-#: ../qml/components/AccountDrawer.qml:61
-msgid "Account Selection"
-msgstr "Accountselectie"
-
-#: ../qml/components/AccountDrawer.qml:89
-msgid "Select Account:"
-msgstr "Selecteer account:"
-
-#: ../qml/components/AccountDrawer.qml:158
-msgid "Current Account:"
-msgstr "Huidig account:"
-
-#: ../qml/components/AccountDrawer.qml:165
-#: ../qml/components/AccountFilter.qml:127
-msgid "No account selected"
-msgstr "Geen account geselecteerd"
-
-#: ../qml/components/AccountDrawer.qml:183
-msgid "Last Sync:"
-msgstr "Laatste synchronisatie:"
-
-#: ../qml/components/AccountDrawer.qml:190
-#: ../qml/components/AccountDrawer.qml:426
-msgid "Never"
-msgstr "Nooit"
-
-#: ../qml/components/AccountDrawer.qml:212
-msgid "Sync Data"
-msgstr "Gegevens synchroniseren"
-
-#: ../qml/components/AccountDrawer.qml:276
-msgid "Note: Sync is not available for 'All Accounts' view"
-msgstr ""
-"Opmerking: Synchronisatie is niet beschikbaar voor weergave 'Alle accounts'"
-
-#: ../qml/components/AccountDrawer.qml:285
-msgid "Please select a specific account to sync data"
-msgstr "Selecteer een specifiek account om gegevens te synchroniseren"
-
-#: ../qml/components/AccountDrawer.qml:306
-msgid "Syncing data..."
-msgstr "Gegevens synchroniseren..."
-
-#: ../qml/components/AccountDrawer.qml:332
-#: ../qml/components/AccountSelectorDialog.qml:240
-#: ../qml/components/CustomDatePicker.qml:166
-#: ../qml/components/TimePickerPopup.qml:108
-msgid "OK"
-msgstr "OK"
-
-#: ../qml/components/AccountDrawer.qml:365
-#: ../qml/components/AccountDrawer.qml:415
-#: ../qml/components/AccountDrawer.qml:416
-msgid "All Accounts"
-msgstr "Alle accounts"
-
-#: ../qml/components/AccountDrawer.qml:429
-msgid "N/A for All Accounts"
-msgstr "N.v.t. voor alle accounts"
-
-#: ../qml/components/AccountDrawer.qml:452
-msgid "Account not found"
-msgstr "Account niet gevonden"
-
-#: ../qml/components/AccountDrawer.qml:460
-#: ../qml/components/AccountDrawer.qml:462
-msgid "Local account - no sync required"
-msgstr "Lokaal account - geen synchronisatie vereist"
-
-#: ../qml/components/AccountDrawer.qml:462
-msgid "Info"
-msgstr "Info"
-
-#: ../qml/components/AccountDrawer.qml:472
-msgid "Connecting to server..."
-msgstr "Verbinding maken met server..."
-
-#: ../qml/components/AccountDrawer.qml:472
-msgid "Syncing activities..."
-msgstr "Activiteiten synchroniseren..."
-
-#: ../qml/components/AccountDrawer.qml:472
-msgid "Syncing projects..."
-msgstr "Projecten synchroniseren..."
-
-#: ../qml/components/AccountDrawer.qml:472
-msgid "Syncing tasks..."
-msgstr "Taken synchroniseren..."
-
-#: ../qml/components/AccountDrawer.qml:472
-msgid "Syncing timesheets..."
+msgid "Loading timesheets..."
 msgstr "Urenstaten synchroniseren..."
 
-#: ../qml/components/AccountDrawer.qml:472
-msgid "Updating local data..."
-msgstr "Lokale gegevens bijwerken..."
+#: ../qml/features/activities/pages/Activity_Page.qml:621
+msgid "OverDue"
+msgstr "Achterstallig "
 
-#: ../qml/components/AccountDrawer.qml:481
-#: ../qml/components/AccountDrawer.qml:484
-msgid "Sync failed: "
-msgstr "Synchronisatie mislukt: "
+#: ../qml/features/activities/pages/Activity_Page.qml:754
+msgid "No Activities Available"
+msgstr "Geen activiteiten beschikbaar"
 
-#: ../qml/components/AccountDrawer.qml:484
-msgid "Error"
-msgstr "Fout"
-
-#: ../qml/components/AccountDrawer.qml:500
-msgid "Sync completed successfully"
-msgstr "Synchronisatie succesvol voltooid"
-
-#: ../qml/components/AccountDrawer.qml:504
-msgid "Data synchronized successfully!"
-msgstr "Gegevens succesvol gesynchroniseerd!"
-
-#: ../qml/components/AccountDrawer.qml:504
-msgid "Success"
-msgstr "Succes"
-
-#: ../qml/components/AccountSelector.qml:105
-#: ../qml/components/AccountSelectorDialog.qml:153
-msgid "Select an account"
-msgstr "Selecteer een account"
-
-#: ../qml/components/AccountSelectorDialog.qml:18
-#: ../qml/components/ProjectSelector.qml:61
-#: ../qml/components/ProjectSelector.qml:98
-msgid "Select Account"
-msgstr "Selecteer account"
-
-#: ../qml/components/AccountSelectorDialog.qml:59
-msgid "Choose an account to use"
-msgstr "Kies een account om te gebruiken"
-
-#: ../qml/components/AccountSelectorDialog.qml:232
-#: ../qml/components/CreateUpdateDialog.qml:146
-#: ../qml/components/CreateUpdatePage.qml:176
-#: ../qml/components/CustomDatePicker.qml:131
-#: ../qml/components/CustomDatePicker.qml:159
-#: ../qml/components/ProjectSelector.qml:136
-#: ../qml/components/ProjectSelector.qml:183
-#: ../qml/components/SaveDiscardDialog.qml:94
-#: ../qml/components/TimePickerPopup.qml:102
-msgid "Cancel"
-msgstr "Annuleren"
-
-#: ../qml/components/ActivityDetailsCard.qml:72
-msgid "OVERDUE"
-msgstr "ACHTERSTALLIG"
-
-#: ../qml/components/ActivityDetailsCard.qml:78
-msgid "TODAY"
-msgstr "VANDAAG"
-
-#: ../qml/components/ActivityDetailsCard.qml:84
-msgid "PLANNED"
-msgstr "GEPLAND"
-
-#: ../qml/components/ActivityDetailsCard.qml:187
+#: ../qml/features/activities/pages/Activity_Page.qml:866
 #, fuzzy
-msgid "Mark Done"
-msgstr "Donkere modus"
+msgid "Loading activities..."
+msgstr "Activiteiten synchroniseren..."
 
-#: ../qml/components/ActivityDetailsCard.qml:192
-msgid "Follow-up"
-msgstr ""
-
-#: ../qml/components/ActivityDetailsCard.qml:268
-msgid "No Summary"
-msgstr "Geen samenvatting"
-
-#: ../qml/components/ActivityDetailsCard.qml:279
-msgid "No Notes"
-msgstr "Geen opmerkingen"
-
-#: ../qml/components/ActivityDetailsCard.qml:291
-msgid "Assigned to: "
-msgstr "Toegewezen aan: "
-
-#: ../qml/components/ActivityDetailsCard.qml:291
-msgid "Unassigned"
-msgstr "Niet toegewezen"
-
-#: ../qml/components/ActivityDetailsCard.qml:315
-msgid "Type ID: "
-msgstr "Type-ID: "
-
-#: ../qml/components/ActivityDetailsCard.qml:356
-msgid "Reschedule Activity Date"
-msgstr "Activiteitsdatum opnieuw plannen"
-
-#: ../qml/components/AssigneeFilterMenu.qml:156
-msgid "Filter by Assignees"
-msgstr "Filter op toegewezenen"
-
-#: ../qml/components/AssigneeFilterMenu.qml:183
-msgid "Search assignees..."
-msgstr "Zoek toegewezenen..."
-
-#: ../qml/components/AssigneeFilterMenu.qml:406
-msgid "Apply Filter"
-msgstr "Filter toepassen"
-
-#: ../qml/components/AssigneeFilterMenu.qml:425
-msgid "Clear Filter"
-msgstr "Filter wissen"
-
-#: ../qml/components/AttachmentManager.qml:32
-msgid "Attachments"
-msgstr "Bijlagen"
-
-#: ../qml/components/AttachmentManager.qml:86
-msgid "Upload"
-msgstr "Uploaden"
-
-#: ../qml/components/ColorPicker.qml:23
-msgid "Select Color"
-msgstr "Kleur selecteren"
-
-#: ../qml/components/CreateUpdateDialog.qml:42
-#: ../qml/components/CreateUpdatePage.qml:17
-msgid "New Project Update"
-msgstr "Nieuwe projectupdate"
-
-#: ../qml/components/CreateUpdateDialog.qml:102
-msgid "Progress:"
-msgstr "Voortgang:"
-
-#: ../qml/components/CreateUpdatePage.qml:61
-msgid "Draft Recovered"
-msgstr "Concept Hersteld"
-
-#: ../qml/components/CreateUpdatePage.qml:62
-msgid "Your unsaved changes have been recovered."
-msgstr "Je niet-opgeslagen wijzigingen zijn hersteld."
-
-#: ../qml/components/CreateUpdatePage.qml:105
-msgid "Validation Error"
-msgstr "Validatiefout"
-
-#: ../qml/components/CreateUpdatePage.qml:106
-msgid "Please fill in all required fields."
-msgstr "Vul alle verplichte velden in."
-
-#: ../qml/components/CreateUpdatePage.qml:152
-#: ../qml/components/SaveDiscardDialog.qml:48
-msgid "Unsaved Changes"
-msgstr "Niet-opgeslagen wijzigingen"
-
-#: ../qml/components/CreateUpdatePage.qml:153
+#: ../qml/features/activities/pages/Activities.qml:516
 #, fuzzy
-msgid "You have unsaved changes. What would you like to do?"
-msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
+msgid "View Task"
+msgstr "Taak"
 
-#: ../qml/components/CreateUpdatePage.qml:156
+#: ../qml/features/activities/pages/Activities.qml:518
 #, fuzzy
-msgid "Save Draft"
-msgstr "Concept Opslaan"
+msgid "View Project"
+msgstr "Project"
 
-#: ../qml/components/CreateUpdatePage.qml:166
-#: ../qml/components/SaveDiscardDialog.qml:79
-msgid "Discard"
-msgstr "Verwerpen"
-
-#: ../qml/components/CreateUpdatePage.qml:256
-msgid "Enter update title..."
-msgstr "Voer updatetitel in..."
-
-#: ../qml/components/CustomDatePicker.qml:110
-msgid "Next Week"
-msgstr "Volgende week"
-
-#: ../qml/components/CustomDatePicker.qml:117
-msgid "Next Month"
-msgstr "Volgende maand"
-
-#: ../qml/components/CustomDatePicker.qml:124
-msgid "Custom"
-msgstr "Aangepast"
-
-#: ../qml/components/EHower.qml:99
-msgid "Time spent based on priorities"
-msgstr "Tijdsbesteding op basis van prioriteiten"
-
-#: ../qml/components/EHower.qml:129
-msgid "URGENT"
-msgstr "DRINGEND"
-
-#: ../qml/components/EHower.qml:139
-msgid "NOT URGENT"
-msgstr "NIET DRINGEND"
-
-#: ../qml/components/EHower.qml:163
-msgid "IMPORTANT"
-msgstr "BELANGRIJK"
-
-#: ../qml/components/EHower.qml:180
-msgid "NOT IMPORTANT"
-msgstr "NIET BELANGRIJK"
-
-#: ../qml/components/EHower.qml:242
-msgid "Do First"
-msgstr "Eerst doen"
-
-#: ../qml/components/EHower.qml:299
-msgid "Do Next"
-msgstr "Daarna doen"
-
-#: ../qml/components/EHower.qml:357
-msgid "Do Later"
-msgstr "Later doen"
-
-#: ../qml/components/EHower.qml:414
-msgid "Don't do"
-msgstr "Niet doen"
-
-#: ../qml/components/ImagePreviewer.qml:78
-msgid "Download"
-msgstr "Downloaden"
-
-#: ../qml/components/ImagePreviewer.qml:131
-msgid "No image to save"
-msgstr "Geen afbeelding om op te slaan"
-
-#: ../qml/components/ImagePreviewer.qml:155
+#: ../qml/features/activities/pages/Activities.qml:520
 #, fuzzy
-msgid "Saved"
-msgstr "Opgeslagen"
-
-#: ../qml/components/ImagePreviewer.qml:158
-msgid "Choose where to save"
-msgstr "Kies waar u wilt opslaan"
-
-#: ../qml/components/ImagePreviewer.qml:160
-msgid "Could not open export dialog"
-msgstr "Kon exportdialoog niet openen"
-
-#: ../qml/components/ImagePreviewer.qml:164
-#, fuzzy
-msgid "Save failed"
-msgstr "Synchronisatie mislukt: "
-
-#: ../qml/components/ImagePreviewer.qml:170
-msgid "No image to open"
-msgstr "Geen afbeelding om te openen"
-
-#: ../qml/components/ImagePreviewer.qml:188
-msgid "Could not open chooser"
-msgstr "Kon kiezer niet openen"
-
-#: ../qml/components/ImagePreviewer.qml:192
-#, fuzzy
-msgid "Open failed"
-msgstr "Synchronisatie mislukt: "
-
-#: ../qml/components/ListHeader.qml:155
-msgid "Search..."
-msgstr "Zoeken..."
-
-#: ../qml/components/MultiAssigneeSelector.qml:37
-msgid "Assignees"
-msgstr "Toegewezenen"
-
-#: ../qml/components/MultiAssigneeSelector.qml:121
-#: ../qml/components/MultiAssigneeSelector.qml:294
-msgid "Select Assignees"
-msgstr "Selecteer toegewezenen"
-
-#: ../qml/components/MultiAssigneeSelector.qml:421
-msgid "Clear All"
-msgstr "Alles wissen"
-
-#: ../qml/components/PersonalStageSelector.qml:59
-msgid "Change Personal Stage"
-msgstr "Persoonlijke fase wijzigen"
-
-#: ../qml/components/ProjectDetailsCard.qml:134
-msgid "Stop Timer"
-msgstr "Timer stoppen"
-
-#: ../qml/components/ProjectDetailsCard.qml:346
-#: ../qml/components/TaskDetailsCard.qml:629
-msgid "Planned (H): "
-msgstr "Gepland (U): "
-
-#: ../qml/components/ProjectDetailsCard.qml:354
-#: ../qml/components/TaskDetailsCard.qml:636
-msgid "Start Date: "
-msgstr "Startdatum: "
-
-#: ../qml/components/ProjectDetailsCard.qml:362
-#: ../qml/components/TaskDetailsCard.qml:643
-msgid "End Date: "
-msgstr "Einddatum: "
-
-#: ../qml/components/ProjectList.qml:595
-#, fuzzy
-msgid "Search projects"
-msgstr "Projecten synchroniseren..."
-
-#: ../qml/components/ProjectPieChart.qml:42
-#: ../qml/components/ProjectPieChart.qml:140
-msgid "Most Time-Consuming Projects"
-msgstr "Meest tijdrovende projecten"
-
-#: ../qml/components/ProjectPieChart.qml:137
-msgid "Most Time-Consuming Projects(No Data)"
-msgstr "Meest tijdrovende projecten (geen gegevens)"
-
-#: ../qml/components/ProjectSelector.qml:83
-#: ../qml/components/ProjectSelector.qml:118
-#: ../qml/components/ProjectSelector.qml:147
-#, fuzzy
-msgid "Select Project"
-msgstr "Projecten synchroniseren..."
-
-#: ../qml/components/SaveDiscardDialog.qml:52
-#, fuzzy
-msgid ""
-"You have unsaved changes. What would you like to do?\n"
-"\n"
-"Note: If you cancel, you can navigate back to continue editing."
-msgstr "Je hebt niet-opgeslagen wijzigingen. Wat wil je doen?\n"
-
-#: ../qml/components/StageFilterMenu.qml:179
-#, fuzzy
-msgid "Filter by Stage"
-msgstr "Filter op toegewezenen"
-
-#: ../qml/components/StageFilterMenu.qml:354
-msgid "Current: "
-msgstr "Huidige: "
-
-#: ../qml/components/StatusSelector.qml:25
-msgid "On Track"
-msgstr ""
-
-#: ../qml/components/StatusSelector.qml:37
-msgid "At Risk"
-msgstr ""
-
-#: ../qml/components/StatusSelector.qml:49
-msgid "Off Track"
-msgstr ""
-
-#: ../qml/components/TaskDetailsCard.qml:242
-#: ../qml/components/TaskDetailsCard.qml:251
-#: ../qml/components/TimeSheetDetailsCard.qml:147
-#: ../qml/components/TimeSheetDetailsCard.qml:156
-msgid "update Timesheet"
-msgstr "Urenstaat bijwerken"
-
-#: ../qml/components/TaskDetailsCard.qml:347
-#, fuzzy
-msgid "Unable to track progress – no planned hours"
-msgstr "Kan voortgang niet volgen – geen geplande uren"
-
-#: ../qml/components/TaskDetailsCard.qml:358
-msgid "No progress yet"
-msgstr "Nog geen voortgang"
-
-#: ../qml/components/TaskDetailsCard.qml:621
-#: ../qml/components/TimeSheetDetailsCard.qml:292
-msgid "DRAFT"
-msgstr "CONCEPT"
-
-#: ../qml/components/TaskDetailsCard.qml:629
-msgid "N/A"
-msgstr "N.v.t."
-
-#: ../qml/components/TaskStageSelector.qml:55
-msgid "Change Task Stage"
-msgstr "Taakfase wijzigen"
-
-#: ../qml/components/TasksForDayWidget.qml:35
-msgid "Plan for Today"
-msgstr "Plan voor vandaag"
-
-#: ../qml/components/TimePickerPopup.qml:43
-msgid "Select Hours"
-msgstr "Uren selecteren"
-
-#: ../qml/components/TimeRecorderWidget.qml:62
-msgid "Time Tracking"
-msgstr "Tijdregistratie"
-
-#: ../qml/components/TimeRecorderWidget.qml:77
-msgid "Manual"
-msgstr "Handmatig"
-
-#: ../qml/components/TimeRecorderWidget.qml:93
-msgid "Automated"
-msgstr "Geautomatiseerd"
-
-#: ../qml/components/TimeSheetDescriptionPopup.qml:54
-msgid "Add Description to Timesheet"
-msgstr "Beschrijving toevoegen aan urenstaat"
-
-#: ../qml/components/TimeSheetDetailsCard.qml:165
-msgid "Mark Ready for Sync"
-msgstr "Markeren als gereed voor synchronisatie"
-
-#: ../qml/components/UpdatesDetailsCard.qml:80
-msgid "Untitled Update"
+msgid "View Update"
 msgstr "Naamloze update"
 
-#: ../qml/components/UpdatesDetailsCard.qml:110
-msgid "By: "
-msgstr "Door: "
+#: ../qml/features/activities/pages/Activities.qml:543
+msgid "Connected to"
+msgstr "Verbonden met"
 
-#: ../qml/components/UpdatesDetailsCard.qml:110
-msgid "No Date"
-msgstr "Geen datum"
+#: ../qml/features/activities/pages/Activities.qml:656
+msgid "Other"
+msgstr ""
 
-#: ../qml/components/UpdatesDetailsCard.qml:110
-msgid "Unknown User"
-msgstr "Onbekende gebruiker"
+#: ../qml/features/activities/pages/Activities.qml:697
+msgid "Summary"
+msgstr "Samenvatting"
 
-#: ../qml/components/UpdatesDetailsCard.qml:118
-msgid "Details"
-msgstr "Details"
-
-#: ../qml/components/WorkItemSelector.qml:128
+#: ../qml/features/activities/pages/Activities.qml:798
 #, fuzzy
-msgid "Subproject"
-msgstr "Subproject"
+msgid "Activity Type"
+msgstr "Activiteit"
 
-#: ../qml/components/WorkItemSelector.qml:130
-msgid "Subtask"
-msgstr "Subtaak"
+#~ msgid "Time Management App - Beta"
+#~ msgstr "Tijdbeheer-app - Bèta"
 
-#: ../qml/components/WorkItemSelector.qml:131
-#, fuzzy
-msgid "Assignee"
-msgstr "Toegewezenen"
+#~ msgid "Version: "
+#~ msgstr "Versie: "
 
-#: ubtms.desktop.in.h:1
-msgid "Time Management"
-msgstr "Tijdbeheer"
+#~ msgid "Release Notes: "
+#~ msgstr "Release-opmerkingen: "
 
-#, fuzzy
-#~ msgid "Connect With Api Key"
-#~ msgstr "Verbinden met"
+#~ msgid "Enter Odoo URL here"
+#~ msgstr "Voer hier Odoo URL in"
 
-#, fuzzy
-#~ msgid "Connect With Password"
-#~ msgstr "Verbinden met"
+#~ msgid "Dashboard"
+#~ msgstr "Dashboard"
+
+#~ msgid "About Us"
+#~ msgstr "Over ons"
+
+#~ msgid "Personal Stages Diagnostics"
+#~ msgstr "Diagnostiek persoonlijke fasen"
+
+#~ msgid "Check personal stage data status and configuration"
+#~ msgstr "Controleer status en configuratie van persoonlijke fasegegevens"
+
+#~ msgid "Check Personal Stage Status"
+#~ msgstr "Controleer status persoonlijke fase"
+
+#~ msgid "Force Task Re-sync"
+#~ msgstr "Taaksynchronisatie forceren"
+
+#~ msgid "Reset task timestamps to force fresh sync from Odoo"
+#~ msgstr ""
+#~ "Reset taaktijdstempels om nieuwe synchronisatie vanuit Odoo te forceren"
+
+#~ msgid "Reset Tasks Without Stages"
+#~ msgstr "Reset taken zonder fasen"
+
+#~ msgid "Reset All Tasks"
+#~ msgstr "Alle taken resetten"
+
+#~ msgid "Default"
+#~ msgstr "Standaard"
+
+#~ msgid "Time Management"
+#~ msgstr "Tijdbeheer"

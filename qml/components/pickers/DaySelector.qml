@@ -8,25 +8,17 @@ import ".."
 Item {
     id: daySelector
     width: parent ? parent.width : 400
-    property alias labelText: rangeLabel.text
+    height: dayCombo.height
+    
+    property string labelText: "Date"
     property date selectedDate: new Date()
     property bool readOnly: false
     signal dateChanged(date selectedDate)
-    // color: "transparent"
 
-    /**
-     * Returns the selected date in "yyyy-MM-dd" format (for database/API use).
-     * @returns {string}
-     */
     function formattedDate() {
         return Qt.formatDate(selectedDate, "yyyy-MM-dd");
     }
 
-    /**
-     * Sets the selected date from a string or Date object.
-     * Accepts either a JS Date or a valid string like "2025-06-12".
-     * @param {string|Date} val
-     */
     function setSelectedDate(val) {
         function toDate(input) {
             if (input instanceof Date)
@@ -41,107 +33,111 @@ Item {
         const parsed = toDate(val);
 
         if (parsed) {
-            dateItem.date = parsed;
             selectedDate = parsed;
+            
+            // Update dayCombo selection
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (isSameDate(parsed, today)) {
+                dayCombo.applyDeferredSelection(0, false);
+            } else if (isSameDate(parsed, yesterday)) {
+                dayCombo.applyDeferredSelection(1, false);
+            } else {
+                dayCombo.applyDeferredSelection(2, false);
+            }
+            
+            updateModelData();
             dateChanged(selectedDate);
         } else {
             console.warn("❌ Invalid date input for setSelectedDate:", val);
         }
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        //anchors.margins: units.gu(1)
+    function isSameDate(d1, d2) {
+        return d1.getFullYear() === d2.getFullYear() &&
+               d1.getMonth() === d2.getMonth() &&
+               d1.getDate() === d2.getDate();
+    }
 
-        // Row for label and combo
-        RowLayout {
-
-            TSLabel {
-                id: rangeLabel
-                enabled: true
-                text: "Date"
-            }
-
-            Item {
-                // Add left margin using Layout.leftMargin for TSCombobox
-                Layout.preferredWidth: units.gu(20)
-                Layout.preferredHeight: units.gu(5)
-                Layout.leftMargin: units.gu(4)
-
-                TSCombobox {
-                    id: dayCombo
-                    anchors.fill: parent
-                    model: ["Today", "Yesterday", "Custom"]
-                    visible: !daySelector.readOnly
-                    currentIndex: 0
-                    onActivated: updateDate()
-                    onAccepted: updateDate()
-                }
-            }
-
-            Item {
-                id: dateItem
-                property date date: new Date()
-                Layout.preferredWidth: parent.width * 0.5
-                Layout.preferredHeight: parent.height
-                Layout.leftMargin: units.gu(1)
-
-                //   color: "white"
-
-                TSLabel {
-                    anchors.fill: parent
-                    verticalAlignment: Text.AlignVCenter
-                    enabled: !daySelector.readOnly
-                    //readOnly: true
-                    text: Qt.formatDate(dateItem.date, "dd-MM-yyyy")
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (daySelector.readOnly) {
-                            return;
-                        }
-
-                        let result = PickerPanel.openDatePicker(dateItem, "date", "Years|Months|Days");
-                        if (result) {
-                            result.closed.connect(() => {
-                                selectedDate = dateItem.date;
-                                dateChanged(selectedDate);
-                            });
-                        }
-                    }
-                }
-            }
-        }
+    function updateModelData() {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        const todayStr = Qt.formatDate(today, "dd-MM-yyyy");
+        const yesterdayStr = Qt.formatDate(yesterday, "dd-MM-yyyy");
+        const currentStr = Qt.formatDate(selectedDate, "dd-MM-yyyy");
+        
+        dayCombo.modelData = [
+            { id: 0, name: "Today (" + todayStr + ")" },
+            { id: 1, name: "Yesterday (" + yesterdayStr + ")" },
+            { id: 2, name: "Custom (" + currentStr + ")" }
+        ];
     }
 
     function updateDate() {
         const today = new Date();
         let newDate = new Date(today);
 
-        switch (dayCombo.currentIndex) {
+        switch (dayCombo.selectedId) {
         case 0: // Today
             break;
         case 1: // Yesterday
             newDate.setDate(newDate.getDate() - 1);
             break;
         case 2: // Custom
-            return; // let user pick manually
+            openCustomDatePicker();
+            return;
         }
 
-        dateItem.date = newDate;
         selectedDate = newDate;
+        updateModelData();
         dateChanged(selectedDate);
     }
 
-    Component.onCompleted: {
-        if (!selectedDate || isNaN(selectedDate.getTime())) {
-            updateDate(); // fallback to Today/Yesterday/Custom logic
-        } else {
-            // If selectedDate already set externally, respect it
-            dateItem.date = selectedDate;
+    function openCustomDatePicker() {
+        let result = PickerPanel.openDatePicker(daySelector, "selectedDate", "Years|Months|Days");
+        if (result) {
+            result.closed.connect(() => {
+                dayCombo.applyDeferredSelection(2, false);
+                updateModelData();
+                dateChanged(selectedDate);
+            });
         }
+    }
+
+    InlineOptionSelector {
+        id: dayCombo
+        width: parent.width
+        labelText: daySelector.labelText
+        selectorType: "date_type"
+        readOnly: daySelector.readOnly
+        enabledState: !daySelector.readOnly
+        
+        onSelectionMade: function(id, name, selectorType) {
+            updateDate();
+        }
+    }
+
+    Component.onCompleted: {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        if (!selectedDate || isNaN(selectedDate.getTime())) {
+            selectedDate = today;
+            dayCombo.applyDeferredSelection(0, false);
+        } else {
+            if (isSameDate(selectedDate, today)) {
+                dayCombo.applyDeferredSelection(0, false);
+            } else if (isSameDate(selectedDate, yesterday)) {
+                dayCombo.applyDeferredSelection(1, false);
+            } else {
+                dayCombo.applyDeferredSelection(2, false);
+            }
+        }
+        updateModelData();
     }
 }

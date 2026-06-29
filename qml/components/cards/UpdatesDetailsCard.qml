@@ -88,7 +88,7 @@ ListItem {
                 }
 
                 Rectangle {
-                    height: units.gu(3.5)
+                    height: units.gu(4)
                     width: details_button.width 
                     
                 
@@ -98,9 +98,15 @@ ListItem {
 
                     Text {
                         id: statusText
-                        text: status
+                        text: {
+                            if (status === "on_track") return i18n.dtr("ubtms", "On Track");
+                            if (status === "at_risk") return i18n.dtr("ubtms", "At Risk");
+                            if (status === "off_track") return i18n.dtr("ubtms", "Off Track");
+                            if (status === "on_hold") return i18n.dtr("ubtms", "On Hold");
+                            return status || "";
+                        }
                         anchors.centerIn: parent
-                        font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
+                        font.pixelSize: units.gu(AppConst.FontSizes.ListSubHeading)
                         color: "white"
                     }
                 }

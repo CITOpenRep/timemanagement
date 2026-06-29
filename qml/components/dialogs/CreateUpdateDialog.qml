@@ -77,7 +77,12 @@ Item {
                 ComboBox {
                     id: statusSelector
                     width: parent.width
-                    model: popupWrapper.projectUpdateStatus
+                    model: [
+                        i18n.dtr("ubtms", "On Track"),
+                        i18n.dtr("ubtms", "At Risk"),
+                        i18n.dtr("ubtms", "Off Track"),
+                        i18n.dtr("ubtms", "On Hold")
+                    ]
                 }
 
                 // Progress Slider

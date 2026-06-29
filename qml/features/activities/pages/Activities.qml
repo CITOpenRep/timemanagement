@@ -787,21 +787,21 @@ Page {
             anchors.top: myRow9.bottom
             anchors.left: parent.left
             topPadding: units.gu(1)
-            height: units.gu(5)
             anchors.topMargin: units.gu(3)
-            Item {
-                width: parent.width * 0.75
-                height: units.gu(5)
-                TreeSelector {
+            
+            Column {
+                leftPadding: units.gu(1)
+                
+                InlineOptionSelector {
                     id: activityTypeSelector
-                    enabled: !isReadOnly
-                    labelText: i18n.dtr("ubtms","Activity Type")
                     width: flickable.width - units.gu(2)
-                    height: units.gu(29)
-                    onItemSelected: function(id, name) {
-                        // Track changes in draft handler (only after initialization and when not read-only)
-                        // Exception: allow tracking during draft restoration to preserve changes
-                        if ((!isInitializing || isRestoringFromDraft) && !isReadOnly) {
+                    labelText: i18n.dtr("ubtms", "Activity Type")
+                    selectorType: "activity_type"
+                    readOnly: isReadOnly
+                    enabledState: !isReadOnly
+                    
+                    onSelectionMade: function(id, name, selectorType) {
+                        if (!isInitializing && id !== undefined) {
                             draftHandler.markFieldChanged("activity_type_id", id);
                         }
                     }
@@ -813,14 +813,15 @@ Page {
             id: row5
             anchors.top: row4.bottom
             anchors.left: parent.left
+            anchors.topMargin: units.gu(1.5)
+            
             Column {
                 leftPadding: units.gu(1)
+                
                 DaySelector {
                     id: date_widget
                     readOnly: isReadOnly
                     width: flickable.width - units.gu(2)
-                    height: units.gu(5)
-                    anchors.centerIn: parent.centerIn
                     onDateChanged: function(selectedDate) {
                         // Track changes in draft handler (only after initialization and when not read-only)
                         // Exception: allow tracking during draft restoration to preserve changes
@@ -1050,7 +1051,6 @@ Page {
             parent_id: null
         });
 
-        let selectedText = "No Type";
         let selectedFound = (selectedTypeId === -1);
 
         for (let i = 0; i < rawTypes.length; i++) {
@@ -1064,18 +1064,15 @@ Page {
             });
 
             if (selectedTypeId !== undefined && selectedTypeId !== null && selectedTypeId === id) {
-                selectedText = name;
                 selectedFound = true;
             }
         }
 
-        // Push to the model and reload selector
-        activityTypeSelector.dataList = flatModel;
-        activityTypeSelector.reload();
+        // Push to the model
+        activityTypeSelector.modelData = flatModel;
 
         // Update selected item
-        activityTypeSelector.selectedId = selectedFound ? selectedTypeId : -1;
-        activityTypeSelector.currentText = selectedFound ? selectedText : "Select Type";
+        activityTypeSelector.applyDeferredSelection(selectedFound ? selectedTypeId : -1, false);
         
         // Track the activity type change in draft handler (only when not initializing and not read-only)
         // Exception: allow tracking during draft restoration to preserve changes

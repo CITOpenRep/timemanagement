@@ -68,6 +68,38 @@ download_status = {
 }
 
 
+from urllib.parse import urlparse, unquote
+import socket
+
+def check_server_reachability(url, timeout=3):
+    """
+    Check if the Odoo server is reachable using a lightweight HTTP request.
+    This uses the same HTTP pool manager as the rest of the application
+    to ensure compatibility with Ubuntu Touch AppArmor sandbox rules.
+    """
+    try:
+        normalized = (url or "").strip().rstrip("/")
+        if not normalized:
+            return False
+            
+        if "://" not in normalized:
+            normalized = f"https://{normalized}"
+            
+        # Try a HEAD request first (fast and lightweight)
+        response = http.request('HEAD', normalized, timeout=timeout, redirect=True)
+        # Any response (even error status codes like 404 or 403) means the server is reachable
+        return True
+    except Exception as e:
+        log.warning(f"[REACHABILITY] HTTP HEAD failed for {url}: {e}")
+        # Fallback to GET in case HEAD is blocked by the server
+        try:
+            response = http.request('GET', normalized, timeout=timeout, redirect=True)
+            return True
+        except Exception as e2:
+            log.warning(f"[REACHABILITY] HTTP GET fallback also failed: {e2}")
+            return False
+
+
 def is_file_present(file_path):
     """
     Check if a file exists at the specified path.
@@ -342,9 +374,114 @@ def attachment_ondemand_download(settings_db, account_id, remote_record_id):
             "error": str(e),
         }
 
-def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
-    send("ondemand_upload_message","Initiating upload")
-    log.debug(f"[SYNC] Starting attachment_upload  to {account_id} : {filepath} , {res_type} ,{res_id}")
+def attachment_upload(settings_db, account_id, filepath, res_type, res_id):
+    try:
+        filepath = unquote(filepath)
+        send("ondemand_upload_message", "Initiating upload...")
+        log.debug(f"[SYNC] Starting attachment_upload to {account_id} : {filepath} , {res_type} ,{res_id}")
+        accounts = get_all_accounts(settings_db)
+        selected = None
+        for acc in accounts:
+            if acc.get("id") == account_id:
+                selected = acc
+                break
+
+        if not selected:
+            send("ondemand_upload_message", "Error: Account not found")
+            send("ondemand_upload_completed", False)
+            return None
+
+        # Check server reachability before proceeding
+        send("ondemand_upload_message", "Checking server connection...")
+        if not check_server_reachability(selected["link"]):
+            send("ondemand_upload_message", "Error: No internet connection or server unreachable")
+            send("ondemand_upload_completed", False)
+            return None
+
+        send("ondemand_upload_message", "Checking file...")
+        if not os.path.exists(filepath):
+            send("ondemand_upload_message", "Error: File does not exist")
+            send("ondemand_upload_completed", False)
+            return None
+
+        # 25 MB limit to prevent memory exhaustion and large payload failures
+        file_size = os.path.getsize(filepath)
+        if file_size > 25 * 1024 * 1024:
+            send("ondemand_upload_message", "Error: File exceeds 25MB limit")
+            send("ondemand_upload_completed", False)
+            return None
+
+        filename = os.path.basename(filepath)
+        EXT_TO_MIME = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.pdf': 'application/pdf',
+            '.txt': 'text/plain',
+            '.csv': 'text/csv',
+            '.mp3': 'audio/mpeg',
+            '.mp4': 'video/mp4',
+            '.zip': 'application/zip'
+        }
+        send("ondemand_upload_message", "Reading file...")
+        ext = os.path.splitext(filename)[1].lower()
+        mimetype = EXT_TO_MIME.get(ext, 'application/octet-stream')
+
+        file_bytes = None
+        with open(filepath, 'rb') as f:
+            file_bytes = f.read()
+
+        client = OdooClient(
+            selected["link"],
+            selected["database"],
+            selected["username"],
+            selected["api_key"],
+        )
+
+        vals = {
+            'name': filename,
+            'type': 'binary',
+            'res_model': res_type,
+            'res_id': res_id,
+            'datas': base64.b64encode(file_bytes).decode('utf-8'),
+            'mimetype': mimetype
+        }
+        send("ondemand_upload_message", "Uploading file to server...")
+        attachment_id = client.call('ir.attachment', 'create', [vals])
+        if not attachment_id or attachment_id <= 0:
+            send("ondemand_upload_message", "Error: Server failed to save attachment")
+            send("ondemand_upload_completed", False)
+            return None
+
+        send("ondemand_upload_message", "Syncing to local device...")
+        sync_ondemand_tables_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
+        send("ondemand_upload_completed", True)
+        return attachment_id
+
+    except Exception as e:
+        error_msg = str(e)
+        log.exception(f"[ATTACHMENT] Failed to upload attachment: {error_msg}")
+        
+        # User-friendly error message
+        friendly_error = "Upload failed"
+        if "connection" in error_msg.lower() or "refused" in error_msg.lower():
+            friendly_error = "Connection failed: Check network/server"
+        elif "timeout" in error_msg.lower():
+            friendly_error = "Request timed out"
+        elif "authentication" in error_msg.lower() or "access denied" in error_msg.lower() or "uid" in error_msg.lower():
+            friendly_error = "Authentication failed: Check credentials"
+        elif "xmlrpc" in error_msg.lower() or "fault" in error_msg.lower():
+            friendly_error = f"Server error: {error_msg[:60]}"
+        else:
+            friendly_error = f"Error: {error_msg[:60]}"
+            
+        send("ondemand_upload_message", friendly_error)
+        send("ondemand_upload_completed", False)
+        return None
+
+def attachment_delete(settings_db, account_id, remote_record_id):
+    log.debug(f"[SYNC] Starting attachment_delete for account {account_id}, attachment {remote_record_id}")
     accounts = get_all_accounts(settings_db)
     selected = None
     for acc in accounts:
@@ -353,55 +490,43 @@ def attachment_upload(settings_db,account_id, filepath,res_type,res_id):
             break
 
     if not selected:
-        return None
-    send("ondemand_upload_message","Finding Account")
-    filename = os.path.basename(filepath)
-    EXT_TO_MIME = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.pdf': 'application/pdf',
-        '.txt': 'text/plain',
-        '.csv': 'text/csv',
-        '.mp3': 'audio/mpeg',
-        '.mp4': 'video/mp4',
-        '.zip': 'application/zip'
-        # add more extensions as needed
-    }
-    send("ondemand_upload_message","Reading file ...")
-    ext = os.path.splitext(filename)[1].lower()  # get extension including dot
-    mimetype = EXT_TO_MIME.get(ext, 'application/octet-stream')
+        return {"success": False, "error": "Account not found"}
 
-    file_bytes=None
-    # Read file content as binary
-    with open(filepath, 'rb') as f:
-       file_bytes = f.read()
+    try:
+        # Check server reachability before proceeding
+        if not check_server_reachability(selected["link"]):
+            return {"success": False, "error": "No internet connection or server unreachable"}
 
-    client = OdooClient(
-        selected["link"],
-        selected["database"],
-        selected["username"],
-        selected["api_key"],
-    )
+        client = OdooClient(
+            selected["link"],
+            selected["database"],
+            selected["username"],
+            selected["api_key"],
+        )
+        res = client.call('ir.attachment', 'unlink', [[remote_record_id]])
+        if not res:
+            log.warning(f"Unlink returned false or empty response for attachment {remote_record_id}")
+            return {"success": False, "error": "Server failed to delete attachment"}
 
-    # Attach a file to the newly created partner
-    vals = {
-        'name': filename,
-        'type': 'binary',
-        'res_model':res_type,
-        'res_id':res_id,
-        'datas': base64.b64encode(file_bytes).decode('utf-8'),
-        'mimetype': mimetype
-    }
-    send("ondemand_upload_message","Uploading file .. ")
-    attachment_id = client.call('ir.attachment', 'create', [vals])
-    if attachment_id <=0:
-        send("ondemand_upload_completed",False)
-    send("ondemand_upload_message","Syncing to local device .. ")
-    sync_ondemand_tables_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
-    send("ondemand_upload_completed",True)
-    return attachment_id
+        sync_ondemand_tables_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
+        return {"success": True}
+    except Exception as e:
+        error_msg = str(e)
+        log.exception(f"[ATTACHMENT] Failed to delete attachment {remote_record_id} for account {account_id}")
+        
+        friendly_error = "Delete failed"
+        if "connection" in error_msg.lower() or "refused" in error_msg.lower():
+            friendly_error = "Connection failed: Check network/server"
+        elif "timeout" in error_msg.lower():
+            friendly_error = "Request timed out"
+        elif "authentication" in error_msg.lower() or "access denied" in error_msg.lower() or "uid" in error_msg.lower():
+            friendly_error = "Authentication failed: Check credentials"
+        elif "xmlrpc" in error_msg.lower() or "fault" in error_msg.lower():
+            friendly_error = f"Server error: {error_msg[:60]}"
+        else:
+            friendly_error = f"Error: {error_msg[:60]}"
+            
+        return {"success": False, "error": friendly_error}
 
 def sync(settings_db, account_id):
     """
@@ -671,16 +796,58 @@ def list_installed_models():
                         })
                     seen_paths.add(item)
     
+    models.sort(key=lambda x: x["m_name"].lower())
     log.info(f"[VOICE] Found {len(models)} installed models")
     return models
+
+def get_installed_voice_models():
+    """Returns a list of installed voice model IDs."""
+    models_dir = get_voice_models_dir()
+    if not models_dir.exists():
+        return []
+    # Any directory in models_dir is considered an installed model
+    installed = [d.name for d in models_dir.iterdir() if d.is_dir()]
+    log.info(f"[VOICE] Found {len(installed)} installed models")
+    return installed
+    
+def get_device_total_ram_mb():
+    """Returns total device RAM in MB to check model compatibility."""
+    try:
+        with open('/proc/meminfo', 'r') as f:
+            for line in f:
+                if line.startswith('MemTotal:'):
+                    parts = line.split()
+                    return int(parts[1]) // 1024
+    except Exception:
+        pass
+    # Fallback using sysconf if /proc/meminfo is not available
+    try:
+        import os
+        pagesize = os.sysconf('SC_PAGE_SIZE')
+        pages = os.sysconf('SC_PHYS_PAGES')
+        return (pagesize * pages) // (1024 * 1024)
+    except Exception:
+        pass
+    return 2048 # Fallback to 2048MB
+
+
+def get_paused_voice_models():
+    """Returns a list of model IDs that have a partial download file."""
+    models_dir = get_voice_models_dir()
+    if not models_dir.exists():
+        return []
+    paused = []
+    for f in models_dir.glob("*.zip.tmp"):
+        paused.append(f.name.replace(".zip.tmp", ""))
+    return paused
 
 
 def list_available_models():
     """
     Returns a list of models available for download.
     """
-    return [
-         {"id": "vosk-model-small-en-us-0.15", "name": "English (US, Small)", "size": "40M", "url": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"},
+    models = [
+        {"id": "vosk-model-small-en-us-0.15", "name": "English (US, Small)", "size": "40M", "url": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"},
         {"id": "vosk-model-en-us-0.22", "name": "English (US)", "size": "1.8G", "url": "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip"},
         {"id": "vosk-model-en-us-0.22-lgraph", "name": "English (US, LGraph)", "size": "128M", "url": "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22-lgraph.zip"},
         {"id": "vosk-model-en-us-0.42-gigaspeech", "name": "English (US, Gigaspeech)", "size": "2.3G", "url": "https://alphacephei.com/vosk/models/vosk-model-en-us-0.42-gigaspeech.zip"},
@@ -757,6 +924,8 @@ def list_available_models():
         {"id": "vosk-model-small-ka-0.42", "name": "Georgian (Small)", "size": "45M", "url": "https://alphacephei.com/vosk/models/vosk-model-small-ka-0.42.zip"},
         {"id": "vosk-model-ka-0.42", "name": "Georgian", "size": "700M", "url": "https://alphacephei.com/vosk/models/vosk-model-ka-0.42.zip"}
     ]
+    models.sort(key=lambda x: x["name"].lower())
+    return models
 
 
 def get_model_download_status():
@@ -764,20 +933,55 @@ def get_model_download_status():
     return download_status
 
 
+_voice_download_cancel_event = threading.Event()
+_voice_download_action = None
+
+def cancel_voice_model_download():
+    """Cancels an ongoing voice model download and deletes partial data."""
+    global download_status, _voice_download_action
+    _voice_download_action = "cancel"
+    _voice_download_cancel_event.set()
+    download_status["in_progress"] = False
+    download_status["is_paused"] = False
+    download_status["message"] = "Download cancelled"
+    
+    # Clean up any partial download files immediately to prevent them from showing up on restart
+    models_dir = get_voice_models_dir()
+    if models_dir.exists():
+        for f in models_dir.glob("*.zip.tmp"):
+            try:
+                f.unlink()
+            except Exception:
+                pass
+                
+    return {"status": "cancelled"}
+
+def pause_voice_model_download():
+    """Pauses an ongoing voice model download, keeping partial data."""
+    global download_status, _voice_download_action
+    _voice_download_action = "pause"
+    _voice_download_cancel_event.set()
+    download_status["in_progress"] = False
+    download_status["is_paused"] = True
+    download_status["message"] = "Download paused"
+    return {"status": "paused"}
+
 def download_voice_model(model_id, url):
     """
     Initiates a background thread to download and extract a voice model.
     """
     global download_status
+    _voice_download_cancel_event.clear()
     if download_status["in_progress"]:
         return {"status": "error", "message": "Download already in progress"}
     
     download_status = {
         "in_progress": True,
-        "progress": 0,
+        "progress": download_status.get("progress", 0),
         "message": "Starting download...",
         "error": "",
-        "model_id": model_id
+        "model_id": model_id,
+        "is_paused": False
     }
     
     def do_download():
@@ -795,42 +999,57 @@ def download_voice_model(model_id, url):
                 download_status["progress"] = 100
                 return
 
-            log.info(f"[VOICE] Downloading model from {url}")
-            download_status["message"] = "Downloading..."
-            
-            # Use a temporary file to avoid memory exhaustion for large models
             temp_zip = models_dir / f"{model_id}.zip.tmp"
+            existing_size = 0
             if temp_zip.exists():
-                temp_zip.unlink()
+                existing_size = temp_zip.stat().st_size
             
-            # Using urllib3 for download
-            response = http.request('GET', url, preload_content=False)
-            if response.status != 200:
+            headers = {}
+            if existing_size > 0:
+                headers['Range'] = f'bytes={existing_size}-'
+                log.info(f"[VOICE] Resuming {model_id} from {existing_size} bytes")
+                download_status["message"] = "Resuming..."
+            else:
+                log.info(f"[VOICE] Downloading model from {url}")
+                download_status["message"] = "Downloading..."
+            
+            # Using urllib3 for download with a timeout to handle sudden internet disconnection
+            response = http.request('GET', url, headers=headers, preload_content=False, timeout=urllib3.Timeout(connect=5.0, read=10.0))
+            if response.status not in (200, 206, 416):
                 raise Exception(f"Server returned status {response.status}")
                 
+            if response.status == 200 and existing_size > 0:
+                # Server ignored Range header, restart from scratch
+                log.info(f"[VOICE] Server ignored Range, restarting download")
+                existing_size = 0
+                temp_zip.unlink()
+                
             content_length = response.getheader('Content-Length')
-            total_size = int(content_length) if content_length else None
+            total_size = (int(content_length) + existing_size) if content_length else None
             
-            if total_size:
-                # Check available disk space (need roughly 2.5x the zip size for download + extraction + safety)
+            if total_size and existing_size == 0:
+                # Check available disk space only on new downloads
                 try:
                     _, _, free = shutil.disk_usage(str(models_dir))
                     free_mb = free / (1024 * 1024)
                     required_mb = (total_size * 2.5) / (1024 * 1024)
-                    
-                    log.info(f"[VOICE] Space check for {model_id}: Required: {required_mb:.1f} MB, Available: {free_mb:.1f} MB")
-                    
                     if free < total_size * 2.5:
                         raise Exception(f"Insufficient storage. Have {free_mb:.1f} MB, need at least {required_mb:.1f} MB available.")
                 except Exception as disk_err:
                     if isinstance(disk_err, Exception) and "Insufficient storage" in str(disk_err):
                         raise disk_err
                     log.warning(f"[VOICE] Could not check disk space: {disk_err}")
-                    # Continue anyway if check fails, as disk_usage might not work on all filesystems
             
-            downloaded = 0
-            with open(temp_zip, 'wb') as f:
+            downloaded = existing_size
+            mode = 'ab' if existing_size > 0 else 'wb'
+            with open(temp_zip, mode) as f:
                 for chunk in response.stream(1024 * 64):
+                    if _voice_download_cancel_event.is_set():
+                        action = _voice_download_action
+                        if action == "pause":
+                            raise Exception("PAUSED_BY_USER")
+                        else:
+                            raise Exception("CANCELLED_BY_USER")
                     f.write(chunk)
                     downloaded += len(chunk)
                     if total_size:
@@ -881,18 +1100,30 @@ def download_voice_model(model_id, url):
             log.info(f"[VOICE] Successfully installed model {model_id}")
             
         except Exception as e:
-            log.exception(f"[VOICE] Download failed: {e}")
+            err_str = str(e)
+            log.exception(f"[VOICE] Download interrupted: {err_str}")
             download_status["in_progress"] = False
-            download_status["error"] = str(e)
-            download_status["message"] = "Failed"
-            send("download_error", str(e))
+            
+            if err_str == "PAUSED_BY_USER":
+                download_status["is_paused"] = True
+                download_status["message"] = "Paused"
+                # Do not unlink temp_zip
+            elif err_str == "CANCELLED_BY_USER":
+                download_status["is_paused"] = False
+                download_status["message"] = "Cancelled"
+                if temp_zip and temp_zip.exists():
+                    try:
+                        temp_zip.unlink()
+                    except:
+                        pass
+            else:
+                # Network error or other failure
+                download_status["error"] = err_str
+                download_status["message"] = "Failed"
+                download_status["is_paused"] = True # Keep partial file for resume
+                send("download_error", err_str)
+                
         finally:
-            # Cleanup temporary files
-            if temp_zip and temp_zip.exists():
-                try:
-                    temp_zip.unlink()
-                except Exception:
-                    pass
             if temp_extract_dir and temp_extract_dir.exists():
                 try:
                     shutil.rmtree(temp_extract_dir)
@@ -950,7 +1181,7 @@ def delete_voice_model(model_path):
         return {"status": "error", "message": str(e)}
 
 
-def resolve_settings_db_path(db_name="UBTMS_SettingsDB", app_id="ubtms"):
+def resolve_settings_db_path(db_name="myDatabase", app_id="ubtms"):
     """Finds a specific QML database by its name (hash)."""
     import hashlib
     db_hash = hashlib.md5(db_name.encode()).hexdigest()
@@ -969,18 +1200,50 @@ def resolve_settings_db_path(db_name="UBTMS_SettingsDB", app_id="ubtms"):
     return None
 
 
+def _subprocess_recognize(model_path, pipe, timeout):
+    """Runs voice recognition in a separate process to avoid blocking the GIL."""
+    import signal
+    def sigterm_handler(signum, frame):
+        raise SystemExit(0)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
+    try:
+        from voice_to_text.voice2text import recognize_from_mic
+        
+        class PipeStopEvent:
+            def is_set(self):
+                if pipe.poll():
+                    msg = pipe.recv()
+                    if msg == "stop":
+                        return True
+                return False
+                
+        def _partial(txt):
+            pipe.send(("partial", txt))
+            
+        def _status(txt):
+            pipe.send(("status", txt))
+            
+        text, err = recognize_from_mic(verbose=False, stop_event=PipeStopEvent(), timeout=timeout, partial_callback=_partial, status_callback=_status, model_path=model_path)
+        pipe.send(("final", text, err))
+    except Exception as e:
+        import traceback
+        pipe.send(("final", None, f"Subprocess Error: {e}"))
+
+
 def run_voice_recognition():
     """
     Runs voice recognition in a background thread to avoid blocking the UI.
     Uses the offline Vosk engine.
     """
     def do_recognition():
+        import multiprocessing
         try:
             log.info("[VOICE] Starting offline voice recognition thread")
             
             # Fetch the active model path from settings
             # First try the specific settings DB
-            db_path = resolve_settings_db_path("UBTMS_SettingsDB")
+            db_path = resolve_settings_db_path("myDatabase")
             if not db_path:
                 # Fallback to main app DB
                 db_path = resolve_qml_db_path()
@@ -991,20 +1254,33 @@ def run_voice_recognition():
             
             # Resolve relative path if necessary
             root_dir = Path(__file__).parent.parent.resolve()
-            if not active_model_rel_path:
-                log.error("[VOICE] No voice model configured")
-                send("voice_recognition_error", "No voice model configured. Please download one in Settings.")
-                return
+            
+            model_path = None
+            if active_model_rel_path:
+                if not os.path.isabs(active_model_rel_path):
+                    model_path = root_dir / active_model_rel_path
+                else:
+                    model_path = Path(active_model_rel_path)
 
-            if not os.path.isabs(active_model_rel_path):
-                model_path = root_dir / active_model_rel_path
-            else:
-                model_path = Path(active_model_rel_path)
-
-            if not model_path.exists():
-                log.error(f"[VOICE] Model path does not exist: {model_path}")
-                send("voice_recognition_error", "Selected voice model not found. Please check your settings.")
-                return
+            if not model_path or not model_path.exists():
+                installed_models = list_installed_models()
+                if installed_models:
+                    active_model_rel_path = installed_models[0]["m_path"]
+                    if not os.path.isabs(active_model_rel_path):
+                        model_path = root_dir / active_model_rel_path
+                    else:
+                        model_path = Path(active_model_rel_path)
+                    
+                    if db_path:
+                        try:
+                            from config import set_setting
+                            set_setting(db_path, "active_voice_model", active_model_rel_path)
+                        except Exception as e:
+                            log.warning(f"[VOICE] Could not auto-save active model to db: {e}")
+                else:
+                    log.error("[VOICE] No language model downloaded")
+                    send("voice_recognition_error", "No language model downloaded. Please download one in Voice Model Settings.")
+                    return
 
             # Paths to search for bundled libraries
             base_voice_path = Path(__file__).parent.parent / "voice_to_text"
@@ -1026,7 +1302,7 @@ def run_voice_recognition():
             else:
                 os.environ["LD_LIBRARY_PATH"] = env_path
             
-            from voice_to_text.voice2text import recognize_from_mic, list_microphones
+            from voice_to_text.voice2text import list_microphones
             
             # Reset the stop event
             _voice_stop_event.clear()
@@ -1034,17 +1310,59 @@ def run_voice_recognition():
             # Log available mics for debug
             log.info(f"[VOICE] mics: {list_microphones()}")
             
-            def handle_partial(txt):
-                if txt:
-                    send("voice_recognition_partial", txt)
+            # Run recognition in a separate process to avoid GIL blocking and UI freezing
+            parent_conn, child_conn = multiprocessing.Pipe()
+            ctx = multiprocessing.get_context("spawn")
+            p = ctx.Process(target=_subprocess_recognize, args=(str(model_path), child_conn, 30))
+            p.start()
             
-            text, error = recognize_from_mic(stop_event=_voice_stop_event, partial_callback=handle_partial, model_path=str(model_path))
-            if text:
-                log.info(f"[VOICE] Recognized text: {text}")
-                send("voice_recognition_result", text)
-            else:
-                log.warning(f"[VOICE] Recognition failed: {error or 'No speech detected'}")
-                send("voice_recognition_error", error or "No speech detected")
+            import time
+            received_final = False
+            stop_sent_time = None
+            while p.is_alive():
+                if _voice_stop_event.is_set():
+                    parent_conn.send("stop")
+                    _voice_stop_event.clear()
+                    if stop_sent_time is None:
+                        stop_sent_time = time.time()
+                
+                # Watchdog: terminate if process ignores stop signal for > 5 seconds
+                if stop_sent_time is not None and (time.time() - stop_sent_time > 5.0):
+                    log.warning("[VOICE] Watchdog triggered: Process failed to stop cleanly. Terminating.")
+                    p.terminate()
+                    break
+                    
+                if parent_conn.poll(0.5):
+                    msg = parent_conn.recv()
+                    if msg[0] == "partial":
+                        send("voice_recognition_partial", msg[1])
+                    elif msg[0] == "status":
+                        send("voice_recognition_status", msg[1])
+                    elif msg[0] == "final":
+                        received_final = True
+                        text, error = msg[1], msg[2]
+                        if text:
+                            log.info(f"[VOICE] Recognized text: {text}")
+                            send("voice_recognition_result", text)
+                        else:
+                            log.warning(f"[VOICE] Recognition failed: {error or 'No speech detected'}")
+                            send("voice_recognition_error", error or "No speech detected")
+                        break
+            
+            # Ensure process cleanup
+            p.join(timeout=1)
+            if p.is_alive():
+                p.terminate()
+                p.join()
+                
+            # Handle unexpected crash (like OOM kill)
+            if not received_final:
+                exit_code = p.exitcode
+                if exit_code is not None and exit_code != 0:
+                    err_msg = f"Voice recognition crashed unexpectedly (possibly Out of Memory). Exit code: {exit_code}"
+                    log.error(f"[VOICE] {err_msg}")
+                    send("voice_recognition_error", err_msg)
+                
         except Exception as e:
             log.exception(f"[VOICE] Error during voice recognition: {e}")
             send("voice_recognition_error", f"System Error: {str(e)}")

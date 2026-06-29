@@ -113,15 +113,12 @@ Column {
         width: root.availableWidth
         height: date_range_widget.height
 
-        Column {
-            leftPadding: units.gu(1)
-            DateRangeSelector {
-                id: date_range_widget
-                readOnly: root.isReadOnly
-                width: root.availableWidth < units.gu(361) ? root.availableWidth - units.gu(35) : root.availableWidth - units.gu(30)
+        DateRangeSelector {
+            id: date_range_widget
+            readOnly: root.isReadOnly
+            width: parent.width
 
-                onRangeChanged: root.dateRangeChanged()
-            }
+            onRangeChanged: root.dateRangeChanged()
         }
     }
 
