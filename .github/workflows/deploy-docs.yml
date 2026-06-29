@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - website-customDeviceSimulation
+      - release/v1.2.9
   workflow_dispatch:
 
 permissions:
