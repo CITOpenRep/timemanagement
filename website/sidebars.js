@@ -7,8 +7,8 @@ const sidebars = {
         "user/overview",
         "user/install-and-run",
         "user/setup-and-sync",
-        "user/features",
-        "user/all-features",
+        // "user/features",
+        // "user/all-features",
         "user/troubleshooting",
         {
           type: "category",
