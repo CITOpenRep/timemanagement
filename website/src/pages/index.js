@@ -150,11 +150,6 @@ function TerminalPreview() {
   return (
     <div className={styles.terminal}>
       <div className={styles.terminalBar}>
-        <div className={styles.terminalDots}>
-          <span className={styles.terminalDot} />
-          <span className={styles.terminalDot} />
-          <span className={styles.terminalDot} />
-        </div>
         <button 
           className={styles.copyButton}
           onClick={handleCopy}

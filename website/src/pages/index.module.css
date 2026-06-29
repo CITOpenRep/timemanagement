@@ -158,9 +158,9 @@
 .terminal {
   max-width: 480px;
   margin: 0 auto;
-  background: #1a2820;
-  border: 1px solid #2d3e32;
-  border-radius: 2px;
+  background: #09110d;
+  border: 1px solid rgba(224, 122, 36, 0.15);
+  border-radius: 6px;
   overflow: hidden;
   text-align: left;
   animation: fadeInUp 0.9s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -168,49 +168,35 @@
 
 .terminalBar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding: 8px 14px;
-  background: #152019;
-  border-bottom: 1px solid #2d3e32;
-}
-
-.terminalDots {
-  display: flex;
-  gap: 6px;
+  background: #0c1712;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .copyButton {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #9aa89c;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(224, 122, 36, 0.25);
+  color: #c8bfa8;
   border-radius: 4px;
   padding: 4px 10px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
   cursor: pointer;
   font-family: var(--ifm-font-family-base);
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .copyButton:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f0ebe0;
-  border-color: rgba(255, 255, 255, 0.2);
+  background: #e07a24;
+  color: #0f1a14;
+  border-color: #e07a24;
+  box-shadow: 0 4px 12px rgba(224, 122, 36, 0.2);
 }
-
-.terminalDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #2d3e32;
-}
-
-.terminalDot:nth-child(1) { background: #e05544; }
-.terminalDot:nth-child(2) { background: #e0a324; }
-.terminalDot:nth-child(3) { background: #3d8a56; }
 
 .terminalCode {
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem;
   margin: 0;
   font-family: "Fira Code", "SFMono-Regular", monospace;
   font-size: 0.82rem;
