@@ -131,7 +131,7 @@ Page {
                     const defaultAccountId = Account.getDefaultAccountId();
                     const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
                     if (result.success) {
-                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                             "recordid": result.id,
                             "isReadOnly": false
                         });
@@ -233,7 +233,7 @@ Page {
             if (index === 1) {
                 const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
                 if (result.success) {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
                         "isReadOnly": false
                     });
@@ -242,7 +242,7 @@ Page {
                 }
             }
             if (index === 2) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Activities.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                     "isReadOnly": false
                 });
             }
@@ -467,7 +467,7 @@ Page {
         onCommitCompleted: {
             const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
             if (result.success) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                     "recordid": result.id,
                     "isReadOnly": false
                 });
@@ -515,25 +515,25 @@ Page {
                     "isReadOnly": true
                 });
             } else if (navType === "Activity" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Activities.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                     "recordid": recordId,
                     "accountid": accountId,
                     "isReadOnly": true
                 });
             } else if (navType === "ProjectUpdate" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Updates.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../updates/pages/Updates.qml"), {
                     "recordid": recordId,
                     "accountid": accountId,
                     "isOdooRecordId": true,
                     "isReadOnly": true
                 });
             } else if (navType === "Project" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Projects.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../projects/pages/Projects.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });
             } else if (navType === "Timesheet" && recordId > 0) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../../Timesheet.qml"), {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                     "recordid": recordId,
                     "isReadOnly": true
                 });

@@ -1,0 +1,139 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2025 CIT-Services
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+import QtQuick 2.7
+import QtQuick.Controls 2.2
+import Lomiri.Components 1.3
+import QtQuick.Window 2.2
+import Ubuntu.Components 1.3 as Ubuntu
+import QtQuick.LocalStorage 2.7
+import Lomiri.Components.ListItems 1.3 as ListItem
+
+import "../../../../models/project.js" as Project
+import "../../../../models/utils.js" as Utils
+import "../../../../models/accounts.js" as Account
+import "../../../../models/global.js" as Global
+
+import "../../../components"
+
+Page {
+    property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
+    id: project
+    title: i18n.dtr("ubtms", "Projects")
+    header: PageHeader {
+        id: projectheader
+        StyleHints {
+            foregroundColor: "white"
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
+        }
+
+        leadingActionBar.actions: [
+            Action {
+                id: drawerAction
+                iconName: "navigation-menu"
+                text: i18n.dtr("ubtms", "Menu")
+                visible: !isMultiColumn
+                onTriggered: {
+                    apLayout.openGlobalDrawer()
+                }
+            }
+        ]
+        title: project.title
+
+        trailingActionBar.actions: [
+            Action {
+                iconName: "add"
+                text: i18n.dtr("ubtms", "New")
+                onTriggered: {
+                    // console.log("Create Project clicked");
+                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {
+                        "isReadOnly": false
+                    });
+                }
+            },
+            Action {
+                iconName: projectlist.flatViewMode ? "view-list-symbolic" : "view-grid-symbolic"
+                text: projectlist.flatViewMode ? i18n.dtr("ubtms", "Tree View") : i18n.dtr("ubtms", "Flat View")
+                onTriggered: {
+                    projectlist.toggleFlatView();
+                }
+            },
+            Action {
+                iconName: "search"
+                text: i18n.dtr("ubtms", "Search")
+                onTriggered: {
+                    projectlist.toggleSearchVisibility();
+                }
+            }
+        ]
+    }
+
+    LomiriShape {
+        anchors.top: projectheader.bottom
+        height: parent.height - projectheader.height
+        width: parent.width
+
+        ProjectList {
+            id: projectlist
+            anchors.fill: parent
+
+            onProjectSelected: {
+                //  console.log("Viewing Project");
+                apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {
+                    "recordid": recordId,
+                    "isReadOnly": true
+                });
+            }
+            onProjectTimesheetRequested: localId => {
+                let result = Timesheet.createTimesheetFromProject(localId);
+                if (result.success) {
+                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
+                        "recordid": result.id,
+                        "isReadOnly": false
+                    });
+                } else {
+                    console.error(result.error);
+                    // You might want to add error notification here
+                }
+            }
+        }
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            // Update navigation tracking when Project_Page becomes visible
+            Global.setLastVisitedPage("Project_Page");
+
+            projectlist.refresh();
+        }
+    }
+
+    // Loading indicator - forward state from ProjectList
+    LoadingIndicator {
+        anchors.fill: parent
+        visible: projectlist.isLoading
+        message: i18n.dtr("ubtms", "Loading projects...")
+    }
+}

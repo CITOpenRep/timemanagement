@@ -2,3 +2,8 @@ __pycache__
 build
 *.pot
 .agent
+voice_to_text/lib/
+.clickable
+website/node_modules
+website/.docusaurus
+website/build

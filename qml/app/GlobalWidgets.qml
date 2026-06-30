@@ -8,6 +8,7 @@ Item {
 
     property var rootApp
     property alias globalTimerWidget: globalTimerWidget
+    property alias modelDownloadTimerWidget: modelDownloadTimerWidget
     property alias backend_bridge: backend_bridge
     property alias notifPopup: notifPopup
     property alias imagePreviewer: imagePreviewer
@@ -21,6 +22,17 @@ Item {
         z: 999
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0
+        visible: false
+        showNotification: function (title, message, type) {
+            notifPopup.open(title, message, type);
+        }
+    }
+
+    // Model download progress bar for voice-to-text model - like sync 
+    ModelDownloadTimerWidget {
+        id: modelDownloadTimerWidget
+        z: 9999
+        anchors.bottom: parent.bottom
         visible: false
         showNotification: function (title, message, type) {
             notifPopup.open(title, message, type);
