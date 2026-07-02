@@ -13,9 +13,9 @@ This screen enables users to:
 ## Dashboard Overview
 The Dashboard consists of the following key sections:
 1. Header (Top Bar)
-2. Unsaved Drafts Alert 
+2. Unsaved Drafts Alert (New)
 3. Priority Matrix
-4. Navigation Tabs (Overview, Projects, Tasks) 
+4. Navigation Tabs (Overview, Projects, Tasks) (New)
 5. Quick Action Button
 
 ---
@@ -28,7 +28,7 @@ Located at the top of the screen.
 * **Account Name:** Displays the active user account.
 * **Add Icon (Clock with +):** Used to quickly create a new timesheet entry.
 * **Notification Icon (🔔):** Displays alerts and updates.
-* **Info Icon (ⓘ):** Provides additional information about dashboard chart guide.
+* **Info Icon (ⓘ):** Provides additional information or warnings.
 
 ---
 
@@ -64,11 +64,6 @@ Displays visual charts for time tracking.
 ### 2. Projects Tab
 Displays detailed information about user projects, along with a master total of hours logged across all projects.
 
-
-### 3. Tasks Tab
-A dedicated tab for managing and viewing individual tasks.*  **"Show next 10" and "Show fewer"** buttons are available at the bottom to expand the projects list.
-
-
 * **Search Bar:** Enables quick project lookup ("Search projects…").
 * **Sorting Options:**
     * **Most Time:** Sort by highest time spent.
@@ -81,7 +76,10 @@ Tapping on a specific project in the list navigates to a detailed view for that 
 * A summary header displaying the `TOTAL` time, `AVERAGE` time, total `TASKS`, and the `TOP TASK`.
 * A specific bar chart breaking down time spent by individual tasks within that project.
 * A list of individual tasks showing their percentage of project time, total hours, and a navigation arrow for further details.
+* A **"Show all X tasks ↓"** button at the bottom to expand the list.
 
+### 3. Tasks Tab
+A dedicated tab for managing and viewing individual tasks.
 
 ---
 

@@ -26,12 +26,14 @@ const sidebars = {
             "user/user-manual/my-tasks",
             "user/user-manual/project-updates",
             "user/user-manual/activities",
-            "user/user-manual/timesheets"
+            "user/user-manual/timesheets",
+            "user/user-manual/draftrich"
+
           ],
         }
       ]
     },
-  
+
 
     {
       type: "category",

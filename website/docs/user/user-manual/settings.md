@@ -21,6 +21,7 @@ The Settings module includes the following options:
 2. Notifications
 3. Background Sync
 4. Theme Settings
+5. Voice Model (Beta) 
 
 Each option is explained in detail below.
 
@@ -155,7 +156,18 @@ The **Connected Accounts** list supports quick actions using swipe gestures, all
 ---
 
 ## Notifications
-The **Notifications** section controls how and when the application alerts you.
+The **Notifications** section controls how and when the application alerts you, keeping you informed about important updates across your workflow.
+
+### Viewing and Interacting with Notifications
+Once enabled, you can stay up-to-date with your work through multiple notification channels:
+
+* **In-App Dashboard:** Tap the **Bell icon (🔔)** located in the top header of the dashboard. This opens a dedicated Notifications panel where you can review recent alerts, see timestamps (e.g., "4m ago"), switch to a "Sync" tab, or use the **Clear All** button to dismiss them.
+* **Device Notification Drawer:** Alerts will automatically appear in your phone's standard notification drawer.
+* **Lock Screen & Banners:** You will continue to receive notifications even when your phone is locked. When using the device, alerts may also appear as banner notifications above the phone drawer for immediate visibility.
+* **Quick Navigation:** Tapping on any notification from your phone's drawer or lock screen will seamlessly open the app and take you directly to the corresponding page to view the details.
+* **Notification Types:** The system will alert you to various events, including:
+    * **Project updates**
+    * **Activity notifications**
 
 ### Push Notifications
 Allows you to control whether the application can send alerts directly to your device.
@@ -254,6 +266,39 @@ The **Theme Settings** section allows users to customize the visual appearance o
 
 **System Behavior:**
 * The currently selected theme is marked with a **check indicator (✔)**.
-* Only one theme can be active at a time.
-* Theme changes are applied **instantly** across all screens (no restart or refresh is required).
-* The selected theme is **saved automatically** and persists across sessions.
+* Only one theme can be active at a time[cite: 2].
+* Theme changes are applied **instantly** across all screens (no restart or refresh is required)[cite: 2].
+* The selected theme is **saved automatically** and persists across sessions[cite: 2].
+
+---
+
+## Voice Model (Beta)
+The **Voice Model (Beta)** settings allow you to dictate text directly into the app using your device’s microphone. Because processing happens locally on your device, your voice data remains completely private and no internet connection is required after the initial model download.
+
+Once configured, the voice input icon will be available in the description fields of tasks, timesheets, activities, and project updates. 
+
+### Getting Started
+* Make sure you have enabled the **"Enable Voice Input"** toggle under the Voice Model (Beta) settings screen.
+
+### Voice Feature Stages
+When dictating in a description field:
+* When you click the voice icon, it will show **Starting**, then **Preparing**. 
+* Only start speaking once it shows **Listening**. 
+* When stopped, it will show **Processing** with a yellow bar.
+
+### Auto-Stop & Limits
+* If you do not speak for 7 seconds, the voice icon will automatically stop. 
+* The maximum duration for a single recording is 5 minutes.
+
+### Managing Downloads
+* Check your internet connectivity before downloading a file. 
+* Under **Available For Download**, you will find various voice models. Larger models provide higher accuracy but require more device memory and space. Smaller models are faster and use fewer resources but may be less accurate.
+* During download, you will see **Loading** (downloading), **Pause**, and **Cancel** buttons. Pausing or losing internet will preserve your progress, allowing you to resume later from this page. Cancelling will delete the partial download.
+* Once the voice model is downloaded, select the model you want from the **Installed Models** list. 
+* **Important:** Even if only one model is installed, selecting the model is mandatory. The selected model will be shown in **bold** text, with a tick mark to its right.
+
+### Compatibility & Errors
+* A red warning icon indicates the model is incompatible with your device (usually due to RAM limits), but you can still attempt to download it. Clicking it will prompt a warning where you can choose to "Cancel" or "Download Anyway".
+
+### Deleting Models
+* To remove an installed model, swipe its name to the left and click the delete icon.
