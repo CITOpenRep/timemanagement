@@ -22,7 +22,17 @@ const config = {
   },
   i18n: {
     defaultLocale: "en",
-    locales: ["en"]
+    locales: ["en", "nl"],
+    localeConfigs: {
+      en: {
+        label: "English",
+        htmlLang: "en"
+      },
+      nl: {
+        label: "Nederlands",
+        htmlLang: "nl"
+      }
+    }
   },
   presets: [
     [
@@ -73,6 +83,10 @@ const config = {
         },
         {
           type: "docsVersionDropdown",
+          position: "right"
+        },
+        {
+          type: "localeDropdown",
           position: "right"
         },
         {
@@ -130,7 +144,7 @@ const config = {
       /** @type {import("@easyops-cn/docusaurus-search-local").Options} */
       ({
         hashed: true,
-        language: ["en"],
+        language: ["en", "nl"],
         docsRouteBasePath: "docs",
         docsDir: "docs",
         indexBlog: false,

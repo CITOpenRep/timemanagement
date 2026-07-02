@@ -1,0 +1,26 @@
+{
+  "title": {
+    "message": "TimeManagement",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "TimeManagement logo",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.Docs": {
+    "message": "Docs",
+    "description": "Navbar item with label Docs"
+  },
+  "item.label.Technical": {
+    "message": "Technisch",
+    "description": "Navbar item with label Technical"
+  },
+  "item.label.Contributing": {
+    "message": "Bijdragen",
+    "description": "Navbar item with label Contributing"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Navbar item with label GitHub"
+  }
+}
