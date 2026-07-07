@@ -1,0 +1,26 @@
+{
+  "version.label": {
+    "message": "Volgende 🚧",
+    "description": "The label for version current"
+  },
+  "sidebar.docs.category.Functional": {
+    "message": "Functioneel",
+    "description": "The label for category 'Functional' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.User Manual": {
+    "message": "Gebruikershandleiding",
+    "description": "The label for category 'User Manual' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Technical": {
+    "message": "Technisch",
+    "description": "The label for category 'Technical' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Module Implementations": {
+    "message": "Module-implementaties",
+    "description": "The label for category 'Module Implementations' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Contributor": {
+    "message": "Bijdrager",
+    "description": "The label for category 'Contributor' in sidebar 'docs'"
+  }
+}
