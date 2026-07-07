@@ -2,26 +2,20 @@
 
 TimeManagement is a desktop and Ubuntu Touch project for task, timesheet, dashboard, and sync-oriented workflows.
 
-## Documentation site
+## Documentation Website
 
-The project now includes a Docusaurus website in `website/` that is intended to become the main home for:
+The documentation website has been migrated to its own dedicated repository:
 
-- product-facing overview content
-- user and setup documentation
-- technical architecture and repository guidance
-- contributor workflow documentation
+- **Repository:** [CITOpenRep/TimeManagement_Docs](https://github.com/CITOpenRep/TimeManagement_Docs)
+- **Published URL:** [https://citopenrep.github.io/TimeManagement_Docs/](https://citopenrep.github.io/TimeManagement_Docs/)
 
-Planned published URL:
+The documentation website hosts:
+- Product-facing overview content
+- User guides and sync configuration manuals
+- Technical architecture and codebase layout specifications
+- Contributor guides, localization policies, and versioning rules
 
-- `https://citopenrep.github.io/timemanagement/`
-
-## Local docs development
-
-```bash
-cd website
-npm install
-npm run start
-```
+To contribute to or develop the documentation website, please clone the [TimeManagement_Docs](https://github.com/CITOpenRep/TimeManagement_Docs) repository and follow the instructions in its README.
 
 ## App build and run
 
