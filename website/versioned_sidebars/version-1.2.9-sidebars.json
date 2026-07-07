@@ -1,21 +1,17 @@
-const sidebars = {
-  docs: [
+{
+  "docs": [
     {
-      type: "category",
-      label: "Functional",
-      items: [
+      "type": "category",
+      "label": "Functional",
+      "items": [
         "user/overview",
         "user/install-and-run",
         "user/setup-and-sync",
-        // "user/features",
-        // "user/all-features",
         "user/troubleshooting",
         {
-          type: "category",
-          label: "User Manual",
-          // Uncomment the line below if 'user/user-manual' is an actual Markdown file you want to link to when clicking the category title
-          // link: { type: 'doc', id: 'user/user-manual' }, 
-          items: [
+          "type": "category",
+          "label": "User Manual",
+          "items": [
             "user/user-manual/introduction",
             "user/user-manual/dashboard",
             "user/user-manual/kebab-menu",
@@ -27,22 +23,20 @@ const sidebars = {
             "user/user-manual/project-updates",
             "user/user-manual/activities",
             "user/user-manual/timesheets"
-          ],
+          ]
         }
       ]
     },
-  
-
     {
-      type: "category",
-      label: "Technical",
-      items: [
+      "type": "category",
+      "label": "Technical",
+      "items": [
         "technical/architecture",
         "technical/repository-organization",
         {
-          type: "category",
-          label: "Module Implementations",
-          items: [
+          "type": "category",
+          "label": "Module Implementations",
+          "items": [
             "technical/activities",
             "technical/projects",
             "technical/tasks",
@@ -60,9 +54,9 @@ const sidebars = {
       ]
     },
     {
-      type: "category",
-      label: "Contributor",
-      items: [
+      "type": "category",
+      "label": "Contributor",
+      "items": [
         "contributing/getting-started",
         "contributing/pull-request-guidelines",
         "contributing/documentation-governance",
@@ -70,6 +64,4 @@ const sidebars = {
       ]
     }
   ]
-};
-
-module.exports = sidebars;
+}

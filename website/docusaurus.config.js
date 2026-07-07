@@ -32,7 +32,13 @@ const config = {
           path: "docs",
           routeBasePath: "docs",
           sidebarPath: require.resolve("./sidebars.js"),
-          editUrl: "https://github.com/CITOpenRep/timemanagement/tree/main/website/"
+          editUrl: "https://github.com/CITOpenRep/timemanagement/tree/main/website/",
+          versions: {
+            current: {
+              label: "Next 🚧",
+              path: "next"
+            }
+          }
         },
         blog: false,
         theme: {
@@ -64,6 +70,10 @@ const config = {
           to: "/docs/contributing/getting-started",
           label: "Contributing",
           position: "left"
+        },
+        {
+          type: "docsVersionDropdown",
+          position: "right"
         },
         {
           href: "https://github.com/CITOpenRep/timemanagement",
