@@ -35,6 +35,7 @@ import sqlite3
 import argparse
 import traceback
 import signal
+import socket
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 import logging
@@ -191,7 +192,6 @@ class NotificationDaemon:
             self._write_pid_file()
             self._setup_signal_handlers()
             self._protect_from_oom()  # Lower OOM priority to survive memory pressure
-            self._request_wakelock()  # Request wakelock to survive device sleep
             self._setup_suspend_handler()  # Handle sleep/wake events
     
     def _get_sync_settings(self):
@@ -572,7 +572,9 @@ class NotificationDaemon:
                     self.notification_interface = None
     
     def _request_wakelock(self):
-        """Request a wakelock from repowerd to prevent the daemon from being killed during device sleep."""
+        """Request a transient wakelock from repowerd to prevent suspend during active tasks."""
+        if self.wakelock_cookie is not None:
+            return  # Already holding a wakelock
         try:
             # Connect to system bus for repowerd
             system_bus = dbus.SystemBus()
@@ -582,27 +584,23 @@ class NotificationDaemon:
             # Request system state: state=1 means "active" (prevent suspend)
             # MUST use dbus.Int32(1) - Python int causes "Invalid state" error
             self.wakelock_cookie = repowerd_iface.requestSysState("ubtms-daemon", dbus.Int32(1))
-            log.info(f"[DAEMON] Wakelock acquired (state=1): {self.wakelock_cookie}")
-            
-            # Also schedule periodic wakeups to ensure we get CPU time
-            self._schedule_wakeup()
+            log.info(f"[DAEMON] Transient wakelock acquired (state=1): {self.wakelock_cookie}")
         except Exception as e:
-            log.warning(f"[DAEMON] Failed to acquire wakelock (daemon may be killed during sleep): {e}")
+            log.warning(f"[DAEMON] Failed to acquire transient wakelock: {e}")
             self.wakelock_cookie = None
     
-    def _schedule_wakeup(self):
-        """Schedule a wakeup in 90 seconds to ensure periodic sync even during deep sleep."""
+    def _schedule_wakeup(self, seconds=90):
+        """Schedule a hardware wakeup in N seconds to wake the device for scheduled syncs."""
         try:
             system_bus = dbus.SystemBus()
             repowerd = system_bus.get_object('com.lomiri.Repowerd', '/com/lomiri/Repowerd')
             repowerd_iface = dbus.Interface(repowerd, 'com.lomiri.Repowerd')
             
-            # Schedule wakeup 90 seconds from now (before next sync at 60s interval with buffer)
-            wakeup_time = int(time.time()) + 90
+            wakeup_time = int(time.time()) + seconds
             cookie = repowerd_iface.requestWakeup("ubtms-sync", dbus.UInt64(wakeup_time))
-            log.info(f"[DAEMON] Scheduled wakeup at {wakeup_time} (cookie: {cookie})")
+            log.info(f"[DAEMON] Scheduled hardware wakeup at {wakeup_time} in {seconds}s (cookie: {cookie})")
         except Exception as e:
-            log.warning(f"[DAEMON] Failed to schedule wakeup: {e}")
+            log.warning(f"[DAEMON] Failed to schedule hardware wakeup: {e}")
     
     def _release_wakelock(self):
         """Release the wakelock when shutting down."""
@@ -661,9 +659,7 @@ class NotificationDaemon:
             self._save_last_check_times()
             self._update_heartbeat()
         else:
-            log.info("[DAEMON] System waking up - refreshing wakelocks and scheduling sync")
-            # Re-acquire wakelock after wake
-            self._request_wakelock()
+            log.info("[DAEMON] System waking up - scheduling sync")
             # Schedule immediate sync after short delay
             GLib.timeout_add_seconds(5, self._sync_after_wake)
     
@@ -1462,11 +1458,15 @@ class NotificationDaemon:
             # Record successful sync timestamp in the database
             update_last_synced_at(self.app_db, account_id)
             
+        except (ConnectionError, OSError) as net_err:
+            log.info(f"[DAEMON] Sync failed for account '{account_name}' (device is offline/network down): {net_err}")
+            try:
+                self.check_for_new_assignments(account_id, account_name, current_user_id, pre_sync_snapshot)
+            except Exception as e2:
+                log.error(f"[DAEMON] Failed to check assignments after connection error: {e2}")
         except Exception as e:
             log.error(f"[DAEMON] Error syncing account {account_name}: {e}")
             log.error(f"[DAEMON] Error traceback: {traceback.format_exc()}")
-            # On sync error, we still have the pre_sync_snapshot, so we can check for any
-            # assignments that might have been partially synced
             try:
                 self.check_for_new_assignments(account_id, account_name, current_user_id, pre_sync_snapshot)
             except Exception as e2:
@@ -1479,6 +1479,7 @@ class NotificationDaemon:
             accounts_to_sync: Optional list of account dicts to sync.
                               If None, syncs all configured accounts.
         """
+        self._request_wakelock()
         try:
             if accounts_to_sync is None:
                 accounts_to_sync = get_all_accounts(self.settings_db)
@@ -1507,6 +1508,8 @@ class NotificationDaemon:
             
         except Exception as e:
             log.error(f"[DAEMON] Error in sync_all_accounts: {e}")
+        finally:
+            self._release_wakelock()
     
     def _schedule_tick_timer(self):
         """Schedule the 60-second tick timer for per-account sync scheduling.
@@ -1562,8 +1565,8 @@ class NotificationDaemon:
         # Schedule tick-based timer (checks per-account intervals every 60 seconds)
         self._schedule_tick_timer()
         
-        # Schedule heartbeat update every 30 seconds
-        GLib.timeout_add_seconds(30, self._heartbeat_callback)
+        # Schedule heartbeat update every 120 seconds (2 minutes) to reduce disk writes
+        GLib.timeout_add_seconds(120, self._heartbeat_callback)
         
         # Run main loop with restart capability
         self.loop = GLib.MainLoop()
@@ -1664,13 +1667,46 @@ class NotificationDaemon:
             
             if due_accounts:
                 log.info(f"[DAEMON] Tick: {len(due_accounts)}/{len(accounts)} account(s) due for sync")
-                # Reschedule wakeup and refresh wakelock
-                self._schedule_wakeup()
-                self._request_wakelock()
                 self.sync_all_accounts(due_accounts)
                 log.info("[DAEMON] Tick sync completed successfully")
             else:
                 log.debug(f"[DAEMON] Tick: no accounts due for sync")
+
+            # Calculate next wakeup interval dynamically
+            min_remaining_seconds = 15 * 60  # Default 15 minutes fallback
+            for account in accounts:
+                account_id = account["id"]
+                account_name = account.get("name", "Unknown")
+                if not account.get("link") or account_name == "Local Account":
+                    continue
+                acct_settings = get_account_sync_settings(self.app_db, account_id)
+                if not acct_settings["autosync_enabled"]:
+                    continue
+                
+                interval_minutes = acct_settings["sync_interval_minutes"]
+                last_synced_str = acct_settings.get("last_synced_at")
+                
+                is_just_synced = any(a["id"] == account_id for a in due_accounts)
+                
+                if is_just_synced:
+                    remaining = interval_minutes * 60
+                elif last_synced_str is None:
+                    remaining = 0
+                else:
+                    try:
+                        last_synced = datetime.strptime(last_synced_str, "%Y-%m-%d %H:%M:%S")
+                        last_synced = last_synced.replace(tzinfo=timezone.utc)
+                        elapsed = (now - last_synced).total_seconds()
+                        remaining = max(0, (interval_minutes * 60) - elapsed)
+                    except Exception:
+                        remaining = 0
+                
+                if remaining < min_remaining_seconds:
+                    min_remaining_seconds = remaining
+            
+            # Schedule next hardware wakeup alarm (minimum 60 seconds)
+            wakeup_interval = max(60, int(min_remaining_seconds) + 10)
+            self._schedule_wakeup(wakeup_interval)
 
             if self._last_schedule_allowed in (None, False) and current_schedule_allowed is True:
                 log.info("[DAEMON] Schedule transitioned to active hours, replaying deferred notifications")
