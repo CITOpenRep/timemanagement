@@ -66,6 +66,7 @@ Page {
     property var downloadStatus: { "in_progress": false, "progress": 0, "message": "", "error": "" }
     property int deviceRamMB: 2048
     property bool isVoiceInputEnabled: true
+    property bool isVoiceLowMemoryMode: true
     property string searchQuery: ""
     property var allInstalledModels: []
     property var allAvailableModels: []
@@ -113,17 +114,56 @@ Page {
         }
     }
 
+    function getVoiceLowMemoryModeSetting() {
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var result = true;
+            db.transaction(function (tx) {
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+                var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = "voice_low_memory_mode"');
+                if (rs.rows.length > 0) {
+                    result = rs.rows.item(0).value === "true";
+                }
+            });
+            return result;
+        } catch (e) {
+            console.warn("Error reading voice_low_memory_mode setting:", e);
+            return true;
+        }
+    }
+
+    function saveVoiceLowMemoryModeSetting(value) {
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            db.transaction(function (tx) {
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+                tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES ("voice_low_memory_mode", ?)', [value ? "true" : "false"]);
+            });
+            isVoiceLowMemoryMode = value;
+        } catch (e) {
+            console.warn("Error saving voice_low_memory_mode setting:", e);
+        }
+    }
+
     function isModelCompatible(sizeStr) {
         if (!sizeStr) return true;
         var upperSize = sizeStr.toUpperCase();
         var isG = upperSize.indexOf("G") !== -1;
+        var isM = upperSize.indexOf("M") !== -1;
         if (isG) {
-            var val = parseFloat(upperSize.replace("G", ""));
-            // Assume 1G requires ~2500MB RAM, 1.8G requires ~4000MB RAM.
-            var reqRam = val * 2500; 
-            return deviceRamMB >= reqRam;
+            var valG = parseFloat(upperSize.replace("G", ""));
+            // Models larger than 2.5G are always incompatible due to mobile OS cgroups app memory restrictions.
+            if (valG > 2.5) return false;
+            var reqRamG = valG * 2500; 
+            return deviceRamMB >= reqRamG;
         }
-        return true; // MB sizes are usually compatible with any device
+        if (isM) {
+            var valM = parseFloat(upperSize.replace("M", ""));
+            if (valM > 2500) return false;
+            var reqRamM = (valM / 1024.0) * 2500;
+            return deviceRamMB >= reqRamM;
+        }
+        return true;
     }
 
     function getActiveModelSetting() {
@@ -295,6 +335,7 @@ Page {
     Component.onCompleted: {
         activeModelPath = getActiveModelSetting();
         isVoiceInputEnabled = getVoiceInputEnabledSetting();
+        isVoiceLowMemoryMode = getVoiceLowMemoryModeSetting();
         if (mainView.backend_bridge.ready) {
             refreshModels();
             checkInProgressDownload();
@@ -505,7 +546,7 @@ Page {
                 width: parent.width
                 
                 Text {
-                    text: i18n.dtr("ubtms", "This model is incompatible with your device because it requires more RAM than available. It may cause the app to crash.\n\nBut if you want to download it, you can.")
+                    text: i18n.dtr("ubtms", "This model is very large. Mobile operating systems enforce memory limits per application. If a model's search graph is too dense (exceeding 1.3 GB), loading it will cause the application to crash.\n\nWe highly recommend using the 'LGraph' or 'Small' version instead (which provide excellent accuracy with much lower memory usage). If you still want to download this model, you can, but it may fail to run during use depending on memory limits.")
                     width: parent.width
                     wrapMode: Text.WordWrap
                     color: theme.palette.normal.backgroundText
@@ -654,6 +695,34 @@ Page {
                     onCheckedChanged: {
                         if (checked !== isVoiceInputEnabled) {
                             saveVoiceInputEnabledSetting(checked);
+                        }
+                    }
+                }
+            }
+
+            ListItem {
+                width: parent.width
+                height: units.gu(7)
+                divider.visible: true
+                enabled: isVoiceInputEnabled
+
+                Label {
+                    anchors.left: parent.left
+                    anchors.leftMargin: units.gu(2)
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: i18n.dtr("ubtms", "Low Memory Mode (Saves ~1.5 GB RAM)")
+                    font.pixelSize: units.gu(2)
+                    color: !isVoiceInputEnabled ? "#888" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f5f5f5" : "#111")
+                }
+
+                Switch {
+                    anchors.right: parent.right
+                    anchors.rightMargin: units.gu(2)
+                    anchors.verticalCenter: parent.verticalCenter
+                    checked: isVoiceLowMemoryMode
+                    onCheckedChanged: {
+                        if (checked !== isVoiceLowMemoryMode) {
+                            saveVoiceLowMemoryModeSetting(checked);
                         }
                     }
                 }
