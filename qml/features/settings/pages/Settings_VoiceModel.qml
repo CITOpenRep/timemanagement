@@ -435,7 +435,7 @@ Page {
                         color: theme.palette.normal.backgroundText
                         font.pixelSize: units.gu(1.6)
                         lineHeight: 1.2
-                        text: i18n.dtr("ubtms", "<b>Getting Started:</b> Make sure you have enabled the \"Enable voice input\" feature, under voice model (Beta) settings. ")
+                        text: i18n.dtr("ubtms", "<b>Getting Started:</b> Make sure you have enabled the \"Enable voice input\" feature under voice model (Beta) settings. Additionally, \"Low Memory Mode\" must be enabled to run larger models compatibly without experiencing crash issues.")
                     }
 
                     Text {
@@ -539,18 +539,59 @@ Page {
             property string modelId
             property string modelUrl
             property string modelName
+            property string modelSize
+            property string modelPath
+            property bool isSelectAction: false
             title: i18n.dtr("ubtms", "Warning")
+
+            function getWarningText(sizeStr) {
+                var sizeDisplay = sizeStr ? sizeStr : i18n.dtr("ubtms", "Unknown");
+                var deviceRamDisplay = (deviceRamMB / 1024.0).toFixed(1) + " GB (" + deviceRamMB + " MB)";
+                
+                var reqRamStr = i18n.dtr("ubtms", "Unknown");
+                var isOverLimit = false;
+                
+                if (sizeStr) {
+                    var upperSize = sizeStr.toUpperCase();
+                    var isG = upperSize.indexOf("G") !== -1;
+                    var isM = upperSize.indexOf("M") !== -1;
+                    if (isG) {
+                        var valG = parseFloat(upperSize.replace("G", ""));
+                        if (valG > 2.5) isOverLimit = true;
+                        reqRamStr = (valG * 2.5).toFixed(1) + " GB";
+                    } else if (isM) {
+                        var valM = parseFloat(upperSize.replace("M", ""));
+                        if (valM > 2500) isOverLimit = true;
+                        reqRamStr = ((valM / 1024.0) * 2.5).toFixed(1) + " GB";
+                    }
+                }
+                
+                var reason = "";
+                if (isOverLimit) {
+                    reason = i18n.dtr("ubtms", "Models larger than 2.5 GB are always incompatible due to mobile OS cgroups app memory restrictions, which terminate applications exceeding strict memory thresholds.");
+                } else {
+                    reason = i18n.dtr("ubtms", "This model requires more RAM than your device currently has. Running it will likely cause the application to crash due to out-of-memory limits.");
+                }
+                
+                return i18n.dtr("ubtms", "This model may be incompatible with your device.<br/><br/>" +
+                                "• <b>Model Size:</b> %1<br/>" +
+                                "• <b>Estimated RAM Required:</b> %2<br/>" +
+                                "• <b>Your Device RAM:</b> %3<br/><br/>" +
+                                "%4<br/><br/>" +
+                                "We highly recommend using the 'LGraph' or 'Small' version instead (which provide excellent accuracy with much lower memory usage).<b>  You can still use the model without crashing by enabling low memory mode in the voice model settings.</b>").arg(sizeDisplay).arg(reqRamStr).arg(deviceRamDisplay).arg(reason);
+            }
             
             Column {
                 spacing: units.gu(2)
                 width: parent.width
                 
                 Text {
-                    text: i18n.dtr("ubtms", "This model is very large. Mobile operating systems enforce memory limits per application. If a model's search graph is too dense (exceeding 1.3 GB), loading it will cause the application to crash.\n\nWe highly recommend using the 'LGraph' or 'Small' version instead (which provide excellent accuracy with much lower memory usage). If you still want to download this model, you can, but it may fail to run during use depending on memory limits.")
+                    text: warningDialog.getWarningText(warningDialog.modelSize)
+                    textFormat: Text.RichText
                     width: parent.width
                     wrapMode: Text.WordWrap
                     color: theme.palette.normal.backgroundText
-                    horizontalAlignment: Text.AlignHCenter
+                    horizontalAlignment: Text.AlignJustify
                 }
                 
                 Row {
@@ -563,11 +604,15 @@ Page {
                     }
                     
                     Button {
-                        text: i18n.dtr("ubtms", "Download Anyway")
+                        text: warningDialog.isSelectAction ? i18n.dtr("ubtms", "Select Anyway") : i18n.dtr("ubtms", "Download Anyway")
                         color: LomiriColors.orange
                         onClicked: {
                             PopupUtils.close(warningDialog);
-                            downloadModel(warningDialog.modelId, warningDialog.modelUrl, warningDialog.modelName);
+                            if (warningDialog.isSelectAction) {
+                                saveActiveModelSetting(warningDialog.modelPath);
+                            } else {
+                                downloadModel(warningDialog.modelId, warningDialog.modelUrl, warningDialog.modelName);
+                            }
                         }
                     }
                 }
@@ -697,7 +742,7 @@ Page {
                             saveVoiceInputEnabledSetting(checked);
                         }
                     }
-                }
+                } 
             }
 
             ListItem {
@@ -763,6 +808,15 @@ Page {
                     }
 
                     onClicked: {
+                        if (!isModelCompatible(model.size)) {
+                            PopupUtils.open(warningComponent, voiceModelSettingsPage, {
+                                "modelName": model.name,
+                                "modelSize": model.size,
+                                "modelPath": model.path,
+                                "isSelectAction": true
+                            });
+                            return;
+                        }
                         saveActiveModelSetting(model.path);
                     }
 
@@ -790,7 +844,7 @@ Page {
                             right: parent.right
                             verticalCenter: parent.verticalCenter
                             leftMargin: units.gu(2)
-                            rightMargin: units.gu(6)
+                            rightMargin: units.gu(8)
                         }
                         spacing: units.gu(0.5)
 
@@ -812,15 +866,40 @@ Page {
                         }
                     }
 
-                    Icon {
+                    Row {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.rightMargin: units.gu(2)
-                        name: "ok"
-                        width: units.gu(2.5)
-                        height: units.gu(2.5)
-                        color: LomiriColors.orange
-                        visible: activeModelPath === model.path
+                        spacing: units.gu(1)
+                        layoutDirection: Qt.RightToLeft
+
+                        Icon {
+                            name: "ok"
+                            width: units.gu(2.5)
+                            height: units.gu(2.5)
+                            color: LomiriColors.orange
+                            visible: activeModelPath === model.path
+                        }
+
+                        Icon {
+                            name: "dialog-warning"
+                            width: units.gu(2.5)
+                            height: units.gu(2.5)
+                            color: LomiriColors.red
+                            visible: !isModelCompatible(model.size)
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    PopupUtils.open(warningComponent, voiceModelSettingsPage, {
+                                        "modelName": model.name,
+                                        "modelSize": model.size,
+                                        "modelPath": model.path,
+                                        "isSelectAction": true
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -872,7 +951,9 @@ Page {
                                 PopupUtils.open(warningComponent, voiceModelSettingsPage, {
                                     "modelId": model.id,
                                     "modelUrl": model.url,
-                                    "modelName": model.name
+                                    "modelName": model.name,
+                                    "modelSize": model.size,
+                                    "isSelectAction": false
                                 });
                                 return;
                             }
@@ -936,7 +1017,9 @@ Page {
                                         PopupUtils.open(warningComponent, voiceModelSettingsPage, {
                                             "modelId": model.id,
                                             "modelUrl": model.url,
-                                            "modelName": model.name
+                                            "modelName": model.name,
+                                            "modelSize": model.size,
+                                            "isSelectAction": false
                                         });
                                     }
                                 }
