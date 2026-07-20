@@ -27,23 +27,23 @@ msgstr ""
 #: ../qml/features/timesheets/pages/Timesheet_Page.qml:80
 #: ../qml/features/updates/pages/Updates_Page.qml:70
 msgid "Menu"
-msgstr "सूची"
+msgstr "विकल्पसूची"
 
 #: ../qml/app/GlobalWidgets.qml:59
 msgid "Switch account"
-msgstr "लेखं परिवर्तय"
+msgstr "लेखं परिवर्तयतु"
 
 #: ../qml/app/navigation/MenuPage.qml:55
 msgid "Switch Accounts"
-msgstr "लेखान् परिवर्तय"
+msgstr "लेखान् परिवर्तयतु"
 
 #: ../qml/app/navigation/MenuPage.qml:62
 msgid "Dark Mode"
-msgstr "कृष्णरूपम्"
+msgstr "तमःप्रकारः"
 
 #: ../qml/app/navigation/MenuPage.qml:62
 msgid "Light Mode"
-msgstr "प्रकाशरूपम्"
+msgstr "प्रकाशप्रकारः"
 
 #: ../qml/app/pages/AboutPage.qml:35 ../qml/app/pages/AboutPage.qml:52
 msgid "About"
@@ -59,11 +59,11 @@ msgstr "अद्य"
 
 #: ../qml/components/cards/ActivityDetailsCard.qml:86
 msgid "DONE"
-msgstr "समाप्तम्"
+msgstr "कृतम्"
 
 #: ../qml/components/cards/ActivityDetailsCard.qml:92
 msgid "PLANNED"
-msgstr "नियोजितम्"
+msgstr "योजितम्"
 
 #: ../qml/components/cards/ActivityDetailsCard.qml:190
 #: ../qml/components/cards/UpdatesDetailsCard.qml:52
@@ -77,7 +77,7 @@ msgstr "सम्पादनम्"
 
 #: ../qml/components/cards/ActivityDetailsCard.qml:201
 msgid "Mark Done"
-msgstr "समाप्तम् इति चिह्नय"
+msgstr "कृतम् इति चिह्नयतु"
 
 #: ../qml/components/cards/ActivityDetailsCard.qml:206
 msgid "Follow-up"
@@ -100,7 +100,7 @@ msgstr "नियुक्तः: "
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:609
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:94
 msgid "Unassigned"
-msgstr "अनियुक्तः"
+msgstr "अनियुक्तम्"
 
 #: ../qml/components/cards/ActivityDetailsCard.qml:328
 #: ../qml/components/cards/ProjectDetailsCard.qml:341
@@ -112,20 +112,20 @@ msgstr "प्रारूपम्"
 
 #: ../qml/components/cards/ActivityDetailsCard.qml:351
 msgid "Type ID: "
-msgstr "प्रकार-सङ्ख्या: "
+msgstr "प्रकार-परिचयः: "
 
 #: ../qml/components/cards/ActivityDetailsCard.qml:392
 msgid "Reschedule Activity Date"
-msgstr "क्रियातिथिं पुनर्नियोजय"
+msgstr "क्रिया-दिनाङ्कं पुनर्निर्धारयतु"
 
 #: ../qml/components/cards/ProjectDetailsCard.qml:136
 msgid "Stop Timer"
-msgstr "कालमापकं निरोधय"
+msgstr "कालमापकं स्थगयतु"
 
 #: ../qml/components/cards/ProjectDetailsCard.qml:369
 #: ../qml/features/tasks/components/TaskDetailsCard.qml:630
 msgid "Planned (H): "
-msgstr "नियोजिताः (घण्टाः): "
+msgstr "योजितम् (घ.): "
 
 #: ../qml/components/cards/ProjectDetailsCard.qml:377
 #: ../qml/components/cards/ProjectDetailsCard.qml:385
@@ -138,25 +138,25 @@ msgstr "नियोजिताः (घण्टाः): "
 #: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:41
 #: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:99
 msgid "Not set"
-msgstr "न निर्धारितम्"
+msgstr "अनिर्धारितम्"
 
 #: ../qml/components/cards/ProjectDetailsCard.qml:377
 #: ../qml/features/tasks/components/TaskDetailsCard.qml:637
 msgid "Start Date: "
-msgstr "आरम्भतिथिः: "
+msgstr "आरम्भदिनाङ्कः: "
 
 #: ../qml/components/cards/ProjectDetailsCard.qml:385
 #: ../qml/features/tasks/components/TaskDetailsCard.qml:644
 msgid "End Date: "
-msgstr "समाप्तितिथिः: "
+msgstr "अन्तदिनाङ्कः: "
 
 #: ../qml/components/cards/TasksForDayWidget.qml:36
 msgid "Plan for Today"
-msgstr "अद्यतनयोजना"
+msgstr "अद्यतनी योजना"
 
 #: ../qml/components/cards/UpdatesDetailsCard.qml:83
 msgid "Untitled Update"
-msgstr "अनाम अद्यतनम्"
+msgstr "अनामः अद्यतनः"
 
 #: ../qml/components/cards/UpdatesDetailsCard.qml:102
 #: ../qml/components/dialogs/CreateUpdateDialog.qml:81
@@ -165,7 +165,7 @@ msgstr "अनाम अद्यतनम्"
 #: ../qml/features/updates/pages/Updates.qml:464
 #: ../qml/features/updates/pages/Updates_Page.qml:270
 msgid "On Track"
-msgstr "सम्यग्गतिः"
+msgstr "सम्यक् मार्गे"
 
 #: ../qml/components/cards/UpdatesDetailsCard.qml:103
 #: ../qml/components/dialogs/CreateUpdateDialog.qml:82
@@ -183,7 +183,7 @@ msgstr "संकटे"
 #: ../qml/features/updates/pages/Updates.qml:466
 #: ../qml/features/updates/pages/Updates_Page.qml:272
 msgid "Off Track"
-msgstr "मार्गात् बहिः"
+msgstr "मार्गभ्रष्टम्"
 
 #: ../qml/components/cards/UpdatesDetailsCard.qml:105
 #: ../qml/components/dialogs/CreateUpdateDialog.qml:84
@@ -199,7 +199,7 @@ msgstr "द्वारा: "
 
 #: ../qml/components/cards/UpdatesDetailsCard.qml:122
 msgid "No Date"
-msgstr "तिथिः नास्ति"
+msgstr "दिनाङ्कः नास्ति"
 
 #: ../qml/components/cards/UpdatesDetailsCard.qml:122
 msgid "Unknown User"
@@ -212,13 +212,13 @@ msgstr "विवरणम्"
 #: ../qml/components/cards/UpdatesDetailsCard.qml:147
 #: ../qml/features/updates/pages/Updates.qml:83
 msgid "Unknown Project"
-msgstr "अज्ञाता परियोजना"
+msgstr "अज्ञातपरियोजना"
 
 #: ../qml/components/dialogs/AccountSelectorDialog.qml:21
 #: ../qml/components/selectors/ProjectSelector.qml:62
 #: ../qml/components/selectors/ProjectSelector.qml:99
 msgid "Select Account"
-msgstr "लेखं चिनुत"
+msgstr "लेखं चिनोतु"
 
 #: ../qml/components/dialogs/AccountSelectorDialog.qml:72
 #: ../qml/components/navigation/AccountDrawer.qml:366
@@ -229,11 +229,11 @@ msgstr "सर्वे लेखाः"
 
 #: ../qml/components/dialogs/AccountSelectorDialog.qml:102
 msgid "Choose an account to use"
-msgstr "उपयोक्तुं लेखं चिनुत"
+msgstr "उपयोगाय लेखं चिनोतु"
 
 #: ../qml/components/dialogs/AccountSelectorDialog.qml:195
 msgid "No accounts available"
-msgstr "कोऽपि लेखः उपलब्धः नास्ति"
+msgstr "लेखाः न सन्ति"
 
 #: ../qml/components/dialogs/AccountSelectorDialog.qml:231
 #: ../qml/components/dialogs/CreateUpdateDialog.qml:138
@@ -258,18 +258,18 @@ msgstr "निरसनम्"
 
 #: ../qml/components/dialogs/ColorPicker.qml:24
 msgid "Select Color"
-msgstr "वर्णं चिनुत"
+msgstr "वर्णं चिनोतु"
 
 #: ../qml/components/dialogs/CreateUpdateDialog.qml:44
 #: ../qml/components/workflow/CreateUpdatePage.qml:19
 msgid "New Project Update"
-msgstr "नूतनं परियोजना-अद्यतनम्"
+msgstr "नूतन-परियोजना-अद्यतनम्"
 
 #: ../qml/components/dialogs/CreateUpdateDialog.qml:73
 #: ../qml/components/workflow/CreateUpdatePage.qml:234
 #: ../qml/features/updates/pages/Updates.qml:421
 msgid "Update Title"
-msgstr "अद्यतनशीर्षकम्"
+msgstr "अद्यतन-शीर्षकम्"
 
 #: ../qml/components/dialogs/CreateUpdateDialog.qml:93
 msgid "Progress:"
@@ -281,19 +281,19 @@ msgstr "प्रगतिः:"
 #: ../qml/components/workflow/CreateUpdatePage.qml:318
 #: ../qml/features/updates/pages/Updates.qml:543
 msgid "Description"
-msgstr "प्रगतिः:"
+msgstr "विवरणम्"
 
 #: ../qml/components/dialogs/SaveDiscardDialog.qml:49
 #: ../qml/components/workflow/CreateUpdatePage.qml:154
 msgid "Unsaved Changes"
-msgstr "असंरक्षितपरिवर्तनानि"
+msgstr "असंरक्षित-परिवर्तनानि"
 
 #: ../qml/components/dialogs/SaveDiscardDialog.qml:53
 msgid ""
 "You have unsaved changes. What would you like to do?\n"
 "\n"
 "Note: If you cancel, you can navigate back to continue editing."
-msgstr ""
+msgstr "भवतः असंरक्षित-परिवर्तनानि सन्ति। भवान् किं कर्तुम् इच्छति?\n\nटिप्पणी: यदि भवान् निरसयति, तर्हि भवान् पुनः सम्पादनं कर्तुं प्रत्यागन्तुं शक्नोति।"
 
 #: ../qml/components/dialogs/SaveDiscardDialog.qml:65
 #: ../qml/features/activities/pages/Activities.qml:93
@@ -307,41 +307,41 @@ msgstr "संरक्षणम्"
 #: ../qml/components/dialogs/SaveDiscardDialog.qml:80
 #: ../qml/components/workflow/CreateUpdatePage.qml:168
 msgid "Discard"
-msgstr "परित्यज"
+msgstr "त्यजतु"
 
 #: ../qml/components/dialogs/TimePickerPopup.qml:44
 msgid "Select Hours"
-msgstr "घण्टाः चिनुत"
+msgstr "घण्टाः चिनोतु"
 
 #: ../qml/components/dialogs/TimePickerPopup.qml:109
 #: ../qml/components/navigation/AccountDrawer.qml:333
 #: ../qml/components/pickers/CustomDatePicker.qml:167
 msgid "OK"
-msgstr "अस्तु"
+msgstr "सम्यक्"
 
 #: ../qml/components/feedback/LoadMoreFooter.qml:82
 msgid "Load more..."
-msgstr ""
+msgstr "अधिकं भारयतु..."
 
 #: ../qml/components/feedback/LoadMoreFooter.qml:91
 msgid "Loading..."
-msgstr ""
+msgstr "भारणं भवति..."
 
 #: ../qml/components/feedback/NotificationBell.qml:168
 msgid "Just now"
-msgstr ""
+msgstr "इदानीमेव"
 
 #: ../qml/components/feedback/NotificationBell.qml:169
 msgid "m ago"
-msgstr ""
+msgstr "मि. पूर्वम्"
 
 #: ../qml/components/feedback/NotificationBell.qml:170
 msgid "h ago"
-msgstr ""
+msgstr "घ. पूर्वम्"
 
 #: ../qml/components/feedback/NotificationBell.qml:171
 msgid "d ago"
-msgstr ""
+msgstr "दि. पूर्वम्"
 
 #: ../qml/components/feedback/NotificationBell.qml:243
 #: ../qml/components/feedback/NotificationBell.qml:316
@@ -350,27 +350,27 @@ msgstr ""
 #: ../qml/features/settings/pages/Settings_Notifications.qml:34
 #: ../qml/features/settings/pages/Settings_Page.qml:80
 msgid "Notifications"
-msgstr ""
+msgstr "सूचनाः"
 
 #: ../qml/components/feedback/NotificationBell.qml:372
 msgid "Sync"
-msgstr ""
+msgstr "समकालनम्"
 
 #: ../qml/components/feedback/NotificationBell.qml:435
 msgid "No sync notifications"
-msgstr ""
+msgstr "समकालन-सूचनाः न सन्ति"
 
 #: ../qml/components/feedback/NotificationBell.qml:436
 msgid "No notifications"
-msgstr ""
+msgstr "सूचनाः न सन्ति"
 
 #: ../qml/components/feedback/NotificationBell.qml:444
 msgid "All syncs are running smoothly!"
-msgstr ""
+msgstr "सर्वाणि समकालनानि सुष्ठु चलन्ति!"
 
 #: ../qml/components/feedback/NotificationBell.qml:445
 msgid "You're all caught up!"
-msgstr ""
+msgstr "भवान् सर्वदा अद्यतनः अस्ति!"
 
 #: ../qml/components/feedback/NotificationBell.qml:484
 #: ../qml/components/workflow/AttachmentManager.qml:214
@@ -379,7 +379,7 @@ msgstr ""
 #: ../qml/features/settings/pages/Settings_Accounts.qml:317
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:475
 msgid "Delete"
-msgstr ""
+msgstr "विलोपनम्"
 
 #: ../qml/components/feedback/NotificationBell.qml:661
 #: ../qml/components/selectors/WorkItemSelector.qml:127
@@ -389,13 +389,13 @@ msgstr ""
 #: ../qml/features/tasks/pages/Task_Page.qml:404
 #: ../qml/features/tasks/pages/Tasks.qml:47
 msgid "Task"
-msgstr ""
+msgstr "कार्यम्"
 
 #: ../qml/components/feedback/NotificationBell.qml:662
 #: ../qml/features/activities/pages/Activities.qml:20
 #: ../qml/features/dashboard/pages/Dashboard.qml:223
 msgid "Activity"
-msgstr ""
+msgstr "क्रिया"
 
 #: ../qml/components/feedback/NotificationBell.qml:663
 #: ../qml/components/selectors/WorkItemSelector.qml:125
@@ -404,37 +404,37 @@ msgstr ""
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:96
 #: ../qml/features/projects/pages/Projects.qml:44
 msgid "Project"
-msgstr ""
+msgstr "परियोजना"
 
 #: ../qml/components/feedback/NotificationBell.qml:664
 #: ../qml/components/feedback/NotificationBell.qml:667
 #: ../qml/features/activities/pages/Activities.qml:630
 msgid "Update"
-msgstr ""
+msgstr "अद्यतनम्"
 
 #: ../qml/components/feedback/NotificationBell.qml:665
 #: ../qml/features/dashboard/pages/Dashboard.qml:220
 #: ../qml/features/timesheets/pages/Timesheet.qml:46
 msgid "Timesheet"
-msgstr ""
+msgstr "समयपत्रम्"
 
 #: ../qml/components/feedback/NotificationBell.qml:666
 msgid "Sync Error"
-msgstr ""
+msgstr "समकालन-दोषः"
 
 #: ../qml/components/feedback/NotificationBell.qml:739
 msgid "Clear Sync Errors"
-msgstr ""
+msgstr "समकालन-दोषान् शोधयतु"
 
 #: ../qml/components/feedback/NotificationBell.qml:767
 #: ../qml/components/selectors/MultiAssigneeSelector.qml:423
 msgid "Clear All"
-msgstr ""
+msgstr "सर्वं शोधयतु"
 
 #: ../qml/components/navigation/AccountDrawer.qml:29
 #: ../qml/components/navigation/AccountDrawer.qml:62
 msgid "Account Selection"
-msgstr ""
+msgstr "लेख-चयनम्"
 
 #: ../qml/components/navigation/AccountDrawer.qml:73
 #: ../qml/components/workflow/CreateUpdatePage.qml:138
@@ -444,94 +444,94 @@ msgstr ""
 #: ../qml/features/tasks/pages/Tasks.qml:86
 #: ../qml/features/updates/pages/Updates.qml:138
 msgid "Close"
-msgstr ""
+msgstr "पिधानम्"
 
 #: ../qml/components/navigation/AccountDrawer.qml:90
 msgid "Select Account:"
-msgstr ""
+msgstr "लेखं चिनोतु:"
 
 #: ../qml/components/navigation/AccountDrawer.qml:159
 msgid "Current Account:"
-msgstr ""
+msgstr "वर्तमानलेखः:"
 
 #: ../qml/components/navigation/AccountDrawer.qml:166
 msgid "No account selected"
-msgstr ""
+msgstr "कोऽपि लेखः न चयनितः"
 
 #: ../qml/components/navigation/AccountDrawer.qml:184
 msgid "Last Sync:"
-msgstr ""
+msgstr "अन्तिम-समकालनम्:"
 
 #: ../qml/components/navigation/AccountDrawer.qml:191
 #: ../qml/components/navigation/AccountDrawer.qml:427
 msgid "Never"
-msgstr ""
+msgstr "कदापि न"
 
 #: ../qml/components/navigation/AccountDrawer.qml:213
 msgid "Sync Data"
-msgstr ""
+msgstr "दत्तांशं समकालयतु"
 
 #: ../qml/components/navigation/AccountDrawer.qml:213
 msgid "Syncing..."
-msgstr ""
+msgstr "समकालनं भवति..."
 
 #: ../qml/components/navigation/AccountDrawer.qml:277
 msgid "Note: Sync is not available for 'All Accounts' view"
-msgstr ""
+msgstr "टिप्पणी: 'सर्वे लेखाः' दृश्ये समकालनं उपलब्धं नास्ति"
 
 #: ../qml/components/navigation/AccountDrawer.qml:286
 msgid "Please select a specific account to sync data"
-msgstr ""
+msgstr "दत्तांश-समकालनाय विशिष्टं लेखं चिनोतु"
 
 #: ../qml/components/navigation/AccountDrawer.qml:307
 msgid "Syncing data..."
-msgstr ""
+msgstr "दत्तांशः समकाल्यते..."
 
 #: ../qml/components/navigation/AccountDrawer.qml:430
 msgid "N/A for All Accounts"
-msgstr ""
+msgstr "'सर्वे लेखाः' कृते अनुपयुक्तम्"
 
 #: ../qml/components/navigation/AccountDrawer.qml:453
 msgid "Account not found"
-msgstr ""
+msgstr "लेखः न प्राप्तः"
 
 #: ../qml/components/navigation/AccountDrawer.qml:461
 #: ../qml/components/navigation/AccountDrawer.qml:463
 msgid "Local account - no sync required"
-msgstr ""
+msgstr "स्थानीय-लेखः - समकालनं न आवश्यकम्"
 
 #: ../qml/components/navigation/AccountDrawer.qml:463
 msgid "Info"
-msgstr ""
+msgstr "सूचना"
 
 #: ../qml/components/navigation/AccountDrawer.qml:473
 msgid "Connecting to server..."
-msgstr ""
+msgstr "सेवकेन सह सम्बध्यते..."
 
 #: ../qml/components/navigation/AccountDrawer.qml:473
 msgid "Syncing activities..."
-msgstr ""
+msgstr "क्रियाः समकाल्यन्ते..."
 
 #: ../qml/components/navigation/AccountDrawer.qml:473
 msgid "Syncing projects..."
-msgstr ""
+msgstr "परियोजनाः समकाल्यन्ते..."
 
 #: ../qml/components/navigation/AccountDrawer.qml:473
 msgid "Syncing tasks..."
-msgstr ""
+msgstr "कार्याणि समकाल्यन्ते..."
 
 #: ../qml/components/navigation/AccountDrawer.qml:473
 msgid "Syncing timesheets..."
-msgstr ""
+msgstr "समयपत्राणि समकाल्यन्ते..."
 
 #: ../qml/components/navigation/AccountDrawer.qml:473
 msgid "Updating local data..."
-msgstr ""
+msgstr "स्थानीय-दत्तांशः अद्यतनः क्रियते..."
 
 #: ../qml/components/navigation/AccountDrawer.qml:482
 #: ../qml/components/navigation/AccountDrawer.qml:485
 msgid "Sync failed: "
-msgstr ""
+msgstr "समकालनम् असफलम्: "
 
 #: ../qml/components/navigation/AccountDrawer.qml:485
 #: ../qml/components/richtext/ReadMorePage.qml:114
@@ -539,336 +539,336 @@ msgstr ""
 #: ../qml/components/richtext/RichTextPreview.qml:165
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:484
 msgid "Error"
-msgstr ""
+msgstr "दोषः"
 
 #: ../qml/components/navigation/AccountDrawer.qml:501
 msgid "Sync completed successfully"
-msgstr ""
+msgstr "समकालनं सफलतया सम्पूर्णम्"
 
 #: ../qml/components/navigation/AccountDrawer.qml:505
 msgid "Data synchronized successfully!"
-msgstr ""
+msgstr "दत्तांशः सफलतया समकालितः!"
 
 #: ../qml/components/navigation/AccountDrawer.qml:505
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:600
 msgid "Success"
-msgstr ""
+msgstr "सफलता"
 
 #: ../qml/components/navigation/ListHeader.qml:177
 msgid "Search..."
-msgstr ""
+msgstr "अन्वेषणम्..."
 
 #: ../qml/components/pickers/CustomDatePicker.qml:111
 #: ../qml/components/pickers/DateRangeSelector.qml:88
 msgid "Next Week"
-msgstr ""
+msgstr "आगामी सप्ताहः"
 
 #: ../qml/components/pickers/CustomDatePicker.qml:118
 #: ../qml/components/pickers/DateRangeSelector.qml:90
 msgid "Next Month"
-msgstr ""
+msgstr "आगामी मासः"
 
 #: ../qml/components/pickers/CustomDatePicker.qml:125
 msgid "Custom"
-msgstr ""
+msgstr "अनुकूलितम्"
 
 #: ../qml/components/pickers/DateRangeSelector.qml:86
 #: ../qml/features/activities/pages/Activity_Page.qml:617
 #: ../qml/features/tasks/pages/Task_Page.qml:259
 msgid "Today"
-msgstr ""
+msgstr "अद्य"
 
 #: ../qml/components/pickers/DateRangeSelector.qml:87
 #: ../qml/features/activities/pages/Activity_Page.qml:618
 #: ../qml/features/tasks/pages/Task_Page.qml:260
 msgid "This Week"
-msgstr ""
+msgstr "अस्मिन् सप्ताहे"
 
 #: ../qml/components/pickers/DateRangeSelector.qml:89
 #: ../qml/features/activities/pages/Activity_Page.qml:619
 #: ../qml/features/tasks/pages/Task_Page.qml:261
 msgid "This Month"
-msgstr ""
+msgstr "अस्मिन् मासे"
 
 #: ../qml/components/richtext/ColorPickerDialog.qml:30
 msgid "Choose Color"
-msgstr ""
+msgstr "वर्णं चिनोतु"
 
 #: ../qml/components/richtext/FontSizeDialog.qml:25
 msgid "Font Size"
-msgstr ""
+msgstr "अक्षर-आकारः"
 
 #: ../qml/components/richtext/LinkDialog.qml:25
 msgid "Insert Link"
-msgstr ""
+msgstr "लिङ्कं सम्मिलयतु"
 
 #: ../qml/components/richtext/LinkDialog.qml:39
 msgid "URL (e.g., https://example.com)"
-msgstr ""
+msgstr "URL (यथा, https://example.com)"
 
 #: ../qml/components/richtext/LinkDialog.qml:48
 msgid "Link text (optional)"
-msgstr ""
+msgstr "लिङ्क-पाठः (ऐच्छिकः)"
 
 #: ../qml/components/richtext/LinkDialog.qml:59
 msgid "Insert"
-msgstr ""
+msgstr "सम्मिलयतु"
 
 #: ../qml/components/richtext/ReadMorePage.qml:61
 #: ../qml/components/richtext/RichTextPreview.qml:88
 msgid "Listening..."
-msgstr ""
+msgstr "श्रूयते..."
 
 #: ../qml/components/richtext/ReadMorePage.qml:112
 #: ../qml/components/richtext/RichTextEditor.qml:191
 #: ../qml/components/richtext/RichTextPreview.qml:163
 msgid "Action Required"
-msgstr ""
+msgstr "क्रिया आवश्यका"
 
 #: ../qml/components/richtext/ReadMorePage.qml:161
 msgid "Start Recording"
-msgstr ""
+msgstr "अभिलेखनम् आरभतु"
 
 #: ../qml/components/richtext/ReadMorePage.qml:161
 msgid "Stop Recording"
-msgstr ""
+msgstr "अभिलेखनं स्थगयतु"
 
 #: ../qml/components/richtext/ReadMorePage.qml:166
 #: ../qml/components/richtext/RichTextPreview.qml:484
 #: ../qml/components/richtext/RichTextPreview.qml:550
 #: ../qml/components/workflow/AttachmentManager.qml:309
 msgid "Processing..."
-msgstr ""
+msgstr "संसाध्यते..."
 
 #: ../qml/components/richtext/ReadMorePage.qml:175
 #: ../qml/components/richtext/RichTextPreview.qml:495
 msgid "Starting..."
-msgstr ""
+msgstr "आरभ्यते..."
 
 #: ../qml/components/richtext/ReadMorePage.qml:185
 msgid "Hide Toolbar"
-msgstr ""
+msgstr "उपकरण-पट्टिकां गोपयतु"
 
 #: ../qml/components/richtext/ReadMorePage.qml:185
 msgid "Show Toolbar"
-msgstr ""
+msgstr "उपकरण-पट्टिकां दर्शयतु"
 
 #: ../qml/components/selectors/AccountSelector.qml:106
 msgid "Select an account"
-msgstr ""
+msgstr "लेखं चिनोतु"
 
 #: ../qml/components/selectors/AssigneeFilterMenu.qml:340
 msgid "Filter by Assignees"
-msgstr ""
+msgstr "नियुक्तैः अनुसारेण छानयतु"
 
 #: ../qml/components/selectors/AssigneeFilterMenu.qml:367
 msgid "Search assignees..."
-msgstr ""
+msgstr "नियुक्तान् अन्विष्यतु..."
 
 #: ../qml/components/selectors/AssigneeFilterMenu.qml:455
 msgid "Others"
-msgstr ""
+msgstr "अन्ये"
 
 #: ../qml/components/selectors/AssigneeFilterMenu.qml:455
 msgid "Selected"
-msgstr ""
+msgstr "चयनितम्"
 
 #: ../qml/components/selectors/AssigneeFilterMenu.qml:619
 msgid "Less"
-msgstr ""
+msgstr "न्यूनम्"
 
 #: ../qml/components/selectors/AssigneeFilterMenu.qml:619
 msgid "More"
-msgstr ""
+msgstr "अधिकम्"
 
 #: ../qml/components/selectors/AssigneeFilterMenu.qml:680
 msgid "Apply Filter"
-msgstr ""
+msgstr "चालनं प्रयुज्यताम्"
 
 #: ../qml/components/selectors/AssigneeFilterMenu.qml:699
 msgid "Clear Filter"
-msgstr ""
+msgstr "चालनं शोधयतु"
 
 #: ../qml/components/selectors/InlineOptionSelector.qml:131
 msgid "Tap to select"
-msgstr ""
+msgstr "चयनाय स्पृशतु"
 
 #: ../qml/components/selectors/MultiAssigneeSelector.qml:39
 msgid "Assignees"
-msgstr ""
+msgstr "नियुक्ताः"
 
 #: ../qml/components/selectors/MultiAssigneeSelector.qml:123
 #: ../qml/components/selectors/MultiAssigneeSelector.qml:296
 msgid "Select Assignees"
-msgstr ""
+msgstr "नियुक्तान् चिनोतु"
 
 #: ../qml/components/selectors/MultiAssigneeSelector.qml:436
 #: ../qml/components/system/ImagePreviewer.qml:185
 #: ../qml/features/activities/pages/Activity_Page.qml:623
 #: ../qml/features/tasks/pages/Task_Page.qml:263
 msgid "Done"
-msgstr ""
+msgstr "कृतम्"
 
 #: ../qml/components/selectors/ProjectSelector.qml:55
 #: ../qml/features/updates/pages/Updates.qml:375
 msgid "Account:"
-msgstr ""
+msgstr "लेखः:"
 
 #: ../qml/components/selectors/ProjectSelector.qml:77
 #: ../qml/features/updates/pages/Updates.qml:395
 msgid "Project:"
-msgstr ""
+msgstr "परियोजना:"
 
 #: ../qml/components/selectors/ProjectSelector.qml:84
 #: ../qml/components/selectors/ProjectSelector.qml:119
 #: ../qml/components/selectors/ProjectSelector.qml:148
 msgid "Select Project"
-msgstr ""
+msgstr "परियोजनां चिनोतु"
 
 #: ../qml/components/selectors/ProjectStageSelector.qml:55
 msgid "Change Project Stage"
-msgstr ""
+msgstr "परियोजना-सोपानं परिवर्तयतु"
 
 #: ../qml/components/selectors/ProjectStageSelector.qml:108
 msgid "Current Stage: "
-msgstr ""
+msgstr "वर्तमान-सोपानम्: "
 
 #: ../qml/components/selectors/ProjectStageSelector.qml:115
 msgid "Select New Stage:"
-msgstr ""
+msgstr "नूतनं सोपानं चिनोतु:"
 
 #: ../qml/components/selectors/ProjectStageSelector.qml:173
 msgid "(Folded/Closed Stage)"
-msgstr ""
+msgstr "(संवृत/पिहित सोपानम्)"
 
 #: ../qml/components/selectors/ProjectStageSelector.qml:199
 msgid "No stages available"
-msgstr ""
+msgstr "सोपानानि न सन्ति"
 
 #: ../qml/components/selectors/StageFilterMenu.qml:180
 msgid "Filter by Stage"
-msgstr ""
+msgstr "सोपानेन छानयतु"
 
 #: ../qml/components/selectors/StageFilterMenu.qml:355
 msgid "Current: "
-msgstr ""
+msgstr "वर्तमानम्: "
 
 #: ../qml/components/selectors/WorkItemSelector.qml:124
 #: ../qml/features/dashboard/pages/Dashboard.qml:83
 #: ../qml/features/dashboard/pages/Dashboard.qml:484
 msgid "Account"
-msgstr ""
+msgstr "लेखः"
 
 #: ../qml/components/selectors/WorkItemSelector.qml:126
 msgid "Subproject"
-msgstr ""
+msgstr "उपपरियोजना"
 
 #: ../qml/components/selectors/WorkItemSelector.qml:128
 msgid "Subtask"
-msgstr ""
+msgstr "उपकार्यम्"
 
 #: ../qml/components/selectors/WorkItemSelector.qml:129
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:609
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:94
 msgid "Assignee"
-msgstr ""
+msgstr "नियुक्तः"
 
 #: ../qml/components/system/ImagePreviewer.qml:79
 msgid "Download"
-msgstr ""
+msgstr "अवचयनम्"
 
 #: ../qml/components/system/ImagePreviewer.qml:131
 msgid "No image to save"
-msgstr ""
+msgstr "संरक्षणाय चित्रं नास्ति"
 
 #: ../qml/components/system/ImagePreviewer.qml:155
 msgid "Saved"
-msgstr ""
+msgstr "संरक्षितम्"
 
 #: ../qml/components/system/ImagePreviewer.qml:158
 msgid "Choose where to save"
-msgstr ""
+msgstr "संरक्षणस्थानं चिनोतु"
 
 #: ../qml/components/system/ImagePreviewer.qml:160
 msgid "Could not open export dialog"
-msgstr ""
+msgstr "निर्यात-संवादः उद्घाटयितुं न शक्तः"
 
 #: ../qml/components/system/ImagePreviewer.qml:164
 msgid "Save failed"
-msgstr ""
+msgstr "संरक्षणम् असफलम्"
 
 #: ../qml/components/system/ImagePreviewer.qml:170
 msgid "No image to open"
-msgstr ""
+msgstr "उद्घाटनाय चित्रं नास्ति"
 
 #: ../qml/components/system/ImagePreviewer.qml:188
 msgid "Could not open chooser"
-msgstr ""
+msgstr "चयनकः उद्घाटयितुं न शक्तः"
 
 #: ../qml/components/system/ImagePreviewer.qml:192
 msgid "Open failed"
-msgstr ""
+msgstr "उद्घाटनम् असफलम्"
 
 #: ../qml/components/system/ModelDownloadTimerWidget.qml:51
 msgid "Initializing download..."
-msgstr ""
+msgstr "अवचयनम् आरभ्यते..."
 
 #: ../qml/components/system/ModelDownloadTimerWidget.qml:53
 msgid "Downloading model files..."
-msgstr ""
+msgstr "प्रतिरूप-सञ्चिकाः अवचीयन्ते..."
 
 #: ../qml/components/system/ModelDownloadTimerWidget.qml:55
 msgid "Extracting and installing..."
-msgstr ""
+msgstr "निष्कासनं संस्थापनं च भवति..."
 
 #: ../qml/components/system/ModelDownloadTimerWidget.qml:57
 msgid "Installation complete!"
-msgstr ""
+msgstr "संस्थापनं सम्पूर्णम्!"
 
 #: ../qml/components/visualization/EHower.qml:101
 msgid "Time spent based on priorities"
-msgstr ""
+msgstr "प्राथमिकतानुसारं व्ययितः कालः"
 
 #: ../qml/components/visualization/EHower.qml:131
 msgid "URGENT"
-msgstr ""
+msgstr "तात्कालिकम्"
 
 #: ../qml/components/visualization/EHower.qml:141
 msgid "NOT URGENT"
-msgstr ""
+msgstr "अतात्कालिकम्"
 
 #: ../qml/components/visualization/EHower.qml:165
 msgid "IMPORTANT"
-msgstr ""
+msgstr "महत्त्वपूर्णम्"
 
 #: ../qml/components/visualization/EHower.qml:182
 msgid "NOT IMPORTANT"
-msgstr ""
+msgstr "अमहत्त्वपूर्णम्"
 
 #: ../qml/components/visualization/EHower.qml:244
 msgid "Do First"
-msgstr ""
+msgstr "प्रथमं कुरु"
 
 #: ../qml/components/visualization/EHower.qml:301
 msgid "Do Next"
-msgstr ""
+msgstr "ततः कुरु"
 
 #: ../qml/components/visualization/EHower.qml:359
 msgid "Do Later"
-msgstr ""
+msgstr "पश्चात् कुरु"
 
 #: ../qml/components/visualization/EHower.qml:416
 msgid "Don't do"
-msgstr ""
+msgstr "मा कुरु"
 
 #: ../qml/components/visualization/ProjectList.qml:726
 msgid "Search projects"
-msgstr ""
+msgstr "परियोजनाः अन्विष्यतु"
 
 #: ../qml/components/visualization/ProjectPieChart.qml:45
 #: ../qml/components/visualization/ProjectPieChart.qml:208
 msgid "Most Time-Consuming Projects"
-msgstr ""
+msgstr "अधिकतम-काल-व्ययिन्यः परियोजनाः"
 
 #: ../qml/components/visualization/ProjectPieChart.qml:84
 #: ../qml/features/dashboard/charts/Charts1.qml:67
@@ -876,19 +876,19 @@ msgstr ""
 #: ../qml/features/dashboard/charts/Charts3.qml:166
 #: ../qml/features/dashboard/pages/Dashboard3.qml:63
 msgid " hrs"
-msgstr ""
+msgstr " घण्टाः"
 
 #: ../qml/components/visualization/ProjectPieChart.qml:205
 msgid "Most Time-Consuming Projects(No Data)"
-msgstr ""
+msgstr "अधिकतम-काल-व्ययिन्यः परियोजनाः (दत्तांशः नास्ति)"
 
 #: ../qml/components/workflow/AttachmentManager.qml:33
 msgid "Attachments"
-msgstr ""
+msgstr "संलग्नकानि"
 
 #: ../qml/components/workflow/AttachmentManager.qml:53
 msgid "Starting upload..."
-msgstr ""
+msgstr "आरोहणम् आरभ्यते..."
 
 #: ../qml/components/workflow/AttachmentManager.qml:224
 #: ../qml/features/projects/pages/Projects.qml:759
@@ -897,56 +897,56 @@ msgstr ""
 #: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:106
 #: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:145
 msgid "View"
-msgstr ""
+msgstr "दर्शनम्"
 
 #: ../qml/components/workflow/AttachmentManager.qml:367
 msgid "Failed to upload: Database path unresolved"
-msgstr ""
+msgstr "आरोहणम् असफलम्: दत्तांश-मार्गः अनिर्धारितः"
 
 #: ../qml/components/workflow/AttachmentManager.qml:457
 msgid "Attachment has been processed"
-msgstr ""
+msgstr "संलग्नकं संसाधितम्"
 
 #: ../qml/components/workflow/AttachmentManager.qml:460
 #: ../qml/components/workflow/AttachmentManager.qml:462
 msgid "Failed to upload"
-msgstr ""
+msgstr "आरोहणम् असफलम्"
 
 #: ../qml/components/workflow/AttachmentManager.qml:635
 msgid "Cannot delete: missing Odoo ID"
-msgstr ""
+msgstr "विलोपनं न शक्यते: Odoo-परिचयः त्रुटितः"
 
 #: ../qml/components/workflow/AttachmentManager.qml:652
 msgid "Delete Attachment"
-msgstr ""
+msgstr "संलग्नकं विलोपयतु"
 
 #: ../qml/components/workflow/AttachmentManager.qml:653
 msgid "Are you sure you want to delete '%1'?"
-msgstr ""
+msgstr "किं भवान् '%1' विलोपयितुम् निश्चितः अस्ति?"
 
 #: ../qml/components/workflow/AttachmentManager.qml:673
 msgid "Deleting attachment..."
-msgstr ""
+msgstr "संलग्नकं विलोप्यते..."
 
 #: ../qml/components/workflow/AttachmentManager.qml:678
 msgid "Database not found"
-msgstr ""
+msgstr "दत्तांशः न प्राप्तः"
 
 #: ../qml/components/workflow/AttachmentManager.qml:685
 msgid "Attachment deleted"
-msgstr ""
+msgstr "संलग्नकं विलोपितम्"
 
 #: ../qml/components/workflow/AttachmentManager.qml:688
 msgid "Failed to delete attachment"
-msgstr ""
+msgstr "संलग्नक-विलोपनम् असफलम्"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:63
 msgid "Draft Recovered"
-msgstr ""
+msgstr "प्रारूपं पुनः प्राप्तम्"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:64
 msgid "Your unsaved changes have been recovered."
-msgstr ""
+msgstr "भवतः असंरक्षित-परिवर्तनानि पुनः प्राप्तानि सन्ति।"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:88
 #: ../qml/features/activities/pages/Activities.qml:122
@@ -954,7 +954,7 @@ msgstr ""
 #: ../qml/features/tasks/pages/Tasks.qml:60
 #: ../qml/features/updates/pages/Updates.qml:151
 msgid "Back"
-msgstr ""
+msgstr "प्रत्यागमनम्"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:103
 #: ../qml/features/projects/pages/Projects.qml:733
@@ -965,856 +965,857 @@ msgstr ""
 #: ../qml/features/tasks/pages/MyTasksPage.qml:421
 #: ../qml/features/timesheets/pages/Timesheet_Page.qml:359
 msgid "Create"
-msgstr ""
+msgstr "निर्माणम्"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:107
 msgid "Validation Error"
-msgstr ""
+msgstr "सत्यापन-दोषः"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:108
 msgid "Please fill in all required fields."
-msgstr ""
+msgstr "कृपया सर्वाणि आवश्यक-क्षेत्राणि पूरयतु।"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:155
 msgid "You have unsaved changes. What would you like to do?"
-msgstr ""
+msgstr "भवतः असंरक्षित-परिवर्तनानि सन्ति। भवान् किं कर्तुम् इच्छति?"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:158
 msgid "Save Draft"
-msgstr ""
+msgstr "प्रारूपं संरक्षतु"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:241
 msgid "Enter update title..."
-msgstr ""
+msgstr "अद्यतन-शीर्षकं लिखतु..."
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:261
 #: ../qml/features/updates/pages/Updates.qml:461
 msgid "Project Status"
-msgstr ""
+msgstr "परियोजना-स्थितिः"
 
 #: ../qml/components/workflow/CreateUpdatePage.qml:287
 #: ../qml/features/updates/pages/Updates.qml:494
 msgid "Progress"
-msgstr ""
+msgstr "प्रगतिः"
 
 #: ../qml/features/activities/pages/Activities.qml:516
 msgid "View Task"
-msgstr ""
+msgstr "कार्यं पश्यतु"
 
 #: ../qml/features/activities/pages/Activities.qml:518
 msgid "View Project"
-msgstr ""
+msgstr "परियोजनां पश्यतु"
 
 #: ../qml/features/activities/pages/Activities.qml:520
 msgid "View Update"
-msgstr ""
+msgstr "अद्यतनं पश्यतु"
 
 #: ../qml/features/activities/pages/Activities.qml:543
 msgid "Connected to"
-msgstr ""
+msgstr "सम्बद्धः प्रति"
 
 #: ../qml/features/activities/pages/Activities.qml:656
 msgid "Other"
-msgstr ""
+msgstr "अन्यत्"
 
 #: ../qml/features/activities/pages/Activities.qml:697
 msgid "Summary"
-msgstr ""
+msgstr "सारांशः"
 
 #: ../qml/features/activities/pages/Activities.qml:798
 msgid "Activity Type"
-msgstr ""
+msgstr "क्रिया-प्रकारः"
 
 #: ../qml/features/activities/pages/Activity_Page.qml:41
 #: ../qml/features/projects/pages/Projects.qml:715
 #: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:72
 msgid "Activities"
-msgstr ""
+msgstr "क्रियाः"
 
 #: ../qml/features/activities/pages/Activity_Page.qml:620
 #: ../qml/features/tasks/pages/Task_Page.qml:262
 msgid "Later"
-msgstr ""
+msgstr "पश्चात्"
 
 #: ../qml/features/activities/pages/Activity_Page.qml:621
 msgid "OverDue"
-msgstr ""
+msgstr "कालातीतम्"
 
 #: ../qml/features/activities/pages/Activity_Page.qml:622
 #: ../qml/features/tasks/pages/Task_Page.qml:264
 #: ../qml/features/timesheets/pages/Timesheet_Page.qml:165
 #: ../qml/features/updates/pages/Updates_Page.qml:269
 msgid "All"
-msgstr ""
+msgstr "सर्वम्"
 
 #: ../qml/features/activities/pages/Activity_Page.qml:754
 msgid "No Activities Available"
-msgstr ""
+msgstr "क्रियाः न सन्ति"
 
 #: ../qml/features/activities/pages/Activity_Page.qml:866
 msgid "Loading activities..."
-msgstr ""
+msgstr "क्रियाः भार्यन्ते..."
 
 #: ../qml/features/dashboard/charts/Charts3.qml:138
 msgid "Projectwise Time Spent"
-msgstr ""
+msgstr "परियोजनानुसारं व्ययितः कालः"
 
 #: ../qml/features/dashboard/charts/Charts3.qml:222
 msgid "Show fewer ↑"
-msgstr ""
+msgstr "न्यूनं दर्शयतु ↑"
 
 #: ../qml/features/dashboard/charts/Charts3.qml:247
 msgid "Show next %1 ↓"
-msgstr ""
+msgstr "अग्रिमं %1 दर्शयतु ↓"
 
 #: ../qml/features/dashboard/charts/Charts4.qml:32
 msgid "Unnamed project"
-msgstr ""
+msgstr "अनामिका परियोजना"
 
 #: ../qml/features/dashboard/charts/Charts4.qml:60
 msgid "Unnamed task"
-msgstr ""
+msgstr "अनामकं कार्यम्"
 
 #: ../qml/features/dashboard/charts/Charts4.qml:64
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:610
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:95
 msgid "Unknown"
-msgstr ""
+msgstr "अज्ञातम्"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:166
 #: ../qml/features/dashboard/pages/Dashboard.qml:348
 #: ../qml/features/projects/pages/Project_Page.qml:43
 msgid "Projects"
-msgstr ""
+msgstr "परियोजनाः"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:248
 msgid "Search projects..."
-msgstr ""
+msgstr "परियोजनाः अन्विष्यतु..."
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:276
 msgid "Most time"
-msgstr ""
+msgstr "अधिकतमः कालः"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:277
 #: ../qml/features/dashboard/pages/Dashboard.qml:360
 #: ../qml/features/projects/pages/Projects.qml:774
 msgid "Tasks"
-msgstr ""
+msgstr "कार्याणि"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:278
 msgid "A-Z"
-msgstr ""
+msgstr "अ-ज्ञ"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:329
 msgid "No projects found"
-msgstr ""
+msgstr "परियोजनाः न प्राप्ताः"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:390
 msgid "TOTAL"
-msgstr ""
+msgstr "योगः"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:391
 msgid "TASKS"
-msgstr ""
+msgstr "कार्याणि"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:392
 msgid "AVERAGE"
-msgstr ""
+msgstr "मध्यमानम्"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:393
 msgid "TOP TASK"
-msgstr ""
+msgstr "श्रेष्ठ-कार्यम्"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:472
 msgid "Show all %1 tasks ↓"
-msgstr ""
+msgstr "सर्वाणि %1 कार्याणि दर्शयतु ↓"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:488
 msgid "No tasks with tracked time"
-msgstr ""
+msgstr "अभिलिखित-कालयुक्तानि कार्याणि न सन्ति"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:549
 msgid "TIME SPENT"
-msgstr ""
+msgstr "व्ययितः कालः"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:575
 msgid "% OF PROJECT"
-msgstr ""
+msgstr "परियोजनायाः % भागः"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:610
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:95
 msgid "Status"
-msgstr ""
+msgstr "स्थितिः"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:612
 msgid "Log entries"
-msgstr ""
+msgstr "अभिलेख-प्रविष्टयः"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:646
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:129
 msgid "Time log"
-msgstr ""
+msgstr "काल-अभिलेखः"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:711
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:159
 msgid "No note"
-msgstr ""
+msgstr "टिप्पणी नास्ति"
 
 #: ../qml/features/dashboard/charts/TaskTimeChart.qml:731
 msgid "No log entries"
-msgstr ""
+msgstr "अभिलेख-प्रविष्टयः न सन्ति"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:7
 msgid "Dashboard Charts Guide"
-msgstr ""
+msgstr "फलक-चित्र-मार्गदर्शिका"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:24
 msgid ""
-"Welcome to the Dashboard! Here is a quick guide to help you understand your "
-"data:"
-msgstr ""
+"Welcome to the Dashboard! Here is a quick guide to help you understand "
+"your data:"
+msgstr "फलकं स्वागतम्! भवतः दत्तांशम् अवगन्तुं सहायकः शीघ्र-मार्गदर्शिका अत्र अस्ति:"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:33
 msgid "Priority Matrix (Chart 1 & 2)"
-msgstr ""
+msgstr "प्राथमिकता-सारणी (चित्र १ व २)"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:40
 msgid ""
-"These charts give you an overview of where your time goes. Check if you are "
-"spending time on high-priority tasks or getting bogged down by low-priority "
-"ones."
-msgstr ""
+"These charts give you an overview of where your time goes. Check if you "
+"are spending time on high-priority tasks or getting bogged down by "
+"low-priority ones."
+msgstr "एतानि चित्राणि भवतः कालः कुत्र व्यय्यते इति सिंहावलोकनं ददति। भवान् उच्च-प्राथमिकता-कार्येषु कालं व्ययति वा न्यून-प्राथमिकता-कार्यैः बाध्यते वा इति पश्यतु।"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:49
 msgid "Projectwise Time Spent (Chart 3)"
-msgstr ""
+msgstr "परियोजनानुसारं व्ययितः कालः (चित्र ३)"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:56
 msgid ""
 "This horizontal bar chart compares the total hours spent across different "
-"projects. You can incrementally load more projects using the buttons at the "
-"bottom. Hover over any bar to see the exact hours."
-msgstr ""
+"projects. You can incrementally load more projects using the buttons at "
+"the bottom. Hover over any bar to see the exact hours."
+msgstr "एषः क्षैतिज-पट्टी-चित्रः विविध-परियोजनासु व्ययितान् कुलघण्टान् तुलयति। भवान् अधःस्थित-बटनैः अधिकाः परियोजनाः क्रमेण भारयितुं शक्नोति। यथार्थ-घण्टान् द्रष्टुं कस्याश्चित् पट्ट्याः उपरि स्थापयतु।"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:65
 msgid "Task Drilldown (Chart 4)"
-msgstr ""
+msgstr "कार्य-विश्लेषणम् (चित्र ४)"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:72
 msgid ""
 "Tap on any project to drill down into its tasks. You can further tap on a "
-"task to view the detailed timesheet logs. This is highly useful for auditing "
-"exactly where your time was spent."
-msgstr ""
+"task to view the detailed timesheet logs. This is highly useful for "
+"auditing exactly where your time was spent."
+msgstr "कस्याश्चित् परियोजनायाः कार्याणि द्रष्टुं तत्र स्पृशतु। कार्यस्य विस्तृत-समयपत्र-अभिलेखान् द्रष्टुं कार्यम् अपि स्पृशतु। भवतः कालः यथार्थतः कुत्र व्ययितः इति परीक्षणाय एतत् अतीव उपयुक्तम्।"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:81
 msgid "What Do The Colors Mean?"
-msgstr ""
+msgstr "वर्णानां किम् अर्थः?"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:88
 msgid ""
-"Projects and tasks are color-coded based on their current stage to give you "
-"immediate visual feedback:"
-msgstr ""
+"Projects and tasks are color-coded based on their current stage to give "
+"you immediate visual feedback:"
+msgstr "परियोजनाः कार्याणि च तेषां वर्तमान-सोपानानुसारं वर्ण-चिह्नितानि सन्ति, यत् भवते तत्क्षण-दृश्य-प्रतिक्रियां ददाति:"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:95
 msgid "Green: Done / Completed"
-msgstr ""
+msgstr "हरितः: कृतम् / सम्पूर्णम्"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:100
 msgid "Red: Cancelled"
-msgstr ""
+msgstr "रक्तः: निरस्तम्"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:105
 msgid "Orange: On Hold / Paused"
-msgstr ""
+msgstr "नारङ्गः: स्थगितम् / विरामितम्"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:110
 msgid "Blue / Other: In Progress"
-msgstr ""
+msgstr "नीलः / अन्यत्: प्रगतौ"
 
 #: ../qml/features/dashboard/components/ChartInfoPopup.qml:118
 msgid "Got it!"
-msgstr ""
+msgstr "अवगतम्!"
 
 #: ../qml/features/dashboard/components/ProjectCard.qml:77
 msgid "tasks"
-msgstr ""
+msgstr "कार्याणि"
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:39
 msgid "Time Manager - Time Management Dashboard"
-msgstr ""
+msgstr "समयपालकः - समय-प्रबन्धन-फलकम्"
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:43
 #: ../qml/features/dashboard/pages/Dashboard.qml:169
 msgid "Loading dashboard..."
-msgstr ""
+msgstr "फलकं भार्यते..."
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:107
 #: ../qml/features/dashboard/pages/Dashboard2.qml:46
 msgid "Chart Info"
-msgstr ""
+msgstr "चित्र-सूचना"
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:129
 #: ../qml/features/dashboard/pages/Dashboard.qml:454
 msgid "New Timesheet"
-msgstr ""
+msgstr "नूतनं समयपत्रम्"
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:157
 msgid "Preparing all-account dashboard..."
-msgstr ""
+msgstr "सर्व-लेख-फलकं सज्जीक्रियते..."
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:158
 msgid "Preparing dashboard..."
-msgstr ""
+msgstr "फलकं सज्जीक्रियते..."
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:181
 msgid "Loading project chart..."
-msgstr ""
+msgstr "परियोजना-चित्रं भार्यते..."
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:191
 msgid "Loading additional charts..."
-msgstr ""
+msgstr "अतिरिक्त-चित्राणि भार्यन्ते..."
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:336
 msgid "Overview"
-msgstr ""
+msgstr "सिंहावलोकनम्"
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:502
 msgid "New Notifications"
-msgstr ""
+msgstr "नूतनाः सूचनाः"
 
 #: ../qml/features/dashboard/pages/Dashboard.qml:503
 msgid "You have %1 new notification(s)"
-msgstr ""
+msgstr "भवतः समीपे %1 नूतनाः सूचनाः सन्ति"
 
 #: ../qml/features/dashboard/pages/Dashboard2.qml:31
 msgid "Charts"
-msgstr ""
+msgstr "चित्राणि"
 
 #: ../qml/features/dashboard/pages/Dashboard3.qml:45
 msgid "Taskwise Time Spent"
-msgstr ""
+msgstr "कार्यानुसारं व्ययितः कालः"
 
 #: ../qml/features/dashboard/pages/Dashboard3.qml:112
 msgid "Time"
-msgstr ""
+msgstr "कालः"
 
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:42
 msgid "Time spent"
-msgstr ""
+msgstr "व्ययितः कालः"
 
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:46
-#, javascript-format
+#, fuzzy, javascript-format
 msgid "% of project"
-msgstr ""
+msgstr "परियोजनायाः शतांशः"
 
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:49
 msgid "0.0%"
-msgstr ""
+msgstr "०.०%"
 
 #: ../qml/features/dashboard/pages/TaskDetailPage.qml:97
 msgid "Log entries count"
-msgstr ""
+msgstr "अभिलेख-प्रविष्टि-सङ्ख्या"
 
 #: ../qml/features/projects/pages/Project_Page.qml:68
 #: ../qml/features/updates/pages/Updates_Page.qml:88
 msgid "New"
-msgstr ""
+msgstr "नूतनम्"
 
 #: ../qml/features/projects/pages/Project_Page.qml:78
 #: ../qml/features/tasks/pages/MyTasksPage.qml:83
 #: ../qml/features/tasks/pages/Task_Page.qml:87
 msgid "Flat View"
-msgstr ""
+msgstr "समतल-दृश्यम्"
 
 #: ../qml/features/projects/pages/Project_Page.qml:78
 #: ../qml/features/tasks/pages/MyTasksPage.qml:83
 #: ../qml/features/tasks/pages/Task_Page.qml:87
 msgid "Tree View"
-msgstr ""
+msgstr "वृक्ष-दृश्यम्"
 
 #: ../qml/features/projects/pages/Project_Page.qml:85
 #: ../qml/features/updates/pages/Updates_Page.qml:81
 msgid "Search"
-msgstr ""
+msgstr "अन्वेषणम्"
 
 #: ../qml/features/projects/pages/Project_Page.qml:137
 msgid "Loading projects..."
-msgstr ""
+msgstr "परियोजनाः भार्यन्ते..."
 
 #: ../qml/features/projects/pages/Projects.qml:585
 msgid "Project Name"
-msgstr ""
+msgstr "परियोजना-नाम"
 
 #: ../qml/features/projects/pages/Projects.qml:648
 #: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:27
 #: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:31
 msgid "Current Stage:"
-msgstr ""
+msgstr "वर्तमान-सोपानम्:"
 
 #: ../qml/features/projects/pages/Projects.qml:688
 #: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:67
 msgid "Change"
-msgstr ""
+msgstr "परिवर्तनम्"
 
 #: ../qml/features/projects/pages/Projects.qml:835
 #: ../qml/features/updates/pages/Updates_Page.qml:39
 msgid "Project Updates"
-msgstr ""
+msgstr "परियोजना-अद्यतनानि"
 
 #: ../qml/features/projects/pages/Projects.qml:903
 msgid "Allocated Hours"
-msgstr ""
+msgstr "आवण्टित-घण्टाः"
 
 #: ../qml/features/projects/pages/Projects.qml:976
 msgid "Planned Dates"
-msgstr ""
+msgstr "योजित-दिनाङ्काः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:37
 msgid "Create Account"
-msgstr ""
+msgstr "लेखं निर्मायतु"
 
 #: ../qml/features/settings/pages/Account_Page.qml:37
 msgid "Edit Account"
-msgstr ""
+msgstr "लेखं सम्पादयतु"
 
 #: ../qml/features/settings/pages/Account_Page.qml:141
 msgid "Your account has been updated successfully!"
-msgstr ""
+msgstr "भवतः लेखः सफलतया अद्यतनः!"
 
 #: ../qml/features/settings/pages/Account_Page.qml:169
 msgid "Your account has been saved, Enjoy using the app !"
-msgstr ""
+msgstr "भवतः लेखः संरक्षितः। अनुप्रयोगस्य उपयोगम् आनन्दयतु!"
 
 #: ../qml/features/settings/pages/Account_Page.qml:379
 msgid "Account Details"
-msgstr ""
+msgstr "लेख-विवरणम्"
 
 #: ../qml/features/settings/pages/Account_Page.qml:389
 msgid "Account Name"
-msgstr ""
+msgstr "लेख-नाम"
 
 #: ../qml/features/settings/pages/Account_Page.qml:413
 msgid "Server Connection"
-msgstr ""
+msgstr "सेवक-सम्बन्धः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:423
 msgid "URL"
-msgstr ""
+msgstr "URL"
 
 #: ../qml/features/settings/pages/Account_Page.qml:430
 msgid "Fetch Databases"
-msgstr ""
+msgstr "दत्तांशान् आनयतु"
 
 #: ../qml/features/settings/pages/Account_Page.qml:476
 msgid "Database"
-msgstr ""
+msgstr "दत्तांशः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:486
 msgid "Database Name"
-msgstr ""
+msgstr "दत्तांश-नाम"
 
 #: ../qml/features/settings/pages/Account_Page.qml:510
 msgid "Credentials"
-msgstr ""
+msgstr "प्रमाणपत्राणि"
 
 #: ../qml/features/settings/pages/Account_Page.qml:520
 msgid "Username"
-msgstr ""
+msgstr "उपयोक्तृ-नाम"
 
 #: ../qml/features/settings/pages/Account_Page.qml:526
 msgid "Connect With"
-msgstr ""
+msgstr "इत्यनेन सम्बध्यताम्"
 
 #: ../qml/features/settings/pages/Account_Page.qml:529
 msgid "Connect With Api Key"
-msgstr ""
+msgstr "API-कुञ्चिकया सम्बध्यताम्"
 
 #: ../qml/features/settings/pages/Account_Page.qml:530
 msgid "Connect With Password"
-msgstr ""
+msgstr "गुप्तशब्देन सम्बध्यताम्"
 
 #: ../qml/features/settings/pages/Account_Page.qml:543
 msgid "API Key"
-msgstr ""
+msgstr "API-कुञ्चिका"
 
 #: ../qml/features/settings/pages/Account_Page.qml:543
 msgid "Password"
-msgstr ""
+msgstr "गुप्तशब्दः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:583
 msgid "Sync Preferences"
-msgstr ""
+msgstr "समकालन-वरीयताः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:593
 msgid "Custom Sync Settings"
-msgstr ""
+msgstr "अनुकूलित-समकालन-विन्यासाः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:612
 msgid "Using global sync defaults (interval: "
-msgstr ""
+msgstr "वैश्विक-समकालन-मानकाः उपयुज्यन्ते (अन्तरालः: "
 
 #: ../qml/features/settings/pages/Account_Page.qml:614
 msgid ", direction: "
-msgstr ""
+msgstr ", दिशा: "
 
 #: ../qml/features/settings/pages/Account_Page.qml:627
 msgid "Enable Sync"
-msgstr ""
+msgstr "समकालनं सक्षमं करोतु"
 
 #: ../qml/features/settings/pages/Account_Page.qml:645
 #: ../qml/features/settings/pages/Settings_Sync.qml:176
 msgid "Sync Interval"
-msgstr ""
+msgstr "समकालन-अन्तरालः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:648
 msgid "1 minute"
-msgstr ""
+msgstr "१ निमेषः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:649
 msgid "5 minutes"
-msgstr ""
+msgstr "५ निमेषाः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:650
 msgid "15 minutes"
-msgstr ""
+msgstr "१५ निमेषाः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:651
 msgid "30 minutes"
-msgstr ""
+msgstr "३० निमेषाः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:652
 msgid "1 hour"
-msgstr ""
+msgstr "१ घण्टा"
 
 #: ../qml/features/settings/pages/Account_Page.qml:653
 msgid "2 hours"
-msgstr ""
+msgstr "२ घण्टाः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:654
 msgid "6 hours"
-msgstr ""
+msgstr "६ घण्टाः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:655
 msgid "12 hours"
-msgstr ""
+msgstr "१२ घण्टाः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:656
 msgid "1 day"
-msgstr ""
+msgstr "१ दिनम्"
 
 #: ../qml/features/settings/pages/Account_Page.qml:657
 msgid "3 days"
-msgstr ""
+msgstr "३ दिनानि"
 
 #: ../qml/features/settings/pages/Account_Page.qml:658
 msgid "1 week"
-msgstr ""
+msgstr "१ सप्ताहः"
 
 #: ../qml/features/settings/pages/Account_Page.qml:669
 #: ../qml/features/settings/pages/Settings_Sync.qml:218
 msgid "Sync Direction"
-msgstr ""
+msgstr "समकालन-दिशा"
 
 #: ../qml/features/settings/pages/Account_Page.qml:672
 msgid "Both (Up & Down)"
-msgstr ""
+msgstr "उभे (ऊर्ध्वम् अधश्च)"
 
 #: ../qml/features/settings/pages/Account_Page.qml:673
 msgid "Download Only"
-msgstr ""
+msgstr "केवलम् अवचयनम्"
 
 #: ../qml/features/settings/pages/Account_Page.qml:674
 msgid "Upload Only"
-msgstr ""
+msgstr "केवलम् आरोहणम्"
 
 #: ../qml/features/settings/pages/Settings_Accounts.qml:39
 #: ../qml/features/settings/pages/Settings_Page.qml:69
 msgid "Connected Accounts"
-msgstr ""
+msgstr "सम्बद्ध-लेखाः"
 
 #: ../qml/features/settings/pages/Settings_Accounts.qml:101
 msgid "Delete Account"
-msgstr ""
+msgstr "लेखं विलोपयतु"
 
 #: ../qml/features/settings/pages/Settings_Accounts.qml:104
 msgid ""
-"Are you sure you want to delete this account? This will permanently remove "
-"the account and all associated data including projects, tasks, and "
+"Are you sure you want to delete this account? This will permanently "
+"remove the account and all associated data including projects, tasks, and "
 "timesheets."
-msgstr ""
+msgstr "किं भवान् एतं लेखं विलोपयितुम् निश्चितः अस्ति? एतेन लेखः तथा परियोजना-कार्य-समयपत्र-सहितानि सर्वाणि सम्बद्ध-दत्तांशानि स्थायीरूपेण निष्कासयिष्यन्ते।"
 
 #: ../qml/features/settings/pages/Settings_Accounts.qml:307
 msgid "Log"
-msgstr ""
+msgstr "अभिलेखः"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:191
 msgid "Push Notifications"
-msgstr ""
+msgstr "पुश्-सूचनाः"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:199
 msgid "Receive push notifications for task updates and reminders"
-msgstr ""
+msgstr "कार्य-अद्यतनानां स्मारकाणां च पुश्-सूचनाः प्राप्नोतु"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:216
 msgid "Enable Notifications"
-msgstr ""
+msgstr "सूचनाः सक्षमाः कुरुत"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:238
 msgid "⚠ Notifications are disabled when Background Sync is set to Upload Only"
-msgstr ""
+msgstr "⚠ यदा पृष्ठ-समकालनं केवल-आरोहणाय निर्धारितं भवति तदा सूचनाः निष्क्रियाः भवन्ति"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:272
 msgid "Notification Schedule"
-msgstr ""
+msgstr "सूचना-कालसूची"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:280
 msgid ""
 "Set your timezone, working days and active hours to receive notifications "
 "only during work time"
-msgstr ""
+msgstr "सूचनाः केवलं कार्यकाले प्राप्तुं भवतः कालक्षेत्रं, कार्यदिनानि, सक्रिय-घण्टाः च निर्धारयतु"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:296
 msgid "Enable Schedule"
-msgstr ""
+msgstr "कालसूचीं सक्षमां करोतु"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:325
 msgid "Timezone"
-msgstr ""
+msgstr "कालक्षेत्रम्"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:388
 msgid "Working Days"
-msgstr ""
+msgstr "कार्यदिनानि"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:397
 msgid "Notifications will only be sent on selected days"
-msgstr ""
+msgstr "सूचनाः केवलं चयनित-दिनेषु एव प्रेष्यन्ते"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:485
 msgid "Working Hours (notifications allowed)"
-msgstr ""
+msgstr "कार्य-घण्टाः (सूचनाः अनुमताः)"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:501
 msgid "From"
-msgstr ""
+msgstr "आरभ्य"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:539
 msgid "To"
-msgstr ""
+msgstr "यावत्"
 
 #: ../qml/features/settings/pages/Settings_Notifications.qml:579
 msgid ""
-"Push notifications will only be sent during working hours on working days. "
-"Overnight schedules (e.g., 22:00 to 06:00) are supported."
-msgstr ""
+"Push notifications will only be sent during working hours on working "
+"days. Overnight schedules (e.g., 22:00 to 06:00) are supported."
+msgstr "पुश्-सूचनाः केवलं कार्यदिनेषु कार्य-घण्टासु एव प्रेष्यन्ते। रात्रि-कालसूचयः अपि (यथा, २२:०० तः ०६:०० पर्यन्तम्) समर्थिताः सन्ति।"
 
 #: ../qml/features/settings/pages/Settings_Page.qml:35
 msgid "Settings"
-msgstr ""
+msgstr "विन्यासाः"
 
 #: ../qml/features/settings/pages/Settings_Page.qml:91
 #: ../qml/features/settings/pages/Settings_Sync.qml:35
 msgid "Background Sync"
-msgstr ""
+msgstr "पृष्ठ-समकालनम्"
 
 #: ../qml/features/settings/pages/Settings_Page.qml:102
 #: ../qml/features/settings/pages/Settings_Theme.qml:33
 msgid "Theme Settings"
-msgstr ""
+msgstr "विषय-विन्यासाः"
 
 #: ../qml/features/settings/pages/Settings_Page.qml:114
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:36
 msgid "Voice Model (Beta)"
-msgstr ""
+msgstr "ध्वनि-प्रतिरूपम् (बीटा)"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:132
 msgid "Background Sync Settings"
-msgstr ""
+msgstr "पृष्ठ-समकालन-विन्यासाः"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:140
 msgid "Configure automatic synchronization with Odoo"
-msgstr ""
+msgstr "Odoo इत्यनेन सह स्वचालित-समकालनं विन्यस्यताम्"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:156
 msgid "Enable AutoSync"
-msgstr ""
+msgstr "स्वयं-समकालनं सक्षमं करोतु"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:261
 msgid ""
-"✨ Recommended: Set sync interval to 5 or 15 minutes for the best balance of "
-"performance and battery life."
-msgstr ""
+"✨ Recommended: Set sync interval to 5 or 15 minutes for the best balance "
+"of performance and battery life."
+msgstr "✨ अनुशंसितम्: उत्तम-सन्तुलनाय समकालन-अन्तरालं ५ अथवा १५ निमेषान् निर्धारयतु।"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:274
 msgid "Restart Background Daemon"
-msgstr ""
+msgstr "पृष्ठ-सेवां पुनः आरभयतु"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:274
 msgid "Restarting..."
-msgstr ""
+msgstr "पुनः आरभ्यते..."
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:295
 msgid "Daemon Restarted"
-msgstr ""
+msgstr "सेवा पुनः आरब्धा"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:296
 msgid ""
 "The background sync daemon has been successfully restarted and is running."
-msgstr ""
+msgstr "पृष्ठ-समकालन-सेवा सफलतया पुनः आरब्धा अस्ति तथा चलति अस्ति।"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:301
 msgid "Daemon Restart"
-msgstr ""
+msgstr "सेवा-पुनः-आरम्भः"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:302
 msgid ""
-"The daemon restart was initiated. It may take a few moments to fully start. "
-"If sync issues persist, try again."
-msgstr ""
+"The daemon restart was initiated. It may take a few moments to fully "
+"start. If sync issues persist, try again."
+msgstr "सेवायाः पुनः-आरम्भः आरब्धः। सम्पूर्णतया आरम्भाय किञ्चित् कालः लगति। यदि समस्याः तिष्ठन्ति तर्हि पुनः प्रयतस्व।"
 
 #: ../qml/features/settings/pages/Settings_Sync.qml:311
 msgid ""
 "Note: These are global defaults. Individual accounts can override these "
-"settings from their account edit page. Changes take effect on the next sync "
-"cycle."
-msgstr ""
+"settings from their account edit page. Changes take effect on the next "
+"sync cycle."
+msgstr "टिप्पणी: एते वैश्विक-मानकाः सन्ति। प्रत्येकः लेखः स्व-सम्पादन-पृष्ठात् एतान् विन्यासान् अधिलिखितुं शक्नोति। परिवर्तनानि अग्रिम-समकालन-चक्रे प्रभावी भविष्यन्ति।"
 
 #: ../qml/features/settings/pages/Settings_Theme.qml:106
 msgid "App Theme Preference"
-msgstr ""
+msgstr "अनुप्रयोग-विषय-वरीयता"
 
 #: ../qml/features/settings/pages/Settings_Theme.qml:114
 msgid "Choose your preferred theme for the application"
-msgstr ""
+msgstr "अनुप्रयोगाय स्वप्रिय-विषयं चिनोतु"
 
 #: ../qml/features/settings/pages/Settings_Theme.qml:175
 msgid "Light Theme"
-msgstr ""
+msgstr "प्रकाश-विषयः"
 
 #: ../qml/features/settings/pages/Settings_Theme.qml:240
 msgid "Dark Theme"
-msgstr ""
+msgstr "तमो-विषयः"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:256
 msgid "Starting download..."
-msgstr ""
+msgstr "अवचयनम् आरभ्यते..."
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:259
 msgid "Download Started"
-msgstr ""
+msgstr "अवचयनम् आरब्धम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:259
 msgid "Downloading %1..."
-msgstr ""
+msgstr "%1 अवचीयते..."
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:267
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:269
 msgid "Could not start download"
-msgstr ""
+msgstr "अवचयनम् आरब्धुं न शक्तम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:269
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:594
 msgid "Download Failed"
-msgstr ""
+msgstr "अवचयनम् असफलम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:281
 msgid "Download cancelled"
-msgstr ""
+msgstr "अवचयनं निरस्तम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:283
 msgid "Download Cancelled"
-msgstr ""
+msgstr "अवचयनं निरस्तम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:283
 msgid "Download of %1 was cancelled and partial data deleted."
-msgstr ""
+msgstr "%1 इत्यस्य अवचयनं निरस्तम्, आंशिकः दत्तांशः च विलोपितः।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:348
 msgid "About Voice Models"
-msgstr ""
+msgstr "ध्वनि-प्रतिरूपाणां विषये"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:363
 msgid ""
-"Voice models allow you to dictate text using your microphone directly into "
-"the app. Because processing happens locally on your device, your voice data "
-"remains completely private and no internet connection is required after the "
-"initial model download.\n"
+"Voice models allow you to dictate text using your microphone directly "
+"into the app. Because processing happens locally on your device, your "
+"voice data remains completely private and no internet connection is "
+"required after the initial model download.\n"
 "\n"
 "Larger models provide higher accuracy but require more device memory and "
 "space. Smaller models are faster and use fewer resources but may be less "
 "accurate."
-msgstr ""
+msgstr "ध्वनि-प्रतिरूपाणि भवतः माइक्रोफोनेन पाठं श्रुतलेखनं कर्तुं समर्थं कुर्वन्ति। संस्करणं भवतः यन्त्रे स्थानीयतया भवति इति कारणात्, भवतः ध्वनि-दत्तांशः पूर्णतया गोपनीयः तिष्ठति, आरम्भिक-प्रतिरूप-अवचयनात् परं अन्तर्जाल-सम्बन्धः न आवश्यकः।\n\nबृहत्-प्रतिरूपाणि अधिकां शुद्धतां ददति परन्तु अधिक-यन्त्र-स्मृतिं स्थानं च अपेक्षन्ते। लघु-प्रतिरूपाणि शीघ्रतराणि सन्ति न्यून-संसाधनानि च उपयुञ्जन्ति परन्तु न्यून-शुद्धानि भवितुम् अर्हन्ति।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:377
 msgid ""
 "<b>Voice Feature Stages:</b> When you click the voice icon, it will show "
 "<b>Starting</b>, then <b>Preparing</b>. Only start speaking once it shows "
-"<b>Listening</b>. When stopped, it will show <b>Processing</b> with a yellow "
-"bar."
-msgstr ""
+"<b>Listening</b>. When stopped, it will show <b>Processing</b> with a "
+"yellow bar."
+msgstr "<b>ध्वनि-सुविधा-सोपानानि:</b> यदा भवान् ध्वनि-चिह्नं क्लिक् करोति तदा प्रथमं <b>आरभ्यते</b> पश्चात् <b>सज्जीक्रियते</b> इति दर्श्यते। <b>श्रूयते</b> इति दर्शनं यावत् एव वदतु। स्थगिते सति, पीत-पट्ट्या सह <b>संसाध्यते</b> इति दर्श्यते।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:387
 msgid ""
-"<b>Auto-Stop & Limits:</b> If you do not speak for 7 seconds, the voice icon "
-"will automatically stop. The maximum duration for a single recording is 5 "
-"minutes."
-msgstr ""
+"<b>Auto-Stop & Limits:</b> If you do not speak for 7 seconds, the voice "
+"icon will automatically stop. The maximum duration for a single recording "
+"is 5 minutes."
+msgstr "<b>स्वयं-स्थगनं सीमाः च:</b> यदि भवान् ७ क्षणान् यावत् न वदति तर्हि ध्वनि-चिह्नं स्वयमेव स्थगति। एकस्य अभिलेखनस्य अधिकतमा अवधिः ५ निमेषाः अस्ति।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:397
 msgid ""
 "<b>Getting Started:</b> Make sure you have enabled the \"Enable voice "
 "input\" feature, under voice model (Beta) settings. "
-msgstr ""
+msgstr "<b>आरम्भः:</b> ध्वनि-प्रतिरूप (बीटा) विन्यासेषु \"ध्वनि-निवेशं सक्षमं कुरुत\" इति सुविधा सक्षमा अस्ति इति निश्चितं कुरुत। "
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:407
 msgid ""
 "<b>Compatibility & Errors:</b> A red warning icon indicates the model is "
-"incompatible with your device (usually due to RAM limits), but you can still "
-"attempt to download it."
-msgstr ""
+"incompatible with your device (usually due to RAM limits), but you can "
+"still attempt to download it."
+msgstr "<b>सामञ्जस्यं दोषाः च:</b> रक्तवर्ण-चेतावनी-चिह्नं सूचयति यत् प्रतिरूपं भवतः यन्त्रेण सह असामञ्जस्यं (सामान्यतया स्मृति-सीमाभिः कारणात्) अस्ति, परन्तु भवान् तथापि अवचेतुं प्रयतितुं शक्नोति।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:417
 msgid ""
-"<b>Managing Downloads:</b>Check the internet connectivity before downloading "
-"a file. Once the voice model is downloaded, select the model you want from "
-"the installed models list. Even if only one model is installed, selecting "
-"the model is mandatory. The selected model will be shown in bold text, with "
-"a tick mark to its right. During download, you will see <b>Loading</b> "
-"(downloading), <b>Pause</b>, and <b>Cancel</b> buttons. Pausing or losing "
-"internet will preserve your progress, allowing you to resume later from this "
-"page. Cancelling will delete the partial download."
-msgstr ""
+"<b>Managing Downloads:</b>Check the internet connectivity before "
+"downloading a file. Once the voice model is downloaded, select the model "
+"you want from the installed models list. Even if only one model is "
+"installed, selecting the model is mandatory. The selected model will be "
+"shown in bold text, with a tick mark to its right. During download, you "
+"will see <b>Loading</b> (downloading), <b>Pause</b>, and <b>Cancel</b> "
+"buttons. Pausing or losing internet will preserve your progress, allowing "
+"you to resume later from this page. Cancelling will delete the partial "
+"download."
+msgstr "<b>अवचयन-प्रबन्धनम्:</b>सञ्चिकाम् अवचेतुं पूर्वं अन्तर्जाल-सम्बन्धं परीक्षतु। ध्वनि-प्रतिरूपे अवचिते सति, संस्थापित-प्रतिरूप-सूच्याः इष्टं प्रतिरूपं चिनोतु। एकमेव प्रतिरूपं संस्थापितं चेदपि, प्रतिरूप-चयनम् आवश्यकम्। चयनितं प्रतिरूपं स्थूलाक्षरेण दक्षिणे चिह्नेन सह दर्श्यते। अवचयन-काले, भवान् <b>भारणम्</b> (अवचीयमानम्), <b>विरामः</b>, <b>निरसनम्</b> च बटनान् द्रक्ष्यति। विरामः अथवा अन्तर्जाल-नाशः भवतः प्रगतिं संरक्षति, यत् भवान् पश्चात् अस्मात् पृष्ठात् पुनः आरभितुं शक्नोति। निरसनेन आंशिक-अवचयनं विलोप्यते।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:427
 msgid ""
-"<b>Deleting Models:</b> To remove an installed model, swipe its name to the "
-"left and click the delete icon."
-msgstr ""
+"<b>Deleting Models:</b> To remove an installed model, swipe its name to "
+"the left and click the delete icon."
+msgstr "<b>प्रतिरूप-विलोपनम्:</b> संस्थापितं प्रतिरूपं निष्कासयितुं तस्य नाम वामतः स्पृष्ट्वा विलोपन-चिह्नं क्लिक् कुरुत।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:451
 msgid "Delete Model"
-msgstr ""
+msgstr "प्रतिरूपं विलोपयतु"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:458
 msgid "Are you sure you want to delete the voice model '%1'?"
-msgstr ""
+msgstr "किं भवान् '%1' ध्वनि-प्रतिरूपं विलोपयितुम् निश्चितः अस्ति?"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:481
 msgid "Deleted"
-msgstr ""
+msgstr "विलोपितम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:481
 msgid "Model %1 deleted successfully."
-msgstr ""
+msgstr "%1 प्रतिरूपं सफलतया विलोपितम्।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:484
 msgid "Could not delete model"
-msgstr ""
+msgstr "प्रतिरूपं विलोपयितुं न शक्तम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:501
 msgid "Warning"
-msgstr ""
+msgstr "चेतावनी"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:508
 msgid ""
@@ -1822,299 +1823,303 @@ msgid ""
 "than available. It may cause the app to crash.\n"
 "\n"
 "But if you want to download it, you can."
-msgstr ""
+msgstr "एतत् प्रतिरूपं भवतः यन्त्रेण सह असामञ्जस्यं वर्तते यतः तस्मै उपलब्धात् अधिका स्मृतिः (RAM) आवश्यका। एतेन अनुप्रयोगः विफलः भवितुम् अर्हति।\n\nपरन्तु यदि भवान् अवचेतुम् इच्छति तर्हि भवान् शक्नोति।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:525
 msgid "Download Anyway"
-msgstr ""
+msgstr "तथापि अवचयतु"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:572
 msgid "Downloading..."
-msgstr ""
+msgstr "अवचीयते..."
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:585
 msgid "Download Interrupted"
-msgstr ""
+msgstr "अवचयनं विच्छिन्नम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:585
 msgid "Failed to download. You can resume it."
-msgstr ""
+msgstr "अवचयनम् असफलम्। भवान् पुनः आरभितुं शक्नोति।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:587
 msgid "Download Paused"
-msgstr ""
+msgstr "अवचयनं विरामितम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:587
 msgid "Download of %1 is paused."
-msgstr ""
+msgstr "%1 इत्यस्य अवचयनं विरामितम्।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:600
 msgid "%1 installed successfully!"
-msgstr ""
+msgstr "%1 सफलतया संस्थापितम्!"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:644
 msgid "Enable Voice Input"
-msgstr ""
+msgstr "ध्वनि-निवेशं सक्षमं करोतु"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:667
 msgid "INSTALLED MODELS"
-msgstr ""
+msgstr "संस्थापित-प्रतिरूपाणि"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:765
 msgid "No installed models found."
-msgstr ""
+msgstr "संस्थापित-प्रतिरूपाणि न प्राप्तानि।"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:765
 msgid "Scanning for models..."
-msgstr ""
+msgstr "प्रतिरूपाणां कृते अन्वेष्यते..."
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:777
 msgid "AVAILABLE FOR DOWNLOAD"
-msgstr ""
+msgstr "अवचयनाय उपलब्धम्"
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:963
 msgid "All available models are installed."
-msgstr ""
+msgstr "सर्वाणि उपलब्ध-प्रतिरूपाणि संस्थापितानि सन्ति।"
 
 #: ../qml/features/settings/pages/SyncLog.qml:7
 msgid "Sync Log"
-msgstr ""
+msgstr "समकालन-अभिलेखः"
 
 #: ../qml/features/settings/pages/SyncLog.qml:22
 msgid "Copy Logs"
-msgstr ""
+msgstr "अभिलेखान् प्रतिलिपयतु"
 
 #: ../qml/features/settings/pages/SyncLog.qml:147
 msgid ""
 "No errors or warnings found for this account.\n"
 "Sync logs will appear here when issues occur."
-msgstr ""
+msgstr "अस्य लेखस्य कृते कोऽपि दोषः चेतावनी वा न प्राप्तः।\nसमस्यासु उत्पन्नासु समकालन-अभिलेखाः अत्र दृश्यन्ते।"
 
 #: ../qml/features/tasks/components/MyTasksClosedIndicator.qml:48
 msgid "Showing closed/completed tasks"
-msgstr ""
+msgstr "पिहित/सम्पूर्ण-कार्याणि दर्श्यन्ते"
 
 #: ../qml/features/tasks/components/PersonalStageSelector.qml:59
 #: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:128
 msgid "Change Personal Stage"
-msgstr ""
+msgstr "व्यक्तिगत-सोपानं परिवर्तयतु"
 
 #: ../qml/features/tasks/components/TaskDetailsCard.qml:243
 #: ../qml/features/tasks/components/TaskDetailsCard.qml:252
 #: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:148
 #: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:157
 msgid "update Timesheet"
-msgstr ""
+msgstr "समयपत्रम् अद्यतनं करोतु"
 
 #: ../qml/features/tasks/components/TaskDetailsCard.qml:348
 msgid "Unable to track progress – no planned hours"
-msgstr ""
+msgstr "प्रगतिः अनुसर्तुं न शक्यते – योजित-घण्टाः न सन्ति"
 
 #: ../qml/features/tasks/components/TaskDetailsCard.qml:359
 msgid "No progress yet"
-msgstr ""
+msgstr "अद्यापि प्रगतिः नास्ति"
 
 #: ../qml/features/tasks/components/TaskDetailsCard.qml:630
 msgid "N/A"
-msgstr ""
+msgstr "अनुपयुक्तम्"
 
 #: ../qml/features/tasks/components/TaskInitialStageSelector.qml:27
 msgid "Initial Stage"
-msgstr ""
+msgstr "प्रारम्भिक-सोपानम्"
 
 #: ../qml/features/tasks/components/TaskNameField.qml:26
 msgid "Name"
-msgstr ""
+msgstr "नाम"
 
 #: ../qml/features/tasks/components/TaskPrioritySelector.qml:28
 #: ../qml/features/timesheets/pages/Timesheet.qml:613
 msgid "Priority"
-msgstr ""
+msgstr "प्राथमिकता"
 
 #: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:111
 #: ../qml/features/timesheets/pages/Timesheet_Page.qml:41
 #: ../qml/features/timesheets/pages/Timesheet_Page.qml:69
 msgid "Timesheets"
-msgstr ""
+msgstr "समयपत्राणि"
 
 #: ../qml/features/tasks/components/TaskScheduleFields.qml:43
 msgid "Planned Hours"
-msgstr ""
+msgstr "योजित-घण्टाः"
 
 #: ../qml/features/tasks/components/TaskScheduleFields.qml:55
 msgid "e.g., 2:30 or 1.5"
-msgstr ""
+msgstr "यथा, २:३० अथवा १.५"
 
 #: ../qml/features/tasks/components/TaskScheduleFields.qml:133
 msgid "Deadline"
-msgstr ""
+msgstr "अन्तिम-सीमा"
 
 #: ../qml/features/tasks/components/TaskScheduleFields.qml:148
 msgid "Select"
-msgstr ""
+msgstr "चिनोतु"
 
 #: ../qml/features/tasks/components/TaskScheduleFields.qml:162
 msgid "Select Deadline"
-msgstr ""
+msgstr "अन्तिम-सीमां चिनोतु"
 
 #: ../qml/features/tasks/components/TaskStageSelector.qml:55
 msgid "Change Task Stage"
-msgstr ""
+msgstr "कार्य-सोपानं परिवर्तयतु"
 
 #: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:67
 msgid "Change Stage"
-msgstr ""
+msgstr "सोपानं परिवर्तयतु"
 
 #: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:87
 msgid "Current Personal Stage:"
-msgstr ""
+msgstr "वर्तमान-व्यक्तिगत-सोपानम्:"
 
 #: ../qml/features/tasks/pages/MyTasksPage.qml:47
 msgid "My Tasks"
-msgstr ""
+msgstr "मम कार्याणि"
 
 #: ../qml/features/tasks/pages/MyTasksPage.qml:93
 msgid "Stage Help"
-msgstr ""
+msgstr "सोपान-सहायता"
 
 #: ../qml/features/tasks/pages/MyTasksPage.qml:96
 msgid "Personal Stages Help"
-msgstr ""
+msgstr "व्यक्तिगत-सोपान-सहायता"
 
 #: ../qml/features/tasks/pages/MyTasksPage.qml:97
 msgid ""
-"If personal stages are not visible, please check the following:<br><br><b>1) "
-"Ensure stages exist in CURQ:</b><br>Ensure the stages are available in the "
-"CURQ instance under 'My Tasks'.<br><br><b>2) Verify the app's Default DB:</"
-"b><br>In the app, confirm that you are checked in to the correct database as "
-"Default, as My Tasks displays tasks based on the selected Default DB."
-msgstr ""
+"If personal stages are not visible, please check the following:<br><br>"
+"<b>1) Ensure stages exist in CURQ:</b><br>Ensure the stages are available "
+"in the CURQ instance under 'My Tasks'.<br><br><b>2) Verify the app's "
+"Default DB:</b><br>In the app, confirm that you are checked in to the "
+"correct database as Default, as My Tasks displays tasks based on the "
+"selected Default DB."
+msgstr "यदि व्यक्तिगत-सोपानानि न दृश्यन्ते तर्हि कृपया निम्नलिखितं परीक्षतु:<br><br><b>१) CURQ मध्ये सोपानानि सन्ति इति निश्चितं कुरुत:</b><br>'मम कार्याणि' अन्तर्गतं CURQ-प्रतिरूपे सोपानानि उपलब्धानि सन्ति इति सुनिश्चितं कुरुत।<br><br><b>२) अनुप्रयोगस्य मूलदत्तांशं सत्यापयतु:</b><br>अनुप्रयोगे, भवान् समुचित-दत्तांशे मूलरूपेण निबद्धः अस्ति इति निश्चितं कुरुत, यतः 'मम कार्याणि' चयनित-मूलदत्तांशानुसारं कार्याणि दर्शयति।"
 
 #: ../qml/features/tasks/pages/MyTasksPage.qml:405
 msgid "No Tasks Assigned to You"
-msgstr ""
+msgstr "भवते कोऽपि कार्यं न नियुक्तम्"
 
 #: ../qml/features/tasks/pages/MyTasksPage.qml:490
 #: ../qml/features/tasks/pages/Task_Page.qml:565
 msgid "Loading tasks..."
-msgstr ""
+msgstr "कार्याणि भार्यन्ते..."
 
 #: ../qml/features/tasks/pages/Task_Page.qml:43
 msgid "All Tasks"
-msgstr ""
+msgstr "सर्वाणि कार्याणि"
 
 #: ../qml/features/tasks/pages/Task_Page.qml:388
 msgid "No tasks found."
-msgstr ""
+msgstr "कार्याणि न प्राप्तानि।"
 
 #: ../qml/features/tasks/pages/Tasks.qml:654
 msgid "Parent Task"
-msgstr ""
+msgstr "मातृ-कार्यम्"
 
 #: ../qml/features/timesheets/components/TimeRecorderWidget.qml:84
 msgid "Time Tracking"
-msgstr ""
+msgstr "काल-अनुसरणम्"
 
 #: ../qml/features/timesheets/components/TimeRecorderWidget.qml:99
 msgid "Manual"
-msgstr ""
+msgstr "स्वहस्तेन"
 
 #: ../qml/features/timesheets/components/TimeRecorderWidget.qml:115
 msgid "Automated"
-msgstr ""
+msgstr "स्वचालितम्"
 
 #: ../qml/features/timesheets/components/TimeSheetDescriptionPopup.qml:54
 msgid "Add Description to Timesheet"
-msgstr ""
+msgstr "समयपत्रे विवरणं योजयतु"
 
 #: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:166
 msgid "Mark Ready for Sync"
-msgstr ""
+msgstr "समकालनाय सज्जम् इति चिह्नयतु"
 
 #: ../qml/features/timesheets/pages/Timesheet.qml:629
 msgid ""
-"What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom Important."
-"<br><br><b>1. Important & Urgent:</b><br>Here you write down important "
-"activities, which also have to be done immediately. These are urgent "
-"problems or projects with a hard deadline. I.e. If you manage a restaurant "
-"and an employee has not shown up, it is a rather urgent and acute problem. "
-"All signals are on red, so this is a typical activity for the first quadrant."
-"<br><br><b>2. Important & Not Urgent:</b><br>If you leave the activities in "
-"this quadrant for the coming week, nothing will immediately go wrong. But be "
-"careful: These are activities and projects that will help you in the long "
-"term. Think of thinking about a strategy, improving work processes in your "
-"team, investing in relationships and investing in yourself. i.e. You are a "
-"team leader who has just been told during his performance review that more "
-"creative input is expected. Such an outcome of a performance review is an "
-"assignment that will never feel urgent, but is very important. You can "
-"quickly recognize the important & non-urgent activities by answering the "
-"question: if I don't do this, will it get me into trouble in the long run? "
-"If the answer is yes, then you have an important & non-urgent activity. If "
-"the answer is no, then it is a non-important & non-urgent activity."
-"<br><br><b>3. Urgent & Not Important:</b><br>This quadrant concerns "
-"activities that do not help you in the long run, but that are screaming for "
-"your attention this week. An adjustment in a presentation that has to be "
-"done for a colleague on the spur of the moment or the milk that is almost "
-"empty. With tasks in this quadrant it is very important to check whether "
-"they are actually urgent. Requests from others in particular often seem very "
-"urgent, while they can sometimes wait a day or a week. It is usually fine to "
-"postpone this work to a more suitable moment, provided that I communicate "
-"well about this. If you have the opportunity to delegate or outsource these "
-"tasks in this quadrant, do so. If you work for yourself, this is not always "
-"possible. In that case, I advise you to organize your working day in such a "
-"way that you are guided as little as possible by these urgent tasks, if "
-"necessary by reserving a fixed time block each day for these types of "
-"emergencies. That way you keep control over your agenda.<br><br><b>4. Not "
-"Important & Not Urgent:</b><br>This type of work that you want to have on "
-"your plate as little as possible, because it does not help you in any way. "
-"Constantly refreshing your mailbox, for example. But meetings without a "
-"clear goal also fall into this category. You can undoubtedly point out more "
-"of these types of 'busy work' examples yourself: things that you do, but "
-"that do not really benefit anyone. Sometimes these activities are a great "
-"short break from your work, but usually they are a great excuse to postpone "
-"your important work for a while."
-msgstr ""
+"What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom "
+"Important.<br><br><b>1. Important & Urgent:</b><br>Here you write down "
+"important activities, which also have to be done immediately. These are "
+"urgent problems or projects with a hard deadline. I.e. If you manage a "
+"restaurant and an employee has not shown up, it is a rather urgent and "
+"acute problem. All signals are on red, so this is a typical activity for "
+"the first quadrant.<br><br><b>2. Important & Not Urgent:</b><br>If you "
+"leave the activities in this quadrant for the coming week, nothing will "
+"immediately go wrong. But be careful: These are activities and projects "
+"that will help you in the long term. Think of thinking about a strategy, "
+"improving work processes in your team, investing in relationships and "
+"investing in yourself. i.e. You are a team leader who has just been told "
+"during his performance review that more creative input is expected. Such "
+"an outcome of a performance review is an assignment that will never feel "
+"urgent, but is very important. You can quickly recognize the important & "
+"non-urgent activities by answering the question: if I don't do this, "
+"will it get me into trouble in the long run? If the answer is yes, then "
+"you have an important & non-urgent activity. If the answer is no, then "
+"it is a non-important & non-urgent activity.<br><br><b>3. Urgent & Not "
+"Important:</b><br>This quadrant concerns activities that do not help you "
+"in the long run, but that are screaming for your attention this week. An "
+"adjustment in a presentation that has to be done for a colleague on the "
+"spur of the moment or the milk that is almost empty. With tasks in this "
+"quadrant it is very important to check whether they are actually urgent. "
+"Requests from others in particular often seem very urgent, while they "
+"can sometimes wait a day or a week. It is usually fine to postpone this "
+"work to a more suitable moment, provided that I communicate well about "
+"this. If you have the opportunity to delegate or outsource these tasks "
+"in this quadrant, do so. If you work for yourself, this is not always "
+"possible. In that case, I advise you to organize your working day in "
+"such a way that you are guided as little as possible by these urgent "
+"tasks, if necessary by reserving a fixed time block each day for these "
+"types of emergencies. That way you keep control over your agenda."
+"<br><br><b>4. Not Important & Not Urgent:</b><br>This type of work that "
+"you want to have on your plate as little as possible, because it does "
+"not help you in any way. Constantly refreshing your mailbox, for "
+"example. But meetings without a clear goal also fall into this category. "
+"You can undoubtedly point out more of these types of 'busy work' "
+"examples yourself: things that you do, but that do not really benefit "
+"anyone. Sometimes these activities are a great short break from your "
+"work, but usually they are a great excuse to postpone your important "
+"work for a while."
+msgstr "यत् महत्त्वपूर्णम् तत् क्वचित् एव तात्कालिकम् भवति, यत् तात्कालिकम् तत् क्वचित् एव महत्त्वपूर्णम् भवति।<br><br><b>१. महत्त्वपूर्णम् व तात्कालिकम्:</b><br>अत्र भवान् तानि महत्त्वपूर्णानि कार्याणि लिखति यानि तत्क्षणमेव सम्पादनीयानि सन्ति। एतानि दृढ-अन्तिम-सीमायुक्तानि तात्कालिकानि समस्याः वा परियोजनाः सन्ति। यथा, यदि भवान् भोजनालयं सञ्चालयति तथा च कर्मचारी न आगतः, तर्हि इदं अत्यन्तं तात्कालिकं तीव्रं च समस्या अस्ति। सर्वाणि संकेतानि रक्तवर्णे सन्ति, अतः इदं प्रथम-चतुर्थांशस्य विशिष्टं कार्यम् अस्ति।<br><br><b>२. महत्त्वपूर्णम् परन्तु अतात्कालिकम्:</b><br>यदि भवान् आगामि-सप्ताहाय अस्मिन् चतुर्थांशे कार्याणि त्यजति तर्हि तत्क्षणं किमपि दुष्टं न भविष्यति। परन्तु सावधानः भवतु: एतानि कार्याणि परियोजनाः च दीर्घकाले भवते साहाय्यं करिष्यन्ति। यथा, रणनीतिं चिन्तयितुम्, स्वदलस्य कार्यप्रक्रियाः सुधारयितुम्, सम्बन्धेषु स्वयं च निवेशं कर्तुम्। अर्थात्, भवान् दल-नायकः अस्ति यस्मै तस्य निष्पादन-समीक्षायां अधिक-सृजनात्मक-योगदानम् अपेक्षितम् इति उक्तम्। एतादृशं परिणामं कदापि तात्कालिकं न भासते, परन्तु अत्यन्तं महत्त्वपूर्णम् अस्ति। एतत् प्रश्नस्य उत्तरेण भवान् शीघ्रं जानाति: यदि एतत् न करोमि तर्हि किं दीर्घकाले समस्या भविष्यति? यदि उत्तरं 'आम्' तर्हि तत् महत्त्वपूर्णम् अतात्कालिकं च कार्यम्। यदि उत्तरं 'न' तर्हि तत् अमहत्त्वपूर्णम् अतात्कालिकं च कार्यम्।<br><br><b>३. तात्कालिकम् परन्तु अमहत्त्वपूर्णम्:</b><br>अस्मिन् चतुर्थांशे तानि कार्याणि सन्ति यानि दीर्घकाले साहाय्यं न कुर्वन्ति, परन्तु अस्मिन् सप्ताहे भवतः ध्यानं तीव्रतया आकर्षन्ति। यथा, सहकर्मिणे तत्क्षणमेव प्रस्तुतिं परिवर्तयितुं वा दुग्धं प्रायः समाप्तम् इति। अस्मिन् चतुर्थांशे कार्याणि वस्तुतः तात्कालिकानि सन्ति वा न इति परीक्षणं अतीव महत्त्वपूर्णम्। विशेषतः अन्येभ्यः अनुरोधाः बहुधा अत्यन्तं तात्कालिकाः इव भासन्ते, यद्यपि ते कदाचित् दिनं वा सप्ताहं यावत् प्रतीक्षितुं शक्नुवन्ति। सामान्यतया एतत् कार्यं समुचिततर-समये स्थगयितुं शक्यते, यदि भवान् एतत् सम्यक् संवदति। यदि भवान् एतानि कार्याणि निवेदयितुं वा बहिरागतीकर्तुं शक्नोति तर्हि तथा कुरुतु। यदि भवान् स्वयमेव कार्यं करोति तर्हि इदं सर्वदा सम्भवं न भवति। तस्मिन् परिस्थितौ, भवतः दिनं तथा आयोजयतु यत् भवान् एतैः तात्कालिक-कार्यैः न्यूनतमं निर्दिष्टः भवति, आवश्यकतायां प्रतिदिनम् एतादृश-आपत्कालेभ्यः स्थिर-काल-खण्डं आरक्ष्य। एवं भवान् स्व-कार्यसूच्याः नियन्त्रणं धारयति।<br><br><b>४. अमहत्त्वपूर्णम् व अतात्कालिकम्:</b><br>एतादृशं कार्यं भवान् न्यूनतमं स्वपात्रे इच्छति, यतः तत् कस्यापि प्रकारेण साहाय्यं न करोति। यथा, निरन्तरं स्व-डाकपेटिकां पुनः प्रवर्तयितुम्। स्पष्ट-लक्ष्यरहिताः सभाः अपि अस्मिन् वर्गे पतन्ति। भवान् निःसन्देहं स्वयमेव अधिकानि एतादृश-'व्यस्त-कार्य'-उदाहरणानि निर्दिष्टुं शक्नोति: यानि भवान् करोति, परन्तु यानि वस्तुतः कस्यापि लाभं न ददति। कदाचित् एतानि कार्याणि भवतः कार्यात् उत्तमः लघु-विरामः भवन्ति, परन्तु सामान्यतया एतानि भवतः महत्त्वपूर्ण-कार्यं कञ्चित्कालं स्थगयितुं उत्तमं व्याजम् भवन्ति।"
 
 #: ../qml/features/timesheets/pages/Timesheet.qml:651
 msgid "Important, Urgent (1)"
-msgstr ""
+msgstr "महत्त्वपूर्णम्, तात्कालिकम् (१)"
 
 #: ../qml/features/timesheets/pages/Timesheet.qml:670
 msgid "Important, Not Urgent (2)"
-msgstr ""
+msgstr "महत्त्वपूर्णम्, अतात्कालिकम् (२)"
 
 #: ../qml/features/timesheets/pages/Timesheet.qml:689
 msgid "Urgent, Not Important (3)"
-msgstr ""
+msgstr "तात्कालिकम्, अमहत्त्वपूर्णम् (३)"
 
 #: ../qml/features/timesheets/pages/Timesheet.qml:708
 msgid "Not Urgent, Not Important (4)"
-msgstr ""
+msgstr "अतात्कालिकम्, अमहत्त्वपूर्णम् (४)"
 
 #: ../qml/features/timesheets/pages/Timesheet_Page.qml:166
 msgid "Active"
-msgstr ""
+msgstr "सक्रियम्"
 
 #: ../qml/features/timesheets/pages/Timesheet_Page.qml:167
 msgid "Draft"
-msgstr ""
+msgstr "प्रारूपम्"
 
 #: ../qml/features/timesheets/pages/Timesheet_Page.qml:400
 msgid "Loading timesheets..."
-msgstr ""
+msgstr "समयपत्राणि भार्यन्ते..."
 
 #: ../qml/features/updates/pages/Updates.qml:42
 msgid "Project Update"
-msgstr ""
+msgstr "परियोजना-अद्यतनम्"
 
 #: ../qml/features/updates/pages/Updates.qml:82
 msgid "Unknown Account"
-msgstr ""
+msgstr "अज्ञातलेखः"
 
 #: ../qml/features/updates/pages/Updates_Page.qml:372
 msgid "Loading updates..."
-msgstr ""
+msgstr "अद्यतनानि भार्यन्ते..."
 
 #: ubtms.desktop.in.h:1
 msgid "Time Management"
-msgstr ""
+msgstr "समय-प्रबन्धनम्"
+
