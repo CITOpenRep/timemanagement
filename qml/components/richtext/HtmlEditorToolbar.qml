@@ -195,7 +195,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                color: darkMode ? "#555555" : "#F0F0F0"
+                color: editor && editor.alignment === "left" ? LomiriColors.orange : (darkMode ? "#555555" : "#F0F0F0")
                 Column {
                     anchors.centerIn: parent
                     spacing: 2
@@ -212,7 +212,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                color: darkMode ? "#555555" : "#F0F0F0"
+                color: editor && editor.alignment === "center" ? LomiriColors.orange : (darkMode ? "#555555" : "#F0F0F0")
                 Column {
                     anchors.centerIn: parent
                     spacing: 2
@@ -227,7 +227,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                color: darkMode ? "#555555" : "#F0F0F0"
+                color: editor && editor.alignment === "right" ? LomiriColors.orange : (darkMode ? "#555555" : "#F0F0F0")
                 Column {
                     anchors.centerIn: parent
                     spacing: 2
@@ -244,7 +244,7 @@ Rectangle {
             Button {
                 width: units.gu(5)
                 height: units.gu(4)
-                color: darkMode ? "#555555" : "#F0F0F0"
+                color: editor && editor.alignment === "justify" ? LomiriColors.orange : (darkMode ? "#555555" : "#F0F0F0")
                 Column {
                     anchors.centerIn: parent
                     spacing: 2
@@ -268,7 +268,7 @@ Rectangle {
                 height: units.gu(4)
                 text: "•"
                 font.pixelSize: units.gu(2)
-                color: darkMode ? "#555555" : "#F0F0F0"
+                color: editor && editor.isUnorderedList ? LomiriColors.orange : (darkMode ? "#555555" : "#F0F0F0")
                 onClicked: {
                     console.log("[Toolbar] Unordered list clicked, editor:", editor ? "exists" : "null");
                     if (editor) editor.makeUnorderedList()
@@ -281,7 +281,7 @@ Rectangle {
                 height: units.gu(4)
                 text: "1."
                 font.pixelSize: units.gu(1.5)
-                color: darkMode ? "#555555" : "#F0F0F0"
+                color: editor && editor.isOrderedList ? LomiriColors.orange : (darkMode ? "#555555" : "#F0F0F0")
                 onClicked: {
                     console.log("[Toolbar] Ordered list clicked, editor:", editor ? "exists" : "null");
                     if (editor) editor.makeOrderedList()

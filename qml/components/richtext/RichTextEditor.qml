@@ -59,6 +59,13 @@ Item {
     /** Current highlight/background color at cursor position */
     property color currentHighlightColor: "transparent"
 
+    /** Active list state at cursor position */
+    property bool isUnorderedList: false
+    property bool isOrderedList: false
+
+    /** Text alignment at cursor position ("left", "center", "right", "justify") */
+    property string alignment: "left"
+
     // ============ SIGNALS ============
     
     /** Emitted when content changes */
@@ -689,35 +696,6 @@ Item {
             property bool italic: false
             property bool underline: false
             property bool strikethrough: false
-            
-            onBoldChanged: {
-                if (bold) {
-                    wv.runJavaScript("window.editor.bold();");
-                } else {
-                    wv.runJavaScript("window.editor.removeBold();");
-                }
-            }
-            onItalicChanged: {
-                if (italic) {
-                    wv.runJavaScript("window.editor.italic();");
-                } else {
-                    wv.runJavaScript("window.editor.removeItalic();");
-                }
-            }
-            onUnderlineChanged: {
-                if (underline) {
-                    wv.runJavaScript("window.editor.underline();");
-                } else {
-                    wv.runJavaScript("window.editor.removeUnderline();");
-                }
-            }
-            onStrikethroughChanged: {
-                if (strikethrough) {
-                    wv.runJavaScript("window.editor.strikethrough();");
-                } else {
-                    wv.runJavaScript("window.editor.removeStrikethrough();");
-                }
-            }
         }
         
         property int textAlignment: Qt.AlignLeft
@@ -771,9 +749,37 @@ Item {
                 case 'pathChanged':
                     parseFormatFromPath(payload.path || "");
                     break;
+                case 'formattingChanged':
                 case 'fontSizeChanged':
                     if (payload.fontSize && editor.currentFontSize !== payload.fontSize) {
                         editor.currentFontSize = payload.fontSize;
+                    }
+                    if (payload.textColor && editor.currentTextColor !== payload.textColor) {
+                        editor.currentTextColor = payload.textColor;
+                    }
+                    if (payload.highlightColor && editor.currentHighlightColor !== payload.highlightColor) {
+                        editor.currentHighlightColor = payload.highlightColor;
+                    }
+                    if (payload.bold !== undefined && editor.font.bold !== payload.bold) {
+                        editor.font.bold = payload.bold;
+                    }
+                    if (payload.italic !== undefined && editor.font.italic !== payload.italic) {
+                        editor.font.italic = payload.italic;
+                    }
+                    if (payload.underline !== undefined && editor.font.underline !== payload.underline) {
+                        editor.font.underline = payload.underline;
+                    }
+                    if (payload.strikethrough !== undefined && editor.font.strikethrough !== payload.strikethrough) {
+                        editor.font.strikethrough = payload.strikethrough;
+                    }
+                    if (payload.isUnorderedList !== undefined && editor.isUnorderedList !== payload.isUnorderedList) {
+                        editor.isUnorderedList = payload.isUnorderedList;
+                    }
+                    if (payload.isOrderedList !== undefined && editor.isOrderedList !== payload.isOrderedList) {
+                        editor.isOrderedList = payload.isOrderedList;
+                    }
+                    if (payload.alignment && editor.alignment !== payload.alignment) {
+                        editor.alignment = payload.alignment;
                     }
                     break;
             }

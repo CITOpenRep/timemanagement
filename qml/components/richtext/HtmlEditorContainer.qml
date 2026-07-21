@@ -56,6 +56,13 @@ Item {
     /** Current highlight color */
     property color currentHighlightColor: htmlEditor ? htmlEditor.currentHighlightColor : "transparent"
 
+    /** Active list state */
+    property bool isUnorderedList: htmlEditor ? htmlEditor.isUnorderedList : false
+    property bool isOrderedList: htmlEditor ? htmlEditor.isOrderedList : false
+
+    /** Text alignment */
+    property string alignment: htmlEditor ? htmlEditor.alignment : "left"
+
     // ============ SIGNALS ============
     
     /** Emitted when content changes */
