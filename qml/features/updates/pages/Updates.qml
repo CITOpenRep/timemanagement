@@ -301,6 +301,8 @@ Page {
                 
                 readOnly: isReadOnly
                 
+                property bool isInitialized: false
+
                 onStateChanged: function(newState, data) {
                     console.log("Updates.qml: WorkItemSelector state:", newState, JSON.stringify(data));
                     
@@ -324,9 +326,10 @@ Page {
                     }
                 }
                 
-                // Initialize the selector when it becomes visible
+                // Initialize the selector when it becomes visible for the first time
                 onVisibleChanged: {
-                    if (visible) {
+                    if (visible && !isInitialized) {
+                        isInitialized = true;
                         initializeWorkItemSelector();
                     }
                 }
@@ -344,13 +347,13 @@ Page {
                     
                     // Load accounts with the default account pre-selected
                     var accountToSelect = currentUpdate.account_id >= 0 ? currentUpdate.account_id : defaultAccountId;
+                    var projectToSelect = (currentUpdate.project_id && currentUpdate.project_id > 0) ? currentUpdate.project_id : -1;
                     loadAccounts(accountToSelect);
                     
                     // After loading accounts, load projects for the selected account
-                    // This makes the project selector ready for selection
                     if (accountToSelect >= 0) {
                         Qt.callLater(function() {
-                            loadProjects(accountToSelect, -1);
+                            loadProjects(accountToSelect, projectToSelect);
                         });
                     }
                 }

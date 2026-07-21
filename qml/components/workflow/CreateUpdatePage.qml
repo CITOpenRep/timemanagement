@@ -12,6 +12,7 @@ import QtQuick.Layouts 1.3
 import "../../../models/accounts.js" as Accounts
 import "../../../models/global.js" as Global
 import "../richtext"
+import "../selectors"
 import ".."
 
 Page {
@@ -22,7 +23,6 @@ Page {
     property int projectId: -1
     property int accountId: -1
     property string lastKnownContent: ""
-    property bool isInitialLoad: true
 
     // Status list
     property var projectUpdateStatus: ["on_track", "at_risk", "off_track", "on_hold"]
@@ -102,10 +102,10 @@ Page {
                 iconName: "tick"
                 text: i18n.dtr("ubtms", "Create")
                 onTriggered: {
-                    if (titleField.text.trim() === "" || statusSelector.currentIndex < 0) {
+                    if (createUpdatePage.projectId <= 0 || titleField.text.trim() === "" || statusSelector.currentIndex < 0) {
                         notifPopup.open(
                             i18n.dtr("ubtms", "Validation Error"),
-                            i18n.dtr("ubtms", "Please fill in all required fields."),
+                            i18n.dtr("ubtms", "Please select a project and fill in all required fields."),
                             "error"
                         );
                         return;
@@ -131,6 +131,7 @@ Page {
                     
                     // Clear temporary holder and go back
                     Global.description_temporary_holder = "";
+                    Global.description_context = "";
                     pageStack.removePages(createUpdatePage);
                 }
             },    Action{
@@ -192,20 +193,14 @@ Page {
     // Monitor visibility to manage live sync with ReadMorePage
     onVisibleChanged: {
         if (visible) {
-            // Skip loading on initial visibility (let Component.onCompleted handle it)
-            if (isInitialLoad) {
-                isInitialLoad = false;
-                return;
-            }
-            
             // Stop live sync — content is already up-to-date via the timer
             descriptionField.liveSyncActive = false;
 
             // Check if content was updated in ReadMorePage
-            if (Global.description_temporary_holder !== "" && 
-                Global.description_temporary_holder !== lastKnownContent) {
+            if (Global.description_temporary_holder !== "") {
                 descriptionField.setContent(Global.description_temporary_holder);
                 lastKnownContent = Global.description_temporary_holder;
+                draftHandler.markFieldChanged("description", Global.description_temporary_holder);
             }
         } else {
             // Live sync timer is managed by descriptionField.liveSyncActive
@@ -228,6 +223,53 @@ Page {
             topPadding: units.gu(2)
             leftPadding: units.gu(1)
             rightPadding: units.gu(2)
+
+            // Project Selector (when not pre-selected)
+            WorkItemSelector {
+                id: workItemSelector
+                width: parent.width - units.gu(2)
+                visible: createUpdatePage.projectId <= 0
+                showAccountSelector: true
+                showProjectSelector: true
+                showSubProjectSelector: false
+                showTaskSelector: false
+                showSubTaskSelector: false
+                showAssigneeSelector: false
+                readOnly: false
+
+                property bool isInitialized: false
+
+                onStateChanged: function(newState, data) {
+                    if (newState === "AccountSelected") {
+                        createUpdatePage.accountId = data.id;
+                        createUpdatePage.projectId = -1;
+                        draftHandler.markFieldChanged("accountId", data.id);
+                    } else if (newState === "ProjectSelected") {
+                        createUpdatePage.projectId = data.id;
+                        draftHandler.markFieldChanged("projectId", data.id);
+                    }
+                }
+
+                onVisibleChanged: {
+                    if (visible && !isInitialized) {
+                        isInitialized = true;
+                        initializeWorkItemSelector();
+                    }
+                }
+
+                function initializeWorkItemSelector() {
+                    var defaultAccountId = createUpdatePage.accountId > 0 ? createUpdatePage.accountId : Accounts.getDefaultAccountId();
+                    if (defaultAccountId < 0) defaultAccountId = 0;
+                    createUpdatePage.accountId = defaultAccountId;
+                    loadAccounts(defaultAccountId);
+                    if (defaultAccountId >= 0) {
+                        var projectToSelect = createUpdatePage.projectId > 0 ? createUpdatePage.projectId : -1;
+                        Qt.callLater(function() {
+                            loadProjects(defaultAccountId, projectToSelect);
+                        });
+                    }
+                }
+            }
 
             // Update Title
             Label {
@@ -336,6 +378,7 @@ Page {
                 
                 onClicked: {
                     Global.description_temporary_holder = descriptionField.getFormattedText();
+                    Global.description_context = "update_description";
                     descriptionField.liveSyncActive = true;
                     
                     if (typeof apLayout !== "undefined" && apLayout) {
@@ -358,14 +401,22 @@ Page {
         statusSelector.currentIndex = 0;
         progressSlider.value = 0;
         
+        if (createUpdatePage.projectId <= 0) {
+            workItemSelector.isInitialized = true;
+            workItemSelector.initializeWorkItemSelector();
+        }
+
         // Initialize draft handler with empty original data
         var originalData = {
             title: "",
             status: projectUpdateStatus[0],
             progress: 0,
-            description: ""
+            description: "",
+            projectId: createUpdatePage.projectId,
+            accountId: createUpdatePage.accountId
         };
         
         draftHandler.initialize(originalData);
     }
 }
+
