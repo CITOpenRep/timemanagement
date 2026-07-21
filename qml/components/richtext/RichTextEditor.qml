@@ -631,6 +631,25 @@ Item {
             }
         }
 
+        // Handle Title changes for fast bridge communication (bypasses URL navigation throttling)
+        onTitleChanged: {
+            var titleStr = title;
+            if (titleStr.indexOf('qtevent:') === 0) {
+                var parts = titleStr.substring(8).split(':');
+                var eventType = parts[0];
+                var payload = {};
+                if (parts.length > 1) {
+                    try {
+                        var decoded = JSON.parse(decodeURIComponent(parts[1]));
+                        payload = decoded.payload || decoded;
+                    } catch (e) {
+                        // Silently ignore parse errors
+                    }
+                }
+                p.handleEvent(eventType, payload);
+            }
+        }
+
         // Handle URL fragment changes for bridge communication
         onUrlChanged: {
             var urlStr = url.toString();
@@ -751,6 +770,11 @@ Item {
                     break;
                 case 'pathChanged':
                     parseFormatFromPath(payload.path || "");
+                    break;
+                case 'fontSizeChanged':
+                    if (payload.fontSize && editor.currentFontSize !== payload.fontSize) {
+                        editor.currentFontSize = payload.fontSize;
+                    }
                     break;
             }
         }

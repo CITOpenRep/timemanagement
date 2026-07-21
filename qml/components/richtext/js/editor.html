@@ -302,9 +302,96 @@
                     setTimeout(scrollCursorIntoView, 150);
                 });
 
+                // Dynamic font size tracking (Hover & Selection)
+                var activeSelectionFontSize = "12pt";
+                var lastHoveredFontSize = null;
+                var hoverTimer = null;
+
+                function formatPxToPt(sizeStr) {
+                    if (!sizeStr) return "12pt";
+                    if (sizeStr.endsWith("pt")) return sizeStr;
+                    if (sizeStr.endsWith("px")) {
+                        var px = parseFloat(sizeStr);
+                        if (!isNaN(px)) {
+                            var pt = Math.round(px * 0.75);
+                            return pt + "pt";
+                        }
+                    }
+                    return sizeStr;
+                }
+
+                function getComputedFontSizeOfNode(node) {
+                    if (!node) return null;
+                    if (node.nodeType === 3) node = node.parentElement;
+                    if (node && node.nodeType === 1) {
+                        var comp = window.getComputedStyle(node);
+                        if (comp && comp.fontSize) {
+                            return formatPxToPt(comp.fontSize);
+                        }
+                    }
+                    return null;
+                }
+
+                function updateSelectionFontSize() {
+                    try {
+                        var sel = window.getSelection();
+                        if (sel && sel.rangeCount > 0) {
+                            var node = sel.getRangeAt(0).startContainer;
+                            var size = getComputedFontSizeOfNode(node);
+                            if (size) {
+                                activeSelectionFontSize = size;
+                                lastHoveredFontSize = null;
+                                oxide.sendMessage('fontSizeChanged', { fontSize: size });
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                // Reset hover state when clicking or typing
+                document.body.addEventListener('mousedown', function () {
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    lastHoveredFontSize = null;
+                    setTimeout(updateSelectionFontSize, 10);
+                });
+
+                document.body.addEventListener('keydown', function () {
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    lastHoveredFontSize = null;
+                    setTimeout(updateSelectionFontSize, 10);
+                });
+
+                // Mouse hover font size tracking (Debounced)
+                document.body.addEventListener('mousemove', function (e) {
+                    var target = e.target;
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    hoverTimer = setTimeout(function () {
+                        var size = getComputedFontSizeOfNode(target);
+                        if (size && size !== lastHoveredFontSize) {
+                            lastHoveredFontSize = size;
+                            oxide.sendMessage('fontSizeChanged', { fontSize: size });
+                        }
+                    }, 80);
+                });
+
+                document.body.addEventListener('mouseleave', function () {
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    if (lastHoveredFontSize !== null) {
+                        lastHoveredFontSize = null;
+                        if (activeSelectionFontSize) {
+                            oxide.sendMessage('fontSizeChanged', { fontSize: activeSelectionFontSize });
+                        }
+                    }
+                });
+
+                // Selection & Cursor tracking for font size
+                document.addEventListener('selectionchange', updateSelectionFontSize);
+                document.body.addEventListener('keyup', updateSelectionFontSize);
+                document.body.addEventListener('mouseup', updateSelectionFontSize);
+
                 // Track path changes (formatting state)
                 window.editor.addEventListener('pathChange', function (e) {
                     oxide.sendMessage('pathChanged', { path: e.path || '' });
+                    updateSelectionFontSize();
                 });
 
                 // Track selection changes

@@ -48,13 +48,13 @@ Item {
     property alias editor: htmlEditor
     
     /** Current font size display */
-    property string currentFontSize: "11pt"
+    property string currentFontSize: htmlEditor ? htmlEditor.currentFontSize : "12pt"
     
     /** Current text color */
-    property color currentTextColor: "#000000"
+    property color currentTextColor: htmlEditor ? htmlEditor.currentTextColor : "#000000"
     
     /** Current highlight color */
-    property color currentHighlightColor: "transparent"
+    property color currentHighlightColor: htmlEditor ? htmlEditor.currentHighlightColor : "transparent"
 
     // ============ SIGNALS ============
     
@@ -81,38 +81,6 @@ Item {
         return rgbStr
     }
 
-    function parsePathForFormatting(path) {
-        var parts = path.split('>')
-        var size = "11pt"
-        var color = "#000000"
-        var highlight = "transparent"
-
-        for (var i = 0; i < parts.length; i++) {
-            var part = parts[i]
-            
-            // Extract font size
-            var fontSizeMatch = part.match(/fontSize=([^\]]+)/)
-            if (fontSizeMatch) {
-                size = fontSizeMatch[1]
-            }
-
-            // Extract text color
-            var colorMatch = part.match(/\[color=([^\]]+)\]/)
-            if (colorMatch) {
-                color = rgbToHex(colorMatch[1])
-            }
-
-            // Extract highlight color
-            var highlightMatch = part.match(/backgroundColor=([^\]]+)/)
-            if (highlightMatch) {
-                highlight = rgbToHex(highlightMatch[1])
-            }
-        }
-        
-        currentFontSize = size
-        currentTextColor = color
-        currentHighlightColor = highlight
-    }
 
     // ============ PUBLIC FUNCTIONS (matching RichTextEditor API) ============
 
@@ -220,7 +188,6 @@ Item {
         FontSizeDialog {
             onSizeSelected: {
                 htmlEditor.setFontSize(size)
-                htmlEditorContainer.currentFontSize = size
             }
         }
     }
@@ -231,10 +198,8 @@ Item {
             onColorSelected: {
                 if (isHighlight) {
                     htmlEditor.setHighlightColor(color)
-                    htmlEditorContainer.currentHighlightColor = color
                 } else {
                     htmlEditor.setTextColor(color)
-                    htmlEditorContainer.currentTextColor = color
                 }
             }
         }
