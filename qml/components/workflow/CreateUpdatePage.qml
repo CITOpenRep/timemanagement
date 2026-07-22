@@ -39,6 +39,18 @@ Page {
         onDraftLoaded: function(draftData, changedFields) {
             console.log("📋 Loading draft for project update, changed fields:", changedFields);
             
+            // Restore project/account selection from draft
+            var draftAccountId = -1;
+            var draftProjectId = -1;
+            if (draftData.accountId !== undefined && draftData.accountId > 0) {
+                createUpdatePage.accountId = draftData.accountId;
+                draftAccountId = draftData.accountId;
+            }
+            if (draftData.projectId !== undefined && draftData.projectId > 0) {
+                createUpdatePage.projectId = draftData.projectId;
+                draftProjectId = draftData.projectId;
+            }
+            
             // Restore form fields from draft
             if (draftData.title !== undefined) {
                 titleField.text = draftData.title;
@@ -55,6 +67,23 @@ Page {
             if (draftData.description !== undefined) {
                 descriptionField.setContent(draftData.description);
                 lastKnownContent = draftData.description;
+            }
+            
+            // Re-initialize WorkItemSelector with draft project/account values.
+            // loadAccounts emits AccountSelected synchronously which resets projectId to -1,
+            // and loadProjects (via finalizeLoading) does NOT emit ProjectSelected.
+            // So we must restore projectId AFTER the initialization settles.
+            if (workItemSelector.isInitialized && draftProjectId > 0) {
+                workItemSelector.initializeWorkItemSelector();
+                // Restore projectId after loadAccounts' AccountSelected reset and loadProjects' Qt.callLater
+                Qt.callLater(function() {
+                    Qt.callLater(function() {
+                        createUpdatePage.projectId = draftProjectId;
+                        if (draftAccountId > 0) {
+                            createUpdatePage.accountId = draftAccountId;
+                        }
+                    });
+                });
             }
             
             // Show notification about recovered draft
