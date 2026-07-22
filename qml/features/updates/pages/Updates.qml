@@ -807,7 +807,7 @@ Page {
                 currentUpdate = Project.getProjectUpdateById(recordid, accountid);
             }
             
-            if (Global.description_temporary_holder !== "" && Global.description_context === "update_description") {
+            if (Global.description_context === "update_description") {
                 var wasInitializing = isInitializing;
                 isInitializing = true;
                 description_text.setContent(Global.description_temporary_holder);

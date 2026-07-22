@@ -197,7 +197,7 @@ Page {
             descriptionField.liveSyncActive = false;
 
             // Check if content was updated in ReadMorePage
-            if (Global.description_temporary_holder !== "") {
+            if (Global.description_temporary_holder !== "" || lastKnownContent !== "") {
                 descriptionField.setContent(Global.description_temporary_holder);
                 lastKnownContent = Global.description_temporary_holder;
                 draftHandler.markFieldChanged("description", Global.description_temporary_holder);
