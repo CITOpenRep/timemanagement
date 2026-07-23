@@ -126,8 +126,8 @@ def setup_logger(name="odoo_sync", log_file=None, level=logging.INFO):
         file_logging_ok = False
         
         # File handler with rotation (5 files x 1MB each)
-        # Skip when running under systemd - it already redirects stderr to the log file
-        if not under_systemd:
+        # Always set up file logging so Python's RotatingFileHandler manages log size
+        if True:
             try:
                 if log_file is None:
                     log_file = get_log_file_path()
