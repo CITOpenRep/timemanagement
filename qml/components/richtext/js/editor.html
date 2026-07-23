@@ -316,14 +316,19 @@
                 var lastHoveredFormattingStr = null;
                 var hoverTimer = null;
 
-                function formatPxToPt(sizeStr) {
-                    if (!sizeStr) return "12pt";
-                    if (sizeStr.endsWith("pt")) return sizeStr;
+                function formatFontSize(sizeStr) {
+                    if (!sizeStr) return "13px";
                     if (sizeStr.endsWith("px")) {
-                        var px = parseFloat(sizeStr);
+                        var px = Math.round(parseFloat(sizeStr));
                         if (!isNaN(px)) {
-                            var pt = Math.round(px * 0.75);
-                            return pt + "pt";
+                            return px + "px";
+                        }
+                    }
+                    if (sizeStr.endsWith("pt")) {
+                        var pt = parseFloat(sizeStr);
+                        if (!isNaN(pt)) {
+                            var pxVal = Math.round(pt * 1.3333);
+                            return pxVal + "px";
                         }
                     }
                     return sizeStr;
@@ -365,7 +370,7 @@
 
                     var color = rgbToHex(comp.color || '#000000');
                     var bgColor = rgbToHex(comp.backgroundColor || 'transparent');
-                    var fontSize = formatPxToPt(comp.fontSize || '12pt');
+                    var fontSize = formatFontSize(comp.fontSize || '13px');
 
                     return {
                         fontSize: fontSize,

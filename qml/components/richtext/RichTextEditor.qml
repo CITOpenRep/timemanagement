@@ -50,8 +50,8 @@ Item {
      */
     property alias font: p.font
 
-    /** Current font size at cursor position (e.g., "12pt", "16px") */
-    property string currentFontSize: "12pt"
+    /** Current font size at cursor position (e.g., "13px", "16px") */
+    property string currentFontSize: "13px"
     
     /** Current text color at cursor position */
     property color currentTextColor: "#000000"
@@ -578,7 +578,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.bottomMargin: editor._oskHeight
-        zoomFactor: isMultiColumn ? 1.0 : 2.52
+        zoomFactor: units.dp(1)
         backgroundColor: darkMode ? "#2d2d2d" : "#ffffff"
         
         url: Qt.resolvedUrl("js/editor.html") + "?darkMode=" + darkMode + 
