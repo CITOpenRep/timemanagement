@@ -346,29 +346,36 @@ AdaptivePageLayout {
     onColumnsChanged: {
         console.debug("📐 Layout columns changed to:", columns);
         if (init === false) {
-            switch (columns) {
-            case 1:
-                primaryPage = dashboard_page;
-                if (currentPage) {
-                    addPageToCurrentColumn(primaryPage, currentPage);
+            var targetCols = columns;
+            Qt.callLater(function () {
+                if (apLayout.columns !== targetCols)
+                    return;
+
+                switch (targetCols) {
+                case 1:
+                    if (currentPage) {
+                        primaryPage = currentPage;
+                    } else {
+                        primaryPage = dashboard_page;
+                    }
+                    break;
+                case 2:
+                    primaryPage = menu_page;
+                    if (currentPage && currentPage !== menu_page) {
+                        addPageToNextColumn(menu_page, currentPage);
+                    }
+                    break;
+                case 3:
+                    primaryPage = menu_page;
+                    if (currentPage && currentPage !== menu_page) {
+                        addPageToNextColumn(menu_page, currentPage);
+                    }
+                    if (currentPage && thirdPage && thirdPage !== currentPage && thirdPage !== menu_page) {
+                        addPageToNextColumn(currentPage, thirdPage);
+                    }
+                    break;
                 }
-                break;
-            case 2:
-                primaryPage = menu_page;
-                if (currentPage) {
-                    addPageToNextColumn(primaryPage, currentPage);
-                }
-                break;
-            case 3:
-                primaryPage = menu_page;
-                if (currentPage) {
-                    addPageToNextColumn(primaryPage, currentPage);
-                }
-                if (currentPage && thirdPage) {
-                    addPageToNextColumn(currentPage, thirdPage);
-                }
-                break;
-            }
+            });
         }
     }
 
