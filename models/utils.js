@@ -535,7 +535,9 @@ function getTimeStatusInText(endDateString) {
         return Math.abs(days) + " days overdue";
     if (days === 0)
         return "Due today";
-    return days + " days";
+    if (days === 1)
+        return "1 day remaining";
+    return days + " days remaining";
 }
 
 function extractDate(datetimeStr) {
