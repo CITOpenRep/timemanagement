@@ -7,3 +7,4 @@ voice_to_text/lib/
 website/node_modules
 website/.docusaurus
 website/build
+.vscode
