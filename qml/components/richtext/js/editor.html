@@ -166,6 +166,20 @@
         body::-webkit-scrollbar-thumb:hover {
             background: var(--placeholder-color);
         }
+
+        /* Odoo Font Size classes mapping */
+        .display-1-fs { font-size: 96px !important; }
+        .display-2-fs { font-size: 80px !important; }
+        .display-3-fs { font-size: 64px !important; }
+        .display-4-fs { font-size: 56px !important; }
+        .h1-fs { font-size: 40px !important; }
+        .h2-fs { font-size: 32px !important; }
+        .h3-fs { font-size: 28px !important; }
+        .h4-fs { font-size: 24px !important; }
+        .h5-fs { font-size: 20px !important; }
+        .h6-fs { font-size: 16px !important; }
+        .small { font-size: 11px !important; }
+        .base-fs { font-size: 13px !important; }
     </style>
 </head>
 
@@ -316,14 +330,19 @@
                 var lastHoveredFormattingStr = null;
                 var hoverTimer = null;
 
-                function formatPxToPt(sizeStr) {
-                    if (!sizeStr) return "12pt";
-                    if (sizeStr.endsWith("pt")) return sizeStr;
+                function formatFontSize(sizeStr) {
+                    if (!sizeStr) return "13px";
                     if (sizeStr.endsWith("px")) {
-                        var px = parseFloat(sizeStr);
+                        var px = Math.round(parseFloat(sizeStr));
                         if (!isNaN(px)) {
-                            var pt = Math.round(px * 0.75);
-                            return pt + "pt";
+                            return px + "px";
+                        }
+                    }
+                    if (sizeStr.endsWith("pt")) {
+                        var pt = parseFloat(sizeStr);
+                        if (!isNaN(pt)) {
+                            var pxVal = Math.round(pt * 1.3333);
+                            return pxVal + "px";
                         }
                     }
                     return sizeStr;
@@ -365,7 +384,7 @@
 
                     var color = rgbToHex(comp.color || '#000000');
                     var bgColor = rgbToHex(comp.backgroundColor || 'transparent');
-                    var fontSize = formatPxToPt(comp.fontSize || '12pt');
+                    var fontSize = formatFontSize(comp.fontSize || '13px');
 
                     return {
                         fontSize: fontSize,

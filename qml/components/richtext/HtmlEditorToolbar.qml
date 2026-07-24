@@ -27,7 +27,7 @@ Rectangle {
     property var editor: null
     
     // Dynamic properties - bound to editor when available
-    property string currentFontSize: editor ? editor.currentFontSize : "12pt"
+    property string currentFontSize: editor ? editor.currentFontSize : "13px"
     property color currentTextColor: editor ? editor.currentTextColor : "#000000"
     property color currentHighlightColor: editor ? editor.currentHighlightColor : "transparent"
     property bool darkMode: theme.name === "Ubuntu.Components.Themes.SuruDark"

@@ -30,6 +30,10 @@ function sanitize(html, options) {
     // Step 2: Clean Qt-specific styles
     result = cleanQtStyles(result);
     
+    // Step 2b: Convert Odoo CSS class-based font sizes to inline styles
+    // (enables Qt TextArea and Squire to render them correctly)
+    result = normalizeOdooClasses(result);
+    
     // Step 3: Normalize formatting tags for cross-platform compatibility
     result = normalizeFormattingTags(result);
     
@@ -258,16 +262,75 @@ function validate(html) {
 }
 
 /**
+ * Convert Odoo CSS class-based font sizes to inline styles
+ * so both Qt TextArea (RichTextPreview) and Squire (RichTextEditor)
+ * render them properly.
+ */
+function normalizeOdooClasses(html) {
+    if (!html) return "";
+    
+    var odooClassToSize = {
+        'display-1-fs': '96px',
+        'display-2-fs': '80px',
+        'display-3-fs': '64px',
+        'display-4-fs': '56px',
+        'h1-fs': '40px',
+        'h2-fs': '32px',
+        'h3-fs': '28px',
+        'h4-fs': '24px',
+        'h5-fs': '20px',
+        'h6-fs': '16px'
+    };
+
+    // Replace tag class attributes if they contain Odoo font-size classes
+    return html.replace(/<([a-z0-9]+)\b([^>]*)>/gi, function(match, tagName, attrs) {
+        var classMatch = attrs.match(/class\s*=\s*["']([^"']+)["']/i);
+        if (!classMatch) return match;
+        
+        var classNames = classMatch[1].split(/\s+/);
+        var matchedSize = null;
+        
+        for (var i = 0; i < classNames.length; i++) {
+            var className = classNames[i];
+            if (odooClassToSize.hasOwnProperty(className)) {
+                matchedSize = odooClassToSize[className];
+                break;
+            }
+        }
+        
+        if (!matchedSize) return match;
+        
+        // Match existing style attribute
+        var styleMatch = attrs.match(/style\s*=\s*["']([^"']*)["']/i);
+        if (styleMatch) {
+            var styleContent = styleMatch[1].trim();
+            // Check if font-size is already specified in the style (e.g. style="font-size: 32px")
+            if (!/font-size\s*:/i.test(styleContent)) {
+                if (styleContent && !styleContent.endsWith(';')) {
+                    styleContent += ';';
+                }
+                styleContent += ' font-size: ' + matchedSize + ';';
+                attrs = attrs.replace(/style\s*=\s*["']([^"']*)["']/i, 'style="' + styleContent + '"');
+            }
+        } else {
+            attrs += ' style="font-size: ' + matchedSize + ';"';
+        }
+        
+        return '<' + tagName + attrs + '>';
+    });
+}
+
+/**
  * Quick check if content needs sanitization
- * Only returns true for Qt-specific wrappers/styles that need removal
+ * Returns true for Qt-specific wrappers/styles, and Odoo font-size classes
  */
 function needsSanitization(html) {
     if (!html) return false;
     
-    // Only sanitize for Qt DOCTYPE wrapper or Qt-specific CSS properties
-    // Don't trigger for data attributes or margins (they don't break rendering)
+    // Sanitize for Qt DOCTYPE wrapper, Qt-specific CSS properties, or Odoo font-size classes
     return html.indexOf('<!DOCTYPE') !== -1 ||
-           html.indexOf('-qt-') !== -1;
+           html.indexOf('-qt-') !== -1 ||
+           /(?:display-[1-6]-fs|h[1-6]-fs)\b/.test(html);
 }
 
 /**
