@@ -361,7 +361,7 @@ Page {
         running: !isReadOnly
         onTriggered: {
             var holderContent = Global.description_temporary_holder;
-            if (holderContent !== "" && holderContent !== readmepage._lastKnownHolder) {
+            if (holderContent !== readmepage._lastKnownHolder) {
                // console.log("[ReadMorePage] External change detected - PULLING from Global, length:", holderContent.length);
                 readmepage._lastKnownHolder = holderContent;
                 if (useRichText && editor) {

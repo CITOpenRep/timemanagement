@@ -278,8 +278,17 @@
                 // Track content changes
                 var lastContent = '';
 
+                // Strip script tags from Squire's getHTML() output.
+                // Squire returns the full body innerHTML including bridge/setup
+                // scripts; we only want the actual user content.
+                function stripScripts(html) {
+                    if (!html) return '';
+                    return html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/^\s+|\s+$/g, '');
+                }
+
                 window.editor.addEventListener('input', function () {
-                    var content = window.editor.getHTML();
+                    var rawContent = window.editor.getHTML();
+                    var content = stripScripts(rawContent);
                     if (content !== lastContent) {
                         lastContent = content;
                         oxide.sendMessage('contentChanged', { content: content });
@@ -302,9 +311,139 @@
                     setTimeout(scrollCursorIntoView, 150);
                 });
 
+                // Dynamic formatting state tracking (Hover & Selection)
+                var activeSelectionFormatting = null;
+                var lastHoveredFormattingStr = null;
+                var hoverTimer = null;
+
+                function formatPxToPt(sizeStr) {
+                    if (!sizeStr) return "12pt";
+                    if (sizeStr.endsWith("pt")) return sizeStr;
+                    if (sizeStr.endsWith("px")) {
+                        var px = parseFloat(sizeStr);
+                        if (!isNaN(px)) {
+                            var pt = Math.round(px * 0.75);
+                            return pt + "pt";
+                        }
+                    }
+                    return sizeStr;
+                }
+
+                function rgbToHex(rgbStr) {
+                    if (!rgbStr || rgbStr === 'transparent' || rgbStr === 'rgba(0, 0, 0, 0)') return 'transparent';
+                    if (rgbStr.startsWith('#')) return rgbStr;
+                    var match = rgbStr.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                    if (match) {
+                        var r = parseInt(match[1], 10).toString(16).padStart(2, '0');
+                        var g = parseInt(match[2], 10).toString(16).padStart(2, '0');
+                        var b = parseInt(match[3], 10).toString(16).padStart(2, '0');
+                        return '#' + r + g + b;
+                    }
+                    return rgbStr;
+                }
+
+                function getFormattingStateOfNode(node) {
+                    if (!node) return null;
+                    if (node.nodeType === 3) node = node.parentElement;
+                    if (!node || node.nodeType !== 1) return null;
+
+                    var comp = window.getComputedStyle(node);
+                    if (!comp) return null;
+
+                    var isBold = comp.fontWeight === 'bold' || parseInt(comp.fontWeight, 10) >= 600 || !!node.closest('b, strong');
+                    var isItalic = comp.fontStyle === 'italic' || comp.fontStyle === 'oblique' || !!node.closest('i, em');
+
+                    var textDec = comp.textDecorationLine || comp.textDecoration || '';
+                    var isUnderline = textDec.indexOf('underline') !== -1 || !!node.closest('u');
+                    var isStrikethrough = textDec.indexOf('line-through') !== -1 || !!node.closest('s, strike, del');
+
+                    var isUnorderedList = !!node.closest('ul');
+                    var isOrderedList = !!node.closest('ol');
+
+                    var textAlign = comp.textAlign || 'left';
+                    if (textAlign === 'start') textAlign = 'left';
+
+                    var color = rgbToHex(comp.color || '#000000');
+                    var bgColor = rgbToHex(comp.backgroundColor || 'transparent');
+                    var fontSize = formatPxToPt(comp.fontSize || '12pt');
+
+                    return {
+                        fontSize: fontSize,
+                        textColor: color,
+                        highlightColor: bgColor,
+                        bold: isBold,
+                        italic: isItalic,
+                        underline: isUnderline,
+                        strikethrough: isStrikethrough,
+                        isUnorderedList: isUnorderedList,
+                        isOrderedList: isOrderedList,
+                        alignment: textAlign
+                    };
+                }
+
+                function updateSelectionFormatting() {
+                    try {
+                        var sel = window.getSelection();
+                        if (sel && sel.rangeCount > 0) {
+                            var node = sel.getRangeAt(0).startContainer;
+                            var fmt = getFormattingStateOfNode(node);
+                            if (fmt) {
+                                activeSelectionFormatting = fmt;
+                                lastHoveredFormattingStr = null;
+                                oxide.sendMessage('formattingChanged', fmt);
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                // Reset hover state when clicking or typing
+                document.body.addEventListener('mousedown', function () {
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    lastHoveredFormattingStr = null;
+                    setTimeout(updateSelectionFormatting, 10);
+                });
+
+                document.body.addEventListener('keydown', function () {
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    lastHoveredFormattingStr = null;
+                    setTimeout(updateSelectionFormatting, 10);
+                });
+
+                // Mouse hover formatting tracking (Debounced 80ms)
+                document.body.addEventListener('mousemove', function (e) {
+                    var target = e.target;
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    hoverTimer = setTimeout(function () {
+                        var fmt = getFormattingStateOfNode(target);
+                        if (fmt) {
+                            var fmtStr = JSON.stringify(fmt);
+                            if (fmtStr !== lastHoveredFormattingStr) {
+                                lastHoveredFormattingStr = fmtStr;
+                                oxide.sendMessage('formattingChanged', fmt);
+                            }
+                        }
+                    }, 80);
+                });
+
+                document.body.addEventListener('mouseleave', function () {
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    if (lastHoveredFormattingStr !== null) {
+                        lastHoveredFormattingStr = null;
+                        if (activeSelectionFormatting) {
+                            oxide.sendMessage('formattingChanged', activeSelectionFormatting);
+                        }
+                    }
+                });
+
+                // Selection & Cursor tracking for full formatting
+                document.addEventListener('selectionchange', updateSelectionFormatting);
+                document.body.addEventListener('keyup', updateSelectionFormatting);
+                document.body.addEventListener('mouseup', updateSelectionFormatting);
+
                 // Track path changes (formatting state)
                 window.editor.addEventListener('pathChange', function (e) {
                     oxide.sendMessage('pathChanged', { path: e.path || '' });
+                    updateSelectionFontSize();
                 });
 
                 // Track selection changes
