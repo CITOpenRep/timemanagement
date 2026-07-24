@@ -278,8 +278,17 @@
                 // Track content changes
                 var lastContent = '';
 
+                // Strip script tags from Squire's getHTML() output.
+                // Squire returns the full body innerHTML including bridge/setup
+                // scripts; we only want the actual user content.
+                function stripScripts(html) {
+                    if (!html) return '';
+                    return html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/^\s+|\s+$/g, '');
+                }
+
                 window.editor.addEventListener('input', function () {
-                    var content = window.editor.getHTML();
+                    var rawContent = window.editor.getHTML();
+                    var content = stripScripts(rawContent);
                     if (content !== lastContent) {
                         lastContent = content;
                         oxide.sendMessage('contentChanged', { content: content });
