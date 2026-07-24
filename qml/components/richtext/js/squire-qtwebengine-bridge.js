@@ -14,6 +14,8 @@
     var pendingReplies = {};
     var replyCounter = 0;
 
+    var msgSeq = 0;
+
     /**
      * QtWebEngine Bridge Object
      */
@@ -46,15 +48,8 @@
                 };
 
                 var encoded = encodeURIComponent(JSON.stringify(message));
-                window.location.hash = '#qtevent:' + type + ':' + encoded;
-
-                // Clear hash without scrolling to top — history.replaceState
-                // removes the fragment without triggering scroll behavior
-                setTimeout(function () {
-                    if (window.location.hash.indexOf('#qtevent:' + type) === 0) {
-                        history.replaceState(null, null, window.location.pathname + window.location.search);
-                    }
-                }, 10);
+                // Use document.title with incrementing sequence number to guarantee QtWebEngine onTitleChanged fires on every message
+                document.title = 'qtevent:' + type + ':' + encoded + ':' + (++msgSeq);
             } catch (e) {
                 console.error('[QtBridge] sendMessage failed:', e);
             }

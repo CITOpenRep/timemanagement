@@ -50,14 +50,21 @@ Item {
      */
     property alias font: p.font
 
-    /** Current font size at cursor position (e.g., "12pt", "16px") */
-    property string currentFontSize: "12pt"
+    /** Current font size at cursor position (e.g., "13px", "16px") */
+    property string currentFontSize: "13px"
     
     /** Current text color at cursor position */
     property color currentTextColor: "#000000"
     
     /** Current highlight/background color at cursor position */
     property color currentHighlightColor: "transparent"
+
+    /** Active list state at cursor position */
+    property bool isUnorderedList: false
+    property bool isOrderedList: false
+
+    /** Text alignment at cursor position ("left", "center", "right", "justify") */
+    property string alignment: "left"
 
     // ============ SIGNALS ============
     
@@ -571,7 +578,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.bottomMargin: editor._oskHeight
-        zoomFactor: isMultiColumn ? 1.0 : 2.52
+        zoomFactor: units.dp(1)
         backgroundColor: darkMode ? "#2d2d2d" : "#ffffff"
         
         url: Qt.resolvedUrl("js/editor.html") + "?darkMode=" + darkMode + 
@@ -631,6 +638,25 @@ Item {
             }
         }
 
+        // Handle Title changes for fast bridge communication (bypasses URL navigation throttling)
+        onTitleChanged: {
+            var titleStr = title;
+            if (titleStr.indexOf('qtevent:') === 0) {
+                var parts = titleStr.substring(8).split(':');
+                var eventType = parts[0];
+                var payload = {};
+                if (parts.length > 1) {
+                    try {
+                        var decoded = JSON.parse(decodeURIComponent(parts[1]));
+                        payload = decoded.payload || decoded;
+                    } catch (e) {
+                        // Silently ignore parse errors
+                    }
+                }
+                p.handleEvent(eventType, payload);
+            }
+        }
+
         // Handle URL fragment changes for bridge communication
         onUrlChanged: {
             var urlStr = url.toString();
@@ -670,35 +696,6 @@ Item {
             property bool italic: false
             property bool underline: false
             property bool strikethrough: false
-            
-            onBoldChanged: {
-                if (bold) {
-                    wv.runJavaScript("window.editor.bold();");
-                } else {
-                    wv.runJavaScript("window.editor.removeBold();");
-                }
-            }
-            onItalicChanged: {
-                if (italic) {
-                    wv.runJavaScript("window.editor.italic();");
-                } else {
-                    wv.runJavaScript("window.editor.removeItalic();");
-                }
-            }
-            onUnderlineChanged: {
-                if (underline) {
-                    wv.runJavaScript("window.editor.underline();");
-                } else {
-                    wv.runJavaScript("window.editor.removeUnderline();");
-                }
-            }
-            onStrikethroughChanged: {
-                if (strikethrough) {
-                    wv.runJavaScript("window.editor.strikethrough();");
-                } else {
-                    wv.runJavaScript("window.editor.removeStrikethrough();");
-                }
-            }
         }
         
         property int textAlignment: Qt.AlignLeft
@@ -751,6 +748,39 @@ Item {
                     break;
                 case 'pathChanged':
                     parseFormatFromPath(payload.path || "");
+                    break;
+                case 'formattingChanged':
+                case 'fontSizeChanged':
+                    if (payload.fontSize && editor.currentFontSize !== payload.fontSize) {
+                        editor.currentFontSize = payload.fontSize;
+                    }
+                    if (payload.textColor && editor.currentTextColor !== payload.textColor) {
+                        editor.currentTextColor = payload.textColor;
+                    }
+                    if (payload.highlightColor && editor.currentHighlightColor !== payload.highlightColor) {
+                        editor.currentHighlightColor = payload.highlightColor;
+                    }
+                    if (payload.bold !== undefined && editor.font.bold !== payload.bold) {
+                        editor.font.bold = payload.bold;
+                    }
+                    if (payload.italic !== undefined && editor.font.italic !== payload.italic) {
+                        editor.font.italic = payload.italic;
+                    }
+                    if (payload.underline !== undefined && editor.font.underline !== payload.underline) {
+                        editor.font.underline = payload.underline;
+                    }
+                    if (payload.strikethrough !== undefined && editor.font.strikethrough !== payload.strikethrough) {
+                        editor.font.strikethrough = payload.strikethrough;
+                    }
+                    if (payload.isUnorderedList !== undefined && editor.isUnorderedList !== payload.isUnorderedList) {
+                        editor.isUnorderedList = payload.isUnorderedList;
+                    }
+                    if (payload.isOrderedList !== undefined && editor.isOrderedList !== payload.isOrderedList) {
+                        editor.isOrderedList = payload.isOrderedList;
+                    }
+                    if (payload.alignment && editor.alignment !== payload.alignment) {
+                        editor.alignment = payload.alignment;
+                    }
                     break;
             }
         }

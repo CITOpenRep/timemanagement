@@ -1040,7 +1040,7 @@ Page {
             // Stop live sync — content is already up-to-date via the timer
             description_text.liveSyncActive = false;
 
-            if (Global.description_temporary_holder !== "") {
+            if (navigatingToReadMore || Global.description_temporary_holder !== "") {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
