@@ -37,6 +37,9 @@ function sanitize(html, options) {
     // Step 2c: Convert rgb/rgba colors to hex format for Qt TextArea rendering
     result = normalizeColors(result);
     
+    // Step 2d: Convert legacy <font> tags to <span> elements so Squire preserves colors
+    result = convertFontTagsToSpans(result);
+    
     // Step 3: Normalize formatting tags for cross-platform compatibility
     result = normalizeFormattingTags(result);
     
@@ -265,7 +268,7 @@ function validate(html) {
 }
 
 /**
- * Convert Odoo CSS class-based font sizes to inline styles
+ * Convert Odoo CSS class-based font sizes and colors to inline styles
  * so both Qt TextArea (RichTextPreview) and Squire (RichTextEditor)
  * render them properly.
  */
@@ -285,38 +288,80 @@ function normalizeOdooClasses(html) {
         'h6-fs': '16px'
     };
 
-    // Replace tag class attributes if they contain Odoo font-size classes
+    var odooClassToColor = {
+        'text-o-color-1': '#1f2937',
+        'text-o-color-2': '#00878a',
+        'text-o-color-3': '#f0544f',
+        'text-o-color-4': '#f8961e',
+        'text-o-color-5': '#2a9d8f',
+        'text-primary': '#714b67',
+        'text-secondary': '#6c757d',
+        'text-success': '#28a745',
+        'text-danger': '#dc3545',
+        'text-warning': '#ffc107',
+        'text-info': '#17a2b8',
+        'text-muted': '#6c757d'
+    };
+
+    var odooClassToBg = {
+        'bg-o-color-1': '#f8f9fa',
+        'bg-o-color-2': '#e6f4f1',
+        'bg-o-color-3': '#fde8e8',
+        'bg-o-color-4': '#fff3e0',
+        'bg-o-color-5': '#e8f5e9',
+        'bg-primary': '#714b67',
+        'bg-success': '#d4edda',
+        'bg-danger': '#f8d7da',
+        'bg-warning': '#fff3cd',
+        'bg-info': '#d1ecf1'
+    };
+
+    // Replace tag class attributes if they contain Odoo font-size or color classes
     return html.replace(/<([a-z0-9]+)\b([^>]*)>/gi, function(match, tagName, attrs) {
         var classMatch = attrs.match(/class\s*=\s*["']([^"']+)["']/i);
         if (!classMatch) return match;
         
         var classNames = classMatch[1].split(/\s+/);
         var matchedSize = null;
+        var matchedColor = null;
+        var matchedBg = null;
         
         for (var i = 0; i < classNames.length; i++) {
             var className = classNames[i];
             if (odooClassToSize.hasOwnProperty(className)) {
                 matchedSize = odooClassToSize[className];
-                break;
+            }
+            if (odooClassToColor.hasOwnProperty(className)) {
+                matchedColor = odooClassToColor[className];
+            }
+            if (odooClassToBg.hasOwnProperty(className)) {
+                matchedBg = odooClassToBg[className];
             }
         }
         
-        if (!matchedSize) return match;
+        if (!matchedSize && !matchedColor && !matchedBg) return match;
         
         // Match existing style attribute
         var styleMatch = attrs.match(/style\s*=\s*["']([^"']*)["']/i);
+        var styleContent = styleMatch ? styleMatch[1].trim() : "";
+
+        if (matchedSize && !/font-size\s*:/i.test(styleContent)) {
+            if (styleContent && !styleContent.endsWith(';')) styleContent += ';';
+            styleContent += ' font-size: ' + matchedSize + ';';
+        }
+        if (matchedColor && !/(?:^|;\s*)color\s*:/i.test(styleContent)) {
+            if (styleContent && !styleContent.endsWith(';')) styleContent += ';';
+            styleContent += ' color: ' + matchedColor + ';';
+        }
+        if (matchedBg && !/background-color\s*:/i.test(styleContent)) {
+            if (styleContent && !styleContent.endsWith(';')) styleContent += ';';
+            styleContent += ' background-color: ' + matchedBg + ';';
+        }
+
         if (styleMatch) {
-            var styleContent = styleMatch[1].trim();
-            // Check if font-size is already specified in the style (e.g. style="font-size: 32px")
-            if (!/font-size\s*:/i.test(styleContent)) {
-                if (styleContent && !styleContent.endsWith(';')) {
-                    styleContent += ';';
-                }
-                styleContent += ' font-size: ' + matchedSize + ';';
-                attrs = attrs.replace(/style\s*=\s*["']([^"']*)["']/i, 'style="' + styleContent + '"');
-            }
+            attrs = attrs.replace(/style\s*=\s*["']([^"']*)["']/i, 'style="' + styleContent.trim() + '"');
         } else {
-            attrs += ' style="font-size: ' + matchedSize + ';"';
+            attrs += ' style="' + styleContent.trim() + '"';
         }
         
         return '<' + tagName + attrs + '>';
@@ -342,18 +387,72 @@ function normalizeColors(html) {
 }
 
 /**
+ * Convert legacy <font> tags to <span> tags with inline CSS styles.
+ * Squire.js strips <font> tags containing inline style attributes or rgb() colors,
+ * causing colored text (like yellow <font style="color: rgb(255, 255, 0);">) to lose color.
+ */
+function convertFontTagsToSpans(html) {
+    if (!html) return "";
+
+    return html.replace(/<font\b([^>]*)>([\s\S]*?)<\/font>/gi, function(match, attrs, content) {
+        var styleParts = [];
+        var colorAttr = attrs.match(/color\s*=\s*["']([^"']+)["']/i);
+        var styleAttr = attrs.match(/style\s*=\s*["']([^"']+)["']/i);
+        var existingStyle = styleAttr ? styleAttr[1] : "";
+        
+        var colorVal = null;
+        if (/color\s*:/i.test(existingStyle)) {
+            var colorMatch = existingStyle.match(/color\s*:\s*([^;"]+)/i);
+            if (colorMatch) colorVal = colorMatch[1].trim();
+        } else if (colorAttr) {
+            colorVal = colorAttr[1].trim();
+        }
+
+        if (colorVal) {
+            var hexColor = normalizeColors(colorVal);
+            styleParts.push("color:" + hexColor);
+        }
+
+        var sizeAttr = attrs.match(/size\s*=\s*["']([^"']+)["']/i);
+        if (/font-size\s*:/i.test(existingStyle)) {
+            var sizeMatch = existingStyle.match(/font-size\s*:\s*([^;"]+)/i);
+            if (sizeMatch) styleParts.push("font-size:" + sizeMatch[1].trim());
+        } else if (sizeAttr) {
+            var ptSizes = { '1': '10px', '2': '13px', '3': '16px', '4': '18px', '5': '24px', '6': '32px', '7': '48px' };
+            var sz = sizeAttr[1].trim();
+            if (ptSizes[sz]) styleParts.push("font-size:" + ptSizes[sz]);
+        }
+
+        var faceAttr = attrs.match(/face\s*=\s*["']([^"']+)["']/i);
+        if (/font-family\s*:/i.test(existingStyle)) {
+            var familyMatch = existingStyle.match(/font-family\s*:\s*([^;"]+)/i);
+            if (familyMatch) styleParts.push("font-family:" + familyMatch[1].trim());
+        } else if (faceAttr) {
+            styleParts.push("font-family:" + faceAttr[1].trim());
+        }
+
+        if (styleParts.length > 0) {
+            return '<span class="colour" style="' + styleParts.join('; ') + ';">' + content + '</span>';
+        }
+        return '<span>' + content + '</span>';
+    });
+}
+
+/**
  * Quick check if content needs sanitization
- * Returns true for Qt-specific wrappers/styles, Odoo font-size classes, or rgb colors
+ * Returns true for Qt-specific wrappers/styles, Odoo font-size/color classes, rgb colors, or font tags
  */
 function needsSanitization(html) {
     if (!html) return false;
     
-    // Sanitize for Qt DOCTYPE wrapper, Qt-specific CSS properties, Odoo font-size classes, or rgb colors
+    // Sanitize for Qt DOCTYPE wrapper, Qt-specific CSS properties, Odoo classes, rgb colors, or font tags
     return html.indexOf('<!DOCTYPE') !== -1 ||
            html.indexOf('-qt-') !== -1 ||
            html.indexOf('rgb(') !== -1 ||
            html.indexOf('rgba(') !== -1 ||
-           /(?:display-[1-6]-fs|h[1-6]-fs)\b/.test(html);
+           html.indexOf('<font') !== -1 ||
+           html.indexOf('<FONT') !== -1 ||
+           /(?:display-[1-6]-fs|h[1-6]-fs|text-o-color-[1-5]|bg-o-color-[1-5]|text-(?:primary|danger|success|warning|info|muted)|bg-(?:primary|danger|success|warning|info))\b/.test(html);
 }
 
 /**
