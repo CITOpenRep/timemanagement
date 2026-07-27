@@ -280,12 +280,12 @@ function normalizeOdooClasses(html) {
         'display-2-fs': '80px',
         'display-3-fs': '64px',
         'display-4-fs': '56px',
-        'h1-fs': '40px',
-        'h2-fs': '32px',
-        'h3-fs': '28px',
-        'h4-fs': '24px',
-        'h5-fs': '20px',
-        'h6-fs': '16px'
+        'h1-fs': '28px',
+        'h2-fs': '24px',
+        'h3-fs': '18px',
+        'h4-fs': '16px',
+        'h5-fs': '14px',
+        'h6-fs': '12px'
     };
 
     var odooClassToColor = {

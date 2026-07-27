@@ -50,8 +50,8 @@ Item {
      */
     property alias font: p.font
 
-    /** Current font size at cursor position (e.g., "13px", "16px") */
-    property string currentFontSize: "13px"
+    /** Current font size at cursor position (e.g., "14px", "18px") */
+    property string currentFontSize: "14px"
     
     /** Current text color at cursor position */
     property color currentTextColor: "#000000"
