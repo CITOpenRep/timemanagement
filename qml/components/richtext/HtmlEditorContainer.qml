@@ -48,7 +48,7 @@ Item {
     property alias editor: htmlEditor
     
     /** Current font size display */
-    property string currentFontSize: htmlEditor ? htmlEditor.currentFontSize : "13px"
+    property string currentFontSize: htmlEditor ? htmlEditor.currentFontSize : "14px"
     
     /** Current text color */
     property color currentTextColor: htmlEditor ? htmlEditor.currentTextColor : "#000000"

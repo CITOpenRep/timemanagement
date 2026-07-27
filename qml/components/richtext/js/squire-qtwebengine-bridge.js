@@ -48,8 +48,18 @@
                 };
 
                 var encoded = encodeURIComponent(JSON.stringify(message));
-                // Use document.title with incrementing sequence number to guarantee QtWebEngine onTitleChanged fires on every message
-                document.title = 'qtevent:' + type + ':' + encoded + ':' + (++msgSeq);
+                var MAX_LEN = 1000;
+                var seq = ++msgSeq;
+
+                if (encoded.length <= MAX_LEN) {
+                    document.title = 'qtevent:' + type + ':' + encoded + ':' + seq;
+                } else {
+                    var totalChunks = Math.ceil(encoded.length / MAX_LEN);
+                    for (var i = 0; i < totalChunks; i++) {
+                        var chunk = encoded.substring(i * MAX_LEN, (i + 1) * MAX_LEN);
+                        document.title = 'qteventchunk:' + seq + ':' + i + ':' + totalChunks + ':' + chunk;
+                    }
+                }
             } catch (e) {
                 console.error('[QtBridge] sendMessage failed:', e);
             }
