@@ -34,6 +34,9 @@ function sanitize(html, options) {
     // (enables Qt TextArea and Squire to render them correctly)
     result = normalizeOdooClasses(result);
     
+    // Step 2c: Convert rgb/rgba colors to hex format for Qt TextArea rendering
+    result = normalizeColors(result);
+    
     // Step 3: Normalize formatting tags for cross-platform compatibility
     result = normalizeFormattingTags(result);
     
@@ -321,15 +324,35 @@ function normalizeOdooClasses(html) {
 }
 
 /**
+ * Convert rgb(r, g, b) and rgba(r, g, b, a) inline CSS color strings
+ * to #HEX format so Qt TextArea (Text.RichText) renders them correctly.
+ */
+function normalizeColors(html) {
+    if (!html) return "";
+
+    return html.replace(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*[\d.]+\s*)?\)/gi, function(match, r, g, b) {
+        var red = parseInt(r, 10).toString(16);
+        if (red.length === 1) red = "0" + red;
+        var green = parseInt(g, 10).toString(16);
+        if (green.length === 1) green = "0" + green;
+        var blue = parseInt(b, 10).toString(16);
+        if (blue.length === 1) blue = "0" + blue;
+        return "#" + red + green + blue;
+    });
+}
+
+/**
  * Quick check if content needs sanitization
- * Returns true for Qt-specific wrappers/styles, and Odoo font-size classes
+ * Returns true for Qt-specific wrappers/styles, Odoo font-size classes, or rgb colors
  */
 function needsSanitization(html) {
     if (!html) return false;
     
-    // Sanitize for Qt DOCTYPE wrapper, Qt-specific CSS properties, or Odoo font-size classes
+    // Sanitize for Qt DOCTYPE wrapper, Qt-specific CSS properties, Odoo font-size classes, or rgb colors
     return html.indexOf('<!DOCTYPE') !== -1 ||
            html.indexOf('-qt-') !== -1 ||
+           html.indexOf('rgb(') !== -1 ||
+           html.indexOf('rgba(') !== -1 ||
            /(?:display-[1-6]-fs|h[1-6]-fs)\b/.test(html);
 }
 
