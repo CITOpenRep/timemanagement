@@ -1237,7 +1237,7 @@ Page {
             } else {
             }
 
-            if (Global.description_temporary_holder !== "" && Global.description_context === "activity_notes") {
+            if (Global.description_context === "activity_notes") {
                 //Check if you are coming back from the ReadMore page
                 
                 // Temporarily set isInitializing to avoid triggering during setContent

@@ -1248,6 +1248,13 @@ def run_voice_recognition():
                 # Fallback to main app DB
                 db_path = resolve_qml_db_path()
             
+            low_mem_mode = True  # Default to True on mobile
+            if db_path:
+                try:
+                    low_mem_mode = get_setting(db_path, "voice_low_memory_mode", "true") == "true"
+                except Exception as e:
+                    log.warning(f"[VOICE] Could not read low memory setting: {e}")
+
             active_model_rel_path = ""
             if db_path:
                  active_model_rel_path = get_setting(db_path, "active_voice_model", "")
@@ -1281,6 +1288,63 @@ def run_voice_recognition():
                     log.error("[VOICE] No language model downloaded")
                     send("voice_recognition_error", "No language model downloaded. Please download one in Voice Model Settings.")
                     return
+
+            # Check model graph size to prevent Out of Memory crash
+            if model_path and model_path.exists():
+                # If low memory mode is enabled, temporarily disable rescoring models
+                # to save ~1.5 - 2 GB of RAM.
+                rescore_path = model_path / "rescore"
+                rescore_disabled_path = model_path / "rescore.disabled"
+                rnnlm_path = model_path / "rnnlm"
+                rnnlm_disabled_path = model_path / "rnnlm.disabled"
+                
+                if low_mem_mode:
+                    if rescore_path.exists() and rescore_path.is_dir():
+                        try:
+                            rescore_path.rename(rescore_disabled_path)
+                            log.info("[VOICE] Disabled rescore folder for low memory mode")
+                        except Exception as e:
+                            log.warning(f"[VOICE] Could not rename rescore folder: {e}")
+                    if rnnlm_path.exists() and rnnlm_path.is_dir():
+                        try:
+                            rnnlm_path.rename(rnnlm_disabled_path)
+                            log.info("[VOICE] Disabled rnnlm folder for low memory mode")
+                        except Exception as e:
+                            log.warning(f"[VOICE] Could not rename rnnlm folder: {e}")
+                else:
+                    if rescore_disabled_path.exists() and rescore_disabled_path.is_dir():
+                        try:
+                            rescore_disabled_path.rename(rescore_path)
+                            log.info("[VOICE] Re-enabled rescore folder")
+                        except Exception as e:
+                            log.warning(f"[VOICE] Could not restore rescore folder: {e}")
+                    if rnnlm_disabled_path.exists() and rnnlm_disabled_path.is_dir():
+                        try:
+                            rnnlm_disabled_path.rename(rnnlm_path)
+                            log.info("[VOICE] Re-enabled rnnlm folder")
+                        except Exception as e:
+                            log.warning(f"[VOICE] Could not restore rnnlm folder: {e}")
+
+                try:
+                    # Check the size of the search graph file HCLG.fst, which is the main driver of RAM usage.
+                    # If HCLG.fst is > 1.3 GB, loading it requires 4+ GB of RAM and will crash the app cgroup on mobile.
+                    hclg_path = model_path / "graph" / "HCLG.fst"
+                    if hclg_path.exists():
+                        hclg_size = hclg_path.stat().st_size
+                        # With low memory mode (rescoring disabled), we can support up to 1.8 GB HCLG.fst.
+                        # Without it, we limit it to 1.0 GB.
+                        limit = 1.8 * 1024 * 1024 * 1024 if low_mem_mode else 1.0 * 1024 * 1024 * 1024
+                        if hclg_size > limit:
+                            size_mb = hclg_size / (1024 * 1024)
+                            if not low_mem_mode:
+                                err_msg = f"The selected model's search graph ({size_mb:.0f} MB) is too large to run with rescoring enabled. Please enable 'Low Memory Mode' in voice settings to run it."
+                            else:
+                                err_msg = f"The selected model's search graph ({size_mb:.0f} MB) is too large even for Low Memory Mode. Please switch to the LGraph or Small version in settings."
+                            log.error(f"[VOICE] {err_msg}")
+                            send("voice_recognition_error", err_msg)
+                            return
+                except Exception as e:
+                    log.warning(f"[VOICE] Could not check model graph size: {e}")
 
             # Paths to search for bundled libraries
             base_voice_path = Path(__file__).parent.parent / "voice_to_text"

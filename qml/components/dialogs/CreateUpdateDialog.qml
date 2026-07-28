@@ -50,8 +50,7 @@ Item {
             onVisibleChanged: {
                 if (visible) {
                     // Check if content was updated in ReadMorePage
-                    if (Global.description_temporary_holder !== "" && 
-                        Global.description_temporary_holder !== lastKnownContent) {
+                    if (Global.description_temporary_holder !== lastKnownContent) {
                         descriptionField.setContent(Global.description_temporary_holder);
                         lastKnownContent = Global.description_temporary_holder;
                     }

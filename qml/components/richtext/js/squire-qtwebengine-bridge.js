@@ -14,6 +14,8 @@
     var pendingReplies = {};
     var replyCounter = 0;
 
+    var msgSeq = 0;
+
     /**
      * QtWebEngine Bridge Object
      */
@@ -46,15 +48,18 @@
                 };
 
                 var encoded = encodeURIComponent(JSON.stringify(message));
-                window.location.hash = '#qtevent:' + type + ':' + encoded;
+                var MAX_LEN = 1000;
+                var seq = ++msgSeq;
 
-                // Clear hash without scrolling to top — history.replaceState
-                // removes the fragment without triggering scroll behavior
-                setTimeout(function () {
-                    if (window.location.hash.indexOf('#qtevent:' + type) === 0) {
-                        history.replaceState(null, null, window.location.pathname + window.location.search);
+                if (encoded.length <= MAX_LEN) {
+                    document.title = 'qtevent:' + type + ':' + encoded + ':' + seq;
+                } else {
+                    var totalChunks = Math.ceil(encoded.length / MAX_LEN);
+                    for (var i = 0; i < totalChunks; i++) {
+                        var chunk = encoded.substring(i * MAX_LEN, (i + 1) * MAX_LEN);
+                        document.title = 'qteventchunk:' + seq + ':' + i + ':' + totalChunks + ':' + chunk;
                     }
-                }, 10);
+                }
             } catch (e) {
                 console.error('[QtBridge] sendMessage failed:', e);
             }

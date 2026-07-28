@@ -156,6 +156,7 @@ def insert_record(
     db_path="app_settings.db",
     config_path="field_config.json",
     account_name="",
+    connection=None,
 ):
     """
     Insert or replace a record in the local SQLite database.
@@ -167,6 +168,7 @@ def insert_record(
         record (dict): Record data from Odoo
         db_path (str): Path to the SQLite database file
         config_path (str): Path to the field configuration JSON file
+        connection: Optional active SQLite connection object for batch transactions
         
     Note:
         Handles data type conversion for SQLite compatibility and converts
@@ -178,7 +180,14 @@ def insert_record(
         columns = []
         values = []
         record["account_id"] = account_id
-        table_columns = set(get_table_columns(db_path, table_name))
+        
+        # Get table columns using existing connection if available
+        if connection is not None:
+            cursor = connection.cursor()
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            table_columns = set(row[1] for row in cursor.fetchall())
+        else:
+            table_columns = set(get_table_columns(db_path, table_name))
         
         # Check if local record has pending changes (status = 'updated' or 'created')
         # If so, we should preserve certain local fields like 'favorites' and 'state' for activities
@@ -198,7 +207,13 @@ def insert_record(
 
                 if select_fields:
                     check_sql = f"SELECT {', '.join(select_fields)} FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
-                    result = safe_sql_execute(db_path, check_sql, (odoo_record_id, account_id), fetch=True, commit=False)
+                    if connection is not None:
+                        cursor = connection.cursor()
+                        cursor.execute(check_sql, (odoo_record_id, account_id))
+                        result = cursor.fetchall()
+                    else:
+                        result = safe_sql_execute(db_path, check_sql, (odoo_record_id, account_id), fetch=True, commit=False)
+                    
                     if result and len(result) > 0:
                         field_index = 0
                         if "status" in table_columns:
@@ -227,8 +242,6 @@ def insert_record(
                 else:
                     # many2one field: [id, "name"] - extract just the ID
                     val = val[0]
-                #     # Handles case like [[id, "name"], [id, "name"]] (Odoo returns tuples)
-                #     val = ",".join(str(v[0]) if isinstance(v, (list, tuple)) else str(v) for v in val)
 
             # Convert boolean to integer (SQLite doesn't support bool)
             if isinstance(val, bool):
@@ -285,7 +298,11 @@ def insert_record(
             f"ON CONFLICT(odoo_record_id, account_id) DO UPDATE SET {update_clause}"
         )
 
-        safe_sql_execute(db_path, sql, values)
+        if connection is not None:
+            cursor = connection.cursor()
+            cursor.execute(sql, values)
+        else:
+            safe_sql_execute(db_path, sql, values)
     except Exception as e:
         display_name = get_record_display_name(record, model_name)
         error_msg = str(e)
@@ -362,27 +379,104 @@ def sync_model(
         and removing orphaned records. Adds notification on failure.
     """
     clear_table_columns_cache()
-    log.info(f"[SYNC] Fetching '{model_name}' records from Odoo...")
     field_map = prepare_field_mapping(client, model_name, config_path)
     odoo_fields = list(field_map.keys())
     if not odoo_fields:
         log.warning(f"[WARN] No valid fields found for model '{model_name}'. Skipping sync.")
         return
 
+    # Check if 'last_modified' column exists in this table
+    pragma_result = safe_sql_execute(
+        db_path, f"PRAGMA table_info({table_name})", commit=False, fetch=True
+    )
+    columns = [row[1] for row in pragma_result]
+    has_last_modified = "last_modified" in columns
+
     try:
-        records = fetch_odoo_records(client, model_name, odoo_fields)
+        # Step 1: Lightweight search to get all active record IDs for deletion/orphan checking
+        try:
+            all_odoo_ids = client.models.execute_kw(
+                client.db, client.uid, client.password,
+                model_name, "search", [[]]
+            )
+            all_odoo_ids = set(all_odoo_ids)
+        except Exception as search_err:
+            log.warning(f"[SYNC] Failed to fetch active IDs for {model_name}: {search_err}. Fallback to full sync.")
+            all_odoo_ids = None
+
+        # Step 2: Determine if we can do an incremental delta sync
+        is_incremental = False
+        last_sync_domain = [[]]
+        
+        if has_last_modified and all_odoo_ids is not None:
+            max_mod_sql = f"SELECT MAX(last_modified) FROM {table_name} WHERE account_id = ? AND last_modified IS NOT NULL"
+            max_mod_res = safe_sql_execute(db_path, max_mod_sql, (account_id,), fetch=True, commit=False)
+            
+            if max_mod_res and max_mod_res[0][0]:
+                last_mod_str = max_mod_res[0][0]
+                clean_str = last_mod_str.replace("Z", "").split(".")[0]
+                try:
+                    if "T" in clean_str:
+                        dt = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
+                    else:
+                        dt = datetime.strptime(clean_str, "%Y-%m-%d %H:%M:%S")
+                    
+                    from datetime import timedelta
+                    dt_buffered = dt - timedelta(seconds=60)
+                    formatted_str = dt_buffered.strftime("%Y-%m-%d %H:%M:%S")
+                    
+                    # Target only records changed since last sync minus safety buffer
+                    last_sync_domain = [[("write_date", ">", formatted_str)]]
+                    is_incremental = True
+                    log.info(f"[SYNC] Incremental sync enabled for {model_name}. Fetching updates since {formatted_str} UTC.")
+                except Exception as parse_err:
+                    log.warning(f"[SYNC] Could not parse last_modified '{last_mod_str}' for {table_name}: {parse_err}")
+
+        # Step 3: Fetch the records (incremental or full)
+        if is_incremental:
+            try:
+                safe_fields = list(odoo_fields)
+                if "id" not in safe_fields:
+                    safe_fields.append("id")
+                model_fields = get_model_fields(client, model_name)
+                if "write_date" in model_fields and "write_date" not in safe_fields:
+                    safe_fields.append("write_date")
+
+                records = client.models.execute_kw(
+                    client.db, client.uid, client.password,
+                    model_name, "search_read", last_sync_domain,
+                    {"fields": safe_fields}
+                )
+            except Exception as read_err:
+                log.warning(f"[SYNC] Incremental fetch failed for {model_name}: {read_err}. Falling back to full fetch.")
+                records = fetch_odoo_records(client, model_name, odoo_fields)
+                is_incremental = False
+        else:
+            records = fetch_odoo_records(client, model_name, odoo_fields)
+
         log.info(f"[SYNC] Downloaded {len(records)} records for '{model_name}'.")
+
+        # Step 4: Batch process the records in a single transaction connection
         fetched_odoo_ids = process_odoo_records(
             records, table_name, model_name, account_id, config_path, db_path
         )
-        remove_orphaned_local_records(
-            fetched_odoo_ids, table_name, model_name, account_id, db_path
-        )
 
-        log.info(f"[SYNC] Completed sync for '{model_name}' -> '{table_name}' ({len(fetched_odoo_ids)} records processed)")
+        # Step 5: Clean up orphaned records
+        # If we have the full active IDs set from Odoo, use it for orphan checks.
+        # Otherwise, fall back to fetched_odoo_ids if it was a full sync.
+        if all_odoo_ids is not None:
+            orphan_reference_ids = all_odoo_ids
+        else:
+            orphan_reference_ids = fetched_odoo_ids
+
+        if not is_incremental or all_odoo_ids is not None:
+            remove_orphaned_local_records(
+                orphan_reference_ids, table_name, model_name, account_id, db_path
+            )
+
+        log.info(f"[SYNC] Completed sync for '{model_name}' -> '{table_name}'")
         
         # SUCCESS: Clear any previous sync error notifications for this model
-        # This removes stale "Sync failed for ..." notifications once the issue is resolved
         clear_sync_notifications(db_path, account_id, model_name)
     except Exception as e:
         log.error(f"[ERROR] Failed to sync model '{model_name}': {e}")
@@ -582,6 +676,7 @@ def process_odoo_records(
 ):
     """
     Process fetched Odoo records and update local database based on timestamps.
+    Uses a single SQLite connection transaction to optimize disk write operations.
     
     Args:
         records (list): List of record dictionaries from Odoo
@@ -593,51 +688,55 @@ def process_odoo_records(
         
     Returns:
         set: Set of Odoo record IDs that were processed
-        
-    Note:
-        Only updates local records if Odoo write_date is newer than local last_modified,
-        or if last_modified column doesn't exist in the table.
     """
     fetched_odoo_ids = set()
+    if not records:
+        return fetched_odoo_ids
 
-    # Check once if 'last_modified' column exists in the table using PRAGMA
-    pragma_result = safe_sql_execute(
-        db_path, f"PRAGMA table_info({table_name})", commit=False, fetch=True
-    )
-    columns = [row[1] for row in pragma_result]
-    has_last_modified = "last_modified" in columns
-    has_status = "status" in columns
-    has_draft_flag = "has_draft" in columns
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = [row[1] for row in cursor.fetchall()]
+        has_last_modified = "last_modified" in columns
+        has_status = "status" in columns
+        has_draft_flag = "has_draft" in columns
 
-    for rec in records:
-        odoo_id = rec["id"]
-        fetched_odoo_ids.add(odoo_id)
-        #print(rec) #to view the record for debugging
+        select_fields = []
+        if has_last_modified:
+            select_fields.append("last_modified")
+        if has_status:
+            select_fields.append("status")
+        if has_draft_flag:
+            select_fields.append("has_draft")
 
-        if has_last_modified or has_status or has_draft_flag:
-            select_fields = []
-            if has_last_modified:
-                select_fields.append("last_modified")
-            if has_status:
-                select_fields.append("status")
-            if has_draft_flag:
-                select_fields.append("has_draft")
+        check_sql = None
+        if select_fields:
+            check_sql = f"SELECT {', '.join(select_fields)} FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
 
-            row = safe_sql_execute(
-                db_path,
-                f"SELECT {', '.join(select_fields)} FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?",
-                (odoo_id, account_id),
-                commit=False,
-                fetch=True,
-            )
-            field_index = 0
-            local_last_modified = row[0][field_index] if row and has_last_modified else None
-            if row and has_last_modified:
-                field_index += 1
-            local_status = row[0][field_index] if row and has_status else None
-            if row and has_status:
-                field_index += 1
-            local_has_draft = bool(row[0][field_index]) if row and has_draft_flag else False
+        for rec in records:
+            odoo_id = rec["id"]
+            fetched_odoo_ids.add(odoo_id)
+
+            local_last_modified = None
+            local_status = None
+            local_has_draft = False
+
+            if check_sql:
+                cursor.execute(check_sql, (odoo_id, account_id))
+                row = cursor.fetchone()
+                if row:
+                    field_index = 0
+                    if_last_modified = has_last_modified
+                    if if_last_modified:
+                        local_last_modified = row[field_index]
+                        field_index += 1
+                    if has_status:
+                        local_status = row[field_index]
+                        field_index += 1
+                    if has_draft_flag:
+                        local_has_draft = bool(row[field_index])
+
             odoo_write_date = rec.get("write_date")
 
             if local_status in ("updated", "created"):
@@ -654,7 +753,7 @@ def process_odoo_records(
 
             if should_update_local(odoo_write_date, local_last_modified):
                 insert_record(
-                    table_name, model_name, account_id, rec, db_path, config_path
+                    table_name, model_name, account_id, rec, db_path, config_path, connection=conn
                 )
             else:
                 # For mail.activity, backfill resId if it's missing (migration for existing records)
@@ -663,28 +762,29 @@ def process_odoo_records(
                     if res_model_id and isinstance(res_model_id, list) and len(res_model_id) > 0:
                         model_id = res_model_id[0]
                         # Check if local record is missing resId
-                        check_result = safe_sql_execute(
-                            db_path,
+                        cursor.execute(
                             "SELECT resId FROM mail_activity_app WHERE odoo_record_id = ? AND account_id = ?",
-                            (odoo_id, account_id),
-                            commit=False, fetch=True
+                            (odoo_id, account_id)
                         )
-                        if check_result and (check_result[0][0] is None or check_result[0][0] == 0 or check_result[0][0] == ''):
-                            # Backfill the missing resId
-                            safe_sql_execute(
-                                db_path,
+                        check_result = cursor.fetchone()
+                        if check_result and (check_result[0] is None or check_result[0] == 0 or check_result[0] == ''):
+                            cursor.execute(
                                 "UPDATE mail_activity_app SET resId = ? WHERE odoo_record_id = ? AND account_id = ?",
-                                (model_id, odoo_id, account_id),
-                                commit=True, fetch=False
+                                (model_id, odoo_id, account_id)
                             )
                             log.info(f"[MIGRATION] Backfilled resId={model_id} for activity odoo_id={odoo_id}")
                 
                 log.debug(
                     f"[SKIP] {model_name} id={odoo_id} unchanged (local is newer or equal)."
                 )
-        else:
-            insert_record(table_name, model_name, account_id, rec, db_path, config_path)
-            #log.debug(f"[FORCE] {model_name} id={odoo_id} updated (no timestamp column).")
+        
+        conn.commit()
+    except Exception as batch_err:
+        conn.rollback()
+        log.error(f"[SYNC] Error during batch processing for {model_name}: {batch_err}")
+        raise batch_err
+    finally:
+        conn.close()
 
     return fetched_odoo_ids
 

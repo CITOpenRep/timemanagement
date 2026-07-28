@@ -1083,7 +1083,7 @@ Page {
         if (visible) {
             // Stop live sync — content is already up-to-date via the timer
             description_text.liveSyncActive = false;
-            if (Global.description_temporary_holder !== "" && Global.description_context === "project_description") {
+            if (Global.description_context === "project_description") {
                 //Check if you are coming back from the ReadMore page for project description
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";

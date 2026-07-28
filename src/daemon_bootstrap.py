@@ -53,8 +53,8 @@ KillMode=mixed
 KillSignal=SIGTERM
 StartLimitIntervalSec=300
 StartLimitBurst=10
-StandardOutput=append:{log_file}
-StandardError=append:{log_file}
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=graphical-session.target

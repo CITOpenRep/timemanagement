@@ -390,11 +390,14 @@ ListItem {
                         }
 
                         Text {
-                            text: Utils.getTimeStatusInText(endDate)
+                            text: Utils.getTimeStatusInText(projectCard.deadline || projectCard.endDate)
                             font.pixelSize: units.gu(1.5)
                             horizontalAlignment: Text.AlignRight
                             width: parent.width
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935"
+                            color: {
+                                var statusText = Utils.getTimeStatusInText(projectCard.deadline || projectCard.endDate);
+                                return (statusText === "N/A" || statusText === "Invalid") ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555") : (statusText.indexOf("overdue") !== -1 ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935") : "green");
+                            }
                         }
                     }
                 }
