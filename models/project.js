@@ -198,7 +198,7 @@ function getAllProjects() {
             }
         });
     } catch (e) {
-        console.error("❌ getAllProjects failed:", e);
+        console.error("getAllProjects failed:", e);
     }
 
     return projectList;
@@ -238,7 +238,7 @@ function getAllProjectUpdates(accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getAllProjectUpdates failed:", e);
+        console.error("getAllProjectUpdates failed:", e);
     }
 
     console.log("Found", updateList.length, "project updates");
@@ -261,7 +261,7 @@ function getProjectUpdatesByProject(projectOdooRecordId, accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getProjectUpdatesByProject failed:", e);
+        console.error("getProjectUpdatesByProject failed:", e);
     }
 
     return updateList;
@@ -282,7 +282,7 @@ function getProjectUpdateById(updateId, accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getProjectUpdateById failed:", e);
+        console.error("getProjectUpdateById failed:", e);
     }
 
     return update || {};
@@ -322,7 +322,7 @@ function getProjectUpdateByOdooId(odoo_record_id, accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getProjectUpdateByOdooId failed:", e);
+        console.error("getProjectUpdateByOdooId failed:", e);
     }
 
     return update || {};
@@ -639,7 +639,7 @@ function getProjectsForAccount(accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getProjectsForAccount failed:", e);
+        console.error("getProjectsForAccount failed:", e);
     }
 
     return projectList;
@@ -949,7 +949,7 @@ function getProjectUpdatesFilteredPaginated(options) {
  */
 function getAccountsWithProjectCounts() {
     var accounts = [];
-    console.log("🔍 getAccountsWithProjectCounts called");
+    console.log("getAccountsWithProjectCounts called");
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -966,11 +966,11 @@ function getAccountsWithProjectCounts() {
             `;
 
             var result = tx.executeSql(query);
-            console.log("📊 Found", result.rows.length, "accounts with projects in database");
+            console.log("Found", result.rows.length, "accounts with projects in database");
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                console.log("📝 DB Account:", row.account_id, "Total projects:", row.project_count, "Active projects:", row.active_project_count);
+                console.log("DB Account:", row.account_id, "Total projects:", row.project_count, "Active projects:", row.active_project_count);
                 accounts.push({
 
                     // id: row.id,
@@ -997,10 +997,10 @@ function getAccountsWithProjectCounts() {
             }
         });
     } catch (e) {
-        console.error("❌ getAccountsWithProjectCounts failed:", e);
+        console.error("getAccountsWithProjectCounts failed:", e);
     }
 
-    console.log("📊 Returning", accounts.length, "accounts with projects");
+    console.log("Returning", accounts.length, "accounts with projects");
     return accounts;
 }
 
@@ -1368,7 +1368,7 @@ function getProjectName(projectId, accountId) {
 
         return projectName;
     } catch (e) {
-        console.error("❌ getProjectName failed:", e);
+        console.error("getProjectName failed:", e);
         return "Unknown Project";
     }
 }
@@ -1396,16 +1396,16 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
             if (updateResult.rowsAffected > 0) {
                 result.success = true;
                 result.message = isFavorite ? "Project marked as favorite" : "Project removed from favorites";
-                //  console.log("✅ Project favorite status updated:", projectId, "favorite:", isFavorite);
+                //  console.log("Project favorite status updated:", projectId, "favorite:", isFavorite);
             } else {
                 result.message = "Project not found or no changes made";
-                console.warn("⚠️ No project updated with ID:", projectId);
+                console.warn("No project updated with ID:", projectId);
             }
         });
 
         return result;
     } catch (e) {
-        console.error("❌ toggleProjectFavorite failed:", e);
+        console.error("toggleProjectFavorite failed:", e);
         return { success: false, message: "Failed to update project favorite status: " + e.message };
     }
 }

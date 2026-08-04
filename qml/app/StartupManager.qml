@@ -50,7 +50,7 @@ QtObject {
                                  "sudo apt install python3-dbus python3-gi gir1.2-glib-2.0\n\n" +
                                  "Then restart the app.";
                     if (notifPopup)
-                        notifPopup.open("⚠️ Setup Required", message, "warning");
+                        notifPopup.open("Setup Required", message, "warning");
                 }
             } catch (fileError) {
             }
@@ -77,10 +77,10 @@ QtObject {
                              formatDraftsMessage(summary) +
                              "\n\nOpen the respective forms to restore your changes.";
                 if (notifPopup)
-                    notifPopup.open("📂 Unsaved Drafts Found", message, "info");
+                    notifPopup.open("Unsaved Drafts Found", message, "info");
             }
         } catch (e) {
-            console.error("❌ Error checking for unsaved drafts:", e.toString());
+            console.error("Error checking for unsaved drafts:", e.toString());
         }
     }
 

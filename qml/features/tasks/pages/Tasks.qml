@@ -178,7 +178,7 @@ Page {
             // Only restore if form is fully initialized
             if (formFullyInitialized) {
                 restoreFormFromDraft(draftData);
-                notifPopup.open("📂 Draft Found", 
+                notifPopup.open("Draft Found", 
                     "Unsaved changes restored. ", 
                     "info");
             } else {
@@ -186,7 +186,7 @@ Page {
                 Qt.callLater(function() {
                     if (formFullyInitialized) {
                         restoreFormFromDraft(draftData);
-                        notifPopup.open("📂 Draft Restored", 
+                        notifPopup.open("Draft Restored", 
                             "Unsaved changes restored: " + getChangesSummary(), 
                             "info");
                     }
@@ -255,7 +255,7 @@ Page {
                 return;
             }
         } catch (e) {
-            console.error("❌ Navigation error with pageStack:", e);
+            console.error("Navigation error with pageStack:", e);
         }
 
         // Method 3: Parent pop
@@ -265,10 +265,10 @@ Page {
                 return;
             }
         } catch (e) {
-            console.error("❌ Parent navigation error:", e);
+            console.error("Parent navigation error:", e);
         }
         
-        console.warn("⚠️ No navigation method found!");
+        console.warn("No navigation method found!");
     }
 
     function restoreStageSelections(stageId, personalStageId) {
@@ -1019,7 +1019,7 @@ Page {
 
                 // Load stages for the prefilled project
                 if (mainProjectId > 0 && prefilledAccountId > 0) {
-                    console.log("🎯 Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId);
+                    console.log("Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId);
                     loadStagesForProject(mainProjectId, prefilledAccountId);
                 }
             }

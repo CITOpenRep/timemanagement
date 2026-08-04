@@ -919,7 +919,7 @@ function markTimesheetAsDeleted(taskId) {
         try {
             DraftManager.cleanupDraftsForDeletedRecords("timesheet", [taskId]);
         } catch (draftError) {
-            console.warn("⚠️  Failed to cleanup timesheet draft:", draftError);
+            console.warn("Failed to cleanup timesheet draft:", draftError);
             // Don't fail the deletion if draft cleanup fails
         }
 

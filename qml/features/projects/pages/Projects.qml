@@ -194,7 +194,7 @@ Page {
             // Only restore if form is fully initialized
             if (formFullyInitialized) {
                 restoreFormFromDraft(draftData);
-                notifPopup.open("📂 Draft Found", 
+                notifPopup.open("Draft Found", 
                     "Unsaved changes restored.", 
                     "info");
             } else {
@@ -203,7 +203,7 @@ Page {
                 Qt.callLater(function() {
                     if (formFullyInitialized) {
                         restoreFormFromDraft(draftData);
-                        notifPopup.open("📂 Draft Restored", 
+                        notifPopup.open("Draft Restored", 
                             "Unsaved changes restored.", 
                             "info");
                     }
@@ -212,28 +212,28 @@ Page {
         }
         
         onUnsavedChangesWarning: {
-            console.log("⚠️ Unsaved changes detected");
+            console.log("Unsaved changes detected");
         }
         
         onDraftSaved: {
-            console.log("💾 Draft saved successfully (ID: " + draftId + ")");
+            console.log("Draft saved successfully (ID: "+ draftId + ")");
         }
     }
 
     SaveDiscardDialog {
         id: saveDiscardDialog
         onSaveRequested: {
-            //console.log("💾 SaveDiscardDialog: Saving project...");
+            //console.log("SaveDiscardDialog: Saving project...");
             saveProjectData();
         }
         onDiscardRequested: {
-            //console.log("🗑️ SaveDiscardDialog: Discarding changes...");
+            //console.log("SaveDiscardDialog: Discarding changes...");
             restoreFormToOriginal();
             draftHandler.clearDraft();
             Qt.callLater(navigateBack);
         }
         onCancelled: {
-            //console.log("❌ User cancelled navigation - staying on page");
+            //console.log("User cancelled navigation - staying on page");
         }
     }
 
@@ -246,7 +246,7 @@ Page {
         
         // Check if we have unsaved changes
         if (!isReadOnly && draftHandler.hasUnsavedChanges) {
-            //console.log("⚠️ Unsaved changes detected on back navigation");
+            //console.log("Unsaved changes detected on back navigation");
             saveDiscardDialog.open();
             return;
         }
@@ -256,46 +256,46 @@ Page {
     }
 
     function navigateBack() {
-        //console.log("🔙 Attempting to navigate back...");
+        //console.log("Attempting to navigate back...");
         
         // Method 1: AdaptivePageLayout (primary method for this app)
         try {
             if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
-                //console.log("✅ Navigating via apLayout.removePages()");
+                //console.log("Navigating via apLayout.removePages()");
                 apLayout.removePages(projectCreate);
                 return;
             }
         } catch (e) {
-            console.error("❌ apLayout navigation error:", e);
+            console.error("apLayout navigation error:", e);
         }
         
         // Method 2: Standard pageStack
         try {
             if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
-                console.log("✅ Navigating via pageStack.pop()");
+                console.log("Navigating via pageStack.pop()");
                 pageStack.pop();
                 return;
             }
         } catch (e) {
-            //console.error("❌ Navigation error with pageStack:", e);
+            //console.error("Navigation error with pageStack:", e);
         }
 
         // Method 3: Parent pop
         try {
             if (parent && parent.pop) {
-                //console.log("✅ Navigating via parent.pop()");
+                //console.log("Navigating via parent.pop()");
                 parent.pop();
                 return;
             }
         } catch (e) {
-            console.error("❌ Parent navigation error:", e);
+            console.error("Parent navigation error:", e);
         }
         
-        console.warn("⚠️ No navigation method found!");
+        console.warn("No navigation method found!");
     }
 
     function restoreFormFromDraft(draftData) {
-        //console.log("🔄 Restoring form from draft data...");
+        //console.log("Restoring form from draft data...");
         
         // Set flag to suppress tracking during restoration
         isRestoringFromDraft = true;
@@ -336,12 +336,12 @@ Page {
         // Clear the restoration flag
         Qt.callLater(function() {
             isRestoringFromDraft = false;
-            //console.log("✅ Draft restoration complete - tracking re-enabled");
+            //console.log("Draft restoration complete - tracking re-enabled");
         });
     }
     
     function restoreFormToOriginal() {
-        //console.log("🔄 Restoring form to original values...");
+        //console.log("Restoring form to original values...");
         
         var originalData = draftHandler.originalData;
         if (originalData.name !== undefined) project_name.text = originalData.name;

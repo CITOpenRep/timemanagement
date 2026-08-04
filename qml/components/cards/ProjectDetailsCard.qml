@@ -213,7 +213,7 @@ ListItem {
                                     isFavorite = newFavoriteState;
                                     starIcon.source = isFavorite ? "../../images/star.png" : "../../images/star-inactive.png";
                                 } else {
-                                    console.warn("⚠️ Failed to toggle project favorite:", result.message);
+                                    console.warn("Failed to toggle project favorite:", result.message);
                                 }
                             }
                         }

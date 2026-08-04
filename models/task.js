@@ -492,7 +492,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
                 result.hasChildren = true;
                 result.childTasks = childTasks;
 
-                console.warn("❌ Deletion blocked: Task has " + childTasks.length + " child tasks");
+                console.warn("Deletion blocked: Task has "+ childTasks.length + "child tasks");
                 return;
             }
 
@@ -506,7 +506,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
             deletedTimesheetIds = markRelatedTimesheetsAsDeleted(tx, [taskId], timestamp);
 
             if (forceDelete && childTasks.length > 0) {
-                console.warn("⚠️  Force delete enabled - deleted parent task with " + childTasks.length + " children");
+                console.warn("Force delete enabled - deleted parent task with "+ childTasks.length + "children");
                 result.message = "Task '" + taskName + "' deleted (forced deletion with " + childTasks.length + " child tasks remaining)";
             } else {
                 result.message = "Task '" + taskName + "' successfully deleted";
@@ -515,7 +515,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
             result.success = true;
             result.deletedTaskIds = [taskId];
 
-            console.info("✅ Task deleted successfully: " + taskName);
+            console.info("Task deleted successfully: "+ taskName);
         });
 
         // Clean up any drafts for this deleted task and its related timesheets (outside transaction)
@@ -528,7 +528,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
                     DraftManager.cleanupDraftsForDeletedRecords("timesheet", deletedTimesheetIds);
                 }
             } catch (draftError) {
-                console.warn("⚠️  Failed to cleanup drafts:", draftError);
+                console.warn("Failed to cleanup drafts:", draftError);
                 // Don't fail the deletion if draft cleanup fails
             }
         }
@@ -536,7 +536,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
         return result;
 
     } catch (e) {
-        console.error("❌ Error marking task as deleted (ID " + taskId + "): " + e);
+        console.error("Error marking task as deleted (ID "+ taskId + "): "+ e);
         return {
             success: false,
             message: "Failed to delete task: " + e.message,
@@ -1546,7 +1546,7 @@ function resolveProjectColor(projectId, projectMap, tx) {
     var color = projectMap[projectId];
     // If color is found AND not zero → return it
     if (color && color !== "0" && color !== 0) {
-        //  console.log("✅ Found non-zero color for projectId:", projectId, "color:", color);
+        //  console.log("Found non-zero color for projectId:", projectId, "color:", color);
         return color;
     }
     // Otherwise, check the parent
@@ -1555,13 +1555,13 @@ function resolveProjectColor(projectId, projectMap, tx) {
 
     if (parentResult.rows.length > 0) {
         var parentId = parentResult.rows.item(0).parent_id;
-        //   console.log("🔄 projectId", projectId, "has parent:", parentId);
+        //   console.log("projectId", projectId, "has parent:", parentId);
 
         if (parentId && parentId !== 0) {
             return resolveProjectColor(parentId, projectMap, tx); // recurse to parent
         }
     }
-    //   console.log("⚠️ No non-zero color found for projectId:", projectId);
+    //   console.log("No non-zero color found for projectId:", projectId);
     return 0;
 }
 
@@ -2480,7 +2480,7 @@ function getAccountsWithTaskCounts() {
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                console.log("📝 DB Account:", row.account_id, "Total tasks:", row.task_count, "Active tasks:", row.active_task_count);
+                console.log("DB Account:", row.account_id, "Total tasks:", row.task_count, "Active tasks:", row.active_task_count);
                 accounts.push({
                     account_id: row.account_id,
                     account_name: row.account_id === 0 ? "Local Account" : "Account " + row.account_id,
@@ -2490,10 +2490,10 @@ function getAccountsWithTaskCounts() {
             }
         });
     } catch (e) {
-        console.error("❌ getAccountsWithTaskCounts failed:", e);
+        console.error("getAccountsWithTaskCounts failed:", e);
     }
 
-    console.log("📊 Returning", accounts.length, "accounts");
+    console.log("Returning", accounts.length, "accounts");
     return accounts;
 }
 
@@ -2882,13 +2882,13 @@ function setTaskPriority(taskId, priority, status) {
                 //  console.log("Task priority updated:", taskId, "priority:", priority);
             } else {
                 result.message = "Task not found or no changes made";
-                console.warn("⚠️ No task updated with ID:", taskId);
+                console.warn("No task updated with ID:", taskId);
             }
         });
 
         return result;
     } catch (e) {
-        console.error("❌ setTaskPriority failed:", e);
+        console.error("setTaskPriority failed:", e);
         return { success: false, message: "Failed to set task priority: " + e.message };
     }
 }
@@ -2990,7 +2990,7 @@ function getTasksForProject(projectOdooRecordId, accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getTasksForProject failed:", e);
+        console.error("getTasksForProject failed:", e);
     }
 
     return taskList;
@@ -3279,7 +3279,7 @@ function getAllTaskAssignees(accountId) {
 function getTaskStagesForProject(projectOdooRecordId, accountId) {
     var stages = [];
 
-    console.log("🔍 getTaskStagesForProject called with projectOdooRecordId:", projectOdooRecordId, "accountId:", accountId);
+    console.log("getTaskStagesForProject called with projectOdooRecordId:", projectOdooRecordId, "accountId:", accountId);
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -3301,7 +3301,7 @@ function getTaskStagesForProject(projectOdooRecordId, accountId) {
                 [accountId]
             );
 
-            console.log("🔍 getTaskStagesForProject: Found " + result.rows.length + " PROJECT stages for account " + accountId + " (before project filter)");
+            console.log("getTaskStagesForProject: Found "+ result.rows.length + "PROJECT stages for account "+ accountId + "(before project filter)");
 
             // Filter stages to show only:
             // 1. Global stages (is_global = 1 or is_global = "1" - available to ALL projects)
@@ -3340,7 +3340,7 @@ function getTaskStagesForProject(projectOdooRecordId, accountId) {
                 if (isGlobalValue === 1 || isGlobalStr === "1") {
                     // Global stage - available to all projects
                     isAvailable = true;
-                    console.log("  ✓ Stage '" + row.name + "' is GLOBAL (is_global: " + isGlobalValue + " [" + isGlobalType + "])");
+                    console.log("Stage '"+ row.name + "'is GLOBAL (is_global: "+ isGlobalValue + "["+ isGlobalType + "])");
                 } else if (isGlobalStr.indexOf(",") !== -1) {
                     // Project-specific stage - check if this project is in the comma-separated list
                     var projectIds = isGlobalStr.split(",");
@@ -3354,18 +3354,18 @@ function getTaskStagesForProject(projectOdooRecordId, accountId) {
                     }
 
                     if (isAvailable) {
-                        console.log("  ✓ Stage '" + row.name + "' is available for project " + projectOdooRecordId + " (is_global: '" + isGlobalValue + "' contains project ID)");
+                        console.log("Stage '"+ row.name + "'is available for project "+ projectOdooRecordId + "(is_global: '"+ isGlobalValue + "'contains project ID)");
                     } else {
-                        console.log("  ✗ Stage '" + row.name + "' NOT available for project " + projectOdooRecordId + " (is_global: '" + isGlobalValue + "' does not contain project ID)");
+                        console.log("Stage '"+ row.name + "'NOT available for project "+ projectOdooRecordId + "(is_global: '"+ isGlobalValue + "'does not contain project ID)");
                     }
                 } else {
                     // Could be a single project ID (no comma) - check if it matches
                     if (isGlobalStr === String(projectOdooRecordId)) {
                         isAvailable = true;
-                        console.log("  ✓ Stage '" + row.name + "' is available ONLY for project " + projectOdooRecordId + " (is_global: '" + isGlobalValue + "')");
+                        console.log("Stage '"+ row.name + "'is available ONLY for project "+ projectOdooRecordId + "(is_global: '"+ isGlobalValue + "')");
                     } else {
                         // This stage is for a different single project
-                        console.log("  ✗ Stage '" + row.name + "' is for a DIFFERENT project (is_global: '" + isGlobalValue + "', need: " + projectOdooRecordId + ")");
+                        console.log("Stage '"+ row.name + "'is for a DIFFERENT project (is_global: '"+ isGlobalValue + "', need: "+ projectOdooRecordId + ")");
                     }
                 }
 
@@ -3382,10 +3382,10 @@ function getTaskStagesForProject(projectOdooRecordId, accountId) {
                 }
             }
 
-            console.log("🔍 getTaskStagesForProject: " + stages.length + " stages available for project " + projectOdooRecordId);
+            console.log("getTaskStagesForProject: "+ stages.length + "stages available for project "+ projectOdooRecordId);
 
             if (stages.length === 0) {
-                console.warn("⚠️ No stages available for project " + projectOdooRecordId + " in account " + accountId);
+                console.warn("No stages available for project "+ projectOdooRecordId + "in account "+ accountId);
                 console.warn("   This might indicate the project has no assigned stages in Odoo");
             }
         });

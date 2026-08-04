@@ -144,7 +144,7 @@ Page {
     }
 
     function refreshData() {
-        console.log("🔄 Refreshing Dashboard data...");
+        console.log("Refreshing Dashboard data...");
         var targetAccountId = accountPicker.selectedAccountId;
         if (isLoading && refreshStage >= 0 && lastRefreshAccountId === targetAccountId) {
             return;
@@ -174,7 +174,7 @@ Page {
         try {
             switch (refreshStage) {
             case 0:
-                console.log("🟢 Dashboard refresh stage 0: priority matrix");
+                console.log("Dashboard refresh stage 0: priority matrix");
                 if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
                     ehoverMatrix.refreshQuadrants();
                 }
@@ -184,7 +184,7 @@ Page {
                 loadingTimer.start();
                 return;
             case 1:
-                console.log("🟢 Dashboard refresh stage 1: project chart");
+                console.log("Dashboard refresh stage 1: project chart");
                 if (typeof projectchart !== "undefined") {
                     projectchart.refreshForAccount(accountPicker.selectedAccountId);
                 }
@@ -193,7 +193,7 @@ Page {
                 loadingTimer.start();
                 return;
             case 2:
-                console.log("🟢 Dashboard refresh stage 2: additional charts");
+                console.log("Dashboard refresh stage 2: additional charts");
                 if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
                     mobileProjectChartLoader.item.reloadData();
                 if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
@@ -203,7 +203,7 @@ Page {
                 break;
             }
         } catch(e) {
-            console.error("🔴 _doRefreshData ERROR: ", e);
+            console.error("_doRefreshData ERROR: ", e);
         }
         finishRefreshData();
     }

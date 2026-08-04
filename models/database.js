@@ -218,7 +218,7 @@ function rowToObject(row) {
     var obj = {};
 
     if (!row || typeof row !== 'object') {
-        console.warn("⚠️ rowToObject: Invalid row input", row);
+        console.warn("rowToObject: Invalid row input", row);
         return obj;
     }
 

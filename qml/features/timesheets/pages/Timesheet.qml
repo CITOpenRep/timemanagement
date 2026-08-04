@@ -287,7 +287,7 @@ Page {
         
         onDraftLoaded: {
             restoreFormFromDraft(draftData);
-            notifPopup.open("📂 Draft Found", 
+            notifPopup.open("Draft Found", 
                 "Unsaved changes restored. ", 
                 "info");
         }
@@ -297,7 +297,7 @@ Page {
         }
         
         onDraftSaved: {
-            console.log("💾 Timesheet draft saved successfully (ID: " + draftId + ")");
+            console.log("Timesheet draft saved successfully (ID: "+ draftId + ")");
         }
     }
 
@@ -365,11 +365,11 @@ Page {
     // Initialize timesheet data when page becomes visible for the first time
     function initializeTimesheet() {
         if (_hasInitialized) {
-            console.log("⏭️ Timesheet already initialized, skipping");
+            console.log("⏭ Timesheet already initialized, skipping");
             return;
         }
         
-        console.log("🔄 Initializing Timesheet - recordid:", recordid, "isReadOnly:", isReadOnly, "isOdooRecordId:", isOdooRecordId);
+        console.log("Initializing Timesheet - recordid:", recordid, "isReadOnly:", isReadOnly, "isOdooRecordId:", isOdooRecordId);
         _hasInitialized = true;
 
         if (recordid != 0) {
@@ -545,7 +545,7 @@ Page {
                     
                     // Track changes for draft management
                     onStateChanged: {
-                        console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        console.log("WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
                         
                         if (draftHandler.enabled && draftHandler._initialized) {
                             // Get current IDs for reference
@@ -554,7 +554,7 @@ Page {
                             // Extract the actual changed ID from the state change signal
                             var changedId = data.id || null;
                             
-                            console.log("📝 Tracking WorkItemSelector changes:", JSON.stringify({
+                            console.log("Tracking WorkItemSelector changes:", JSON.stringify({
                                 state: newState,
                                 changedId: changedId,
                                 currentIds: {
@@ -568,27 +568,27 @@ Page {
                             
                             // Track the field that actually changed
                             if (newState === "AccountSelected") {
-                                console.log("✅ Tracking accountId:", changedId);
+                                console.log("Tracking accountId:", changedId);
                                 draftHandler.markFieldChanged("accountId", changedId);
                             } else if (newState === "ProjectSelected") {
-                                console.log("✅ Tracking projectId:", changedId);
+                                console.log("Tracking projectId:", changedId);
                                 draftHandler.markFieldChanged("projectId", changedId);
                             } else if (newState === "SubprojectSelected") {
-                                console.log("✅ Tracking subprojectId:", changedId);
+                                console.log("Tracking subprojectId:", changedId);
                                 draftHandler.markFieldChanged("subprojectId", changedId);
                             } else if (newState === "TaskSelected") {
-                                console.log("✅ Tracking taskId:", changedId);
+                                console.log("Tracking taskId:", changedId);
                                 draftHandler.markFieldChanged("taskId", changedId);
                             } else if (newState === "SubtaskSelected") {
-                                console.log("✅ Tracking subtaskId:", changedId);
+                                console.log("Tracking subtaskId:", changedId);
                                 draftHandler.markFieldChanged("subtaskId", changedId);
                             } else {
-                                console.warn("⚠️ Unknown state - not tracking:", newState);
+                                console.warn("Unknown state - not tracking:", newState);
                             }
                             
                             console.log("� Draft status - hasUnsavedChanges:", draftHandler.hasUnsavedChanges, "changedFields:", draftHandler.changedFields.length);
                         } else {
-                            console.log("⏸️ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
+                            console.log("⏸ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
                         }
                     }
                 }

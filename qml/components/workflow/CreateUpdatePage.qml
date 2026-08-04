@@ -37,7 +37,7 @@ Page {
         pageIdentifier: "create_update_" + createUpdatePage.projectId
         
         onDraftLoaded: function(draftData, changedFields) {
-            console.log("📋 Loading draft for project update, changed fields:", changedFields);
+            console.log("Loading draft for project update, changed fields:", changedFields);
             
             // Restore project/account selection from draft
             var draftAccountId = -1;

@@ -561,7 +561,7 @@ function markAsDone(accountId, id) {
             WHERE account_id = ? AND id = ?
             `;
             tx.executeSql(query, [accountId, id]);
-            //   console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
+            //   console.log("Marked as done: Account ID =", accountId, ", Record ID =", id);
         });
 
     } catch (e) {
@@ -595,7 +595,7 @@ function updateActivityDate(accountId, id, newDate) {
             WHERE account_id = ? AND id = ?
             `;
             tx.executeSql(query, [newDate, accountId, id]);
-            console.log("✅ Updated activity date: Account ID =", accountId, ", Record ID =", id, ", New Date =", newDate);
+            console.log("Updated activity date: Account ID =", accountId, ", Record ID =", id, ", New Date =", newDate);
         });
 
     } catch (e) {
@@ -741,7 +741,7 @@ function saveActivityData(data, recordId) {
                     ]
                 );
                 savedRecordId = recordId;
-                console.log("✅ Activity record updated: ID " + recordId);
+                console.log("Activity record updated: ID "+ recordId);
             } else {
                 // INSERT new record
                 tx.executeSql(
@@ -771,13 +771,13 @@ function saveActivityData(data, recordId) {
                 if (inserted.rows.length > 0) {
                     savedRecordId = inserted.rows.item(0).id;
                 }
-                console.log("✅ New activity record inserted: ID " + savedRecordId);
+                console.log("New activity record inserted: ID "+ savedRecordId);
             }
         });
 
         return { success: true, recordId: savedRecordId };
     } catch (e) {
-        console.error("❌ saveActivityData failed:", e.message);
+        console.error("saveActivityData failed:", e.message);
         return { success: false, error: e.message };
     }
 }
@@ -1276,7 +1276,7 @@ function deleteActivity(accountId, recordId) {
         db.transaction(function (tx) {
             var query = `DELETE FROM mail_activity_app WHERE account_id = ? AND id = ?`;
             tx.executeSql(query, [accountId, recordId]);
-            console.log("✅ Deleted activity: Account ID =", accountId, ", Record ID =", recordId);
+            console.log("Deleted activity: Account ID =", accountId, ", Record ID =", recordId);
         });
 
         return { success: true };
@@ -1727,7 +1727,7 @@ function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limi
 */
 function getAccountsWithActivityCounts() {
     var accounts = [];
-    console.log("🔍 getAccountsWithActivityCounts called");
+    console.log("getAccountsWithActivityCounts called");
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -1744,11 +1744,11 @@ function getAccountsWithActivityCounts() {
             `;
 
             var result = tx.executeSql(query);
-            console.log("📊 Found", result.rows.length, "accounts with activities in database");
+            console.log("Found", result.rows.length, "accounts with activities in database");
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                console.log("📝 DB Account:", row.account_id, "Total activities:", row.activity_count, "Active activities:", row.active_activity_count);
+                console.log("DB Account:", row.account_id, "Total activities:", row.activity_count, "Active activities:", row.active_activity_count);
                 accounts.push({
                     account_id: row.account_id,
                     account_name: row.account_id === 0 ? "Local Account" : "Account " + row.account_id,
@@ -1758,10 +1758,10 @@ function getAccountsWithActivityCounts() {
             }
         });
     } catch (e) {
-        console.error("❌ getAccountsWithActivityCounts failed:", e);
+        console.error("getAccountsWithActivityCounts failed:", e);
     }
 
-    console.log("📊 Returning", accounts.length, "accounts with activities");
+    console.log("Returning", accounts.length, "accounts with activities");
     return accounts;
 }
 

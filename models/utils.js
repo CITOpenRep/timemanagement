@@ -373,7 +373,7 @@ function getNextWeekRange() {
 function getNextWeekSameDay(baseDate) {
     const now = baseDate ? new Date(baseDate + 'T12:00:00Z') : new Date(); // Use UTC to avoid timezone issues
     const nextWeek = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7)); // Add exactly 7 days
-    console.log("📅 getNextWeekSameDay: From", now.toISOString().slice(0, 10), "to", nextWeek.toISOString().slice(0, 10));
+    console.log("getNextWeekSameDay: From", now.toISOString().slice(0, 10), "to", nextWeek.toISOString().slice(0, 10));
     return nextWeek.toISOString().slice(0, 10);
 }
 
@@ -406,7 +406,7 @@ function getNextMonthSameDay(baseDate) {
     
     const nextMonth = new Date(Date.UTC(finalYear, finalMonth, dayToUse));
     
-    console.log("📅 getNextMonthSameDay: From", now.toISOString().slice(0, 10), "to", nextMonth.toISOString().slice(0, 10));
+    console.log("getNextMonthSameDay: From", now.toISOString().slice(0, 10), "to", nextMonth.toISOString().slice(0, 10));
     return nextMonth.toISOString().slice(0, 10);
 }
 

@@ -172,7 +172,7 @@ Page {
         autoSaveInterval: 30000 // 30 seconds
         
         onDraftLoaded: function(draftData, changedFields) {
-            console.log("📝 Updates.qml: Draft loaded with", changedFields.length, "changed fields");
+            console.log("Updates.qml: Draft loaded with", changedFields.length, "changed fields");
             
             // Only restore if form is fully initialized
             if (formFullyInitialized) {
@@ -190,11 +190,11 @@ Page {
         }
         
         onDraftSaved: function(draftId) {
-            console.log("💾 Updates.qml: Draft saved with ID:", draftId);
+            console.log("Updates.qml: Draft saved with ID:", draftId);
         }
         
         onDraftCleared: function() {
-            console.log("🗑️ Updates.qml: Draft cleared");
+            console.log("Updates.qml: Draft cleared");
         }
     }
     
@@ -227,7 +227,7 @@ Page {
     }
     
     function restoreFormFromDraft(draftData) {
-        console.log("🔄 Restoring form from draft data...");
+        console.log("Restoring form from draft data...");
         
         isRestoringFromDraft = true;
         
@@ -287,12 +287,12 @@ Page {
         
         Qt.callLater(function() {
             isRestoringFromDraft = false;
-            console.log("✅ Draft restoration complete - tracking re-enabled");
+            console.log("Draft restoration complete - tracking re-enabled");
         });
     }
     
     function restoreFormToOriginal() {
-        console.log("🔄 Restoring form to original values...");
+        console.log("Restoring form to original values...");
         
         var originalData = draftHandler.originalData;
         if (originalData.name !== undefined) name_text.text = originalData.name;
@@ -373,7 +373,7 @@ Page {
                 }
                 
                 function initializeWorkItemSelector() {
-                    console.log("📋 Initializing WorkItemSelector for project selection");
+                    console.log("Initializing WorkItemSelector for project selection");
                     
                     // Get the default account ID
                     var defaultAccountId = Accounts.getDefaultAccountId();
@@ -614,13 +614,13 @@ Page {
         repeat: false
         onTriggered: {
             isInitializing = false;
-            console.log("🎯 Updates.qml: Initialization complete, draft tracking now active");
+            console.log("Updates.qml: Initialization complete, draft tracking now active");
         }
     }
     
     function switchToEditMode() {
         if (recordid !== 0) {
-            console.log("🔄 Updates.qml: Switching to edit mode");
+            console.log("Updates.qml: Switching to edit mode");
             isReadOnly = false;
             
             var originalUpdateData = getCurrentFormData();
@@ -643,29 +643,29 @@ Page {
     }
     
     function navigateBack() {
-        console.log("🔙 Attempting to navigate back...");
+        console.log("Attempting to navigate back...");
         
         try {
             if (typeof apLayout !== "undefined" && apLayout !== null) {
                 apLayout.removePages(updateDetailsPage);
-                console.log("✅ Navigated back using apLayout.removePages");
+                console.log("Navigated back using apLayout.removePages");
                 return;
             }
         } catch (e) {
-            console.warn("⚠️ apLayout.removePages failed:", e);
+            console.warn("apLayout.removePages failed:", e);
         }
         
         try {
             if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
                 pageStack.pop();
-                console.log("✅ Navigated back using pageStack.pop");
+                console.log("Navigated back using pageStack.pop");
                 return;
             }
         } catch (e) {
-            console.warn("⚠️ pageStack.pop failed:", e);
+            console.warn("pageStack.pop failed:", e);
         }
         
-        console.warn("⚠️ No navigation method found!");
+        console.warn("No navigation method found!");
     }
     
     function saveUpdateData() {
@@ -713,7 +713,7 @@ Page {
         currentUpdate.account_id = accountId;
         currentUpdate.project_id = projectId;
         
-        console.log("💾 Saving update data:", JSON.stringify(updateData));
+        console.log("Saving update data:", JSON.stringify(updateData));
         
         const result = Project.createUpdateSnapShot(updateData, recordid);
         if (!result.is_success) {
@@ -759,7 +759,7 @@ Page {
                     isOdooRecordId = false;
                 } else {
                     // Update not yet synced locally — show error and navigate back
-                    console.warn("⚠️ ProjectUpdate with odoo_record_id=" + recordid + " not found locally. Not yet synced?");
+                    console.warn("ProjectUpdate with odoo_record_id="+ recordid + "not found locally. Not yet synced?");
                     notifPopup.open("Not Found", "This project update has not been synced yet. Please sync and try again.", "error");
                     isInitializing = false;
                     Qt.callLater(navigateBack);
@@ -802,9 +802,9 @@ Page {
             needsProjectSelection = (!currentUpdate.project_id || currentUpdate.project_id <= 0);
             
             if (needsProjectSelection) {
-                console.log("📝 Creating update - project selection needed");
+                console.log("Creating update - project selection needed");
             } else {
-                console.log("📝 Creating update with pre-selected project:", currentUpdate.project_id);
+                console.log("Creating update with pre-selected project:", currentUpdate.project_id);
                 // Update display names for pre-selected project
                 updateDisplayNames();
             }
