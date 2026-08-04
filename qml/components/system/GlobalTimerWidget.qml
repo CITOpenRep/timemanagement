@@ -5,6 +5,7 @@ import "../../../models/timer_service.js" as TimerService
 import "../../../models/utils.js" as Utils
 import "../../features/timesheets/components" as TimesheetComponents
 import ".."
+import "../../../models/logger.js" as Logger
 
 Rectangle {
     id: globalTimer
@@ -47,7 +48,7 @@ Rectangle {
             root = root.parent;
             if (root.backend_bridge) {
                 backendBridge = root.backend_bridge;
-                console.log("GlobalTimer: Connected to backend bridge");
+                Logger.debug("GlobalTimerWidget", "GlobalTimer: Connected to backend bridge")
                 backendBridge.messageReceived.connect(handleSyncEvent);
                 break;
             }
@@ -478,13 +479,13 @@ Rectangle {
         id: descriptionPopup
 
         onSaved: function (description, status) {
-            console.log("Timesheet description saved:", description, "Status:", status);
+            Logger.debug("GlobalTimerWidget", "Timesheet description saved:", description, "Status:", status)
             // Stop the timer after saving
             TimerService.stop();
         }
 
         onFinalized: function (success, message) {
-            console.log("Timesheet finalized:", success, "Message:", message);
+            Logger.debug("GlobalTimerWidget", "Timesheet finalized:", success, "Message:", message)
             // Show notification if function is available
             if (globalTimer.showNotification) {
                 if (success) {
@@ -496,7 +497,7 @@ Rectangle {
         }
 
         onCancelled: {
-            console.log("Description popup cancelled - timer continues running");
+            Logger.debug("GlobalTimerWidget", "Description popup cancelled - timer continues running")
             // Don't stop timer if user cancels
         }
     }

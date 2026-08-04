@@ -40,6 +40,7 @@ import "../../../../models/task.js" as Task
 import "../../../components"
 import "../../../components/richtext"
 import "../components"
+import "../../../../models/logger.js" as Logger
 
 Page {
     id: timeSheet
@@ -251,7 +252,7 @@ Page {
             const details = Model.getTimeSheetDetails(recordid);
             return details.status || "draft";
         } catch (e) {
-            console.error("Failed to get timesheet status:", e);
+            Logger.error("Timesheet", "Failed to get timesheet status:", e)
             return "draft";
         }
     }
@@ -297,7 +298,7 @@ Page {
         }
         
         onDraftSaved: {
-            console.log("Timesheet draft saved successfully (ID: "+ draftId + ")");
+            Logger.debug("Timesheet", "Timesheet draft saved successfully (ID: "+ draftId + ")")
         }
     }
 
@@ -365,11 +366,11 @@ Page {
     // Initialize timesheet data when page becomes visible for the first time
     function initializeTimesheet() {
         if (_hasInitialized) {
-            console.log("⏭ Timesheet already initialized, skipping");
+            Logger.debug("Timesheet", "⏭ Timesheet already initialized, skipping")
             return;
         }
         
-        console.log("Initializing Timesheet - recordid:", recordid, "isReadOnly:", isReadOnly, "isOdooRecordId:", isOdooRecordId);
+        Logger.debug("Timesheet", "Initializing Timesheet - recordid:", recordid, "isReadOnly:", isReadOnly, "isOdooRecordId:", isOdooRecordId)
         _hasInitialized = true;
 
         if (recordid != 0) {
@@ -380,7 +381,7 @@ Page {
             if (isOdooRecordId) {
                 // recordid is an odoo_record_id (stable, from notification deep link)
                 currentTimesheet = Model.getTimeSheetDetailsByOdooId(recordid);
-                console.log("Timesheet: Loaded by odoo_record_id:", recordid, "found local id:", currentTimesheet ? currentTimesheet.id : "null");
+                Logger.debug("Timesheet", "Timesheet: Loaded by odoo_record_id:", recordid, "found local id:", currentTimesheet ? currentTimesheet.id : "null")
                 // Update recordid to local id for subsequent operations
                 if (currentTimesheet && currentTimesheet.id) {
                     recordid = currentTimesheet.id;
@@ -413,7 +414,7 @@ Page {
                 workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, -1);
             } else {
                 workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1);
-                console.log("Loaded existing timesheet with recordid:", recordid, "instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId, "subProjectId:", subProjectId, "subTaskId:", subTaskId);
+                Logger.debug("Timesheet", "Loaded existing timesheet with recordid:", recordid, "instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId, "subProjectId:", subProjectId, "subTaskId:", subTaskId)
             }
 
             date_widget.setSelectedDate(currentTimesheet.record_date);
@@ -545,7 +546,7 @@ Page {
                     
                     // Track changes for draft management
                     onStateChanged: {
-                        console.log("WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        Logger.debug("Timesheet", "WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data))
                         
                         if (draftHandler.enabled && draftHandler._initialized) {
                             // Get current IDs for reference
@@ -568,27 +569,27 @@ Page {
                             
                             // Track the field that actually changed
                             if (newState === "AccountSelected") {
-                                console.log("Tracking accountId:", changedId);
+                                Logger.debug("Timesheet", "Tracking accountId:", changedId)
                                 draftHandler.markFieldChanged("accountId", changedId);
                             } else if (newState === "ProjectSelected") {
-                                console.log("Tracking projectId:", changedId);
+                                Logger.debug("Timesheet", "Tracking projectId:", changedId)
                                 draftHandler.markFieldChanged("projectId", changedId);
                             } else if (newState === "SubprojectSelected") {
-                                console.log("Tracking subprojectId:", changedId);
+                                Logger.debug("Timesheet", "Tracking subprojectId:", changedId)
                                 draftHandler.markFieldChanged("subprojectId", changedId);
                             } else if (newState === "TaskSelected") {
-                                console.log("Tracking taskId:", changedId);
+                                Logger.debug("Timesheet", "Tracking taskId:", changedId)
                                 draftHandler.markFieldChanged("taskId", changedId);
                             } else if (newState === "SubtaskSelected") {
-                                console.log("Tracking subtaskId:", changedId);
+                                Logger.debug("Timesheet", "Tracking subtaskId:", changedId)
                                 draftHandler.markFieldChanged("subtaskId", changedId);
                             } else {
-                                console.warn("Unknown state - not tracking:", newState);
+                                Logger.warn("Timesheet", "Unknown state - not tracking:", newState)
                             }
                             
-                            console.log("� Draft status - hasUnsavedChanges:", draftHandler.hasUnsavedChanges, "changedFields:", draftHandler.changedFields.length);
+                            Logger.debug("Timesheet", "� Draft status - hasUnsavedChanges:", draftHandler.hasUnsavedChanges, "changedFields:", draftHandler.changedFields.length)
                         } else {
-                            console.log("⏸ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
+                            Logger.debug("Timesheet", "⏸ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized)
                         }
                     }
                 }
@@ -827,7 +828,7 @@ Page {
         Component.onCompleted: {
             // Defer initialization until page becomes visible to avoid loading on app startup
             // This prevents draft loading when the page is pre-instantiated but not shown
-            console.log("⏳ Timesheet Flickable completed - initialization deferred until page visible");
+            Logger.debug("Timesheet", "⏳ Timesheet Flickable completed - initialization deferred until page visible")
         }
     }
 

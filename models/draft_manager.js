@@ -1,3 +1,4 @@
+.import "logger.js" as Logger
 /*
  * MIT License
  *
@@ -63,7 +64,7 @@ function saveDraft(params) {
     // Validate required parameters
     if (!draftType) {
         result.error = "draftType is required";
-        console.error("Draft save failed:", result.error);
+        Logger.error("Draft_manager", "Draft save failed:", result.error)
         return result;
     }
     
@@ -122,7 +123,7 @@ function saveDraft(params) {
                     [formDataJson, originalDataJson, timestamp, changedFieldsJson, result.draftId]
                 );
                 
-                console.log("Updated draft #"+ result.draftId + "for "+ draftType + "("+ changedFields.length + "changes)");
+                Logger.debug("Draft_manager", "Updated draft #"+ result.draftId + "for "+ draftType + "("+ changedFields.length + "changes)")
             } else {
                 // Insert new draft
                 var insertResult = tx.executeSql(
@@ -133,7 +134,7 @@ function saveDraft(params) {
                 );
                 
                 result.draftId = insertResult.insertId;
-                console.log("Created draft #"+ result.draftId + "for "+ draftType + "("+ changedFields.length + "changes)");
+                Logger.debug("Draft_manager", "Created draft #"+ result.draftId + "for "+ draftType + "("+ changedFields.length + "changes)")
             }
             
             // Set has_draft flag on parent record (if not a new record)
@@ -156,7 +157,7 @@ function saveDraft(params) {
                         "UPDATE " + tableName + " SET has_draft = 1 WHERE id = ?",
                         [recordId]
                     );
-                    console.log("Set has_draft=1 for "+ draftType + "#"+ recordId);
+                    Logger.debug("Draft_manager", "Set has_draft=1 for "+ draftType + "#"+ recordId)
                 }
             }
         });
@@ -165,7 +166,7 @@ function saveDraft(params) {
         
     } catch (e) {
         result.error = e.toString();
-        console.error("Error saving draft:", result.error);
+        Logger.error("Draft_manager", "Error saving draft:", result.error)
         DBCommon.logException("saveDraft", e);
     }
     
@@ -195,7 +196,7 @@ function loadDraft(params) {
     
     if (!draftType) {
         result.message = "draftType is required";
-        console.error("Draft load failed:", result.message);
+        Logger.error("Draft_manager", "Draft load failed:", result.message)
         return result;
     }
     
@@ -241,16 +242,16 @@ function loadDraft(params) {
                 
                 result.success = true;
                 result.message = "Draft loaded successfully";
-                console.log("Loaded draft #"+ result.draft.id + "for "+ draftType);
+                Logger.debug("Draft_manager", "Loaded draft #"+ result.draft.id + "for "+ draftType)
             } else {
                 result.message = "No draft found";
-                console.log("No draft found for "+ draftType);
+                Logger.debug("Draft_manager", "No draft found for "+ draftType)
             }
         });
         
     } catch (e) {
         result.message = e.toString();
-        console.error("Error loading draft:", result.message);
+        Logger.error("Draft_manager", "Error loading draft:", result.message)
         DBCommon.logException("loadDraft", e);
     }
     
@@ -316,7 +317,7 @@ function deleteDraft(draftId) {
                             "UPDATE " + tableName + " SET has_draft = 0 WHERE id = ?",
                             [recordId]
                         );
-                        console.log("Cleared has_draft=0 for "+ draftType + "#"+ recordId);
+                        Logger.debug("Draft_manager", "Cleared has_draft=0 for "+ draftType + "#"+ recordId)
                     }
                 }
             }
@@ -324,11 +325,11 @@ function deleteDraft(draftId) {
         
         result.success = true;
         result.message = "Draft deleted successfully";
-        console.log("Deleted draft #"+ draftId);
+        Logger.debug("Draft_manager", "Deleted draft #"+ draftId)
         
     } catch (e) {
         result.message = e.toString();
-        console.error("Error deleting draft:", result.message);
+        Logger.error("Draft_manager", "Error deleting draft:", result.message)
         DBCommon.logException("deleteDraft", e);
     }
     
@@ -450,17 +451,17 @@ function deleteDrafts(params) {
             result.deletedCount = deleteResult.rowsAffected;
             
             if (result.deletedCount > 0) {
-                console.log("Cleared has_draft=0 for "+ result.deletedCount + "record(s)");
+                Logger.debug("Draft_manager", "Cleared has_draft=0 for "+ result.deletedCount + "record(s)")
             }
         });
         
         result.success = true;
         result.message = "Deleted " + result.deletedCount + " draft(s)";
-        console.log(""+ result.message);
+        Logger.debug("Draft_manager", ""+ result.message)
         
     } catch (e) {
         result.message = e.toString();
-        console.error("Error deleting drafts:", result.message);
+        Logger.error("Draft_manager", "Error deleting drafts:", result.message)
         DBCommon.logException("deleteDrafts", e);
     }
     
@@ -502,7 +503,7 @@ function getChangedFields(currentData, originalData) {
         }
         
     } catch (e) {
-        console.error("Error comparing fields:", e.toString());
+        Logger.error("Draft_manager", "Error comparing fields:", e.toString())
     }
     
     return changedFields;
@@ -607,10 +608,10 @@ function getAllDrafts(accountId) {
             }
         });
         
-        console.log("Found "+ draftList.length + "draft(s)");
+        Logger.debug("Draft_manager", "Found "+ draftList.length + "draft(s)")
         
     } catch (e) {
-        console.error("Error getting all drafts:", e.toString());
+        Logger.error("Draft_manager", "Error getting all drafts:", e.toString())
         DBCommon.logException("getAllDrafts", e);
     }
     
@@ -654,11 +655,11 @@ function cleanupOldDrafts(daysOld) {
         
         result.success = true;
         result.message = "Cleaned up " + result.deletedCount + " old draft(s) (older than " + daysOld + " days)";
-        console.log(""+ result.message);
+        Logger.debug("Draft_manager", ""+ result.message)
         
     } catch (e) {
         result.message = e.toString();
-        console.error("Error cleaning up old drafts:", result.message);
+        Logger.error("Draft_manager", "Error cleaning up old drafts:", result.message)
         DBCommon.logException("cleanupOldDrafts", e);
     }
     
@@ -745,12 +746,12 @@ function cleanupDraftsForDeletedRecords(draftType, recordIds) {
         result.message = "Cleaned up " + result.deletedCount + " draft(s) for deleted " + draftType + "(s)";
         
         if (result.deletedCount > 0) {
-            console.log(""+ result.message);
+            Logger.debug("Draft_manager", ""+ result.message)
         }
         
     } catch (e) {
         result.message = e.toString();
-        console.error("Error cleaning up drafts for deleted records:", result.message);
+        Logger.error("Draft_manager", "Error cleaning up drafts for deleted records:", result.message)
         DBCommon.logException("cleanupDraftsForDeletedRecords", e);
     }
     
@@ -831,7 +832,7 @@ function getDraftsSummary(accountId) {
         }
         
     } catch (e) {
-        console.error("Error getting drafts summary:", e.toString());
+        Logger.error("Draft_manager", "Error getting drafts summary:", e.toString())
         summary.formattedMessage = "Error loading drafts";
     }
     
@@ -864,7 +865,7 @@ function syncHasDraftFlags() {
                 "SELECT DISTINCT draft_type, record_id FROM form_drafts WHERE record_id IS NOT NULL AND record_id > 0"
             );
             
-            console.log("Syncing has_draft flags for "+ drafts.rows.length + "records...");
+            Logger.debug("Draft_manager", "Syncing has_draft flags for "+ drafts.rows.length + "records...")
             
             // Set has_draft=1 for all records that have drafts
             for (var i = 0; i < drafts.rows.length; i++) {
@@ -946,11 +947,11 @@ function syncHasDraftFlags() {
         
         result.success = true;
         result.message = "Synchronized " + result.updatedCount + " has_draft flag(s)";
-        console.log(""+ result.message);
+        Logger.debug("Draft_manager", ""+ result.message)
         
     } catch (e) {
         result.message = e.toString();
-        console.error("Error syncing has_draft flags:", result.message);
+        Logger.error("Draft_manager", "Error syncing has_draft flags:", result.message)
         DBCommon.logException("syncHasDraftFlags", e);
     }
     

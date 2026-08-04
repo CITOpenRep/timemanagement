@@ -41,6 +41,7 @@ import "../js/taskFormUtils.js" as TaskFormUtils
 import "../../../components"
 import "../../../components/richtext"
 import "../components"
+import "../../../../models/logger.js" as Logger
 
 Page {
     id: taskCreate
@@ -255,7 +256,7 @@ Page {
                 return;
             }
         } catch (e) {
-            console.error("Navigation error with pageStack:", e);
+            Logger.error("Tasks", "Navigation error with pageStack:", e)
         }
 
         // Method 3: Parent pop
@@ -265,10 +266,10 @@ Page {
                 return;
             }
         } catch (e) {
-            console.error("Parent navigation error:", e);
+            Logger.error("Tasks", "Parent navigation error:", e)
         }
         
-        console.warn("No navigation method found!");
+        Logger.warn("Tasks", "No navigation method found!")
     }
 
     function restoreStageSelections(stageId, personalStageId) {
@@ -620,7 +621,7 @@ Page {
         } else {
             initialStageSelector.currentIndex = -1;
             selectedStageOdooRecordId = -1;
-            console.warn("No stages available for project", projectOdooRecordId);
+            Logger.warn("Tasks", "No stages available for project", projectOdooRecordId)
         }
 
     }
@@ -830,7 +831,7 @@ Page {
                 }
             }
             onViewActivitiesRequested: {
-                console.log("Viewing activities for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
+                Logger.debug("Tasks", "Viewing activities for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id)
                 apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activity_Page.qml"), {
                     "filterByTasks": true,
                     "taskOdooRecordId": currentTask.odoo_record_id,
@@ -846,12 +847,12 @@ Page {
                         "isReadOnly": false
                     });
                 } else {
-                    console.error("Error creating timesheet:", result.error);
+                    Logger.error("Tasks", "Error creating timesheet:", result.error)
                     notifPopup.open("Error", "Unable to create timesheet: " + result.error, "error");
                 }
             }
             onViewTimesheetsRequested: {
-                console.log("Viewing timesheets for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id);
+                Logger.debug("Tasks", "Viewing timesheets for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id)
                 apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../timesheets/pages/Timesheet_Page.qml"), {
                     "filterByTask": true,
                     "taskOdooRecordId": currentTask.odoo_record_id,
@@ -905,7 +906,7 @@ Page {
 
                 onItemClicked: function (rec) {
                     // Open viewer / download / preview
-                    console.log("Clicked attachment:", rec ? rec.name : rec);
+                    Logger.debug("Tasks", "Clicked attachment:", rec ? rec.name : rec)
                 }
             }
         }
@@ -943,7 +944,7 @@ Page {
             workItem.deferredLoadExistingRecordSet(instanceId, project_id, sub_project_id, parent_task_id, -1, assignee_id); //passing -1 as no subtask feature is needed
 
             taskNameField.text = currentTask.name || "";
-            console.log("[Tasks] loadTask - setting description, currentTask.description:", currentTask.description);
+            Logger.debug("Tasks", "[Tasks] loadTask - setting description, currentTask.description:", currentTask.description)
             description_text.setContent(currentTask.description || "");
 
             // Handle planned hours more carefully
@@ -976,19 +977,19 @@ Page {
             // Set the current task's stage (IMPORTANT: preserves stage during edit)
             if (currentTask.state !== undefined && currentTask.state !== null) {
                 selectedStageOdooRecordId = currentTask.state;
-                console.log("Loaded task stage:", selectedStageOdooRecordId);
+                Logger.debug("Tasks", "Loaded task stage:", selectedStageOdooRecordId)
             } else {
                 selectedStageOdooRecordId = -1;
-                console.log("Task has no stage set");
+                Logger.debug("Tasks", "Task has no stage set")
             }
 
             // Set the current task's personal stage (IMPORTANT: preserves personal stage during edit)
             if (currentTask.personal_stage !== undefined && currentTask.personal_stage !== null) {
                 selectedPersonalStageOdooRecordId = currentTask.personal_stage;
-                console.log("Loaded task personal stage:", selectedPersonalStageOdooRecordId);
+                Logger.debug("Tasks", "Loaded task personal stage:", selectedPersonalStageOdooRecordId)
             } else {
                 selectedPersonalStageOdooRecordId = null;
-                console.log("Task has no personal stage set");
+                Logger.debug("Tasks", "Task has no personal stage set")
             }
 
             Qt.callLater(function() {
@@ -1019,7 +1020,7 @@ Page {
 
                 // Load stages for the prefilled project
                 if (mainProjectId > 0 && prefilledAccountId > 0) {
-                    console.log("Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId);
+                    Logger.debug("Tasks", "Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId)
                     loadStagesForProject(mainProjectId, prefilledAccountId);
                 }
             }

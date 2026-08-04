@@ -3,6 +3,7 @@ import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
 import "../../models/draft_manager.js" as DraftManager
 import "../../models/notifications.js" as Notifications
+import "../../models/logger.js" as Logger
 
 QtObject {
     id: startupManager
@@ -12,14 +13,14 @@ QtObject {
     property var handleDeepLinkCallback
 
     function checkStartupArguments(args) {
-        console.log("Startup arguments:", JSON.stringify(args));
+        Logger.debug("StartupManager", "Startup arguments:", JSON.stringify(args))
 
         for (var i = 0; i < args.length; i++) {
             var arg = args[i];
-            console.debug("Checking argument:", arg);
+            Logger.debug("StartupManager", "Checking argument:", arg)
 
             if (arg.indexOf("ubtms://") === 0) {
-                console.debug("Found deep link URL:", arg);
+                Logger.debug("StartupManager", "Found deep link URL:", arg)
                 if (handleDeepLinkCallback)
                     handleDeepLinkCallback(arg);
                 return;
@@ -28,7 +29,7 @@ QtObject {
             var deepLinkIndex = arg.indexOf("ubtms://");
             if (deepLinkIndex > 0) {
                 var extractedDeepLink = arg.substring(deepLinkIndex);
-                console.debug("Extracted deep link URL:", extractedDeepLink);
+                Logger.debug("StartupManager", "Extracted deep link URL:", extractedDeepLink)
                 if (handleDeepLinkCallback)
                     handleDeepLinkCallback(extractedDeepLink);
                 return;
@@ -80,7 +81,7 @@ QtObject {
                     notifPopup.open("Unsaved Drafts Found", message, "info");
             }
         } catch (e) {
-            console.error("Error checking for unsaved drafts:", e.toString());
+            Logger.error("StartupManager", "Error checking for unsaved drafts:", e.toString())
         }
     }
 

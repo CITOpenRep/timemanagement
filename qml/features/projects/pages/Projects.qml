@@ -38,6 +38,7 @@ import "../../../../models/project.js" as Project
 import "../../../../models/global.js" as Global
 import "../../../components"
 import "../../../components/richtext"
+import "../../../../models/logger.js" as Logger
 
 Page {
     id: projectCreate
@@ -199,7 +200,7 @@ Page {
                     "info");
             } else {
                 // Defer restoration until form is ready
-                console.log("⏳ Deferring draft restoration until form is fully initialized...");
+                Logger.debug("Projects", "⏳ Deferring draft restoration until form is fully initialized...")
                 Qt.callLater(function() {
                     if (formFullyInitialized) {
                         restoreFormFromDraft(draftData);
@@ -212,11 +213,11 @@ Page {
         }
         
         onUnsavedChangesWarning: {
-            console.log("Unsaved changes detected");
+            Logger.debug("Projects", "Unsaved changes detected")
         }
         
         onDraftSaved: {
-            console.log("Draft saved successfully (ID: "+ draftId + ")");
+            Logger.debug("Projects", "Draft saved successfully (ID: "+ draftId + ")")
         }
     }
 
@@ -266,13 +267,13 @@ Page {
                 return;
             }
         } catch (e) {
-            console.error("apLayout navigation error:", e);
+            Logger.error("Projects", "apLayout navigation error:", e)
         }
         
         // Method 2: Standard pageStack
         try {
             if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
-                console.log("Navigating via pageStack.pop()");
+                Logger.debug("Projects", "Navigating via pageStack.pop()")
                 pageStack.pop();
                 return;
             }
@@ -288,10 +289,10 @@ Page {
                 return;
             }
         } catch (e) {
-            console.error("Parent navigation error:", e);
+            Logger.error("Projects", "Parent navigation error:", e)
         }
         
-        console.warn("No navigation method found!");
+        Logger.warn("Projects", "No navigation method found!")
     }
 
     function restoreFormFromDraft(draftData) {

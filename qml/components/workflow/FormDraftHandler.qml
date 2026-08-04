@@ -25,6 +25,7 @@
 import QtQuick 2.7
 import "../../../models/draft_manager.js" as DraftManager
 import ".."
+import "../../../models/logger.js" as Logger
 
 /**
  * FormDraftHandler - Reusable component for form draft management
@@ -230,7 +231,7 @@ Item {
       //  console.log("FormDraftHandler.markFieldChanged called - field:", fieldName, "value:", value, "enabled:", enabled, "_initialized:", _initialized, "_preventAutoSave:", _preventAutoSave);
         
         if (!enabled || !_initialized || trackingSuspended) {
-            console.log("FormDraftHandler.markFieldChanged - returning early (checks failed)");
+            Logger.debug("FormDraftHandler", "FormDraftHandler.markFieldChanged - returning early (checks failed)")
             return;
         }
 

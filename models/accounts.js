@@ -41,7 +41,7 @@ function markAttachmentDownloaded(accountId, recordId, fileName) {
             );
         });
     } catch (e) {
-        console.error("markAttachmentDownloaded failed:", e);
+        Logger.error("Accounts", "markAttachmentDownloaded failed:", e)
     }
 }
 
@@ -58,7 +58,7 @@ function isAttachmentDownloaded(accountId, recordId) {
                 result = true;
         });
     } catch (e) {
-        console.error("isAttachmentDownloaded failed:", e);
+        Logger.error("Accounts", "isAttachmentDownloaded failed:", e)
     }
     return result;
 }
@@ -548,7 +548,7 @@ function getAccountName(accountId) {
 
         return name;
     } catch (e) {
-        console.error("getAccountName failed:", e);
+        Logger.error("Accounts", "getAccountName failed:", e)
         return "";
     }
 }
@@ -620,7 +620,7 @@ function getOdooModelId(accountId, technicalName) {
                 odooRecordId = rs.rows.item(0).odoo_record_id;
               //  console.log("Found Odoo Model ID:", odooRecordId);
             } else {
-                console.warn("No matching ir.model found for:", technicalName);
+                Logger.warn("Accounts", "No matching ir.model found for:", technicalName)
             }
         });
 

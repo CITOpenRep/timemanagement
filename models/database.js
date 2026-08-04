@@ -57,6 +57,7 @@
  */
 
 .import QtQuick.LocalStorage 2.7 as Sql
+.import "logger.js" as Logger
 
 /*Database Constants*/
 const NAME = "myDatabase";
@@ -70,14 +71,12 @@ function getTimestamp() {
 }
 
 function logException(tag, error) {
-    console.warn("[" + getTimestamp() + "][ERROR][" + tag + "] " + (error && error.message ? error.message : error));
-    if (error && error.stack) {
-    //    console.log("   ↪ Stack Trace:\n" + error.stack);
-    }
+    var errMsg = (error && error.message ? error.message : error);
+    Logger.error("Database", "[" + tag + "] " + errMsg);
 }
 
 function log(message) {
-    console.log("[" + getTimestamp() + "][Log] " + message);
+    Logger.debug("Database", message);
 }
 
 function logQueryResult(tag, resultSet) {
