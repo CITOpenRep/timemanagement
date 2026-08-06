@@ -40,10 +40,10 @@ Item {
     property bool autoRefreshOnAccountChange: true
     property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
 
-    function reloadData() {
+    function reloadData(startDate, endDate) {
         var t_proj = [];
         var maxVal = 0;
-        var data = Model.get_projects_spent_hours(root.selectedAccountId);
+        var data = Model.get_projects_spent_hours(root.selectedAccountId, startDate, endDate);
 
         root.totalProjects = data.length;
         var limit = Math.min(root.displayLimit, data.length);

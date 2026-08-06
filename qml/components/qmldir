@@ -11,6 +11,7 @@ ContentPickerDialog 1.0 dialogs/ContentPickerDialog.qml
 CreateUpdateDialog 1.0 dialogs/CreateUpdateDialog.qml
 CreateUpdatePage 1.0 workflow/CreateUpdatePage.qml
 CustomDatePicker 1.0 pickers/CustomDatePicker.qml
+DateRangeHeaderFilter 1.0 pickers/DateRangeHeaderFilter.qml
 DateRangeSelector 1.0 pickers/DateRangeSelector.qml
 DaySelector 1.0 pickers/DaySelector.qml
 DialerMenu 1.0 navigation/DialerMenu.qml

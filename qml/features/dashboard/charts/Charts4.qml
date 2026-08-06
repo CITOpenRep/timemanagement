@@ -17,12 +17,12 @@ Item {
     property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
     property var projectsModel: []
 
-    function reloadData() {
-        projectsModel = buildProjectsModel();
+    function reloadData(startDate, endDate) {
+        projectsModel = buildProjectsModel(startDate, endDate);
     }
 
-    function buildProjectsModel() {
-        var rows = ProjectModel.getDashboardProjectTaskSummary(selectedAccountId);
+    function buildProjectsModel(startDate, endDate) {
+        var rows = ProjectModel.getDashboardProjectTaskSummary(selectedAccountId, startDate, endDate);
 
         for (var i = 0; i < rows.length; i++) {
             var project = rows[i];

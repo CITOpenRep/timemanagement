@@ -26,6 +26,7 @@ import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtCharts 2.0
 import "../../../../models/Main.js" as Model
+import "../../../components"
 
 Page {
     id: dashboard2
@@ -34,9 +35,22 @@ Page {
         title: dashboard2.title
     }
 
+    DateRangeHeaderFilter {
+        id: dateFilter
+        anchors.top: header.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        z: 10
+        onDateRangeChanged: {
+            chart4.reloadData();
+        }
+    }
+
     LomiriShape {
         id: rect1
-        anchors.centerIn: parent
+        anchors.top: dateFilter.bottom
+        anchors.topMargin: units.gu(1)
+        anchors.horizontalCenter: parent.horizontalCenter
         width: parent.width
         height: units.gu(40)
 
@@ -91,7 +105,9 @@ Page {
 
             function reloadData() {
                 var accountId = typeof accountPicker !== 'undefined' ? accountPicker.selectedAccountId : -1;
-                var quadrant_data = Model.get_tasks_spent_hours(accountId);
+                var sDate = typeof dateFilter !== 'undefined' ? dateFilter.startDate : '';
+                var eDate = typeof dateFilter !== 'undefined' ? dateFilter.endDate : '';
+                var quadrant_data = Model.get_tasks_spent_hours(accountId, sDate, eDate);
                 var count = 0;
                 var timeval;
                 var timecat = [];

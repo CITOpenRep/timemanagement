@@ -173,11 +173,14 @@ Page {
 
     function _doRefreshData() {
         try {
+            var sDate = typeof dateFilter !== "undefined" ? dateFilter.startDate : "";
+            var eDate = typeof dateFilter !== "undefined" ? dateFilter.endDate : "";
+
             switch (refreshStage) {
             case 0:
                 Logger.debug("Dashboard", "Dashboard refresh stage 0: priority matrix")
                 if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
-                    ehoverMatrix.refreshQuadrants();
+                    ehoverMatrix.refreshQuadrants(sDate, eDate);
                 }
                 loadingMessage = i18n.dtr("ubtms", "Loading project chart...");
                 refreshStage = 1;
@@ -187,7 +190,7 @@ Page {
             case 1:
                 Logger.debug("Dashboard", "Dashboard refresh stage 1: project chart")
                 if (typeof projectchart !== "undefined") {
-                    projectchart.refreshForAccount(accountPicker.selectedAccountId);
+                    projectchart.refreshForAccount(accountPicker.selectedAccountId, sDate, eDate);
                 }
                 loadingMessage = i18n.dtr("ubtms", "Loading additional charts...");
                 refreshStage = 2;
@@ -196,9 +199,9 @@ Page {
             case 2:
                 Logger.debug("Dashboard", "Dashboard refresh stage 2: additional charts")
                 if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
-                    mobileProjectChartLoader.item.reloadData();
+                    mobileProjectChartLoader.item.reloadData(sDate, eDate);
                 if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
-                    mobileTaskChartLoader.item.reloadData();
+                    mobileTaskChartLoader.item.reloadData(sDate, eDate);
                 break;
             default:
                 break;
@@ -207,6 +210,17 @@ Page {
             Logger.error("Dashboard", "_doRefreshData ERROR: ", e)
         }
         finishRefreshData();
+    }
+
+    DateRangeHeaderFilter {
+        id: dateFilter
+        anchors.top: header.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        z: 10
+        onDateRangeChanged: {
+            refreshData();
+        }
     }
 
     DialerMenu {
@@ -253,8 +267,8 @@ Page {
     Flickable {
         id: flick1
         width: parent.width
-        height: parent.height - header.height
-        anchors.top: header.bottom
+        height: parent.height - header.height - dateFilter.height
+        anchors.top: dateFilter.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         contentWidth: parent.width
         contentHeight: quadrantColumn.height + units.gu(4)
