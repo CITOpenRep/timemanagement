@@ -30,6 +30,7 @@ import "../../../../models/timesheet.js" as TimesheetModel
 import "../../../../models/accounts.js" as Account
 import "../../../../models/global.js" as Global
 import "../../../components"
+import "../../../../models/logger.js" as Logger
 
 Page {
     id: mainPage
@@ -136,7 +137,7 @@ Page {
                             "isReadOnly": false
                         });
                     } else {
-                        console.error("Error creating timesheet: " + result.message);
+                        Logger.error("Dashboard", "Error creating timesheet: " + result.message)
                     }
                 }
             }
@@ -144,7 +145,7 @@ Page {
     }
 
     function refreshData() {
-        console.log("🔄 Refreshing Dashboard data...");
+        Logger.debug("Dashboard", "Refreshing Dashboard data...")
         var targetAccountId = accountPicker.selectedAccountId;
         if (isLoading && refreshStage >= 0 && lastRefreshAccountId === targetAccountId) {
             return;
@@ -174,7 +175,7 @@ Page {
         try {
             switch (refreshStage) {
             case 0:
-                console.log("🟢 Dashboard refresh stage 0: priority matrix");
+                Logger.debug("Dashboard", "Dashboard refresh stage 0: priority matrix")
                 if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
                     ehoverMatrix.refreshQuadrants();
                 }
@@ -184,7 +185,7 @@ Page {
                 loadingTimer.start();
                 return;
             case 1:
-                console.log("🟢 Dashboard refresh stage 1: project chart");
+                Logger.debug("Dashboard", "Dashboard refresh stage 1: project chart")
                 if (typeof projectchart !== "undefined") {
                     projectchart.refreshForAccount(accountPicker.selectedAccountId);
                 }
@@ -193,7 +194,7 @@ Page {
                 loadingTimer.start();
                 return;
             case 2:
-                console.log("🟢 Dashboard refresh stage 2: additional charts");
+                Logger.debug("Dashboard", "Dashboard refresh stage 2: additional charts")
                 if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
                     mobileProjectChartLoader.item.reloadData();
                 if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
@@ -203,7 +204,7 @@ Page {
                 break;
             }
         } catch(e) {
-            console.error("🔴 _doRefreshData ERROR: ", e);
+            Logger.error("Dashboard", "_doRefreshData ERROR: ", e)
         }
         finishRefreshData();
     }
@@ -238,7 +239,7 @@ Page {
                         "isReadOnly": false
                     });
                 } else {
-                    console.error("Error creating timesheet: " + result.message);
+                    Logger.error("Dashboard", "Error creating timesheet: " + result.message)
                 }
             }
             if (index === 2) {
@@ -472,7 +473,7 @@ Page {
                     "isReadOnly": false
                 });
             } else {
-                console.error("Error creating timesheet: " + result.message);
+                Logger.error("Dashboard", "Error creating timesheet: " + result.message)
             }
             collapse();
         }
@@ -547,7 +548,7 @@ Page {
     }
 
     Component.onCompleted: {
-        console.log("Dashboard status is: " + mainPage.status);
+        Logger.debug("Dashboard", "Dashboard status is: " + mainPage.status)
         // Load notifications on startup
         notificationBell.loadNotifications();
     }

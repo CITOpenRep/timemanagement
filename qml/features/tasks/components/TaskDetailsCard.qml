@@ -515,12 +515,12 @@ ListItem {
                                                 var clickedPriority = index + 1;
                                                 var newPriority = (clickedPriority === taskCard.priority) ? 0 : clickedPriority;
 
-                                                // console.log("🌟 Priority click: index=" + index + ", current=" + taskCard.priority + ", new=" + newPriority);
-                                                // console.log("🌟 Priority click - localId:", localId, "typeof newPriority:", typeof newPriority);
+                                                // console.log("Priority click: index="+ index + ", current="+ taskCard.priority + ", new="+ newPriority);
+                                                // console.log("Priority click - localId:", localId, "typeof newPriority:", typeof newPriority);
 
                                                 // Convert to string like Task Edit Mode does
                                                 var result = Task.setTaskPriority(localId, newPriority.toString(), "updated");
-                                                //  console.log("🌟 setTaskPriority result:", JSON.stringify(result));
+                                                //  console.log("setTaskPriority result:", JSON.stringify(result));
 
                                                 if (result.success) {
                                                     taskCard.priority = newPriority;
@@ -528,15 +528,15 @@ ListItem {
                                                     // Emit signal to notify parent components that task was updated
                                                     taskUpdated(localId);
 
-                                                    //   console.log("✅ Task priority updated to", taskCard.priority);
+                                                    //   console.log("Task priority updated to", taskCard.priority);
 
                                                     // Verify the change was persisted by re-reading from database
                                                     var verifyTask = Task.getTaskDetails(localId);
                                                     if (verifyTask && verifyTask.id)
-                                                    //  console.log("🔍 Verification - DB priority after update:", verifyTask.priority, "typeof:", typeof verifyTask.priority);
+                                                    //  console.log("Verification - DB priority after update:", verifyTask.priority, "typeof:", typeof verifyTask.priority);
                                                     {}
                                                 } else {
-                                                    console.warn("⚠️ Failed to set task priority:", result.message);
+                                                    console.warn("Failed to set task priority:", result.message);
                                                 }
 
                                                 starInteractionActive = false;
