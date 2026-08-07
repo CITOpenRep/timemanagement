@@ -41,7 +41,6 @@ Page {
 
     header: PageHeader {
         id: header
-        title: listpage.title
 
         StyleHints {
             foregroundColor: "white"
@@ -49,22 +48,89 @@ Page {
             dividerColor: LomiriColors.slate
         }
 
-        trailingActionBar.actions: [
-            Action {
-                iconName: "account"
-                text: i18n.dtr("ubtms", "Switch Accounts")
-                onTriggered: {
-                    accountPicker.open(accountPicker.selectedAccountId);
+        contents: RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: units.gu(2)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(1)
+
+            Label {
+                text: i18n.dtr("ubtms", "Menu")
+                color: "white"
+                fontSize: "large"
+                font.bold: true
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            // Account Selector button with Account label adjacent to icon
+            Item {
+                id: accountBtn
+                implicitWidth: accountRow.implicitWidth
+                height: units.gu(4)
+                Layout.alignment: Qt.AlignVCenter
+
+                RowLayout {
+                    id: accountRow
+                    anchors.fill: parent
+                    spacing: units.gu(0.5)
+
+                    Icon {
+                        name: "account"
+                        width: units.gu(2.4)
+                        height: units.gu(2.4)
+                        color: "white"
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Label {
+                        id: accountLabel
+                        Layout.alignment: Qt.AlignVCenter
+                        text: "Account [" + (typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : "") + "]"
+                        color: "white"
+                        font.pixelSize: units.dp(13)
+                        font.bold: true
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                    }
                 }
-            },
-            Action {
-                iconSource: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../../images/daymode.png" : "../../images/darkmode.png"
-                text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Light Mode") : i18n.dtr("ubtms", "Dark Mode")
-                onTriggered: {
-                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (typeof accountPicker !== "undefined") {
+                            accountPicker.open(accountPicker.selectedAccountId);
+                        }
+                    }
                 }
             }
-        ]
+
+            // Theme Mode Toggle
+            Item {
+                width: units.gu(4)
+                height: units.gu(4)
+                Layout.alignment: Qt.AlignVCenter
+
+                Image {
+                    anchors.centerIn: parent
+                    width: units.gu(2.2)
+                    height: units.gu(2.2)
+                    source: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../../images/daymode.png" : "../../images/darkmode.png"
+                    fillMode: Image.PreserveAspectFit
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                    }
+                }
+            }
+        }
     }
 
     readonly property bool isDark: theme.name === "Ubuntu.Components.Themes.SuruDark"
