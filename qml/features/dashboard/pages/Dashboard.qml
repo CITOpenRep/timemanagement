@@ -81,7 +81,7 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        title: i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]"
+        title: i18n.dtr("ubtms", "Dashboard")
         visible: true
 
         // Notification Bell in header

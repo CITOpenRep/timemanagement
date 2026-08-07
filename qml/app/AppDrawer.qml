@@ -1,5 +1,6 @@
 import QtQuick 2.6
 import QtQuick.Controls 2.2 as Controls
+import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
 import "../components"
 import "navigation/NavigationRoutes.js" as NavigationRoutes
@@ -42,45 +43,63 @@ Controls.Drawer {
                     height: units.gu(8)
                     color: LomiriColors.orange
 
-                    Label {
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
+                    RowLayout {
+                        anchors.fill: parent
                         anchors.leftMargin: units.gu(2)
-                        text: i18n.dtr("ubtms", "Menu")
-                        color: "white"
-                        fontSize: "large"
-                    }
-
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.right: parent.right
                         anchors.rightMargin: units.gu(1.2)
-                        spacing: units.gu(0.8)
+                        spacing: units.gu(1)
+
+                        Label {
+                            text: i18n.dtr("ubtms", "Menu")
+                            color: "white"
+                            fontSize: "large"
+                            font.bold: true
+                        }
 
                         Item {
-                            width: units.gu(4)
-                            height: units.gu(4)
+                            Layout.fillWidth: true
+                        }
+
+                        // Account Selector button with Account label adjacent to icon
+                        Row {
+                            Layout.alignment: Qt.AlignVCenter
+                            spacing: units.gu(0.6)
 
                             Icon {
-                                anchors.centerIn: parent
                                 name: "account"
                                 width: units.gu(2.4)
                                 height: units.gu(2.4)
                                 color: "white"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Label {
+                                text: "Account [" + (typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : "") + "]"
+                                color: "white"
+                                font.pixelSize: units.dp(13)
+                                font.bold: true
+                                anchors.verticalCenter: parent.verticalCenter
+                                elide: Text.ElideRight
+                                maximumLineCount: 1
                             }
 
                             MouseArea {
                                 anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     drawerRoot.close();
-                                    accountPicker.open(accountPicker.selectedAccountId);
+                                    if (typeof accountPicker !== "undefined") {
+                                        accountPicker.open(accountPicker.selectedAccountId);
+                                    }
                                 }
                             }
                         }
 
+                        // Theme Toggle Button
                         Item {
                             width: units.gu(4)
                             height: units.gu(4)
+                            Layout.alignment: Qt.AlignVCenter
 
                             Image {
                                 anchors.centerIn: parent
@@ -92,6 +111,7 @@ Controls.Drawer {
 
                             MouseArea {
                                 anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
                                 }
