@@ -220,6 +220,9 @@ Item {
         // Save state globally & emit signal
         Global.setDateRangeFilter(presetId, startDate, endDate, presetLabel);
         dateRangeChanged(presetId, startDate, endDate, presetLabel);
+        if (typeof mainView !== "undefined" && mainView && mainView.globalDateRangeChanged) {
+            mainView.globalDateRangeChanged(presetId, startDate, endDate, presetLabel);
+        }
     }
 
     function clearFilter() {
