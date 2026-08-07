@@ -215,8 +215,11 @@ Page {
     DateRangeHeaderFilter {
         id: dateFilter
         anchors.top: header.bottom
+        anchors.topMargin: units.gu(0.5)
         anchors.left: parent.left
+        anchors.leftMargin: units.gu(1)
         anchors.right: parent.right
+        anchors.rightMargin: units.gu(1)
         z: 10
         onDateRangeChanged: {
             refreshData();

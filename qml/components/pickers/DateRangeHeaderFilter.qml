@@ -35,7 +35,8 @@ import ".."
 Item {
     id: rootFilter
     width: parent ? parent.width : units.gu(50)
-    height: filterRow.implicitHeight + (customBadge.visible ? customBadge.implicitHeight + units.gu(0.5) : 0)
+    implicitHeight: contentColumn.implicitHeight + units.gu(1.5)
+    height: implicitHeight
 
     property int presetId: -1
     property string startDate: ""
@@ -46,92 +47,100 @@ Item {
 
     signal dateRangeChanged(int presetId, string startDate, string endDate, string presetLabel)
 
-    RowLayout {
-        id: filterRow
-        width: parent.width
-        spacing: units.gu(1)
+    ColumnLayout {
+        id: contentColumn
+        anchors.fill: parent
+        anchors.leftMargin: units.gu(1.5)
+        anchors.rightMargin: units.gu(1.5)
+        anchors.topMargin: units.gu(1)
+        anchors.bottomMargin: units.gu(1)
+        spacing: units.gu(0.5)
 
-        InlineOptionSelector {
-            id: inlinePresetSelector
+        RowLayout {
+            id: filterRow
             Layout.fillWidth: true
-            labelText: i18n.dtr("ubtms", "Date Range")
-            selectorType: "date_range"
-            selectedId: rootFilter.presetId
+            spacing: units.gu(1)
 
-            modelData: [
-                { id: -1, name: i18n.dtr("ubtms", "No Filter (All Time)") },
-                { id: 0,  name: i18n.dtr("ubtms", "Today") },
-                { id: 1,  name: i18n.dtr("ubtms", "This Week") },
-                { id: 2,  name: i18n.dtr("ubtms", "Last 7 Days") },
-                { id: 3,  name: i18n.dtr("ubtms", "This Month") },
-                { id: 4,  name: i18n.dtr("ubtms", "Last 30 Days") },
-                { id: 5,  name: i18n.dtr("ubtms", "This Quarter") },
-                { id: 6,  name: i18n.dtr("ubtms", "This Year") },
-                { id: 7,  name: i18n.dtr("ubtms", "Custom Range...") }
-            ]
+            InlineOptionSelector {
+                id: inlinePresetSelector
+                Layout.fillWidth: true
+                labelText: i18n.dtr("ubtms", "Date Range")
+                selectorType: "date_range"
+                selectedId: rootFilter.presetId
 
-            onSelectionMade: function(id, name, type) {
-                if (rootFilter.suppressSignal) return;
-                rootFilter.applyPreset(id, name);
-            }
-        }
+                modelData: [
+                    { id: -1, name: i18n.dtr("ubtms", "No Filter (All Time)") },
+                    { id: 0,  name: i18n.dtr("ubtms", "Today") },
+                    { id: 1,  name: i18n.dtr("ubtms", "This Week") },
+                    { id: 2,  name: i18n.dtr("ubtms", "Last 7 Days") },
+                    { id: 3,  name: i18n.dtr("ubtms", "This Month") },
+                    { id: 4,  name: i18n.dtr("ubtms", "Last 30 Days") },
+                    { id: 5,  name: i18n.dtr("ubtms", "This Quarter") },
+                    { id: 6,  name: i18n.dtr("ubtms", "This Year") },
+                    { id: 7,  name: i18n.dtr("ubtms", "Custom Range...") }
+                ]
 
-        // Clear (X) button
-        Item {
-            id: clearBtn
-            visible: rootFilter.isFiltered
-            Layout.preferredWidth: units.gu(4)
-            Layout.preferredHeight: units.gu(4)
-            Layout.alignment: Qt.AlignVCenter
-
-            Rectangle {
-                anchors.fill: parent
-                radius: units.gu(0.5)
-                color: clearMouse.containsMouse ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : "transparent"
-                border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#ccc"
-                border.width: 1
-
-                Icon {
-                    name: "close"
-                    anchors.centerIn: parent
-                    width: units.gu(2)
-                    height: units.gu(2)
-                    color: clearMouse.containsMouse ? LomiriColors.red : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#666")
+                onSelectionMade: function(id, name, type) {
+                    if (rootFilter.suppressSignal) return;
+                    rootFilter.applyPreset(id, name);
                 }
             }
 
-            MouseArea {
-                id: clearMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    rootFilter.clearFilter();
+            // Clear (X) button
+            Item {
+                id: clearBtn
+                visible: rootFilter.isFiltered
+                Layout.preferredWidth: units.gu(4)
+                Layout.preferredHeight: units.gu(4)
+                Layout.alignment: Qt.AlignVCenter
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: units.gu(0.5)
+                    color: clearMouse.containsMouse ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : "transparent"
+                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#ccc"
+                    border.width: 1
+
+                    Icon {
+                        name: "close"
+                        anchors.centerIn: parent
+                        width: units.gu(2)
+                        height: units.gu(2)
+                        color: clearMouse.containsMouse ? LomiriColors.red : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#666")
+                    }
+                }
+
+                MouseArea {
+                    id: clearMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        rootFilter.clearFilter();
+                    }
                 }
             }
         }
-    }
 
-    // Active range date badge for custom range
-    Rectangle {
-        id: customBadge
-        anchors.top: filterRow.bottom
-        anchors.topMargin: units.gu(0.5)
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: badgeText.implicitWidth + units.gu(2)
-        height: units.gu(3)
-        visible: rootFilter.isFiltered && rootFilter.presetId === 7 && rootFilter.startDate !== ""
-        radius: units.gu(0.5)
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#fff"
-        border.color: LomiriColors.orange
-        border.width: 1
+        // Active range date badge for custom range
+        Rectangle {
+            id: customBadge
+            Layout.alignment: Qt.AlignHCenter
+            width: badgeText.implicitWidth + units.gu(2)
+            height: units.gu(3)
+            visible: rootFilter.isFiltered && rootFilter.presetId === 7 && rootFilter.startDate !== ""
+            radius: units.gu(0.5)
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#fff"
+            border.color: LomiriColors.orange
+            border.width: 1
 
-        Text {
-            id: badgeText
-            anchors.centerIn: parent
-            text: rootFilter.startDate + " ~ " + rootFilter.endDate
-            font.pixelSize: units.dp(12)
-            color: LomiriColors.orange
+            Text {
+                id: badgeText
+                anchors.centerIn: parent
+                text: rootFilter.startDate + " ~ " + rootFilter.endDate
+                font.pixelSize: units.dp(12)
+                color: LomiriColors.orange
+            }
         }
     }
 

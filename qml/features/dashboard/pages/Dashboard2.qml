@@ -90,8 +90,11 @@ Page {
         visible: !dashboard.isMultiColumn
         height: visible ? implicitHeight : 0
         anchors.top: header.bottom
+        anchors.topMargin: visible ? units.gu(0.5) : 0
         anchors.left: parent.left
+        anchors.leftMargin: visible ? units.gu(1) : 0
         anchors.right: parent.right
+        anchors.rightMargin: visible ? units.gu(1) : 0
         z: 10
         onDateRangeChanged: {
             refreshData(true);
