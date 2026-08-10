@@ -81,10 +81,14 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        title: i18n.dtr("ubtms", "Dashboard")
+        contents: DateRangeHeaderFilter {
+            id: dateFilter
+            onDateRangeChanged: {
+                refreshData();
+            }
+        }
         visible: true
 
-        // Notification Bell in header
         leadingActionBar.actions: [
             Action {
                 id: drawerAction
@@ -97,14 +101,12 @@ Page {
             }
         ]
 
-      //  trailingActionBar.visible: isMultiColumn ? false : true
         trailingActionBar.numberOfSlots: 5
-
         trailingActionBar.actions: [
             Action {
                 id: infoAction
                 iconName: "info"
-                visible:!isMultiColumn
+                visible: !isMultiColumn
                 text: i18n.dtr("ubtms", "Chart Info")
                 onTriggered: {
                     PopupUtils.open(Qt.resolvedUrl("../components/ChartInfoPopup.qml"))
@@ -212,20 +214,6 @@ Page {
         finishRefreshData();
     }
 
-    DateRangeHeaderFilter {
-        id: dateFilter
-        anchors.top: header.bottom
-        anchors.topMargin: units.gu(0.5)
-        anchors.left: parent.left
-        anchors.leftMargin: units.gu(1)
-        anchors.right: parent.right
-        anchors.rightMargin: units.gu(1)
-        z: 10
-        onDateRangeChanged: {
-            refreshData();
-        }
-    }
-
     DialerMenu {
         id: fabMenu
         anchors.fill: parent
@@ -270,8 +258,8 @@ Page {
     Flickable {
         id: flick1
         width: parent.width
-        height: parent.height - header.height - dateFilter.height
-        anchors.top: dateFilter.bottom
+        height: parent.height - header.height
+        anchors.top: header.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         contentWidth: parent.width
         contentHeight: quadrantColumn.height + units.gu(4)

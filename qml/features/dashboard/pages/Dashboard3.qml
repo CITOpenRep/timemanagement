@@ -34,20 +34,14 @@ Page {
     title: i18n.dtr("ubtms", "Task")
     property bool isMultiColumn: typeof apLayout !== "undefined" && apLayout.columns > 1
     header: PageHeader {
-        title: dashboard2.title
+        id: pageHeader
+        title: dashboard2.isMultiColumn ? dashboard2.title : ""
+        contents: !dashboard2.isMultiColumn ? dateFilter : null
     }
 
     DateRangeHeaderFilter {
         id: dateFilter
         visible: !dashboard2.isMultiColumn
-        height: visible ? implicitHeight : 0
-        anchors.top: header.bottom
-        anchors.topMargin: visible ? units.gu(0.5) : 0
-        anchors.left: parent.left
-        anchors.leftMargin: visible ? units.gu(1) : 0
-        anchors.right: parent.right
-        anchors.rightMargin: visible ? units.gu(1) : 0
-        z: 10
         onDateRangeChanged: {
             chart4.reloadData();
         }
@@ -55,7 +49,7 @@ Page {
 
     LomiriShape {
         id: rect1
-        anchors.top: dateFilter.visible ? dateFilter.bottom : header.bottom
+        anchors.top: pageHeader.bottom
         anchors.topMargin: units.gu(1)
         anchors.horizontalCenter: parent.horizontalCenter
         width: parent.width

@@ -34,9 +34,10 @@ import ".."
 
 Item {
     id: rootFilter
-    width: parent ? parent.width : units.gu(50)
-    implicitHeight: contentColumn.implicitHeight + units.gu(1.5)
-    height: implicitHeight
+    width: parent ? parent.width : units.gu(35)
+    height: parent ? parent.height : contentColumn.implicitHeight
+    implicitHeight: contentColumn.implicitHeight
+    z: 9999
 
     property int presetId: -1
     property string startDate: ""
@@ -50,11 +51,11 @@ Item {
     ColumnLayout {
         id: contentColumn
         anchors.fill: parent
-        anchors.leftMargin: units.gu(1.5)
-        anchors.rightMargin: units.gu(1.5)
-        anchors.topMargin: units.gu(1)
-        anchors.bottomMargin: units.gu(1)
-        spacing: units.gu(0.5)
+        anchors.leftMargin: units.gu(0.5)
+        anchors.rightMargin: units.gu(0.5)
+        anchors.topMargin: 0
+        anchors.bottomMargin: 0
+        spacing: 0
 
         RowLayout {
             id: filterRow

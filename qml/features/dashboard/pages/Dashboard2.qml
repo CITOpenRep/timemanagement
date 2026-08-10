@@ -34,13 +34,16 @@ Page {
     property int lastRefreshAccountId: -999999
     property bool isMultiColumn: typeof apLayout !== "undefined" && apLayout.columns > 1
     header: PageHeader {
-        title: dashboard.title
+        id: pageHeader
+        title: dashboard.isMultiColumn ? dashboard.title : ""
         StyleHints {
             foregroundColor: "white"
 
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        contents: !dashboard.isMultiColumn ? dateFilter : null
         
         trailingActionBar.actions: [
             Action {
@@ -52,6 +55,14 @@ Page {
                 }
             }
         ]
+    }
+
+    DateRangeHeaderFilter {
+        id: dateFilter
+        visible: !dashboard.isMultiColumn
+        onDateRangeChanged: {
+            refreshData(true);
+        }
     }
 
     function refreshData(force) {
@@ -85,25 +96,9 @@ Page {
         }
     }
 
-    DateRangeHeaderFilter {
-        id: dateFilter
-        visible: !dashboard.isMultiColumn
-        height: visible ? implicitHeight : 0
-        anchors.top: header.bottom
-        anchors.topMargin: visible ? units.gu(0.5) : 0
-        anchors.left: parent.left
-        anchors.leftMargin: visible ? units.gu(1) : 0
-        anchors.right: parent.right
-        anchors.rightMargin: visible ? units.gu(1) : 0
-        z: 10
-        onDateRangeChanged: {
-            refreshData(true);
-        }
-    }
-
     Flickable {
         id: flick1
-        anchors.top: dateFilter.visible ? dateFilter.bottom : header.bottom
+        anchors.top: pageHeader.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom

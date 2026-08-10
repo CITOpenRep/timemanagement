@@ -25,11 +25,12 @@ Item {
     property bool readOnly: false
 
     // Layout properties
-    property real collapsedHeight: units.gu(5)
+    property real collapsedHeight: units.gu(4)
     property real expandedHeight: units.gu(25)
     property real maxExpandedHeight: units.gu(40)
     property bool collapsed: true
     property int visibleItemCount: 5  // Number of items visible when expanded
+    z: !collapsed ? 9999 : 1
 
     // Styling
     property color bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1b1b1f" : "#ffffff"
