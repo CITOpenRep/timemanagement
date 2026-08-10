@@ -69,6 +69,11 @@ Item {
                 selectorType: "date_range"
                 selectedId: rootFilter.presetId
 
+                bgColor: Qt.rgba(1, 1, 1, 0.18)
+                borderColor: Qt.rgba(1, 1, 1, 0.35)
+                textColor: "white"
+                mutedTextColor: Qt.rgba(1, 1, 1, 0.8)
+
                 modelData: [
                     { id: -1, name: i18n.dtr("ubtms", "No Filter (All Time)") },
                     { id: 0,  name: i18n.dtr("ubtms", "Today") },
@@ -98,8 +103,8 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: units.gu(0.5)
-                    color: clearMouse.containsMouse ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#e0e0e0") : "transparent"
-                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#ccc"
+                    color: clearMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(1, 1, 1, 0.15)
+                    border.color: Qt.rgba(1, 1, 1, 0.35)
                     border.width: 1
 
                     Icon {
@@ -107,7 +112,7 @@ Item {
                         anchors.centerIn: parent
                         width: units.gu(2)
                         height: units.gu(2)
-                        color: clearMouse.containsMouse ? LomiriColors.red : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#666")
+                        color: clearMouse.containsMouse ? LomiriColors.red : "white"
                     }
                 }
 

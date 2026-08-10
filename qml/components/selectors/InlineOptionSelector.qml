@@ -34,6 +34,7 @@ Item {
 
     // Styling
     property color bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1b1b1f" : "#ffffff"
+    property color dropdownBgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1b1b1f" : "#ffffff"
     property color disabledBgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#eeeeee"
     property color selectedColor: AppConst.Colors.Primary || "#3498db"
     property color borderColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3a3a3f" : "#e0e0e0"
@@ -92,7 +93,7 @@ Item {
         id: container
         anchors.fill: parent
         radius: units.gu(1)
-        color: (enabledState && !readOnly) ? bgColor : disabledBgColor
+        color: (enabledState && !readOnly) ? (collapsed ? bgColor : dropdownBgColor) : disabledBgColor
         border.color: borderColor
         border.width: 1
         clip: true
@@ -105,7 +106,7 @@ Item {
             Rectangle {
                 id: headerRow
                 width: parent.width
-                height: units.gu(5)
+                height: units.gu(4)
                 color: "transparent"
 
                 Row {
@@ -224,7 +225,7 @@ Item {
                             width: parent.width - units.gu(4)
                             height: parent.height
                             text: model.name
-                            color: textColor
+                            color: collapsed ? textColor : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ebebef" : "#333333")
                             font.pixelSize: units.gu(1.5)
                             font.bold: model.itemId === selectedId
                             verticalAlignment: Text.AlignVCenter
