@@ -94,8 +94,8 @@ Item {
         anchors.fill: parent
         radius: units.gu(1)
         color: (enabledState && !readOnly) ? (collapsed ? bgColor : dropdownBgColor) : disabledBgColor
-        border.color: borderColor
-        border.width: 1
+        border.color: collapsed ? borderColor : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3a3a3f" : "#e0e0e0")
+        border.width: (collapsed && (borderColor == "transparent" || borderColor == "#00000000")) ? 0 : 1
         clip: true
 
         Column {

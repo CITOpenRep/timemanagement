@@ -69,10 +69,10 @@ Item {
                 selectorType: "date_range"
                 selectedId: rootFilter.presetId
 
-                bgColor: Qt.rgba(1, 1, 1, 0.18)
-                borderColor: Qt.rgba(1, 1, 1, 0.35)
+                bgColor: "transparent"
+                borderColor: "white"
                 textColor: "white"
-                mutedTextColor: Qt.rgba(1, 1, 1, 0.8)
+                mutedTextColor: "white"
 
                 modelData: [
                     { id: -1, name: i18n.dtr("ubtms", "No Filter (All Time)") },
@@ -103,8 +103,8 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: units.gu(0.5)
-                    color: clearMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(1, 1, 1, 0.15)
-                    border.color: Qt.rgba(1, 1, 1, 0.35)
+                    color: clearMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
+                    border.color: "white"
                     border.width: 1
 
                     Icon {
