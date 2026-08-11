@@ -48,6 +48,8 @@ Item {
     property var dropdownBorderColor: undefined
     property var dividerColor: undefined
     property var selectedTickColor: undefined
+    property var headerBgColor: undefined
+    property var headerTextColor: undefined
 
     // Effective resolved colors
     readonly property color effectiveBgColor: bgColor !== undefined ? bgColor : (isDarkTheme ? "#1b1b1f" : "#ffffff")
@@ -62,6 +64,8 @@ Item {
     readonly property color effectiveDropdownBorderColor: dropdownBorderColor !== undefined ? dropdownBorderColor : (isDarkTheme ? "#3a3a3f" : "#e0e0e0")
     readonly property color effectiveDividerColor: dividerColor !== undefined ? dividerColor : (isDarkTheme ? "#3a3a3f" : "#e0e0e0")
     readonly property color effectiveSelectedTickColor: (selectedTickColor !== undefined && selectedTickColor != "transparent" && selectedTickColor != "#00000000") ? selectedTickColor : "white"
+    readonly property color effectiveHeaderBgColor: headerBgColor !== undefined ? headerBgColor : (collapsed ? effectiveBgColor : effectiveDropdownBgColor)
+    readonly property color effectiveHeaderTextColor: headerTextColor !== undefined ? headerTextColor : (collapsed ? effectiveTextColor : effectiveDropdownTextColor)
 
     signal selectionMade(int id, string name, string selectorType)
 
@@ -128,7 +132,7 @@ Item {
                 id: headerRow
                 width: parent.width
                 height: units.gu(4)
-                color: "transparent"
+                color: collapsed ? "transparent" : effectiveHeaderBgColor
 
                 Row {
                     anchors.fill: parent
@@ -141,7 +145,7 @@ Item {
                         width: parent.width * 0.35
                         height: parent.height
                         text: labelText
-                        color: collapsed ? effectiveTextColor : effectiveDropdownTextColor
+                        color: collapsed ? effectiveTextColor : effectiveHeaderTextColor
                         font.pixelSize: units.gu(1.6)
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -152,7 +156,7 @@ Item {
                         width: parent.width * 0.5
                         height: parent.height
                         text: selectedName || i18n.dtr("ubtms", "Tap to select")
-                        color: collapsed ? (selectedName ? effectiveTextColor : effectiveMutedTextColor) : (selectedName ? effectiveDropdownTextColor : effectiveDropdownMutedTextColor)
+                        color: collapsed ? (selectedName ? effectiveTextColor : effectiveMutedTextColor) : (selectedName ? effectiveHeaderTextColor : effectiveDropdownMutedTextColor)
                         font.pixelSize: units.gu(1.5)
                         font.bold: selectedName ? true : false
                         verticalAlignment: Text.AlignVCenter
@@ -166,7 +170,7 @@ Item {
                         height: units.gu(2.5)
                         anchors.verticalCenter: parent.verticalCenter
                         name: collapsed ? "go-down" : "go-up"
-                        color: collapsed ? effectiveTextColor : effectiveDropdownTextColor
+                        color: collapsed ? effectiveTextColor : effectiveHeaderTextColor
                     }
                 }
 

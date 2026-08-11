@@ -73,6 +73,9 @@ Item {
                 borderColor: "white"
                 textColor: "white"
                 mutedTextColor: "white"
+                headerBgColor: LomiriColors.orange
+                headerTextColor: "white"
+                dropdownBorderColor: "white"
                 selectedColor: LomiriColors.orange
 
                 modelData: [
