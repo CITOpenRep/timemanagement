@@ -73,6 +73,7 @@ Item {
                 borderColor: "white"
                 textColor: "white"
                 mutedTextColor: "white"
+                selectedColor: LomiriColors.orange
 
                 modelData: [
                     { id: -1, name: i18n.dtr("ubtms", "No Filter (All Time)") },
