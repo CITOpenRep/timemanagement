@@ -41,6 +41,10 @@ Item {
     property color textColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ebebef" : "#333333"
     property color mutedTextColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9a9aa2" : "#888888"
     property color hoverColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2b2b31" : "#f5f5f5"
+    property color dropdownTextColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ebebef" : "#333333"
+    property color dropdownMutedTextColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9a9aa2" : "#888888"
+    property color dropdownBorderColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3a3a3f" : "#e0e0e0"
+    property color dividerColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3a3a3f" : "#e0e0e0"
 
     signal selectionMade(int id, string name, string selectorType)
 
@@ -94,7 +98,7 @@ Item {
         anchors.fill: parent
         radius: units.gu(1)
         color: (enabledState && !readOnly) ? (collapsed ? bgColor : dropdownBgColor) : disabledBgColor
-        border.color: collapsed ? borderColor : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3a3a3f" : "#e0e0e0")
+        border.color: collapsed ? borderColor : dropdownBorderColor
         border.width: (collapsed && (borderColor == "transparent" || borderColor == "#00000000")) ? 0 : 1
         clip: true
 
@@ -120,7 +124,7 @@ Item {
                         width: parent.width * 0.35
                         height: parent.height
                         text: labelText
-                        color: textColor
+                        color: collapsed ? textColor : dropdownTextColor
                         font.pixelSize: units.gu(1.6)
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -131,7 +135,7 @@ Item {
                         width: parent.width * 0.5
                         height: parent.height
                         text: selectedName || i18n.dtr("ubtms", "Tap to select")
-                        color: selectedName ? textColor : mutedTextColor
+                        color: collapsed ? (selectedName ? textColor : mutedTextColor) : (selectedName ? dropdownTextColor : dropdownMutedTextColor)
                         font.pixelSize: units.gu(1.5)
                         font.bold: selectedName ? true : false
                         verticalAlignment: Text.AlignVCenter
@@ -145,7 +149,7 @@ Item {
                         height: units.gu(2.5)
                         anchors.verticalCenter: parent.verticalCenter
                         name: collapsed ? "go-down" : "go-up"
-                        color: textColor
+                        color: collapsed ? textColor : dropdownTextColor
                     }
                 }
 
@@ -164,7 +168,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: borderColor
+                color: dividerColor
                 visible: !collapsed
             }
 
@@ -207,7 +211,7 @@ Item {
                             radius: units.gu(1)
                             anchors.verticalCenter: parent.verticalCenter
                             color: model.itemId === selectedId ? selectedColor : "transparent"
-                            border.color: model.itemId === selectedId ? selectedColor : borderColor
+                            border.color: model.itemId === selectedId ? selectedColor : dividerColor
                             border.width: 1
 
                             Icon {
@@ -225,7 +229,7 @@ Item {
                             width: parent.width - units.gu(4)
                             height: parent.height
                             text: model.name
-                            color: collapsed ? textColor : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ebebef" : "#333333")
+                            color: collapsed ? textColor : dropdownTextColor
                             font.pixelSize: units.gu(1.5)
                             font.bold: model.itemId === selectedId
                             verticalAlignment: Text.AlignVCenter
@@ -246,13 +250,13 @@ Item {
                         }
                     }
 
-                    // Bottom border
+                    // Bottom border (Divider between options)
                     Rectangle {
                         width: parent.width
                         height: 1
                         anchors.bottom: parent.bottom
-                        color: borderColor
-                        opacity: 0.5
+                        color: dividerColor
+                        opacity: 0.6
                     }
                 }
             }
