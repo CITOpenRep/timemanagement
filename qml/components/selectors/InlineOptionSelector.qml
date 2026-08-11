@@ -281,6 +281,16 @@ Item {
                 }
             }
         }
+
+        // Outer border overlay - drawn on top of children so border is never painted over
+        Rectangle {
+            anchors.fill: parent
+            radius: container.radius
+            color: "transparent"
+            border.color: collapsed ? effectiveBorderColor : effectiveDropdownBorderColor
+            border.width: (collapsed && (effectiveBorderColor == "transparent" || effectiveBorderColor == "#00000000")) ? 0 : 1
+            z: 9999
+        }
     }
 
     // Public functions
