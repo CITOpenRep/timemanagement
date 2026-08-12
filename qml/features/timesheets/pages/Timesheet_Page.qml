@@ -98,11 +98,7 @@ Page {
                             "isReadOnly": false
                         });
                     } else {
-                        notifPopup.open(
-                            "Error", 
-                            result.error || "Failed to create timesheet.",
-                            "error"
-                        );
+                        notifPopup.open("Error", result.error, "error");
                     }
                 }
             }
@@ -373,11 +369,7 @@ Page {
                         "isReadOnly": false
                     });
                 } else {
-                    notifPopup.open(
-                        "Error",
-                        result.error || "Failed to create timesheet.",
-                        "error"
-                    );
+                    notifPopup.open("Error", result.error,"error");
                 }
             }
         }
