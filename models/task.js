@@ -2902,42 +2902,62 @@ function setTaskPriority(taskId, priority, status) {
  * @param {number} accountId - The account ID
  * @returns {Array<Object>} A list of task objects with color and spentHours for the specified project.
  */
-function getTasksForProject(projectOdooRecordId, accountId) {
+function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) {
     var taskList = [];
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
+            var params = [projectOdooRecordId, accountId];
+            var dateJoin = "";
+            var dateCondition = "";
+            
+            if (startDate || endDate) {
+                dateJoin = " INNER JOIN account_analytic_line_app al ON al.task_id = t.odoo_record_id AND al.account_id = t.account_id AND (al.status != 'deleted' OR al.status IS NULL) ";
+                var dateFilters = [];
+                if (startDate) {
+                    dateFilters.push("DATE(al.record_date) >= DATE(?)");
+                    params.push(startDate);
+                }
+                if (endDate) {
+                    dateFilters.push("DATE(al.record_date) <= DATE(?)");
+                    params.push(endDate);
+                }
+                dateCondition = " AND " + dateFilters.join(" AND ");
+            }
+
             // Get all tasks for the specific project and account
             var query = `
-                SELECT 
-                    id,
-                    odoo_record_id,
-                    account_id,
-                    name,
-                    description,
-                    project_id,
-                    sub_project_id,
-                    parent_id,
-                    user_id,
-                    start_date,
-                    end_date,
-                    deadline,
-                    initial_planned_hours,
-                    state,
-                    priority,
-                    last_modified,
-                    status,
-                    has_draft
-                FROM project_task_app 
-                WHERE project_id = ? 
-                AND account_id = ? 
-                AND (status != 'deleted' OR status IS NULL)
-                ORDER BY last_modified DESC
+                SELECT DISTINCT
+                    t.id,
+                    t.odoo_record_id,
+                    t.account_id,
+                    t.name,
+                    t.description,
+                    t.project_id,
+                    t.sub_project_id,
+                    t.parent_id,
+                    t.user_id,
+                    t.start_date,
+                    t.end_date,
+                    t.deadline,
+                    t.initial_planned_hours,
+                    t.state,
+                    t.priority,
+                    t.last_modified,
+                    t.status,
+                    t.has_draft
+                FROM project_task_app t
+                ${dateJoin}
+                WHERE t.project_id = ? 
+                AND t.account_id = ? 
+                AND (t.status != 'deleted' OR t.status IS NULL)
+                ${dateCondition}
+                ORDER BY t.last_modified DESC
             `;
 
-            var result = tx.executeSql(query, [projectOdooRecordId, accountId]);
+            var result = tx.executeSql(query, params);
 
             // Build a map of project colors for efficient lookup
             var projectColorQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?";
@@ -2952,12 +2972,24 @@ function getTasksForProject(projectOdooRecordId, accountId) {
                 var row = result.rows.item(i);
 
                 // Calculate spent hours for this task
+                var spentParams = [row.odoo_record_id, accountId];
+                var spentCondition = "";
+                if (startDate) {
+                    spentCondition += " AND DATE(record_date) >= DATE(?)";
+                    spentParams.push(startDate);
+                }
+                if (endDate) {
+                    spentCondition += " AND DATE(record_date) <= DATE(?)";
+                    spentParams.push(endDate);
+                }
+
                 var spentHoursQuery = `
                     SELECT COALESCE(SUM(unit_amount), 0) as spent_hours 
                     FROM account_analytic_line_app 
                     WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)
+                    ${spentCondition}
                 `;
-                var spentResult = tx.executeSql(spentHoursQuery, [row.odoo_record_id, accountId]);
+                var spentResult = tx.executeSql(spentHoursQuery, spentParams);
                 var spentHours = spentResult.rows.length > 0 ? spentResult.rows.item(0).spent_hours : 0;
 
                 // Resolve project color

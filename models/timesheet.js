@@ -475,7 +475,7 @@ function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
  * @param {string} status - The status filter: 'all', 'active', 'draft', etc.
  * @returns {Array<Object>} - A list of enriched timesheet entries for the task.
  */
-function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
+function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, endDate) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheetList = [];
 
@@ -493,23 +493,36 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
             var params = [];
 
             // Build query based on status and accountId
+            var baseQuery = "SELECT * FROM account_analytic_line_app WHERE task_id = ?";
+            var dateCondition = "";
+            
+            if (startDate) {
+                dateCondition += " AND DATE(record_date) >= DATE(?)";
+            }
+            if (endDate) {
+                dateCondition += " AND DATE(record_date) <= DATE(?)";
+            }
+            
             if (!status || status.toLowerCase() === "all") {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
+                    query = baseQuery + " AND account_id = ? AND (status IS NULL OR status != 'deleted')" + dateCondition + " ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, accountId];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
+                    query = baseQuery + " AND (status IS NULL OR status != 'deleted')" + dateCondition + " ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId];
                 }
             } else {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
+                    query = baseQuery + " AND account_id = ? AND status = ?" + dateCondition + " ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, accountId, status];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
+                    query = baseQuery + " AND status = ?" + dateCondition + " ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, status];
                 }
             }
+            
+            if (startDate) params.push(startDate);
+            if (endDate) params.push(endDate);
 
             Logger.debug("Timesheet", "Executing getTimesheetsForTask query:", query, "with params:", params)
             var result = tx.executeSql(query, params);

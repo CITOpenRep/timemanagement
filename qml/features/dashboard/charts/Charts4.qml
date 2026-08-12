@@ -5,6 +5,7 @@ import "../../../../models/project.js" as ProjectModel
 import "../../../../models/task.js" as TaskModel
 import "../../../../models/timesheet.js" as TimesheetModel
 import "../../../../models/utils.js" as Utils
+import "../../../../models/global.js" as Global
 
 Item {
     id: root
@@ -17,8 +18,13 @@ Item {
     property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
     property var projectsModel: []
 
+    property string filterStartDate: ""
+    property string filterEndDate: ""
+
     function reloadData(startDate, endDate) {
-        projectsModel = buildProjectsModel(startDate, endDate);
+        if (startDate !== undefined) filterStartDate = startDate || "";
+        if (endDate !== undefined) filterEndDate = endDate || "";
+        projectsModel = buildProjectsModel(filterStartDate, filterEndDate);
     }
 
     function buildProjectsModel(startDate, endDate) {
@@ -42,7 +48,7 @@ Item {
             return [];
         }
 
-        var taskRows = TaskModel.getTasksForProject(project.odooRecordId, project.accountId);
+        var taskRows = TaskModel.getTasksForProject(project.odooRecordId, project.accountId, filterStartDate, filterEndDate);
         var mappedTasks = [];
 
         for (var i = 0; i < taskRows.length; i++) {
@@ -82,7 +88,7 @@ Item {
             return [];
         }
 
-        var timesheets = TimesheetModel.getTimesheetsForTask(task.odooRecordId, project.accountId, "all");
+        var timesheets = TimesheetModel.getTimesheetsForTask(task.odooRecordId, project.accountId, "all", filterStartDate, filterEndDate);
         var logs = [];
 
         for (var i = 0; i < timesheets.length; i++) {
@@ -180,12 +186,17 @@ Item {
         taskLogsProvider: root.loadLogsForTask
     }
 
-    Component.onCompleted: reloadData()
+    Component.onCompleted: {
+        var filterData = Global.getDateRangeFilter();
+        var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+        var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+        reloadData(sDate, eDate);
+    }
 
     Connections {
         target: root.autoRefreshOnAccountChange && typeof accountPicker !== "undefined" ? accountPicker : null
         onAccepted: function(accountId, accountName) {
-            reloadData();
+            reloadData(root.filterStartDate, root.filterEndDate);
         }
     }
 }
