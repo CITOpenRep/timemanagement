@@ -448,8 +448,8 @@ Item {
                 // console.log("Project ID is empty for row id", row.id, "- using sub_project_id:", row.sub_project_id);
                 projectIdToUse = row.sub_project_id;
             }
-
-            var projectName = Project.getProjectName(projectIdToUse, row.account_id);
+            
+            var projectName = Project.getProjectDetails(projectIdToUse).name || "Unknown Project";
             
             var item = {
                 id_val: odooId,
