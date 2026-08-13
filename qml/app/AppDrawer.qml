@@ -83,7 +83,7 @@ Controls.Drawer {
                                 Label {
                                     id: accountNameLabel
                                     Layout.alignment: Qt.AlignVCenter
-                                    text: "Account [" + (typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : "") + "]"
+                                    text: "" + (typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : "") + ""
                                     color: "white"
                                     font.pixelSize: units.dp(13)
                                     font.bold: true
