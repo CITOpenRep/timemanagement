@@ -38,6 +38,7 @@ import "../../../../models/project.js" as Project
 import "../../../../models/global.js" as Global
 import "../../../components"
 import "../../../components/richtext"
+import "../../../../models/logger.js" as Logger
 
 Page {
     id: projectCreate
@@ -194,16 +195,16 @@ Page {
             // Only restore if form is fully initialized
             if (formFullyInitialized) {
                 restoreFormFromDraft(draftData);
-                notifPopup.open("📂 Draft Found", 
+                notifPopup.open("Draft Found", 
                     "Unsaved changes restored.", 
                     "info");
             } else {
                 // Defer restoration until form is ready
-                console.log("⏳ Deferring draft restoration until form is fully initialized...");
+                Logger.debug("Projects", "⏳ Deferring draft restoration until form is fully initialized...")
                 Qt.callLater(function() {
                     if (formFullyInitialized) {
                         restoreFormFromDraft(draftData);
-                        notifPopup.open("📂 Draft Restored", 
+                        notifPopup.open("Draft Restored", 
                             "Unsaved changes restored.", 
                             "info");
                     }
@@ -212,28 +213,28 @@ Page {
         }
         
         onUnsavedChangesWarning: {
-            console.log("⚠️ Unsaved changes detected");
+            Logger.debug("Projects", "Unsaved changes detected")
         }
         
         onDraftSaved: {
-            console.log("💾 Draft saved successfully (ID: " + draftId + ")");
+            Logger.debug("Projects", "Draft saved successfully (ID: "+ draftId + ")")
         }
     }
 
     SaveDiscardDialog {
         id: saveDiscardDialog
         onSaveRequested: {
-            //console.log("💾 SaveDiscardDialog: Saving project...");
+            //console.log("SaveDiscardDialog: Saving project...");
             saveProjectData();
         }
         onDiscardRequested: {
-            //console.log("🗑️ SaveDiscardDialog: Discarding changes...");
+            //console.log("SaveDiscardDialog: Discarding changes...");
             restoreFormToOriginal();
             draftHandler.clearDraft();
             Qt.callLater(navigateBack);
         }
         onCancelled: {
-            //console.log("❌ User cancelled navigation - staying on page");
+            //console.log("User cancelled navigation - staying on page");
         }
     }
 
@@ -246,7 +247,7 @@ Page {
         
         // Check if we have unsaved changes
         if (!isReadOnly && draftHandler.hasUnsavedChanges) {
-            //console.log("⚠️ Unsaved changes detected on back navigation");
+            //console.log("Unsaved changes detected on back navigation");
             saveDiscardDialog.open();
             return;
         }
@@ -256,46 +257,46 @@ Page {
     }
 
     function navigateBack() {
-        //console.log("🔙 Attempting to navigate back...");
+        //console.log("Attempting to navigate back...");
         
         // Method 1: AdaptivePageLayout (primary method for this app)
         try {
             if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
-                //console.log("✅ Navigating via apLayout.removePages()");
+                //console.log("Navigating via apLayout.removePages()");
                 apLayout.removePages(projectCreate);
                 return;
             }
         } catch (e) {
-            console.error("❌ apLayout navigation error:", e);
+            Logger.error("Projects", "apLayout navigation error:", e)
         }
         
         // Method 2: Standard pageStack
         try {
             if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
-                console.log("✅ Navigating via pageStack.pop()");
+                Logger.debug("Projects", "Navigating via pageStack.pop()")
                 pageStack.pop();
                 return;
             }
         } catch (e) {
-            //console.error("❌ Navigation error with pageStack:", e);
+            //console.error("Navigation error with pageStack:", e);
         }
 
         // Method 3: Parent pop
         try {
             if (parent && parent.pop) {
-                //console.log("✅ Navigating via parent.pop()");
+                //console.log("Navigating via parent.pop()");
                 parent.pop();
                 return;
             }
         } catch (e) {
-            console.error("❌ Parent navigation error:", e);
+            Logger.error("Projects", "Parent navigation error:", e)
         }
         
-        console.warn("⚠️ No navigation method found!");
+        Logger.warn("Projects", "No navigation method found!")
     }
 
     function restoreFormFromDraft(draftData) {
-        //console.log("🔄 Restoring form from draft data...");
+        //console.log("Restoring form from draft data...");
         
         // Set flag to suppress tracking during restoration
         isRestoringFromDraft = true;
@@ -336,12 +337,12 @@ Page {
         // Clear the restoration flag
         Qt.callLater(function() {
             isRestoringFromDraft = false;
-            //console.log("✅ Draft restoration complete - tracking re-enabled");
+            //console.log("Draft restoration complete - tracking re-enabled");
         });
     }
     
     function restoreFormToOriginal() {
-        //console.log("🔄 Restoring form to original values...");
+        //console.log("Restoring form to original values...");
         
         var originalData = draftHandler.originalData;
         if (originalData.name !== undefined) project_name.text = originalData.name;
@@ -1083,7 +1084,7 @@ Page {
         if (visible) {
             // Stop live sync — content is already up-to-date via the timer
             description_text.liveSyncActive = false;
-            if (Global.description_temporary_holder !== "" && Global.description_context === "project_description") {
+            if (Global.description_context === "project_description") {
                 //Check if you are coming back from the ReadMore page for project description
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";

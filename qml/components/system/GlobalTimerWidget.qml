@@ -5,6 +5,7 @@ import "../../../models/timer_service.js" as TimerService
 import "../../../models/utils.js" as Utils
 import "../../features/timesheets/components" as TimesheetComponents
 import ".."
+import "../../../models/logger.js" as Logger
 
 Rectangle {
     id: globalTimer
@@ -47,7 +48,7 @@ Rectangle {
             root = root.parent;
             if (root.backend_bridge) {
                 backendBridge = root.backend_bridge;
-                console.log("GlobalTimer: Connected to backend bridge");
+                Logger.debug("GlobalTimerWidget", "GlobalTimer: Connected to backend bridge")
                 backendBridge.messageReceived.connect(handleSyncEvent);
                 break;
             }
@@ -59,7 +60,7 @@ Rectangle {
         if (!data || !data.event || !isSyncing)
             return;
 
-        //   console.log("🔥 GlobalTimer: Received sync event:", data.event, "Payload:", data.payload);
+        //   console.log("GlobalTimer: Received sync event:", data.event, "Payload:", data.payload);
 
         switch (data.event) {
         case "sync_progress":
@@ -103,7 +104,7 @@ Rectangle {
 
     // Complete sync successfully
     function completeSyncSuccessfully() {
-        //  console.log("✅ GlobalTimer: Sync completed successfully for account", syncAccountId);
+        //  console.log("GlobalTimer: Sync completed successfully for account", syncAccountId);
 
         syncSuccessful = true;
         syncFailed = false;
@@ -117,7 +118,7 @@ Rectangle {
 
     // Fail sync with error message
     function failSync(errorMessage) {
-        //console.log("❌ GlobalTimer: Sync failed for account", syncAccountId, ":", errorMessage);
+        //console.log("GlobalTimer: Sync failed for account", syncAccountId, ":", errorMessage);
 
         syncSuccessful = false;
         syncFailed = true;
@@ -142,7 +143,7 @@ Rectangle {
 
     // Function to start sync indication with BackendBridge integration
     function startSync(accountId, accountName) {
-        //   console.log("🔥 GlobalTimer: Starting enhanced sync indication for account", accountId, "(" + accountName + ")");
+        //   console.log("GlobalTimer: Starting enhanced sync indication for account", accountId, "("+ accountName + ")");
 
         syncAccountId = accountId;
         syncAccountName = accountName || "Account " + accountId;
@@ -156,7 +157,7 @@ Rectangle {
 
     // Enhanced function to stop sync indication
     function stopSync() {
-        //console.log("🛑 GlobalTimer: Stopping sync indication for account", syncAccountId);
+        //console.log("GlobalTimer: Stopping sync indication for account", syncAccountId);
 
         // Stop auto-hide timer
         autoHideTimer.stop();
@@ -478,13 +479,13 @@ Rectangle {
         id: descriptionPopup
 
         onSaved: function (description, status) {
-            console.log("Timesheet description saved:", description, "Status:", status);
+            Logger.debug("GlobalTimerWidget", "Timesheet description saved:", description, "Status:", status)
             // Stop the timer after saving
             TimerService.stop();
         }
 
         onFinalized: function (success, message) {
-            console.log("Timesheet finalized:", success, "Message:", message);
+            Logger.debug("GlobalTimerWidget", "Timesheet finalized:", success, "Message:", message)
             // Show notification if function is available
             if (globalTimer.showNotification) {
                 if (success) {
@@ -496,7 +497,7 @@ Rectangle {
         }
 
         onCancelled: {
-            console.log("Description popup cancelled - timer continues running");
+            Logger.debug("GlobalTimerWidget", "Description popup cancelled - timer continues running")
             // Don't stop timer if user cancels
         }
     }

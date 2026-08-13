@@ -25,6 +25,7 @@
 import QtQuick 2.7
 import "../../../models/draft_manager.js" as DraftManager
 import ".."
+import "../../../models/logger.js" as Logger
 
 /**
  * FormDraftHandler - Reusable component for form draft management
@@ -227,10 +228,10 @@ Item {
      * @param value - New value
      */
     function markFieldChanged(fieldName, value) {
-      //  console.log("📝 FormDraftHandler.markFieldChanged called - field:", fieldName, "value:", value, "enabled:", enabled, "_initialized:", _initialized, "_preventAutoSave:", _preventAutoSave);
+      //  console.log("FormDraftHandler.markFieldChanged called - field:", fieldName, "value:", value, "enabled:", enabled, "_initialized:", _initialized, "_preventAutoSave:", _preventAutoSave);
         
         if (!enabled || !_initialized || trackingSuspended) {
-            console.log("⚠️ FormDraftHandler.markFieldChanged - returning early (checks failed)");
+            Logger.debug("FormDraftHandler", "FormDraftHandler.markFieldChanged - returning early (checks failed)")
             return;
         }
 
@@ -246,7 +247,7 @@ Item {
         hasUnsavedChanges = changedFields.length > 0;
         _pendingDraftSave = hasUnsavedChanges && JSON.stringify(currentFormData) !== _lastSavedSnapshot;
         
-      //  console.log("✅ FormDraftHandler.markFieldChanged - updated. hasUnsavedChanges:", hasUnsavedChanges, "changedFields count:", changedFields.length);
+      //  console.log("FormDraftHandler.markFieldChanged - updated. hasUnsavedChanges:", hasUnsavedChanges, "changedFields count:", changedFields.length);
     }
     
     /**

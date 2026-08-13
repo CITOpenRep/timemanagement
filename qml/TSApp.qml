@@ -71,6 +71,25 @@ MainView {
 
     signal globalAccountChanged(int accountId, string accountName)
     signal accountDataRefreshRequested(int accountId)
+    // Keep-alive heartbeat: Ensures Qt SceneGraph render thread remains active to safely process
+    // EGL surface recreation during convergence / external monitor display output migration.
+    // Prevents QtWebEngine / QSG crash when monitor is attached while app is idle.
+    Rectangle {
+        id: sceneGraphKeepAlive
+        width: 1
+        height: 1
+        opacity: 0.01
+        visible: true
+        z: -9999
+
+        SequentialAnimation on opacity {
+            loops: Animation.Infinite
+            running: true
+            NumberAnimation { from: 0.01; to: 0.02; duration: 1000 }
+            NumberAnimation { from: 0.02; to: 0.01; duration: 1000 }
+        }
+    }
+
     GlobalWidgets {
         id: globalWidgets
         rootApp: mainView

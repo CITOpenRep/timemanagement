@@ -467,7 +467,7 @@ Item {
 
         // For remote accounts, we would call the Python sync functions
         // For now, simulate the sync process
-        console.log("🔄 Starting sync for account:", currentAccount.name);
+        console.log("Starting sync for account:", currentAccount.name);
 
         // Simulate sync steps
         syncSteps = [i18n.dtr("ubtms", "Connecting to server..."), i18n.dtr("ubtms", "Syncing projects..."), i18n.dtr("ubtms", "Syncing tasks..."), i18n.dtr("ubtms", "Syncing timesheets..."), i18n.dtr("ubtms", "Syncing activities..."), i18n.dtr("ubtms", "Updating local data...")];

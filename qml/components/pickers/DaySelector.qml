@@ -51,7 +51,7 @@ Item {
             updateModelData();
             dateChanged(selectedDate);
         } else {
-            console.warn("❌ Invalid date input for setSelectedDate:", val);
+            console.warn("Invalid date input for setSelectedDate:", val);
         }
     }
 

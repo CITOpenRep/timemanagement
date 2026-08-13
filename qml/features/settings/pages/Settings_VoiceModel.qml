@@ -66,6 +66,7 @@ Page {
     property var downloadStatus: { "in_progress": false, "progress": 0, "message": "", "error": "" }
     property int deviceRamMB: 2048
     property bool isVoiceInputEnabled: true
+    property bool isVoiceLowMemoryMode: true
     property string searchQuery: ""
     property var allInstalledModels: []
     property var allAvailableModels: []
@@ -113,17 +114,56 @@ Page {
         }
     }
 
+    function getVoiceLowMemoryModeSetting() {
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var result = true;
+            db.transaction(function (tx) {
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+                var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = "voice_low_memory_mode"');
+                if (rs.rows.length > 0) {
+                    result = rs.rows.item(0).value === "true";
+                }
+            });
+            return result;
+        } catch (e) {
+            console.warn("Error reading voice_low_memory_mode setting:", e);
+            return true;
+        }
+    }
+
+    function saveVoiceLowMemoryModeSetting(value) {
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            db.transaction(function (tx) {
+                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
+                tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES ("voice_low_memory_mode", ?)', [value ? "true" : "false"]);
+            });
+            isVoiceLowMemoryMode = value;
+        } catch (e) {
+            console.warn("Error saving voice_low_memory_mode setting:", e);
+        }
+    }
+
     function isModelCompatible(sizeStr) {
         if (!sizeStr) return true;
         var upperSize = sizeStr.toUpperCase();
         var isG = upperSize.indexOf("G") !== -1;
+        var isM = upperSize.indexOf("M") !== -1;
         if (isG) {
-            var val = parseFloat(upperSize.replace("G", ""));
-            // Assume 1G requires ~2500MB RAM, 1.8G requires ~4000MB RAM.
-            var reqRam = val * 2500; 
-            return deviceRamMB >= reqRam;
+            var valG = parseFloat(upperSize.replace("G", ""));
+            // Models larger than 2.5G are always incompatible due to mobile OS cgroups app memory restrictions.
+            if (valG > 2.5) return false;
+            var reqRamG = valG * 2500; 
+            return deviceRamMB >= reqRamG;
         }
-        return true; // MB sizes are usually compatible with any device
+        if (isM) {
+            var valM = parseFloat(upperSize.replace("M", ""));
+            if (valM > 2500) return false;
+            var reqRamM = (valM / 1024.0) * 2500;
+            return deviceRamMB >= reqRamM;
+        }
+        return true;
     }
 
     function getActiveModelSetting() {
@@ -295,6 +335,7 @@ Page {
     Component.onCompleted: {
         activeModelPath = getActiveModelSetting();
         isVoiceInputEnabled = getVoiceInputEnabledSetting();
+        isVoiceLowMemoryMode = getVoiceLowMemoryModeSetting();
         if (mainView.backend_bridge.ready) {
             refreshModels();
             checkInProgressDownload();
@@ -394,7 +435,7 @@ Page {
                         color: theme.palette.normal.backgroundText
                         font.pixelSize: units.gu(1.6)
                         lineHeight: 1.2
-                        text: i18n.dtr("ubtms", "<b>Getting Started:</b> Make sure you have enabled the \"Enable voice input\" feature, under voice model (Beta) settings. ")
+                        text: i18n.dtr("ubtms", "<b>Getting Started:</b> Make sure you have enabled the \"Enable voice input\" feature under voice model (Beta) settings. Additionally, \"Low Memory Mode\" must be enabled to run larger models compatibly without experiencing crash issues.")
                     }
 
                     Text {
@@ -498,18 +539,59 @@ Page {
             property string modelId
             property string modelUrl
             property string modelName
+            property string modelSize
+            property string modelPath
+            property bool isSelectAction: false
             title: i18n.dtr("ubtms", "Warning")
+
+            function getWarningText(sizeStr) {
+                var sizeDisplay = sizeStr ? sizeStr : i18n.dtr("ubtms", "Unknown");
+                var deviceRamDisplay = (deviceRamMB / 1024.0).toFixed(1) + " GB (" + deviceRamMB + " MB)";
+                
+                var reqRamStr = i18n.dtr("ubtms", "Unknown");
+                var isOverLimit = false;
+                
+                if (sizeStr) {
+                    var upperSize = sizeStr.toUpperCase();
+                    var isG = upperSize.indexOf("G") !== -1;
+                    var isM = upperSize.indexOf("M") !== -1;
+                    if (isG) {
+                        var valG = parseFloat(upperSize.replace("G", ""));
+                        if (valG > 2.5) isOverLimit = true;
+                        reqRamStr = (valG * 2.5).toFixed(1) + " GB";
+                    } else if (isM) {
+                        var valM = parseFloat(upperSize.replace("M", ""));
+                        if (valM > 2500) isOverLimit = true;
+                        reqRamStr = ((valM / 1024.0) * 2.5).toFixed(1) + " GB";
+                    }
+                }
+                
+                var reason = "";
+                if (isOverLimit) {
+                    reason = i18n.dtr("ubtms", "Models larger than 2.5 GB are always incompatible due to mobile OS cgroups app memory restrictions, which terminate applications exceeding strict memory thresholds.");
+                } else {
+                    reason = i18n.dtr("ubtms", "This model requires more RAM than your device currently has. Running it will likely cause the application to crash due to out-of-memory limits.");
+                }
+                
+                return i18n.dtr("ubtms", "This model may be incompatible with your device.<br/><br/>" +
+                                "• <b>Model Size:</b> %1<br/>" +
+                                "• <b>Estimated RAM Required:</b> %2<br/>" +
+                                "• <b>Your Device RAM:</b> %3<br/><br/>" +
+                                "%4<br/><br/>" +
+                                "We highly recommend using the 'LGraph' or 'Small' version instead (which provide excellent accuracy with much lower memory usage).<b>  You can still use the model without crashing by enabling low memory mode in the voice model settings.</b>").arg(sizeDisplay).arg(reqRamStr).arg(deviceRamDisplay).arg(reason);
+            }
             
             Column {
                 spacing: units.gu(2)
                 width: parent.width
                 
                 Text {
-                    text: i18n.dtr("ubtms", "This model is incompatible with your device because it requires more RAM than available. It may cause the app to crash.\n\nBut if you want to download it, you can.")
+                    text: warningDialog.getWarningText(warningDialog.modelSize)
+                    textFormat: Text.RichText
                     width: parent.width
                     wrapMode: Text.WordWrap
                     color: theme.palette.normal.backgroundText
-                    horizontalAlignment: Text.AlignHCenter
+                    horizontalAlignment: Text.AlignJustify
                 }
                 
                 Row {
@@ -522,11 +604,15 @@ Page {
                     }
                     
                     Button {
-                        text: i18n.dtr("ubtms", "Download Anyway")
+                        text: warningDialog.isSelectAction ? i18n.dtr("ubtms", "Select Anyway") : i18n.dtr("ubtms", "Download Anyway")
                         color: LomiriColors.orange
                         onClicked: {
                             PopupUtils.close(warningDialog);
-                            downloadModel(warningDialog.modelId, warningDialog.modelUrl, warningDialog.modelName);
+                            if (warningDialog.isSelectAction) {
+                                saveActiveModelSetting(warningDialog.modelPath);
+                            } else {
+                                downloadModel(warningDialog.modelId, warningDialog.modelUrl, warningDialog.modelName);
+                            }
                         }
                     }
                 }
@@ -656,6 +742,34 @@ Page {
                             saveVoiceInputEnabledSetting(checked);
                         }
                     }
+                } 
+            }
+
+            ListItem {
+                width: parent.width
+                height: units.gu(7)
+                divider.visible: true
+                enabled: isVoiceInputEnabled
+
+                Label {
+                    anchors.left: parent.left
+                    anchors.leftMargin: units.gu(2)
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: i18n.dtr("ubtms", "Low Memory Mode (Saves ~1.5 GB RAM)")
+                    font.pixelSize: units.gu(2)
+                    color: !isVoiceInputEnabled ? "#888" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f5f5f5" : "#111")
+                }
+
+                Switch {
+                    anchors.right: parent.right
+                    anchors.rightMargin: units.gu(2)
+                    anchors.verticalCenter: parent.verticalCenter
+                    checked: isVoiceLowMemoryMode
+                    onCheckedChanged: {
+                        if (checked !== isVoiceLowMemoryMode) {
+                            saveVoiceLowMemoryModeSetting(checked);
+                        }
+                    }
                 }
             }
 
@@ -694,6 +808,15 @@ Page {
                     }
 
                     onClicked: {
+                        if (!isModelCompatible(model.size)) {
+                            PopupUtils.open(warningComponent, voiceModelSettingsPage, {
+                                "modelName": model.name,
+                                "modelSize": model.size,
+                                "modelPath": model.path,
+                                "isSelectAction": true
+                            });
+                            return;
+                        }
                         saveActiveModelSetting(model.path);
                     }
 
@@ -721,7 +844,7 @@ Page {
                             right: parent.right
                             verticalCenter: parent.verticalCenter
                             leftMargin: units.gu(2)
-                            rightMargin: units.gu(6)
+                            rightMargin: units.gu(8)
                         }
                         spacing: units.gu(0.5)
 
@@ -743,15 +866,40 @@ Page {
                         }
                     }
 
-                    Icon {
+                    Row {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.rightMargin: units.gu(2)
-                        name: "ok"
-                        width: units.gu(2.5)
-                        height: units.gu(2.5)
-                        color: LomiriColors.orange
-                        visible: activeModelPath === model.path
+                        spacing: units.gu(1)
+                        layoutDirection: Qt.RightToLeft
+
+                        Icon {
+                            name: "ok"
+                            width: units.gu(2.5)
+                            height: units.gu(2.5)
+                            color: LomiriColors.orange
+                            visible: activeModelPath === model.path
+                        }
+
+                        Icon {
+                            name: "dialog-warning"
+                            width: units.gu(2.5)
+                            height: units.gu(2.5)
+                            color: LomiriColors.red
+                            visible: !isModelCompatible(model.size)
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    PopupUtils.open(warningComponent, voiceModelSettingsPage, {
+                                        "modelName": model.name,
+                                        "modelSize": model.size,
+                                        "modelPath": model.path,
+                                        "isSelectAction": true
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -803,7 +951,9 @@ Page {
                                 PopupUtils.open(warningComponent, voiceModelSettingsPage, {
                                     "modelId": model.id,
                                     "modelUrl": model.url,
-                                    "modelName": model.name
+                                    "modelName": model.name,
+                                    "modelSize": model.size,
+                                    "isSelectAction": false
                                 });
                                 return;
                             }
@@ -867,7 +1017,9 @@ Page {
                                         PopupUtils.open(warningComponent, voiceModelSettingsPage, {
                                             "modelId": model.id,
                                             "modelUrl": model.url,
-                                            "modelName": model.name
+                                            "modelName": model.name,
+                                            "modelSize": model.size,
+                                            "isSelectAction": false
                                         });
                                     }
                                 }

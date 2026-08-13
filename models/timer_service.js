@@ -41,16 +41,16 @@ function start(timesheetId) {
         if (activeTimesheetId !== null && timesheetId !== undefined && activeTimesheetId !== timesheetId) {
             // Switching to a new timesheet while paused or running:
             var durationHours = getElapsedDuration();
-            console.log("Pausing previous timer before starting new one, durationHours:", durationHours);
+            Logger.debug("Timer_service", "Pausing previous timer before starting new one, durationHours:", durationHours)
             Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
             // Leave previous in paused state
             paused = true;
             pauseStartTime = Date.now();
-            console.log("Previous timesheet paused. Starting new timesheet...");
+            Logger.debug("Timer_service", "Previous timesheet paused. Starting new timesheet...")
         }
         // If already running on the same timesheet and not paused, ignore redundant start
         else if (!paused && activeTimesheetId === timesheetId) {
-            console.log("Timer already running on timesheet ID:", timesheetId);
+            Logger.debug("Timer_service", "Timer already running on timesheet ID:", timesheetId)
             return;
         }
     }
@@ -66,7 +66,7 @@ function start(timesheetId) {
         activeSheetname = Model.getTimesheetNameById(activeTimesheetId);
         Model.markTimesheetAsActiveById(activeTimesheetId);
 
-        console.log("Timer started for timesheet ID:", activeTimesheetId, "Previously tracked:", previouslyTrackedHours);
+        Logger.debug("Timer_service", "Timer started for timesheet ID:", activeTimesheetId, "Previously tracked:", previouslyTrackedHours)
     }
     return result
 }
@@ -81,9 +81,9 @@ function resume() {
         startTime += pausedDuration; // skip the paused time
         paused = false;
         pauseStartTime = 0;
-        console.log("Timer resumed after being paused for", Math.floor(pausedDuration / 1000), "seconds.");
+        Logger.debug("Timer_service", "Timer resumed after being paused for", Math.floor(pausedDuration / 1000), "seconds.")
     } else {
-        console.log("Resume called, but timer is not paused or not running.");
+        Logger.debug("Timer_service", "Resume called, but timer is not paused or not running.")
     }
 }
 
@@ -99,7 +99,7 @@ function pause() {
         paused = true;
         pauseStartTime = Date.now();
 
-        console.log("Timer paused at:", new Date(pauseStartTime).toISOString(), "Duration saved:", durationHours);
+        Logger.debug("Timer_service", "Timer paused at:", new Date(pauseStartTime).toISOString(), "Duration saved:", durationHours)
     }
 }
 
@@ -116,7 +116,7 @@ function stop() {
             // If paused, calculate elapsed time up to pause
             var elapsedTime = getElapsedTime();
             var durationHours = getElapsedDuration();
-            console.log("Stopping paused timer. durationHours:", durationHours);
+            Logger.debug("Timer_service", "Stopping paused timer. durationHours:", durationHours)
 
             if (activeTimesheetId !== null) {
                 Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
@@ -125,10 +125,10 @@ function stop() {
                 if (!Model.isTimesheetFinalized(activeTimesheetId)) {
                     Model.markTimesheetAsDraftById(activeTimesheetId);
                 } else {
-                    console.log("Timer stopped but timesheet", activeTimesheetId, "is already finalized - keeping status");
+                    Logger.debug("Timer_service", "Timer stopped but timesheet", activeTimesheetId, "is already finalized - keeping status")
                 }
                 
-                console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
+                Logger.debug("Timer_service", "Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours)
             }
 
             resetInternal();
@@ -137,7 +137,7 @@ function stop() {
             // Normal running case
             var elapsedTime = getElapsedTime();
             var durationHours = getElapsedDuration();
-            console.log("Stopping timer. durationHours:", durationHours);
+            Logger.debug("Timer_service", "Stopping timer. durationHours:", durationHours)
 
             if (activeTimesheetId !== null) {
                 Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
@@ -146,10 +146,10 @@ function stop() {
                 if (!Model.isTimesheetFinalized(activeTimesheetId)) {
                     Model.markTimesheetAsDraftById(activeTimesheetId);
                 } else {
-                    console.log("Timer stopped but timesheet", activeTimesheetId, "is already finalized - keeping status");
+                    Logger.debug("Timer_service", "Timer stopped but timesheet", activeTimesheetId, "is already finalized - keeping status")
                 }
                 
-                console.log("Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours);
+                Logger.debug("Timer_service", "Timer stopped for timesheet ID:", activeTimesheetId, " Duration(hours HH.MM):", durationHours)
             }
 
             resetInternal();
@@ -176,7 +176,7 @@ function resetInternal() {
  */
 function reset() {
     resetInternal();
-    console.log("Timer reset without saving.");
+    Logger.debug("Timer_service", "Timer reset without saving.")
 }
 
 /**
