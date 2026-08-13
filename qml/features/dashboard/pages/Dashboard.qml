@@ -28,6 +28,9 @@ import QtQuick.Controls 2.2 as Controls
 import Lomiri.Components.Popups 1.3
 import "../../../../models/timesheet.js" as TimesheetModel
 import "../../../../models/accounts.js" as Account
+import "../../../../models/Main.js" as MainModel
+import "../js/periodComparison.js" as PeriodHelper
+import "../components" as DashboardComponents
 import "../../../../models/global.js" as Global
 import "../../../components"
 import "../../../../models/logger.js" as Logger
@@ -177,28 +180,64 @@ Page {
         try {
             var sDate = typeof dateFilter !== "undefined" ? dateFilter.startDate : "";
             var eDate = typeof dateFilter !== "undefined" ? dateFilter.endDate : "";
+            var pId = typeof dateFilter !== "undefined" ? dateFilter.presetId : -1;
 
             switch (refreshStage) {
             case 0:
-                Logger.debug("Dashboard", "Dashboard refresh stage 0: priority matrix")
-                if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
-                    ehoverMatrix.refreshQuadrants(sDate, eDate);
+                Logger.debug("Dashboard", "Dashboard refresh stage 0: period comparison")
+                if (typeof periodBanner !== "undefined") {
+                    if (pId === -1 || !sDate || !eDate) {
+                        periodBanner.isFiltered = false;
+                    } else {
+                        periodBanner.isFiltered = true;
+                        
+                        var accId = accountPicker.selectedAccountId;
+                        var currentSummary = MainModel.getTimesheetSummary(accId, sDate, eDate);
+                        
+                        var prevDates = PeriodHelper.calculatePreviousPeriod(sDate, eDate, pId);
+                        var prevSummary = MainModel.getTimesheetSummary(accId, prevDates.start, prevDates.end);
+                        
+                        var yoyDates = PeriodHelper.calculateSamePeriodLastYear(sDate, eDate, pId);
+                        var yoySummary = MainModel.getTimesheetSummary(accId, yoyDates.start, yoyDates.end);
+                        
+                        periodBanner.currentHours = currentSummary.totalHours;
+                        periodBanner.currentTasks = currentSummary.taskCount;
+                        periodBanner.currentProjects = currentSummary.projectCount;
+                        
+                        periodBanner.prevHours = prevSummary.totalHours;
+                        periodBanner.prevTasks = prevSummary.taskCount;
+                        periodBanner.prevProjects = prevSummary.projectCount;
+                        
+                        periodBanner.yoyHours = yoySummary.totalHours;
+                        periodBanner.yoyTasks = yoySummary.taskCount;
+                        periodBanner.yoyProjects = yoySummary.projectCount;
+                    }
                 }
-                loadingMessage = i18n.dtr("ubtms", "Loading project chart...");
+                loadingMessage = i18n.dtr("ubtms", "Loading priority matrix...");
                 refreshStage = 1;
                 loadingTimer.interval = 0;
                 loadingTimer.start();
                 return;
             case 1:
-                Logger.debug("Dashboard", "Dashboard refresh stage 1: project chart")
+                Logger.debug("Dashboard", "Dashboard refresh stage 1: priority matrix")
+                if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
+                    ehoverMatrix.refreshQuadrants(sDate, eDate);
+                }
+                loadingMessage = i18n.dtr("ubtms", "Loading project chart...");
+                refreshStage = 2;
+                loadingTimer.interval = 0;
+                loadingTimer.start();
+                return;
+            case 2:
+                Logger.debug("Dashboard", "Dashboard refresh stage 2: project chart")
                 if (typeof projectchart !== "undefined") {
                     projectchart.refreshForAccount(accountPicker.selectedAccountId, sDate, eDate);
                 }
                 loadingMessage = i18n.dtr("ubtms", "Loading additional charts...");
-                refreshStage = 2;
+                refreshStage = 3;
                 loadingTimer.start();
                 return;
-            case 2:
+            case 3:
                 Logger.debug("Dashboard", "Dashboard refresh stage 2: additional charts")
                 if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
                     mobileProjectChartLoader.item.reloadData(sDate, eDate);
@@ -277,6 +316,20 @@ Page {
             spacing: units.gu(3)
             anchors.top: parent.top
             anchors.margins: units.gu(1)
+
+            Item {
+                id: periodBannerWrapper
+                width: parent.width
+                height: periodBanner.implicitHeight
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: periodBanner.isFiltered
+
+                DashboardComponents.PeriodComparisonBanner {
+                    id: periodBanner
+                    width: parent.width * 0.98
+                    anchors.centerIn: parent
+                }
+            }
 
             Item {
                 id: quadrantWrapper

@@ -27,6 +27,9 @@ import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import "../../../../models/global.js" as Global
 import "../../../components"
+import "../../../../models/Main.js" as MainModel
+import "../js/periodComparison.js" as PeriodHelper
+import "../components" as DashboardComponents
 
 Page {
     id: dashboard
@@ -76,6 +79,34 @@ Page {
         var filterData = Global.getDateRangeFilter();
         var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
         var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+        var pId = (filterData && filterData.isFiltered) ? filterData.presetId : -1;
+        
+        if (typeof periodBanner !== "undefined") {
+            if (pId === -1 || !sDate || !eDate) {
+                periodBanner.isFiltered = false;
+            } else {
+                periodBanner.isFiltered = true;
+                
+                var currentSummary = MainModel.getTimesheetSummary(accountId, sDate, eDate);
+                var prevDates = PeriodHelper.calculatePreviousPeriod(sDate, eDate, pId);
+                var prevSummary = MainModel.getTimesheetSummary(accountId, prevDates.start, prevDates.end);
+                var yoyDates = PeriodHelper.calculateSamePeriodLastYear(sDate, eDate, pId);
+                var yoySummary = MainModel.getTimesheetSummary(accountId, yoyDates.start, yoyDates.end);
+                
+                periodBanner.currentHours = currentSummary.totalHours;
+                periodBanner.currentTasks = currentSummary.taskCount;
+                periodBanner.currentProjects = currentSummary.projectCount;
+                
+                periodBanner.prevHours = prevSummary.totalHours;
+                periodBanner.prevTasks = prevSummary.taskCount;
+                periodBanner.prevProjects = prevSummary.projectCount;
+                
+                periodBanner.yoyHours = yoySummary.totalHours;
+                periodBanner.yoyTasks = yoySummary.taskCount;
+                periodBanner.yoyProjects = yoySummary.projectCount;
+            }
+        }
+        
         if (load3.item && typeof load3.item.reloadData === "function")
             load3.item.reloadData(sDate, eDate);
         if (load4.item && typeof load4.item.reloadData === "function")
@@ -124,6 +155,20 @@ Page {
             Item {
                 width: parent.width
                 height: units.gu(1)
+            }
+
+            Item {
+                id: periodBannerWrapper
+                width: parent.width
+                height: periodBanner.implicitHeight
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: periodBanner.isFiltered
+
+                DashboardComponents.PeriodComparisonBanner {
+                    id: periodBanner
+                    width: parent.width * 0.98
+                    anchors.centerIn: parent
+                }
             }
 
             Rectangle {

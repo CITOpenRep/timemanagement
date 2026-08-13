@@ -4,6 +4,9 @@ import Lomiri.Components 1.3
 import QtQuick.Layouts 1.12
 import "../components" as DashboardComponents
 import "../js/chartUtils.js" as ChartUtils
+import "../../../../models/global.js" as Global
+import "../../../../models/Main.js" as MainModel
+import "../js/periodComparison.js" as PeriodHelper
 
 Item {
     id: root
@@ -20,6 +23,12 @@ Item {
     property string portfolioSearchText: ""
     property string portfolioSortMode: "time"
     property bool showAllTasks: false
+
+    // Period comparison properties for project
+    property var currentProjectSummary: null
+    property var prevProjectSummary: null
+    property var yoyProjectSummary: null
+    property bool isFiltered: false
 
     signal projectOpened(string projectId)
     signal taskOpened(string projectId, string taskId)
@@ -55,6 +64,25 @@ Item {
         showAllTasks = false;
         selectedProjectTasks = projectTasksProvider ? ChartUtils.prepareTasks(projectTasksProvider(projectData.id) || []) : [];
         currentView = "project";
+        
+        // Calculate variances for the selected project
+        var filterData = Global.getDateRangeFilter();
+        if (filterData && filterData.isFiltered && filterData.presetId !== -1) {
+            isFiltered = true;
+            var accId = -1; // Fallback, could be retrieved if needed, but passing -1 will work if we specify projectId
+            var projectId = projectData.odooRecordId; // Or is it local DB id? projectData.id is local id. MainModel uses project_id which is local id.
+            
+            currentProjectSummary = MainModel.getTimesheetSummary(-1, filterData.startDate, filterEndDate, projectData.id);
+            
+            var prevDates = PeriodHelper.calculatePreviousPeriod(filterData.startDate, filterEndDate, filterData.presetId);
+            prevProjectSummary = MainModel.getTimesheetSummary(-1, prevDates.start, prevDates.end, projectData.id);
+            
+            var yoyDates = PeriodHelper.calculateSamePeriodLastYear(filterData.startDate, filterEndDate, filterData.presetId);
+            yoyProjectSummary = MainModel.getTimesheetSummary(-1, yoyDates.start, yoyDates.end, projectData.id);
+        } else {
+            isFiltered = false;
+        }
+
         projectOpened(projectData.id);
     }
 
@@ -404,7 +432,7 @@ Item {
                                     font.letterSpacing: 1.0
                                 }
 
-                                Label {
+                                 Label {
                                     width: parent.width
                                     text: modelData.value
                                     color: modelData.accent ? root.summaryAccentTextColor
@@ -412,6 +440,47 @@ Item {
                                     font.bold: true
                                     font.pixelSize: modelData.accent ? units.dp(18) : units.dp(15)
                                     elide: Text.ElideRight
+                                }
+
+                                // Variance badges (only for Total and Tasks)
+                                Row {
+                                    spacing: units.gu(0.5)
+                                    visible: root.isFiltered && (index === 0 || index === 1)
+                                    property var varianceData: index === 0 
+                                        ? PeriodHelper.formatVariance(root.currentProjectSummary ? root.currentProjectSummary.totalHours : 0, root.prevProjectSummary ? root.prevProjectSummary.totalHours : 0)
+                                        : PeriodHelper.formatVariance(root.currentProjectSummary ? root.currentProjectSummary.taskCount : 0, root.prevProjectSummary ? root.prevProjectSummary.taskCount : 0)
+                                    
+                                    Label {
+                                        text: parent.varianceData.percent
+                                        color: parent.varianceData.color
+                                        font.bold: true
+                                        font.pixelSize: units.dp(11)
+                                    }
+                                    Label {
+                                        text: i18n.dtr("ubtms", "vs prev")
+                                        color: Theme.palette.normal.backgroundText
+                                        font.pixelSize: units.dp(10)
+                                    }
+                                }
+
+                                Row {
+                                    spacing: units.gu(0.5)
+                                    visible: root.isFiltered && (index === 0 || index === 1)
+                                    property var varianceData: index === 0 
+                                        ? PeriodHelper.formatVariance(root.currentProjectSummary ? root.currentProjectSummary.totalHours : 0, root.yoyProjectSummary ? root.yoyProjectSummary.totalHours : 0)
+                                        : PeriodHelper.formatVariance(root.currentProjectSummary ? root.currentProjectSummary.taskCount : 0, root.yoyProjectSummary ? root.yoyProjectSummary.taskCount : 0)
+                                    
+                                    Label {
+                                        text: parent.varianceData.percent
+                                        color: parent.varianceData.color
+                                        font.bold: true
+                                        font.pixelSize: units.dp(11)
+                                    }
+                                    Label {
+                                        text: i18n.dtr("ubtms", "vs last year")
+                                        color: Theme.palette.normal.backgroundText
+                                        font.pixelSize: units.dp(10)
+                                    }
                                 }
                             }
                         }

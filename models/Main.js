@@ -318,3 +318,71 @@ function getFirstDayOfCurrentMonth() {
     let firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     return firstDay.toISOString().split('T')[0]; // Format as YYYY-MM-DD
 }
+
+/**
+ * Retrieves summary metrics for a given date range.
+ * Returns { totalHours, taskCount, projectCount, timesheetCount }
+ */
+function getTimesheetSummary(accountId, startDate, endDate, projectId) {
+    var summary = {
+        totalHours: 0,
+        taskCount: 0,
+        projectCount: 0,
+        timesheetCount: 0
+    };
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+
+        db.transaction(function (tx) {
+            var params = [];
+            var conditions = ["(status IS NULL OR status != 'deleted')"];
+
+            if (accountId !== -1 && accountId !== undefined && accountId !== null) {
+                conditions.push("account_id = ?");
+                params.push(accountId);
+            }
+            if (startDate) {
+                conditions.push("DATE(record_date) >= DATE(?)");
+                params.push(startDate);
+            }
+            if (endDate) {
+                conditions.push("DATE(record_date) <= DATE(?)");
+                params.push(endDate);
+            }
+            if (projectId !== undefined && projectId !== null && projectId !== -1) {
+                conditions.push("project_id = ?");
+                params.push(projectId);
+            }
+
+            var whereClause = "WHERE " + conditions.join(" AND ");
+
+            var query = "SELECT " +
+                "COALESCE(SUM(unit_amount), 0) AS totalHours, " +
+                "COUNT(DISTINCT task_id) AS taskCount, " +
+                "COUNT(DISTINCT project_id) AS projectCount, " +
+                "COUNT(*) AS timesheetCount " +
+                "FROM account_analytic_line_app " +
+                whereClause;
+
+            var result = tx.executeSql(query, params);
+            if (result.rows.length > 0) {
+                var row = result.rows.item(0);
+                summary.totalHours = row.totalHours || 0;
+                summary.taskCount = row.taskCount || 0;
+                summary.projectCount = row.projectCount || 0;
+                summary.timesheetCount = row.timesheetCount || 0;
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getTimesheetSummary", e);
+    }
+
+    return summary;
+}
+
