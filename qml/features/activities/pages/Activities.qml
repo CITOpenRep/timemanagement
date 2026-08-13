@@ -1155,8 +1155,14 @@ Page {
             return;
         }
 
-        if (activityTypeSelector.selectedId === -1 || summary.text === "" || notes.text === "") {
-            let message = activityTypeSelector.selectedId === -1 ? "You must specify the Activity type" : summary.text === "" ? "Please enter a summary" : "Please enter notes";
+        // Activity type is optional for Local Account.
+        // For Odoo accounts, an Activity Type is still required.
+        if ((ids.account_id !== 0 && activityTypeSelector.selectedId === -1) ||
+                summary.text === "" || notes.text === "") {
+            let message = (ids.account_id !== 0 && activityTypeSelector.selectedId === -1)
+                    ? "You must specify the Activity type"
+                    : summary.text === "" ? "Please enter a summary"
+                    : "Please enter notes";
             notifPopup.open("Error", message, "error");
             return;
         }
