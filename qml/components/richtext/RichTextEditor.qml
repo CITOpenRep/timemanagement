@@ -50,8 +50,8 @@ Item {
      */
     property alias font: p.font
 
-    /** Current font size at cursor position (e.g., "13px", "16px") */
-    property string currentFontSize: "13px"
+    /** Current font size at cursor position (e.g., "14px", "18px") */
+    property string currentFontSize: "14px"
     
     /** Current text color at cursor position */
     property color currentTextColor: "#000000"
@@ -301,6 +301,7 @@ Item {
     property bool _isLoaded: false
     property string _pendingText: ""
     property bool _internalUpdate: false
+    property var _chunkBuffers: ({})
 
     /**
      * Tracks the last HTML content set to or received from Squire.
@@ -641,19 +642,58 @@ Item {
         // Handle Title changes for fast bridge communication (bypasses URL navigation throttling)
         onTitleChanged: {
             var titleStr = title;
-            if (titleStr.indexOf('qtevent:') === 0) {
+            if (titleStr.indexOf('qteventchunk:') === 0) {
+                var cParts = titleStr.substring(13).split(':');
+                if (cParts.length >= 4) {
+                    var msgId = cParts[0];
+                    var chunkIdx = parseInt(cParts[1]);
+                    var totalChunks = parseInt(cParts[2]);
+                    var chunkData = cParts.slice(3).join(':');
+
+                    var currentBuffers = editor._chunkBuffers;
+                    if (!currentBuffers[msgId]) {
+                        currentBuffers[msgId] = new Array(totalChunks);
+                    }
+                    currentBuffers[msgId][chunkIdx] = chunkData;
+
+                    var isComplete = true;
+                    for (var i = 0; i < totalChunks; i++) {
+                        if (currentBuffers[msgId][i] === undefined) {
+                            isComplete = false;
+                            break;
+                        }
+                    }
+
+                    if (isComplete) {
+                        var fullEncoded = currentBuffers[msgId].join('');
+                        delete currentBuffers[msgId];
+                        try {
+                            var decodedChunk = JSON.parse(decodeURIComponent(fullEncoded));
+                            if (decodedChunk && decodedChunk.type) {
+                                var pPayload = decodedChunk.payload !== undefined ? decodedChunk.payload : decodedChunk;
+                                p.handleEvent(decodedChunk.type, pPayload);
+                            }
+                        } catch (eChunk) {
+                            console.error("[RichTextEditor] Failed to parse chunked message:", eChunk);
+                        }
+                    }
+                }
+            } else if (titleStr.indexOf('qtevent:') === 0) {
                 var parts = titleStr.substring(8).split(':');
                 var eventType = parts[0];
-                var payload = {};
+                var payload = null;
                 if (parts.length > 1) {
                     try {
                         var decoded = JSON.parse(decodeURIComponent(parts[1]));
-                        payload = decoded.payload || decoded;
+                        payload = decoded.payload !== undefined ? decoded.payload : decoded;
                     } catch (e) {
-                        // Silently ignore parse errors
+                        console.error("[RichTextEditor] Failed to parse bridge event JSON:", e);
+                        return;
                     }
                 }
-                p.handleEvent(eventType, payload);
+                if (payload !== null) {
+                    p.handleEvent(eventType, payload);
+                }
             }
         }
 
@@ -720,10 +760,15 @@ Item {
         }
 
         function handleEvent(eventType, payload) {
+            if (!payload) return;
             switch (eventType) {
                 case 'contentChanged':
                     if (!editor._internalUpdate) {
-                        var content = payload.content || "";
+                        if (payload.content === undefined || payload.content === null) {
+                            console.warn("[RichTextEditor] Received contentChanged with undefined content - ignoring");
+                            break;
+                        }
+                        var content = payload.content;
                         // Strip script tags — Squire's getHTML() returns the full body
                         // HTML including bridge/setup scripts
                         content = editor.stripScriptTags(content);
