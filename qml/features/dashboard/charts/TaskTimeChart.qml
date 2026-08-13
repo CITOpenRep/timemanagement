@@ -394,16 +394,6 @@ Item {
                     border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : Qt.rgba(0,0,0,0.1)
                     border.width: units.dp(1)
 
-                    // Top accent strip
-                    Rectangle {
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.leftMargin: units.gu(1.5)
-                        anchors.rightMargin: units.gu(1.5)
-                        height: units.dp(3)
-                        color: root.activeAccent
-                    }
 
                     Grid {
                         id: summaryGrid
@@ -594,16 +584,6 @@ Item {
                         border.color: root.isDark ? Qt.rgba(root.activeAccent.r, root.activeAccent.g, root.activeAccent.b, 0.3) : Qt.rgba(0,0,0,0.1)
                         border.width: units.dp(1)
 
-                        // Top accent strip
-                        Rectangle {
-                            anchors.top: parent.top
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.leftMargin: units.gu(1.5)
-                            anchors.rightMargin: units.gu(1.5)
-                            height: units.dp(3)
-                            color: root.activeAccent
-                        }
 
                         RowLayout {
                             anchors.fill: parent

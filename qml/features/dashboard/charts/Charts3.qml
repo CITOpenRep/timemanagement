@@ -134,16 +134,6 @@ Item {
             border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1)
             border.width: units.dp(1)
             
-            // Top accent strip
-            Rectangle {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.leftMargin: units.gu(1.5)
-                anchors.rightMargin: units.gu(1.5)
-                height: units.dp(3)
-                color: LomiriColors.blue
-            }
 
             ChartView {
                 id: chart3
