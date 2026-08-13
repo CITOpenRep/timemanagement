@@ -26,6 +26,7 @@ import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtQuick.Controls 2.2 as Controls
 import Lomiri.Components.Popups 1.3
+import QtQuick.Layouts 1.3
 import "../../../../models/timesheet.js" as TimesheetModel
 import "../../../../models/accounts.js" as Account
 import "../../../../models/global.js" as Global
@@ -81,10 +82,110 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        contents: DateRangeHeaderFilter {
-            id: dateFilter
-            onDateRangeChanged: {
-                refreshData();
+        contents: Item {
+            id: headerContents
+            anchors.fill: parent
+
+            property bool showDateFilter: false
+
+            Component.onCompleted: {
+                // By default clear the filter on startup so it shows "No Filter (All Time)"
+                if (typeof dateFilter !== "undefined") {
+                    dateFilter.clearFilter();
+                }
+            }
+
+            // Default state: Dashboard followed by filter icon
+            RowLayout {
+                id: normalHeaderRow
+                anchors.fill: parent
+                visible: !headerContents.showDateFilter
+                spacing: units.gu(1)
+
+                Label {
+                    text: i18n.dtr("ubtms", "Dashboard")
+                    color: "white"
+                    fontSize: "large"
+                    font.bold: true
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
+                Item {
+                    width: units.gu(4)
+                    height: units.gu(4)
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Icon {
+                        name: "filters"
+                        anchors.centerIn: parent
+                        width: units.gu(2.4)
+                        height: units.gu(2.4)
+                        color: (typeof dateFilter !== "undefined" && dateFilter.isFiltered) ? "#ffd700" : "white"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            headerContents.showDateFilter = true;
+                        }
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+            }
+
+            // Filter state: Date range selection box with a close button
+            Item {
+                id: filterHeaderRow
+                anchors.fill: parent
+                visible: headerContents.showDateFilter
+
+                Item {
+                    anchors.left: parent.left
+                    anchors.right: closeFilterBtn.left
+                    anchors.rightMargin: units.gu(1)
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: parent.height
+
+                    DateRangeHeaderFilter {
+                        id: dateFilter
+                        anchors.fill: parent
+                        showClearButton: false
+                        onDateRangeChanged: {
+                            refreshData();
+                        }
+                    }
+                }
+
+                Item {
+                    id: closeFilterBtn
+                    width: units.gu(4)
+                    height: units.gu(4)
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Icon {
+                        name: "close"
+                        anchors.centerIn: parent
+                        width: units.gu(2.4)
+                        height: units.gu(2.4)
+                        color: "white"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (typeof dateFilter !== "undefined") {
+                                dateFilter.clearFilter();
+                            }
+                            headerContents.showDateFilter = false;
+                        }
+                    }
+                }
             }
         }
         visible: true
