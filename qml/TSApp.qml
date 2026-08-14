@@ -71,6 +71,7 @@ MainView {
 
     signal globalAccountChanged(int accountId, string accountName)
     signal accountDataRefreshRequested(int accountId)
+    signal globalDateRangeChanged(int presetId, string startDate, string endDate, string presetLabel)
     // Keep-alive heartbeat: Ensures Qt SceneGraph render thread remains active to safely process
     // EGL surface recreation during convergence / external monitor display output migration.
     // Prevents QtWebEngine / QSG crash when monitor is attached while app is idle.

@@ -74,7 +74,7 @@ function get_quadrant_current_month() {
 * return format {<project name>: <spent hours>}
 */
 
-function get_projects_spent_hours(account) {
+function get_projects_spent_hours(account, startDate, endDate) {
     var project_details = [];
 
     try {
@@ -87,6 +87,7 @@ function get_projects_spent_hours(account) {
 
         db.transaction(function (tx) {
             var params = [];
+            var conditions = [];
             var query =
                 "SELECT p.name AS entity_name, SUM(a.unit_amount) AS total, s.name AS stage_name " +
                 "FROM account_analytic_line_app a " +
@@ -94,8 +95,20 @@ function get_projects_spent_hours(account) {
                 "LEFT JOIN project_project_stage_app s ON s.odoo_record_id = p.stage AND s.account_id = p.account_id ";
 
             if (account !== -1 && account !== undefined && account !== null) {
-                query += "WHERE a.account_id = ? ";
+                conditions.push("a.account_id = ?");
                 params.push(account);
+            }
+            if (startDate) {
+                conditions.push("DATE(a.record_date) >= DATE(?)");
+                params.push(startDate);
+            }
+            if (endDate) {
+                conditions.push("DATE(a.record_date) <= DATE(?)");
+                params.push(endDate);
+            }
+
+            if (conditions.length > 0) {
+                query += "WHERE " + conditions.join(" AND ") + " ";
             }
 
             query += "GROUP BY a.project_id, a.account_id, p.name, s.name ORDER BY total DESC";
@@ -123,7 +136,7 @@ function get_projects_spent_hours(account) {
 * return format {<task name>: <spent hours>}
 */
 
-function get_tasks_spent_hours(account) {
+function get_tasks_spent_hours(account, startDate, endDate) {
     var task_details = {};
 
     try {
@@ -136,14 +149,27 @@ function get_tasks_spent_hours(account) {
 
         db.transaction(function (tx) {
             var params = [];
+            var conditions = [];
             var query =
                 "SELECT t.name AS entity_name, SUM(a.unit_amount) AS total " +
                 "FROM account_analytic_line_app a " +
                 "LEFT JOIN project_task_app t ON t.id = a.task_id ";
 
             if (account !== -1 && account !== undefined && account !== null) {
-                query += "WHERE a.account_id = ? ";
+                conditions.push("a.account_id = ?");
                 params.push(account);
+            }
+            if (startDate) {
+                conditions.push("DATE(a.record_date) >= DATE(?)");
+                params.push(startDate);
+            }
+            if (endDate) {
+                conditions.push("DATE(a.record_date) <= DATE(?)");
+                params.push(endDate);
+            }
+
+            if (conditions.length > 0) {
+                query += "WHERE " + conditions.join(" AND ") + " ";
             }
 
             query += "GROUP BY a.task_id, t.name ORDER BY total DESC";

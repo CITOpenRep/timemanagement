@@ -25,20 +25,47 @@ Item {
     property bool readOnly: false
 
     // Layout properties
-    property real collapsedHeight: units.gu(5)
+    property real collapsedHeight: units.gu(4)
     property real expandedHeight: units.gu(25)
     property real maxExpandedHeight: units.gu(40)
     property bool collapsed: true
     property int visibleItemCount: 5  // Number of items visible when expanded
+    z: !collapsed ? 9999 : 1
 
-    // Styling
-    property color bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1b1b1f" : "#ffffff"
-    property color disabledBgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#eeeeee"
+    readonly property bool isDarkTheme: (typeof Theme !== "undefined" && Theme.name === "Ubuntu.Components.Themes.SuruDark") || (typeof theme !== "undefined" && theme.name === "Ubuntu.Components.Themes.SuruDark")
+
+    // Styling properties (callers can assign custom colors or rely on theme defaults)
+    property var bgColor: undefined
+    property var dropdownBgColor: undefined
+    property var disabledBgColor: undefined
     property color selectedColor: AppConst.Colors.Primary || "#3498db"
-    property color borderColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3a3a3f" : "#e0e0e0"
-    property color textColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ebebef" : "#333333"
-    property color mutedTextColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9a9aa2" : "#888888"
-    property color hoverColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2b2b31" : "#f5f5f5"
+    property var borderColor: undefined
+    property var textColor: undefined
+    property var mutedTextColor: undefined
+    property var hoverColor: undefined
+    property var dropdownTextColor: undefined
+    property var dropdownMutedTextColor: undefined
+    property var dropdownBorderColor: undefined
+    property var dividerColor: undefined
+    property var selectedTickColor: undefined
+    property var headerBgColor: undefined
+    property var headerTextColor: undefined
+
+    // Effective resolved colors
+    readonly property color effectiveBgColor: bgColor !== undefined ? bgColor : (isDarkTheme ? "#1b1b1f" : "#ffffff")
+    readonly property color effectiveDropdownBgColor: dropdownBgColor !== undefined ? dropdownBgColor : (isDarkTheme ? "#1b1b1f" : "#ffffff")
+    readonly property color effectiveDisabledBgColor: disabledBgColor !== undefined ? disabledBgColor : (isDarkTheme ? "#2a2a2a" : "#eeeeee")
+    readonly property color effectiveBorderColor: borderColor !== undefined ? borderColor : (isDarkTheme ? "#3a3a3f" : "#e0e0e0")
+    readonly property color effectiveTextColor: textColor !== undefined ? textColor : (isDarkTheme ? "#ebebef" : "#333333")
+    readonly property color effectiveMutedTextColor: mutedTextColor !== undefined ? mutedTextColor : (isDarkTheme ? "#9a9aa2" : "#888888")
+    readonly property color effectiveHoverColor: hoverColor !== undefined ? hoverColor : (isDarkTheme ? "#2b2b31" : "#f5f5f5")
+    readonly property color effectiveDropdownTextColor: dropdownTextColor !== undefined ? dropdownTextColor : (isDarkTheme ? "#ebebef" : "#333333")
+    readonly property color effectiveDropdownMutedTextColor: dropdownMutedTextColor !== undefined ? dropdownMutedTextColor : (isDarkTheme ? "#9a9aa2" : "#888888")
+    readonly property color effectiveDropdownBorderColor: dropdownBorderColor !== undefined ? dropdownBorderColor : (isDarkTheme ? "#3a3a3f" : "#e0e0e0")
+    readonly property color effectiveDividerColor: dividerColor !== undefined ? dividerColor : (isDarkTheme ? "#3a3a3f" : "#e0e0e0")
+    readonly property color effectiveSelectedTickColor: (selectedTickColor !== undefined && selectedTickColor != "transparent" && selectedTickColor != "#00000000") ? selectedTickColor : "white"
+    readonly property color effectiveHeaderBgColor: headerBgColor !== undefined ? headerBgColor : (collapsed ? effectiveBgColor : effectiveDropdownBgColor)
+    readonly property color effectiveHeaderTextColor: headerTextColor !== undefined ? headerTextColor : (collapsed ? effectiveTextColor : effectiveDropdownTextColor)
 
     signal selectionMade(int id, string name, string selectorType)
 
@@ -91,9 +118,9 @@ Item {
         id: container
         anchors.fill: parent
         radius: units.gu(1)
-        color: (enabledState && !readOnly) ? bgColor : disabledBgColor
-        border.color: borderColor
-        border.width: 1
+        color: (enabledState && !readOnly) ? (collapsed ? effectiveBgColor : effectiveDropdownBgColor) : effectiveDisabledBgColor
+        border.color: collapsed ? effectiveBorderColor : effectiveDropdownBorderColor
+        border.width: (collapsed && (effectiveBorderColor == "transparent" || effectiveBorderColor == "#00000000")) ? 0 : 1
         clip: true
 
         Column {
@@ -104,8 +131,8 @@ Item {
             Rectangle {
                 id: headerRow
                 width: parent.width
-                height: units.gu(5)
-                color: "transparent"
+                height: units.gu(4)
+                color: collapsed ? "transparent" : effectiveHeaderBgColor
 
                 Row {
                     anchors.fill: parent
@@ -118,7 +145,7 @@ Item {
                         width: parent.width * 0.35
                         height: parent.height
                         text: labelText
-                        color: textColor
+                        color: collapsed ? effectiveTextColor : effectiveHeaderTextColor
                         font.pixelSize: units.gu(1.6)
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -129,7 +156,7 @@ Item {
                         width: parent.width * 0.5
                         height: parent.height
                         text: selectedName || i18n.dtr("ubtms", "Tap to select")
-                        color: selectedName ? textColor : mutedTextColor
+                        color: collapsed ? (selectedName ? effectiveTextColor : effectiveMutedTextColor) : (selectedName ? effectiveHeaderTextColor : effectiveDropdownMutedTextColor)
                         font.pixelSize: units.gu(1.5)
                         font.bold: selectedName ? true : false
                         verticalAlignment: Text.AlignVCenter
@@ -143,7 +170,7 @@ Item {
                         height: units.gu(2.5)
                         anchors.verticalCenter: parent.verticalCenter
                         name: collapsed ? "go-down" : "go-up"
-                        color: textColor
+                        color: collapsed ? effectiveTextColor : effectiveHeaderTextColor
                     }
                 }
 
@@ -162,7 +189,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: borderColor
+                color: effectiveDividerColor
                 visible: !collapsed
             }
 
@@ -185,10 +212,9 @@ Item {
                     height: units.gu(5)
                     color: {
                         if (model.itemId === selectedId) {
-                            return Qt.rgba(selectedColor.r, selectedColor.g, selectedColor.b,
-                                           theme.name === "Ubuntu.Components.Themes.SuruDark" ? 0.24 : 0.18);
+                            return Qt.rgba(selectedColor.r, selectedColor.g, selectedColor.b, 0.15);
                         }
-                        if (delegateMouseArea.containsMouse) return hoverColor;
+                        if (delegateMouseArea.containsMouse) return effectiveHoverColor;
                         return "transparent";
                     }
 
@@ -205,7 +231,7 @@ Item {
                             radius: units.gu(1)
                             anchors.verticalCenter: parent.verticalCenter
                             color: model.itemId === selectedId ? selectedColor : "transparent"
-                            border.color: model.itemId === selectedId ? selectedColor : borderColor
+                            border.color: model.itemId === selectedId ? selectedColor : effectiveDividerColor
                             border.width: 1
 
                             Icon {
@@ -213,7 +239,7 @@ Item {
                                 width: units.gu(1.2)
                                 height: units.gu(1.2)
                                 name: "tick"
-                                color: "white"
+                                color: effectiveSelectedTickColor
                                 visible: model.itemId === selectedId
                             }
                         }
@@ -223,7 +249,7 @@ Item {
                             width: parent.width - units.gu(4)
                             height: parent.height
                             text: model.name
-                            color: textColor
+                            color: collapsed ? effectiveTextColor : (model.itemId === selectedId ? selectedColor : effectiveDropdownTextColor)
                             font.pixelSize: units.gu(1.5)
                             font.bold: model.itemId === selectedId
                             verticalAlignment: Text.AlignVCenter
@@ -244,16 +270,26 @@ Item {
                         }
                     }
 
-                    // Bottom border
+                    // Bottom border (Divider between options)
                     Rectangle {
                         width: parent.width
                         height: 1
                         anchors.bottom: parent.bottom
-                        color: borderColor
-                        opacity: 0.5
+                        color: effectiveDividerColor
+                        opacity: 0.6
                     }
                 }
             }
+        }
+
+        // Outer border overlay - drawn on top of children so border is never painted over
+        Rectangle {
+            anchors.fill: parent
+            radius: container.radius
+            color: "transparent"
+            border.color: collapsed ? effectiveBorderColor : effectiveDropdownBorderColor
+            border.width: (collapsed && (effectiveBorderColor == "transparent" || effectiveBorderColor == "#00000000")) ? 0 : 1
+            z: 9999
         }
     }
 

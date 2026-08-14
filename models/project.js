@@ -1182,7 +1182,7 @@ function markProjectUpdateAsDeleted(updateId) {
  * @param {number|string} [accountId] - Optional account id to filter by. Use -1 for all accounts.
  * @returns {Array<Object>} - A list of objects with `project_id`, `name`, and `spentHours`.
  */
-function getProjectSpentHoursList(is_work_state, accountId) {
+function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var resultList = [];
 
@@ -1212,16 +1212,26 @@ function getProjectSpentHoursList(is_work_state, accountId) {
         if (isAllAccounts) {
             Logger.debug("Project", "   Aggregating spent hours for ALL accounts")
 
-            result = tx.executeSql(
-                "SELECT aal.project_id, aal.account_id, COALESCE(u.name, 'Unknown') AS account_name, " +
+            var sqlAll = "SELECT aal.project_id, aal.account_id, COALESCE(u.name, 'Unknown') AS account_name, " +
                 "COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
                 "FROM account_analytic_line_app aal " +
                 "LEFT JOIN users u ON aal.account_id = u.id " +
                 "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
-                "WHERE " + (is_work_state ? "aal.account_id != 0 " : "aal.account_id = 0 ") +
-                "GROUP BY aal.project_id, aal.account_id, u.name, p.name " +
-                "ORDER BY total_spent DESC"
-            );
+                "WHERE " + (is_work_state ? "aal.account_id != 0 " : "aal.account_id = 0 ");
+            var paramsAll = [];
+
+            if (startDate) {
+                sqlAll += "AND DATE(aal.record_date) >= DATE(?) ";
+                paramsAll.push(startDate);
+            }
+            if (endDate) {
+                sqlAll += "AND DATE(aal.record_date) <= DATE(?) ";
+                paramsAll.push(endDate);
+            }
+
+            sqlAll += "GROUP BY aal.project_id, aal.account_id, u.name, p.name ORDER BY total_spent DESC";
+
+            result = tx.executeSql(sqlAll, paramsAll);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -1247,15 +1257,24 @@ function getProjectSpentHoursList(is_work_state, accountId) {
 
             Logger.debug("Project", "   Aggregating spent hours for single account:", acctNum)
 
-            result = tx.executeSql(
-                "SELECT aal.project_id, COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
+            var sqlSingle = "SELECT aal.project_id, COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
                 "FROM account_analytic_line_app aal " +
                 "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
-                "WHERE aal.account_id = ? " +
-                "GROUP BY aal.project_id, p.name " +
-                "ORDER BY total_spent DESC",
-                [acctNum]
-            );
+                "WHERE aal.account_id = ? ";
+            var paramsSingle = [acctNum];
+
+            if (startDate) {
+                sqlSingle += "AND DATE(aal.record_date) >= DATE(?) ";
+                paramsSingle.push(startDate);
+            }
+            if (endDate) {
+                sqlSingle += "AND DATE(aal.record_date) <= DATE(?) ";
+                paramsSingle.push(endDate);
+            }
+
+            sqlSingle += "GROUP BY aal.project_id, p.name ORDER BY total_spent DESC";
+
+            result = tx.executeSql(sqlSingle, paramsSingle);
 
             for (var j = 0; j < result.rows.length; j++) {
                 var r = result.rows.item(j);
@@ -1281,9 +1300,11 @@ function getProjectSpentHoursList(is_work_state, accountId) {
  * calculating totals one record at a time in QML.
  *
  * @param {number} accountId - Account ID, or -1 for all accounts.
+ * @param {string} [startDate] - Optional start date (yyyy-MM-dd).
+ * @param {string} [endDate] - Optional end date (yyyy-MM-dd).
  * @returns {Array<Object>} Project summary rows for dashboard charts.
  */
-function getDashboardProjectTaskSummary(accountId) {
+function getDashboardProjectTaskSummary(accountId, startDate, endDate) {
     var resultList = [];
 
     try {
@@ -1291,8 +1312,18 @@ function getDashboardProjectTaskSummary(accountId) {
 
         db.transaction(function (tx) {
             var params = [];
-            var accountWhere = "";
+            var tsConditions = ["(status IS NULL OR status != 'deleted')"];
 
+            if (startDate) {
+                tsConditions.push("DATE(record_date) >= DATE(?)");
+                params.push(startDate);
+            }
+            if (endDate) {
+                tsConditions.push("DATE(record_date) <= DATE(?)");
+                params.push(endDate);
+            }
+
+            var accountWhere = "";
             if (accountId !== -1 && accountId !== undefined && accountId !== null) {
                 accountWhere = "WHERE p.account_id = ? ";
                 params.push(accountId);
@@ -1310,7 +1341,7 @@ function getDashboardProjectTaskSummary(accountId) {
                 "LEFT JOIN ( " +
                 "SELECT account_id, task_id, SUM(unit_amount) AS total_hours " +
                 "FROM account_analytic_line_app " +
-                "WHERE status IS NULL OR status != 'deleted' " +
+                "WHERE " + tsConditions.join(" AND ") + " " +
                 "GROUP BY account_id, task_id " +
                 ") ts ON ts.account_id = t.account_id AND ts.task_id = t.odoo_record_id " +
                 accountWhere +

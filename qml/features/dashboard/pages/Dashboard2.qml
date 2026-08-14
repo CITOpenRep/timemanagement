@@ -25,19 +25,25 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
+import "../../../../models/global.js" as Global
+import "../../../components"
 
 Page {
     id: dashboard
     title: i18n.dtr("ubtms", "Charts")
     property int lastRefreshAccountId: -999999
+    property bool isMultiColumn: typeof apLayout !== "undefined" && apLayout.columns > 1
     header: PageHeader {
-        title: dashboard.title
+        id: pageHeader
+        title: dashboard.isMultiColumn ? dashboard.title : ""
         StyleHints {
             foregroundColor: "white"
 
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
+
+        contents: !dashboard.isMultiColumn ? dateFilter : null
         
         trailingActionBar.actions: [
             Action {
@@ -51,30 +57,48 @@ Page {
         ]
     }
 
-    function refreshData() {
+    DateRangeHeaderFilter {
+        id: dateFilter
+        visible: !dashboard.isMultiColumn
+        onDateRangeChanged: {
+            refreshData(true);
+        }
+    }
+
+    function refreshData(force) {
         var accountId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
-        if (lastRefreshAccountId === accountId) {
+        if (!force && lastRefreshAccountId === accountId) {
             return;
         }
 
         lastRefreshAccountId = accountId;
         console.log("Refreshing Dashboard2 charts for account: " + accountId);
+        var filterData = Global.getDateRangeFilter();
+        var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+        var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
         if (load3.item && typeof load3.item.reloadData === "function")
-            load3.item.reloadData();
+            load3.item.reloadData(sDate, eDate);
         if (load4.item && typeof load4.item.reloadData === "function")
-            load4.item.reloadData();
+            load4.item.reloadData(sDate, eDate);
     }
 
     Connections {
         target: typeof accountPicker !== "undefined" ? accountPicker : null
         onAccepted: function (accountId, accountName) {
-            refreshData();
+            refreshData(true);
+        }
+    }
+
+    Connections {
+        target: typeof mainView !== "undefined" ? mainView : null
+        onGlobalDateRangeChanged: function (presetId, startDate, endDate, presetLabel) {
+            refreshData(true);
         }
     }
 
     Flickable {
         id: flick1
-        anchors.top: header.bottom
+        anchors.top: pageHeader.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom

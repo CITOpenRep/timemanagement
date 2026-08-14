@@ -260,11 +260,11 @@ Item {
     }
 
     // Fetch-and-load helper using the new project API signature
-    function refreshForAccount(accountId) {
+    function refreshForAccount(accountId, startDate, endDate) {
 
-        // call project API with account param
+        // call project API with account param and date range
         try {
-            var data = Project.getProjectSpentHoursList(true, accountId);
+            var data = Project.getProjectSpentHoursList(true, accountId, startDate, endDate);
             // data should be an array; load chart
             load(data || []);
         } catch (e) {
