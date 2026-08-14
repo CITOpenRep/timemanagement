@@ -26,6 +26,7 @@ import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtQuick.Controls 2.2 as Controls
 import Lomiri.Components.Popups 1.3
+import QtQuick.Layouts 1.3
 import "../../../../models/timesheet.js" as TimesheetModel
 import "../../../../models/accounts.js" as Account
 import "../../../../models/global.js" as Global
@@ -81,10 +82,98 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        contents: DateRangeHeaderFilter {
-            id: dateFilter
-            onDateRangeChanged: {
-                refreshData();
+        contents: Item {
+            id: headerContents
+            anchors.fill: parent
+
+            property bool showDateFilter: false
+
+            Component.onCompleted: {
+                // By default clear the filter on startup so it shows "No Filter (All Time)"
+                if (typeof dateFilter !== "undefined") {
+                    dateFilter.clearFilter();
+                }
+            }
+
+            // Default state: Dashboard
+            RowLayout {
+                id: normalHeaderRow
+                anchors.fill: parent
+                visible: !headerContents.showDateFilter
+                spacing: units.gu(1)
+
+                ColumnLayout {
+                    spacing: 0
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Label {
+                        text: i18n.dtr("ubtms", "Dashboard")
+                        color: "white"
+                        fontSize: "large"
+                    }
+
+                    Label {
+                        text: typeof dateFilter !== "undefined" ? dateFilter.presetLabel : i18n.dtr("ubtms", "No Filter (All Time)")
+                        color: "white"
+                        fontSize: "small"
+                        opacity: 0.8
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+            }
+
+            // Filter state: Date range selection box with a close button
+            Item {
+                id: filterHeaderRow
+                anchors.fill: parent
+                visible: headerContents.showDateFilter
+
+                Item {
+                    anchors.left: parent.left
+                    anchors.right: closeFilterBtn.left
+                    anchors.rightMargin: units.gu(1)
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: parent.height
+
+                    DateRangeHeaderFilter {
+                        id: dateFilter
+                        anchors.fill: parent
+                        showClearButton: false
+                        onDateRangeChanged: {
+                            refreshData();
+                        }
+                    }
+                }
+
+                Item {
+                    id: closeFilterBtn
+                    width: units.gu(4)
+                    height: units.gu(4)
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Icon {
+                        name: "close"
+                        anchors.centerIn: parent
+                        width: units.gu(2.4)
+                        height: units.gu(2.4)
+                        color: "white"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (typeof dateFilter !== "undefined") {
+                                dateFilter.clearFilter();
+                            }
+                            headerContents.showDateFilter = false;
+                        }
+                    }
+                }
             }
         }
         visible: true
@@ -106,7 +195,7 @@ Page {
             Action {
                 id: infoAction
                 iconName: "info"
-                visible: !isMultiColumn
+                visible: !isMultiColumn && !headerContents.showDateFilter
                 text: i18n.dtr("ubtms", "Chart Info")
                 onTriggered: {
                     PopupUtils.open(Qt.resolvedUrl("../components/ChartInfoPopup.qml"))
@@ -115,6 +204,7 @@ Page {
             Action {
                 id: notificationAction
                 iconSource: notificationBell.totalCount > 0 ? "../../../images/notification_active.png" : "../../../images/notification.png"
+                visible: !headerContents.showDateFilter
                 text: notificationBell.totalCount > 0 ? 
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.totalCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
@@ -130,6 +220,7 @@ Page {
             Action {
                 iconName: "reminder-new"
                 text: i18n.dtr("ubtms", "New Timesheet")
+                visible: !headerContents.showDateFilter
                 onTriggered: {
                     const defaultAccountId = Account.getDefaultAccountId();
                     const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
@@ -141,6 +232,17 @@ Page {
                     } else {
                         Logger.error("Dashboard", "Error creating timesheet: " + result.message)
                     }
+                }
+            },
+            Action {
+                id: filterAction
+                iconName: "filters"
+                text: (typeof dateFilter !== "undefined" && dateFilter.isFiltered) ? 
+                      i18n.dtr("ubtms", "Filter (Active)") : 
+                      i18n.dtr("ubtms", "Filter")
+                visible: !headerContents.showDateFilter
+                onTriggered: {
+                    headerContents.showDateFilter = true;
                 }
             }
         ]

@@ -61,35 +61,29 @@ Controls.Drawer {
                         }
 
                         // Account Selector button with Account label adjacent to icon
-                        Item {
+                        RowLayout {
                             id: accountSelectorItem
-                            implicitWidth: accountRow.implicitWidth
-                            height: units.gu(4)
+                            spacing: units.gu(0.5)
                             Layout.alignment: Qt.AlignVCenter
 
-                            RowLayout {
-                                id: accountRow
-                                anchors.fill: parent
-                                spacing: units.gu(0.5)
+                            Icon {
+                                name: "account"
+                                width: units.gu(2.4)
+                                height: units.gu(2.4)
+                                color: "white"
+                                Layout.alignment: Qt.AlignVCenter
+                            }
 
-                                Icon {
-                                    name: "account"
-                                    width: units.gu(2.4)
-                                    height: units.gu(2.4)
-                                    color: "white"
-                                    Layout.alignment: Qt.AlignVCenter
-                                }
-
-                                Label {
-                                    id: accountNameLabel
-                                    Layout.alignment: Qt.AlignVCenter
-                                    text: "Account [" + (typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : "") + "]"
-                                    color: "white"
-                                    font.pixelSize: units.dp(13)
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 1
-                                }
+                            Label {
+                                id: accountNameLabel
+                                Layout.alignment: Qt.AlignVCenter
+                                text: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : ""
+                                color: "white"
+                                font.pixelSize: units.dp(13)
+                                font.bold: true
+                                elide: Text.ElideRight
+                                maximumLineCount: 1
+                                Layout.maximumWidth: units.gu(12)
                             }
 
                             MouseArea {

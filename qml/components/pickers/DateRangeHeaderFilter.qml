@@ -45,6 +45,7 @@ Item {
     property string presetLabel: i18n.dtr("ubtms", "No Filter (All Time)")
     property bool isFiltered: presetId !== -1
     property bool suppressSignal: false
+    property bool showClearButton: true
 
     signal dateRangeChanged(int presetId, string startDate, string endDate, string presetLabel)
 
@@ -99,7 +100,7 @@ Item {
             // Clear (X) button
             Item {
                 id: clearBtn
-                visible: rootFilter.isFiltered
+                visible: rootFilter.isFiltered && rootFilter.showClearButton
                 Layout.preferredWidth: units.gu(4)
                 Layout.preferredHeight: units.gu(4)
                 Layout.alignment: Qt.AlignVCenter
