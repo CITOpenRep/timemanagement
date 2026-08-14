@@ -183,7 +183,7 @@ Page {
                 id: drawerAction
                 iconName: "navigation-menu"
                 text: i18n.dtr("ubtms", "Menu")
-                visible: !isMultiColumn && !headerContents.showDateFilter
+                visible: !isMultiColumn
                 onTriggered: {
                     globalDrawer.open()
                 }
@@ -195,7 +195,7 @@ Page {
             Action {
                 id: infoAction
                 iconName: "info"
-                visible: !isMultiColumn && !headerContents.showDateFilter
+                visible: !isMultiColumn
                 text: i18n.dtr("ubtms", "Chart Info")
                 onTriggered: {
                     PopupUtils.open(Qt.resolvedUrl("../components/ChartInfoPopup.qml"))
@@ -204,7 +204,6 @@ Page {
             Action {
                 id: notificationAction
                 iconSource: notificationBell.totalCount > 0 ? "../../../images/notification_active.png" : "../../../images/notification.png"
-                visible: !headerContents.showDateFilter
                 text: notificationBell.totalCount > 0 ? 
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.totalCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
@@ -220,7 +219,6 @@ Page {
             Action {
                 iconName: "reminder-new"
                 text: i18n.dtr("ubtms", "New Timesheet")
-                visible: !headerContents.showDateFilter
                 onTriggered: {
                     const defaultAccountId = Account.getDefaultAccountId();
                     const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
@@ -240,7 +238,6 @@ Page {
                 text: (typeof dateFilter !== "undefined" && dateFilter.isFiltered) ? 
                       i18n.dtr("ubtms", "Filter (Active)") : 
                       i18n.dtr("ubtms", "Filter")
-                visible: !headerContents.showDateFilter
                 onTriggered: {
                     headerContents.showDateFilter = true;
                 }
