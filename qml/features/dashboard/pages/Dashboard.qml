@@ -82,97 +82,14 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        contents: Item {
+        contents: FilterableHeaderContents {
             id: headerContents
-            anchors.fill: parent
-
-            property bool showDateFilter: false
-
+            title: i18n.dtr("ubtms", "Dashboard")
+            onDateRangeChanged: refreshData()
+            
             Component.onCompleted: {
-                // By default clear the filter on startup so it shows "No Filter (All Time)"
-                if (typeof dateFilter !== "undefined") {
-                    dateFilter.clearFilter();
-                }
-            }
-
-            // Default state: Dashboard
-            RowLayout {
-                id: normalHeaderRow
-                anchors.fill: parent
-                visible: !headerContents.showDateFilter
-                spacing: units.gu(1)
-
-                ColumnLayout {
-                    spacing: 0
-                    Layout.alignment: Qt.AlignVCenter
-
-                    Label {
-                        text: i18n.dtr("ubtms", "Dashboard")
-                        color: "white"
-                        fontSize: "large"
-                    }
-
-                    Label {
-                        text: typeof dateFilter !== "undefined" ? dateFilter.presetLabel : i18n.dtr("ubtms", "No Filter (All Time)")
-                        color: "white"
-                        fontSize: "small"
-                        opacity: 0.8
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                }
-            }
-
-            // Filter state: Date range selection box with a close button
-            Item {
-                id: filterHeaderRow
-                anchors.fill: parent
-                visible: headerContents.showDateFilter
-
-                Item {
-                    anchors.left: parent.left
-                    anchors.right: closeFilterBtn.left
-                    anchors.rightMargin: units.gu(1)
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: parent.height
-
-                    DateRangeHeaderFilter {
-                        id: dateFilter
-                        anchors.fill: parent
-                        showClearButton: false
-                        onDateRangeChanged: {
-                            refreshData();
-                        }
-                    }
-                }
-
-                Item {
-                    id: closeFilterBtn
-                    width: units.gu(4)
-                    height: units.gu(4)
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Icon {
-                        name: "close"
-                        anchors.centerIn: parent
-                        width: units.gu(2.4)
-                        height: units.gu(2.4)
-                        color: "white"
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (typeof dateFilter !== "undefined") {
-                                dateFilter.clearFilter();
-                            }
-                            headerContents.showDateFilter = false;
-                        }
-                    }
+                if (typeof headerContents.dateFilter !== "undefined") {
+                    headerContents.dateFilter.clearFilter();
                 }
             }
         }
@@ -237,7 +154,7 @@ Page {
             Action {
                 id: filterAction
                 iconName: "filters"
-                text: (typeof dateFilter !== "undefined" && dateFilter.isFiltered) ? 
+                text: (typeof headerContents.dateFilter !== "undefined" && headerContents.dateFilter.isFiltered) ? 
                       i18n.dtr("ubtms", "Filter (Active)") : 
                       i18n.dtr("ubtms", "Filter")
                 visible: !headerContents.showDateFilter
@@ -277,8 +194,8 @@ Page {
 
     function _doRefreshData() {
         try {
-            var sDate = typeof dateFilter !== "undefined" ? dateFilter.startDate : "";
-            var eDate = typeof dateFilter !== "undefined" ? dateFilter.endDate : "";
+            var sDate = typeof headerContents.dateFilter !== "undefined" ? headerContents.dateFilter.startDate : "";
+            var eDate = typeof headerContents.dateFilter !== "undefined" ? headerContents.dateFilter.endDate : "";
 
             switch (refreshStage) {
             case 0:

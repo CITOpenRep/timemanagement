@@ -23,6 +23,7 @@
  */
 
 import QtQuick 2.7
+import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
 import QtCharts 2.0
 import "../../../../models/Main.js" as Model
@@ -35,16 +36,39 @@ Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" && apLayout.columns > 1
     header: PageHeader {
         id: pageHeader
-        title: dashboard2.isMultiColumn ? dashboard2.title : ""
-        contents: !dashboard2.isMultiColumn ? dateFilter : null
-    }
-
-    DateRangeHeaderFilter {
-        id: dateFilter
-        visible: !dashboard2.isMultiColumn
-        onDateRangeChanged: {
-            chart4.reloadData();
+        StyleHints {
+            foregroundColor: "white"
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
         }
+
+        contents: FilterableHeaderContents {
+            id: headerContents
+            title: dashboard2.isMultiColumn ? dashboard2.title : i18n.dtr("ubtms", "Task")
+            showSubtitle: !dashboard2.isMultiColumn
+            
+            onDateRangeChanged: chart4.reloadData()
+            
+            Component.onCompleted: {
+                if (typeof headerContents.dateFilter !== "undefined" && dashboard2.isMultiColumn) {
+                    headerContents.showDateFilter = false;
+                }
+            }
+        }
+
+        trailingActionBar.actions: [
+            Action {
+                id: filterAction
+                iconName: "filters"
+                text: (typeof headerContents.dateFilter !== "undefined" && headerContents.dateFilter.isFiltered) ? 
+                      i18n.dtr("ubtms", "Filter (Active)") : 
+                      i18n.dtr("ubtms", "Filter")
+                visible: !dashboard2.isMultiColumn && !headerContents.showDateFilter
+                onTriggered: {
+                    headerContents.showDateFilter = true;
+                }
+            }
+        ]
     }
 
     LomiriShape {

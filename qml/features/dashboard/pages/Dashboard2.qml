@@ -23,6 +23,7 @@
  */
 
 import QtQuick 2.7
+import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
 import "../../../../models/global.js" as Global
@@ -35,34 +36,48 @@ Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" && apLayout.columns > 1
     header: PageHeader {
         id: pageHeader
-        title: dashboard.isMultiColumn ? dashboard.title : ""
         StyleHints {
             foregroundColor: "white"
-
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
 
-        contents: !dashboard.isMultiColumn ? dateFilter : null
-        
+        contents: FilterableHeaderContents {
+            id: headerContents
+            title: dashboard.isMultiColumn ? dashboard.title : i18n.dtr("ubtms", "Charts")
+            showSubtitle: !dashboard.isMultiColumn
+            
+            onDateRangeChanged: refreshData(true)
+            
+            Component.onCompleted: {
+                if (typeof headerContents.dateFilter !== "undefined" && dashboard.isMultiColumn) {
+                    headerContents.showDateFilter = false;
+                }
+            }
+        }
+
         trailingActionBar.actions: [
             Action {
                 id: infoAction
                 iconName: "info"
                 text: i18n.dtr("ubtms", "Chart Info")
+                visible: !headerContents.showDateFilter
                 onTriggered: {
                     PopupUtils.open(Qt.resolvedUrl("../components/ChartInfoPopup.qml"))
                 }
+            },
+            Action {
+                id: filterAction
+                iconName: "filters"
+                text: (typeof headerContents.dateFilter !== "undefined" && headerContents.dateFilter.isFiltered) ? 
+                      i18n.dtr("ubtms", "Filter (Active)") : 
+                      i18n.dtr("ubtms", "Filter")
+                visible: !dashboard.isMultiColumn && !headerContents.showDateFilter
+                onTriggered: {
+                    headerContents.showDateFilter = true;
+                }
             }
         ]
-    }
-
-    DateRangeHeaderFilter {
-        id: dateFilter
-        visible: !dashboard.isMultiColumn
-        onDateRangeChanged: {
-            refreshData(true);
-        }
     }
 
     function refreshData(force) {

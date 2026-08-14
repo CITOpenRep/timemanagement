@@ -56,3 +56,4 @@ TreeSelector 1.0 selectors/TreeSelector.qml
 UpdatesDetailsCard 1.0 cards/UpdatesDetailsCard.qml
 UserSelector 1.0 selectors/UserSelector.qml
 WorkItemSelector 1.0 selectors/WorkItemSelector.qml
+FilterableHeaderContents 1.0 pickers/FilterableHeaderContents.qml
