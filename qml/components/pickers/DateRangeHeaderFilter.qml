@@ -131,26 +131,7 @@ Item {
             }
         }
 
-        // Active range date badge for custom range
-        Rectangle {
-            id: customBadge
-            Layout.alignment: Qt.AlignHCenter
-            width: badgeText.implicitWidth + units.gu(2)
-            height: units.gu(3)
-            visible: rootFilter.isFiltered && rootFilter.presetId === 5 && rootFilter.startDate !== ""
-            radius: units.gu(0.5)
-            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#fff"
-            border.color: LomiriColors.orange
-            border.width: 1
 
-            Text {
-                id: badgeText
-                anchors.centerIn: parent
-                text: rootFilter.startDate + " ~ " + rootFilter.endDate
-                font.pixelSize: units.dp(12)
-                color: LomiriColors.orange
-            }
-        }
     }
 
     function calculateDates(id) {
@@ -275,6 +256,9 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 let picker = PickerPanel.openDatePicker(customDialog, "tempStart", "Years|Months|Days");
+                                if (picker && picker.picker) {
+                                    picker.picker.minimum = new Date(2000, 0, 1);
+                                }
                             }
                         }
                     }
@@ -300,6 +284,9 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 let picker = PickerPanel.openDatePicker(customDialog, "tempEnd", "Years|Months|Days");
+                                if (picker && picker.picker) {
+                                    picker.picker.minimum = new Date(2000, 0, 1);
+                                }
                             }
                         }
                     }

@@ -135,6 +135,7 @@ Item {
                 color: collapsed ? "transparent" : effectiveHeaderBgColor
 
                 Row {
+                    id: headerLayoutRow
                     anchors.fill: parent
                     anchors.leftMargin: units.gu(1.5)
                     anchors.rightMargin: units.gu(1.5)
@@ -142,7 +143,8 @@ Item {
 
                     // Label
                     Text {
-                        width: parent.width * 0.35
+                        id: labelItem
+                        width: Math.min(implicitWidth, parent.width * 0.4)
                         height: parent.height
                         text: labelText
                         color: collapsed ? effectiveTextColor : effectiveHeaderTextColor
@@ -153,7 +155,8 @@ Item {
 
                     // Selected value display
                     Text {
-                        width: parent.width * 0.5
+                        id: selectedItem
+                        width: parent.width - labelItem.width - expandIcon.width - headerLayoutRow.spacing * 2
                         height: parent.height
                         text: selectedName || i18n.dtr("ubtms", "Tap to select")
                         color: collapsed ? (selectedName ? effectiveTextColor : effectiveMutedTextColor) : (selectedName ? effectiveHeaderTextColor : effectiveDropdownMutedTextColor)
@@ -166,6 +169,7 @@ Item {
 
                     // Expand/collapse icon
                     Icon {
+                        id: expandIcon
                         width: units.gu(2.5)
                         height: units.gu(2.5)
                         anchors.verticalCenter: parent.verticalCenter

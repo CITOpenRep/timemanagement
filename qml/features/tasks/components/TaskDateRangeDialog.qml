@@ -168,7 +168,10 @@ Item {
                             bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                             width: parent.width - units.gu(13)
                             onClicked: {
-                                PickerPanel.openDatePicker(rangeDialog, "selectedStartDate", "Years|Months|Days");
+                                let result = PickerPanel.openDatePicker(rangeDialog, "selectedStartDate", "Years|Months|Days");
+                                if (result && result.picker) {
+                                    result.picker.minimum = new Date(2000, 0, 1);
+                                }
                             }
                         }
                     }
@@ -190,7 +193,10 @@ Item {
                             bgColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#404258" : "#22BABB"
                             width: parent.width - units.gu(13)
                             onClicked: {
-                                PickerPanel.openDatePicker(rangeDialog, "selectedEndDate", "Years|Months|Days");
+                                let result = PickerPanel.openDatePicker(rangeDialog, "selectedEndDate", "Years|Months|Days");
+                                if (result && result.picker) {
+                                    result.picker.minimum = new Date(2000, 0, 1);
+                                }
                             }
                         }
                     }
