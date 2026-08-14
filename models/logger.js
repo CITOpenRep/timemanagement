@@ -14,7 +14,7 @@ var LogLevel = {
 };
 
 // Default log level: WARN in production/default, DEBUG during development
-var currentLogLevel = LogLevel.INFO;
+var currentLogLevel = LogLevel.WARN;
 
 /**
  * Sets global log level.
