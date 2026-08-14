@@ -95,7 +95,7 @@ Page {
                 }
             }
 
-            // Default state: Dashboard followed by filter icon
+            // Default state: Dashboard
             RowLayout {
                 id: normalHeaderRow
                 anchors.fill: parent
@@ -106,30 +106,7 @@ Page {
                     text: i18n.dtr("ubtms", "Dashboard")
                     color: "white"
                     fontSize: "large"
-                    font.bold: true
                     Layout.alignment: Qt.AlignVCenter
-                }
-
-                Item {
-                    width: units.gu(4)
-                    height: units.gu(4)
-                    Layout.alignment: Qt.AlignVCenter
-
-                    Icon {
-                        name: "filters"
-                        anchors.centerIn: parent
-                        width: units.gu(2.4)
-                        height: units.gu(2.4)
-                        color: (typeof dateFilter !== "undefined" && dateFilter.isFiltered) ? "#ffd700" : "white"
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            headerContents.showDateFilter = true;
-                        }
-                    }
                 }
 
                 Item {
@@ -195,7 +172,7 @@ Page {
                 id: drawerAction
                 iconName: "navigation-menu"
                 text: i18n.dtr("ubtms", "Menu")
-                visible: !isMultiColumn
+                visible: !isMultiColumn && !headerContents.showDateFilter
                 onTriggered: {
                     globalDrawer.open()
                 }
@@ -207,7 +184,7 @@ Page {
             Action {
                 id: infoAction
                 iconName: "info"
-                visible: !isMultiColumn
+                visible: !isMultiColumn && !headerContents.showDateFilter
                 text: i18n.dtr("ubtms", "Chart Info")
                 onTriggered: {
                     PopupUtils.open(Qt.resolvedUrl("../components/ChartInfoPopup.qml"))
@@ -216,6 +193,7 @@ Page {
             Action {
                 id: notificationAction
                 iconSource: notificationBell.totalCount > 0 ? "../../../images/notification_active.png" : "../../../images/notification.png"
+                visible: !headerContents.showDateFilter
                 text: notificationBell.totalCount > 0 ? 
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.totalCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
@@ -231,6 +209,7 @@ Page {
             Action {
                 iconName: "reminder-new"
                 text: i18n.dtr("ubtms", "New Timesheet")
+                visible: !headerContents.showDateFilter
                 onTriggered: {
                     const defaultAccountId = Account.getDefaultAccountId();
                     const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
@@ -242,6 +221,17 @@ Page {
                     } else {
                         Logger.error("Dashboard", "Error creating timesheet: " + result.message)
                     }
+                }
+            },
+            Action {
+                id: filterAction
+                iconName: "filters"
+                text: (typeof dateFilter !== "undefined" && dateFilter.isFiltered) ? 
+                      i18n.dtr("ubtms", "Filter (Active)") : 
+                      i18n.dtr("ubtms", "Filter")
+                visible: !headerContents.showDateFilter
+                onTriggered: {
+                    headerContents.showDateFilter = true;
                 }
             }
         ]
