@@ -102,11 +102,22 @@ Page {
                 visible: !headerContents.showDateFilter
                 spacing: units.gu(1)
 
-                Label {
-                    text: i18n.dtr("ubtms", "Dashboard")
-                    color: "white"
-                    fontSize: "large"
+                ColumnLayout {
+                    spacing: 0
                     Layout.alignment: Qt.AlignVCenter
+
+                    Label {
+                        text: i18n.dtr("ubtms", "Dashboard")
+                        color: "white"
+                        fontSize: "large"
+                    }
+
+                    Label {
+                        text: typeof dateFilter !== "undefined" ? dateFilter.presetLabel : i18n.dtr("ubtms", "No Filter (All Time)")
+                        color: "white"
+                        fontSize: "small"
+                        opacity: 0.8
+                    }
                 }
 
                 Item {
