@@ -1151,12 +1151,17 @@ Page {
         // Use the selected assignee, or fall back to current user if no assignee selected
         const user = ids.assignee_id || Accounts.getCurrentUserOdooId(ids.account_id);
         if (!user) {
-            notifPopup.open("Error", "Please select an assignee for this activity.", "error");
+            notifPopup.open("Error", i18n.dtr("ubtms", "Please select an assignee for this activity."), "error");
             return;
         }
 
         if (activityTypeSelector.selectedId === -1 || summary.text === "" || notes.text === "") {
-            let message = activityTypeSelector.selectedId === -1 ? "You must specify the Activity type" : summary.text === "" ? "Please enter a summary" : "Please enter notes";
+            let message = activityTypeSelector.selectedId === -1
+                ? i18n.dtr("ubtms", "You must specify the Activity type")
+                : summary.text === ""
+                    ? i18n.dtr("ubtms", "Please enter a summary")
+                    : i18n.dtr("ubtms", "Please enter notes");
+
             notifPopup.open("Error", message, "error");
             return;
         }

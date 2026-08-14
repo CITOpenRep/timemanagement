@@ -170,6 +170,34 @@ function ensureDefaultLocalAccountExists() {
 }
 
 /**
+ * Ensures the Local Account has a default activity type.
+ *
+ * Local Account records do not come from Odoo, so their activity types
+ * must be initialized locally.
+ */
+function ensureDefaultLocalActivityTypes() {
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(NAME, VERSION, DISPLAY_NAME, SIZE);
+
+        db.transaction(function (tx) {
+            const result = tx.executeSql(
+                "SELECT id FROM mail_activity_type_app WHERE account_id = ? AND name = ? AND (status IS NULL OR status != 'deleted')",
+                [0, "To Do"]
+            );
+
+            if (result.rows.length === 0) {
+                tx.executeSql(
+                    "INSERT INTO mail_activity_type_app (account_id, name, status, odoo_record_id) VALUES (?, ?, ?, ?)",
+                    [0, "To Do", "", -1]
+                );
+            }
+        });
+    } catch (e) {
+        logException("ensureDefaultLocalActivityTypes", e);
+    }
+}
+
+/**
  * Creates a table if it doesn't exist, and ensures all expected columns are present.
  *
  * - Executes the given `CREATE TABLE IF NOT EXISTS` SQL.
