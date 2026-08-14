@@ -83,12 +83,10 @@ Item {
                     { id: -1, name: i18n.dtr("ubtms", "No Filter (All Time)") },
                     { id: 0,  name: i18n.dtr("ubtms", "Today") },
                     { id: 1,  name: i18n.dtr("ubtms", "This Week") },
-                    { id: 2,  name: i18n.dtr("ubtms", "Last 7 Days") },
-                    { id: 3,  name: i18n.dtr("ubtms", "This Month") },
-                    { id: 4,  name: i18n.dtr("ubtms", "Last 30 Days") },
-                    { id: 5,  name: i18n.dtr("ubtms", "This Quarter") },
-                    { id: 6,  name: i18n.dtr("ubtms", "This Year") },
-                    { id: 7,  name: i18n.dtr("ubtms", "Custom Range...") }
+                    { id: 2,  name: i18n.dtr("ubtms", "This Month") },
+                    { id: 3,  name: i18n.dtr("ubtms", "This Quarter") },
+                    { id: 4,  name: i18n.dtr("ubtms", "This Year") },
+                    { id: 5,  name: i18n.dtr("ubtms", "Custom Range...") }
                 ]
 
                 onSelectionMade: function(id, name, type) {
@@ -139,7 +137,7 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             width: badgeText.implicitWidth + units.gu(2)
             height: units.gu(3)
-            visible: rootFilter.isFiltered && rootFilter.presetId === 7 && rootFilter.startDate !== ""
+            visible: rootFilter.isFiltered && rootFilter.presetId === 5 && rootFilter.startDate !== ""
             radius: units.gu(0.5)
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#fff"
             border.color: LomiriColors.orange
@@ -179,26 +177,16 @@ Item {
             end = new Date(start);
             end.setDate(start.getDate() + 6);
             break;
-        case 2: // Last 7 Days
-            start = new Date(today);
-            start.setDate(today.getDate() - 6);
-            end = new Date(today);
-            break;
-        case 3: // This Month
+        case 2: // This Month
             start = new Date(today.getFullYear(), today.getMonth(), 1);
             end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
             break;
-        case 4: // Last 30 Days
-            start = new Date(today);
-            start.setDate(today.getDate() - 29);
-            end = new Date(today);
-            break;
-        case 5: // This Quarter
+        case 3: // This Quarter
             var q = Math.floor(today.getMonth() / 3);
             start = new Date(today.getFullYear(), q * 3, 1);
             end = new Date(today.getFullYear(), (q + 1) * 3, 0);
             break;
-        case 6: // This Year
+        case 4: // This Year
             start = new Date(today.getFullYear(), 0, 1);
             end = new Date(today.getFullYear(), 11, 31);
             break;
@@ -213,7 +201,7 @@ Item {
     }
 
     function applyPreset(id, label) {
-        if (id === 7) {
+        if (id === 5) {
             // Custom Range...
             openCustomDateDialog();
             return;
@@ -325,7 +313,7 @@ Item {
                     var sStr = Qt.formatDate(customDialog.tempStart, "yyyy-MM-dd");
                     var eStr = Qt.formatDate(customDialog.tempEnd, "yyyy-MM-dd");
                     var label = sStr + " ~ " + eStr;
-                    rootFilter.setFilterState(7, sStr, eStr, label);
+                    rootFilter.setFilterState(5, sStr, eStr, label);
                     PopupUtils.close(customDialog);
                 }
             }
@@ -349,7 +337,7 @@ Item {
         if (saved && saved.isFiltered) {
             setFilterState(saved.presetId, saved.startDate, saved.endDate, saved.presetLabel);
         } else {
-            clearFilter();
+            applyPreset(2, i18n.dtr("ubtms", "This Month"));
         }
     }
 }
