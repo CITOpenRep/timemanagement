@@ -1891,9 +1891,9 @@
         INS: replaceWithTag('U'),
         STRIKE: replaceWithTag('S'),
         FONT: function (node, parent) {
-            var face = node.face,
-                size = node.size,
-                colour = node.color,
+            var face = node.face || (node.style && node.style.fontFamily),
+                size = node.size || (node.style && node.style.fontSize),
+                colour = node.color || (node.style && node.style.color),
                 doc = node.ownerDocument,
                 fontSpan, sizeSpan, colourSpan,
                 newTreeBottom, newTreeTop;
@@ -1906,9 +1906,10 @@
                 newTreeBottom = fontSpan;
             }
             if (size) {
+                var sizeVal = fontSizes[size] ? fontSizes[size] + 'px' : size;
                 sizeSpan = createElement(doc, 'SPAN', {
                     'class': FONT_SIZE_CLASS,
-                    style: 'font-size:' + fontSizes[size] + 'px'
+                    style: 'font-size:' + sizeVal
                 });
                 if (!newTreeTop) {
                     newTreeTop = sizeSpan;
@@ -1918,10 +1919,7 @@
                 }
                 newTreeBottom = sizeSpan;
             }
-            if (colour && /^#?([\dA-F]{3}){1,2}$/i.test(colour)) {
-                if (colour.charAt(0) !== '#') {
-                    colour = '#' + colour;
-                }
+            if (colour) {
                 colourSpan = createElement(doc, 'SPAN', {
                     'class': COLOUR_CLASS,
                     style: 'color:' + colour

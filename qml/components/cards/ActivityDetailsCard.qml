@@ -393,9 +393,9 @@ ListItem {
         mode: "next"
         currentDate: root.due_date // Pass the current activity's due date
         onDateSelected: function (selectedDate) {
-            console.log("📅 ActivityDetailsCard: Date changed for record ID:", root.odoo_record_id, "to:", selectedDate);
-            console.log("📅 ActivityDetailsCard: Date format being passed:", typeof selectedDate, selectedDate);
-            console.log("📅 ActivityDetailsCard: Original due date was:", root.due_date);
+            console.log("ActivityDetailsCard: Date changed for record ID:", root.odoo_record_id, "to:", selectedDate);
+            console.log("ActivityDetailsCard: Date format being passed:", typeof selectedDate, selectedDate);
+            console.log("ActivityDetailsCard: Original due date was:", root.due_date);
             root.dateChanged(root.account_id, root.odoo_record_id, selectedDate);
         }
     }

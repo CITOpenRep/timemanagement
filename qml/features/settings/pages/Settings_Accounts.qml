@@ -144,7 +144,7 @@ Page {
                 syncingAccountId = -1;
                 syncStatusChecker.stop(); // Stop status checker
                 accountDisplayRefreshTimer.stop(); // Stop display refresh
-                //console.log("🕐 Settings page: Local sync state timed out for account:", timeoutAccountId);
+                //console.log("Settings page: Local sync state timed out for account:", timeoutAccountId);
             }
         }
     }
@@ -170,7 +170,7 @@ Page {
                     // If sync completed (successful or failed), only refresh accounts list
                     // Let GlobalTimerWidget handle its own timeout and display lifecycle
                     if (currentStatus.indexOf("Successful") !== -1 || currentStatus.indexOf("Failed") !== -1) {
-                        //console.log("✅ Sync completed for account:", syncingAccountId, "Status:", currentStatus);
+                        //console.log("Sync completed for account:", syncingAccountId, "Status:", currentStatus);
 
                         // Only reset local sync state and refresh accounts - don't stop GlobalTimerWidget
                         var completedAccountId = syncingAccountId;

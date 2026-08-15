@@ -23,20 +23,59 @@
  */
 
 import QtQuick 2.7
+import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
 import QtCharts 2.0
 import "../../../../models/Main.js" as Model
+import "../../../../models/global.js" as Global
+import "../../../components"
 
 Page {
     id: dashboard2
     title: i18n.dtr("ubtms", "Task")
+    property bool isMultiColumn: typeof apLayout !== "undefined" && apLayout.columns > 1
     header: PageHeader {
-        title: dashboard2.title
+        id: pageHeader
+        StyleHints {
+            foregroundColor: "white"
+            backgroundColor: LomiriColors.orange
+            dividerColor: LomiriColors.slate
+        }
+
+        contents: FilterableHeaderContents {
+            id: headerContents
+            title: dashboard2.isMultiColumn ? dashboard2.title : i18n.dtr("ubtms", "Task")
+            showSubtitle: !dashboard2.isMultiColumn
+            
+            onDateRangeChanged: chart4.reloadData()
+            
+            Component.onCompleted: {
+                if (typeof headerContents.dateFilter !== "undefined" && dashboard2.isMultiColumn) {
+                    headerContents.showDateFilter = false;
+                }
+            }
+        }
+
+        trailingActionBar.actions: [
+            Action {
+                id: filterAction
+                iconName: "filters"
+                text: (typeof headerContents.dateFilter !== "undefined" && headerContents.dateFilter.isFiltered) ? 
+                      i18n.dtr("ubtms", "Filter (Active)") : 
+                      i18n.dtr("ubtms", "Filter")
+                visible: !dashboard2.isMultiColumn && !headerContents.showDateFilter
+                onTriggered: {
+                    headerContents.showDateFilter = true;
+                }
+            }
+        ]
     }
 
     LomiriShape {
         id: rect1
-        anchors.centerIn: parent
+        anchors.top: pageHeader.bottom
+        anchors.topMargin: units.gu(1)
+        anchors.horizontalCenter: parent.horizontalCenter
         width: parent.width
         height: units.gu(40)
 
@@ -91,7 +130,10 @@ Page {
 
             function reloadData() {
                 var accountId = typeof accountPicker !== 'undefined' ? accountPicker.selectedAccountId : -1;
-                var quadrant_data = Model.get_tasks_spent_hours(accountId);
+                var filterData = Global.getDateRangeFilter();
+                var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+                var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+                var quadrant_data = Model.get_tasks_spent_hours(accountId, sDate, eDate);
                 var count = 0;
                 var timeval;
                 var timecat = [];
@@ -126,6 +168,13 @@ Page {
             Connections {
                 target: typeof accountPicker !== "undefined" ? accountPicker : null
                 onAccepted: function (accountId, accountName) {
+                    reloadData();
+                }
+            }
+
+            Connections {
+                target: typeof mainView !== "undefined" ? mainView : null
+                onGlobalDateRangeChanged: function (presetId, startDate, endDate, presetLabel) {
                     reloadData();
                 }
             }

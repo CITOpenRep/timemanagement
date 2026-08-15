@@ -16,7 +16,7 @@ The documentation website has been migrated to its own dedicated repository:
 
 - **Repository:** [CITOpenRep/TimeManagement_Docs](https://github.com/CITOpenRep/TimeManagement_Docs)
 - **New Published URL:** [https://citopenrep.github.io/TimeManagement_Docs/](https://citopenrep.github.io/TimeManagement_Docs/)
-- **Old Published URL:** [https://citopenrep.github.io/timemanagement/](https://citopenrep.github.io/timemanagement/)
+
 
 The documentation website hosts:
 - Product-facing overview content

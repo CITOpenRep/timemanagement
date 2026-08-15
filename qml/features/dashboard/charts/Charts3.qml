@@ -26,6 +26,7 @@ import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtCharts 2.0
 import "../../../../models/Main.js" as Model
+import "../../../../models/global.js" as Global
 
 Item {
     id: root
@@ -40,10 +41,16 @@ Item {
     property bool autoRefreshOnAccountChange: true
     property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
 
-    function reloadData() {
+    property string filterStartDate: ""
+    property string filterEndDate: ""
+
+    function reloadData(startDate, endDate) {
+        if (startDate !== undefined) filterStartDate = startDate || "";
+        if (endDate !== undefined) filterEndDate = endDate || "";
+
         var t_proj = [];
         var maxVal = 0;
-        var data = Model.get_projects_spent_hours(root.selectedAccountId);
+        var data = Model.get_projects_spent_hours(root.selectedAccountId, filterStartDate, filterEndDate);
 
         root.totalProjects = data.length;
         var limit = Math.min(root.displayLimit, data.length);
@@ -97,13 +104,18 @@ Item {
         }
     }
 
-    Component.onCompleted: reloadData()
+    Component.onCompleted: {
+        var filterData = Global.getDateRangeFilter();
+        var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+        var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+        reloadData(sDate, eDate);
+    }
 
     Connections {
         target: root.autoRefreshOnAccountChange && typeof accountPicker !== "undefined" ? accountPicker : null
         onAccepted: function (accountId, accountName) {
             root.displayLimit = 10; // Reset to top 10 on account change
-            reloadData();
+            reloadData(root.filterStartDate, root.filterEndDate);
         }
     }
 
@@ -229,7 +241,7 @@ Item {
                     anchors.fill: parent
                     onClicked: {
                         root.displayLimit = Math.max(10, root.displayLimit - 10);
-                        root.reloadData();
+                        root.reloadData(root.filterStartDate, root.filterEndDate);
                     }
                 }
             }
@@ -254,7 +266,7 @@ Item {
                     anchors.fill: parent
                     onClicked: {
                         root.displayLimit += 10;
-                        root.reloadData();
+                        root.reloadData(root.filterStartDate, root.filterEndDate);
                     }
                 }
             }
