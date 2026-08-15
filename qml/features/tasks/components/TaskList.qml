@@ -449,7 +449,11 @@ Item {
                 projectIdToUse = row.sub_project_id;
             }
             
-            var projectName = Project.getProjectDetails(projectIdToUse).name || "Unknown Project";
+            var projectName = Project.getProjectName(projectIdToUse, row.account_id);
+
+            if (projectName === "Unknown Project") {
+                projectName = Project.getProjectDetails(projectIdToUse).name || "Unknown Project";
+            }
             
             var item = {
                 id_val: odooId,
