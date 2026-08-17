@@ -450,10 +450,11 @@ Item {
             }
             
             var projectName = Project.getProjectName(projectIdToUse, row.account_id);
-
-            if (projectName === "Unknown Project") {
-                projectName = Project.getProjectDetails(projectIdToUse).name || "Unknown Project";
-            }
+  
+                if (projectName === "Unknown Project") {
+                     projectName = Project.getProjectDetails(projectIdToUse).name || i18n.dtr("ubtms", "Unknown     
+                Project");
+                  }
             
             var item = {
                 id_val: odooId,
