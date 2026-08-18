@@ -1730,7 +1730,7 @@ function getFilteredTasksPaginated(filterType, searchQuery, accountId, limit, of
     var dbOffset = 0;
     var skipped = 0;
     var hasMore = true;
-    var maxIterations = 10; // Safety limit to prevent infinite loops
+    var maxIterations = 50; // Safety limit to prevent infinite loops
     var iteration = 0;
 
     try {
