@@ -379,6 +379,7 @@ def sync_model(
         and removing orphaned records. Adds notification on failure.
     """
     clear_table_columns_cache()
+    sync_start_time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     field_map = prepare_field_mapping(client, model_name, config_path)
     odoo_fields = list(field_map.keys())
     if not odoo_fields:
@@ -409,11 +410,43 @@ def sync_model(
         last_sync_domain = [[]]
         
         if has_last_modified and all_odoo_ids is not None:
-            max_mod_sql = f"SELECT MAX(last_modified) FROM {table_name} WHERE account_id = ? AND last_modified IS NOT NULL"
-            max_mod_res = safe_sql_execute(db_path, max_mod_sql, (account_id,), fetch=True, commit=False)
+            # Try to get last sync time from app_settings
+            setting_key = f"last_sync_{model_name}_{account_id}"
+            setting_sql = "SELECT value FROM app_settings WHERE key = ?"
+            setting_res = safe_sql_execute(db_path, setting_sql, (setting_key,), fetch=True, commit=False)
             
-            if max_mod_res and max_mod_res[0][0]:
-                last_mod_str = max_mod_res[0][0]
+            last_mod_str = None
+            if setting_res and setting_res[0][0]:
+                last_mod_str = setting_res[0][0]
+            else:
+                # Fallback to MAX(last_modified) of successfully synced records if no setting exists
+                conditions = ["account_id = ?", "last_modified IS NOT NULL"]
+                if "odoo_record_id" in columns:
+                    conditions.append("odoo_record_id IS NOT NULL")
+                if "has_draft" in columns:
+                    conditions.append("has_draft = 0")
+                
+                conditions_str = " AND ".join(conditions)
+                max_mod_sql = f"SELECT MAX(last_modified) FROM {table_name} WHERE {conditions_str}"
+                max_mod_res = safe_sql_execute(db_path, max_mod_sql, (account_id,), fetch=True, commit=False)
+                if max_mod_res and max_mod_res[0][0]:
+                    # Roll back the fallback threshold by 10 days to recover any missed syncs
+                    # before the new watermark settings system was introduced.
+                    last_mod_raw = max_mod_res[0][0]
+                    try:
+                        from datetime import timedelta
+                        clean_str = last_mod_raw.replace("Z", "").split(".")[0]
+                        if "T" in clean_str:
+                            dt = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
+                        else:
+                            dt = datetime.strptime(clean_str, "%Y-%m-%d %H:%M:%S")
+                        dt_rolled_back = dt - timedelta(days=10)
+                        last_mod_str = dt_rolled_back.strftime("%Y-%m-%d %H:%M:%S")
+                    except Exception as rollback_err:
+                        last_mod_str = last_mod_raw
+                        log.warning(f"[SYNC] Failed to roll back fallback threshold: {rollback_err}")
+            
+            if last_mod_str:
                 clean_str = last_mod_str.replace("Z", "").split(".")[0]
                 try:
                     if "T" in clean_str:
@@ -478,6 +511,11 @@ def sync_model(
         
         # SUCCESS: Clear any previous sync error notifications for this model
         clear_sync_notifications(db_path, account_id, model_name)
+
+        # Save last sync time in app_settings on successful sync
+        setting_key = f"last_sync_{model_name}_{account_id}"
+        save_sql = "INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)"
+        safe_sql_execute(db_path, save_sql, (setting_key, sync_start_time_str), commit=True)
     except Exception as e:
         log.error(f"[ERROR] Failed to sync model '{model_name}': {e}")
         

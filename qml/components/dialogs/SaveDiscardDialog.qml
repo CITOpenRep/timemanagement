@@ -65,7 +65,7 @@ Item {
                     text: i18n.dtr("ubtms", "Save")
                     color: LomiriColors.green
                     onClicked: {
-                        console.log("💾 SaveDiscardDialog: User clicked Save");
+                        console.log("SaveDiscardDialog: User clicked Save");
                         PopupUtils.close(confirmDialog);
                         dialogWrapper.saveRequested();
                     }
@@ -80,7 +80,7 @@ Item {
                     text: i18n.dtr("ubtms", "Discard")
                     color: LomiriColors.red
                     onClicked: {
-                        console.log("🗑️ SaveDiscardDialog: User clicked Discard");
+                        console.log("SaveDiscardDialog: User clicked Discard");
                         PopupUtils.close(confirmDialog);
                         dialogWrapper.discardRequested();
                     }
@@ -94,7 +94,7 @@ Item {
                 Button {
                     text: i18n.dtr("ubtms", "Cancel")
                     onClicked: {
-                        console.log("❌ SaveDiscardDialog: User clicked Cancel");
+                        console.log("SaveDiscardDialog: User clicked Cancel");
                         PopupUtils.close(confirmDialog);
                         dialogWrapper.cancelled();
                     }
@@ -109,7 +109,7 @@ Item {
     }
 
     function open(page) {
-        console.log("🔍 SaveDiscardDialog: Opening dialog");
+        console.log("SaveDiscardDialog: Opening dialog");
         if (page) {
             targetPage = page;
         }

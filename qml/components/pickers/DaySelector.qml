@@ -51,7 +51,7 @@ Item {
             updateModelData();
             dateChanged(selectedDate);
         } else {
-            console.warn("❌ Invalid date input for setSelectedDate:", val);
+            console.warn("Invalid date input for setSelectedDate:", val);
         }
     }
 
@@ -100,6 +100,9 @@ Item {
     function openCustomDatePicker() {
         let result = PickerPanel.openDatePicker(daySelector, "selectedDate", "Years|Months|Days");
         if (result) {
+            if (result.picker) {
+                result.picker.minimum = new Date(2000, 0, 1);
+            }
             result.closed.connect(() => {
                 dayCombo.applyDeferredSelection(2, false);
                 updateModelData();

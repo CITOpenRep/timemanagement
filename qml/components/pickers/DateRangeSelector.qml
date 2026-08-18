@@ -133,6 +133,9 @@ Item {
                             if (!dateRangeSelector.readOnly) {
                                 let result = PickerPanel.openDatePicker(startDateItem, "date", "Years|Months|Days");
                                 if (result) {
+                                    if (result.picker) {
+                                        result.picker.minimum = new Date(2000, 0, 1);
+                                    }
                                     result.closed.connect(() => {
                                         startDate = startDateItem.date;
                                         isStartDateValid = true;
@@ -177,6 +180,9 @@ Item {
                             if (!dateRangeSelector.readOnly) {
                                 let result = PickerPanel.openDatePicker(endDateItem, "date", "Years|Months|Days");
                                 if (result) {
+                                    if (result.picker) {
+                                        result.picker.minimum = new Date(2000, 0, 1);
+                                    }
                                     result.closed.connect(() => {
                                         endDate = endDateItem.date;
                                         isEndDateValid = true;

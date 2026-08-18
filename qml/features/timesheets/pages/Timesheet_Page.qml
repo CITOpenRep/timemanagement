@@ -98,7 +98,7 @@ Page {
                             "isReadOnly": false
                         });
                     } else {
-                        notifPopup.open("Error", result.message, "error");
+                        notifPopup.open("Error", result.error, "error");
                     }
                 }
             }
@@ -369,7 +369,7 @@ Page {
                         "isReadOnly": false
                     });
                 } else {
-                    notifPopup.open("Error", result.message, "error");
+                    notifPopup.open("Error", result.error,"error");
                 }
             }
         }

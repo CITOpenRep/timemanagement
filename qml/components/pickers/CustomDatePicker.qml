@@ -149,7 +149,12 @@ Item {
                         property date date: new Date()
                         text: date ? Qt.formatDateTime(date, "dd-MM-yy") : "Custom"
                         Layout.fillWidth: true
-                        onClicked: PickerPanel.openDatePicker(customDateButton, "date", "Years|Months|Days")
+                        onClicked: {
+                            let result = PickerPanel.openDatePicker(customDateButton, "date", "Years|Months|Days");
+                            if (result && result.picker) {
+                                result.picker.minimum = new Date(2000, 0, 1);
+                            }
+                        }
                     }
 
                     RowLayout {
