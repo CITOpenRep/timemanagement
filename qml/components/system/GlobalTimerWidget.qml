@@ -485,4 +485,5 @@ Rectangle {
         onCancelled: {
             Logger.debug("GlobalTimerWidget", "Description popup cancelled - timer continues running")
         }
+    }
 }
