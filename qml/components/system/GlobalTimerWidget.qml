@@ -247,61 +247,79 @@ Rectangle {
         }
     }
 
-    // Animated indicator dot
-    Rectangle {
-        id: indicator
-        width: units.gu(1.3)
-        height: units.gu(1.3)
-        radius: units.gu(0.65)
-        color: {
-            if (isSyncing && !isTimerRunning) {
-                if (syncFailed)
-                    return "#DF382C"; // Ubuntu Red
-                if (syncSuccessful)
-                    return "#38B44A"; // Ubuntu Green
-                return "#19B6EE"; // Ubuntu Light Blue
-            }
-            return isTimerPaused ? "#AEA79F" : "#38B44A"; // Warm gray when paused, Ubuntu green when recording
-        }
+    // Left Indicator: Pulsing Dot (for Timer) or Animated Sync Icon (for Sync)
+    Item {
+        id: leftIconContainer
+        width: units.gu(2.4)
+        height: units.gu(2.4)
         anchors.left: parent.left
         anchors.leftMargin: units.gu(1.5)
         anchors.verticalCenter: parent.verticalCenter
 
-        // Pulsing animation
-        SequentialAnimation on opacity {
-            loops: Animation.Infinite
-            running: globalTimer.visible && !isTimerPaused
-            NumberAnimation {
-                from: 0.3
-                to: 1.0
-                duration: {
-                    if (isSyncing && !isTimerRunning) {
-                        return syncSuccessful ? 400 : 600;
-                    }
-                    return 800;
-                }
-                easing.type: Easing.InOutQuad
+        // Pulsing Dot (Visible when timer is running)
+        Rectangle {
+            id: timerIndicatorDot
+            visible: globalTimer.isTimerRunning
+            anchors.centerIn: parent
+            width: units.gu(1.3)
+            height: units.gu(1.3)
+            radius: units.gu(0.65)
+            color: globalTimer.isTimerPaused ? "#AEA79F" : "#38B44A"
+
+            SequentialAnimation on opacity {
+                loops: Animation.Infinite
+                running: globalTimer.visible && globalTimer.isTimerRunning && !globalTimer.isTimerPaused
+                NumberAnimation { from: 0.3; to: 1.0; duration: 800; easing.type: Easing.InOutQuad }
+                NumberAnimation { from: 1.0; to: 0.3; duration: 800; easing.type: Easing.InOutQuad }
             }
-            NumberAnimation {
-                from: 1.0
-                to: 0.3
-                duration: {
-                    if (isSyncing && !isTimerRunning) {
-                        return syncSuccessful ? 400 : 600;
-                    }
-                    return 800;
-                }
-                easing.type: Easing.InOutQuad
+        }
+
+        // Rotating Sync Icon (Visible when syncing without timer)
+        Image {
+            id: syncIcon
+            visible: globalTimer.isSyncing && !globalTimer.isTimerRunning && !globalTimer.syncSuccessful && !globalTimer.syncFailed
+            anchors.fill: parent
+            source: "../../images/refresh.svg"
+            fillMode: Image.PreserveAspectFit
+
+            RotationAnimation on rotation {
+                loops: Animation.Infinite
+                running: globalTimer.visible && globalTimer.isSyncing && !globalTimer.isTimerRunning && !globalTimer.syncSuccessful && !globalTimer.syncFailed
+                from: 0
+                to: 360
+                duration: 1200
             }
+        }
+
+        // Success Icon
+        Label {
+            id: syncSuccessIcon
+            visible: globalTimer.isSyncing && !globalTimer.isTimerRunning && globalTimer.syncSuccessful
+            anchors.centerIn: parent
+            text: "✓"
+            color: "#38B44A"
+            font.pixelSize: units.gu(2.2)
+            font.weight: Font.Bold
+        }
+
+        // Error Icon
+        Label {
+            id: syncErrorIcon
+            visible: globalTimer.isSyncing && !globalTimer.isTimerRunning && globalTimer.syncFailed
+            anchors.centerIn: parent
+            text: "!"
+            color: "#DF382C"
+            font.pixelSize: units.gu(2.0)
+            font.weight: Font.Bold
         }
     }
 
     // Main Content Section (Two-Line Layout)
     Column {
         id: textContent
-        anchors.left: indicator.right
+        anchors.left: leftIconContainer.right
         anchors.leftMargin: units.gu(1.2)
-        anchors.right: buttonRow.visible ? buttonRow.left : parent.right
+        anchors.right: (globalTimer.isTimerRunning ? buttonRow.left : (globalTimer.isSyncing ? syncRightBadge.left : parent.right))
         anchors.rightMargin: units.gu(1.2)
         anchors.verticalCenter: parent.verticalCenter
         spacing: units.gu(0.2)
@@ -310,7 +328,14 @@ Rectangle {
         Label {
             id: titleLabel
             width: parent.width
-            text: globalTimer.isTimerRunning ? globalTimer.activeTitle : (globalTimer.isSyncing ? (globalTimer.syncAccountName || "Cloud Sync") : "")
+            text: {
+                if (globalTimer.isTimerRunning) {
+                    return globalTimer.activeTitle;
+                } else if (globalTimer.isSyncing) {
+                    return globalTimer.syncAccountName ? ("Syncing " + globalTimer.syncAccountName) : "Cloud Sync";
+                }
+                return "";
+            }
             color: "#FFFFFF"
             font.pixelSize: units.gu(1.7)
             font.weight: Font.DemiBold
@@ -324,7 +349,7 @@ Rectangle {
             spacing: units.gu(0.8)
             width: parent.width
 
-            // Digital Clock
+            // Digital Clock (Timer mode)
             Label {
                 id: timerClock
                 visible: globalTimer.isTimerRunning
@@ -336,7 +361,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            // Clean Status Text (No artificial colored box badges)
+            // Clean Status Text (Timer mode)
             Label {
                 id: statusText
                 visible: globalTimer.isTimerRunning
@@ -347,18 +372,17 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            // Sync Status Subtitle (when syncing without timer)
+            // Sync Status Subtitle (Sync mode)
             Label {
                 id: syncSubtitle
                 visible: globalTimer.isSyncing && !globalTimer.isTimerRunning
                 width: parent.width
                 text: {
-                    if (globalTimer.syncFailed) return globalTimer.syncStatusMessage || "Sync Failed";
-                    if (globalTimer.syncSuccessful) return "✅ All items up to date";
-                    var progressPercent = Math.round(globalTimer.syncProgress * 100);
-                    return (globalTimer.syncStatusMessage || "Syncing...") + " (" + progressPercent + "%)";
+                    if (globalTimer.syncFailed) return globalTimer.syncStatusMessage || "Sync failed";
+                    if (globalTimer.syncSuccessful) return "All items up to date";
+                    return globalTimer.syncStatusMessage || "Synchronizing...";
                 }
-                color: globalTimer.syncFailed ? "#DF382C" : (globalTimer.syncSuccessful ? "#38B44A" : "#AEA79F")
+                color: globalTimer.syncFailed ? "#DF382C" : (globalTimer.syncSuccessful ? "#38B44A" : "#D0CBC5")
                 font.pixelSize: units.gu(1.3)
                 elide: Text.ElideRight
                 maximumLineCount: 1
@@ -367,7 +391,31 @@ Rectangle {
         }
     }
 
-    // Action Buttons Container
+    // Right Side Sync Status / Percentage Badge (Sync mode)
+    Item {
+        id: syncRightBadge
+        visible: globalTimer.isSyncing && !globalTimer.isTimerRunning
+        anchors.right: parent.right
+        anchors.rightMargin: units.gu(1.5)
+        anchors.verticalCenter: parent.verticalCenter
+        width: syncProgressText.implicitWidth + units.gu(1.5)
+        height: units.gu(3.2)
+
+        Label {
+            id: syncProgressText
+            anchors.centerIn: parent
+            text: {
+                if (globalTimer.syncFailed) return "FAILED";
+                if (globalTimer.syncSuccessful) return "DONE";
+                return Math.round(globalTimer.syncProgress * 100) + "%";
+            }
+            color: globalTimer.syncFailed ? "#DF382C" : (globalTimer.syncSuccessful ? "#38B44A" : "#19B6EE")
+            font.pixelSize: (globalTimer.syncFailed || globalTimer.syncSuccessful) ? units.gu(1.3) : units.gu(1.7)
+            font.weight: Font.Bold
+        }
+    }
+
+    // Action Buttons Container (Timer mode)
     Row {
         id: buttonRow
         anchors.right: parent.right
@@ -426,19 +474,19 @@ Rectangle {
         }
     }
 
-    // Progress Bar Indicator at Bottom
+    // Integrated Bottom Progress Bar
     Rectangle {
         id: progressContainer
-        visible: isSyncing
+        visible: globalTimer.isSyncing
         anchors.bottom: parent.bottom
+        anchors.bottomMargin: units.gu(0.5)
         anchors.left: parent.left
+        anchors.leftMargin: units.gu(1.5)
         anchors.right: parent.right
-        anchors.bottomMargin: units.gu(0.2)
-        anchors.leftMargin: units.gu(1)
-        anchors.rightMargin: units.gu(1)
-        height: units.gu(0.4)
+        anchors.rightMargin: units.gu(1.5)
+        height: units.gu(0.35)
         radius: units.gu(0.2)
-        color: "#1a1a1a"
+        color: "#1c1c1c"
         clip: true
 
         Rectangle {
@@ -446,14 +494,14 @@ Rectangle {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: isSyncing ? parent.width * syncProgress : 0
+            width: globalTimer.isSyncing ? (parent.width * Math.max(0.02, Math.min(1.0, globalTimer.syncProgress))) : 0
             radius: parent.radius
-            color: syncSuccessful ? "#38B44A" : (syncFailed ? "#DF382C" : "#E95420")
+            color: globalTimer.syncSuccessful ? "#38B44A" : (globalTimer.syncFailed ? "#DF382C" : "#19B6EE")
 
             Behavior on width {
                 NumberAnimation {
-                    duration: 200
-                    easing.type: Easing.OutQuad
+                    duration: 250
+                    easing.type: Easing.OutCubic
                 }
             }
         }
