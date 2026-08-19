@@ -9,10 +9,12 @@ import "../../../models/logger.js" as Logger
 
 Rectangle {
     id: globalTimer
-    width: units.gu(47)
-    height: units.gu(8)
-    color: "#2d2d2d" // semi-transparent dark
-    radius: units.gu(1)
+    width: Math.min(parent ? parent.width - units.gu(4) : units.gu(46), units.gu(46))
+    height: units.gu(7.2)
+    color: "#1e222b"
+    border.color: "#333a46"
+    border.width: 1
+    radius: units.gu(1.6)
     anchors.bottom: parent.bottom
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.margins: units.gu(1)
@@ -60,8 +62,6 @@ Rectangle {
         if (!data || !data.event || !isSyncing)
             return;
 
-        //   console.log("GlobalTimer: Received sync event:", data.event, "Payload:", data.payload);
-
         switch (data.event) {
         case "sync_progress":
             syncProgress = data.payload / 100.0; // Convert to 0.0-1.0 range
@@ -104,8 +104,6 @@ Rectangle {
 
     // Complete sync successfully
     function completeSyncSuccessfully() {
-        //  console.log("GlobalTimer: Sync completed successfully for account", syncAccountId);
-
         syncSuccessful = true;
         syncFailed = false;
         syncProgress = 1.0;
@@ -118,8 +116,6 @@ Rectangle {
 
     // Fail sync with error message
     function failSync(errorMessage) {
-        //console.log("GlobalTimer: Sync failed for account", syncAccountId, ":", errorMessage);
-
         syncSuccessful = false;
         syncFailed = true;
         syncStatusMessage = "❌ " + (errorMessage || "Sync Failed");
@@ -143,8 +139,6 @@ Rectangle {
 
     // Function to start sync indication with BackendBridge integration
     function startSync(accountId, accountName) {
-        //   console.log("GlobalTimer: Starting enhanced sync indication for account", accountId, "("+ accountName + ")");
-
         syncAccountId = accountId;
         syncAccountName = accountName || "Account " + accountId;
         isSyncing = true;
@@ -157,9 +151,6 @@ Rectangle {
 
     // Enhanced function to stop sync indication
     function stopSync() {
-        //console.log("GlobalTimer: Stopping sync indication for account", syncAccountId);
-
-        // Stop auto-hide timer
         autoHideTimer.stop();
 
         isSyncing = false;
@@ -189,19 +180,16 @@ Rectangle {
             if (currentlyRunning || isSyncing) {
                 globalTimer.visible = true;
                 if (isSyncing && !currentlyRunning) {
-                    // Show enhanced sync status when no timer is running
                     if (syncFailed) {
                         globalTimer.elapsedDisplay = syncStatusMessage + " - " + syncAccountName;
                     } else if (syncSuccessful) {
                         globalTimer.elapsedDisplay = "✅ Sync Complete - " + syncAccountName;
                     } else {
-                        // Show detailed progress message
                         var progressPercent = Math.round(syncProgress * 100);
                         var statusMsg = syncStatusMessage || "Syncing...";
                         globalTimer.elapsedDisplay = statusMsg + " (" + progressPercent + "%) - " + syncAccountName;
                     }
                 } else if (currentlyRunning) {
-                    // Show timer status (prioritize timer over sync)
                     globalTimer.elapsedDisplay = TimerService.getElapsedTime() + " " + TimerService.getActiveTimesheetName();
                 }
             } else {
@@ -218,10 +206,8 @@ Rectangle {
             // Emit paused/resumed signals
             if (currentlyPaused && !globalTimer.previousPausedState) {
                 globalTimer.timerPaused();
-                pausebutton.source = "../../images/play.png";
             } else if (!currentlyPaused && globalTimer.previousPausedState) {
                 globalTimer.timerResumed();
-                pausebutton.source = "../../images/pause.png";
             }
 
             // Update previous states
@@ -231,241 +217,250 @@ Rectangle {
         }
     }
 
-    // Animated dot - changes behavior based on sync status
+    // Animated indicator dot
     Rectangle {
         id: indicator
-        width: units.gu(1.5)
-        height: units.gu(1.5)
-        radius: units.gu(.75)
+        width: units.gu(1.4)
+        height: units.gu(1.4)
+        radius: units.gu(0.7)
         color: {
             if (isSyncing && !TimerService.isRunning()) {
                 if (syncFailed)
-                    return "#dc3545"; // Red for error
+                    return "#ef4444"; // Red for error
                 if (syncSuccessful)
-                    return "#28a745"; // Green for success
-                return "#0078d4"; // Blue for syncing
+                    return "#22c55e"; // Green for success
+                return "#3b82f6"; // Blue for syncing
             }
-            return "#ffa500"; // Orange for timer
+            return TimerService.isPaused() ? "#f59e0b" : "#10b981"; // Amber for paused, Green for running
         }
         anchors.left: parent.left
-        anchors.margins: units.gu(2)
+        anchors.leftMargin: units.gu(1.5)
         anchors.verticalCenter: parent.verticalCenter
 
         // Pulsing animation
         SequentialAnimation on opacity {
             loops: Animation.Infinite
-            running: globalTimer.visible
+            running: globalTimer.visible && !TimerService.isPaused()
             NumberAnimation {
                 from: 0.3
-                to: 1
+                to: 1.0
                 duration: {
                     if (isSyncing && !TimerService.isRunning()) {
-                        return syncSuccessful ? 400 : 600; // Faster pulse for success
+                        return syncSuccessful ? 400 : 600;
                     }
                     return 800;
                 }
                 easing.type: Easing.InOutQuad
             }
             NumberAnimation {
-                from: 1
+                from: 1.0
                 to: 0.3
                 duration: {
                     if (isSyncing && !TimerService.isRunning()) {
-                        return syncSuccessful ? 400 : 600; // Faster pulse for success
+                        return syncSuccessful ? 400 : 600;
                     }
                     return 800;
                 }
                 easing.type: Easing.InOutQuad
             }
         }
+    }
 
-        // Add rotating animation for sync status only (not for success)
-        RotationAnimation on rotation {
-            running: isSyncing && !TimerService.isRunning() && !syncSuccessful
-            loops: Animation.Infinite
-            from: 0
-            to: 360
-            duration: 2000
-            easing.type: Easing.Linear
+    // Main Content Section (Two-Line Layout)
+    Column {
+        id: textContent
+        anchors.left: indicator.right
+        anchors.leftMargin: units.gu(1.2)
+        anchors.right: buttonRow.visible ? buttonRow.left : parent.right
+        anchors.rightMargin: units.gu(1.2)
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: units.gu(0.3)
+
+        // Line 1: Timesheet / Account Title
+        Label {
+            id: titleLabel
+            width: parent.width
+            text: {
+                if (TimerService.isRunning()) {
+                    var name = TimerService.getActiveTimesheetName();
+                    return (name && name.trim() !== "") ? name.trim() : "Active Timesheet";
+                } else if (isSyncing) {
+                    return syncAccountName || "Cloud Sync";
+                }
+                return "";
+            }
+            color: "#f3f4f6"
+            font.pixelSize: units.gu(1.6)
+            font.weight: Font.DemiBold
+            elide: Text.ElideRight
+            maximumLineCount: 1
         }
 
-        // Scale animation - different for success vs syncing
-        SequentialAnimation on scale {
-            running: isSyncing && !TimerService.isRunning()
-            loops: Animation.Infinite
-            NumberAnimation {
-                from: 1.0
-                to: syncSuccessful ? 1.5 : 1.3 // Bigger scale for success
-                duration: syncSuccessful ? 800 : 1000
-                easing.type: Easing.InOutQuad
+        // Line 2: Timer Duration + Status Badge (or Sync Status Message)
+        Row {
+            id: subtitleRow
+            spacing: units.gu(1)
+            width: parent.width
+
+            // Digital Clock
+            Label {
+                id: timerClock
+                visible: TimerService.isRunning()
+                text: TimerService.getElapsedTime()
+                color: TimerService.isPaused() ? "#f59e0b" : "#38bdf8"
+                font.pixelSize: units.gu(1.8)
+                font.family: "Ubuntu Mono, DejaVu Sans Mono, monospace"
+                font.weight: Font.Bold
+                anchors.verticalCenter: parent.verticalCenter
             }
-            NumberAnimation {
-                from: syncSuccessful ? 1.5 : 1.3
-                to: 1.0
-                duration: syncSuccessful ? 800 : 1000
-                easing.type: Easing.InOutQuad
+
+            // Status Badge (RECORDING / PAUSED)
+            Rectangle {
+                id: statusBadge
+                visible: TimerService.isRunning()
+                radius: units.gu(0.4)
+                height: units.gu(1.8)
+                width: statusBadgeText.implicitWidth + units.gu(1)
+                color: TimerService.isPaused() ? "#451a03" : "#064e3b"
+                border.color: TimerService.isPaused() ? "#78350f" : "#047857"
+                border.width: 1
+                anchors.verticalCenter: parent.verticalCenter
+
+                Label {
+                    id: statusBadgeText
+                    anchors.centerIn: parent
+                    text: TimerService.isPaused() ? "PAUSED" : "RECORDING"
+                    font.pixelSize: units.gu(1.0)
+                    font.weight: Font.Bold
+                    color: TimerService.isPaused() ? "#fbbf24" : "#34d399"
+                }
+            }
+
+            // Sync Status Subtitle (when syncing without timer)
+            Label {
+                id: syncSubtitle
+                visible: isSyncing && !TimerService.isRunning()
+                width: parent.width
+                text: {
+                    if (syncFailed) return syncStatusMessage || "Sync Failed";
+                    if (syncSuccessful) return "✅ All items up to date";
+                    var progressPercent = Math.round(syncProgress * 100);
+                    return (syncStatusMessage || "Syncing...") + " (" + progressPercent + "%)";
+                }
+                color: syncFailed ? "#ef4444" : (syncSuccessful ? "#22c55e" : "#9ca3af")
+                font.pixelSize: units.gu(1.3)
+                elide: Text.ElideRight
+                maximumLineCount: 1
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
     }
 
-    // Play/Pause Button - hide during sync-only mode
-    Image {
-        id: pausebutton
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.right: stopbutton.left
-        anchors.margins: units.gu(1)
-        width: units.gu(5)
-        height: units.gu(5)
-        source: "../../images/pause.png"
-        fillMode: Image.PreserveAspectFit
-
-        visible: !isSyncing || TimerService.isRunning()
-
-        MouseArea {
-            anchors.fill: parent
-
-            onPressed: pausebutton.opacity = 0.5
-            onReleased: pausebutton.opacity = 1.0
-            onCanceled: pausebutton.opacity = 1.0
-
-            onClicked: {
-                if (TimerService.isPaused())
-                    TimerService.start(TimerService.getActiveTimesheetId());
-                else
-                    TimerService.pause();
-            }
-        }
-    }
-
-    // Stop Button - hide during sync-only mode
-    Image {
-        id: stopbutton
-        anchors.verticalCenter: parent.verticalCenter
+    // Action Buttons Container
+    Row {
+        id: buttonRow
         anchors.right: parent.right
-        anchors.margins: units.gu(1)
-        width: units.gu(5)
-        height: units.gu(5)
-        source: "../../images/stop.png"
-        fillMode: Image.PreserveAspectFit
+        anchors.rightMargin: units.gu(1.2)
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: units.gu(1)
         visible: !isSyncing || TimerService.isRunning()
 
-        MouseArea {
-            anchors.fill: parent
-            onPressed: stopbutton.opacity = 0.5
-            onReleased: stopbutton.opacity = 1.0
-            onCanceled: stopbutton.opacity = 1.0
-            onClicked: {
-                // Show description popup before stopping timer
-                var activeTimesheetId = TimerService.getActiveTimesheetId();
-                var activeTimesheetName = TimerService.getActiveTimesheetName();
-                var elapsedTime = TimerService.getElapsedTime();
+        // Pause/Resume Button
+        Rectangle {
+            id: pausebutton
+            width: units.gu(4.2)
+            height: units.gu(4.2)
+            radius: width / 2
+            color: TimerService.isPaused() ? "#10b981" : "#f59e0b"
 
-                if (activeTimesheetId && activeTimesheetId > 0) {
-                    descriptionPopup.open(activeTimesheetId, activeTimesheetName, elapsedTime);
-                } else {
-                    // Fallback: just stop the timer if no active timesheet
-                    TimerService.stop();
+            Image {
+                id: pauseIcon
+                anchors.centerIn: parent
+                width: units.gu(2.4)
+                height: units.gu(2.4)
+                source: TimerService.isPaused() ? "../../images/play.png" : "../../images/pause.png"
+                fillMode: Image.PreserveAspectFit
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onPressed: pausebutton.scale = 0.92
+                onReleased: pausebutton.scale = 1.0
+                onCanceled: pausebutton.scale = 1.0
+                onClicked: {
+                    if (TimerService.isPaused())
+                        TimerService.start(TimerService.getActiveTimesheetId());
+                    else
+                        TimerService.pause();
+                }
+            }
+        }
+
+        // Stop Button
+        Rectangle {
+            id: stopbutton
+            width: units.gu(4.2)
+            height: units.gu(4.2)
+            radius: width / 2
+            color: "#ef4444"
+
+            Image {
+                id: stopIcon
+                anchors.centerIn: parent
+                width: units.gu(2.4)
+                height: units.gu(2.4)
+                source: "../../images/stop.png"
+                fillMode: Image.PreserveAspectFit
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onPressed: stopbutton.scale = 0.92
+                onReleased: stopbutton.scale = 1.0
+                onCanceled: stopbutton.scale = 1.0
+                onClicked: {
+                    var activeTimesheetId = TimerService.getActiveTimesheetId();
+                    var activeTimesheetName = TimerService.getActiveTimesheetName();
+                    var elapsedTime = TimerService.getElapsedTime();
+
+                    if (activeTimesheetId && activeTimesheetId > 0) {
+                        descriptionPopup.open(activeTimesheetId, activeTimesheetName, elapsedTime);
+                    } else {
+                        TimerService.stop();
+                    }
                 }
             }
         }
     }
 
-    // Name Label
-    Label {
-        text: isSyncing ? Utils.truncateText(globalTimer.elapsedDisplay, 40) : Utils.truncateText(globalTimer.elapsedDisplay, 20)
-        color: "white"
-        font.pixelSize: units.gu(2)
-        anchors.top: parent.top
-        anchors.topMargin: units.gu(3)
-        anchors.left: indicator.right
-        anchors.verticalCenter: parent.verticalCenter
-        // anchors.margins: units.gu(-12)
-        anchors.right: (TimerService.isRunning() || TimerService.isPaused()) ? pausebutton.left : parent.right
-        anchors.rightMargin: units.gu(1)
-        horizontalAlignment: Text.AlignHCenter
-        elide: Text.ElideRight
-    }
-
-    // Enhanced progress indicator - changes based on timer state
+    // Progress Bar Indicator at Bottom
     Rectangle {
         id: progressContainer
         visible: isSyncing
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        height: units.gu(0.5)
-        color: "#333333"
-        opacity: 0.7
+        anchors.bottomMargin: units.gu(0.2)
+        anchors.leftMargin: units.gu(1)
+        anchors.rightMargin: units.gu(1)
+        height: units.gu(0.4)
+        radius: units.gu(0.2)
+        color: "#111827"
+        clip: true
 
-        // Progress bar background
-        Rectangle {
-            id: progressBackground
-            anchors.fill: parent
-            color: {
-                if (TimerService.isRunning()) {
-                    return TimerService.isPaused() ? "#ff6b35" : "#ffa500"; // Orange/red for timer
-                } else if (isSyncing) {
-                    return syncSuccessful ? "#28a745" : "#0078d4"; // Green for success, blue for syncing
-                }
-                return "#0078d4";
-            }
-            opacity: 0.3
-        }
-
-        // Animated progress indicator
         Rectangle {
             id: progressIndicator
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: {
-                if (isSyncing) {
-                    // For sync: show actual progress
-                    return parent.width * syncProgress;
-                }
-                return 0;
-            }
-            color: {
-                if (isSyncing) {
-                    return syncSuccessful ? "#28a745" : "#ffffff"; // Green for success, white for syncing
-                }
-                return "#ffffff";
-            }
-            opacity: 0.9
+            width: isSyncing ? parent.width * syncProgress : 0
+            radius: parent.radius
+            color: syncSuccessful ? "#22c55e" : (syncFailed ? "#ef4444" : "#3b82f6")
 
-            // Sliding animation for timer mode only
-            SequentialAnimation on x {
-                running: progressContainer.visible && TimerService.isRunning()
-                loops: Animation.Infinite
-                NumberAnimation {
-                    from: -progressIndicator.width
-                    to: progressContainer.width
-                    duration: TimerService.isPaused() ? 3000 : 2000 // Slower when paused
-                    easing.type: Easing.InOutQuad
-                }
-            }
-
-            // Smooth width animation for sync progress
             Behavior on width {
                 NumberAnimation {
                     duration: 200
                     easing.type: Easing.OutQuad
-                }
-            }
-
-            // Success completion animation
-            SequentialAnimation on opacity {
-                running: syncSuccessful
-                loops: 3 // Flash 3 times when successful
-                NumberAnimation {
-                    from: 0.9
-                    to: 0.3
-                    duration: 200
-                }
-                NumberAnimation {
-                    from: 0.3
-                    to: 0.9
-                    duration: 200
                 }
             }
         }
@@ -480,13 +475,11 @@ Rectangle {
 
         onSaved: function (description, status) {
             Logger.debug("GlobalTimerWidget", "Timesheet description saved:", description, "Status:", status)
-            // Stop the timer after saving
             TimerService.stop();
         }
 
         onFinalized: function (success, message) {
             Logger.debug("GlobalTimerWidget", "Timesheet finalized:", success, "Message:", message)
-            // Show notification if function is available
             if (globalTimer.showNotification) {
                 if (success) {
                     globalTimer.showNotification("Success", message, "success");
@@ -498,7 +491,6 @@ Rectangle {
 
         onCancelled: {
             Logger.debug("GlobalTimerWidget", "Description popup cancelled - timer continues running")
-            // Don't stop timer if user cancels
         }
     }
 }
