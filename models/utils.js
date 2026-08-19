@@ -412,10 +412,12 @@ function getNextMonthSameDay(baseDate) {
 }
 
 function truncateText(text, maxLength) {
-    if (text.length > maxLength) {
-        return text.slice(0, maxLength) + "...";
+    if (!text || typeof text !== 'string') return "";
+    var cleaned = cleanText(stripHtmlTags(text));
+    if (cleaned.length > maxLength) {
+        return cleaned.slice(0, maxLength).trim() + "...";
     }
-    return text;
+    return cleaned;
 }
 
 function getFormattedTimestampUTC() {
@@ -593,11 +595,14 @@ function cleanText(str) {
     if (typeof str !== 'string') return '';
 
     return str
-        // Remove common invisible/control characters (ASCII + Unicode)
-        .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\u2060\uFEFF]/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        // Remove common invisible/control characters (ASCII + Unicode + non-breaking space)
+        .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\u2060\uFEFF\u00A0]/g, '')
         // Normalize to avoid weird composed characters
         .normalize('NFC')
-        // Trim extra whitespace
+        // Collapse multiple spaces into single space
+        .replace(/[ \t]+/g, ' ')
+        // Trim extra whitespace from both ends
         .trim();
 }
 

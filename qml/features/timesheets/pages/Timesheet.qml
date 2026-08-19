@@ -149,6 +149,9 @@ Page {
         }
 
         var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
+        if (typeof description === "string") {
+            description = description.trim();
+        }
 
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
@@ -221,6 +224,9 @@ Page {
         }
 
         var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
+        if (typeof description === "string") {
+            description = description.trim();
+        }
 
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
@@ -257,9 +263,7 @@ Page {
         // Now that project is in DB, retry starting the timer
         time_sheet_widget.tryStartTimer();
 
-        if (description && description.trim() !== "") {
-            TimerService.updateActiveTimesheetName(description);
-        }
+        TimerService.updateActiveTimesheetName(description || "");
         return true;
     }
 
