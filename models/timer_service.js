@@ -44,10 +44,12 @@ function start(timesheetId) {
             var durationHours = getElapsedDuration();
             Logger.debug("Timer_service", "Pausing previous timer before starting new one, durationHours:", durationHours)
             Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-            // Leave previous in paused state
+            if (!Model.isTimesheetFinalized(activeTimesheetId)) {
+                Model.markTimesheetAsDraftById(activeTimesheetId);
+            }
             paused = true;
             pauseStartTime = Date.now();
-            Logger.debug("Timer_service", "Previous timesheet paused. Starting new timesheet...")
+            Logger.debug("Timer_service", "Previous timesheet paused and marked as draft. Starting new timesheet...")
         }
         // If already running on the same timesheet and not paused, ignore redundant start
         else if (!paused && activeTimesheetId === timesheetId) {
