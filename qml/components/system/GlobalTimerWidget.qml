@@ -409,7 +409,7 @@ Rectangle {
                 if (globalTimer.syncSuccessful) return "DONE";
                 return Math.round(globalTimer.syncProgress * 100) + "%";
             }
-            color: globalTimer.syncFailed ? "#DF382C" : (globalTimer.syncSuccessful ? "#38B44A" : "#19B6EE")
+            color: globalTimer.syncFailed ? "#DF382C" : (globalTimer.syncSuccessful ? "#38B44A" : "#E95420")
             font.pixelSize: (globalTimer.syncFailed || globalTimer.syncSuccessful) ? units.gu(1.3) : units.gu(1.7)
             font.weight: Font.Bold
         }
@@ -496,7 +496,7 @@ Rectangle {
             anchors.bottom: parent.bottom
             width: globalTimer.isSyncing ? (parent.width * Math.max(0.02, Math.min(1.0, globalTimer.syncProgress))) : 0
             radius: parent.radius
-            color: globalTimer.syncSuccessful ? "#38B44A" : (globalTimer.syncFailed ? "#DF382C" : "#19B6EE")
+            color: globalTimer.syncSuccessful ? "#38B44A" : (globalTimer.syncFailed ? "#DF382C" : "#E95420")
 
             Behavior on width {
                 NumberAnimation {
