@@ -82,6 +82,9 @@ ListItem {
     }
 
     function save_workflow() {
+        if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId())) {
+            TimerService.stop();
+        }
         const result = Timesheet.markTimesheetAsReadyById(recordId);
         if (result.success) {
             notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");

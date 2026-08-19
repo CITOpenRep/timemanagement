@@ -64,7 +64,7 @@ function start(timesheetId) {
         timerRunning = true;
         paused = false;
         pauseStartTime = 0;
-        activeSheetname = Model.getTimesheetNameById(activeTimesheetId);
+        activeSheetname = Model.getTimesheetDisplayName ? Model.getTimesheetDisplayName(activeTimesheetId) : Model.getTimesheetNameById(activeTimesheetId);
         Model.markTimesheetAsActiveById(activeTimesheetId);
 
         Logger.debug("Timer_service", "Timer started for timesheet ID:", activeTimesheetId, "Previously tracked:", previouslyTrackedHours)
@@ -277,4 +277,19 @@ function getStartTime() {
  */
 function getActiveTimesheetName() {
     return activeSheetname;
+}
+
+/**
+ * Dynamically update the active timesheet name/description in memory.
+ * Called in real-time as user edits description in Timesheet form.
+ *
+ * @param {string} newName - The updated name or description.
+ */
+function updateActiveTimesheetName(newName) {
+    if (typeof newName === "string") {
+        activeSheetname = newName.trim();
+    } else {
+        activeSheetname = "";
+    }
+    Logger.debug("Timer_service", "Live updated active timesheet name to:", activeSheetname);
 }
