@@ -11,10 +11,10 @@ Rectangle {
     id: globalTimer
     width: Math.min(parent ? parent.width - units.gu(4) : units.gu(46), units.gu(46))
     height: units.gu(7.2)
-    color: "#1e222b"
-    border.color: "#333a46"
+    color: "#262626"
+    border.color: "#3d3d3d"
     border.width: 1
-    radius: units.gu(1.6)
+    radius: units.gu(1.2)
     anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
     z: 999
 
@@ -250,18 +250,18 @@ Rectangle {
     // Animated indicator dot
     Rectangle {
         id: indicator
-        width: units.gu(1.4)
-        height: units.gu(1.4)
-        radius: units.gu(0.7)
+        width: units.gu(1.3)
+        height: units.gu(1.3)
+        radius: units.gu(0.65)
         color: {
             if (isSyncing && !isTimerRunning) {
                 if (syncFailed)
-                    return "#ef4444"; // Red for error
+                    return "#DF382C"; // Ubuntu Red
                 if (syncSuccessful)
-                    return "#22c55e"; // Green for success
-                return "#3b82f6"; // Blue for syncing
+                    return "#38B44A"; // Ubuntu Green
+                return "#19B6EE"; // Ubuntu Light Blue
             }
-            return isTimerPaused ? "#f59e0b" : "#10b981"; // Amber for paused, Green for running
+            return isTimerPaused ? "#AEA79F" : "#38B44A"; // Warm gray when paused, Ubuntu green when recording
         }
         anchors.left: parent.left
         anchors.leftMargin: units.gu(1.5)
@@ -304,24 +304,24 @@ Rectangle {
         anchors.right: buttonRow.visible ? buttonRow.left : parent.right
         anchors.rightMargin: units.gu(1.2)
         anchors.verticalCenter: parent.verticalCenter
-        spacing: units.gu(0.3)
+        spacing: units.gu(0.2)
 
         // Line 1: Timesheet / Account Title
         Label {
             id: titleLabel
             width: parent.width
             text: globalTimer.isTimerRunning ? globalTimer.activeTitle : (globalTimer.isSyncing ? (globalTimer.syncAccountName || "Cloud Sync") : "")
-            color: "#ffffff"
+            color: "#FFFFFF"
             font.pixelSize: units.gu(1.7)
             font.weight: Font.DemiBold
             elide: Text.ElideRight
             maximumLineCount: 1
         }
 
-        // Line 2: Timer Duration + Status Badge (or Sync Status Message)
+        // Line 2: Timer Duration + Status (or Sync Status Message)
         Row {
             id: subtitleRow
-            spacing: units.gu(1)
+            spacing: units.gu(0.8)
             width: parent.width
 
             // Digital Clock
@@ -329,33 +329,22 @@ Rectangle {
                 id: timerClock
                 visible: globalTimer.isTimerRunning
                 text: globalTimer.activeTime
-                color: globalTimer.isTimerPaused ? "#f59e0b" : "#38bdf8"
-                font.pixelSize: units.gu(1.9)
-                font.family: "Ubuntu Mono, DejaVu Sans Mono, monospace"
-                font.weight: Font.Bold
+                color: "#FFFFFF"
+                font.pixelSize: units.gu(1.7)
+                font.family: "Ubuntu, DejaVu Sans, sans-serif"
+                font.weight: Font.Normal
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            // Status Badge (RECORDING / PAUSED)
-            Rectangle {
-                id: statusBadge
+            // Clean Status Text (No artificial colored box badges)
+            Label {
+                id: statusText
                 visible: globalTimer.isTimerRunning
-                radius: units.gu(0.4)
-                height: units.gu(1.8)
-                width: statusBadgeText.implicitWidth + units.gu(1)
-                color: globalTimer.isTimerPaused ? "#451a03" : "#064e3b"
-                border.color: globalTimer.isTimerPaused ? "#78350f" : "#047857"
-                border.width: 1
+                text: "• " + (globalTimer.isTimerPaused ? "Paused" : "Recording")
+                color: globalTimer.isTimerPaused ? "#E95420" : "#AEA79F"
+                font.pixelSize: units.gu(1.4)
+                font.weight: Font.Normal
                 anchors.verticalCenter: parent.verticalCenter
-
-                Label {
-                    id: statusBadgeText
-                    anchors.centerIn: parent
-                    text: globalTimer.isTimerPaused ? "PAUSED" : "RECORDING"
-                    font.pixelSize: units.gu(1.0)
-                    font.weight: Font.Bold
-                    color: globalTimer.isTimerPaused ? "#fbbf24" : "#34d399"
-                }
             }
 
             // Sync Status Subtitle (when syncing without timer)
@@ -369,7 +358,7 @@ Rectangle {
                     var progressPercent = Math.round(globalTimer.syncProgress * 100);
                     return (globalTimer.syncStatusMessage || "Syncing...") + " (" + progressPercent + "%)";
                 }
-                color: globalTimer.syncFailed ? "#ef4444" : (globalTimer.syncSuccessful ? "#22c55e" : "#9ca3af")
+                color: globalTimer.syncFailed ? "#DF382C" : (globalTimer.syncSuccessful ? "#38B44A" : "#AEA79F")
                 font.pixelSize: units.gu(1.3)
                 elide: Text.ElideRight
                 maximumLineCount: 1
@@ -390,8 +379,8 @@ Rectangle {
         // Pause/Resume Button
         Image {
             id: pausebutton
-            width: units.gu(4.5)
-            height: units.gu(4.5)
+            width: units.gu(4.4)
+            height: units.gu(4.4)
             source: globalTimer.isTimerPaused ? "../../images/play.png" : "../../images/pause.png"
             fillMode: Image.PreserveAspectFit
 
@@ -412,8 +401,8 @@ Rectangle {
         // Stop Button
         Image {
             id: stopbutton
-            width: units.gu(4.5)
-            height: units.gu(4.5)
+            width: units.gu(4.4)
+            height: units.gu(4.4)
             source: "../../images/stop.png"
             fillMode: Image.PreserveAspectFit
 
@@ -449,7 +438,7 @@ Rectangle {
         anchors.rightMargin: units.gu(1)
         height: units.gu(0.4)
         radius: units.gu(0.2)
-        color: "#111827"
+        color: "#1a1a1a"
         clip: true
 
         Rectangle {
@@ -459,7 +448,7 @@ Rectangle {
             anchors.bottom: parent.bottom
             width: isSyncing ? parent.width * syncProgress : 0
             radius: parent.radius
-            color: syncSuccessful ? "#22c55e" : (syncFailed ? "#ef4444" : "#3b82f6")
+            color: syncSuccessful ? "#38B44A" : (syncFailed ? "#DF382C" : "#E95420")
 
             Behavior on width {
                 NumberAnimation {
@@ -496,5 +485,4 @@ Rectangle {
         onCancelled: {
             Logger.debug("GlobalTimerWidget", "Description popup cancelled - timer continues running")
         }
-    }
 }
