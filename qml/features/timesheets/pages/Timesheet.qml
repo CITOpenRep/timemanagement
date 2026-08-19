@@ -165,7 +165,7 @@ Page {
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
             'timer_type': isTimerActive ? "automatic" : "manual",
-            'status': "draft"  // WORKFLOW status (not submitted yet), NOT form draft status
+            'status': isTimerActive ? "active" : (currentStatus === "ready" || currentStatus === "updated" ? currentStatus : "draft")
         };
         if (recordid && recordid !== 0) {
             timesheet_data.id = recordid;
