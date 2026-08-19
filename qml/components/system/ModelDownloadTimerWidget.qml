@@ -3,6 +3,7 @@ import Lomiri.Components 1.3
 
 GlobalTimerWidget {
     id: downloadWidget
+    enableTimesheetTimer: false
     
     // Override completion logic to connect to our specific download events
     Component.onCompleted: {

@@ -10,16 +10,15 @@ import "../../../models/logger.js" as Logger
 Rectangle {
     id: globalTimer
     width: Math.min(parent ? parent.width - units.gu(4) : units.gu(46), units.gu(46))
-    height: units.gu(7.5)
+    height: units.gu(7.2)
     color: "#1e222b"
     border.color: "#333a46"
     border.width: 1
     radius: units.gu(1.6)
-    anchors.bottom: parent.bottom
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.margins: units.gu(1)
+    anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
     z: 999
 
+    property bool enableTimesheetTimer: true
     property string elapsedDisplay: ""
     property string activeTitle: "Active Timesheet"
     property string activeTime: "00:00:00"
@@ -49,8 +48,8 @@ Rectangle {
 
     // Public function to immediately sync UI state with TimerService
     function refreshDisplay() {
-        const currentlyRunning = TimerService.isRunning();
-        const currentlyPaused = TimerService.isPaused();
+        const currentlyRunning = enableTimesheetTimer ? TimerService.isRunning() : false;
+        const currentlyPaused = enableTimesheetTimer ? TimerService.isPaused() : false;
         isTimerRunning = currentlyRunning;
         isTimerPaused = currentlyPaused;
         if (currentlyRunning) {
@@ -184,7 +183,7 @@ Rectangle {
         syncStatusMessage = "";
 
         // Hide if no timer is running either
-        if (!TimerService.isRunning()) {
+        if (!enableTimesheetTimer || !TimerService.isRunning()) {
             globalTimer.visible = false;
         }
     }
@@ -194,8 +193,8 @@ Rectangle {
         running: true
         repeat: true
         onTriggered: {
-            const currentlyRunning = TimerService.isRunning();
-            const currentlyPaused = TimerService.isPaused();
+            const currentlyRunning = enableTimesheetTimer ? TimerService.isRunning() : false;
+            const currentlyPaused = enableTimesheetTimer ? TimerService.isPaused() : false;
             const currentTimesheetId = TimerService.getActiveTimesheetId() !== null ? TimerService.getActiveTimesheetId() : -1;
 
             isTimerRunning = currentlyRunning;
