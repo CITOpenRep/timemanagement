@@ -95,9 +95,8 @@ ListItem {
         target: globalTimerWidget
 
         onTimerStopped: {
-            if (recordId === TimerService.getActiveTimesheetId()) {
-                timer_on = false;
-            }
+            timer_on = false;
+            timer_paused = false;
         }
         onTimerStarted: {
             if (recordId === TimerService.getActiveTimesheetId()) {

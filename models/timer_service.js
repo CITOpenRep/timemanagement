@@ -4,8 +4,9 @@
 
 .pragma library
 
-.import "../models/timesheet.js" as Model
-.import "../models/utils.js" as Utils
+.import "logger.js" as Logger
+.import "timesheet.js" as Model
+.import "utils.js" as Utils
 
 var timerRunning = false;
 var startTime = 0; // Epoch milliseconds

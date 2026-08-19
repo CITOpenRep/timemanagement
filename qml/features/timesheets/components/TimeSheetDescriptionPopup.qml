@@ -213,6 +213,7 @@ Item {
                 'unit_amount': Utils.convertHHMMtoDecimalHours(popupWrapper.elapsedTime),
                 'quadrant': currentDetails.quadrant_id || 1,
                 'status': status,
+                'timer_type': currentDetails.timer_type || "manual",
                 'user_id': userId
             };
 

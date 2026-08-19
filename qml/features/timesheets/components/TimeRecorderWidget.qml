@@ -219,6 +219,10 @@ Item {
                             return;
                         }
 
+                        if (TimerService.isRunning() && TimerService.getActiveTimesheetId() === timesheetId) {
+                            TimerService.stop();
+                        }
+
                         const result = TimeSheet.markTimesheetAsReadyById(timesheetId);
                         if (!result.success) {
                             notifPopup.open("Error", "Both Project and Task must be selected before finalizing", "error");
@@ -259,7 +263,7 @@ Item {
     Component.onCompleted: {
         if (timesheetId > 0 && timesheetId === TimerService.getActiveTimesheetId()) {
             isRecording = true;
-            automode = true;
+            autoMode = true;
             if (autoMode)
                 updateTimer.start();
         } else {

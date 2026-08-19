@@ -98,9 +98,8 @@ ListItem {
         target: globalTimerWidget
 
         onTimerStopped: {
-            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
-                timer_on = false;
-            }
+            timer_on = false;
+            timer_paused = false;
         }
         onTimerStarted: {
             if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
