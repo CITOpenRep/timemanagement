@@ -348,7 +348,7 @@ ListItem {
                     spacing: units.gu(0.4)
 
                     Text {
-                        text: root.activity_type_name || (i18n.dtr("ubtms", "Type ID: ") + root.activity_type_id)
+                        text: root.activity_type_name || i18n.dtr("ubtms", "No Type")
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: units.gu(6)
