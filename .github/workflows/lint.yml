@@ -35,13 +35,13 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            qtdeclarative5-dev-tools \
-            qml-tools
+            qtdeclarative5-dev-tools
+          echo "/usr/lib/qt5/bin" >> $GITHUB_PATH
 
       - name: Verify qmllint installation
         run: |
+          which qmllint || true
           qmllint --version 2>&1 || true
-          which qmllint
 
       - name: Ensure scripts are executable
         run: |
