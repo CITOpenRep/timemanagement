@@ -20,7 +20,7 @@ Rectangle {
 
     property bool enableTimesheetTimer: true
     property string elapsedDisplay: ""
-    property string activeTitle: "Active Timesheet"
+    property string activeTitle: "/"
     property string activeTime: "00:00:00"
     property bool isTimerRunning: false
     property bool isTimerPaused: false
@@ -54,7 +54,8 @@ Rectangle {
         isTimerPaused = currentlyPaused;
         if (currentlyRunning) {
             var rawName = TimerService.getActiveTimesheetName();
-            activeTitle = (rawName && rawName.trim() !== "") ? rawName.trim() : "Active Timesheet";
+            var cleanName = rawName ? Utils.cleanText(Utils.stripHtmlTags(rawName)) : "";
+            activeTitle = (cleanName && cleanName.trim() !== "") ? cleanName.trim() : "/";
             activeTime = TimerService.getElapsedTime();
             globalTimer.visible = true;
         } else if (!isSyncing) {
@@ -128,7 +129,7 @@ Rectangle {
         syncSuccessful = true;
         syncFailed = false;
         syncProgress = 1.0;
-        syncStatusMessage = "✅ Sync Complete!";
+        syncStatusMessage = "Sync Complete!";
 
         // Auto-hide after 3 seconds
         autoHideTimer.interval = 3000;
@@ -139,7 +140,7 @@ Rectangle {
     function failSync(errorMessage) {
         syncSuccessful = false;
         syncFailed = true;
-        syncStatusMessage = "❌ " + (errorMessage || "Sync Failed");
+        syncStatusMessage = errorMessage || "Sync Failed";
 
         // Auto-hide after 5 seconds
         autoHideTimer.interval = 5000;
@@ -202,7 +203,8 @@ Rectangle {
 
             if (currentlyRunning) {
                 var rawName = TimerService.getActiveTimesheetName();
-                activeTitle = (rawName && rawName.trim() !== "") ? rawName.trim() : "Active Timesheet";
+                var cleanName = rawName ? Utils.cleanText(Utils.stripHtmlTags(rawName)) : "";
+                activeTitle = (cleanName && cleanName.trim() !== "") ? cleanName.trim() : "/";
                 activeTime = TimerService.getElapsedTime();
             }
 
@@ -213,7 +215,7 @@ Rectangle {
                     if (syncFailed) {
                         globalTimer.elapsedDisplay = syncStatusMessage + " - " + syncAccountName;
                     } else if (syncSuccessful) {
-                        globalTimer.elapsedDisplay = "✅ Sync Complete - " + syncAccountName;
+                        globalTimer.elapsedDisplay = "Sync Complete - " + syncAccountName;
                     } else {
                         var progressPercent = Math.round(syncProgress * 100);
                         var statusMsg = syncStatusMessage || "Syncing...";

@@ -30,10 +30,7 @@ ListItem {
     signal dateChanged(int accountid, int recordId, string newDate)
 
     function truncateText(text, maxLength) {
-        if (text.length > maxLength) {
-            return text.slice(0, maxLength) + '...';
-        }
-        return text;
+        return Utils.truncateText(text, maxLength);
     }
 
     function isActivityOverdue() {

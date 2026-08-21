@@ -1484,14 +1484,20 @@ function markTimesheetAsActiveById(timesheetId) {
 
     try {
         db.transaction(function (tx) {
+            // Revert any other timesheets previously marked 'active' to 'draft'
+            tx.executeSql(
+                "UPDATE account_analytic_line_app SET last_modified = ?, status = 'draft' WHERE status = 'active' AND id != ?",
+                [timestamp, timesheetId]
+            );
+            // Mark target timesheet as active
             tx.executeSql(
                 "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
                 [timestamp, "active", timesheetId]
             );
         });
-        Logger.debug("Timesheet", "Timesheet " + timesheetId + " marked as draft successfully.")
+        Logger.debug("Timesheet", "Timesheet " + timesheetId + " marked as active successfully.")
     } catch (e) {
-        Logger.debug("Timesheet", "markTimesheetAsDraftById failed:", e)
+        Logger.debug("Timesheet", "markTimesheetAsActiveById failed:", e)
     }
 }
 
