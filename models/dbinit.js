@@ -231,6 +231,8 @@ function initializeDatabase() {
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'name TEXT', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
                                  );
+    // Ensure default activity types for Local Account
+    DBCommon.ensureDefaultLocalActivityTypes();
 
 
     DBCommon.createOrUpdateTable("ir_model_app",
