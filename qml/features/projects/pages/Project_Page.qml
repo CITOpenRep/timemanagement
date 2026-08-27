@@ -39,6 +39,8 @@ import "../../../components"
 
 Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
+    property alias projectList: projectlist
+    property var rootApp
     id: project
     title: i18n.dtr("ubtms", "Projects")
     header: PageHeader {
@@ -69,7 +71,8 @@ Page {
                 onTriggered: {
                     // console.log("Create Project clicked");
                     apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {
-                        "isReadOnly": false
+                        "isReadOnly": false,
+                        "rootApp": rootApp
                     });
                 }
             },
@@ -103,7 +106,8 @@ Page {
                 //  console.log("Viewing Project");
                 apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Projects.qml"), {
                     "recordid": recordId,
-                    "isReadOnly": true
+                    "isReadOnly": true,
+                    "rootApp": rootApp
                 });
             }
             onProjectTimesheetRequested: localId => {

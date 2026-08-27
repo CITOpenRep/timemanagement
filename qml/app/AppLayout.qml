@@ -144,6 +144,7 @@ AdaptivePageLayout {
 
     TaskPages.Task_Page {
         id: task_page
+        rootApp: apLayout.rootApp
 
         Connections {
             target: rootApp
@@ -153,11 +154,18 @@ AdaptivePageLayout {
                     task_page.getTaskList(task_page.currentFilter || "today", "");
                 }
             }
+
+            onTaskDataChanged: {
+                if (task_page.visible && task_page.taskList) {
+                    task_page.taskList.refreshWithFilter();
+                }
+            }
         }
     }
 
     TaskPages.MyTasksPage {
         id: my_tasks_page
+        rootApp: apLayout.rootApp
 
         Connections {
             target: rootApp
@@ -172,6 +180,7 @@ AdaptivePageLayout {
 
     ProjectPages.Project_Page {
         id: project_page
+        rootApp: apLayout.rootApp
 
         Connections {
             target: rootApp
@@ -179,6 +188,12 @@ AdaptivePageLayout {
                 Logger.debug("AppLayout", "Refreshing Project data for account:", accountId)
                 if (project_page.visible && project_page.projectlist && typeof project_page.projectlist.refresh === "function") {
                     project_page.projectlist.refresh();
+                }
+            }
+
+            onProjectDataChanged: {
+                if (project_page.visible && project_page.projectList) {
+                    project_page.projectList.refresh();
                 }
             }
         }
