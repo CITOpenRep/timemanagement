@@ -522,7 +522,7 @@ Page {
             } else {
                 if (currentSearchQuery) {
                     // Reapply search if there was one
-                    tasklist.searchTasks(currentSearchQuery);
+                    tasklist.applySearch(currentSearchQuery);
                 } else {
                     // Reapply current filter
                     tasklist.applyFilter(currentFilter);
