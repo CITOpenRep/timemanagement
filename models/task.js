@@ -283,15 +283,15 @@ function getAttachmentsForTask(odooRecordId, accountId) {
 
         db.transaction(function (tx) {
             var query = `
-                SELECT name, mimetype, account_id, odoo_record_id
+                SELECT name, mimetype, account_id, odoo_record_id, url, file_path, local_url, file_size
                 FROM ir_attachment_app
                 WHERE res_model = 'project.task'
-                  AND res_id = ?
+                  AND (res_id = ? OR (odoo_record_id = ? AND odoo_record_id > 0))
                   AND account_id = ?
                 ORDER BY name COLLATE NOCASE ASC
             `;
 
-            var result = tx.executeSql(query, [odooRecordId, accountId]);
+            var result = tx.executeSql(query, [odooRecordId, odooRecordId, accountId]);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -302,9 +302,9 @@ function getAttachmentsForTask(odooRecordId, accountId) {
                     mimetype: row.mimetype,
                     account_id: row.account_id,
                     odoo_record_id: row.odoo_record_id,
-                    url: "",    // no file path stored locally
-                    size: 0,    // placeholder
-                    created: "" // optional field
+                    url: row.local_url || row.url || row.file_path || "",
+                    size: row.file_size || 0,
+                    created: ""
                 });
             }
         });

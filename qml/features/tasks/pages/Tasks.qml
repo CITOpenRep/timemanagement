@@ -895,13 +895,14 @@ Page {
                 id: attachments_widget
                 anchors.fill: parent
                 resource_type: "project.task"   // keep as-is if that's your default
-                resource_id: (currentTask && currentTask.odoo_record_id) ? currentTask.odoo_record_id : 0
-                account_id: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
+                resource_id: (currentTask && currentTask.odoo_record_id > 0) ? currentTask.odoo_record_id : ((currentTask && currentTask.id) ? currentTask.id : recordid)
+                account_id: (currentTask && currentTask.account_id !== undefined) ? currentTask.account_id : 0
                 notifier: infobar
 
                 onUploadCompleted: {
-                    //kinda refresh
-                    attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id, currentTask.account_id));
+                    var resId = (currentTask && currentTask.odoo_record_id > 0) ? currentTask.odoo_record_id : ((currentTask && currentTask.id) ? currentTask.id : recordid);
+                    var accId = (currentTask && currentTask.account_id !== undefined) ? currentTask.account_id : 0;
+                    attachments_widget.setAttachments(Task.getAttachmentsForTask(resId, accId));
                 }
 
                 onItemClicked: function (rec) {
@@ -999,7 +1000,8 @@ Page {
                     workItem.setMultipleAssignees(existingAssignees);
                 }
 
-                attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id, currentTask.account_id));
+                var attResId = (currentTask.odoo_record_id && currentTask.odoo_record_id > 0) ? currentTask.odoo_record_id : (currentTask.id || recordid);
+                attachments_widget.setAttachments(Task.getAttachmentsForTask(attResId, currentTask.account_id !== undefined ? currentTask.account_id : 0));
             });
         } else {
             // We are creating a new task

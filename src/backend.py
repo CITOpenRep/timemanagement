@@ -386,15 +386,10 @@ def attachment_upload(settings_db, account_id, filepath, res_type, res_id):
                 selected = acc
                 break
 
-        if not selected:
-            send("ondemand_upload_message", "Error: Account not found")
-            send("ondemand_upload_completed", False)
-            return None
+        is_local_account = (account_id == 0) or (selected and selected.get("id") == 0) or (selected and not selected.get("link"))
 
-        # Check server reachability before proceeding
-        send("ondemand_upload_message", "Checking server connection...")
-        if not check_server_reachability(selected["link"]):
-            send("ondemand_upload_message", "Error: No internet connection or server unreachable")
+        if not selected and not is_local_account:
+            send("ondemand_upload_message", "Error: Account not found")
             send("ondemand_upload_completed", False)
             return None
 
@@ -427,6 +422,60 @@ def attachment_upload(settings_db, account_id, filepath, res_type, res_id):
         send("ondemand_upload_message", "Reading file...")
         ext = os.path.splitext(filename)[1].lower()
         mimetype = EXT_TO_MIME.get(ext, 'application/octet-stream')
+
+        # Handle Local Account attachment save
+        if is_local_account:
+            send("ondemand_upload_message", "Saving attachment locally...")
+            dest_path = _export_path_for(filename, mimetype)
+            import shutil
+            if Path(filepath).resolve() != Path(dest_path).resolve():
+                shutil.copy2(filepath, dest_path)
+
+            import sqlite3
+            db_path = settings_db or resolve_qml_db_path()
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT COALESCE(MAX(odoo_record_id), 0) + 1 FROM ir_attachment_app WHERE account_id = 0")
+            row = cursor.fetchone()
+            next_local_record_id = row[0] if (row and row[0] is not None and row[0] > 0) else 1
+
+            cursor.execute("""
+                INSERT INTO ir_attachment_app (
+                    account_id, name, res_model, res_id, file_path, local_url, url,
+                    file_size, mimetype, odoo_record_id, last_modified, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), 'local')
+            """, (
+                0,
+                filename,
+                res_type,
+                res_id,
+                str(dest_path),
+                f"file://{dest_path}",
+                f"file://{dest_path}",
+                file_size,
+                mimetype,
+                next_local_record_id
+            ))
+
+            cursor.execute("""
+                INSERT OR REPLACE INTO attachment_download_app (account_id, record_id, file_name, downloaded)
+                VALUES (0, ?, ?, 1)
+            """, (next_local_record_id, filename))
+
+            conn.commit()
+            conn.close()
+
+            send("ondemand_upload_message", "Attachment saved successfully")
+            send("ondemand_upload_completed", True)
+            return next_local_record_id
+
+        # Remote Odoo Account upload
+        send("ondemand_upload_message", "Checking server connection...")
+        if not check_server_reachability(selected["link"]):
+            send("ondemand_upload_message", "Error: No internet connection or server unreachable")
+            send("ondemand_upload_completed", False)
+            return None
 
         file_bytes = None
         with open(filepath, 'rb') as f:
@@ -488,6 +537,32 @@ def attachment_delete(settings_db, account_id, remote_record_id):
         if acc.get("id") == account_id:
             selected = acc
             break
+
+    is_local_account = (account_id == 0) or (selected and selected.get("id") == 0) or (selected and not selected.get("link"))
+
+    if is_local_account:
+        try:
+            import sqlite3
+            db_path = settings_db or resolve_qml_db_path()
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "DELETE FROM ir_attachment_app WHERE account_id = 0 AND (odoo_record_id = ? OR id = ?)",
+                (remote_record_id, remote_record_id)
+            )
+            cursor.execute(
+                "DELETE FROM attachment_download_app WHERE account_id = 0 AND record_id = ?",
+                (remote_record_id,)
+            )
+            conn.commit()
+            conn.close()
+
+            cleanup_orphan_attachment_files(settings_db)
+            return {"success": True}
+        except Exception as e:
+            log.exception(f"[ATTACHMENT] Failed to delete local attachment {remote_record_id}: {e}")
+            return {"success": False, "error": str(e)}
 
     if not selected:
         return {"success": False, "error": "Account not found"}

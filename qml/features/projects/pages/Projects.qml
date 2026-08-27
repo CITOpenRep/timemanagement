@@ -530,7 +530,8 @@ Page {
             project_color_label.color = colorpicker.getColorByIndex(projectColor);
             date_range_widget.setDateRange(project.planned_start_date || "", project.planned_end_date || "");
             hours_text.text = project.allocated_hours !== undefined && project.allocated_hours !== null ? String(project.allocated_hours) : "01:00";
-            attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id, project.account_id));
+            var attResId = (project.odoo_record_id && project.odoo_record_id > 0) ? project.odoo_record_id : (project.id || recordid);
+            attachments_widget.setAttachments(Project.getAttachmentsForProject(attResId, project.account_id !== undefined ? project.account_id : 0));
             return true;
         }
         return false;
@@ -997,11 +998,13 @@ Page {
                 width: parent.width
                 height: units.gu(50)
                 resource_type: "project.project"
-                resource_id: project.odoo_record_id
-                account_id: project.account_id
+                resource_id: (project && project.odoo_record_id > 0) ? project.odoo_record_id : (project && project.id ? project.id : recordid)
+                account_id: (project && project.account_id !== undefined) ? project.account_id : 0
                 notifier: infobar
                 onUploadCompleted: {
-                    attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id, project.account_id));
+                    var resId = (project && project.odoo_record_id > 0) ? project.odoo_record_id : (project && project.id ? project.id : recordid);
+                    var accId = (project && project.account_id !== undefined) ? project.account_id : 0;
+                    attachments_widget.setAttachments(Project.getAttachmentsForProject(resId, accId));
                 }
             }
         }
