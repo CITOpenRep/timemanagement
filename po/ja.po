@@ -1,0 +1,2151 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ubtms\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-08 08:23+0000\n"
+"PO-Revision-Date: 2026-08-17 13:30+0530\n"
+"Last-Translator: Aniket Palsodkar\n"
+"Language-Team: Japanese\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../qml/app/AppDrawer.qml:49 ../qml/app/navigation/MenuPage.qml:39
+#: ../qml/app/pages/AboutPage.qml:63
+#: ../qml/features/activities/pages/Activity_Page.qml:55
+#: ../qml/features/dashboard/pages/Dashboard.qml:91
+#: ../qml/features/projects/pages/Project_Page.qml:56
+#: ../qml/features/settings/pages/Settings_Page.qml:50
+#: ../qml/features/tasks/pages/MyTasksPage.qml:62
+#: ../qml/features/tasks/pages/Task_Page.qml:57
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:80
+#: ../qml/features/updates/pages/Updates_Page.qml:70
+msgid "Menu"
+msgstr "メニュー"
+
+#: ../qml/app/GlobalWidgets.qml:59
+msgid "Switch account"
+msgstr "アカウントを切り替える"
+
+#: ../qml/app/navigation/MenuPage.qml:55
+msgid "Switch Accounts"
+msgstr "アカウントを切り替える"
+
+#: ../qml/app/navigation/MenuPage.qml:62
+msgid "Dark Mode"
+msgstr "ダークモード"
+
+#: ../qml/app/navigation/MenuPage.qml:62
+msgid "Light Mode"
+msgstr "ライトモード"
+
+#: ../qml/app/pages/AboutPage.qml:35 ../qml/app/pages/AboutPage.qml:52
+msgid "About"
+msgstr "について"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:74
+msgid "OVERDUE"
+msgstr "期限を過ぎました"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:80
+msgid "TODAY"
+msgstr "今日"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:86
+msgid "DONE"
+msgstr "終わり"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:92
+msgid "PLANNED"
+msgstr "計画済み"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:190
+#: ../qml/components/cards/UpdatesDetailsCard.qml:52
+#: ../qml/features/activities/pages/Activities.qml:101
+#: ../qml/features/projects/pages/Projects.qml:136
+#: ../qml/features/settings/pages/Account_Page.qml:77
+#: ../qml/features/tasks/pages/Tasks.qml:79
+#: ../qml/features/updates/pages/Updates.qml:131
+msgid "Edit"
+msgstr "編集"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:201
+msgid "Mark Done"
+msgstr "完了マークを付ける"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:206
+msgid "Follow-up"
+msgstr "フォローアップ"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:283
+msgid "No Summary"
+msgstr "概要なし"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:294
+msgid "No Notes"
+msgstr "メモなし"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:306
+msgid "Assigned to: "
+msgstr "担当者:"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:306
+#: ../qml/features/dashboard/charts/Charts4.qml:63
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:609
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:94
+msgid "Unassigned"
+msgstr "未割り当て"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:328
+#: ../qml/components/cards/ProjectDetailsCard.qml:341
+#: ../qml/components/cards/UpdatesDetailsCard.qml:167
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:622
+#: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:292
+msgid "DRAFT"
+msgstr "下書き"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:351
+msgid "Type ID: "
+msgstr "タイプID:"
+
+#: ../qml/components/cards/ActivityDetailsCard.qml:392
+msgid "Reschedule Activity Date"
+msgstr "アクティビティの日付を再スケジュールする"
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:136
+msgid "Stop Timer"
+msgstr "タイマーの停止"
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:369
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:630
+msgid "Planned (H): "
+msgstr "計画(H):"
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:377
+#: ../qml/components/cards/ProjectDetailsCard.qml:385
+#: ../qml/components/selectors/ProjectStageSelector.qml:108
+#: ../qml/features/projects/pages/Projects.qml:658
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:637
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:644
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:37
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:140
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:41
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:99
+msgid "Not set"
+msgstr "未設定"
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:377
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:637
+msgid "Start Date: "
+msgstr "開始日："
+
+#: ../qml/components/cards/ProjectDetailsCard.qml:385
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:644
+msgid "End Date: "
+msgstr "終了日:"
+
+#: ../qml/components/cards/TasksForDayWidget.qml:36
+msgid "Plan for Today"
+msgstr "今日の計画"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:83
+msgid "Untitled Update"
+msgstr "無題の更新"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:102
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:81
+#: ../qml/components/selectors/StatusSelector.qml:26
+#: ../qml/components/workflow/CreateUpdatePage.qml:269
+#: ../qml/features/updates/pages/Updates.qml:464
+#: ../qml/features/updates/pages/Updates_Page.qml:270
+msgid "On Track"
+msgstr "順調に進んでいます"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:103
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:82
+#: ../qml/components/selectors/StatusSelector.qml:38
+#: ../qml/components/workflow/CreateUpdatePage.qml:270
+#: ../qml/features/updates/pages/Updates.qml:465
+#: ../qml/features/updates/pages/Updates_Page.qml:271
+msgid "At Risk"
+msgstr "危険にさらされています"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:104
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:83
+#: ../qml/components/selectors/StatusSelector.qml:50
+#: ../qml/components/workflow/CreateUpdatePage.qml:271
+#: ../qml/features/updates/pages/Updates.qml:466
+#: ../qml/features/updates/pages/Updates_Page.qml:272
+msgid "Off Track"
+msgstr "オフトラック"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:105
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:84
+#: ../qml/components/workflow/CreateUpdatePage.qml:272
+#: ../qml/features/updates/pages/Updates.qml:467
+#: ../qml/features/updates/pages/Updates_Page.qml:273
+msgid "On Hold"
+msgstr "保留中"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:122
+msgid "By: "
+msgstr "による："
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:122
+msgid "No Date"
+msgstr "日付なし"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:122
+msgid "Unknown User"
+msgstr "不明なユーザー"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:130
+msgid "Details"
+msgstr "詳細"
+
+#: ../qml/components/cards/UpdatesDetailsCard.qml:147
+#: ../qml/features/updates/pages/Updates.qml:83
+msgid "Unknown Project"
+msgstr "未知のプロジェクト"
+
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:21
+#: ../qml/components/selectors/ProjectSelector.qml:62
+#: ../qml/components/selectors/ProjectSelector.qml:99
+msgid "Select Account"
+msgstr "アカウントの選択"
+
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:72
+#: ../qml/components/navigation/AccountDrawer.qml:366
+#: ../qml/components/navigation/AccountDrawer.qml:416
+#: ../qml/components/navigation/AccountDrawer.qml:417
+msgid "All Accounts"
+msgstr "すべてのアカウント"
+
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:102
+msgid "Choose an account to use"
+msgstr "使用するアカウントを選択してください"
+
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:195
+msgid "No accounts available"
+msgstr "利用可能なアカウントがありません"
+
+#: ../qml/components/dialogs/AccountSelectorDialog.qml:231
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:138
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:95
+#: ../qml/components/dialogs/TimePickerPopup.qml:103
+#: ../qml/components/pickers/CustomDatePicker.qml:132
+#: ../qml/components/pickers/CustomDatePicker.qml:160
+#: ../qml/components/richtext/ColorPickerDialog.qml:65
+#: ../qml/components/richtext/FontSizeDialog.qml:72
+#: ../qml/components/richtext/LinkDialog.qml:54
+#: ../qml/components/selectors/OptionSelectorPopover.qml:56
+#: ../qml/components/selectors/ProjectSelector.qml:137
+#: ../qml/components/selectors/ProjectSelector.qml:184
+#: ../qml/components/selectors/ProjectStageSelector.qml:228
+#: ../qml/components/workflow/AttachmentManager.qml:656
+#: ../qml/components/workflow/CreateUpdatePage.qml:178
+#: ../qml/features/settings/pages/Settings_Accounts.qml:109
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:470
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:520
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: ../qml/components/dialogs/ColorPicker.qml:24
+msgid "Select Color"
+msgstr "色の選択"
+
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:44
+#: ../qml/components/workflow/CreateUpdatePage.qml:19
+msgid "New Project Update"
+msgstr "新しいプロジェクトの更新"
+
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:73
+#: ../qml/components/workflow/CreateUpdatePage.qml:234
+#: ../qml/features/updates/pages/Updates.qml:421
+msgid "Update Title"
+msgstr "タイトルを更新"
+
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:93
+msgid "Progress:"
+msgstr "進捗："
+
+#: ../qml/components/dialogs/CreateUpdateDialog.qml:112
+#: ../qml/components/richtext/ReadMorePage.qml:139
+#: ../qml/components/richtext/RichTextPreview.qml:11
+#: ../qml/components/workflow/CreateUpdatePage.qml:318
+#: ../qml/features/updates/pages/Updates.qml:543
+msgid "Description"
+msgstr "説明"
+
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:49
+#: ../qml/components/workflow/CreateUpdatePage.qml:154
+msgid "Unsaved Changes"
+msgstr "未保存の変更"
+
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:53
+msgid ""
+"You have unsaved changes. What would you like to do?\n"
+"\n"
+"Note: If you cancel, you can navigate back to continue editing."
+msgstr ""
+"未保存の変更があります。何をしたいですか?\n"
+"\n"
+"注: キャンセルした場合は、戻って編集を続けることができます。"
+
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:65
+#: ../qml/features/activities/pages/Activities.qml:93
+#: ../qml/features/projects/pages/Projects.qml:68
+#: ../qml/features/settings/pages/Account_Page.qml:68
+#: ../qml/features/tasks/pages/Tasks.qml:71
+#: ../qml/features/updates/pages/Updates.qml:123
+msgid "Save"
+msgstr "保存"
+
+#: ../qml/components/dialogs/SaveDiscardDialog.qml:80
+#: ../qml/components/workflow/CreateUpdatePage.qml:168
+msgid "Discard"
+msgstr "破棄"
+
+#: ../qml/components/dialogs/TimePickerPopup.qml:44
+msgid "Select Hours"
+msgstr "時間を選択してください"
+
+#: ../qml/components/dialogs/TimePickerPopup.qml:109
+#: ../qml/components/navigation/AccountDrawer.qml:333
+#: ../qml/components/pickers/CustomDatePicker.qml:167
+msgid "OK"
+msgstr "わかりました"
+
+#: ../qml/components/feedback/LoadMoreFooter.qml:82
+msgid "Load more..."
+msgstr "さらにロード..."
+
+#: ../qml/components/feedback/LoadMoreFooter.qml:91
+msgid "Loading..."
+msgstr "読み込み中..."
+
+#: ../qml/components/feedback/NotificationBell.qml:168
+msgid "Just now"
+msgstr "ちょうど今"
+
+#: ../qml/components/feedback/NotificationBell.qml:169
+msgid "m ago"
+msgstr "何分前"
+
+#: ../qml/components/feedback/NotificationBell.qml:170
+msgid "h ago"
+msgstr "時間前"
+
+#: ../qml/components/feedback/NotificationBell.qml:171
+msgid "d ago"
+msgstr "一日前"
+
+#: ../qml/components/feedback/NotificationBell.qml:243
+#: ../qml/components/feedback/NotificationBell.qml:316
+#: ../qml/features/dashboard/pages/Dashboard.qml:116
+#: ../qml/features/dashboard/pages/Dashboard.qml:117
+#: ../qml/features/settings/pages/Settings_Notifications.qml:34
+#: ../qml/features/settings/pages/Settings_Page.qml:80
+msgid "Notifications"
+msgstr "通知"
+
+#: ../qml/components/feedback/NotificationBell.qml:372
+msgid "Sync"
+msgstr "同期"
+
+#: ../qml/components/feedback/NotificationBell.qml:435
+msgid "No sync notifications"
+msgstr "同期通知はありません"
+
+#: ../qml/components/feedback/NotificationBell.qml:436
+msgid "No notifications"
+msgstr "通知はありません"
+
+#: ../qml/components/feedback/NotificationBell.qml:444
+msgid "All syncs are running smoothly!"
+msgstr "すべての同期はスムーズに実行されています。"
+
+#: ../qml/components/feedback/NotificationBell.qml:445
+msgid "You're all caught up!"
+msgstr "皆さんも追いついてきました！"
+
+#: ../qml/components/feedback/NotificationBell.qml:484
+#: ../qml/components/workflow/AttachmentManager.qml:214
+#: ../qml/components/workflow/AttachmentManager.qml:661
+#: ../qml/features/settings/pages/Settings_Accounts.qml:118
+#: ../qml/features/settings/pages/Settings_Accounts.qml:317
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:475
+msgid "Delete"
+msgstr "消去"
+
+#: ../qml/components/feedback/NotificationBell.qml:661
+#: ../qml/components/selectors/WorkItemSelector.qml:127
+#: ../qml/features/activities/pages/Activities.qml:591
+#: ../qml/features/dashboard/pages/Dashboard.qml:217
+#: ../qml/features/dashboard/pages/Dashboard3.qml:32
+#: ../qml/features/tasks/pages/Task_Page.qml:404
+#: ../qml/features/tasks/pages/Tasks.qml:47
+msgid "Task"
+msgstr "タスク"
+
+#: ../qml/components/feedback/NotificationBell.qml:662
+#: ../qml/features/activities/pages/Activities.qml:20
+#: ../qml/features/dashboard/pages/Dashboard.qml:223
+msgid "Activity"
+msgstr "活動"
+
+#: ../qml/components/feedback/NotificationBell.qml:663
+#: ../qml/components/selectors/WorkItemSelector.qml:125
+#: ../qml/features/activities/pages/Activities.qml:558
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:611
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:96
+#: ../qml/features/projects/pages/Projects.qml:44
+msgid "Project"
+msgstr "プロジェクト"
+
+#: ../qml/components/feedback/NotificationBell.qml:664
+#: ../qml/components/feedback/NotificationBell.qml:667
+#: ../qml/features/activities/pages/Activities.qml:630
+msgid "Update"
+msgstr "アップデート"
+
+#: ../qml/components/feedback/NotificationBell.qml:665
+#: ../qml/features/dashboard/pages/Dashboard.qml:220
+#: ../qml/features/timesheets/pages/Timesheet.qml:46
+msgid "Timesheet"
+msgstr "タイムシート"
+
+#: ../qml/components/feedback/NotificationBell.qml:666
+msgid "Sync Error"
+msgstr "同期エラー"
+
+#: ../qml/components/feedback/NotificationBell.qml:739
+msgid "Clear Sync Errors"
+msgstr "同期エラーをクリアする"
+
+#: ../qml/components/feedback/NotificationBell.qml:767
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:423
+msgid "Clear All"
+msgstr "すべてクリア"
+
+#: ../qml/components/navigation/AccountDrawer.qml:29
+#: ../qml/components/navigation/AccountDrawer.qml:62
+msgid "Account Selection"
+msgstr "アカウントの選択"
+
+#: ../qml/components/navigation/AccountDrawer.qml:73
+#: ../qml/components/workflow/CreateUpdatePage.qml:138
+#: ../qml/features/activities/pages/Activities.qml:108
+#: ../qml/features/projects/pages/Projects.qml:143
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:431
+#: ../qml/features/tasks/pages/Tasks.qml:86
+#: ../qml/features/updates/pages/Updates.qml:138
+msgid "Close"
+msgstr "近い"
+
+#: ../qml/components/navigation/AccountDrawer.qml:90
+msgid "Select Account:"
+msgstr "アカウントを選択してください:"
+
+#: ../qml/components/navigation/AccountDrawer.qml:159
+msgid "Current Account:"
+msgstr "現在の口座:"
+
+#: ../qml/components/navigation/AccountDrawer.qml:166
+msgid "No account selected"
+msgstr "アカウントが選択されていません"
+
+#: ../qml/components/navigation/AccountDrawer.qml:184
+msgid "Last Sync:"
+msgstr "最終同期:"
+
+#: ../qml/components/navigation/AccountDrawer.qml:191
+#: ../qml/components/navigation/AccountDrawer.qml:427
+msgid "Never"
+msgstr "一度もない"
+
+#: ../qml/components/navigation/AccountDrawer.qml:213
+msgid "Sync Data"
+msgstr "データを同期する"
+
+#: ../qml/components/navigation/AccountDrawer.qml:213
+msgid "Syncing..."
+msgstr "同期中..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:277
+msgid "Note: Sync is not available for 'All Accounts' view"
+msgstr "注: 「すべてのアカウント」ビューでは同期は利用できません"
+
+#: ../qml/components/navigation/AccountDrawer.qml:286
+msgid "Please select a specific account to sync data"
+msgstr "データを同期するには特定のアカウントを選択してください"
+
+#: ../qml/components/navigation/AccountDrawer.qml:307
+msgid "Syncing data..."
+msgstr "データを同期中..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:430
+msgid "N/A for All Accounts"
+msgstr "すべてのアカウントに該当なし"
+
+#: ../qml/components/navigation/AccountDrawer.qml:453
+msgid "Account not found"
+msgstr "アカウントが見つかりません"
+
+#: ../qml/components/navigation/AccountDrawer.qml:461
+#: ../qml/components/navigation/AccountDrawer.qml:463
+msgid "Local account - no sync required"
+msgstr "ローカルアカウント - 同期は必要ありません"
+
+#: ../qml/components/navigation/AccountDrawer.qml:463
+msgid "Info"
+msgstr "情報"
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Connecting to server..."
+msgstr "サーバーに接続しています..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Syncing activities..."
+msgstr "アクティビティを同期しています..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Syncing projects..."
+msgstr "プロジェクトを同期中..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Syncing tasks..."
+msgstr "タスクを同期中..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Syncing timesheets..."
+msgstr "タイムシートを同期しています..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:473
+msgid "Updating local data..."
+msgstr "ローカル データを更新しています..."
+
+#: ../qml/components/navigation/AccountDrawer.qml:482
+#: ../qml/components/navigation/AccountDrawer.qml:485
+msgid "Sync failed: "
+msgstr "同期に失敗しました:"
+
+#: ../qml/components/navigation/AccountDrawer.qml:485
+#: ../qml/components/richtext/ReadMorePage.qml:114
+#: ../qml/components/richtext/RichTextEditor.qml:193
+#: ../qml/components/richtext/RichTextPreview.qml:165
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:484
+msgid "Error"
+msgstr "エラー"
+
+#: ../qml/components/navigation/AccountDrawer.qml:501
+msgid "Sync completed successfully"
+msgstr "同期が正常に完了しました"
+
+#: ../qml/components/navigation/AccountDrawer.qml:505
+msgid "Data synchronized successfully!"
+msgstr "データは正常に同期されました。"
+
+#: ../qml/components/navigation/AccountDrawer.qml:505
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:600
+msgid "Success"
+msgstr "成功"
+
+#: ../qml/components/navigation/ListHeader.qml:177
+msgid "Search..."
+msgstr "検索..."
+
+#: ../qml/components/pickers/CustomDatePicker.qml:111
+#: ../qml/components/pickers/DateRangeSelector.qml:88
+msgid "Next Week"
+msgstr "来週"
+
+#: ../qml/components/pickers/CustomDatePicker.qml:118
+#: ../qml/components/pickers/DateRangeSelector.qml:90
+msgid "Next Month"
+msgstr "来月"
+
+#: ../qml/components/pickers/CustomDatePicker.qml:125
+msgid "Custom"
+msgstr "カスタム"
+
+#: ../qml/components/pickers/DateRangeSelector.qml:86
+#: ../qml/features/activities/pages/Activity_Page.qml:617
+#: ../qml/features/tasks/pages/Task_Page.qml:259
+msgid "Today"
+msgstr "今日"
+
+#: ../qml/components/pickers/DateRangeSelector.qml:87
+#: ../qml/features/activities/pages/Activity_Page.qml:618
+#: ../qml/features/tasks/pages/Task_Page.qml:260
+msgid "This Week"
+msgstr "今週"
+
+#: ../qml/components/pickers/DateRangeSelector.qml:89
+#: ../qml/features/activities/pages/Activity_Page.qml:619
+#: ../qml/features/tasks/pages/Task_Page.qml:261
+msgid "This Month"
+msgstr "今月"
+
+#: ../qml/components/richtext/ColorPickerDialog.qml:30
+msgid "Choose Color"
+msgstr "色の選択"
+
+#: ../qml/components/richtext/FontSizeDialog.qml:25
+msgid "Font Size"
+msgstr "フォントサイズ"
+
+#: ../qml/components/richtext/LinkDialog.qml:25
+msgid "Insert Link"
+msgstr "リンクを挿入"
+
+#: ../qml/components/richtext/LinkDialog.qml:39
+msgid "URL (e.g., https://example.com)"
+msgstr "URL (例: https://example.com))"
+
+#: ../qml/components/richtext/LinkDialog.qml:48
+msgid "Link text (optional)"
+msgstr "リンクテキスト (オプション)"
+
+#: ../qml/components/richtext/LinkDialog.qml:59
+msgid "Insert"
+msgstr "入れる"
+
+#: ../qml/components/richtext/ReadMorePage.qml:61
+#: ../qml/components/richtext/RichTextPreview.qml:88
+msgid "Listening..."
+msgstr "リスニング..."
+
+#: ../qml/components/richtext/ReadMorePage.qml:112
+#: ../qml/components/richtext/RichTextEditor.qml:191
+#: ../qml/components/richtext/RichTextPreview.qml:163
+msgid "Action Required"
+msgstr "必要なアクション"
+
+#: ../qml/components/richtext/ReadMorePage.qml:161
+msgid "Start Recording"
+msgstr "録音を開始する"
+
+#: ../qml/components/richtext/ReadMorePage.qml:161
+msgid "Stop Recording"
+msgstr "録音を停止する"
+
+#: ../qml/components/richtext/ReadMorePage.qml:166
+#: ../qml/components/richtext/RichTextPreview.qml:484
+#: ../qml/components/richtext/RichTextPreview.qml:550
+#: ../qml/components/workflow/AttachmentManager.qml:309
+msgid "Processing..."
+msgstr "処理..."
+
+#: ../qml/components/richtext/ReadMorePage.qml:175
+#: ../qml/components/richtext/RichTextPreview.qml:495
+msgid "Starting..."
+msgstr "起動..."
+
+#: ../qml/components/richtext/ReadMorePage.qml:185
+msgid "Hide Toolbar"
+msgstr "ツールバーを隠す"
+
+#: ../qml/components/richtext/ReadMorePage.qml:185
+msgid "Show Toolbar"
+msgstr "ツールバーを表示"
+
+#: ../qml/components/selectors/AccountSelector.qml:106
+msgid "Select an account"
+msgstr "アカウントを選択してください"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:340
+msgid "Filter by Assignees"
+msgstr "担当者によるフィルター"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:367
+msgid "Search assignees..."
+msgstr "担当者を検索..."
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:455
+msgid "Others"
+msgstr "その他"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:455
+msgid "Selected"
+msgstr "選択済み"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:619
+msgid "Less"
+msgstr "少ない"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:619
+msgid "More"
+msgstr "もっと"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:680
+msgid "Apply Filter"
+msgstr "フィルターを適用する"
+
+#: ../qml/components/selectors/AssigneeFilterMenu.qml:699
+msgid "Clear Filter"
+msgstr "クリアフィルター"
+
+#: ../qml/components/selectors/InlineOptionSelector.qml:131
+msgid "Tap to select"
+msgstr "タップして選択します"
+
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:39
+msgid "Assignees"
+msgstr "譲受人"
+
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:123
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:296
+msgid "Select Assignees"
+msgstr "担当者の選択"
+
+#: ../qml/components/selectors/MultiAssigneeSelector.qml:436
+#: ../qml/components/system/ImagePreviewer.qml:185
+#: ../qml/features/activities/pages/Activity_Page.qml:623
+#: ../qml/features/tasks/pages/Task_Page.qml:263
+msgid "Done"
+msgstr "終わり"
+
+#: ../qml/components/selectors/ProjectSelector.qml:55
+#: ../qml/features/updates/pages/Updates.qml:375
+msgid "Account:"
+msgstr "アカウント："
+
+#: ../qml/components/selectors/ProjectSelector.qml:77
+#: ../qml/features/updates/pages/Updates.qml:395
+msgid "Project:"
+msgstr "プロジェクト："
+
+#: ../qml/components/selectors/ProjectSelector.qml:84
+#: ../qml/components/selectors/ProjectSelector.qml:119
+#: ../qml/components/selectors/ProjectSelector.qml:148
+msgid "Select Project"
+msgstr "プロジェクトの選択"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:55
+msgid "Change Project Stage"
+msgstr "プロジェクトステージの変更"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:108
+msgid "Current Stage: "
+msgstr "現在の段階:"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:115
+msgid "Select New Stage:"
+msgstr "新しいステージを選択します:"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:173
+msgid "(Folded/Closed Stage)"
+msgstr "(折りたたみ/クローズドステージ)"
+
+#: ../qml/components/selectors/ProjectStageSelector.qml:199
+msgid "No stages available"
+msgstr "利用可能なステージはありません"
+
+#: ../qml/components/selectors/StageFilterMenu.qml:180
+msgid "Filter by Stage"
+msgstr "ステージでフィルターする"
+
+#: ../qml/components/selectors/StageFilterMenu.qml:355
+msgid "Current: "
+msgstr "現在："
+
+#: ../qml/components/selectors/WorkItemSelector.qml:124
+#: ../qml/features/dashboard/pages/Dashboard.qml:83
+#: ../qml/features/dashboard/pages/Dashboard.qml:484
+msgid "Account"
+msgstr "アカウント"
+
+#: ../qml/components/selectors/WorkItemSelector.qml:126
+msgid "Subproject"
+msgstr "サブプロジェクト"
+
+#: ../qml/components/selectors/WorkItemSelector.qml:128
+msgid "Subtask"
+msgstr "サブタスク"
+
+#: ../qml/components/selectors/WorkItemSelector.qml:129
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:609
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:94
+msgid "Assignee"
+msgstr "譲受人"
+
+#: ../qml/components/system/ImagePreviewer.qml:79
+msgid "Download"
+msgstr "ダウンロード"
+
+#: ../qml/components/system/ImagePreviewer.qml:131
+msgid "No image to save"
+msgstr "保存する画像がありません"
+
+#: ../qml/components/system/ImagePreviewer.qml:155
+msgid "Saved"
+msgstr "保存されました"
+
+#: ../qml/components/system/ImagePreviewer.qml:158
+msgid "Choose where to save"
+msgstr "保存先を選択する"
+
+#: ../qml/components/system/ImagePreviewer.qml:160
+msgid "Could not open export dialog"
+msgstr "エクスポートダイアログを開けませんでした"
+
+#: ../qml/components/system/ImagePreviewer.qml:164
+msgid "Save failed"
+msgstr "保存に失敗しました"
+
+#: ../qml/components/system/ImagePreviewer.qml:170
+msgid "No image to open"
+msgstr "開く画像がありません"
+
+#: ../qml/components/system/ImagePreviewer.qml:188
+msgid "Could not open chooser"
+msgstr "セレクターを開けませんでした"
+
+#: ../qml/components/system/ImagePreviewer.qml:192
+msgid "Open failed"
+msgstr "オープンに失敗しました"
+
+#: ../qml/components/system/ModelDownloadTimerWidget.qml:51
+msgid "Initializing download..."
+msgstr "ダウンロードを初期化しています..."
+
+#: ../qml/components/system/ModelDownloadTimerWidget.qml:53
+msgid "Downloading model files..."
+msgstr "モデル ファイルをダウンロードしています..."
+
+#: ../qml/components/system/ModelDownloadTimerWidget.qml:55
+msgid "Extracting and installing..."
+msgstr "抽出してインストールしています..."
+
+#: ../qml/components/system/ModelDownloadTimerWidget.qml:57
+msgid "Installation complete!"
+msgstr "インストール完了！"
+
+#: ../qml/components/visualization/EHower.qml:101
+msgid "Time spent based on priorities"
+msgstr "優先順位に基づいて費やす時間"
+
+#: ../qml/components/visualization/EHower.qml:131
+msgid "URGENT"
+msgstr "緊急"
+
+#: ../qml/components/visualization/EHower.qml:141
+msgid "NOT URGENT"
+msgstr "緊急ではありません"
+
+#: ../qml/components/visualization/EHower.qml:165
+msgid "IMPORTANT"
+msgstr "重要"
+
+#: ../qml/components/visualization/EHower.qml:182
+msgid "NOT IMPORTANT"
+msgstr "重要ではない"
+
+#: ../qml/components/visualization/EHower.qml:244
+msgid "Do First"
+msgstr "まずやること"
+
+#: ../qml/components/visualization/EHower.qml:301
+msgid "Do Next"
+msgstr "次の作業を行う"
+
+#: ../qml/components/visualization/EHower.qml:359
+msgid "Do Later"
+msgstr "後で行う"
+
+#: ../qml/components/visualization/EHower.qml:416
+msgid "Don't do"
+msgstr "しないでください"
+
+#: ../qml/components/visualization/ProjectList.qml:726
+msgid "Search projects"
+msgstr "プロジェクトを検索する"
+
+#: ../qml/components/visualization/ProjectPieChart.qml:45
+#: ../qml/components/visualization/ProjectPieChart.qml:208
+msgid "Most Time-Consuming Projects"
+msgstr "最も時間のかかるプロジェクト"
+
+#: ../qml/components/visualization/ProjectPieChart.qml:84
+#: ../qml/features/dashboard/charts/Charts1.qml:67
+#: ../qml/features/dashboard/charts/Charts2.qml:69
+#: ../qml/features/dashboard/charts/Charts3.qml:166
+#: ../qml/features/dashboard/pages/Dashboard3.qml:63
+msgid " hrs"
+msgstr "時間"
+
+#: ../qml/components/visualization/ProjectPieChart.qml:205
+msgid "Most Time-Consuming Projects(No Data)"
+msgstr "最も時間のかかるプロジェクト(データなし)"
+
+#: ../qml/components/workflow/AttachmentManager.qml:33
+msgid "Attachments"
+msgstr "添付ファイル"
+
+#: ../qml/components/workflow/AttachmentManager.qml:53
+msgid "Starting upload..."
+msgstr "アップロードを開始しています..."
+
+#: ../qml/components/workflow/AttachmentManager.qml:224
+#: ../qml/features/projects/pages/Projects.qml:759
+#: ../qml/features/projects/pages/Projects.qml:820
+#: ../qml/features/projects/pages/Projects.qml:882
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:106
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:145
+msgid "View"
+msgstr "ビュー"
+
+#: ../qml/components/workflow/AttachmentManager.qml:367
+msgid "Failed to upload: Database path unresolved"
+msgstr "アップロードに失敗しました: データベース パスが解決されていません"
+
+#: ../qml/components/workflow/AttachmentManager.qml:457
+msgid "Attachment has been processed"
+msgstr "添付ファイルが処理されました"
+
+#: ../qml/components/workflow/AttachmentManager.qml:460
+#: ../qml/components/workflow/AttachmentManager.qml:462
+msgid "Failed to upload"
+msgstr "アップロードに失敗しました"
+
+#: ../qml/components/workflow/AttachmentManager.qml:635
+msgid "Cannot delete: missing Odoo ID"
+msgstr "削除できません: Odoo ID がありません"
+
+#: ../qml/components/workflow/AttachmentManager.qml:652
+msgid "Delete Attachment"
+msgstr "添付ファイルの削除"
+
+#: ../qml/components/workflow/AttachmentManager.qml:653
+msgid "Are you sure you want to delete '%1'?"
+msgstr "「%1」を削除してもよろしいですか?"
+
+#: ../qml/components/workflow/AttachmentManager.qml:673
+msgid "Deleting attachment..."
+msgstr "添付ファイルを削除しています..."
+
+#: ../qml/components/workflow/AttachmentManager.qml:678
+msgid "Database not found"
+msgstr "データベースが見つかりません"
+
+#: ../qml/components/workflow/AttachmentManager.qml:685
+msgid "Attachment deleted"
+msgstr "添付ファイルが削除されました"
+
+#: ../qml/components/workflow/AttachmentManager.qml:688
+msgid "Failed to delete attachment"
+msgstr "添付ファイルの削除に失敗しました"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:63
+msgid "Draft Recovered"
+msgstr "草案が回収されました"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:64
+msgid "Your unsaved changes have been recovered."
+msgstr "未保存の変更が復元されました。"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:88
+#: ../qml/features/activities/pages/Activities.qml:122
+#: ../qml/features/projects/pages/Projects.qml:58
+#: ../qml/features/tasks/pages/Tasks.qml:60
+#: ../qml/features/updates/pages/Updates.qml:151
+msgid "Back"
+msgstr "戻る"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:103
+#: ../qml/features/projects/pages/Projects.qml:733
+#: ../qml/features/projects/pages/Projects.qml:792
+#: ../qml/features/projects/pages/Projects.qml:853
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:91
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:130
+#: ../qml/features/tasks/pages/MyTasksPage.qml:421
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:359
+msgid "Create"
+msgstr "作成する"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:107
+msgid "Validation Error"
+msgstr "検証エラー"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:108
+msgid "Please fill in all required fields."
+msgstr "すべての必須フィールドに入力してください。"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:155
+msgid "You have unsaved changes. What would you like to do?"
+msgstr "未保存の変更があります。何をしたいですか?"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:158
+msgid "Save Draft"
+msgstr "ドラフトの保存"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:241
+msgid "Enter update title..."
+msgstr "アップデートのタイトルを入力してください..."
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:261
+#: ../qml/features/updates/pages/Updates.qml:461
+msgid "Project Status"
+msgstr "プロジェクトのステータス"
+
+#: ../qml/components/workflow/CreateUpdatePage.qml:287
+#: ../qml/features/updates/pages/Updates.qml:494
+msgid "Progress"
+msgstr "進捗"
+
+#: ../qml/features/activities/pages/Activities.qml:516
+msgid "View Task"
+msgstr "タスクの表示"
+
+#: ../qml/features/activities/pages/Activities.qml:518
+msgid "View Project"
+msgstr "プロジェクトを見る"
+
+#: ../qml/features/activities/pages/Activities.qml:520
+msgid "View Update"
+msgstr "アップデートを見る"
+
+#: ../qml/features/activities/pages/Activities.qml:543
+msgid "Connected to"
+msgstr "に接続されています"
+
+#: ../qml/features/activities/pages/Activities.qml:656
+msgid "Other"
+msgstr "他の"
+
+#: ../qml/features/activities/pages/Activities.qml:697
+msgid "Summary"
+msgstr "まとめ"
+
+#: ../qml/features/activities/pages/Activities.qml:798
+msgid "Activity Type"
+msgstr "アクティビティの種類"
+
+#: ../qml/features/activities/pages/Activity_Page.qml:41
+#: ../qml/features/projects/pages/Projects.qml:715
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:72
+msgid "Activities"
+msgstr "活動内容"
+
+#: ../qml/features/activities/pages/Activity_Page.qml:620
+#: ../qml/features/tasks/pages/Task_Page.qml:262
+msgid "Later"
+msgstr "後で"
+
+#: ../qml/features/activities/pages/Activity_Page.qml:621
+msgid "OverDue"
+msgstr "期限超過"
+
+#: ../qml/features/activities/pages/Activity_Page.qml:622
+#: ../qml/features/tasks/pages/Task_Page.qml:264
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:165
+#: ../qml/features/updates/pages/Updates_Page.qml:269
+msgid "All"
+msgstr "全て"
+
+#: ../qml/features/activities/pages/Activity_Page.qml:754
+msgid "No Activities Available"
+msgstr "利用可能なアクティビティはありません"
+
+#: ../qml/features/activities/pages/Activity_Page.qml:866
+msgid "Loading activities..."
+msgstr "アクティビティを読み込んでいます..."
+
+#: ../qml/features/dashboard/charts/Charts3.qml:138
+msgid "Projectwise Time Spent"
+msgstr "プロジェクトごとに費やした時間"
+
+#: ../qml/features/dashboard/charts/Charts3.qml:222
+msgid "Show fewer ↑"
+msgstr "表示を少なくする ↑"
+
+#: ../qml/features/dashboard/charts/Charts3.qml:247
+msgid "Show next %1 ↓"
+msgstr "次の%1を表示 ↓"
+
+#: ../qml/features/dashboard/charts/Charts4.qml:32
+msgid "Unnamed project"
+msgstr "名前のないプロジェクト"
+
+#: ../qml/features/dashboard/charts/Charts4.qml:60
+msgid "Unnamed task"
+msgstr "名前のないタスク"
+
+#: ../qml/features/dashboard/charts/Charts4.qml:64
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:610
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:95
+msgid "Unknown"
+msgstr "未知"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:166
+#: ../qml/features/dashboard/pages/Dashboard.qml:348
+#: ../qml/features/projects/pages/Project_Page.qml:43
+msgid "Projects"
+msgstr "プロジェクト"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:248
+msgid "Search projects..."
+msgstr "プロジェクトを検索..."
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:276
+msgid "Most time"
+msgstr "ほとんどの時間"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:277
+#: ../qml/features/dashboard/pages/Dashboard.qml:360
+#: ../qml/features/projects/pages/Projects.qml:774
+msgid "Tasks"
+msgstr "タスク"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:278
+msgid "A-Z"
+msgstr "A-Z"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:329
+msgid "No projects found"
+msgstr "プロジェクトが見つかりませんでした"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:390
+msgid "TOTAL"
+msgstr "合計"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:391
+msgid "TASKS"
+msgstr "タスク"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:392
+msgid "AVERAGE"
+msgstr "平均"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:393
+msgid "TOP TASK"
+msgstr "トップタスク"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:472
+msgid "Show all %1 tasks ↓"
+msgstr "すべての%1タスクを表示 ↓"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:488
+msgid "No tasks with tracked time"
+msgstr "時間を追跡できるタスクはありません"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:549
+msgid "TIME SPENT"
+msgstr "費やした時間"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:575
+msgid "% OF PROJECT"
+msgstr "プロジェクトの割合"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:610
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:95
+msgid "Status"
+msgstr "状態"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:612
+msgid "Log entries"
+msgstr "ログエントリ"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:646
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:129
+msgid "Time log"
+msgstr "タイムログ"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:711
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:159
+msgid "No note"
+msgstr "メモなし"
+
+#: ../qml/features/dashboard/charts/TaskTimeChart.qml:731
+msgid "No log entries"
+msgstr "ログエントリがありません"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:7
+msgid "Dashboard Charts Guide"
+msgstr "ダッシュボード チャート ガイド"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:24
+msgid ""
+"Welcome to the Dashboard! Here is a quick guide to help you understand your "
+"data:"
+msgstr "ダッシュボードへようこそ!データを理解するのに役立つクイックガイドは次のとおりです。"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:33
+msgid "Priority Matrix (Chart 1 & 2)"
+msgstr "優先順位マトリックス (図 1 および 2)"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:40
+msgid ""
+"These charts give you an overview of where your time goes. Check if you are "
+"spending time on high-priority tasks or getting bogged down by low-priority "
+"ones."
+msgstr ""
+"これらのグラフは、時間の経過の概要を示します。優先順位の高いタスクに時間を費やしていないか、優先順位の低いタスクに行き詰まっていないか確認してください。"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:49
+msgid "Projectwise Time Spent (Chart 3)"
+msgstr "プロジェクトごとの費やした時間 (図 3)"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:56
+msgid ""
+"This horizontal bar chart compares the total hours spent across different "
+"projects. You can incrementally load more projects using the buttons at the "
+"bottom. Hover over any bar to see the exact hours."
+msgstr ""
+"この横棒グラフは、さまざまなプロジェクトに費やされた合計時間を比較します。下部のボタンを使用して、さらに多くのプロジェクトを段階的に読み込むことができます。バーの上にマウスを置くと、正確な時間が表示されます。"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:65
+msgid "Task Drilldown (Chart 4)"
+msgstr "タスクのドリルダウン (図 4)"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:72
+msgid ""
+"Tap on any project to drill down into its tasks. You can further tap on a "
+"task to view the detailed timesheet logs. This is highly useful for auditing"
+" exactly where your time was spent."
+msgstr ""
+"任意のプロジェクトをタップして、そのタスクをドリルダウンします。さらにタスクをタップすると、詳細なタイムシート "
+"ログを表示できます。これは、どこに時間が費やされたかを正確に監査するのに非常に役立ちます。"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:81
+msgid "What Do The Colors Mean?"
+msgstr "色の意味は何ですか?"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:88
+msgid ""
+"Projects and tasks are color-coded based on their current stage to give you "
+"immediate visual feedback:"
+msgstr "プロジェクトとタスクは現在の段階に基づいて色分けされており、視覚的なフィードバックがすぐに得られます。"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:95
+msgid "Green: Done / Completed"
+msgstr "緑: 完了/完了"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:100
+msgid "Red: Cancelled"
+msgstr "赤：キャンセル済み"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:105
+msgid "Orange: On Hold / Paused"
+msgstr "オレンジ色: 保留中/一時停止中"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:110
+msgid "Blue / Other: In Progress"
+msgstr "青/その他: 進行中"
+
+#: ../qml/features/dashboard/components/ChartInfoPopup.qml:118
+msgid "Got it!"
+msgstr "わかった！"
+
+#: ../qml/features/dashboard/components/ProjectCard.qml:77
+msgid "tasks"
+msgstr "タスク"
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:39
+msgid "Time Manager - Time Management Dashboard"
+msgstr "タイム マネージャー - 時間管理ダッシュボード"
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:43
+#: ../qml/features/dashboard/pages/Dashboard.qml:169
+msgid "Loading dashboard..."
+msgstr "ダッシュボードを読み込んでいます..."
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:107
+#: ../qml/features/dashboard/pages/Dashboard2.qml:46
+msgid "Chart Info"
+msgstr "チャート情報"
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:129
+#: ../qml/features/dashboard/pages/Dashboard.qml:454
+msgid "New Timesheet"
+msgstr "新しいタイムシート"
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:157
+msgid "Preparing all-account dashboard..."
+msgstr "全アカウントのダッシュボードを準備しています..."
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:158
+msgid "Preparing dashboard..."
+msgstr "ダッシュボードを準備しています..."
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:181
+msgid "Loading project chart..."
+msgstr "プロジェクト チャートを読み込んでいます..."
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:191
+msgid "Loading additional charts..."
+msgstr "追加のチャートを読み込んでいます..."
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:336
+msgid "Overview"
+msgstr "概要"
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:502
+msgid "New Notifications"
+msgstr "新しい通知"
+
+#: ../qml/features/dashboard/pages/Dashboard.qml:503
+msgid "You have %1 new notification(s)"
+msgstr "%1 件の新しい通知があります"
+
+#: ../qml/features/dashboard/pages/Dashboard2.qml:31
+msgid "Charts"
+msgstr "チャート"
+
+#: ../qml/features/dashboard/pages/Dashboard3.qml:45
+msgid "Taskwise Time Spent"
+msgstr "タスクごとに費やした時間"
+
+#: ../qml/features/dashboard/pages/Dashboard3.qml:112
+msgid "Time"
+msgstr "時間"
+
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:42
+msgid "Time spent"
+msgstr "費やした時間"
+
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:46
+msgid "% of project"
+msgstr "プロジェクトの割合"
+
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:49
+msgid "0.0%"
+msgstr "0.0%"
+
+#: ../qml/features/dashboard/pages/TaskDetailPage.qml:97
+msgid "Log entries count"
+msgstr "ログエントリ数"
+
+#: ../qml/features/projects/pages/Project_Page.qml:68
+#: ../qml/features/updates/pages/Updates_Page.qml:88
+msgid "New"
+msgstr "新しい"
+
+#: ../qml/features/projects/pages/Project_Page.qml:78
+#: ../qml/features/tasks/pages/MyTasksPage.qml:83
+#: ../qml/features/tasks/pages/Task_Page.qml:87
+msgid "Flat View"
+msgstr "フラットビュー"
+
+#: ../qml/features/projects/pages/Project_Page.qml:78
+#: ../qml/features/tasks/pages/MyTasksPage.qml:83
+#: ../qml/features/tasks/pages/Task_Page.qml:87
+msgid "Tree View"
+msgstr "ツリービュー"
+
+#: ../qml/features/projects/pages/Project_Page.qml:85
+#: ../qml/features/updates/pages/Updates_Page.qml:81
+msgid "Search"
+msgstr "検索"
+
+#: ../qml/features/projects/pages/Project_Page.qml:137
+msgid "Loading projects..."
+msgstr "プロジェクトを読み込んでいます..."
+
+#: ../qml/features/projects/pages/Projects.qml:585
+msgid "Project Name"
+msgstr "プロジェクト名"
+
+#: ../qml/features/projects/pages/Projects.qml:648
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:27
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:31
+msgid "Current Stage:"
+msgstr "現在の段階:"
+
+#: ../qml/features/projects/pages/Projects.qml:688
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:67
+msgid "Change"
+msgstr "変化"
+
+#: ../qml/features/projects/pages/Projects.qml:835
+#: ../qml/features/updates/pages/Updates_Page.qml:39
+msgid "Project Updates"
+msgstr "プロジェクトの更新"
+
+#: ../qml/features/projects/pages/Projects.qml:903
+msgid "Allocated Hours"
+msgstr "割り当て時間"
+
+#: ../qml/features/projects/pages/Projects.qml:976
+msgid "Planned Dates"
+msgstr "予定日"
+
+#: ../qml/features/settings/pages/Account_Page.qml:37
+msgid "Create Account"
+msgstr "アカウントを作成する"
+
+#: ../qml/features/settings/pages/Account_Page.qml:37
+msgid "Edit Account"
+msgstr "アカウントの編集"
+
+#: ../qml/features/settings/pages/Account_Page.qml:141
+msgid "Your account has been updated successfully!"
+msgstr "アカウントは正常に更新されました。"
+
+#: ../qml/features/settings/pages/Account_Page.qml:169
+msgid "Your account has been saved, Enjoy using the app !"
+msgstr "アカウントは保存されました。アプリをお楽しみください。"
+
+#: ../qml/features/settings/pages/Account_Page.qml:379
+msgid "Account Details"
+msgstr "アカウントの詳細"
+
+#: ../qml/features/settings/pages/Account_Page.qml:389
+msgid "Account Name"
+msgstr "アカウント名"
+
+#: ../qml/features/settings/pages/Account_Page.qml:413
+msgid "Server Connection"
+msgstr "サーバー接続"
+
+#: ../qml/features/settings/pages/Account_Page.qml:423
+msgid "URL"
+msgstr "URL"
+
+#: ../qml/features/settings/pages/Account_Page.qml:430
+msgid "Fetch Databases"
+msgstr "データベースのフェッチ"
+
+#: ../qml/features/settings/pages/Account_Page.qml:476
+msgid "Database"
+msgstr "データベース"
+
+#: ../qml/features/settings/pages/Account_Page.qml:486
+msgid "Database Name"
+msgstr "データベース名"
+
+#: ../qml/features/settings/pages/Account_Page.qml:510
+msgid "Credentials"
+msgstr "資格"
+
+#: ../qml/features/settings/pages/Account_Page.qml:520
+msgid "Username"
+msgstr "ユーザー名"
+
+#: ../qml/features/settings/pages/Account_Page.qml:526
+msgid "Connect With"
+msgstr "接続する"
+
+#: ../qml/features/settings/pages/Account_Page.qml:529
+msgid "Connect With Api Key"
+msgstr "APIキーで接続する"
+
+#: ../qml/features/settings/pages/Account_Page.qml:530
+msgid "Connect With Password"
+msgstr "パスワードで接続する"
+
+#: ../qml/features/settings/pages/Account_Page.qml:543
+msgid "API Key"
+msgstr "APIキー"
+
+#: ../qml/features/settings/pages/Account_Page.qml:543
+msgid "Password"
+msgstr "パスワード"
+
+#: ../qml/features/settings/pages/Account_Page.qml:583
+msgid "Sync Preferences"
+msgstr "同期設定"
+
+#: ../qml/features/settings/pages/Account_Page.qml:593
+msgid "Custom Sync Settings"
+msgstr "カスタム同期設定"
+
+#: ../qml/features/settings/pages/Account_Page.qml:612
+msgid "Using global sync defaults (interval: "
+msgstr "グローバル同期のデフォルトを使用する (間隔:"
+
+#: ../qml/features/settings/pages/Account_Page.qml:614
+msgid ", direction: "
+msgstr "、 方向："
+
+#: ../qml/features/settings/pages/Account_Page.qml:627
+msgid "Enable Sync"
+msgstr "同期を有効にする"
+
+#: ../qml/features/settings/pages/Account_Page.qml:645
+#: ../qml/features/settings/pages/Settings_Sync.qml:176
+msgid "Sync Interval"
+msgstr "同期間隔"
+
+#: ../qml/features/settings/pages/Account_Page.qml:648
+msgid "1 minute"
+msgstr "1分"
+
+#: ../qml/features/settings/pages/Account_Page.qml:649
+msgid "5 minutes"
+msgstr "5分"
+
+#: ../qml/features/settings/pages/Account_Page.qml:650
+msgid "15 minutes"
+msgstr "15分"
+
+#: ../qml/features/settings/pages/Account_Page.qml:651
+msgid "30 minutes"
+msgstr "30分"
+
+#: ../qml/features/settings/pages/Account_Page.qml:652
+msgid "1 hour"
+msgstr "1時間"
+
+#: ../qml/features/settings/pages/Account_Page.qml:653
+msgid "2 hours"
+msgstr "2時間"
+
+#: ../qml/features/settings/pages/Account_Page.qml:654
+msgid "6 hours"
+msgstr "6時間"
+
+#: ../qml/features/settings/pages/Account_Page.qml:655
+msgid "12 hours"
+msgstr "12時間"
+
+#: ../qml/features/settings/pages/Account_Page.qml:656
+msgid "1 day"
+msgstr "1日"
+
+#: ../qml/features/settings/pages/Account_Page.qml:657
+msgid "3 days"
+msgstr "3日間"
+
+#: ../qml/features/settings/pages/Account_Page.qml:658
+msgid "1 week"
+msgstr "1週間"
+
+#: ../qml/features/settings/pages/Account_Page.qml:669
+#: ../qml/features/settings/pages/Settings_Sync.qml:218
+msgid "Sync Direction"
+msgstr "同期方向"
+
+#: ../qml/features/settings/pages/Account_Page.qml:672
+msgid "Both (Up & Down)"
+msgstr "両方（上と下）"
+
+#: ../qml/features/settings/pages/Account_Page.qml:673
+msgid "Download Only"
+msgstr "ダウンロードのみ"
+
+#: ../qml/features/settings/pages/Account_Page.qml:674
+msgid "Upload Only"
+msgstr "アップロードのみ"
+
+#: ../qml/features/settings/pages/Settings_Accounts.qml:39
+#: ../qml/features/settings/pages/Settings_Page.qml:69
+msgid "Connected Accounts"
+msgstr "接続されたアカウント"
+
+#: ../qml/features/settings/pages/Settings_Accounts.qml:101
+msgid "Delete Account"
+msgstr "アカウントの削除"
+
+#: ../qml/features/settings/pages/Settings_Accounts.qml:104
+msgid ""
+"Are you sure you want to delete this account? This will permanently remove "
+"the account and all associated data including projects, tasks, and "
+"timesheets."
+msgstr ""
+"このアカウントを削除してもよろしいですか?これにより、アカウントと、プロジェクト、タスク、タイムシートを含むすべての関連データが完全に削除されます。"
+
+#: ../qml/features/settings/pages/Settings_Accounts.qml:307
+msgid "Log"
+msgstr "ログ"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:191
+msgid "Push Notifications"
+msgstr "プッシュ通知"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:199
+msgid "Receive push notifications for task updates and reminders"
+msgstr "タスクの更新とリマインダーのプッシュ通知を受け取る"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:216
+msgid "Enable Notifications"
+msgstr "通知を有効にする"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:238
+msgid ""
+"⚠ Notifications are disabled when Background Sync is set to Upload Only"
+msgstr "⚠ バックグラウンド同期がアップロードのみに設定されている場合、通知は無効になります"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:272
+msgid "Notification Schedule"
+msgstr "通知スケジュール"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:280
+msgid ""
+"Set your timezone, working days and active hours to receive notifications "
+"only during work time"
+msgstr "勤務時間中にのみ通知を受け取るようにタイムゾーン、勤務日、アクティブ時間を設定します。"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:296
+msgid "Enable Schedule"
+msgstr "スケジュールを有効にする"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:325
+msgid "Timezone"
+msgstr "タイムゾーン"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:388
+msgid "Working Days"
+msgstr "営業日"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:397
+msgid "Notifications will only be sent on selected days"
+msgstr "通知は選択した日にのみ送信されます"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:485
+msgid "Working Hours (notifications allowed)"
+msgstr "勤務時間（通知可能）"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:501
+msgid "From"
+msgstr "から"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:539
+msgid "To"
+msgstr "に"
+
+#: ../qml/features/settings/pages/Settings_Notifications.qml:579
+msgid ""
+"Push notifications will only be sent during working hours on working days. "
+"Overnight schedules (e.g., 22:00 to 06:00) are supported."
+msgstr "プッシュ通知は営業日の営業時間内にのみ送信されます。夜間のスケジュール (22:00 から 06:00 など) がサポートされています。"
+
+#: ../qml/features/settings/pages/Settings_Page.qml:35
+msgid "Settings"
+msgstr "設定"
+
+#: ../qml/features/settings/pages/Settings_Page.qml:91
+#: ../qml/features/settings/pages/Settings_Sync.qml:35
+msgid "Background Sync"
+msgstr "バックグラウンド同期"
+
+#: ../qml/features/settings/pages/Settings_Page.qml:102
+#: ../qml/features/settings/pages/Settings_Theme.qml:33
+msgid "Theme Settings"
+msgstr "テーマの設定"
+
+#: ../qml/features/settings/pages/Settings_Page.qml:114
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:36
+msgid "Voice Model (Beta)"
+msgstr "音声モデル (ベータ版)"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:132
+msgid "Background Sync Settings"
+msgstr "バックグラウンド同期設定"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:140
+msgid "Configure automatic synchronization with Odoo"
+msgstr "Odoo との自動同期を構成する"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:156
+msgid "Enable AutoSync"
+msgstr "自動同期を有効にする"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:261
+msgid ""
+"✨ Recommended: Set sync interval to 5 or 15 minutes for the best balance of "
+"performance and battery life."
+msgstr "✨ 推奨: パフォーマンスとバッテリー寿命の最適なバランスを得るには、同期間隔を 5 分または 15 分に設定します。"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:274
+msgid "Restart Background Daemon"
+msgstr "バックグラウンドデーモンの再起動"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:274
+msgid "Restarting..."
+msgstr "再起動中..."
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:295
+msgid "Daemon Restarted"
+msgstr "デーモンが再起動されました"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:296
+msgid ""
+"The background sync daemon has been successfully restarted and is running."
+msgstr "バックグラウンド同期デーモンが正常に再起動され、実行中です。"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:301
+msgid "Daemon Restart"
+msgstr "デーモンの再起動"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:302
+msgid ""
+"The daemon restart was initiated. It may take a few moments to fully start. "
+"If sync issues persist, try again."
+msgstr ""
+"デーモンの再起動が開始されました。完全に開始するまでに少し時間がかかる場合があります。同期の問題が解決しない場合は、もう一度試してください。"
+
+#: ../qml/features/settings/pages/Settings_Sync.qml:311
+msgid ""
+"Note: These are global defaults. Individual accounts can override these "
+"settings from their account edit page. Changes take effect on the next sync "
+"cycle."
+msgstr ""
+"注: "
+"これらはグローバルなデフォルトです。個々のアカウントは、アカウント編集ページからこれらの設定を上書きできます。変更は次の同期サイクルで有効になります。"
+
+#: ../qml/features/settings/pages/Settings_Theme.qml:106
+msgid "App Theme Preference"
+msgstr "アプリのテーマの設定"
+
+#: ../qml/features/settings/pages/Settings_Theme.qml:114
+msgid "Choose your preferred theme for the application"
+msgstr "アプリケーションの好みのテーマを選択してください"
+
+#: ../qml/features/settings/pages/Settings_Theme.qml:175
+msgid "Light Theme"
+msgstr "ライトテーマ"
+
+#: ../qml/features/settings/pages/Settings_Theme.qml:240
+msgid "Dark Theme"
+msgstr "ダークテーマ"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:256
+msgid "Starting download..."
+msgstr "ダウンロードを開始しています..."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:259
+msgid "Download Started"
+msgstr "ダウンロード開始"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:259
+msgid "Downloading %1..."
+msgstr "%1 をダウンロードしています..."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:267
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:269
+msgid "Could not start download"
+msgstr "ダウンロードを開始できませんでした"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:269
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:594
+msgid "Download Failed"
+msgstr "ダウンロードに失敗しました"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:281
+msgid "Download cancelled"
+msgstr "ダウンロードがキャンセルされました"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:283
+msgid "Download Cancelled"
+msgstr "ダウンロードがキャンセルされました"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:283
+msgid "Download of %1 was cancelled and partial data deleted."
+msgstr "%1 のダウンロードはキャンセルされ、部分的なデータが削除されました。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:348
+msgid "About Voice Models"
+msgstr "音声モデルについて"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:363
+msgid ""
+"Voice models allow you to dictate text using your microphone directly into the app. Because processing happens locally on your device, your voice data remains completely private and no internet connection is required after the initial model download.\n"
+"\n"
+"Larger models provide higher accuracy but require more device memory and space. Smaller models are faster and use fewer resources but may be less accurate."
+msgstr ""
+"音声モデルを使用すると、マイクを使用してアプリに直接テキストを書き込むことができます。処理はデバイス上でローカルに行われるため、音声データは完全にプライベートのままであり、最初のモデルのダウンロード後はインターネット接続は必要ありません。\n"
+"\n"
+"モデルが大きいほど精度は高くなりますが、より多くのデバイス メモリとスペースが必要になります。モデルが小さいほど高速になり、使用するリソースも少なくなりますが、精度が低くなる可能性があります。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:377
+msgid ""
+"<b>Voice Feature Stages:</b> When you click the voice icon, it will show "
+"<b>Starting</b>, then <b>Preparing</b>. Only start speaking once it shows "
+"<b>Listening</b>. When stopped, it will show <b>Processing</b> with a yellow"
+" bar."
+msgstr ""
+"<b>音声機能ステージ:</b> 音声アイコンをクリックすると、<b>Starting</b>、次に <b>Preparing</b> が表示されます。"
+" <b>Listening</b> と表示されてから話し始めてください。停止すると、<b>Processing</b> が黄色のバーで表示されます。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:387
+msgid ""
+"<b>Auto-Stop & Limits:</b> If you do not speak for 7 seconds, the voice icon"
+" will automatically stop. The maximum duration for a single recording is 5 "
+"minutes."
+msgstr "<b>自動停止と制限:</b> 7 秒間話さないと、音声アイコンは自動的に停止します。 1 回の録音の最大継続時間は 5 分です。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:397
+msgid ""
+"<b>Getting Started:</b> Make sure you have enabled the \"Enable voice "
+"input\" feature, under voice model (Beta) settings. "
+msgstr "<b>はじめに:</b> 音声モデル (ベータ) 設定で [音声入力を有効にする] 機能が有効になっていることを確認してください。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:407
+msgid ""
+"<b>Compatibility & Errors:</b> A red warning icon indicates the model is "
+"incompatible with your device (usually due to RAM limits), but you can still"
+" attempt to download it."
+msgstr ""
+"<b>互換性とエラー:</b> 赤い警告アイコンは、モデルがデバイスと互換性がないことを示します (通常は RAM "
+"制限が原因です)。ただし、ダウンロードを試行することはできます。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:417
+msgid ""
+"<b>Managing Downloads:</b>Check the internet connectivity before downloading"
+" a file. Once the voice model is downloaded, select the model you want from "
+"the installed models list. Even if only one model is installed, selecting "
+"the model is mandatory. The selected model will be shown in bold text, with "
+"a tick mark to its right. During download, you will see <b>Loading</b> "
+"(downloading), <b>Pause</b>, and <b>Cancel</b> buttons. Pausing or losing "
+"internet will preserve your progress, allowing you to resume later from this"
+" page. Cancelling will delete the partial download."
+msgstr ""
+"<b>ダウンロードの管理:</b>ファイルをダウンロードする前にインターネット接続を確認してください。音声モデルをダウンロードしたら、インストールされているモデルのリストから必要なモデルを選択します。インストールされているモデルが"
+" 1 "
+"つだけの場合でも、モデルの選択は必須です。選択したモデルは太字で表示され、その右側にチェックマークが付きます。ダウンロード中に、<b>Loading</b>"
+" (ダウンロード中)、<b>Pause</b>、および <b>Cancel</b> "
+"ボタンが表示されます。インターネットを一時停止したり切断したりしても進行状況は保存され、後でこのページから再開できます。キャンセルすると部分ダウンロードが削除されます。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:427
+msgid ""
+"<b>Deleting Models:</b> To remove an installed model, swipe its name to the "
+"left and click the delete icon."
+msgstr "<b>モデルの削除:</b> インストールされているモデルを削除するには、その名前を左にスワイプし、削除アイコンをクリックします。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:451
+msgid "Delete Model"
+msgstr "モデルの削除"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:458
+msgid "Are you sure you want to delete the voice model '%1'?"
+msgstr "音声モデル「%1」を削除してもよろしいですか?"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:481
+msgid "Deleted"
+msgstr "削除されました"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:481
+msgid "Model %1 deleted successfully."
+msgstr "モデル %1 は正常に削除されました。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:484
+msgid "Could not delete model"
+msgstr "モデルを削除できませんでした"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:501
+msgid "Warning"
+msgstr "警告"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:508
+msgid ""
+"This model is incompatible with your device because it requires more RAM than available. It may cause the app to crash.\n"
+"\n"
+"But if you want to download it, you can."
+msgstr ""
+"このモデルは、利用可能な以上の RAM を必要とするため、お使いのデバイスと互換性がありません。アプリがクラッシュする可能性があります。\n"
+"\n"
+"ただし、ダウンロードしたい場合はダウンロードできます。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:525
+msgid "Download Anyway"
+msgstr "とにかくダウンロード"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:572
+msgid "Downloading..."
+msgstr "ダウンロード中..."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:585
+msgid "Download Interrupted"
+msgstr "ダウンロードが中断されました"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:585
+msgid "Failed to download. You can resume it."
+msgstr "ダウンロードに失敗しました。再開できます。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:587
+msgid "Download Paused"
+msgstr "ダウンロードが一時停止されました"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:587
+msgid "Download of %1 is paused."
+msgstr "%1 のダウンロードは一時停止されています。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:600
+msgid "%1 installed successfully!"
+msgstr "%1 は正常にインストールされました。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:644
+msgid "Enable Voice Input"
+msgstr "音声入力を有効にする"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:667
+msgid "INSTALLED MODELS"
+msgstr "搭載モデル"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:765
+msgid "No installed models found."
+msgstr "インストールされているモデルが見つかりません。"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:765
+msgid "Scanning for models..."
+msgstr "モデルをスキャンしています..."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:777
+msgid "AVAILABLE FOR DOWNLOAD"
+msgstr "ダウンロード可能"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:963
+msgid "All available models are installed."
+msgstr "利用可能なすべてのモデルがインストールされています。"
+
+#: ../qml/features/settings/pages/SyncLog.qml:7
+msgid "Sync Log"
+msgstr "同期ログ"
+
+#: ../qml/features/settings/pages/SyncLog.qml:22
+msgid "Copy Logs"
+msgstr "ログのコピー"
+
+#: ../qml/features/settings/pages/SyncLog.qml:147
+msgid ""
+"No errors or warnings found for this account.\n"
+"Sync logs will appear here when issues occur."
+msgstr ""
+"このアカウントにはエラーや警告は見つかりませんでした。\n"
+"問題が発生すると、同期ログがここに表示されます。"
+
+#: ../qml/features/tasks/components/MyTasksClosedIndicator.qml:48
+msgid "Showing closed/completed tasks"
+msgstr "終了/完了したタスクの表示"
+
+#: ../qml/features/tasks/components/PersonalStageSelector.qml:59
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:128
+msgid "Change Personal Stage"
+msgstr "個人ステージ変更"
+
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:243
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:252
+#: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:148
+#: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:157
+msgid "update Timesheet"
+msgstr "タイムシートを更新する"
+
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:348
+msgid "Unable to track progress – no planned hours"
+msgstr "進捗状況を追跡できません – 計画された時間はありません"
+
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:359
+msgid "No progress yet"
+msgstr "まだ進歩はありません"
+
+#: ../qml/features/tasks/components/TaskDetailsCard.qml:630
+msgid "N/A"
+msgstr "該当なし"
+
+#: ../qml/features/tasks/components/TaskInitialStageSelector.qml:27
+msgid "Initial Stage"
+msgstr "初期"
+
+#: ../qml/features/tasks/components/TaskNameField.qml:26
+msgid "Name"
+msgstr "名前"
+
+#: ../qml/features/tasks/components/TaskPrioritySelector.qml:28
+#: ../qml/features/timesheets/pages/Timesheet.qml:613
+msgid "Priority"
+msgstr "優先度"
+
+#: ../qml/features/tasks/components/TaskRecordActionsGrid.qml:111
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:41
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:69
+msgid "Timesheets"
+msgstr "タイムシート"
+
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:43
+msgid "Planned Hours"
+msgstr "予定時間"
+
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:55
+msgid "e.g., 2:30 or 1.5"
+msgstr "例: 2:30 または 1.5"
+
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:133
+msgid "Deadline"
+msgstr "締め切り"
+
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:148
+msgid "Select"
+msgstr "選択"
+
+#: ../qml/features/tasks/components/TaskScheduleFields.qml:162
+msgid "Select Deadline"
+msgstr "期限を選択してください"
+
+#: ../qml/features/tasks/components/TaskStageSelector.qml:55
+msgid "Change Task Stage"
+msgstr "タスクステージの変更"
+
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:67
+msgid "Change Stage"
+msgstr "チェンジステージ"
+
+#: ../qml/features/tasks/components/TaskStagesDisplayGrid.qml:87
+msgid "Current Personal Stage:"
+msgstr "現在の個人ステージ:"
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:47
+msgid "My Tasks"
+msgstr "私のタスク"
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:93
+msgid "Stage Help"
+msgstr "ステージヘルプ"
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:96
+msgid "Personal Stages Help"
+msgstr "パーソナルステージのヘルプ"
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:97
+msgid ""
+"If personal stages are not visible, please check the following:<br><br><b>1)"
+" Ensure stages exist in CURQ:</b><br>Ensure the stages are available in the "
+"CURQ instance under 'My Tasks'.<br><br><b>2) Verify the app's Default "
+"DB:</b><br>In the app, confirm that you are checked in to the correct "
+"database as Default, as My Tasks displays tasks based on the selected "
+"Default DB."
+msgstr ""
+"個人ステージが表示されない場合は、次の点を確認してください:<br><br><b>1) CURQ "
+"にステージが存在することを確認します:</b><br>「マイ タスク」の下の CURQ "
+"インスタンスでステージが利用可能であることを確認します。<br><br><b>2) アプリのデフォルト DB "
+"を確認します:</b><br>アプリで、正しいデータベースにデフォルトとしてチェックインされていることを確認します。 [タスク] "
+"には、選択したデフォルト DB に基づいてタスクが表示されます。"
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:405
+msgid "No Tasks Assigned to You"
+msgstr "あなたに割り当てられたタスクはありません"
+
+#: ../qml/features/tasks/pages/MyTasksPage.qml:490
+#: ../qml/features/tasks/pages/Task_Page.qml:565
+msgid "Loading tasks..."
+msgstr "タスクを読み込んでいます..."
+
+#: ../qml/features/tasks/pages/Task_Page.qml:43
+msgid "All Tasks"
+msgstr "すべてのタスク"
+
+#: ../qml/features/tasks/pages/Task_Page.qml:388
+msgid "No tasks found."
+msgstr "タスクが見つかりません。"
+
+#: ../qml/features/tasks/pages/Tasks.qml:654
+msgid "Parent Task"
+msgstr "親タスク"
+
+#: ../qml/features/timesheets/components/TimeRecorderWidget.qml:84
+msgid "Time Tracking"
+msgstr "時間の追跡"
+
+#: ../qml/features/timesheets/components/TimeRecorderWidget.qml:99
+msgid "Manual"
+msgstr "マニュアル"
+
+#: ../qml/features/timesheets/components/TimeRecorderWidget.qml:115
+msgid "Automated"
+msgstr "自動化"
+
+#: ../qml/features/timesheets/components/TimeSheetDescriptionPopup.qml:54
+msgid "Add Description to Timesheet"
+msgstr "タイムシートに説明を追加"
+
+#: ../qml/features/timesheets/components/TimeSheetDetailsCard.qml:166
+msgid "Mark Ready for Sync"
+msgstr "同期の準備ができたとマークする"
+
+#: ../qml/features/timesheets/pages/Timesheet.qml:629
+msgid ""
+"What Is Important Is Seldom Urgent, and What Is Urgent Is Seldom "
+"Important.<br><br><b>1. Important & Urgent:</b><br>Here you write down "
+"important activities, which also have to be done immediately. These are "
+"urgent problems or projects with a hard deadline. I.e. If you manage a "
+"restaurant and an employee has not shown up, it is a rather urgent and acute"
+" problem. All signals are on red, so this is a typical activity for the "
+"first quadrant.<br><br><b>2. Important & Not Urgent:</b><br>If you leave the"
+" activities in this quadrant for the coming week, nothing will immediately "
+"go wrong. But be careful: These are activities and projects that will help "
+"you in the long term. Think of thinking about a strategy, improving work "
+"processes in your team, investing in relationships and investing in "
+"yourself. i.e. You are a team leader who has just been told during his "
+"performance review that more creative input is expected. Such an outcome of "
+"a performance review is an assignment that will never feel urgent, but is "
+"very important. You can quickly recognize the important & non-urgent "
+"activities by answering the question: if I don't do this, will it get me "
+"into trouble in the long run? If the answer is yes, then you have an "
+"important & non-urgent activity. If the answer is no, then it is a non-"
+"important & non-urgent activity.<br><br><b>3. Urgent & Not "
+"Important:</b><br>This quadrant concerns activities that do not help you in "
+"the long run, but that are screaming for your attention this week. An "
+"adjustment in a presentation that has to be done for a colleague on the spur"
+" of the moment or the milk that is almost empty. With tasks in this quadrant"
+" it is very important to check whether they are actually urgent. Requests "
+"from others in particular often seem very urgent, while they can sometimes "
+"wait a day or a week. It is usually fine to postpone this work to a more "
+"suitable moment, provided that I communicate well about this. If you have "
+"the opportunity to delegate or outsource these tasks in this quadrant, do "
+"so. If you work for yourself, this is not always possible. In that case, I "
+"advise you to organize your working day in such a way that you are guided as"
+" little as possible by these urgent tasks, if necessary by reserving a fixed"
+" time block each day for these types of emergencies. That way you keep "
+"control over your agenda.<br><br><b>4. Not Important & Not "
+"Urgent:</b><br>This type of work that you want to have on your plate as "
+"little as possible, because it does not help you in any way. Constantly "
+"refreshing your mailbox, for example. But meetings without a clear goal also"
+" fall into this category. You can undoubtedly point out more of these types "
+"of 'busy work' examples yourself: things that you do, but that do not really"
+" benefit anyone. Sometimes these activities are a great short break from "
+"your work, but usually they are a great excuse to postpone your important "
+"work for a while."
+msgstr ""
+"重要なものが緊急であることはほとんどありません。また、緊急であることが重要であることはほとんどありません。<br><br><b>1。重要および緊急:</b><br>ここでは、すぐに実行する必要がある重要なアクティビティを書き留めます。これらは緊急の問題や期限が厳しいプロジェクトです。つまり、レストランを経営していて従業員が来ない場合、それはかなり緊急かつ深刻な問題です。すべての信号が赤であるため、これは第"
+" 1 "
+"象限の典型的なアクティビティです。<br><br><b>2。重要かつ緊急ではありません:</b><br>この象限のアクティビティを来週まで放置しておいても、すぐに問題が起こることはありません。ただし、注意してください。これらは長期的に役立つ活動やプロジェクトです。戦略を考えること、チーム内の作業プロセスを改善すること、人間関係に投資すること、自分自身に投資することについて考えてみましょう。つまり、あなたはチームリーダーで、パフォーマンスレビュー中に、より創造的なインプットが期待されていると言われたばかりです。このような業績評価の結果は、決して緊急であるとは感じられない任務ですが、非常に重要です。"
+" "
+"「これを行わないと、長期的には問題が発生しますか?」という質問に答えることで、重要なアクティビティと緊急ではないアクティビティをすぐに認識できます。答えが「はい」の場合、重要かつ緊急ではないアクティビティがあることになります。答えが「いいえ」の場合、それは重要でも緊急でもないアクティビティです。<br><br><b>3。緊急かつ重要ではない:</b><br>この象限は、長期的には役に立たないが、今週あなたの注意を喚起する活動に関係します。同僚のために急遽やらなければならないプレゼンテーションの調整や、ほとんど空になった牛乳。この象限のタスクでは、実際に緊急であるかどうかを確認することが非常に重要です。特に他の人からのリクエストは非常に緊急であることが多いですが、場合によっては"
+" 1 日または 1 "
+"週間かかることもあります。このことについてよく伝えれば、この作業をより適切な時期に延期しても通常は問題ありません。この象限でこれらのタスクを委任またはアウトソーシングする機会がある場合は、そうしてください。自分で仕事をしている場合、これは常に可能であるとは限りません。その場合、必要に応じて、この種の緊急事態のために毎日一定の時間を確保して、これらの緊急タスクにできるだけ誘導されないように勤務日を編成することをお勧めします。そうすることで、自分の予定を常に管理できます。<br><br><b>4。重要ではなく緊急でもない:</b><br>このタイプの作業は、何の役にも立たないため、できるだけ実行しないようにしたいものです。たとえば、メールボックスを定期的に更新します。ただし、明確な目標のない会議もこのカテゴリに分類されます。このような「忙しい仕事」の例をもっと自分で指摘できることは間違いありません。つまり、自分がやっているけれど、実際には誰の利益にもならないことです。これらのアクティビティは、仕事の短い休暇として最適な場合もありますが、通常は、重要な仕事をしばらく延期する絶好の口実になります。"
+
+#: ../qml/features/timesheets/pages/Timesheet.qml:651
+msgid "Important, Urgent (1)"
+msgstr "重要、緊急 (1)"
+
+#: ../qml/features/timesheets/pages/Timesheet.qml:670
+msgid "Important, Not Urgent (2)"
+msgstr "重要ですが緊急ではありません (2)"
+
+#: ../qml/features/timesheets/pages/Timesheet.qml:689
+msgid "Urgent, Not Important (3)"
+msgstr "緊急だが重要ではない (3)"
+
+#: ../qml/features/timesheets/pages/Timesheet.qml:708
+msgid "Not Urgent, Not Important (4)"
+msgstr "緊急ではない、重要ではない (4)"
+
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:166
+msgid "Active"
+msgstr "アクティブ"
+
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:167
+msgid "Draft"
+msgstr "下書き"
+
+#: ../qml/features/timesheets/pages/Timesheet_Page.qml:400
+msgid "Loading timesheets..."
+msgstr "タイムシートをロードしています..."
+
+#: ../qml/features/updates/pages/Updates.qml:42
+msgid "Project Update"
+msgstr "プロジェクトの更新"
+
+#: ../qml/features/updates/pages/Updates.qml:82
+msgid "Unknown Account"
+msgstr "不明なアカウント"
+
+#: ../qml/features/updates/pages/Updates_Page.qml:372
+msgid "Loading updates..."
+msgstr "アップデートを読み込み中..."
+
+#: ubtms.desktop.in.h:1
+msgid "Time Management"
+msgstr "時間管理"
