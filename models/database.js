@@ -170,6 +170,37 @@ function ensureDefaultLocalAccountExists() {
 }
 
 /**
+ * Ensures default activity types exist for the Local Account.
+ *
+ * Local accounts do not sync activity types from Odoo, so provide
+ * a predefined set of activity types during database initialization.
+ */
+function ensureDefaultLocalActivityTypes() {
+    const defaultTypes = ["To Do", "Call", "Email", "Meeting"];
+
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(NAME, VERSION, DISPLAY_NAME, SIZE);
+
+        db.transaction(function (tx) {
+            defaultTypes.forEach(function (typeName, index) {
+                const result = tx.executeSql(
+                    "SELECT id FROM mail_activity_type_app WHERE account_id = ? AND name = ? AND (status IS NULL OR status != 'deleted')",
+                    [0, typeName]
+                );
+
+                if (result.rows.length === 0) {
+                    tx.executeSql(
+                        "INSERT INTO mail_activity_type_app (account_id, name, status, odoo_record_id) VALUES (?, ?, ?, ?)",
+                        [0, typeName, "", -(index + 1)]
+                    );
+                }
+            });
+        });
+    } catch (e) {
+        logException("ensureDefaultLocalActivityTypes", e);
+    }
+}
+/**
  * Creates a table if it doesn't exist, and ensures all expected columns are present.
  *
  * - Executes the given `CREATE TABLE IF NOT EXISTS` SQL.

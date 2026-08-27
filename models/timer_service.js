@@ -4,8 +4,9 @@
 
 .pragma library
 
-.import "../models/timesheet.js" as Model
-.import "../models/utils.js" as Utils
+.import "logger.js" as Logger
+.import "timesheet.js" as Model
+.import "utils.js" as Utils
 
 var timerRunning = false;
 var startTime = 0; // Epoch milliseconds
@@ -43,10 +44,12 @@ function start(timesheetId) {
             var durationHours = getElapsedDuration();
             Logger.debug("Timer_service", "Pausing previous timer before starting new one, durationHours:", durationHours)
             Model.updateTimesheetWithDuration(activeTimesheetId, durationHours);
-            // Leave previous in paused state
+            if (!Model.isTimesheetFinalized(activeTimesheetId)) {
+                Model.markTimesheetAsDraftById(activeTimesheetId);
+            }
             paused = true;
             pauseStartTime = Date.now();
-            Logger.debug("Timer_service", "Previous timesheet paused. Starting new timesheet...")
+            Logger.debug("Timer_service", "Previous timesheet paused and marked as draft. Starting new timesheet...")
         }
         // If already running on the same timesheet and not paused, ignore redundant start
         else if (!paused && activeTimesheetId === timesheetId) {
@@ -63,7 +66,7 @@ function start(timesheetId) {
         timerRunning = true;
         paused = false;
         pauseStartTime = 0;
-        activeSheetname = Model.getTimesheetNameById(activeTimesheetId);
+        activeSheetname = Model.getTimesheetDisplayName ? Model.getTimesheetDisplayName(activeTimesheetId) : Model.getTimesheetNameById(activeTimesheetId);
         Model.markTimesheetAsActiveById(activeTimesheetId);
 
         Logger.debug("Timer_service", "Timer started for timesheet ID:", activeTimesheetId, "Previously tracked:", previouslyTrackedHours)
@@ -276,4 +279,19 @@ function getStartTime() {
  */
 function getActiveTimesheetName() {
     return activeSheetname;
+}
+
+/**
+ * Dynamically update the active timesheet name/description in memory.
+ * Called in real-time as user edits description in Timesheet form.
+ *
+ * @param {string} newName - The updated name or description.
+ */
+function updateActiveTimesheetName(newName) {
+    if (typeof newName === "string") {
+        activeSheetname = newName.trim();
+    } else {
+        activeSheetname = "";
+    }
+    Logger.debug("Timer_service", "Live updated active timesheet name to:", activeSheetname);
 }

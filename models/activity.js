@@ -496,32 +496,51 @@ function sanitizeId(value) {
 //enrichment over
 
 /**
- * Retrieves the name of an activity type from the local SQLite database
- * based on the provided Odoo record ID.
+ * Retrieves the name of an activity type from the local SQLite database.
+ *
+ * Local Account activity types use the local SQLite id, while
+ * Odoo account activity types use the odoo_record_id.
  *
  * @function getActivityTypeName
- * @param {number} odooRecordId - The ID of the activity type as stored in Odoo.
- * @returns {string} - Returns the name of the activity type if found, otherwise an empty string.
- *
- * @description
- * Opens a local SQLite database transaction and queries the `mail_activity_type_app` table
- * for a record matching the given `odooRecordId`.
- * Extracts the `name` field from the result and returns it.
- * Logs any exception encountered during the operation via `DBCommon.logException()`.
+ * @param {number} activityTypeId - The activity type ID.
+ * @param {number} accountId - The account ID.
+ * @returns {string} - Returns the activity type name if found, otherwise an empty string.
  */
-function getActivityTypeName(odooRecordId) {
+function getActivityTypeName(activityTypeId, accountId) {
+    if (!activityTypeId || activityTypeId <= 0) {
+        return "";
+    }
+
     var typeName = "";
 
     try {
-        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
 
         db.transaction(function (tx) {
-            var query = `
-            SELECT name FROM mail_activity_type_app
-            WHERE odoo_record_id = ?
-            LIMIT 1
-            `;
-            var rs = tx.executeSql(query, [odooRecordId]);
+            var query = "";
+            var params = [];
+
+            if (accountId === 0) {
+                query = "SELECT name FROM mail_activity_type_app " +
+                        "WHERE account_id = 0 AND id = ? LIMIT 1";
+                params = [activityTypeId];
+            } else if (accountId !== undefined && accountId !== null && accountId > 0) {
+                query = "SELECT name FROM mail_activity_type_app " +
+                        "WHERE account_id = ? AND odoo_record_id = ? LIMIT 1";
+                params = [accountId, activityTypeId];
+            } else {
+                query = "SELECT name FROM mail_activity_type_app " +
+                        "WHERE (odoo_record_id = ? AND odoo_record_id > 0) " +
+                        "OR id = ? LIMIT 1";
+                params = [activityTypeId, activityTypeId];
+            }
+
+            var rs = tx.executeSql(query, params);
 
             if (rs.rows.length > 0) {
                 typeName = rs.rows.item(0).name;
@@ -534,7 +553,6 @@ function getActivityTypeName(odooRecordId) {
 
     return typeName;
 }
-
 /**
  * Marks a specific activity record as "done" in the local SQLite database
  * by updating its `state` and `status` fields.
@@ -1848,7 +1866,7 @@ function passesActivitySearchFilter(activity, searchQuery) {
     }
 
 
-    var activityTypeName = getActivityTypeName(activity.activity_type_id);
+    var activityTypeName = getActivityTypeName(activity.activity_type_id, activity.account_id);
     if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
         return true;
     }

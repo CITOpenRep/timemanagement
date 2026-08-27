@@ -65,9 +65,8 @@ ListItem {
     Connections {
         target: globalTimerWidget
         onTimerStopped: {
-            if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
-                timer_on = false;
-            }
+            timer_on = false;
+            timer_paused = false;
         }
         onTimerStarted: {
             if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {

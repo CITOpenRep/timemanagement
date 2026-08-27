@@ -98,9 +98,8 @@ ListItem {
         target: globalTimerWidget
 
         onTimerStopped: {
-            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
-                timer_on = false;
-            }
+            timer_on = false;
+            timer_paused = false;
         }
         onTimerStarted: {
             if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
@@ -663,10 +662,7 @@ anchors.right: parent.right
         }
     }
     function truncateText(text, maxLength) {
-        if (text.length > maxLength) {
-            return text.slice(0, maxLength) + '...';
-        }
-        return text;
+        return Utils.truncateText(text, maxLength);
     }
     function toDateOnly(datetimeStr) {
         // Assumes input like "2025-06-06 15:30:00"

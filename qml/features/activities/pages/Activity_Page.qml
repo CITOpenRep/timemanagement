@@ -337,7 +337,7 @@ Page {
                     summary: item.summary,
                     due_date: item.due_date,
                     notes: item.notes,
-                    activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
+                    activity_type_name: Activity.getActivityTypeName(item.activity_type_id, item.account_id),
                     state: item.state,
                     task_id: safeTaskId,
                     task_name: taskName,
@@ -575,7 +575,7 @@ Page {
         }
 
         // Search in activity type name
-        var activityTypeName = Activity.getActivityTypeName(item.activity_type_id);
+        var activityTypeName = Activity.getActivityTypeName(item.activity_type_id, item.account_id);
         if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
             return true;
         }

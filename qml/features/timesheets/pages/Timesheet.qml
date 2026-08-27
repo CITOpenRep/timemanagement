@@ -106,6 +106,7 @@ Page {
     }
 
     function save_timesheet() {
+        let isTimerActive = (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning());
         let time = time_sheet_widget.elapsedTime;
 
         const currentStatus = getCurrentTimesheetStatus();
@@ -113,8 +114,9 @@ Page {
         if (currentStatus === "updated") {
             const savedTime = Model.getTimesheetUnitAmount(recordid);
             time = Utils.convertDecimalHoursToHHMM(savedTime);
-        } else if (recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
-            time = TimerService.stop();
+        } else if (isTimerActive) {
+            // Keep timer running continuously. Capture current elapsed duration for DB save
+            time = TimerService.getElapsedDuration();
         }
 
         const ids = workItem.getIds();
@@ -146,6 +148,11 @@ Page {
             correctSubTaskId = ids.subtask_id;
         }
 
+        var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
+        if (typeof description === "string") {
+            description = description.trim();
+        }
+
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
             'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
@@ -153,11 +160,12 @@ Page {
             'task': correctTaskId,
             'subTask': correctSubTaskId,
             'subprojectId': ids.subproject_id,
-            'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            'description': description,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
-            'status': "draft"  // WORKFLOW status (not submitted yet), NOT form draft status
+            'timer_type': isTimerActive ? "automatic" : "manual",
+            'status': isTimerActive ? "active" : (currentStatus === "ready" || currentStatus === "updated" ? currentStatus : "draft")
         };
         if (recordid && recordid !== 0) {
             timesheet_data.id = recordid;
@@ -170,10 +178,17 @@ Page {
         } else {
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
             
+            // If timer is running, update the active timer title in TimerService
+            if (isTimerActive) {
+                TimerService.updateActiveTimesheetName(description);
+            }
+
             // Clear form draft (unsaved changes) after successful database save
             draftHandler.clearDraft();
             
-            time_sheet_widget.elapsedTime = time;
+            if (!isTimerActive) {
+                time_sheet_widget.elapsedTime = time;
+            }
             
             // Re-initialize draft tracking with current saved state as new baseline
             var newBaseline = getCurrentFormData();
@@ -208,6 +223,11 @@ Page {
             correctTaskId = ids.task_id;
         }
 
+        var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
+        if (typeof description === "string") {
+            description = description.trim();
+        }
+
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
             'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
@@ -215,10 +235,11 @@ Page {
             'task': correctTaskId,
             'subTask': correctSubTaskId,
             'subprojectId': ids.subproject_id,
-            'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            'description': description,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time_sheet_widget.elapsedTime),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
+            'timer_type': "automatic",
             'status': "draft"
         };
 
@@ -241,6 +262,8 @@ Page {
 
         // Now that project is in DB, retry starting the timer
         time_sheet_widget.tryStartTimer();
+
+        TimerService.updateActiveTimesheetName(description || "");
         return true;
     }
 
@@ -326,7 +349,11 @@ Page {
 
     // Handle back navigation with unsaved changes check
     function handleBackNavigation() {
-        if (draftHandler.hasUnsavedChanges) {
+        if (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning() && draftHandler.hasUnsavedChanges) {
+            // Auto-save changes so work is not lost while timer continues running in background
+            save_timesheet();
+            navigateBack();
+        } else if (draftHandler.hasUnsavedChanges) {
             unsavedChangesDialog.open("timesheet");
         } else {
             navigateBack();
@@ -814,10 +841,13 @@ Page {
                             });
                         }
                         
-                        // Track inline text changes for draft management
+                        // Track inline text changes for draft management and live timer sync
                         onTextChanged: {
                             if (draftHandler.enabled && draftHandler._initialized) {
                                 draftHandler.markFieldChanged("description", getFormattedText());
+                            }
+                            if (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
+                                TimerService.updateActiveTimesheetName(getFormattedText());
                             }
                         }
                     }
@@ -851,10 +881,18 @@ Page {
                 if (draftHandler.enabled) {
                     draftHandler.markFieldChanged("description", description_text.getFormattedText());
                 }
+
+                if (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
+                    TimerService.updateActiveTimesheetName(description_text.getFormattedText());
+                }
             }
         } else {
             if (!isReadOnly && draftHandler.hasUnsavedChanges) {
-                draftHandler.saveDraft();
+                if (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
+                    save_timesheet();
+                } else {
+                    draftHandler.saveDraft();
+                }
             }
         }
         // Don't clear Global.description_temporary_holder when page becomes invisible

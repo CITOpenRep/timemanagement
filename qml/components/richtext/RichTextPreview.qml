@@ -417,7 +417,7 @@ Rectangle {
                             currentContent = text;
                         }
 
-                        if (currentContent && currentContent !== originalHtmlContent) {
+                        if (currentContent !== undefined && currentContent !== null && currentContent !== originalHtmlContent) {
                           //  console.log("[RichTextPreview] User typing detected, content length:", currentContent.length);
                             originalHtmlContent = currentContent;
                             root.contentChanged(currentContent);

@@ -809,13 +809,49 @@ function getAttachmentsForTimesheet(odooRecordId) {
 }
 
 
+function getTimesheetDisplayName(timesheetId) {
+    if (!timesheetId || timesheetId <= 0) return "";
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var displayName = "";
+    try {
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                "SELECT t.name AS ts_name, p.name AS project_name, tk.name AS task_name " +
+                "FROM account_analytic_line_app t " +
+                "LEFT JOIN project_project_app p ON (t.project_id = p.odoo_record_id OR t.project_id = p.id) " +
+                "LEFT JOIN project_task_app tk ON (t.task_id = tk.odoo_record_id OR t.task_id = tk.id) " +
+                "WHERE t.id = ? LIMIT 1",
+                [timesheetId]
+            );
+            if (rs.rows.length > 0) {
+                var row = rs.rows.item(0);
+                if (row.ts_name && row.ts_name.trim() !== "") {
+                    displayName = row.ts_name.trim();
+                } else if (row.project_name && row.project_name.trim() !== "") {
+                    displayName = row.project_name.trim() + (row.task_name ? " - " + row.task_name.trim() : "");
+                } else if (row.task_name && row.task_name.trim() !== "") {
+                    displayName = row.task_name.trim();
+                }
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getTimesheetDisplayName", e);
+    }
+    return displayName;
+}
+
 function getTimesheetNameById(timesheetId) {
+    var displayName = getTimesheetDisplayName(timesheetId);
+    if (displayName && displayName.trim() !== "") {
+        return displayName;
+    }
+
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var name = "";
     try {
         db.transaction(function (tx) {
             var rs = tx.executeSql("SELECT name FROM account_analytic_line_app WHERE id = ?", [timesheetId]);
-            if (rs.rows.length > 0) {
+            if (rs.rows.length > 0 && rs.rows.item(0).name) {
                 name = rs.rows.item(0).name;
             }
         });
@@ -1448,14 +1484,20 @@ function markTimesheetAsActiveById(timesheetId) {
 
     try {
         db.transaction(function (tx) {
+            // Revert any other timesheets previously marked 'active' to 'draft'
+            tx.executeSql(
+                "UPDATE account_analytic_line_app SET last_modified = ?, status = 'draft' WHERE status = 'active' AND id != ?",
+                [timestamp, timesheetId]
+            );
+            // Mark target timesheet as active
             tx.executeSql(
                 "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
                 [timestamp, "active", timesheetId]
             );
         });
-        Logger.debug("Timesheet", "Timesheet " + timesheetId + " marked as draft successfully.")
+        Logger.debug("Timesheet", "Timesheet " + timesheetId + " marked as active successfully.")
     } catch (e) {
-        Logger.debug("Timesheet", "markTimesheetAsDraftById failed:", e)
+        Logger.debug("Timesheet", "markTimesheetAsActiveById failed:", e)
     }
 }
 

@@ -1,4 +1,5 @@
 .import "database.js" as DBCommon
+.import "logger.js" as Logger
 .import QtQuick.LocalStorage 2.7 as Sql
 
 /**
