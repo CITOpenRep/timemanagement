@@ -1726,107 +1726,146 @@ function getFilteredTasksPaginated(filterType, searchQuery, accountId, limit, of
 
     var filteredTasks = [];
     var currentDate = new Date();
-    var batchSize = limit * 3; // Fetch 3x more raw items to account for filtering
-    var dbOffset = 0;
-    var skipped = 0;
     var hasMore = true;
-    var maxIterations = 50; // Safety limit to prevent infinite loops
-    var iteration = 0;
+    var dbOffset = 0;
+    var isAllFilter = (!filterType || filterType === "all");
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
-        while (filteredTasks.length < limit && hasMore && iteration < maxIterations) {
-            iteration++;
-            var rawTasks = [];
-
-            db.transaction(function (tx) {
-                var query = "SELECT * FROM project_task_app WHERE (status IS NULL OR status != 'deleted')";
-                var params = [];
+        db.transaction(function (tx) {
+            // Fast-path: When filter is "all", let SQLite handle LIMIT & OFFSET directly in 1 query
+            if (isAllFilter) {
+                var fastQuery = "SELECT * FROM project_task_app WHERE (status IS NULL OR status != 'deleted')";
+                var fastParams = [];
 
                 if (accountId !== undefined && accountId >= 0) {
-                    query += " AND account_id = ?";
-                    params.push(accountId);
+                    fastQuery += " AND account_id = ?";
+                    fastParams.push(accountId);
                 }
 
-                query += " ORDER BY end_date ASC LIMIT ? OFFSET ?";
-                params.push(batchSize, dbOffset);
-
-                var result = tx.executeSql(query, params);
-                for (var i = 0; i < result.rows.length; i++) {
-                    rawTasks.push(DBCommon.rowToObject(result.rows.item(i)));
+                if (searchQuery && searchQuery.trim() !== "") {
+                    var sParam = "%" + searchQuery.trim() + "%";
+                    fastQuery += " AND (name LIKE ? OR description LIKE ?)";
+                    fastParams.push(sParam, sParam);
                 }
-            });
 
-            // If we got fewer items than batch size, no more data in DB
-            if (rawTasks.length < batchSize) {
-                hasMore = false;
+                fastQuery += " ORDER BY end_date ASC LIMIT ? OFFSET ?";
+                fastParams.push(limit, offset);
+
+                var fastResult = tx.executeSql(fastQuery, fastParams);
+                for (var i = 0; i < fastResult.rows.length; i++) {
+                    filteredTasks.push(DBCommon.rowToObject(fastResult.rows.item(i)));
+                }
+
+                hasMore = (filteredTasks.length >= limit);
+                dbOffset = offset + filteredTasks.length;
+
+            } else {
+                // Filtered path (today, overdue, this_week, etc.)
+                var batchSize = Math.max(limit * 4, 150); // Larger batches = fewer iterations
+                var skipped = 0;
+                var iteration = 0;
+                var maxIterations = 50;
+
+                while (filteredTasks.length < limit && hasMore && iteration < maxIterations) {
+                    iteration++;
+                    var rawTasks = [];
+
+                    var query = "SELECT * FROM project_task_app WHERE (status IS NULL OR status != 'deleted')";
+                    var params = [];
+
+                    if (accountId !== undefined && accountId >= 0) {
+                        query += " AND account_id = ?";
+                        params.push(accountId);
+                    }
+
+                    if (searchQuery && searchQuery.trim() !== "") {
+                        var sParam = "%" + searchQuery.trim() + "%";
+                        query += " AND (name LIKE ? OR description LIKE ?)";
+                        params.push(sParam, sParam);
+                    }
+
+                    query += " ORDER BY end_date ASC LIMIT ? OFFSET ?";
+                    params.push(batchSize, dbOffset);
+
+                    var result = tx.executeSql(query, params);
+                    for (var i = 0; i < result.rows.length; i++) {
+                        rawTasks.push(DBCommon.rowToObject(result.rows.item(i)));
+                    }
+
+                    if (rawTasks.length < batchSize) {
+                        hasMore = false;
+                    }
+
+                    for (var j = 0; j < rawTasks.length; j++) {
+                        var task = rawTasks[j];
+                        if (passesDateFilter(task, filterType, currentDate)) {
+                            if (skipped < offset) {
+                                skipped++;
+                            } else if (filteredTasks.length < limit) {
+                                filteredTasks.push(task);
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+
+                    dbOffset += rawTasks.length;
+                }
             }
 
-            // Apply JS-based filtering
-            for (var i = 0; i < rawTasks.length; i++) {
-                var task = rawTasks[i];
-                var passesFilter = true;
-
-                // Apply date filter using existing logic
-                if (filterType && filterType !== "all" && !passesDateFilter(task, filterType, currentDate)) {
-                    passesFilter = false;
+            // Batched enrichment (Colors + Spent Hours)
+            if (filteredTasks.length > 0) {
+                // 1. Project Colors Map
+                var projectColorMap = {};
+                var projectResult = tx.executeSql("SELECT odoo_record_id, color_pallet FROM project_project_app");
+                for (var p = 0; p < projectResult.rows.length; p++) {
+                    projectColorMap[projectResult.rows.item(p).odoo_record_id] = projectResult.rows.item(p).color_pallet;
                 }
 
-                // Apply search filter
-                if (passesFilter && searchQuery && !passesSearchFilter(task, searchQuery)) {
-                    passesFilter = false;
-                }
-
-                if (passesFilter) {
-                    if (skipped < offset) {
-                        // Skip items until we reach the offset
-                        skipped++;
-                    } else if (filteredTasks.length < limit) {
-                        // Add to results
-                        filteredTasks.push(task);
-                    } else {
-                        // We have enough items
-                        break;
+                // 2. Batch Spent Hours (Replaces individual N+1 queries with 1 single GROUP BY query)
+                var taskOdooIds = [];
+                for (var t = 0; t < filteredTasks.length; t++) {
+                    if (filteredTasks[t].odoo_record_id) {
+                        taskOdooIds.push(filteredTasks[t].odoo_record_id);
                     }
                 }
-            }
 
-            dbOffset += rawTasks.length;
-        }
-
-        // Add project colors and spent hours to filtered tasks
-        db.transaction(function (tx) {
-            var projectColorMap = {};
-            var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
-            var projectResult = tx.executeSql(projectQuery);
-            for (var j = 0; j < projectResult.rows.length; j++) {
-                projectColorMap[projectResult.rows.item(j).odoo_record_id] = projectResult.rows.item(j).color_pallet;
-            }
-
-            for (var i = 0; i < filteredTasks.length; i++) {
-                var task = filteredTasks[i];
-
-                // Inherit color
-                var inheritedColor = 0;
-                if (task.sub_project_id) {
-                    inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                var timeMap = {};
+                if (taskOdooIds.length > 0) {
+                    var placeholders = taskOdooIds.map(function() { return "?"; }).join(",");
+                    var timeQuery = "SELECT task_id, account_id, SUM(unit_amount) as total_hours " +
+                                    "FROM account_analytic_line_app " +
+                                    "WHERE task_id IN (" + placeholders + ") " +
+                                    "GROUP BY task_id, account_id";
+                    var timeResult = tx.executeSql(timeQuery, taskOdooIds);
+                    for (var k = 0; k < timeResult.rows.length; k++) {
+                        var row = timeResult.rows.item(k);
+                        timeMap[row.account_id + "_" + row.task_id] = row.total_hours;
+                    }
                 }
-                if (!inheritedColor && task.project_id) {
-                    inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
-                }
-                task.color_pallet = inheritedColor;
 
-                // Calculate spent hours
-                var timeQuery = "SELECT SUM(unit_amount) as total_hours FROM account_analytic_line_app WHERE task_id = ? AND account_id = ?";
-                var timeResult = tx.executeSql(timeQuery, [task.odoo_record_id, task.account_id]);
-                task.spent_hours = (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null)
-                    ? timeResult.rows.item(0).total_hours : 0;
+                // Apply colors and spent hours to tasks
+                for (var i = 0; i < filteredTasks.length; i++) {
+                    var task = filteredTasks[i];
+                    var inheritedColor = 0;
+                    if (task.sub_project_id) {
+                        inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                    }
+                    if (!inheritedColor && task.project_id) {
+                        inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                    }
+                    task.color_pallet = inheritedColor;
+
+                    var timeKey = task.account_id + "_" + task.odoo_record_id;
+                    task.spent_hours = (timeMap[timeKey] !== undefined && timeMap[timeKey] !== null) ? timeMap[timeKey] : 0;
+                }
             }
         });
 
     } catch (e) {
-        Logger.error("Task", "getFilteredTasksPaginated failed:", e)
+        Logger.error("Task", "getFilteredTasksPaginated failed:", e);
     }
 
     return {
