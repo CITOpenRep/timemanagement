@@ -412,10 +412,12 @@ function getNextMonthSameDay(baseDate) {
 }
 
 function truncateText(text, maxLength) {
-    if (text.length > maxLength) {
-        return text.slice(0, maxLength) + "...";
+    if (!text || typeof text !== 'string') return "";
+    var cleaned = cleanText(stripHtmlTags(text));
+    if (cleaned.length > maxLength) {
+        return cleaned.slice(0, maxLength).trim() + "...";
     }
-    return text;
+    return cleaned;
 }
 
 function getFormattedTimestampUTC() {
@@ -431,17 +433,26 @@ function getFormattedTimestampUTC() {
 
 function convertHHMMtoDecimalHours(hhmmString) {
     Logger.debug("Utils", "Input string is " + hhmmString)
+    if (typeof hhmmString === "number") {
+        return parseFloat(hhmmString.toFixed(4));
+    }
     if (typeof hhmmString !== "string") {
-            Logger.error("Utils", "Input is not a string:", hhmmString)
-            return 0;
-        }
+        Logger.error("Utils", "Input is not a string or number:", hhmmString)
+        return 0;
+    }
 
-        var parts = hhmmString.split(":");
-        if (parts.length !== 2) {
-            Logger.error("Utils", "Invalid HH:MM string:", hhmmString)
-            return 0;
-        }
+    hhmmString = hhmmString.trim();
+    if (hhmmString === "") {
+        return 0;
+    }
 
+    // Handle numeric string directly if no colons
+    if (!hhmmString.includes(":") && !isNaN(Number(hhmmString))) {
+        return parseFloat(Number(hhmmString).toFixed(4));
+    }
+
+    var parts = hhmmString.split(":");
+    if (parts.length === 2) {
         var hours = parseInt(parts[0], 10);
         var minutes = parseInt(parts[1], 10);
 
@@ -451,6 +462,21 @@ function convertHHMMtoDecimalHours(hhmmString) {
         }
 
         return parseFloat((hours + (minutes / 60)).toFixed(4));
+    } else if (parts.length === 3) {
+        var hours = parseInt(parts[0], 10);
+        var minutes = parseInt(parts[1], 10);
+        var seconds = parseInt(parts[2], 10);
+
+        if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
+            Logger.error("Utils", "Invalid numeric values in HH:MM:SS string:", hhmmString)
+            return 0;
+        }
+
+        return parseFloat((hours + (minutes / 60) + (seconds / 3600)).toFixed(4));
+    } else {
+        Logger.error("Utils", "Invalid HH:MM string:", hhmmString)
+        return 0;
+    }
 }
 
 /**
@@ -467,18 +493,26 @@ function convertDecimalHoursToHHMM(decimalHours) {
 
 
 /* Name: convertDurationToFloat
-* This function will return float value from HH:MM format
-* -> value -> HH:MM format to convert float value
+* This function will return float value from HH:MM or HH:MM:SS format
+* -> value -> HH:MM / HH:MM:SS format to convert float value
 */
 
 function convertDurationToFloat(value) {
-    let vals = value.split(":");
-    let hours = parseFloat(vals[0]);
-    let minutes = parseFloat(vals[1]);
+    if (typeof value === "number") {
+        return value;
+    }
+    if (typeof value !== "string" || value.trim() === "") {
+        return 0;
+    }
+    let vals = value.trim().split(":");
+    let hours = parseFloat(vals[0]) || 0;
+    let minutes = (vals.length > 1) ? (parseFloat(vals[1]) || 0) : 0;
+    let seconds = (vals.length > 2) ? (parseFloat(vals[2]) || 0) : 0;
     // Remove the day calculation and modulo operation for project hours
     // Project allocation can be any number of hours, not limited to 24-hour days
     let convertedMinutes = minutes / 60.0;
-    return hours + convertedMinutes;
+    let convertedSeconds = seconds / 3600.0;
+    return hours + convertedMinutes + convertedSeconds;
 }
 
 function formatDate(date) {
@@ -561,11 +595,14 @@ function cleanText(str) {
     if (typeof str !== 'string') return '';
 
     return str
-        // Remove common invisible/control characters (ASCII + Unicode)
-        .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\u2060\uFEFF]/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        // Remove common invisible/control characters (ASCII + Unicode + non-breaking space)
+        .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\u2060\uFEFF\u00A0]/g, '')
         // Normalize to avoid weird composed characters
         .normalize('NFC')
-        // Trim extra whitespace
+        // Collapse multiple spaces into single space
+        .replace(/[ \t]+/g, ' ')
+        // Trim extra whitespace from both ends
         .trim();
 }
 

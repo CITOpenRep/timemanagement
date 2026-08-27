@@ -401,9 +401,7 @@ Page {
             if (useRichText && editor) {
                 // Use cached text property which is kept in sync via contentChanged
                 var currentContent = editor.getFormattedText() || editor.text || "";
-                if (currentContent) {
-                    Global.description_temporary_holder = currentContent;
-                }
+                Global.description_temporary_holder = currentContent;
                 
                 // Save draft when leaving ReadMore page
                 if (parentDraftHandler) {
@@ -411,10 +409,10 @@ Page {
                     parentDraftHandler.saveDraft();
                 }
             } else if (!useRichText && simpleEditor) {
-                Global.description_temporary_holder = simpleEditor.text;
+                Global.description_temporary_holder = simpleEditor.text || "";
                 // Save draft when leaving ReadMore page
                 if (parentDraftHandler) {
-                    parentDraftHandler.markFieldChanged("description", simpleEditor.text);
+                    parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
                     parentDraftHandler.saveDraft();
                 }
             }
@@ -445,15 +443,13 @@ Page {
             if (useRichText && editor) {
                 // Use the cached text property which is kept in sync via contentChanged
                 var currentContent = editor.getFormattedText() || editor.text || "";
-                if (currentContent) {
-                    Global.description_temporary_holder = currentContent;
-                }
+                Global.description_temporary_holder = currentContent;
             } else if (!useRichText && simpleEditor) {
-                Global.description_temporary_holder = simpleEditor.text;
+                Global.description_temporary_holder = simpleEditor.text || "";
             }
             
             // Save draft one last time before page is destroyed
-            if (parentDraftHandler && Global.description_temporary_holder) {
+            if (parentDraftHandler) {
                 parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
                 parentDraftHandler.saveDraft();
             }

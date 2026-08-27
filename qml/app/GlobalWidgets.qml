@@ -21,7 +21,7 @@ Item {
         id: globalTimerWidget
         z: 999
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0
+        anchors.bottomMargin: (Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0) + units.gu(1)
         visible: false
         showNotification: function (title, message, type) {
             notifPopup.open(title, message, type);
@@ -33,6 +33,7 @@ Item {
         id: modelDownloadTimerWidget
         z: 9999
         anchors.bottom: parent.bottom
+        anchors.bottomMargin: (Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0) + units.gu(1)
         visible: false
         showNotification: function (title, message, type) {
             notifPopup.open(title, message, type);

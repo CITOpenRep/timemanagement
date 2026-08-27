@@ -1,0 +1,52 @@
+name: Lint & Import Validation
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+      - dev
+      - 'release/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-validate:
+    name: Lint QML, JS & Python
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Qt5 & qmllint dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            qtdeclarative5-dev-tools
+          echo "/usr/lib/qt5/bin" >> $GITHUB_PATH
+
+      - name: Verify qmllint installation
+        run: |
+          which qmllint || true
+          qmllint --version 2>&1 || true
+
+      - name: Ensure scripts are executable
+        run: |
+          chmod +x scripts/lint.sh scripts/check_imports.py
+
+      - name: Run Syntax and Import Checks
+        run: |
+          ./scripts/lint.sh
