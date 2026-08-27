@@ -119,10 +119,41 @@ Page {
                 color: LomiriColors.red
                 onClicked: {
                     if (accountToDelete !== -1) {
-                        Accounts.deleteAccountAndRelatedData(accountToDelete);
+                        var deletedId = accountToDelete;
+                        Accounts.deleteAccountAndRelatedData(deletedId);
                         if (accountIndexToDelete !== -1) {
                             accountListModel.remove(accountIndexToDelete);
                         }
+
+                        // Cleanup orphan attachment files from disk
+                        if (typeof backend_bridge !== "undefined" && backend_bridge) {
+                            backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                                if (path) {
+                                    backend_bridge.call("backend.cleanup_orphan_attachment_files", [path], function (res) {
+                                        // Cleanup completed
+                                    });
+                                }
+                            });
+                        }
+
+                        // Check if the deleted account was the active account or no longer exists
+                        var currentActiveId = (typeof accountPicker !== "undefined" && accountPicker) ? accountPicker.selectedAccountId : -1;
+                        if (currentActiveId === deletedId || !Accounts.getAccountName(currentActiveId)) {
+                            var nextAccountId = Accounts.getDefaultAccountId();
+                            if (nextAccountId === -1) nextAccountId = 0;
+                            var nextAccountName = Accounts.getAccountName(nextAccountId) || "Local Account";
+
+                            if (typeof accountPicker !== "undefined" && accountPicker) {
+                                accountPicker.selectedAccountId = nextAccountId;
+                                accountPicker.selectedAccountName = nextAccountName;
+                                accountPicker.accepted(nextAccountId, nextAccountName);
+                            }
+                        } else {
+                            if (typeof mainView !== "undefined" && mainView) {
+                                mainView.accountDataRefreshRequested(currentActiveId);
+                            }
+                        }
+
                         accountToDelete = -1;
                         accountIndexToDelete = -1;
                     }
