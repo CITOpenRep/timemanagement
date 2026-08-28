@@ -21,6 +21,7 @@ AdaptivePageLayout {
     property var rootApp
     property var globalDrawer
     property var navigationController
+    property bool menuCollapsed: false
 
     anchors.top: parent.top
     anchors.left: parent.left
@@ -45,8 +46,8 @@ AdaptivePageLayout {
             when: width > units.gu(80) && width < units.gu(130)
 
             PageColumn {
-                minimumWidth: units.gu(30)
-                maximumWidth: units.gu(50)
+                minimumWidth: menuCollapsed ? units.gu(8) : units.gu(30)
+                maximumWidth: menuCollapsed ? units.gu(8) : units.gu(50)
                 preferredWidth: width > units.gu(90) ? units.gu(20) : units.gu(15)
             }
 
@@ -61,8 +62,8 @@ AdaptivePageLayout {
             when: width >= units.gu(130)
 
             PageColumn {
-                minimumWidth: units.gu(30)
-                maximumWidth: units.gu(50)
+                minimumWidth: menuCollapsed ? units.gu(8) : units.gu(30)
+                maximumWidth: menuCollapsed ? units.gu(8) : units.gu(50)
                 preferredWidth: units.gu(40)
             }
 

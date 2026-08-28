@@ -35,6 +35,7 @@ Page {
 
     property bool isMultiColumn: apLayout.columns > 1
     property var navigationController
+    property bool menuCollapsed: apLayout ? apLayout.menuCollapsed : false
 
     title: i18n.dtr("ubtms", "Menu")
     anchors.fill: parent
@@ -49,25 +50,49 @@ Page {
         }
 
         contents: RowLayout {
+            Item {
+                width: listpage.menuCollapsed ? units.gu(8) : units.gu(4)
+                height: units.gu(4)
+                Layout.alignment: Qt.AlignVCenter
+
+                Icon {
+                    anchors.centerIn: parent
+                    name: "navigation-menu"
+                    width: units.gu(2.2)
+                    height: units.gu(2.2)
+                    color: "white"
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        apLayout.menuCollapsed = !apLayout.menuCollapsed
+                    }
+                }
+            }
+
             anchors.fill: parent
-            anchors.leftMargin: units.gu(2)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(1)
+            anchors.leftMargin: listpage.menuCollapsed ? 0 : units.gu(2)
+            anchors.rightMargin: 0
+            spacing: listpage.menuCollapsed ? 0 : units.gu(1)
 
             Label {
                 text: i18n.dtr("ubtms", "Menu")
+                visible: !listpage.menuCollapsed
                 color: "white"
                 fontSize: "large"
                 font.bold: true
             }
 
             Item {
-                Layout.fillWidth: true
+                Layout.fillWidth: !listpage.menuCollapsed
             }
 
             // Account Selector button with Account label adjacent to icon
             RowLayout {
                 id: accountBtn
+                visible: !listpage.menuCollapsed
                 spacing: units.gu(0.5)
                 Layout.alignment: Qt.AlignVCenter
 
@@ -106,6 +131,7 @@ Page {
             Item {
                 width: units.gu(4)
                 height: units.gu(4)
+                visible: !listpage.menuCollapsed
                 Layout.alignment: Qt.AlignVCenter
 
                 Image {
@@ -159,6 +185,7 @@ Page {
                             width: parent.width
                             menuItems: NavigationRoutes.menuItems()
                             selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
+                            collapsed: listpage.menuCollapsed
 
                             onItemSelected: function(item) {
                                 if (navigationController && typeof navigationController.navigateMenuItem === "function") {

@@ -51,6 +51,7 @@ Item {
     property bool showProgression: true
     property bool showDivider: true
     property bool active: false
+    property bool collapsed: false
 
     signal clicked()
 
@@ -84,13 +85,13 @@ Item {
 
         Row {
             anchors.fill: parent
-            anchors.leftMargin: units.gu(2)
-            anchors.rightMargin: units.gu(2)
-            spacing: units.gu(2)
+            anchors.leftMargin: root.collapsed ? 0 : units.gu(2)
+            anchors.rightMargin: root.collapsed ? 0 : units.gu(2)
+            spacing: root.collapsed ? 0 : units.gu(2)
 
             // Icon container
             Item {
-                width: units.gu(4)
+                width: root.collapsed ? units.gu(8) : units.gu(4)
                 height: parent.height
 
                 Icon {
@@ -104,7 +105,7 @@ Item {
 
             // Label
             Item {
-                width: parent.width - units.gu(4) - units.gu(3) - units.gu(6)  // icon + chevron + margins
+                width: root.collapsed ? 0 : parent.width - units.gu(4) - units.gu(3) - units.gu(6)
                 height: parent.height
 
                 Text {
@@ -119,7 +120,7 @@ Item {
 
             // Chevron / progression indicator
             Item {
-                width: units.gu(3)
+                width: root.collapsed ? 0 : units.gu(3)
                 height: parent.height
                 visible: root.showProgression
 

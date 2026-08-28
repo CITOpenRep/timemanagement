@@ -8,6 +8,7 @@ Column {
     width: parent ? parent.width : 0
 
     property var menuItems: []
+    property bool collapsed: false
     property string selectedPageUrl: ""
     signal itemSelected(var item)
 
@@ -21,6 +22,7 @@ Column {
             text: i18n.dtr("ubtms", modelData.textKey)
             showDivider: modelData.showDivider === undefined ? true : modelData.showDivider
             active: modelData.pageUrl === root.selectedPageUrl
+            collapsed: root.collapsed
             onClicked: root.itemSelected(modelData)
         }
     }
