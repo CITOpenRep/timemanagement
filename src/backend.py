@@ -1242,23 +1242,37 @@ def delete_voice_model(model_path):
         
         # If relative, it might be a bundled model or a legacy relative path
         if not path.is_absolute():
-            # Check if it's relative to user models dir
+            # Check user and Clickable model directories
             user_models_dir = get_voice_models_dir()
+            clickable_models_dir = (
+                Path.home() / ".clickable" / "home" /
+                ".local" / "share" / "ubtms" / "voice_models"
+            )
+
             potential_path = user_models_dir / model_path
             if potential_path.exists():
                 path = potential_path
             else:
-                # Check if it's relative to root (bundled models)
-                potential_path = root_dir / model_path
+                potential_path = clickable_models_dir / model_path
                 if potential_path.exists():
                     path = potential_path
+                else:
+                    # Check if it's relative to root (bundled models)
+                    potential_path = root_dir / model_path
+                    if potential_path.exists():
+                        path = potential_path
         
         if not path.exists():
             return {"status": "error", "message": "Model path not found"}
             
-        # Security check: only allow deleting from the user models directory
+        # Security check: only allow deleting from user or Clickable models directories
         user_models_dir = get_voice_models_dir()
-        if user_models_dir in path.parents:
+        clickable_models_dir = (
+            Path.home() / ".clickable" / "home" /
+            ".local" / "share" / "ubtms" / "voice_models"
+        )
+
+        if user_models_dir in path.parents or clickable_models_dir in path.parents:
             import shutil
             if path.is_dir():
                 shutil.rmtree(path)
