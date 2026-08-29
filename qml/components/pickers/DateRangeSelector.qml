@@ -123,7 +123,7 @@ Item {
                         enabled: !dateRangeSelector.readOnly
                         text: isStartDateValid ? Qt.formatDate(startDateItem.date, "dd-MM-yyyy") : ""
                         placeholderText: isStartDateValid ? "" : "No date set"
-                        color: isStartDateValid ? "black" : "gray"
+                        color: isStartDateValid ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black") : "gray"
                     }
 
                     MouseArea {
@@ -170,7 +170,7 @@ Item {
                         enabled: !dateRangeSelector.readOnly
                         text: isEndDateValid ? Qt.formatDate(endDateItem.date, "dd-MM-yyyy") : ""
                         placeholderText: isEndDateValid ? "" : "No date set"
-                        color: isEndDateValid ? "black" : "gray"
+                        color: isEndDateValid ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black") : "gray"
                     }
 
                     MouseArea {
