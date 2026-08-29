@@ -528,6 +528,59 @@ def attachment_delete(settings_db, account_id, remote_record_id):
             
         return {"success": False, "error": friendly_error}
 
+def cleanup_orphan_attachment_files(settings_db=None):
+    """
+    Removes cached temporary/exported attachment files from disk that are no longer referenced
+    by any active attachment record in the database.
+    """
+    try:
+        tmp_dir = _app_data_dir() / "ubtms" / "tmp"
+        if not tmp_dir.exists():
+            return {"success": True, "deleted_count": 0}
+
+        db_path = settings_db or resolve_qml_db_path()
+        if not db_path or not Path(db_path).exists():
+            return {"success": False, "error": "Database not found"}
+
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        active_filenames = set()
+        try:
+            cursor.execute("SELECT file_name FROM attachment_download_app WHERE downloaded = 1")
+            for row in cursor.fetchall():
+                if row[0]:
+                    active_filenames.add(str(row[0]).strip().replace("/", "_"))
+        except Exception:
+            pass
+
+        try:
+            cursor.execute("SELECT name FROM ir_attachment_app")
+            for row in cursor.fetchall():
+                if row[0]:
+                    active_filenames.add(str(row[0]).strip().replace("/", "_"))
+        except Exception:
+            pass
+
+        conn.close()
+
+        deleted_count = 0
+        for file in tmp_dir.iterdir():
+            if file.is_file():
+                if file.name not in active_filenames and file.stem not in active_filenames:
+                    try:
+                        file.unlink()
+                        deleted_count += 1
+                        log.info(f"[ATTACHMENT] Cleaned up orphan file on disk: {file.name}")
+                    except Exception as err:
+                        log.warning(f"[ATTACHMENT] Could not delete {file.name}: {err}")
+
+        return {"success": True, "deleted_count": deleted_count}
+    except Exception as e:
+        log.exception(f"[ATTACHMENT] Error cleaning orphan attachment files: {e}")
+        return {"success": False, "error": str(e)}
+
 def sync(settings_db, account_id):
     """
     Perform synchronous bidirectional sync between local database and Odoo.
