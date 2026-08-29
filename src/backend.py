@@ -816,14 +816,14 @@ def list_installed_models():
     ]
 
     models = []
-    seen_paths = set()
+    seen_names = set()
 
     for root_dir_to_scan, source_label in search_paths:
         if not root_dir_to_scan.exists():
             continue
 
         for item in root_dir_to_scan.iterdir():
-            if item.is_dir() and item not in seen_paths:
+            if item.is_dir() and item.name not in seen_names:
 
                 # Supported Vosk model layouts:
                 #
@@ -941,7 +941,7 @@ def list_installed_models():
                         "m_source": source_label
                     })
 
-                seen_paths.add(item)
+                seen_names.add(item.name)
 
     models.sort(key=lambda x: x["m_name"].lower())
 
