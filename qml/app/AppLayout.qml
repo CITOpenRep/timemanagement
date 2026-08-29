@@ -13,6 +13,7 @@ import "../features/tasks/pages" as TaskPages
 import "../features/timesheets/pages" as TimesheetPages
 import "../features/updates/pages" as UpdatePages
 import "navigation/NavigationRoutes.js" as NavigationRoutes
+import "../../models/logger.js" as Logger
 
 AdaptivePageLayout {
     id: apLayout
@@ -105,7 +106,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.debug("🔄 Refreshing Dashboard2 data for account:", accountId);
+                Logger.debug("AppLayout", "Refreshing Dashboard2 data for account:", accountId)
                 if (dashboard_page2.visible && typeof dashboard_page2.refreshData === "function") {
                     dashboard_page2.refreshData();
                 }
@@ -119,7 +120,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.debug("🔄 Refreshing Timesheet data for account:", accountId);
+                Logger.debug("AppLayout", "Refreshing Timesheet data for account:", accountId)
                 if (timesheet_page.visible && typeof timesheet_page.refreshData === "function") {
                     timesheet_page.refreshData();
                 }
@@ -133,7 +134,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.debug("🔄 Refreshing Activity data for account:", accountId);
+                Logger.debug("AppLayout", "Refreshing Activity data for account:", accountId)
                 if (activity_page.visible && typeof activity_page.get_activity_list === "function") {
                     activity_page.get_activity_list();
                 }
@@ -147,7 +148,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.debug("🔄 Refreshing Task data for account:", accountId);
+                Logger.debug("AppLayout", "Refreshing Task data for account:", accountId)
                 if (task_page.visible && typeof task_page.getTaskList === "function") {
                     task_page.getTaskList(task_page.currentFilter || "today", "");
                 }
@@ -161,7 +162,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function(accountId) {
-                console.debug("🔄 Refreshing My Tasks data for account:", accountId);
+                Logger.debug("AppLayout", "Refreshing My Tasks data for account:", accountId)
                 if (my_tasks_page.visible && typeof my_tasks_page.refreshData === "function") {
                     my_tasks_page.refreshData();
                 }
@@ -175,7 +176,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.debug("🔄 Refreshing Project data for account:", accountId);
+                Logger.debug("AppLayout", "Refreshing Project data for account:", accountId)
                 if (project_page.visible && project_page.projectlist && typeof project_page.projectlist.refresh === "function") {
                     project_page.projectlist.refresh();
                 }
@@ -201,7 +202,7 @@ AdaptivePageLayout {
         Connections {
             target: rootApp
             onAccountDataRefreshRequested: function (accountId) {
-                console.debug("🔄 Refreshing Timesheet List data for account:", accountId);
+                Logger.debug("AppLayout", "Refreshing Timesheet List data for account:", accountId)
                 if (timesheet_list.visible && typeof timesheet_list.fetch_timesheets_list === "function") {
                     timesheet_list.fetch_timesheets_list();
                 }
@@ -234,7 +235,7 @@ AdaptivePageLayout {
         init = false;
 
         if (systemIntegration.pendingNavigation) {
-            console.debug("setFirstScreen: Pending navigation detected, scheduling with delay");
+            Logger.debug("AppLayout", "setFirstScreen: Pending navigation detected, scheduling with delay")
             systemIntegration.startDelayedNavigation();
         }
     }
@@ -303,7 +304,7 @@ AdaptivePageLayout {
     }
 
     function setCurrentPage(page, url) {
-        console.debug("📄 Setting current page to:", page);
+        Logger.debug("AppLayout", "Setting current page to:", page)
         switch (page) {
         case 0:
             currentPage = dashboard_page;
@@ -344,31 +345,38 @@ AdaptivePageLayout {
     }
 
     onColumnsChanged: {
-        console.debug("📐 Layout columns changed to:", columns);
+        Logger.debug("AppLayout", "Layout columns changed to:", columns)
         if (init === false) {
-            switch (columns) {
-            case 1:
-                primaryPage = dashboard_page;
-                if (currentPage) {
-                    addPageToCurrentColumn(primaryPage, currentPage);
+            var targetCols = columns;
+            Qt.callLater(function () {
+                if (apLayout.columns !== targetCols)
+                    return;
+
+                switch (targetCols) {
+                case 1:
+                    if (currentPage) {
+                        primaryPage = currentPage;
+                    } else {
+                        primaryPage = dashboard_page;
+                    }
+                    break;
+                case 2:
+                    primaryPage = menu_page;
+                    if (currentPage && currentPage !== menu_page) {
+                        addPageToNextColumn(menu_page, currentPage);
+                    }
+                    break;
+                case 3:
+                    primaryPage = menu_page;
+                    if (currentPage && currentPage !== menu_page) {
+                        addPageToNextColumn(menu_page, currentPage);
+                    }
+                    if (currentPage && thirdPage && thirdPage !== currentPage && thirdPage !== menu_page) {
+                        addPageToNextColumn(currentPage, thirdPage);
+                    }
+                    break;
                 }
-                break;
-            case 2:
-                primaryPage = menu_page;
-                if (currentPage) {
-                    addPageToNextColumn(primaryPage, currentPage);
-                }
-                break;
-            case 3:
-                primaryPage = menu_page;
-                if (currentPage) {
-                    addPageToNextColumn(primaryPage, currentPage);
-                }
-                if (currentPage && thirdPage) {
-                    addPageToNextColumn(currentPage, thirdPage);
-                }
-                break;
-            }
+            });
         }
     }
 
@@ -391,15 +399,15 @@ AdaptivePageLayout {
                         refreshAppData();
                     });
                 } catch (layoutError) {
-                    console.error("❌ ERROR during setFirstScreen():", layoutError);
+                    Logger.error("AppLayout", "ERROR during setFirstScreen():", layoutError)
                     refreshAppData();
                 }
             });
         } catch (e) {
-            console.error("❌ ERROR during application reload:", e);
+            Logger.error("AppLayout", "ERROR during application reload:", e)
             refreshAppData();
         }
-        console.debug("✅ Full application reload completed");
+        Logger.debug("AppLayout", "Full application reload completed")
     }
 
     function refreshAppData() {

@@ -123,7 +123,7 @@ Item {
                         enabled: !dateRangeSelector.readOnly
                         text: isStartDateValid ? Qt.formatDate(startDateItem.date, "dd-MM-yyyy") : ""
                         placeholderText: isStartDateValid ? "" : "No date set"
-                        color: isStartDateValid ? "black" : "gray"
+                        color: isStartDateValid ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black") : "gray"
                     }
 
                     MouseArea {
@@ -133,6 +133,9 @@ Item {
                             if (!dateRangeSelector.readOnly) {
                                 let result = PickerPanel.openDatePicker(startDateItem, "date", "Years|Months|Days");
                                 if (result) {
+                                    if (result.picker) {
+                                        result.picker.minimum = new Date(2000, 0, 1);
+                                    }
                                     result.closed.connect(() => {
                                         startDate = startDateItem.date;
                                         isStartDateValid = true;
@@ -167,7 +170,7 @@ Item {
                         enabled: !dateRangeSelector.readOnly
                         text: isEndDateValid ? Qt.formatDate(endDateItem.date, "dd-MM-yyyy") : ""
                         placeholderText: isEndDateValid ? "" : "No date set"
-                        color: isEndDateValid ? "black" : "gray"
+                        color: isEndDateValid ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black") : "gray"
                     }
 
                     MouseArea {
@@ -177,6 +180,9 @@ Item {
                             if (!dateRangeSelector.readOnly) {
                                 let result = PickerPanel.openDatePicker(endDateItem, "date", "Years|Months|Days");
                                 if (result) {
+                                    if (result.picker) {
+                                        result.picker.minimum = new Date(2000, 0, 1);
+                                    }
                                     result.closed.connect(() => {
                                         endDate = endDateItem.date;
                                         isEndDateValid = true;

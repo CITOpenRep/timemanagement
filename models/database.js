@@ -57,6 +57,7 @@
  */
 
 .import QtQuick.LocalStorage 2.7 as Sql
+.import "logger.js" as Logger
 
 /*Database Constants*/
 const NAME = "myDatabase";
@@ -70,14 +71,12 @@ function getTimestamp() {
 }
 
 function logException(tag, error) {
-    console.warn("[" + getTimestamp() + "][ERROR][" + tag + "] " + (error && error.message ? error.message : error));
-    if (error && error.stack) {
-    //    console.log("   ↪ Stack Trace:\n" + error.stack);
-    }
+    var errMsg = (error && error.message ? error.message : error);
+    Logger.error("Database", "[" + tag + "] " + errMsg);
 }
 
 function log(message) {
-    console.log("[" + getTimestamp() + "][Log] " + message);
+    Logger.debug("Database", message);
 }
 
 function logQueryResult(tag, resultSet) {
@@ -171,6 +170,37 @@ function ensureDefaultLocalAccountExists() {
 }
 
 /**
+ * Ensures default activity types exist for the Local Account.
+ *
+ * Local accounts do not sync activity types from Odoo, so provide
+ * a predefined set of activity types during database initialization.
+ */
+function ensureDefaultLocalActivityTypes() {
+    const defaultTypes = ["To Do", "Call", "Email", "Meeting"];
+
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(NAME, VERSION, DISPLAY_NAME, SIZE);
+
+        db.transaction(function (tx) {
+            defaultTypes.forEach(function (typeName, index) {
+                const result = tx.executeSql(
+                    "SELECT id FROM mail_activity_type_app WHERE account_id = ? AND name = ? AND (status IS NULL OR status != 'deleted')",
+                    [0, typeName]
+                );
+
+                if (result.rows.length === 0) {
+                    tx.executeSql(
+                        "INSERT INTO mail_activity_type_app (account_id, name, status, odoo_record_id) VALUES (?, ?, ?, ?)",
+                        [0, typeName, "", -(index + 1)]
+                    );
+                }
+            });
+        });
+    } catch (e) {
+        logException("ensureDefaultLocalActivityTypes", e);
+    }
+}
+/**
  * Creates a table if it doesn't exist, and ensures all expected columns are present.
  *
  * - Executes the given `CREATE TABLE IF NOT EXISTS` SQL.
@@ -218,7 +248,7 @@ function rowToObject(row) {
     var obj = {};
 
     if (!row || typeof row !== 'object') {
-        console.warn("⚠️ rowToObject: Invalid row input", row);
+        console.warn("rowToObject: Invalid row input", row);
         return obj;
     }
 

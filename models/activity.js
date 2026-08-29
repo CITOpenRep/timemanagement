@@ -1,3 +1,4 @@
+.import "logger.js" as Logger
 .import QtQuick.LocalStorage 2.7 as Sql
     .import "database.js" as DBCommon
         .import "utils.js" as Utils
@@ -212,12 +213,12 @@ function getActivityById(record_id, account_id) {
                     activity.update_id = activity.link_id;
                     activity.linkedType = "update";
                 } else {
-                    console.log("Activity not linked to recognized model, using defaults.");
+                    Logger.debug("Activity", "Activity not linked to recognized model, using defaults.")
                 }
 
-                console.log("getActivityById complete:", JSON.stringify(activity));
+                Logger.debug("Activity", "getActivityById complete:", JSON.stringify(activity))
             } else {
-                console.error("No activity found for record_id:", record_id, "account_id:", account_id);
+                Logger.error("Activity", "No activity found for record_id:", record_id, "account_id:", account_id)
             }
         });
 
@@ -277,9 +278,9 @@ function getActivityByOdooId(odoo_record_id, account_id) {
                     activity.linkedType = "update";
                 }
 
-                console.log("getActivityByOdooId found activity id:", activity.id, "for odoo_record_id:", odoo_record_id);
+                Logger.debug("Activity", "getActivityByOdooId found activity id:", activity.id, "for odoo_record_id:", odoo_record_id)
             } else {
-                console.error("No activity found for odoo_record_id:", odoo_record_id);
+                Logger.error("Activity", "No activity found for odoo_record_id:", odoo_record_id)
             }
         });
 
@@ -326,12 +327,12 @@ function resolveProjectLinkage(tx, link_id, account_id) {
                 result.sub_project_id = -1;
             }
         } else {
-            console.warn("Project not found in resolveProjectLinkage for link_id:", link_id, "account_id:", account_id);
+            Logger.warn("Activity", "Project not found in resolveProjectLinkage for link_id:", link_id, "account_id:", account_id)
         }
 
-        console.log("resolveProjectLinkage complete:", JSON.stringify(result));
+        Logger.debug("Activity", "resolveProjectLinkage complete:", JSON.stringify(result))
     } catch (e) {
-        console.error("Error in resolveProjectLinkage:", e);
+        Logger.error("Activity", "Error in resolveProjectLinkage:", e)
     }
 
     return result;
@@ -347,7 +348,7 @@ function resolveActivityLinkage(tx, link_id, account_id) {
     };
 
     try {
-        console.log("resolveActivityLinkage: Starting with link_id:", link_id, "account_id:", account_id);
+        Logger.debug("Activity", "resolveActivityLinkage: Starting with link_id:", link_id, "account_id:", account_id)
 
         // Step 1: Determine if link_id is subtask or task
         let rs_task = tx.executeSql(
@@ -368,13 +369,13 @@ function resolveActivityLinkage(tx, link_id, account_id) {
             }));
 
             let parent_id = sanitizeId(row_task.parent_id);
-            console.log("resolveActivityLinkage: Sanitized parent_id:", parent_id, "from raw value:", row_task.parent_id, "type:", typeof row_task.parent_id);
+            Logger.debug("Activity", "resolveActivityLinkage: Sanitized parent_id:", parent_id, "from raw value:", row_task.parent_id, "type:", typeof row_task.parent_id)
 
             if (parent_id !== -1 && parent_id !== 0) {  // Has a valid parent (not -1 for invalid, not 0 for no parent)
                 // It is a subtask
                 resolved_task_id = parent_id;
                 resolved_sub_task_id = row_task.odoo_record_id;
-                console.log("resolveActivityLinkage: Identified as SUBTASK. Parent task_id:", resolved_task_id, "Sub task_id:", resolved_sub_task_id);
+                Logger.debug("Activity", "resolveActivityLinkage: Identified as SUBTASK. Parent task_id:", resolved_task_id, "Sub task_id:", resolved_sub_task_id)
 
                 // For subtask, we need to get project_id from the parent task
                 let rs_parent_task = tx.executeSql(
@@ -384,9 +385,9 @@ function resolveActivityLinkage(tx, link_id, account_id) {
 
                 if (rs_parent_task.rows.length > 0) {
                     task_project_id = sanitizeId(rs_parent_task.rows.item(0).project_id);
-                    console.log("resolveActivityLinkage: Found parent task with odoo_record_id:", rs_parent_task.rows.item(0).odoo_record_id, "project_id:", task_project_id);
+                    Logger.debug("Activity", "resolveActivityLinkage: Found parent task with odoo_record_id:", rs_parent_task.rows.item(0).odoo_record_id, "project_id:", task_project_id)
                 } else {
-                    console.warn("resolveActivityLinkage: Parent task not found for resolved_task_id:", resolved_task_id);
+                    Logger.warn("Activity", "resolveActivityLinkage: Parent task not found for resolved_task_id:", resolved_task_id)
 
                     // Fallback: try to find parent task by local database id (in case parent_id references local id instead of odoo_record_id)
                     let rs_parent_by_id = tx.executeSql(
@@ -396,10 +397,10 @@ function resolveActivityLinkage(tx, link_id, account_id) {
 
                     if (rs_parent_by_id.rows.length > 0) {
                         task_project_id = sanitizeId(rs_parent_by_id.rows.item(0).project_id);
-                        console.log("resolveActivityLinkage: Found parent task by local id:", resolved_task_id, "odoo_record_id:", rs_parent_by_id.rows.item(0).odoo_record_id, "project_id:", task_project_id);
+                        Logger.debug("Activity", "resolveActivityLinkage: Found parent task by local id:", resolved_task_id, "odoo_record_id:", rs_parent_by_id.rows.item(0).odoo_record_id, "project_id:", task_project_id)
                         // Update resolved_task_id to use the correct odoo_record_id
                         resolved_task_id = rs_parent_by_id.rows.item(0).odoo_record_id;
-                        console.log("resolveActivityLinkage: Updated resolved_task_id to odoo_record_id:", resolved_task_id);
+                        Logger.debug("Activity", "resolveActivityLinkage: Updated resolved_task_id to odoo_record_id:", resolved_task_id)
                     } else {
                         // FINAL FALLBACK: Maybe parent_id is negative (local record), try searching for negative values
                         let rs_parent_negative = tx.executeSql(
@@ -409,10 +410,10 @@ function resolveActivityLinkage(tx, link_id, account_id) {
 
                         if (rs_parent_negative.rows.length > 0) {
                             task_project_id = sanitizeId(rs_parent_negative.rows.item(0).project_id);
-                            console.log("resolveActivityLinkage: Found parent task with negative odoo_record_id:", resolved_task_id, "project_id:", task_project_id);
+                            Logger.debug("Activity", "resolveActivityLinkage: Found parent task with negative odoo_record_id:", resolved_task_id, "project_id:", task_project_id)
                         } else {
                             task_project_id = sanitizeId(row_task.project_id); // Final fallback to subtask's project_id
-                            console.log("resolveActivityLinkage: Using final fallback project_id from subtask:", task_project_id);
+                            Logger.debug("Activity", "resolveActivityLinkage: Using final fallback project_id from subtask:", task_project_id)
                         }
                     }
                 }
@@ -421,10 +422,10 @@ function resolveActivityLinkage(tx, link_id, account_id) {
                 resolved_task_id = row_task.odoo_record_id;
                 resolved_sub_task_id = -1;
                 task_project_id = sanitizeId(row_task.project_id);
-                console.log("resolveActivityLinkage: Identified as PARENT TASK. Task_id:", resolved_task_id, "Project_id:", task_project_id);
+                Logger.debug("Activity", "resolveActivityLinkage: Identified as PARENT TASK. Task_id:", resolved_task_id, "Project_id:", task_project_id)
             }
         } else {
-            console.warn("Link_id is not a valid task in project_task_app:", link_id, "account_id:", account_id);
+            Logger.warn("Activity", "Link_id is not a valid task in project_task_app:", link_id, "account_id:", account_id)
             return result; // early return if not found
         }
 
@@ -437,24 +438,24 @@ function resolveActivityLinkage(tx, link_id, account_id) {
 
             if (rs_project.rows.length > 0) {
                 let parent_project_id = sanitizeId(rs_project.rows.item(0).parent_id);
-                console.log("resolveActivityLinkage: Project parent_id:", parent_project_id);
+                Logger.debug("Activity", "resolveActivityLinkage: Project parent_id:", parent_project_id)
 
                 if (parent_project_id !== -1 && parent_project_id !== 0) {  // Has a valid parent
                     result.project_id = parent_project_id;         // parent project
                     result.sub_project_id = task_project_id;  // subproject
-                    console.log("resolveActivityLinkage: Project is SUBPROJECT. Parent:", parent_project_id, "Sub:", task_project_id);
+                    Logger.debug("Activity", "resolveActivityLinkage: Project is SUBPROJECT. Parent:", parent_project_id, "Sub:", task_project_id)
                 } else {
                     result.project_id = task_project_id;     // top-level project
                     result.sub_project_id = -1;
-                    console.log("resolveActivityLinkage: Project is TOP-LEVEL:", task_project_id);
+                    Logger.debug("Activity", "resolveActivityLinkage: Project is TOP-LEVEL:", task_project_id)
                 }
             } else {
-                console.warn("Project lookup failed for task_project_id:", task_project_id);
+                Logger.warn("Activity", "Project lookup failed for task_project_id:", task_project_id)
                 result.project_id = task_project_id;
                 result.sub_project_id = -1;
             }
         } else {
-            console.warn("resolveActivityLinkage: Invalid task_project_id:", task_project_id);
+            Logger.warn("Activity", "resolveActivityLinkage: Invalid task_project_id:", task_project_id)
             result.project_id = -1;
             result.sub_project_id = -1;
         }
@@ -463,9 +464,9 @@ function resolveActivityLinkage(tx, link_id, account_id) {
         result.task_id = resolved_task_id;
         result.sub_task_id = resolved_sub_task_id;
 
-        console.log("resolveActivityLinkage complete:", JSON.stringify(result));
+        Logger.debug("Activity", "resolveActivityLinkage complete:", JSON.stringify(result))
     } catch (e) {
-        console.error("Error in resolveActivityLinkage:", e);
+        Logger.error("Activity", "Error in resolveActivityLinkage:", e)
     }
 
     return result;
@@ -495,32 +496,51 @@ function sanitizeId(value) {
 //enrichment over
 
 /**
- * Retrieves the name of an activity type from the local SQLite database
- * based on the provided Odoo record ID.
+ * Retrieves the name of an activity type from the local SQLite database.
+ *
+ * Local Account activity types use the local SQLite id, while
+ * Odoo account activity types use the odoo_record_id.
  *
  * @function getActivityTypeName
- * @param {number} odooRecordId - The ID of the activity type as stored in Odoo.
- * @returns {string} - Returns the name of the activity type if found, otherwise an empty string.
- *
- * @description
- * Opens a local SQLite database transaction and queries the `mail_activity_type_app` table
- * for a record matching the given `odooRecordId`.
- * Extracts the `name` field from the result and returns it.
- * Logs any exception encountered during the operation via `DBCommon.logException()`.
+ * @param {number} activityTypeId - The activity type ID.
+ * @param {number} accountId - The account ID.
+ * @returns {string} - Returns the activity type name if found, otherwise an empty string.
  */
-function getActivityTypeName(odooRecordId) {
+function getActivityTypeName(activityTypeId, accountId) {
+    if (!activityTypeId || activityTypeId <= 0) {
+        return "";
+    }
+
     var typeName = "";
 
     try {
-        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
 
         db.transaction(function (tx) {
-            var query = `
-            SELECT name FROM mail_activity_type_app
-            WHERE odoo_record_id = ?
-            LIMIT 1
-            `;
-            var rs = tx.executeSql(query, [odooRecordId]);
+            var query = "";
+            var params = [];
+
+            if (accountId === 0) {
+                query = "SELECT name FROM mail_activity_type_app " +
+                        "WHERE account_id = 0 AND id = ? LIMIT 1";
+                params = [activityTypeId];
+            } else if (accountId !== undefined && accountId !== null && accountId > 0) {
+                query = "SELECT name FROM mail_activity_type_app " +
+                        "WHERE account_id = ? AND odoo_record_id = ? LIMIT 1";
+                params = [accountId, activityTypeId];
+            } else {
+                query = "SELECT name FROM mail_activity_type_app " +
+                        "WHERE (odoo_record_id = ? AND odoo_record_id > 0) " +
+                        "OR id = ? LIMIT 1";
+                params = [activityTypeId, activityTypeId];
+            }
+
+            var rs = tx.executeSql(query, params);
 
             if (rs.rows.length > 0) {
                 typeName = rs.rows.item(0).name;
@@ -533,7 +553,6 @@ function getActivityTypeName(odooRecordId) {
 
     return typeName;
 }
-
 /**
  * Marks a specific activity record as "done" in the local SQLite database
  * by updating its `state` and `status` fields.
@@ -561,7 +580,7 @@ function markAsDone(accountId, id) {
             WHERE account_id = ? AND id = ?
             `;
             tx.executeSql(query, [accountId, id]);
-            //   console.log("✅ Marked as done: Account ID =", accountId, ", Record ID =", id);
+            //   console.log("Marked as done: Account ID =", accountId, ", Record ID =", id);
         });
 
     } catch (e) {
@@ -595,7 +614,7 @@ function updateActivityDate(accountId, id, newDate) {
             WHERE account_id = ? AND id = ?
             `;
             tx.executeSql(query, [newDate, accountId, id]);
-            console.log("✅ Updated activity date: Account ID =", accountId, ", Record ID =", id, ", New Date =", newDate);
+            Logger.debug("Activity", "Updated activity date: Account ID =", accountId, ", Record ID =", id, ", New Date =", newDate)
         });
 
     } catch (e) {
@@ -741,7 +760,7 @@ function saveActivityData(data, recordId) {
                     ]
                 );
                 savedRecordId = recordId;
-                console.log("✅ Activity record updated: ID " + recordId);
+                Logger.debug("Activity", "Activity record updated: ID "+ recordId)
             } else {
                 // INSERT new record
                 tx.executeSql(
@@ -771,13 +790,13 @@ function saveActivityData(data, recordId) {
                 if (inserted.rows.length > 0) {
                     savedRecordId = inserted.rows.item(0).id;
                 }
-                console.log("✅ New activity record inserted: ID " + savedRecordId);
+                Logger.debug("Activity", "New activity record inserted: ID "+ savedRecordId)
             }
         });
 
         return { success: true, recordId: savedRecordId };
     } catch (e) {
-        console.error("❌ saveActivityData failed:", e.message);
+        Logger.error("Activity", "saveActivityData failed:", e.message)
         return { success: false, error: e.message };
     }
 }
@@ -839,11 +858,11 @@ function createActivityFromProjectOrTask(isProject, account_id, link_id) {
             }
         });
 
-        console.log("Created new blank activity with ID:", recordId);
+        Logger.debug("Activity", "Created new blank activity with ID:", recordId)
         return { success: true, record_id: recordId };
 
     } catch (e) {
-        console.error("createActivityFromProjectOrTask failed:", e.message);
+        Logger.error("Activity", "createActivityFromProjectOrTask failed:", e.message)
         return { success: false, error: e.message };
     }
 }
@@ -910,11 +929,11 @@ function createFollowupActivity(account_id, activityId) {
             }
         });
 
-        console.log("Cloned activity", activityId, "into new ID:", newRecordId);
+        Logger.debug("Activity", "Cloned activity", activityId, "into new ID:", newRecordId)
         return { success: true, record_id: newRecordId };
 
     } catch (e) {
-        console.error("cloneActivity failed:", e.message);
+        Logger.error("Activity", "cloneActivity failed:", e.message)
         return { success: false, error: e.message };
     }
 }
@@ -1146,7 +1165,7 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
             }
 
             var rs = tx.executeSql(query, params);
-            console.log("getActivitiesForTask: Found", rs.rows.length, "activities for task:", taskOdooRecordId);
+            Logger.debug("Activity", "getActivitiesForTask: Found", rs.rows.length, "activities for task:", taskOdooRecordId)
 
             for (var i = 0; i < rs.rows.length; i++) {
                 var row = rs.rows.item(i);
@@ -1276,7 +1295,7 @@ function deleteActivity(accountId, recordId) {
         db.transaction(function (tx) {
             var query = `DELETE FROM mail_activity_app WHERE account_id = ? AND id = ?`;
             tx.executeSql(query, [accountId, recordId]);
-            console.log("✅ Deleted activity: Account ID =", accountId, ", Record ID =", recordId);
+            Logger.debug("Activity", "Deleted activity: Account ID =", accountId, ", Record ID =", recordId)
         });
 
         return { success: true };
@@ -1711,7 +1730,7 @@ function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limi
         });
 
     } catch (e) {
-        console.error("getFilteredActivitiesPaginated failed:", e);
+        Logger.error("Activity", "getFilteredActivitiesPaginated failed:", e)
     }
 
     var pageActivities = filteredActivities.slice(0, limit);
@@ -1727,7 +1746,7 @@ function getFilteredActivitiesPaginated(filterType, searchQuery, accountId, limi
 */
 function getAccountsWithActivityCounts() {
     var accounts = [];
-    console.log("🔍 getAccountsWithActivityCounts called");
+    Logger.debug("Activity", "getAccountsWithActivityCounts called")
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -1744,11 +1763,11 @@ function getAccountsWithActivityCounts() {
             `;
 
             var result = tx.executeSql(query);
-            console.log("📊 Found", result.rows.length, "accounts with activities in database");
+            Logger.debug("Activity", "Found", result.rows.length, "accounts with activities in database")
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                console.log("📝 DB Account:", row.account_id, "Total activities:", row.activity_count, "Active activities:", row.active_activity_count);
+                Logger.debug("Activity", "DB Account:", row.account_id, "Total activities:", row.activity_count, "Active activities:", row.active_activity_count)
                 accounts.push({
                     account_id: row.account_id,
                     account_name: row.account_id === 0 ? "Local Account" : "Account " + row.account_id,
@@ -1758,10 +1777,10 @@ function getAccountsWithActivityCounts() {
             }
         });
     } catch (e) {
-        console.error("❌ getAccountsWithActivityCounts failed:", e);
+        Logger.error("Activity", "getAccountsWithActivityCounts failed:", e)
     }
 
-    console.log("📊 Returning", accounts.length, "accounts with activities");
+    Logger.debug("Activity", "Returning", accounts.length, "accounts with activities")
     return accounts;
 }
 
@@ -1847,7 +1866,7 @@ function passesActivitySearchFilter(activity, searchQuery) {
     }
 
 
-    var activityTypeName = getActivityTypeName(activity.activity_type_id);
+    var activityTypeName = getActivityTypeName(activity.activity_type_id, activity.account_id);
     if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
         return true;
     }
@@ -1969,7 +1988,7 @@ function getAllActivityAssignees(accountId) {
 
                     for (var k = 0; k < userResult.rows.length; k++) {
                         var userRow = userResult.rows.item(k);
-                        console.log("Loading activity assignee:", userRow.name, "Account:", userRow.account_name, "ID:", userRow.odoo_record_id);
+                        Logger.debug("Activity", "Loading activity assignee:", userRow.name, "Account:", userRow.account_name, "ID:", userRow.odoo_record_id)
                         assignees.push({
                             id: userRow.id,
                             odoo_record_id: userRow.odoo_record_id,
@@ -1983,7 +2002,7 @@ function getAllActivityAssignees(accountId) {
             }
         });
     } catch (e) {
-        console.error("getAllActivityAssignees failed:", e);
+        Logger.error("Activity", "getAllActivityAssignees failed:", e)
     }
 
     return assignees;

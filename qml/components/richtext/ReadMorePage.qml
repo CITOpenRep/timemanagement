@@ -361,7 +361,7 @@ Page {
         running: !isReadOnly
         onTriggered: {
             var holderContent = Global.description_temporary_holder;
-            if (holderContent !== "" && holderContent !== readmepage._lastKnownHolder) {
+            if (holderContent !== undefined && holderContent !== "" && holderContent !== readmepage._lastKnownHolder) {
                // console.log("[ReadMorePage] External change detected - PULLING from Global, length:", holderContent.length);
                 readmepage._lastKnownHolder = holderContent;
                 if (useRichText && editor) {
@@ -399,13 +399,9 @@ Page {
         if (!visible && !isReadOnly && !_parentSaveCommitted) {
             // Page is being hidden, ensure we save the current content
             if (useRichText && editor) {
-                // Use syncContent which returns the cached text immediately
-                // The text property is kept in sync via contentChanged events
-                var currentContent = editor.syncContent();
-              //  console.log("[ReadMorePage] onVisibleChanged - saving content length:", currentContent ? currentContent.length : 0);
-                
-                // Use the cached text property which is updated via contentChanged
-                Global.description_temporary_holder = currentContent || editor.text || "";
+                // Use cached text property which is kept in sync via contentChanged
+                var currentContent = editor.getFormattedText() || editor.text || "";
+                Global.description_temporary_holder = currentContent;
                 
                 // Save draft when leaving ReadMore page
                 if (parentDraftHandler) {
@@ -413,10 +409,10 @@ Page {
                     parentDraftHandler.saveDraft();
                 }
             } else if (!useRichText && simpleEditor) {
-                Global.description_temporary_holder = simpleEditor.text;
+                Global.description_temporary_holder = simpleEditor.text || "";
                 // Save draft when leaving ReadMore page
                 if (parentDraftHandler) {
-                    parentDraftHandler.markFieldChanged("description", simpleEditor.text);
+                    parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
                     parentDraftHandler.saveDraft();
                 }
             }
@@ -446,15 +442,14 @@ Page {
         if (!isReadOnly && !_parentSaveCommitted) {
             if (useRichText && editor) {
                 // Use the cached text property which is kept in sync via contentChanged
-                var currentContent = editor.getFormattedText();
-               // console.log("[ReadMorePage] onDestruction - saving content length:", currentContent ? currentContent.length : 0);
+                var currentContent = editor.getFormattedText() || editor.text || "";
                 Global.description_temporary_holder = currentContent;
             } else if (!useRichText && simpleEditor) {
-                Global.description_temporary_holder = simpleEditor.text;
+                Global.description_temporary_holder = simpleEditor.text || "";
             }
             
             // Save draft one last time before page is destroyed
-            if (parentDraftHandler && Global.description_temporary_holder) {
+            if (parentDraftHandler) {
                 parentDraftHandler.markFieldChanged("description", Global.description_temporary_holder);
                 parentDraftHandler.saveDraft();
             }

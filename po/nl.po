@@ -1486,13 +1486,8 @@ msgstr ""
 "enkele opname is 5 minuten."
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:397
-msgid ""
-"<b>Getting Started:</b> Make sure you have enabled the \"Enable voice "
-"input\" feature, under voice model (Beta) settings. "
-msgstr ""
-"<b>Aan de slag:</b> Zorg ervoor dat je de functie \"Spraakgestuurde invoer "
-"inschakelen\" hebt ingeschakeld onder de instellingen voor het spraakmodel "
-"(bèta)."
+msgid "<b>Getting Started:</b> Make sure you have enabled the \"Enable voice input\" feature under voice model (Beta) settings. Additionally, \"Low Memory Mode\" must be enabled to run larger models compatibly without experiencing crash issues."
+msgstr "<b>Aan de slag:</b> Zorg ervoor dat je de functie \"Spraakgestuurde invoer inschakelen\" hebt ingeschakeld onder de instellingen voor het spraakmodel (bèta). Daarnaast moet \"Lagegeheugenmodus\" ingeschakeld zijn om grotere modellen compatibel uit te voeren zonder crashproblemen te ervaren."
 
 #: ../qml/features/settings/pages/Settings_VoiceModel.qml:407
 msgid ""
@@ -2273,6 +2268,22 @@ msgstr "Samenvatting"
 #, fuzzy
 msgid "Activity Type"
 msgstr "Activiteit"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:564
+msgid "Select Anyway"
+msgstr "Toch selecteren"
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:567
+msgid "Models larger than 2.5 GB are always incompatible due to mobile OS cgroups app memory restrictions, which terminate applications exceeding strict memory thresholds."
+msgstr "Modellen groter dan 2,5 GB zijn altijd incompatibel vanwege mobile OS cgroups app-geheugenbeperkingen, die applicaties die strikte geheugendrempels overschrijden, beëindigen."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:569
+msgid "This model requires more RAM than your device currently has. Running it will likely cause the application to crash due to out-of-memory limits."
+msgstr "Dit model vereist meer RAM dan je apparaat momenteel heeft. Het uitvoeren ervan zal waarschijnlijk leiden tot een crash van de applicatie vanwege limieten voor onvoldoende geheugen."
+
+#: ../qml/features/settings/pages/Settings_VoiceModel.qml:572
+msgid "This model may be incompatible with your device.<br/><br/>• <b>Model Size:</b> %1<br/>• <b>Estimated RAM Required:</b> %2<br/>• <b>Your Device RAM:</b> %3<br/><br/>%4<br/><br/>We highly recommend using the 'LGraph' or 'Small' version instead (which provide excellent accuracy with much lower memory usage).<b>  You can still use the model without crashing by enabling low memory mode in the voice model settings.</b>"
+msgstr "Dit model is mogelijk incompatibel met je apparaat.<br/><br/>• <b>Modelgrootte:</b> %1<br/>• <b>Geschat vereist RAM-geheugen:</b> %2<br/>• <b>RAM-geheugen van je apparaat:</b> %3<br/><br/>%4<br/><br/>We raden ten zeerste aan om in plaats daarvan de 'LGraph'- of 'Small'-versie te gebruiken (die uitstekende nauwkeurigheid bieden met een veel lager geheugengebruik).<b> Je kunt het model nog steeds zonder crashes gebruiken door de lagegeheugenmodus in te schakelen in de instellingen voor het spraakmodel.</b>"
 
 #~ msgid "Time Management App - Beta"
 #~ msgstr "Tijdbeheer-app - Bèta"

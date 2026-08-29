@@ -1,3 +1,4 @@
+.import "logger.js" as Logger
 .import QtQuick.LocalStorage 2.7 as Sql
     .import "database.js" as DBCommon
         .import "utils.js" as Utils
@@ -24,11 +25,11 @@ function getLocalIdFromOdooId(odooRecordId, accountId) {
             if (result.rows.length > 0) {
                 localId = result.rows.item(0).id;
             } else {
-                console.warn("Project not found for odoo_record_id:", odooRecordId, "account_id:", accountId);
+                Logger.warn("Project", "Project not found for odoo_record_id:", odooRecordId, "account_id:", accountId)
             }
         });
     } catch (e) {
-        console.error("getLocalIdFromOdooId failed:", e);
+        Logger.error("Project", "getLocalIdFromOdooId failed:", e)
     }
 
     return localId;
@@ -55,11 +56,11 @@ function getUpdateLocalIdFromOdooId(odooRecordId, accountId) {
             if (result.rows.length > 0) {
                 localId = result.rows.item(0).id;
             } else {
-                console.warn("Project update not found for odoo_record_id:", odooRecordId, "account_id:", accountId);
+                Logger.warn("Project", "Project update not found for odoo_record_id:", odooRecordId, "account_id:", accountId)
             }
         });
     } catch (e) {
-        console.error("getUpdateLocalIdFromOdooId failed:", e);
+        Logger.error("Project", "getUpdateLocalIdFromOdooId failed:", e)
     }
 
     return localId;
@@ -165,9 +166,9 @@ function getProjectDetailsByOdooId(odoo_record_id, account_id) {
                     odoo_record_id: row.odoo_record_id
                 };
 
-                console.log("getProjectDetailsByOdooId found project:", row.id, "for odoo_record_id:", odoo_record_id);
+                Logger.debug("Project", "getProjectDetailsByOdooId found project:", row.id, "for odoo_record_id:", odoo_record_id)
             } else {
-                console.error("No project found for odoo_record_id:", odoo_record_id);
+                Logger.error("Project", "No project found for odoo_record_id:", odoo_record_id)
             }
         });
 
@@ -198,7 +199,7 @@ function getAllProjects() {
             }
         });
     } catch (e) {
-        console.error("❌ getAllProjects failed:", e);
+        Logger.error("Project", "getAllProjects failed:", e)
     }
 
     return projectList;
@@ -224,12 +225,12 @@ function getAllProjectUpdates(accountId) {
 
                 query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND account_id = ? ORDER BY date DESC";
                 result = tx.executeSql(query, [accountId]);
-                console.log("Fetching project updates for account:", accountId);
+                Logger.debug("Project", "Fetching project updates for account:", accountId)
             } else {
 
                 query = "SELECT * FROM project_update_app WHERE status != 'deleted' ORDER BY date DESC";
                 result = tx.executeSql(query);
-                console.log("Fetching all project updates (no account filter)");
+                Logger.debug("Project", "Fetching all project updates (no account filter)")
             }
 
             for (var i = 0; i < result.rows.length; i++) {
@@ -238,10 +239,10 @@ function getAllProjectUpdates(accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getAllProjectUpdates failed:", e);
+        Logger.error("Project", "getAllProjectUpdates failed:", e)
     }
 
-    console.log("Found", updateList.length, "project updates");
+    Logger.debug("Project", "Found", updateList.length, "project updates")
     return updateList;
 }
 
@@ -261,7 +262,7 @@ function getProjectUpdatesByProject(projectOdooRecordId, accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getProjectUpdatesByProject failed:", e);
+        Logger.error("Project", "getProjectUpdatesByProject failed:", e)
     }
 
     return updateList;
@@ -282,7 +283,7 @@ function getProjectUpdateById(updateId, accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getProjectUpdateById failed:", e);
+        Logger.error("Project", "getProjectUpdateById failed:", e)
     }
 
     return update || {};
@@ -316,13 +317,13 @@ function getProjectUpdateByOdooId(odoo_record_id, accountId) {
 
             if (result.rows.length > 0) {
                 update = DBCommon.rowToObject(result.rows.item(0));
-                console.log("getProjectUpdateByOdooId found update:", update.id, "for odoo_record_id:", odoo_record_id);
+                Logger.debug("Project", "getProjectUpdateByOdooId found update:", update.id, "for odoo_record_id:", odoo_record_id)
             } else {
-                console.error("No project update found for odoo_record_id:", odoo_record_id);
+                Logger.error("Project", "No project update found for odoo_record_id:", odoo_record_id)
             }
         });
     } catch (e) {
-        console.error("❌ getProjectUpdateByOdooId failed:", e);
+        Logger.error("Project", "getProjectUpdateByOdooId failed:", e)
     }
 
     return update || {};
@@ -354,7 +355,7 @@ function getProjectStageName(odooRecordId) {
             }
         });
     } catch (e) {
-        console.error("getProjectStageName failed:", e);
+        Logger.error("Project", "getProjectStageName failed:", e)
     }
 
     return stageName;
@@ -386,7 +387,7 @@ function getAllProjectStages() {
             }
         });
     } catch (e) {
-        console.error("getAllProjectStages failed:", e);
+        Logger.error("Project", "getAllProjectStages failed:", e)
     }
     return stages;
 }
@@ -417,7 +418,7 @@ function getProjectStagesForAccount(accountId) {
             }
         });
     } catch (e) {
-        console.error("getProjectStagesForAccount failed:", e);
+        Logger.error("Project", "getProjectStagesForAccount failed:", e)
     }
     return stages;
 }
@@ -447,7 +448,7 @@ function getOpenProjectStages() {
             }
         });
     } catch (e) {
-        console.error("getOpenProjectStages failed:", e);
+        Logger.error("Project", "getOpenProjectStages failed:", e)
     }
     return openStages;
 }
@@ -494,7 +495,7 @@ function updateProjectStage(projectId, stageOdooRecordId, accountId) {
 
         return { success: true };
     } catch (e) {
-        console.error("updateProjectStage failed:", e);
+        Logger.error("Project", "updateProjectStage failed:", e)
         return { success: false, error: e.message || e };
     }
 }
@@ -573,7 +574,7 @@ function getFromCache(recordId) {
             }
         });
     } catch (e) {
-        console.error("getFromCache failed:", e);
+        Logger.error("Project", "getFromCache failed:", e)
     }
     return data; // null if not found
 }
@@ -593,7 +594,7 @@ function putInCache(recordId, base64Data) {
             );
         });
     } catch (e) {
-        console.error("putInCache failed:", e);
+        Logger.error("Project", "putInCache failed:", e)
     }
 }
 
@@ -616,7 +617,7 @@ function isPresentInCache(recordId) {
             }
         });
     } catch (e) {
-        console.error("isPresentInCache failed:", e);
+        Logger.error("Project", "isPresentInCache failed:", e)
     }
     return exists;
 }
@@ -639,7 +640,7 @@ function getProjectsForAccount(accountId) {
             }
         });
     } catch (e) {
-        console.error("❌ getProjectsForAccount failed:", e);
+        Logger.error("Project", "getProjectsForAccount failed:", e)
     }
 
     return projectList;
@@ -671,7 +672,7 @@ function getProjectsForAccountPaginated(accountId, limit, offset) {
             }
         });
     } catch (e) {
-        console.error("getProjectsForAccountPaginated failed:", e);
+        Logger.error("Project", "getProjectsForAccountPaginated failed:", e)
     }
 
     return projectList;
@@ -702,7 +703,7 @@ function getAllProjectsPaginated(limit, offset) {
             }
         });
     } catch (e) {
-        console.error("getAllProjectsPaginated failed:", e);
+        Logger.error("Project", "getAllProjectsPaginated failed:", e)
     }
 
     return projectList;
@@ -780,7 +781,7 @@ function getProjectsFilteredPaginated(options) {
             }
         });
     } catch (e) {
-        console.error("getProjectsFilteredPaginated failed:", e);
+        Logger.error("Project", "getProjectsFilteredPaginated failed:", e)
     }
 
     return {
@@ -815,7 +816,7 @@ function getProjectUpdatesByProjectPaginated(projectOdooRecordId, accountId, lim
             }
         });
     } catch (e) {
-        console.error("getProjectUpdatesByProjectPaginated failed:", e);
+        Logger.error("Project", "getProjectUpdatesByProjectPaginated failed:", e)
     }
 
     return updateList;
@@ -854,7 +855,7 @@ function getAllProjectUpdatesPaginated(accountId, limit, offset) {
             }
         });
     } catch (e) {
-        console.error("getAllProjectUpdatesPaginated failed:", e);
+        Logger.error("Project", "getAllProjectUpdatesPaginated failed:", e)
     }
 
     return updateList;
@@ -932,7 +933,7 @@ function getProjectUpdatesFilteredPaginated(options) {
             }
         });
     } catch (e) {
-        console.error("getProjectUpdatesFilteredPaginated failed:", e);
+        Logger.error("Project", "getProjectUpdatesFilteredPaginated failed:", e)
     }
 
     return {
@@ -949,7 +950,7 @@ function getProjectUpdatesFilteredPaginated(options) {
  */
 function getAccountsWithProjectCounts() {
     var accounts = [];
-    console.log("🔍 getAccountsWithProjectCounts called");
+    Logger.debug("Project", "getAccountsWithProjectCounts called")
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -966,11 +967,11 @@ function getAccountsWithProjectCounts() {
             `;
 
             var result = tx.executeSql(query);
-            console.log("📊 Found", result.rows.length, "accounts with projects in database");
+            Logger.debug("Project", "Found", result.rows.length, "accounts with projects in database")
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                console.log("📝 DB Account:", row.account_id, "Total projects:", row.project_count, "Active projects:", row.active_project_count);
+                Logger.debug("Project", "DB Account:", row.account_id, "Total projects:", row.project_count, "Active projects:", row.active_project_count)
                 accounts.push({
 
                     // id: row.id,
@@ -997,10 +998,10 @@ function getAccountsWithProjectCounts() {
             }
         });
     } catch (e) {
-        console.error("❌ getAccountsWithProjectCounts failed:", e);
+        Logger.error("Project", "getAccountsWithProjectCounts failed:", e)
     }
 
-    console.log("📊 Returning", accounts.length, "accounts with projects");
+    Logger.debug("Project", "Returning", accounts.length, "accounts with projects")
     return accounts;
 }
 
@@ -1130,7 +1131,7 @@ function createUpdateSnapShot(update_data, recordid) {
             messageObj.record_id = newRecordId;
 
         } catch (error) {
-            console.error("createUpdateSnapShot failed:", error);
+            Logger.error("Project", "createUpdateSnapShot failed:", error)
             messageObj.is_success = false;
             messageObj.message = "Project Update could not be saved!\n" + error;
         }
@@ -1181,7 +1182,7 @@ function markProjectUpdateAsDeleted(updateId) {
  * @param {number|string} [accountId] - Optional account id to filter by. Use -1 for all accounts.
  * @returns {Array<Object>} - A list of objects with `project_id`, `name`, and `spentHours`.
  */
-function getProjectSpentHoursList(is_work_state, accountId) {
+function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var resultList = [];
 
@@ -1198,7 +1199,7 @@ function getProjectSpentHoursList(is_work_state, accountId) {
             acctParam = Account.getDefaultAccountId();
         }
     } catch (e) {
-        console.error("Error resolving account param, falling back to default account:", e);
+        Logger.error("Project", "Error resolving account param, falling back to default account:", e)
         acctParam = Account.getDefaultAccountId();
     }
 
@@ -1209,18 +1210,28 @@ function getProjectSpentHoursList(is_work_state, accountId) {
         var isAllAccounts = (String(acctParam) === "-1");
 
         if (isAllAccounts) {
-            console.log("   Aggregating spent hours for ALL accounts");
+            Logger.debug("Project", "   Aggregating spent hours for ALL accounts")
 
-            result = tx.executeSql(
-                "SELECT aal.project_id, aal.account_id, COALESCE(u.name, 'Unknown') AS account_name, " +
+            var sqlAll = "SELECT aal.project_id, aal.account_id, COALESCE(u.name, 'Unknown') AS account_name, " +
                 "COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
                 "FROM account_analytic_line_app aal " +
                 "LEFT JOIN users u ON aal.account_id = u.id " +
                 "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
-                "WHERE " + (is_work_state ? "aal.account_id != 0 " : "aal.account_id = 0 ") +
-                "GROUP BY aal.project_id, aal.account_id, u.name, p.name " +
-                "ORDER BY total_spent DESC"
-            );
+                "WHERE " + (is_work_state ? "aal.account_id != 0 " : "aal.account_id = 0 ");
+            var paramsAll = [];
+
+            if (startDate) {
+                sqlAll += "AND DATE(aal.record_date) >= DATE(?) ";
+                paramsAll.push(startDate);
+            }
+            if (endDate) {
+                sqlAll += "AND DATE(aal.record_date) <= DATE(?) ";
+                paramsAll.push(endDate);
+            }
+
+            sqlAll += "GROUP BY aal.project_id, aal.account_id, u.name, p.name ORDER BY total_spent DESC";
+
+            result = tx.executeSql(sqlAll, paramsAll);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -1240,21 +1251,30 @@ function getProjectSpentHoursList(is_work_state, accountId) {
             // Single account path — acctParam should be a numeric id (or something convertible)
             var acctNum = Number(acctParam);
             if (isNaN(acctNum)) {
-                console.warn("getProjectSpentHoursList: accountId not numeric, falling back to default account id");
+                Logger.warn("Project", "getProjectSpentHoursList: accountId not numeric, falling back to default account id")
                 acctNum = Number(Account.getDefaultAccountId());
             }
 
-            console.log("   Aggregating spent hours for single account:", acctNum);
+            Logger.debug("Project", "   Aggregating spent hours for single account:", acctNum)
 
-            result = tx.executeSql(
-                "SELECT aal.project_id, COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
+            var sqlSingle = "SELECT aal.project_id, COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
                 "FROM account_analytic_line_app aal " +
                 "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
-                "WHERE aal.account_id = ? " +
-                "GROUP BY aal.project_id, p.name " +
-                "ORDER BY total_spent DESC",
-                [acctNum]
-            );
+                "WHERE aal.account_id = ? ";
+            var paramsSingle = [acctNum];
+
+            if (startDate) {
+                sqlSingle += "AND DATE(aal.record_date) >= DATE(?) ";
+                paramsSingle.push(startDate);
+            }
+            if (endDate) {
+                sqlSingle += "AND DATE(aal.record_date) <= DATE(?) ";
+                paramsSingle.push(endDate);
+            }
+
+            sqlSingle += "GROUP BY aal.project_id, p.name ORDER BY total_spent DESC";
+
+            result = tx.executeSql(sqlSingle, paramsSingle);
 
             for (var j = 0; j < result.rows.length; j++) {
                 var r = result.rows.item(j);
@@ -1280,9 +1300,11 @@ function getProjectSpentHoursList(is_work_state, accountId) {
  * calculating totals one record at a time in QML.
  *
  * @param {number} accountId - Account ID, or -1 for all accounts.
+ * @param {string} [startDate] - Optional start date (yyyy-MM-dd).
+ * @param {string} [endDate] - Optional end date (yyyy-MM-dd).
  * @returns {Array<Object>} Project summary rows for dashboard charts.
  */
-function getDashboardProjectTaskSummary(accountId) {
+function getDashboardProjectTaskSummary(accountId, startDate, endDate) {
     var resultList = [];
 
     try {
@@ -1290,8 +1312,18 @@ function getDashboardProjectTaskSummary(accountId) {
 
         db.transaction(function (tx) {
             var params = [];
-            var accountWhere = "";
+            var tsConditions = ["(status IS NULL OR status != 'deleted')"];
 
+            if (startDate) {
+                tsConditions.push("DATE(record_date) >= DATE(?)");
+                params.push(startDate);
+            }
+            if (endDate) {
+                tsConditions.push("DATE(record_date) <= DATE(?)");
+                params.push(endDate);
+            }
+
+            var accountWhere = "";
             if (accountId !== -1 && accountId !== undefined && accountId !== null) {
                 accountWhere = "WHERE p.account_id = ? ";
                 params.push(accountId);
@@ -1309,7 +1341,7 @@ function getDashboardProjectTaskSummary(accountId) {
                 "LEFT JOIN ( " +
                 "SELECT account_id, task_id, SUM(unit_amount) AS total_hours " +
                 "FROM account_analytic_line_app " +
-                "WHERE status IS NULL OR status != 'deleted' " +
+                "WHERE " + tsConditions.join(" AND ") + " " +
                 "GROUP BY account_id, task_id " +
                 ") ts ON ts.account_id = t.account_id AND ts.task_id = t.odoo_record_id " +
                 accountWhere +
@@ -1336,7 +1368,7 @@ function getDashboardProjectTaskSummary(accountId) {
             }
         });
     } catch (e) {
-        console.error("getDashboardProjectTaskSummary failed:", e);
+        Logger.error("Project", "getDashboardProjectTaskSummary failed:", e)
     }
 
     return resultList;
@@ -1368,7 +1400,7 @@ function getProjectName(projectId, accountId) {
 
         return projectName;
     } catch (e) {
-        console.error("❌ getProjectName failed:", e);
+        Logger.error("Project", "getProjectName failed:", e)
         return "Unknown Project";
     }
 }
@@ -1396,16 +1428,16 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
             if (updateResult.rowsAffected > 0) {
                 result.success = true;
                 result.message = isFavorite ? "Project marked as favorite" : "Project removed from favorites";
-                //  console.log("✅ Project favorite status updated:", projectId, "favorite:", isFavorite);
+                //  console.log("Project favorite status updated:", projectId, "favorite:", isFavorite);
             } else {
                 result.message = "Project not found or no changes made";
-                console.warn("⚠️ No project updated with ID:", projectId);
+                Logger.warn("Project", "No project updated with ID:", projectId)
             }
         });
 
         return result;
     } catch (e) {
-        console.error("❌ toggleProjectFavorite failed:", e);
+        Logger.error("Project", "toggleProjectFavorite failed:", e)
         return { success: false, message: "Failed to update project favorite status: " + e.message };
     }
 }

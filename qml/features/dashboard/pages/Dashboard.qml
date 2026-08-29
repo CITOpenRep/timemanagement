@@ -26,10 +26,12 @@ import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtQuick.Controls 2.2 as Controls
 import Lomiri.Components.Popups 1.3
+import QtQuick.Layouts 1.3
 import "../../../../models/timesheet.js" as TimesheetModel
 import "../../../../models/accounts.js" as Account
 import "../../../../models/global.js" as Global
 import "../../../components"
+import "../../../../models/logger.js" as Logger
 
 Page {
     id: mainPage
@@ -80,10 +82,19 @@ Page {
             backgroundColor: LomiriColors.orange
             dividerColor: LomiriColors.slate
         }
-        title: i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]"
+        contents: FilterableHeaderContents {
+            id: headerContents
+            title: i18n.dtr("ubtms", "Dashboard")
+            onDateRangeChanged: refreshData()
+            
+            Component.onCompleted: {
+                if (typeof headerContents.dateFilter !== "undefined") {
+                    headerContents.dateFilter.clearFilter();
+                }
+            }
+        }
         visible: true
 
-        // Notification Bell in header
         leadingActionBar.actions: [
             Action {
                 id: drawerAction
@@ -96,14 +107,12 @@ Page {
             }
         ]
 
-      //  trailingActionBar.visible: isMultiColumn ? false : true
         trailingActionBar.numberOfSlots: 5
-
         trailingActionBar.actions: [
             Action {
                 id: infoAction
                 iconName: "info"
-                visible:!isMultiColumn
+                visible: !isMultiColumn && !headerContents.showDateFilter
                 text: i18n.dtr("ubtms", "Chart Info")
                 onTriggered: {
                     PopupUtils.open(Qt.resolvedUrl("../components/ChartInfoPopup.qml"))
@@ -112,6 +121,7 @@ Page {
             Action {
                 id: notificationAction
                 iconSource: notificationBell.totalCount > 0 ? "../../../images/notification_active.png" : "../../../images/notification.png"
+                visible: !headerContents.showDateFilter
                 text: notificationBell.totalCount > 0 ? 
                       i18n.dtr("ubtms", "Notifications") + " (" + notificationBell.totalCount + ")" : 
                       i18n.dtr("ubtms", "Notifications")
@@ -127,6 +137,7 @@ Page {
             Action {
                 iconName: "reminder-new"
                 text: i18n.dtr("ubtms", "New Timesheet")
+                visible: !headerContents.showDateFilter
                 onTriggered: {
                     const defaultAccountId = Account.getDefaultAccountId();
                     const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
@@ -136,15 +147,26 @@ Page {
                             "isReadOnly": false
                         });
                     } else {
-                        console.error("Error creating timesheet: " + result.message);
+                        Logger.error("Dashboard", "Error creating timesheet: " + result.message)
                     }
+                }
+            },
+            Action {
+                id: filterAction
+                iconName: "filters"
+                text: (typeof headerContents.dateFilter !== "undefined" && headerContents.dateFilter.isFiltered) ? 
+                      i18n.dtr("ubtms", "Filter (Active)") : 
+                      i18n.dtr("ubtms", "Filter")
+                visible: !headerContents.showDateFilter
+                onTriggered: {
+                    headerContents.showDateFilter = true;
                 }
             }
         ]
     }
 
     function refreshData() {
-        console.log("🔄 Refreshing Dashboard data...");
+        Logger.debug("Dashboard", "Refreshing Dashboard data...")
         var targetAccountId = accountPicker.selectedAccountId;
         if (isLoading && refreshStage >= 0 && lastRefreshAccountId === targetAccountId) {
             return;
@@ -172,11 +194,14 @@ Page {
 
     function _doRefreshData() {
         try {
+            var sDate = typeof headerContents.dateFilter !== "undefined" ? headerContents.dateFilter.startDate : "";
+            var eDate = typeof headerContents.dateFilter !== "undefined" ? headerContents.dateFilter.endDate : "";
+
             switch (refreshStage) {
             case 0:
-                console.log("🟢 Dashboard refresh stage 0: priority matrix");
+                Logger.debug("Dashboard", "Dashboard refresh stage 0: priority matrix")
                 if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
-                    ehoverMatrix.refreshQuadrants();
+                    ehoverMatrix.refreshQuadrants(sDate, eDate);
                 }
                 loadingMessage = i18n.dtr("ubtms", "Loading project chart...");
                 refreshStage = 1;
@@ -184,26 +209,26 @@ Page {
                 loadingTimer.start();
                 return;
             case 1:
-                console.log("🟢 Dashboard refresh stage 1: project chart");
+                Logger.debug("Dashboard", "Dashboard refresh stage 1: project chart")
                 if (typeof projectchart !== "undefined") {
-                    projectchart.refreshForAccount(accountPicker.selectedAccountId);
+                    projectchart.refreshForAccount(accountPicker.selectedAccountId, sDate, eDate);
                 }
                 loadingMessage = i18n.dtr("ubtms", "Loading additional charts...");
                 refreshStage = 2;
                 loadingTimer.start();
                 return;
             case 2:
-                console.log("🟢 Dashboard refresh stage 2: additional charts");
+                Logger.debug("Dashboard", "Dashboard refresh stage 2: additional charts")
                 if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
-                    mobileProjectChartLoader.item.reloadData();
+                    mobileProjectChartLoader.item.reloadData(sDate, eDate);
                 if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
-                    mobileTaskChartLoader.item.reloadData();
+                    mobileTaskChartLoader.item.reloadData(sDate, eDate);
                 break;
             default:
                 break;
             }
         } catch(e) {
-            console.error("🔴 _doRefreshData ERROR: ", e);
+            Logger.error("Dashboard", "_doRefreshData ERROR: ", e)
         }
         finishRefreshData();
     }
@@ -238,7 +263,7 @@ Page {
                         "isReadOnly": false
                     });
                 } else {
-                    console.error("Error creating timesheet: " + result.message);
+                    Logger.error("Dashboard", "Error creating timesheet: " + result.message)
                 }
             }
             if (index === 2) {
@@ -472,7 +497,7 @@ Page {
                     "isReadOnly": false
                 });
             } else {
-                console.error("Error creating timesheet: " + result.message);
+                Logger.error("Dashboard", "Error creating timesheet: " + result.message)
             }
             collapse();
         }
@@ -547,7 +572,7 @@ Page {
     }
 
     Component.onCompleted: {
-        console.log("Dashboard status is: " + mainPage.status);
+        Logger.debug("Dashboard", "Dashboard status is: " + mainPage.status)
         // Load notifications on startup
         notificationBell.loadNotifications();
     }

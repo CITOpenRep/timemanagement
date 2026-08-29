@@ -1,3 +1,4 @@
+.import "logger.js" as Logger
 .import QtQuick.LocalStorage 2.7 as Sql
     .import "database.js" as DBCommon
         .import "utils.js" as Utils
@@ -39,9 +40,9 @@ function fetchTimesheetsByStatus(status, accountId) {
                 params = [accountId, status];
             }
 
-            console.log("Executing fetchTimesheetsByStatus query:", query, "with params:", params);
+            Logger.debug("Timesheet", "Executing fetchTimesheetsByStatus query:", query, "with params:", params)
             var result = tx.executeSql(query, params);
-            console.log("Found", result.rows.length, "timesheets for account:", accountId);
+            Logger.debug("Timesheet", "Found", result.rows.length, "timesheets for account:", accountId)
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -129,7 +130,7 @@ function fetchTimesheetsByStatus(status, accountId) {
             }
         });
     } catch (e) {
-        console.error("Error in fetchTimesheetsByStatus:", e.message);
+        Logger.error("Timesheet", "Error in fetchTimesheetsByStatus:", e.message)
         DBCommon.logException("fetchTimesheetsByStatus", e);
     }
 
@@ -245,7 +246,7 @@ function fetchTimesheetsForAllAccounts(status) {
             }
         });
     } catch (e) {
-        console.error("Error in fetchTimesheetsForAllAccounts:", e.message);
+        Logger.error("Timesheet", "Error in fetchTimesheetsForAllAccounts:", e.message)
         DBCommon.logException("fetchTimesheetsForAllAccounts", e);
     }
 
@@ -361,7 +362,7 @@ function fetchTimesheetsByStatusPaginated(status, accountId, limit, offset) {
             }
         });
     } catch (e) {
-        console.error("Error in fetchTimesheetsByStatusPaginated:", e.message);
+        Logger.error("Timesheet", "Error in fetchTimesheetsByStatusPaginated:", e.message)
         DBCommon.logException("fetchTimesheetsByStatusPaginated", e);
     }
 
@@ -459,7 +460,7 @@ function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
             }
         });
     } catch (e) {
-        console.error("Error in fetchTimesheetsForAllAccountsPaginated:", e.message);
+        Logger.error("Timesheet", "Error in fetchTimesheetsForAllAccountsPaginated:", e.message)
         DBCommon.logException("fetchTimesheetsForAllAccountsPaginated", e);
     }
 
@@ -474,7 +475,7 @@ function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
  * @param {string} status - The status filter: 'all', 'active', 'draft', etc.
  * @returns {Array<Object>} - A list of enriched timesheet entries for the task.
  */
-function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
+function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, endDate) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheetList = [];
 
@@ -492,27 +493,40 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
             var params = [];
 
             // Build query based on status and accountId
+            var baseQuery = "SELECT * FROM account_analytic_line_app WHERE task_id = ?";
+            var dateCondition = "";
+            
+            if (startDate) {
+                dateCondition += " AND DATE(record_date) >= DATE(?)";
+            }
+            if (endDate) {
+                dateCondition += " AND DATE(record_date) <= DATE(?)";
+            }
+            
             if (!status || status.toLowerCase() === "all") {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
+                    query = baseQuery + " AND account_id = ? AND (status IS NULL OR status != 'deleted')" + dateCondition + " ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, accountId];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND (status IS NULL OR status != 'deleted') ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
+                    query = baseQuery + " AND (status IS NULL OR status != 'deleted')" + dateCondition + " ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId];
                 }
             } else {
                 if (accountId && accountId > 0) {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND account_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
+                    query = baseQuery + " AND account_id = ? AND status = ?" + dateCondition + " ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, accountId, status];
                 } else {
-                    query = "SELECT * FROM account_analytic_line_app WHERE task_id = ? AND status = ? ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
+                    query = baseQuery + " AND status = ?" + dateCondition + " ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
                     params = [taskOdooRecordId, status];
                 }
             }
+            
+            if (startDate) params.push(startDate);
+            if (endDate) params.push(endDate);
 
-            console.log("Executing getTimesheetsForTask query:", query, "with params:", params);
+            Logger.debug("Timesheet", "Executing getTimesheetsForTask query:", query, "with params:", params)
             var result = tx.executeSql(query, params);
-            console.log("Found", result.rows.length, "timesheets for task:", taskOdooRecordId);
+            Logger.debug("Timesheet", "Found", result.rows.length, "timesheets for task:", taskOdooRecordId)
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -600,7 +614,7 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status) {
             }
         });
     } catch (e) {
-        console.error("Error in getTimesheetsForTask:", e.message);
+        Logger.error("Timesheet", "Error in getTimesheetsForTask:", e.message)
         DBCommon.logException("getTimesheetsForTask", e);
     }
 
@@ -755,7 +769,7 @@ function getTimesheetsForTaskPaginated(taskOdooRecordId, accountId, status, limi
             }
         });
     } catch (e) {
-        console.error("Error in getTimesheetsForTaskPaginated:", e.message);
+        Logger.error("Timesheet", "Error in getTimesheetsForTaskPaginated:", e.message)
         DBCommon.logException("getTimesheetsForTaskPaginated", e);
     }
 
@@ -788,20 +802,56 @@ function getAttachmentsForTimesheet(odooRecordId) {
             }
         });
     } catch (e) {
-        console.error("getAttachmentsForTask failed:", e);
+        Logger.error("Timesheet", "getAttachmentsForTask failed:", e)
     }
 
     return attachmentList;
 }
 
 
+function getTimesheetDisplayName(timesheetId) {
+    if (!timesheetId || timesheetId <= 0) return "";
+    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+    var displayName = "";
+    try {
+        db.transaction(function (tx) {
+            var rs = tx.executeSql(
+                "SELECT t.name AS ts_name, p.name AS project_name, tk.name AS task_name " +
+                "FROM account_analytic_line_app t " +
+                "LEFT JOIN project_project_app p ON (t.project_id = p.odoo_record_id OR t.project_id = p.id) " +
+                "LEFT JOIN project_task_app tk ON (t.task_id = tk.odoo_record_id OR t.task_id = tk.id) " +
+                "WHERE t.id = ? LIMIT 1",
+                [timesheetId]
+            );
+            if (rs.rows.length > 0) {
+                var row = rs.rows.item(0);
+                if (row.ts_name && row.ts_name.trim() !== "") {
+                    displayName = row.ts_name.trim();
+                } else if (row.project_name && row.project_name.trim() !== "") {
+                    displayName = row.project_name.trim() + (row.task_name ? " - " + row.task_name.trim() : "");
+                } else if (row.task_name && row.task_name.trim() !== "") {
+                    displayName = row.task_name.trim();
+                }
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getTimesheetDisplayName", e);
+    }
+    return displayName;
+}
+
 function getTimesheetNameById(timesheetId) {
+    var displayName = getTimesheetDisplayName(timesheetId);
+    if (displayName && displayName.trim() !== "") {
+        return displayName;
+    }
+
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var name = "";
     try {
         db.transaction(function (tx) {
             var rs = tx.executeSql("SELECT name FROM account_analytic_line_app WHERE id = ?", [timesheetId]);
-            if (rs.rows.length > 0) {
+            if (rs.rows.length > 0 && rs.rows.item(0).name) {
                 name = rs.rows.item(0).name;
             }
         });
@@ -845,11 +895,11 @@ function isTimesheetReadyToRecord(timesheetId) {
                 // Both project and task are mandatory for sync to prevent sync errors
                 ready = hasProjectOrSubproject && hasTaskOrSubtask;
             } else {
-                console.log("Timesheet ID " + timesheetId + " not found in DB.");
+                Logger.debug("Timesheet", "Timesheet ID " + timesheetId + " not found in DB.")
             }
         });
     } catch (e) {
-        console.log("isTimesheetReadyToRecord failed:", e);
+        Logger.debug("Timesheet", "isTimesheetReadyToRecord failed:", e)
     }
 
     return ready;
@@ -882,11 +932,11 @@ function isTimesheetReadyToStartTimer(timesheetId) {
                 // Only project is required for timer start - task can be selected later
                 ready = hasProjectOrSubproject;
             } else {
-                console.log("Timesheet ID " + timesheetId + " not found in DB.");
+                Logger.debug("Timesheet", "Timesheet ID " + timesheetId + " not found in DB.")
             }
         });
     } catch (e) {
-        console.log("isTimesheetReadyToStartTimer failed:", e);
+        Logger.debug("Timesheet", "isTimesheetReadyToStartTimer failed:", e)
     }
 
     return ready;
@@ -919,7 +969,7 @@ function markTimesheetAsDeleted(taskId) {
         try {
             DraftManager.cleanupDraftsForDeletedRecords("timesheet", [taskId]);
         } catch (draftError) {
-            console.warn("⚠️  Failed to cleanup timesheet draft:", draftError);
+            Logger.warn("Timesheet", "Failed to cleanup timesheet draft:", draftError)
             // Don't fail the deletion if draft cleanup fails
         }
 
@@ -953,19 +1003,19 @@ function getTimeSheetDetails(record_id, accountId) {
             if (accountId !== undefined && accountId !== null && accountId !== -1) {
                 query += ' AND account_id = ?';
                 params.push(accountId);
-                console.log("Applying security filter - accountId:", accountId);
+                Logger.debug("Timesheet", "Applying security filter - accountId:", accountId)
             } else {
-                console.log("WARNING: No account filter applied - this may be a security risk");
+                Logger.debug("Timesheet", "WARNING: No account filter applied - this may be a security risk")
             }
 
-            console.log("Executing query:", query, "with params:", params);
+            Logger.debug("Timesheet", "Executing query:", query, "with params:", params)
 
             var timesheet = tx.executeSql(query, params);
 
             if (timesheet.rows.length) {
                 var row = timesheet.rows.item(0);
-                console.log("Found record with account_id:", row.account_id);
-                console.log("getTimeSheetDetails: Raw user_id from DB:", row.user_id);
+                Logger.debug("Timesheet", "Found record with account_id:", row.account_id)
+                Logger.debug("Timesheet", "getTimeSheetDetails: Raw user_id from DB:", row.user_id)
 
                 timesheet_detail = {
                     'id': row.id,
@@ -984,22 +1034,22 @@ function getTimeSheetDetails(record_id, accountId) {
                     'odoo_record_id': row.odoo_record_id
                 };
 
-                console.log("getTimeSheetDetails: Returning timesheet_detail:", JSON.stringify(timesheet_detail));
+                Logger.debug("Timesheet", "getTimeSheetDetails: Returning timesheet_detail:", JSON.stringify(timesheet_detail))
             } else {
-                console.log("No matching record found for id:", record_id, "accountId:", accountId);
+                Logger.debug("Timesheet", "No matching record found for id:", record_id, "accountId:", accountId)
 
 
                 var debugCheck = tx.executeSql('SELECT account_id FROM account_analytic_line_app WHERE id = ?', [record_id]);
                 if (debugCheck.rows.length) {
-                    console.log("Record exists but has account_id:", debugCheck.rows.item(0).account_id,
+                    Logger.debug("Timesheet", "Record exists but has account_id:", debugCheck.rows.item(0).account_id,
                         "Expected:", accountId);
                 } else {
-                    console.log("Record with id", record_id, "does not exist in database");
+                    Logger.debug("Timesheet", "Record with id", record_id, "does not exist in database")
                 }
             }
         });
     } catch (e) {
-        console.error("Error in getTimeSheetDetails:", e.message);
+        Logger.error("Timesheet", "Error in getTimeSheetDetails:", e.message)
         DBCommon.logException("getTimeSheetDetails", e);
     }
 
@@ -1051,13 +1101,13 @@ function getTimeSheetDetailsByOdooId(odoo_record_id, accountId) {
                     'odoo_record_id': row.odoo_record_id
                 };
 
-                console.log("getTimeSheetDetailsByOdooId found timesheet id:", row.id, "for odoo_record_id:", odoo_record_id);
+                Logger.debug("Timesheet", "getTimeSheetDetailsByOdooId found timesheet id:", row.id, "for odoo_record_id:", odoo_record_id)
             } else {
-                console.error("No timesheet found for odoo_record_id:", odoo_record_id);
+                Logger.error("Timesheet", "No timesheet found for odoo_record_id:", odoo_record_id)
             }
         });
     } catch (e) {
-        console.error("Error in getTimeSheetDetailsByOdooId:", e.message);
+        Logger.error("Timesheet", "Error in getTimeSheetDetailsByOdooId:", e.message)
         DBCommon.logException("getTimeSheetDetailsByOdooId", e);
     }
 
@@ -1088,7 +1138,7 @@ function saveTimesheet(data) {
     }
 
     try {
-        console.log("saveTimesheet: Saving timesheet data:", JSON.stringify(data));
+        Logger.debug("Timesheet", "saveTimesheet: Saving timesheet data:", JSON.stringify(data))
         db.transaction(function (tx) {
             tx.executeSql(`UPDATE account_analytic_line_app SET
                           account_id = ?,
@@ -1181,7 +1231,7 @@ function createTimesheet(instance_id, userid) {
             }
         });
     } catch (err) {
-        console.log(err.message)
+        Logger.debug("Timesheet", err.message)
         result.error = err.message;
     }
 
@@ -1196,7 +1246,7 @@ function createTimesheet(instance_id, userid) {
  * @param {number} taskRecordId - The ID of the task to link to the new timesheet.
  * @returns {Object} - { success: boolean, id: number | null, error: string }
  */function createTimesheetFromTask(taskRecordId) {
-    console.log("Creating time sheet for " + taskRecordId);
+    Logger.debug("Timesheet", "Creating time sheet for " + taskRecordId)
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var result = { success: false, id: null, error: "" };
 
@@ -1231,7 +1281,7 @@ function createTimesheet(instance_id, userid) {
             result.error = "Unable to determine current user for account " + task.account_id;
             return result;
         }
-        console.log("Creating timesheet for current user:", userId);
+        Logger.debug("Timesheet", "Creating timesheet for current user:", userId)
 
         // Use createTimesheet(instance_id, user_id) to create the empty record
         var tsResult = createTimesheet(task.account_id, userId);
@@ -1261,7 +1311,7 @@ function createTimesheet(instance_id, userid) {
             user_id: userId  // Use the resolved user ID
         };
 
-        console.log("Updating created timesheet ID " + timesheetId + " with task data.");
+        Logger.debug("Timesheet", "Updating created timesheet ID " + timesheetId + " with task data.")
 
         var updateResult = saveTimesheet(timesheet_data);
 
@@ -1281,7 +1331,7 @@ function createTimesheet(instance_id, userid) {
 
 
 function createTimesheetFromProject(projectRecordId) {
-    console.log("Creating timesheet for project " + projectRecordId);
+    Logger.debug("Timesheet", "Creating timesheet for project " + projectRecordId)
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var result = { success: false, id: null, error: "" };
 
@@ -1291,9 +1341,9 @@ function createTimesheetFromProject(projectRecordId) {
             var rs = tx.executeSql("SELECT * FROM project_project_app WHERE odoo_record_id = ?", [projectRecordId]);
             if (rs.rows.length > 0) {
                 project = rs.rows.item(0);
-                console.log("Project data:", JSON.stringify(project));
-                console.log("Account ID:", project.account_id);
-                console.log("User ID:", project.user_id);
+                Logger.debug("Timesheet", "Project data:", JSON.stringify(project))
+                Logger.debug("Timesheet", "Account ID:", project.account_id)
+                Logger.debug("Timesheet", "User ID:", project.user_id)
             }
         });
 
@@ -1314,7 +1364,7 @@ function createTimesheetFromProject(projectRecordId) {
             result.error = "Unable to determine current user for account " + project.account_id;
             return result;
         }
-        console.log("Creating timesheet for current user:", userId);
+        Logger.debug("Timesheet", "Creating timesheet for current user:", userId)
 
         // Create empty timesheet
         var tsResult = createTimesheet(project.account_id, userId);
@@ -1373,7 +1423,7 @@ function doesProjectIdMatchSheetInActive(projectId, sheetId) {
             }
         });
     } catch (e) {
-        console.log("doesProjectIdMatchSheetInActive failed:", e);
+        Logger.debug("Timesheet", "doesProjectIdMatchSheetInActive failed:", e)
     }
 
     return matches;
@@ -1393,12 +1443,12 @@ function doesTaskIdMatchSheetInActive(taskId, sheetId) {
             );
 
             if (rs.rows.length > 0) {
-                console.log("Sheet ID " + sheetId + " with task ID " + taskId + " found in DRAFT timesheets.");
+                Logger.debug("Timesheet", "Sheet ID " + sheetId + " with task ID " + taskId + " found in DRAFT timesheets.")
                 matches = true;
             }
         });
     } catch (e) {
-        console.log("doesTaskIdMatchSheetInDraft failed:", e);
+        Logger.debug("Timesheet", "doesTaskIdMatchSheetInDraft failed:", e)
     }
 
     return matches;
@@ -1406,12 +1456,12 @@ function doesTaskIdMatchSheetInActive(taskId, sheetId) {
 
 
 function updateTimesheetWithDuration(timesheetId, durationHours) {
-    console.log("Updating timesheet " + timesheetId + " with hours " + durationHours);
+    Logger.debug("Timesheet", "Updating timesheet " + timesheetId + " with hours " + durationHours)
 
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
     var time_taken = Utils.convertHHMMtoDecimalHours(durationHours)
-    console.log("Updating duration : " + time_taken)
+    Logger.debug("Timesheet", "Updating duration : " + time_taken)
 
     try {
         db.transaction(function (tx) {
@@ -1422,26 +1472,32 @@ function updateTimesheetWithDuration(timesheetId, durationHours) {
             );
         });
     } catch (e) {
-        console.log("updateTimesheetWithDuration failed:", e);
+        Logger.debug("Timesheet", "updateTimesheetWithDuration failed:", e)
     }
 }
 
 function markTimesheetAsActiveById(timesheetId) {
-    console.log("Marking timesheet " + timesheetId + " as active");
+    Logger.debug("Timesheet", "Marking timesheet " + timesheetId + " as active")
 
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
 
     try {
         db.transaction(function (tx) {
+            // Revert any other timesheets previously marked 'active' to 'draft'
+            tx.executeSql(
+                "UPDATE account_analytic_line_app SET last_modified = ?, status = 'draft' WHERE status = 'active' AND id != ?",
+                [timestamp, timesheetId]
+            );
+            // Mark target timesheet as active
             tx.executeSql(
                 "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
                 [timestamp, "active", timesheetId]
             );
         });
-        console.log("Timesheet " + timesheetId + " marked as draft successfully.");
+        Logger.debug("Timesheet", "Timesheet " + timesheetId + " marked as active successfully.")
     } catch (e) {
-        console.log("markTimesheetAsDraftById failed:", e);
+        Logger.debug("Timesheet", "markTimesheetAsActiveById failed:", e)
     }
 }
 
@@ -1461,7 +1517,7 @@ function markTimesheetAsReadyById(timesheetId) {
         return result;
     }
 
-    console.log("Marking timesheet " + timesheetId + " as updated for sync");
+    Logger.debug("Timesheet", "Marking timesheet " + timesheetId + " as updated for sync")
 
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
@@ -1474,10 +1530,10 @@ function markTimesheetAsReadyById(timesheetId) {
                 [timestamp, "updated", timesheetId]
             );
         });
-        console.log("Timesheet " + timesheetId + " marked as updated successfully.");
+        Logger.debug("Timesheet", "Timesheet " + timesheetId + " marked as updated successfully.")
         result.success = true;
     } catch (e) {
-        console.log("markTimesheetAsReadyById failed:", e);
+        Logger.debug("Timesheet", "markTimesheetAsReadyById failed:", e)
         result.success = false;
         result.error = e.message;
     }
@@ -1507,11 +1563,11 @@ function isTimesheetFinalized(timesheetId) {
             if (result.rows.length > 0) {
                 var status = result.rows.item(0).status;
                 isFinalized = (status === "updated");
-                console.log("Timesheet", timesheetId, "status:", status, "finalized:", isFinalized);
+                Logger.debug("Timesheet", "Timesheet", timesheetId, "status:", status, "finalized:", isFinalized)
             }
         });
     } catch (e) {
-        console.error("Error checking timesheet finalization status:", e);
+        Logger.error("Timesheet", "Error checking timesheet finalization status:", e)
     }
 
     return isFinalized;
@@ -1520,7 +1576,7 @@ function isTimesheetFinalized(timesheetId) {
 function markTimesheetAsDraftById(timesheetId) {
     var result = { success: false, error: "", id: null };
 
-    console.log("Marking timesheet " + timesheetId + " as draft");
+    Logger.debug("Timesheet", "Marking timesheet " + timesheetId + " as draft")
 
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timestamp = Utils.getFormattedTimestampUTC();
@@ -1532,10 +1588,10 @@ function markTimesheetAsDraftById(timesheetId) {
                 [timestamp, "draft", timesheetId]
             );
         });
-        console.log("Timesheet " + timesheetId + " marked as draft successfully.");
+        Logger.debug("Timesheet", "Timesheet " + timesheetId + " marked as draft successfully.")
         result.success = true;
     } catch (e) {
-        console.log("markTimesheetAsDraftById failed:", e);
+        Logger.debug("Timesheet", "markTimesheetAsDraftById failed:", e)
         result.success = false;
         result.error = e.message;
     }

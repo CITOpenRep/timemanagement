@@ -82,6 +82,9 @@ ListItem {
     }
 
     function save_workflow() {
+        if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId())) {
+            TimerService.stop();
+        }
         const result = Timesheet.markTimesheetAsReadyById(recordId);
         if (result.success) {
             notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
@@ -95,9 +98,8 @@ ListItem {
         target: globalTimerWidget
 
         onTimerStopped: {
-            if (recordId === TimerService.getActiveTimesheetId()) {
-                timer_on = false;
-            }
+            timer_on = false;
+            timer_paused = false;
         }
         onTimerStarted: {
             if (recordId === TimerService.getActiveTimesheetId()) {
@@ -241,7 +243,10 @@ ListItem {
                 
 
                 Text {
-                    text: ((typeof name === "string" && name.trim() !== "") ? Utils.truncateText(name, 30) : "No Description")
+                    text: {
+                        var t = Utils.truncateText(name, 30);
+                        return t !== "" ? t : "No Description";
+                    }
                     textFormat: Text.PlainText
                     font.pixelSize: units.gu(AppConst.FontSizes.ListHeading)
                     elide: Text.ElideRight

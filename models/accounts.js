@@ -1,4 +1,5 @@
 .import "database.js" as DBCommon
+.import "logger.js" as Logger
 .import QtQuick.LocalStorage 2.7 as Sql
 
 /**
@@ -41,7 +42,7 @@ function markAttachmentDownloaded(accountId, recordId, fileName) {
             );
         });
     } catch (e) {
-        console.error("markAttachmentDownloaded failed:", e);
+        Logger.error("Accounts", "markAttachmentDownloaded failed:", e)
     }
 }
 
@@ -58,7 +59,7 @@ function isAttachmentDownloaded(accountId, recordId) {
                 result = true;
         });
     } catch (e) {
-        console.error("isAttachmentDownloaded failed:", e);
+        Logger.error("Accounts", "isAttachmentDownloaded failed:", e)
     }
     return result;
 }
@@ -122,6 +123,11 @@ function getDefaultAccountId() {
             var res = tx.executeSql("SELECT id FROM users WHERE is_default = 1 LIMIT 1");
             if (res.rows.length > 0) {
                 defaultId = res.rows.item(0).id;
+            } else {
+                var fallback = tx.executeSql("SELECT id FROM users ORDER BY id ASC LIMIT 1");
+                if (fallback.rows.length > 0) {
+                    defaultId = fallback.rows.item(0).id;
+                }
             }
         });
 
@@ -384,17 +390,39 @@ function deleteAccountAndRelatedData(userId) {
                              "account_analytic_line_app",
                              "res_users_app",
                              "mail_activity_type_app",
-                             "mail_activity_app"
+                             "ir_model_app",
+                             "mail_activity_app",
+                             "ir_attachment_app",
+                             "project_task_assignee_app",
+                             "project_update_app",
+                             "project_task_type_app",
+                             "project_project_stage_app",
+                             "attachment_download_app",
+                             "form_drafts",
+                             "notification"
                          ];
 
             for (let i = 0; i < tables.length; i++) {
                 const table = tables[i];
-                DBCommon.log("Deleting data from account " + userId)
-                tx.executeSql(`DELETE FROM ${table} WHERE account_id = ?`, [userId]);
+                DBCommon.log("Deleting data from account " + userId);
+                try {
+                    tx.executeSql(`DELETE FROM ${table} WHERE account_id = ?`, [userId]);
+                } catch (tableErr) {
+                    DBCommon.log("Could not delete from table " + table + ": " + tableErr);
+                }
             }
 
             DBCommon.log(`Deleting user from users table where id = ${userId}`);
             tx.executeSql("DELETE FROM users WHERE id = ?", [userId]);
+
+            // Ensure a valid default account exists
+            var defaultCheck = tx.executeSql("SELECT id FROM users WHERE is_default = 1 LIMIT 1");
+            if (defaultCheck.rows.length === 0) {
+                var firstAccount = tx.executeSql("SELECT id FROM users ORDER BY id ASC LIMIT 1");
+                if (firstAccount.rows.length > 0) {
+                    tx.executeSql("UPDATE users SET is_default = 1 WHERE id = ?", [firstAccount.rows.item(0).id]);
+                }
+            }
 
             DBCommon.log(`Account and related data deleted for account_id: ${userId}`);
         });
@@ -548,7 +576,7 @@ function getAccountName(accountId) {
 
         return name;
     } catch (e) {
-        console.error("❌ getAccountName failed:", e);
+        Logger.error("Accounts", "getAccountName failed:", e)
         return "";
     }
 }
@@ -618,9 +646,9 @@ function getOdooModelId(accountId, technicalName) {
 
             if (rs.rows.length > 0) {
                 odooRecordId = rs.rows.item(0).odoo_record_id;
-              //  console.log("✅ Found Odoo Model ID:", odooRecordId);
+              //  console.log("Found Odoo Model ID:", odooRecordId);
             } else {
-                console.warn("⚠ No matching ir.model found for:", technicalName);
+                Logger.warn("Accounts", "No matching ir.model found for:", technicalName)
             }
         });
 

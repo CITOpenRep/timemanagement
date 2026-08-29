@@ -36,6 +36,7 @@ import "../../../../models/accounts.js" as Accounts
 import "../../../../models/global.js" as Global
 import "../../../components"
 import "../../../components/richtext"
+import "../../../../models/logger.js" as Logger
 
 Page {
     id: updateDetailsPage
@@ -172,7 +173,7 @@ Page {
         autoSaveInterval: 30000 // 30 seconds
         
         onDraftLoaded: function(draftData, changedFields) {
-            console.log("📝 Updates.qml: Draft loaded with", changedFields.length, "changed fields");
+            Logger.debug("Updates", "Updates.qml: Draft loaded with", changedFields.length, "changed fields")
             
             // Only restore if form is fully initialized
             if (formFullyInitialized) {
@@ -190,11 +191,11 @@ Page {
         }
         
         onDraftSaved: function(draftId) {
-            console.log("💾 Updates.qml: Draft saved with ID:", draftId);
+            Logger.debug("Updates", "Updates.qml: Draft saved with ID:", draftId)
         }
         
         onDraftCleared: function() {
-            console.log("🗑️ Updates.qml: Draft cleared");
+            Logger.debug("Updates", "Updates.qml: Draft cleared")
         }
     }
     
@@ -227,9 +228,24 @@ Page {
     }
     
     function restoreFormFromDraft(draftData) {
-        console.log("🔄 Restoring form from draft data...");
+        Logger.debug("Updates", "Restoring form from draft data...")
         
         isRestoringFromDraft = true;
+        
+        // Restore project/account/user selection from draft
+        var draftProjectId = -1;
+        var draftAccountId = -1;
+        if (draftData.account_id !== undefined && draftData.account_id > 0) {
+            currentUpdate.account_id = draftData.account_id;
+            draftAccountId = draftData.account_id;
+        }
+        if (draftData.project_id !== undefined && draftData.project_id > 0) {
+            currentUpdate.project_id = draftData.project_id;
+            draftProjectId = draftData.project_id;
+        }
+        if (draftData.user_id !== undefined && draftData.user_id > 0) {
+            currentUpdate.user_id = draftData.user_id;
+        }
         
         if (draftData.name !== undefined) {
             name_text.text = draftData.name;
@@ -247,14 +263,37 @@ Page {
             progressSlider.value = draftData.progress;
         }
         
+        // Update display names after restoring project/account
+        updateDisplayNames();
+        
+        // Re-initialize WorkItemSelector with draft project/account values.
+        // loadAccounts emits AccountSelected synchronously which resets project_id to -1,
+        // and loadProjects (via finalizeLoading) does NOT emit ProjectSelected.
+        // So we must restore project_id AFTER the initialization settles.
+        if (needsProjectSelection && workItemSelector.isInitialized) {
+            workItemSelector.initializeWorkItemSelector();
+            // Restore project_id after loadAccounts' AccountSelected reset and loadProjects' Qt.callLater
+            if (draftProjectId > 0) {
+                Qt.callLater(function() {
+                    Qt.callLater(function() {
+                        currentUpdate.project_id = draftProjectId;
+                        if (draftAccountId > 0) {
+                            currentUpdate.account_id = draftAccountId;
+                        }
+                        updateDisplayNames();
+                    });
+                });
+            }
+        }
+        
         Qt.callLater(function() {
             isRestoringFromDraft = false;
-            console.log("✅ Draft restoration complete - tracking re-enabled");
+            Logger.debug("Updates", "Draft restoration complete - tracking re-enabled")
         });
     }
     
     function restoreFormToOriginal() {
-        console.log("🔄 Restoring form to original values...");
+        Logger.debug("Updates", "Restoring form to original values...")
         
         var originalData = draftHandler.originalData;
         if (originalData.name !== undefined) name_text.text = originalData.name;
@@ -301,8 +340,10 @@ Page {
                 
                 readOnly: isReadOnly
                 
+                property bool isInitialized: false
+
                 onStateChanged: function(newState, data) {
-                    console.log("Updates.qml: WorkItemSelector state:", newState, JSON.stringify(data));
+                    Logger.debug("Updates", "Updates.qml: WorkItemSelector state:", newState, JSON.stringify(data))
                     
                     if (newState === "AccountSelected") {
                         currentUpdate.account_id = data.id;
@@ -324,15 +365,16 @@ Page {
                     }
                 }
                 
-                // Initialize the selector when it becomes visible
+                // Initialize the selector when it becomes visible for the first time
                 onVisibleChanged: {
-                    if (visible) {
+                    if (visible && !isInitialized) {
+                        isInitialized = true;
                         initializeWorkItemSelector();
                     }
                 }
                 
                 function initializeWorkItemSelector() {
-                    console.log("📋 Initializing WorkItemSelector for project selection");
+                    Logger.debug("Updates", "Initializing WorkItemSelector for project selection")
                     
                     // Get the default account ID
                     var defaultAccountId = Accounts.getDefaultAccountId();
@@ -344,13 +386,14 @@ Page {
                     
                     // Load accounts with the default account pre-selected
                     var accountToSelect = currentUpdate.account_id >= 0 ? currentUpdate.account_id : defaultAccountId;
+                    // Capture project_id BEFORE loadAccounts resets it via AccountSelected
+                    var projectToSelect = (currentUpdate.project_id && currentUpdate.project_id > 0) ? currentUpdate.project_id : -1;
                     loadAccounts(accountToSelect);
                     
                     // After loading accounts, load projects for the selected account
-                    // This makes the project selector ready for selection
                     if (accountToSelect >= 0) {
                         Qt.callLater(function() {
-                            loadProjects(accountToSelect, -1);
+                            loadProjects(accountToSelect, projectToSelect);
                         });
                     }
                 }
@@ -572,13 +615,13 @@ Page {
         repeat: false
         onTriggered: {
             isInitializing = false;
-            console.log("🎯 Updates.qml: Initialization complete, draft tracking now active");
+            Logger.debug("Updates", "Updates.qml: Initialization complete, draft tracking now active")
         }
     }
     
     function switchToEditMode() {
         if (recordid !== 0) {
-            console.log("🔄 Updates.qml: Switching to edit mode");
+            Logger.debug("Updates", "Updates.qml: Switching to edit mode")
             isReadOnly = false;
             
             var originalUpdateData = getCurrentFormData();
@@ -601,29 +644,29 @@ Page {
     }
     
     function navigateBack() {
-        console.log("🔙 Attempting to navigate back...");
+        Logger.debug("Updates", "Attempting to navigate back...")
         
         try {
             if (typeof apLayout !== "undefined" && apLayout !== null) {
                 apLayout.removePages(updateDetailsPage);
-                console.log("✅ Navigated back using apLayout.removePages");
+                Logger.debug("Updates", "Navigated back using apLayout.removePages")
                 return;
             }
         } catch (e) {
-            console.warn("⚠️ apLayout.removePages failed:", e);
+            Logger.warn("Updates", "apLayout.removePages failed:", e)
         }
         
         try {
             if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
                 pageStack.pop();
-                console.log("✅ Navigated back using pageStack.pop");
+                Logger.debug("Updates", "Navigated back using pageStack.pop")
                 return;
             }
         } catch (e) {
-            console.warn("⚠️ pageStack.pop failed:", e);
+            Logger.warn("Updates", "pageStack.pop failed:", e)
         }
         
-        console.warn("⚠️ No navigation method found!");
+        Logger.warn("Updates", "No navigation method found!")
     }
     
     function saveUpdateData() {
@@ -671,7 +714,7 @@ Page {
         currentUpdate.account_id = accountId;
         currentUpdate.project_id = projectId;
         
-        console.log("💾 Saving update data:", JSON.stringify(updateData));
+        Logger.debug("Updates", "Saving update data:", JSON.stringify(updateData))
         
         const result = Project.createUpdateSnapShot(updateData, recordid);
         if (!result.is_success) {
@@ -717,7 +760,7 @@ Page {
                     isOdooRecordId = false;
                 } else {
                     // Update not yet synced locally — show error and navigate back
-                    console.warn("⚠️ ProjectUpdate with odoo_record_id=" + recordid + " not found locally. Not yet synced?");
+                    Logger.warn("Updates", "ProjectUpdate with odoo_record_id="+ recordid + "not found locally. Not yet synced?")
                     notifPopup.open("Not Found", "This project update has not been synced yet. Please sync and try again.", "error");
                     isInitializing = false;
                     Qt.callLater(navigateBack);
@@ -760,9 +803,9 @@ Page {
             needsProjectSelection = (!currentUpdate.project_id || currentUpdate.project_id <= 0);
             
             if (needsProjectSelection) {
-                console.log("📝 Creating update - project selection needed");
+                Logger.debug("Updates", "Creating update - project selection needed")
             } else {
-                console.log("📝 Creating update with pre-selected project:", currentUpdate.project_id);
+                Logger.debug("Updates", "Creating update with pre-selected project:", currentUpdate.project_id)
                 // Update display names for pre-selected project
                 updateDisplayNames();
             }
@@ -804,7 +847,7 @@ Page {
                 currentUpdate = Project.getProjectUpdateById(recordid, accountid);
             }
             
-            if (Global.description_temporary_holder !== "" && Global.description_context === "update_description") {
+            if (Global.description_context === "update_description") {
                 var wasInitializing = isInitializing;
                 isInitializing = true;
                 description_text.setContent(Global.description_temporary_holder);

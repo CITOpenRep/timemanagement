@@ -1,8 +1,9 @@
+.import "logger.js" as Logger
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
 
 function initializeDatabase() {
-    console.log("🗄️  Initializing database...");
+    Logger.debug("Dbinit", "Initializing database...")
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
     DBCommon.createOrUpdateTable("sync_report",
@@ -230,6 +231,8 @@ function initializeDatabase() {
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'name TEXT', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
                                  );
+    // Ensure default activity types for Local Account
+    DBCommon.ensureDefaultLocalActivityTypes();
 
 
     DBCommon.createOrUpdateTable("ir_model_app",
@@ -525,7 +528,7 @@ function initializeDatabase() {
             
             // Preserve legacy table so we can migrate existing draft data.
             if (hasOldSchema) {
-                console.log("🔄 Preserving legacy form_drafts table for migration...");
+                Logger.debug("Dbinit", "Preserving legacy form_drafts table for migration...")
                 if (hasLegacyDraftTable) {
                     tx.executeSql(
                         "INSERT OR IGNORE INTO form_drafts_legacy " +
@@ -539,14 +542,14 @@ function initializeDatabase() {
                     hasLegacyDraftTable = true;
                 }
                 needsLegacyDraftMigration = true;
-                console.log("✅ Legacy form_drafts table preserved");
+                Logger.debug("Dbinit", "Legacy form_drafts table preserved")
             } else if (hasLegacyDraftTable) {
                 needsLegacyDraftMigration = true;
-                console.log("ℹ️ Found existing form_drafts_legacy table, migration will continue");
+                Logger.debug("Dbinit", "ℹ Found existing form_drafts_legacy table, migration will continue")
             }
         });
     } catch (e) {
-        console.log("ℹ️ form_drafts table doesn't exist yet, will create fresh");
+        Logger.debug("Dbinit", "ℹ form_drafts table doesn't exist yet, will create fresh")
     }
     
     DBCommon.createOrUpdateTable("form_drafts",
@@ -603,12 +606,12 @@ function initializeDatabase() {
                 if (missingRows.rows.item(0).missing_count === 0) {
                     tx.executeSql("DROP TABLE IF EXISTS form_drafts_legacy");
                 } else {
-                    console.warn("⚠️ Keeping form_drafts_legacy table because some rows are not migrated yet");
+                    Logger.warn("Dbinit", "Keeping form_drafts_legacy table because some rows are not migrated yet")
                 }
             });
-            console.log("✅ Legacy form drafts migrated successfully");
+            Logger.debug("Dbinit", "Legacy form drafts migrated successfully")
         } catch (e) {
-            console.error("❌ Failed to migrate legacy form drafts:", e);
+            Logger.error("Dbinit", "Failed to migrate legacy form drafts:", e)
         }
     }
     
@@ -634,16 +637,16 @@ function initializeDatabase() {
                 "ON form_drafts (created_at, updated_at)"
             );
         });
-        console.log("✅ Form drafts table and indexes created successfully");
+        Logger.debug("Dbinit", "Form drafts table and indexes created successfully")
     } catch (e) {
-        console.error("❌ Error creating form_drafts indexes:", e);
+        Logger.error("Dbinit", "Error creating form_drafts indexes:", e)
     }
 
 
     purgeCache();
     syncDraftFlags();
     
-    console.log("✅ Database initialization complete");
+    Logger.debug("Dbinit", "Database initialization complete")
 }
 
 /**
@@ -678,15 +681,15 @@ function initializeAutoSyncSettings() {
                             "INSERT INTO app_settings (key, value) VALUES (?, ?)",
                             [key, defaults[key]]
                         );
-                        console.log("📝 Initialized setting: " + key + " = " + defaults[key]);
+                        Logger.debug("Dbinit", "Initialized setting: "+ key + "= "+ defaults[key])
                     }
                 }
             }
         });
 
-        console.log("✅ AutoSync settings initialized");
+        Logger.debug("Dbinit", "AutoSync settings initialized")
     } catch (e) {
-        console.error("❌ Error initializing AutoSync settings:", e);
+        Logger.error("Dbinit", "Error initializing AutoSync settings:", e)
     }
 }
 
@@ -701,9 +704,9 @@ function purgeCache() {
         db.transaction(function (tx) {
             tx.executeSql("DELETE FROM dl_cache_app");
         });
-        console.log("Cache purged at startup");
+        Logger.debug("Dbinit", "Cache purged at startup")
     } catch (e) {
-        console.error("purgeCache failed:", e);
+        Logger.error("Dbinit", "purgeCache failed:", e)
     }
 }
 
@@ -719,7 +722,7 @@ function syncDraftFlags() {
         if (DraftManager) {
             var result = DraftManager.sync();
             if (result && result.success) {
-                console.log("✅ Draft flags synchronized at startup:", result.message);
+                Logger.debug("Dbinit", "Draft flags synchronized at startup:", result.message)
             }
         }
     } catch (e) {
@@ -740,7 +743,7 @@ function syncDraftFlags() {
                     "SELECT DISTINCT draft_type, record_id FROM form_drafts WHERE record_id IS NOT NULL AND record_id > 0"
                 );
                 
-                console.log("🔄 Syncing has_draft flags for " + drafts.rows.length + " records...");
+                Logger.debug("Dbinit", "Syncing has_draft flags for "+ drafts.rows.length + "records...")
                 
                 // Set has_draft=1 for all records that have drafts
                 for (var i = 0; i < drafts.rows.length; i++) {
@@ -789,9 +792,9 @@ function syncDraftFlags() {
                 }
             });
             
-            console.log("✅ Synchronized " + updatedCount + " has_draft flag(s) at startup");
+            Logger.debug("Dbinit", "Synchronized "+ updatedCount + "has_draft flag(s) at startup")
         } catch (syncError) {
-            console.error("❌ Error syncing draft flags:", syncError);
+            Logger.error("Dbinit", "Error syncing draft flags:", syncError)
         }
     }
 }

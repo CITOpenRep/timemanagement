@@ -44,8 +44,8 @@ Item {
     property string quadrant3Hours: "0"
     property string quadrant4Hours: "0"
 
-    function refreshQuadrants() {
-        var result = getQuadrantHoursFromAllInstances(selectedAccountId);
+    function refreshQuadrants(startDate, endDate) {
+        var result = getQuadrantHoursFromAllInstances(selectedAccountId, startDate, endDate);
         quadrant1Hours = result[1] + "H";
         quadrant2Hours = result[2] + "H";
         quadrant3Hours = result[3] + "H";
@@ -53,7 +53,7 @@ Item {
     }
 
     // TODO: Move it to Utils
-    function getQuadrantHoursFromAllInstances(accountId) {
+    function getQuadrantHoursFromAllInstances(accountId, startDate, endDate) {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         var quadrantHours = {
             1: 0.0,
@@ -65,14 +65,24 @@ Item {
         try {
             db.transaction(function (tx) {
                 var rs;
+                var conditions = ["(status IS NULL OR status != 'deleted')"];
+                var params = [];
 
-                if (accountId === -1) {
-                    // Get data from ALL accounts
-                    rs = tx.executeSql("SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app GROUP BY quadrant_id");
-                } else {
-                    // Get data for specific account
-                    rs = tx.executeSql("SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app WHERE account_id = ? GROUP BY quadrant_id", [accountId]);
+                if (accountId !== -1 && accountId !== undefined && accountId !== null) {
+                    conditions.push("account_id = ?");
+                    params.push(accountId);
                 }
+                if (startDate) {
+                    conditions.push("DATE(record_date) >= DATE(?)");
+                    params.push(startDate);
+                }
+                if (endDate) {
+                    conditions.push("DATE(record_date) <= DATE(?)");
+                    params.push(endDate);
+                }
+
+                var query = "SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app WHERE " + conditions.join(" AND ") + " GROUP BY quadrant_id";
+                rs = tx.executeSql(query, params);
 
                 for (var i = 0; i < rs.rows.length; i++) {
                     var qid = rs.rows.item(i).quadrant_id;

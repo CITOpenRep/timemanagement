@@ -40,6 +40,7 @@ import "../../../../models/task.js" as Task
 import "../../../components"
 import "../../../components/richtext"
 import "../components"
+import "../../../../models/logger.js" as Logger
 
 Page {
     id: timeSheet
@@ -105,6 +106,7 @@ Page {
     }
 
     function save_timesheet() {
+        let isTimerActive = (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning());
         let time = time_sheet_widget.elapsedTime;
 
         const currentStatus = getCurrentTimesheetStatus();
@@ -112,8 +114,9 @@ Page {
         if (currentStatus === "updated") {
             const savedTime = Model.getTimesheetUnitAmount(recordid);
             time = Utils.convertDecimalHoursToHHMM(savedTime);
-        } else if (recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
-            time = TimerService.stop();
+        } else if (isTimerActive) {
+            // Keep timer running continuously. Capture current elapsed duration for DB save
+            time = TimerService.getElapsedDuration();
         }
 
         const ids = workItem.getIds();
@@ -145,6 +148,11 @@ Page {
             correctSubTaskId = ids.subtask_id;
         }
 
+        var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
+        if (typeof description === "string") {
+            description = description.trim();
+        }
+
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
             'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
@@ -152,11 +160,12 @@ Page {
             'task': correctTaskId,
             'subTask': correctSubTaskId,
             'subprojectId': ids.subproject_id,
-            'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            'description': description,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
-            'status': "draft"  // WORKFLOW status (not submitted yet), NOT form draft status
+            'timer_type': isTimerActive ? "automatic" : "manual",
+            'status': isTimerActive ? "active" : (currentStatus === "ready" || currentStatus === "updated" ? currentStatus : "draft")
         };
         if (recordid && recordid !== 0) {
             timesheet_data.id = recordid;
@@ -169,10 +178,17 @@ Page {
         } else {
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
             
+            // If timer is running, update the active timer title in TimerService
+            if (isTimerActive) {
+                TimerService.updateActiveTimesheetName(description);
+            }
+
             // Clear form draft (unsaved changes) after successful database save
             draftHandler.clearDraft();
             
-            time_sheet_widget.elapsedTime = time;
+            if (!isTimerActive) {
+                time_sheet_widget.elapsedTime = time;
+            }
             
             // Re-initialize draft tracking with current saved state as new baseline
             var newBaseline = getCurrentFormData();
@@ -207,6 +223,11 @@ Page {
             correctTaskId = ids.task_id;
         }
 
+        var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
+        if (typeof description === "string") {
+            description = description.trim();
+        }
+
         var timesheet_data = {
             'record_date': date_widget.formattedDate(),
             'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
@@ -214,10 +235,11 @@ Page {
             'task': correctTaskId,
             'subTask': correctSubTaskId,
             'subprojectId': ids.subproject_id,
-            'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
+            'description': description,
             'unit_amount': Utils.convertHHMMtoDecimalHours(time_sheet_widget.elapsedTime),
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
+            'timer_type': "automatic",
             'status': "draft"
         };
 
@@ -240,6 +262,8 @@ Page {
 
         // Now that project is in DB, retry starting the timer
         time_sheet_widget.tryStartTimer();
+
+        TimerService.updateActiveTimesheetName(description || "");
         return true;
     }
 
@@ -251,7 +275,7 @@ Page {
             const details = Model.getTimeSheetDetails(recordid);
             return details.status || "draft";
         } catch (e) {
-            console.error("Failed to get timesheet status:", e);
+            Logger.error("Timesheet", "Failed to get timesheet status:", e)
             return "draft";
         }
     }
@@ -287,7 +311,7 @@ Page {
         
         onDraftLoaded: {
             restoreFormFromDraft(draftData);
-            notifPopup.open("📂 Draft Found", 
+            notifPopup.open("Draft Found", 
                 "Unsaved changes restored. ", 
                 "info");
         }
@@ -297,7 +321,7 @@ Page {
         }
         
         onDraftSaved: {
-            console.log("💾 Timesheet draft saved successfully (ID: " + draftId + ")");
+            Logger.debug("Timesheet", "Timesheet draft saved successfully (ID: "+ draftId + ")")
         }
     }
 
@@ -325,7 +349,11 @@ Page {
 
     // Handle back navigation with unsaved changes check
     function handleBackNavigation() {
-        if (draftHandler.hasUnsavedChanges) {
+        if (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning() && draftHandler.hasUnsavedChanges) {
+            // Auto-save changes so work is not lost while timer continues running in background
+            save_timesheet();
+            navigateBack();
+        } else if (draftHandler.hasUnsavedChanges) {
             unsavedChangesDialog.open("timesheet");
         } else {
             navigateBack();
@@ -365,11 +393,11 @@ Page {
     // Initialize timesheet data when page becomes visible for the first time
     function initializeTimesheet() {
         if (_hasInitialized) {
-            console.log("⏭️ Timesheet already initialized, skipping");
+            Logger.debug("Timesheet", "⏭ Timesheet already initialized, skipping")
             return;
         }
         
-        console.log("🔄 Initializing Timesheet - recordid:", recordid, "isReadOnly:", isReadOnly, "isOdooRecordId:", isOdooRecordId);
+        Logger.debug("Timesheet", "Initializing Timesheet - recordid:", recordid, "isReadOnly:", isReadOnly, "isOdooRecordId:", isOdooRecordId)
         _hasInitialized = true;
 
         if (recordid != 0) {
@@ -380,7 +408,7 @@ Page {
             if (isOdooRecordId) {
                 // recordid is an odoo_record_id (stable, from notification deep link)
                 currentTimesheet = Model.getTimeSheetDetailsByOdooId(recordid);
-                console.log("Timesheet: Loaded by odoo_record_id:", recordid, "found local id:", currentTimesheet ? currentTimesheet.id : "null");
+                Logger.debug("Timesheet", "Timesheet: Loaded by odoo_record_id:", recordid, "found local id:", currentTimesheet ? currentTimesheet.id : "null")
                 // Update recordid to local id for subsequent operations
                 if (currentTimesheet && currentTimesheet.id) {
                     recordid = currentTimesheet.id;
@@ -413,7 +441,7 @@ Page {
                 workItem.deferredLoadExistingRecordSet(instanceId, -1, -1, -1, -1, -1);
             } else {
                 workItem.deferredLoadExistingRecordSet(instanceId, projectId, subProjectId, taskId, subTaskId, -1);
-                console.log("Loaded existing timesheet with recordid:", recordid, "instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId, "subProjectId:", subProjectId, "subTaskId:", subTaskId);
+                Logger.debug("Timesheet", "Loaded existing timesheet with recordid:", recordid, "instanceId:", instanceId, "projectId:", projectId, "taskId:", taskId, "subProjectId:", subProjectId, "subTaskId:", subTaskId)
             }
 
             date_widget.setSelectedDate(currentTimesheet.record_date);
@@ -545,7 +573,7 @@ Page {
                     
                     // Track changes for draft management
                     onStateChanged: {
-                        console.log("🔔 WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data));
+                        Logger.debug("Timesheet", "WorkItemSelector state changed to:", newState, "data:", JSON.stringify(data))
                         
                         if (draftHandler.enabled && draftHandler._initialized) {
                             // Get current IDs for reference
@@ -554,7 +582,7 @@ Page {
                             // Extract the actual changed ID from the state change signal
                             var changedId = data.id || null;
                             
-                            console.log("📝 Tracking WorkItemSelector changes:", JSON.stringify({
+                            console.log("Tracking WorkItemSelector changes:", JSON.stringify({
                                 state: newState,
                                 changedId: changedId,
                                 currentIds: {
@@ -568,27 +596,27 @@ Page {
                             
                             // Track the field that actually changed
                             if (newState === "AccountSelected") {
-                                console.log("✅ Tracking accountId:", changedId);
+                                Logger.debug("Timesheet", "Tracking accountId:", changedId)
                                 draftHandler.markFieldChanged("accountId", changedId);
                             } else if (newState === "ProjectSelected") {
-                                console.log("✅ Tracking projectId:", changedId);
+                                Logger.debug("Timesheet", "Tracking projectId:", changedId)
                                 draftHandler.markFieldChanged("projectId", changedId);
                             } else if (newState === "SubprojectSelected") {
-                                console.log("✅ Tracking subprojectId:", changedId);
+                                Logger.debug("Timesheet", "Tracking subprojectId:", changedId)
                                 draftHandler.markFieldChanged("subprojectId", changedId);
                             } else if (newState === "TaskSelected") {
-                                console.log("✅ Tracking taskId:", changedId);
+                                Logger.debug("Timesheet", "Tracking taskId:", changedId)
                                 draftHandler.markFieldChanged("taskId", changedId);
                             } else if (newState === "SubtaskSelected") {
-                                console.log("✅ Tracking subtaskId:", changedId);
+                                Logger.debug("Timesheet", "Tracking subtaskId:", changedId)
                                 draftHandler.markFieldChanged("subtaskId", changedId);
                             } else {
-                                console.warn("⚠️ Unknown state - not tracking:", newState);
+                                Logger.warn("Timesheet", "Unknown state - not tracking:", newState)
                             }
                             
-                            console.log("� Draft status - hasUnsavedChanges:", draftHandler.hasUnsavedChanges, "changedFields:", draftHandler.changedFields.length);
+                            Logger.debug("Timesheet", "� Draft status - hasUnsavedChanges:", draftHandler.hasUnsavedChanges, "changedFields:", draftHandler.changedFields.length)
                         } else {
-                            console.log("⏸️ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized);
+                            Logger.debug("Timesheet", "⏸ Draft tracking skipped - enabled:", draftHandler.enabled, "initialized:", draftHandler._initialized)
                         }
                     }
                 }
@@ -813,10 +841,13 @@ Page {
                             });
                         }
                         
-                        // Track inline text changes for draft management
+                        // Track inline text changes for draft management and live timer sync
                         onTextChanged: {
                             if (draftHandler.enabled && draftHandler._initialized) {
                                 draftHandler.markFieldChanged("description", getFormattedText());
+                            }
+                            if (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
+                                TimerService.updateActiveTimesheetName(getFormattedText());
                             }
                         }
                     }
@@ -827,7 +858,7 @@ Page {
         Component.onCompleted: {
             // Defer initialization until page becomes visible to avoid loading on app startup
             // This prevents draft loading when the page is pre-instantiated but not shown
-            console.log("⏳ Timesheet Flickable completed - initialization deferred until page visible");
+            Logger.debug("Timesheet", "⏳ Timesheet Flickable completed - initialization deferred until page visible")
         }
     }
 
@@ -841,7 +872,7 @@ Page {
             // Stop live sync — content is already up-to-date via the timer
             description_text.liveSyncActive = false;
             
-            if (Global.description_temporary_holder !== "") {
+            if (Global.description_temporary_holder !== "" || navigatingToReadMore) {
                 //Check if you are coming back from the ReadMore page
                 description_text.setContent(Global.description_temporary_holder);
                 Global.description_temporary_holder = "";
@@ -850,10 +881,18 @@ Page {
                 if (draftHandler.enabled) {
                     draftHandler.markFieldChanged("description", description_text.getFormattedText());
                 }
+
+                if (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
+                    TimerService.updateActiveTimesheetName(description_text.getFormattedText());
+                }
             }
         } else {
             if (!isReadOnly && draftHandler.hasUnsavedChanges) {
-                draftHandler.saveDraft();
+                if (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning()) {
+                    save_timesheet();
+                } else {
+                    draftHandler.saveDraft();
+                }
             }
         }
         // Don't clear Global.description_temporary_holder when page becomes invisible

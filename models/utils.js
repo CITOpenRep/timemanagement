@@ -1,3 +1,4 @@
+.import "logger.js" as Logger
 .import QtQuick.LocalStorage 2.7 as Sql
 .import "database.js" as DBCommon
 
@@ -316,15 +317,15 @@ function getDatabasesFromOdooServer(odooUrl, callback) {
                     if (response.result) {
                         callback(response.result);
                     } else {
-                        console.error("Failed to get DB list: No result field.");
+                        Logger.error("Utils", "Failed to get DB list: No result field.")
                         callback([]);
                     }
                 } catch (e) {
-                    console.error("JSON parse error:", e);
+                    Logger.error("Utils", "JSON parse error:", e)
                     callback([]);
                 }
             } else {
-                console.error("Request failed with status", xhr.status);
+                Logger.error("Utils", "Request failed with status", xhr.status)
                 callback([]);
             }
         }
@@ -373,7 +374,7 @@ function getNextWeekRange() {
 function getNextWeekSameDay(baseDate) {
     const now = baseDate ? new Date(baseDate + 'T12:00:00Z') : new Date(); // Use UTC to avoid timezone issues
     const nextWeek = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7)); // Add exactly 7 days
-    console.log("📅 getNextWeekSameDay: From", now.toISOString().slice(0, 10), "to", nextWeek.toISOString().slice(0, 10));
+    Logger.debug("Utils", "getNextWeekSameDay: From", now.toISOString().slice(0, 10), "to", nextWeek.toISOString().slice(0, 10))
     return nextWeek.toISOString().slice(0, 10);
 }
 
@@ -406,15 +407,17 @@ function getNextMonthSameDay(baseDate) {
     
     const nextMonth = new Date(Date.UTC(finalYear, finalMonth, dayToUse));
     
-    console.log("📅 getNextMonthSameDay: From", now.toISOString().slice(0, 10), "to", nextMonth.toISOString().slice(0, 10));
+    Logger.debug("Utils", "getNextMonthSameDay: From", now.toISOString().slice(0, 10), "to", nextMonth.toISOString().slice(0, 10))
     return nextMonth.toISOString().slice(0, 10);
 }
 
 function truncateText(text, maxLength) {
-    if (text.length > maxLength) {
-        return text.slice(0, maxLength) + "...";
+    if (!text || typeof text !== 'string') return "";
+    var cleaned = cleanText(stripHtmlTags(text));
+    if (cleaned.length > maxLength) {
+        return cleaned.slice(0, maxLength).trim() + "...";
     }
-    return text;
+    return cleaned;
 }
 
 function getFormattedTimestampUTC() {
@@ -429,27 +432,51 @@ function getFormattedTimestampUTC() {
 }
 
 function convertHHMMtoDecimalHours(hhmmString) {
-    console.log("Input string is " + hhmmString)
+    Logger.debug("Utils", "Input string is " + hhmmString)
+    if (typeof hhmmString === "number") {
+        return parseFloat(hhmmString.toFixed(4));
+    }
     if (typeof hhmmString !== "string") {
-            console.error("Input is not a string:", hhmmString);
-            return 0;
-        }
+        Logger.error("Utils", "Input is not a string or number:", hhmmString)
+        return 0;
+    }
 
-        var parts = hhmmString.split(":");
-        if (parts.length !== 2) {
-            console.error("Invalid HH:MM string:", hhmmString);
-            return 0;
-        }
+    hhmmString = hhmmString.trim();
+    if (hhmmString === "") {
+        return 0;
+    }
 
+    // Handle numeric string directly if no colons
+    if (!hhmmString.includes(":") && !isNaN(Number(hhmmString))) {
+        return parseFloat(Number(hhmmString).toFixed(4));
+    }
+
+    var parts = hhmmString.split(":");
+    if (parts.length === 2) {
         var hours = parseInt(parts[0], 10);
         var minutes = parseInt(parts[1], 10);
 
         if (isNaN(hours) || isNaN(minutes)) {
-            console.error("Invalid numeric values in HH:MM string:", hhmmString);
+            Logger.error("Utils", "Invalid numeric values in HH:MM string:", hhmmString)
             return 0;
         }
 
         return parseFloat((hours + (minutes / 60)).toFixed(4));
+    } else if (parts.length === 3) {
+        var hours = parseInt(parts[0], 10);
+        var minutes = parseInt(parts[1], 10);
+        var seconds = parseInt(parts[2], 10);
+
+        if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
+            Logger.error("Utils", "Invalid numeric values in HH:MM:SS string:", hhmmString)
+            return 0;
+        }
+
+        return parseFloat((hours + (minutes / 60) + (seconds / 3600)).toFixed(4));
+    } else {
+        Logger.error("Utils", "Invalid HH:MM string:", hhmmString)
+        return 0;
+    }
 }
 
 /**
@@ -466,18 +493,26 @@ function convertDecimalHoursToHHMM(decimalHours) {
 
 
 /* Name: convertDurationToFloat
-* This function will return float value from HH:MM format
-* -> value -> HH:MM format to convert float value
+* This function will return float value from HH:MM or HH:MM:SS format
+* -> value -> HH:MM / HH:MM:SS format to convert float value
 */
 
 function convertDurationToFloat(value) {
-    let vals = value.split(":");
-    let hours = parseFloat(vals[0]);
-    let minutes = parseFloat(vals[1]);
+    if (typeof value === "number") {
+        return value;
+    }
+    if (typeof value !== "string" || value.trim() === "") {
+        return 0;
+    }
+    let vals = value.trim().split(":");
+    let hours = parseFloat(vals[0]) || 0;
+    let minutes = (vals.length > 1) ? (parseFloat(vals[1]) || 0) : 0;
+    let seconds = (vals.length > 2) ? (parseFloat(vals[2]) || 0) : 0;
     // Remove the day calculation and modulo operation for project hours
     // Project allocation can be any number of hours, not limited to 24-hour days
     let convertedMinutes = minutes / 60.0;
-    return hours + convertedMinutes;
+    let convertedSeconds = seconds / 3600.0;
+    return hours + convertedMinutes + convertedSeconds;
 }
 
 function formatDate(date) {
@@ -509,10 +544,10 @@ function convertToISODate(dateString) {
                      (month < 10 ? '0' : '') + month + '-' + 
                      (day < 10 ? '0' : '') + day;
                      
-        console.log("convertToISODate: converted", dateString, "to", isoDate);
+        Logger.debug("Utils", "convertToISODate: converted", dateString, "to", isoDate)
         return isoDate;
     } catch (e) {
-        console.error("Error converting date to ISO format:", e);
+        Logger.error("Utils", "Error converting date to ISO format:", e)
         return dateString; // Return original on error
     }
 }
@@ -535,7 +570,9 @@ function getTimeStatusInText(endDateString) {
         return Math.abs(days) + " days overdue";
     if (days === 0)
         return "Due today";
-    return days + " days";
+    if (days === 1)
+        return "1 day remaining";
+    return days + " days remaining";
 }
 
 function extractDate(datetimeStr) {
@@ -558,11 +595,14 @@ function cleanText(str) {
     if (typeof str !== 'string') return '';
 
     return str
-        // Remove common invisible/control characters (ASCII + Unicode)
-        .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\u2060\uFEFF]/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        // Remove common invisible/control characters (ASCII + Unicode + non-breaking space)
+        .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\u2060\uFEFF\u00A0]/g, '')
         // Normalize to avoid weird composed characters
         .normalize('NFC')
-        // Trim extra whitespace
+        // Collapse multiple spaces into single space
+        .replace(/[ \t]+/g, ' ')
+        // Trim extra whitespace from both ends
         .trim();
 }
 
@@ -707,7 +747,7 @@ function migratePersonalStageData() {
         return results;
 
     } catch (error) {
-        console.error("Error in personal stage diagnostics:", error);
+        Logger.error("Utils", "Error in personal stage diagnostics:", error)
         return {
             success: false,
             message: "❌ Error checking personal stage data: " + error.message,
@@ -774,7 +814,7 @@ function forceTaskResync(onlyWithoutStages) {
         };
         
     } catch (error) {
-        console.error("Error forcing task resync:", error);
+        Logger.error("Utils", "Error forcing task resync:", error)
         return {
             success: false,
             message: "❌ Error resetting task timestamps: " + error.message,

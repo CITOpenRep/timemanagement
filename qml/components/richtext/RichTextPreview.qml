@@ -325,7 +325,7 @@ Rectangle {
         running: root.liveSyncActive
         onTriggered: {
             var holderContent = Global.description_temporary_holder;
-            if (holderContent !== "" && holderContent !== root._lastSyncedContent) {
+            if (holderContent !== root._lastSyncedContent) {
                // console.log("[RichTextPreview] External change detected - PULLING from Global, length:", holderContent.length);
                 root._lastSyncedContent = holderContent;
                 root.setContent(holderContent);
@@ -417,7 +417,7 @@ Rectangle {
                             currentContent = text;
                         }
 
-                        if (currentContent && currentContent !== originalHtmlContent) {
+                        if (currentContent !== undefined && currentContent !== null && currentContent !== originalHtmlContent) {
                           //  console.log("[RichTextPreview] User typing detected, content length:", currentContent.length);
                             originalHtmlContent = currentContent;
                             root.contentChanged(currentContent);

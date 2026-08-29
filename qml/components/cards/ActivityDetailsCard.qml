@@ -30,10 +30,7 @@ ListItem {
     signal dateChanged(int accountid, int recordId, string newDate)
 
     function truncateText(text, maxLength) {
-        if (text.length > maxLength) {
-            return text.slice(0, maxLength) + '...';
-        }
-        return text;
+        return Utils.truncateText(text, maxLength);
     }
 
     function isActivityOverdue() {
@@ -348,7 +345,7 @@ ListItem {
                     spacing: units.gu(0.4)
 
                     Text {
-                        text: root.activity_type_name || (i18n.dtr("ubtms", "Type ID: ") + root.activity_type_id)
+                        text: root.activity_type_name || i18n.dtr("ubtms", "No Type")
                         font.pixelSize: units.gu(1.5)
                         horizontalAlignment: Text.AlignRight
                         width: units.gu(6)
@@ -393,9 +390,9 @@ ListItem {
         mode: "next"
         currentDate: root.due_date // Pass the current activity's due date
         onDateSelected: function (selectedDate) {
-            console.log("📅 ActivityDetailsCard: Date changed for record ID:", root.odoo_record_id, "to:", selectedDate);
-            console.log("📅 ActivityDetailsCard: Date format being passed:", typeof selectedDate, selectedDate);
-            console.log("📅 ActivityDetailsCard: Original due date was:", root.due_date);
+            console.log("ActivityDetailsCard: Date changed for record ID:", root.odoo_record_id, "to:", selectedDate);
+            console.log("ActivityDetailsCard: Date format being passed:", typeof selectedDate, selectedDate);
+            console.log("ActivityDetailsCard: Original due date was:", root.due_date);
             root.dateChanged(root.account_id, root.odoo_record_id, selectedDate);
         }
     }

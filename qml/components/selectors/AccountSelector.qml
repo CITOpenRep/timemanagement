@@ -163,7 +163,7 @@ ComboBox {
             }
         }
 
-        console.warn("⚠️ Account ID not found:", accountId);
+        console.warn("Account ID not found:", accountId);
     }
 
     function refreshAndSelectDefault() {
@@ -179,7 +179,7 @@ ComboBox {
     }
 
     onActivated: {
-        //console.log("⚡ [AccountSelector] onActivated index =", currentIndex);
+        //console.log("[AccountSelector] onActivated index =", currentIndex);
         if (suppressSignal)
             return;
         if (currentIndex >= 0) {
