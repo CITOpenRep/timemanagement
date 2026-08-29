@@ -392,6 +392,12 @@ Rectangle {
             });
         }
 
+        // Fallback to the first available account if default_id was invalid/unmatched
+        if (default_name === "" && accountList.length > 0) {
+            default_id = accountList[0].id;
+            default_name = accountList[0].name;
+        }
+
         selectorModelMap["Account"] = accountList;
         account_component.modelData = accountList;
         account_component.applyDeferredSelection(default_id);

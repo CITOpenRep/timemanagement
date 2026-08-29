@@ -760,6 +760,11 @@ Item {
                 openFileSmart(existingRec);
                 return;
             }
+            if ((rec.account_id === 0) || (!rec.account_id && attachmentManager.account_id === 0)) {
+                attachmentManager._notify(i18n.dtr("ubtms", "Local file not found on device"), 2500);
+                return;
+            }
+
             console.log("Local copy not found; downloading…");
 
             _busy = true;
