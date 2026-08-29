@@ -461,6 +461,10 @@ Page {
             selectedAssigneeIds = [];
             filterByAssignees = false;
 
+            // Reset task list to the All filter after clearing assignees
+            currentFilter = "all";
+            tasklist.currentFilter = "all";
+
             // Clear global state
             Global.clearAssigneeFilter();
             //console.log("Assignee filter cleared from global state");
