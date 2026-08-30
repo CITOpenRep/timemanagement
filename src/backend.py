@@ -818,6 +818,17 @@ def list_installed_models():
     models = []
     seen_names = set()
 
+    available_models = list_available_models()
+
+    known_names = {
+        m["id"]: m["name"]
+        for m in available_models
+        if "id" in m
+    }
+
+    # Bundled model
+    known_names["model"] = "Indian English"
+
     for root_dir_to_scan, source_label in search_paths:
         if not root_dir_to_scan.exists():
             continue
@@ -841,17 +852,6 @@ def list_installed_models():
 
                 if not is_valid_vosk_model(item):
                     continue
-
-                available_models = list_available_models()
-
-                known_names = {
-                    m["id"]: m["name"]
-                    for m in available_models
-                    if "id" in m
-                }
-
-                # Bundled model
-                known_names["model"] = "Indian English"
 
                 if item.name in known_names:
                     model_name = known_names[item.name]
