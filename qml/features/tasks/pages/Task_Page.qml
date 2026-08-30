@@ -461,9 +461,10 @@ Page {
             selectedAssigneeIds = [];
             filterByAssignees = false;
 
-            // Reset task list to the All filter after clearing assignees
-            currentFilter = "all";
-            tasklist.currentFilter = "all";
+            // Fall back to All only when clearing the default Today filter
+            if (currentFilter === "today") {
+                currentFilter = "all";
+            }
 
             // Clear global state
             Global.clearAssigneeFilter();
