@@ -461,6 +461,11 @@ Page {
             selectedAssigneeIds = [];
             filterByAssignees = false;
 
+            // Fall back to All only when clearing the default Today filter
+            if (currentFilter === "today") {
+                currentFilter = "all";
+            }
+
             // Clear global state
             Global.clearAssigneeFilter();
             //console.log("Assignee filter cleared from global state");
