@@ -119,14 +119,18 @@ Page {
             return;
         }
 
-        linkInput.text = linkInput.text.trim();
+        var urlResult = Utils.validateAndCleanOdooURL(linkInput.text);
+
+        if (!urlResult.isValid) {
+            notifPopup.open("Error", "The Odoo Server URL is Wrong", "error");
+            return;
+        }
+
+        linkInput.text = urlResult.cleanedUrl;
+        accountNameInput.text = accountNameInput.text.trim();
         usernameInput.text = usernameInput.text.trim();
         passwordInput.text = passwordInput.text.trim();
         dbname = dbname.trim();
-
-        if (!linkInput.text.startsWith("http://") && !linkInput.text.startsWith("https://")) {
-            linkInput.text = "https://" + linkInput.text;
-        }
 
         python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, dbname], function (result) {
             if (result && result['status'] === 'pass' && result['database']) {
