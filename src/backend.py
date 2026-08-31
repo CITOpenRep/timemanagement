@@ -1292,16 +1292,16 @@ def delete_voice_model(model_path):
     """
     try:
         path = Path(model_path)
+
+        user_models_dir = get_voice_models_dir()
+        clickable_models_dir = (
+            Path.home() / ".clickable" / "home" /
+            ".local" / "share" / "ubtms" / "voice_models"
+        )
         
         # If relative, it might be a bundled model or a legacy relative path
         if not path.is_absolute():
             # Check user and Clickable model directories
-            user_models_dir = get_voice_models_dir()
-            clickable_models_dir = (
-                Path.home() / ".clickable" / "home" /
-                ".local" / "share" / "ubtms" / "voice_models"
-            )
-
             potential_path = user_models_dir / model_path
             if potential_path.exists():
                 path = potential_path
@@ -1318,25 +1318,26 @@ def delete_voice_model(model_path):
         if not path.exists():
             return {"status": "error", "message": "Model path not found"}
             
-        # Security check: only allow deleting from user or Clickable models directories
-        user_models_dir = get_voice_models_dir()
-        clickable_models_dir = (
-            Path.home() / ".clickable" / "home" /
-            ".local" / "share" / "ubtms" / "voice_models"
-        )
+        # Security check: resolve paths before validation
+        resolved_path = path.resolve()
+        resolved_user_dir = user_models_dir.resolve()
+        resolved_clickable_dir = clickable_models_dir.resolve()
 
-        if user_models_dir in path.parents or clickable_models_dir in path.parents:
+        if (
+            resolved_user_dir in resolved_path.parents
+            or resolved_clickable_dir in resolved_path.parents
+        ):
             import shutil
-            if path.is_dir():
-                shutil.rmtree(path)
+            if resolved_path.is_dir():
+                shutil.rmtree(resolved_path)
             else:
-                path.unlink()
+                resolved_path.unlink()
             log.info(f"[VOICE] Deleted user model: {model_path}")
             return {"status": "success"}
         
         # Check if it's in the app dir
-        app_models_dir = root_dir / "voice_to_text"
-        if app_models_dir in path.parents or path == app_models_dir:
+        app_models_dir = (root_dir / "voice_to_text").resolve()
+        if app_models_dir in resolved_path.parents or resolved_path == app_models_dir:
             log.warning(f"[VOICE] Attempted to delete bundled model: {model_path}")
             return {"status": "error", "message": "Cannot delete bundled system models"}
             
