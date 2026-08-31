@@ -41,6 +41,7 @@ import "../../../components/richtext"
 import "../../../../models/logger.js" as Logger
 
 Page {
+    property var rootApp
     id: projectCreate
     title: i18n.dtr("ubtms", "Project")
     header: PageHeader {
@@ -107,6 +108,9 @@ Page {
                     if (response) {
                         if (response.is_success) {
                             notifPopup.open("Saved", response.message, "success");
+                            if (rootApp) {
+                                rootApp.projectDataChanged();
+                            }
 
                             // Update recordid if it was a new project creation
                             if (recordid === 0 && response.record_id) {
@@ -445,6 +449,9 @@ Page {
         if (response) {
             if (response.is_success) {
                 notifPopup.open("Saved", response.message, "success");
+                            if (rootApp) {
+                                rootApp.projectDataChanged();
+                            }
 
                 if (recordid === 0 && response.record_id) {
                     recordid = response.record_id;
