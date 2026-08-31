@@ -7,12 +7,15 @@ import ".."
 
 Item {
     id: daySelector
+
     width: parent ? parent.width : 400
     height: dayCombo.height
-    
+
     property string labelText: "Date"
     property date selectedDate: new Date()
+    property date customDate: selectedDate
     property bool readOnly: false
+
     signal dateChanged(date selectedDate)
 
     function formattedDate() {
@@ -23,10 +26,12 @@ Item {
         function toDate(input) {
             if (input instanceof Date)
                 return input;
+
             if (typeof input === "string") {
                 const d = new Date(input);
                 return !isNaN(d.getTime()) ? d : null;
             }
+
             return null;
         }
 
@@ -34,20 +39,20 @@ Item {
 
         if (parsed) {
             selectedDate = parsed;
-            
-            // Update dayCombo selection
+            customDate = parsed;
+
             const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
             if (isSameDate(parsed, today)) {
                 dayCombo.applyDeferredSelection(0, false);
-            } else if (isSameDate(parsed, yesterday)) {
+            } else if (isSameDate(parsed, tomorrow)) {
                 dayCombo.applyDeferredSelection(1, false);
             } else {
                 dayCombo.applyDeferredSelection(2, false);
             }
-            
+
             updateModelData();
             dateChanged(selectedDate);
         } else {
@@ -63,17 +68,27 @@ Item {
 
     function updateModelData() {
         const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
+
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
         const todayStr = Qt.formatDate(today, "dd-MM-yyyy");
-        const yesterdayStr = Qt.formatDate(yesterday, "dd-MM-yyyy");
+        const tomorrowStr = Qt.formatDate(tomorrow, "dd-MM-yyyy");
         const currentStr = Qt.formatDate(selectedDate, "dd-MM-yyyy");
-        
+
         dayCombo.modelData = [
-            { id: 0, name: "Today (" + todayStr + ")" },
-            { id: 1, name: "Yesterday (" + yesterdayStr + ")" },
-            { id: 2, name: "Custom (" + currentStr + ")" }
+            {
+                id: 0,
+                name: "Today (" + todayStr + ")"
+            },
+            {
+                id: 1,
+                name: "Tomorrow (" + tomorrowStr + ")"
+            },
+            {
+                id: 2,
+                name: "Custom (" + currentStr + ")"
+            }
         ];
     }
 
@@ -84,26 +99,40 @@ Item {
         switch (dayCombo.selectedId) {
         case 0: // Today
             break;
-        case 1: // Yesterday
-            newDate.setDate(newDate.getDate() - 1);
+
+        case 1: // Tomorrow
+            newDate.setDate(newDate.getDate() + 1);
             break;
+
         case 2: // Custom
             openCustomDatePicker();
             return;
         }
 
         selectedDate = newDate;
+        customDate = newDate;
+
         updateModelData();
         dateChanged(selectedDate);
     }
 
     function openCustomDatePicker() {
-        let result = PickerPanel.openDatePicker(daySelector, "selectedDate", "Years|Months|Days");
+        customDate = selectedDate;
+
+        let result = PickerPanel.openDatePicker(
+            daySelector,
+            "customDate",
+            "Years|Months|Days"
+        );
+
+        if (result && result.picker) {
+            result.picker.minimum = new Date(2000, 0, 1);
+        }
+
         if (result) {
-            if (result.picker) {
-                result.picker.minimum = new Date(2000, 0, 1);
-            }
             result.closed.connect(() => {
+                selectedDate = customDate;
+
                 dayCombo.applyDeferredSelection(2, false);
                 updateModelData();
                 dateChanged(selectedDate);
@@ -113,12 +142,15 @@ Item {
 
     InlineOptionSelector {
         id: dayCombo
+
         width: parent.width
+
         labelText: daySelector.labelText
         selectorType: "date_type"
+
         readOnly: daySelector.readOnly
         enabledState: !daySelector.readOnly
-        
+
         onSelectionMade: function(id, name, selectorType) {
             updateDate();
         }
@@ -126,21 +158,27 @@ Item {
 
     Component.onCompleted: {
         const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
+
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
 
         if (!selectedDate || isNaN(selectedDate.getTime())) {
             selectedDate = today;
+            customDate = today;
+
             dayCombo.applyDeferredSelection(0, false);
         } else {
+            customDate = selectedDate;
+
             if (isSameDate(selectedDate, today)) {
                 dayCombo.applyDeferredSelection(0, false);
-            } else if (isSameDate(selectedDate, yesterday)) {
+            } else if (isSameDate(selectedDate, tomorrow)) {
                 dayCombo.applyDeferredSelection(1, false);
             } else {
                 dayCombo.applyDeferredSelection(2, false);
             }
         }
+
         updateModelData();
     }
 }
