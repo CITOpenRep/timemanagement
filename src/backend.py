@@ -812,120 +812,218 @@ def stop_voice_recognition():
 def get_voice_models_dir():
     """
     Returns the writable directory for voice models.
-    On Ubuntu Touch, this is in ~/.local/share/ubtms/voice_models
+
+    On Ubuntu Touch this is normally:
+    ~/.local/share/ubtms/voice_models
     """
-    data_home = os.environ.get('XDG_DATA_HOME')
+    data_home = os.environ.get("XDG_DATA_HOME")
+
     if data_home:
         base_dir = Path(data_home) / "ubtms"
     else:
         base_dir = Path.home() / ".local" / "share" / "ubtms"
-    
+
     models_dir = base_dir / "voice_models"
     models_dir.mkdir(parents=True, exist_ok=True)
+
     return models_dir
 
+def is_valid_vosk_model(model_path):
+    """
+    Check whether a directory contains a supported Vosk model layout.
+
+    Supported layouts:
+    1. Mobile/legacy layout:
+       model/am/
+       model/graph/
+
+    2. Flat Kaldi/Vosk layout:
+       model/final.mdl
+       model/HCLG.fst
+       or
+       model/HCLr.fst
+    """
+    try:
+        path = Path(model_path)
+
+        if not path.is_dir():
+            return False
+
+        # Layout used by some Vosk mobile models
+        has_am_graph = (
+            (path / "am").is_dir() and
+            (path / "graph").is_dir()
+        )
+
+        # Flat Kaldi/Vosk model layout
+        has_flat_model = (
+            (path / "final.mdl").is_file()
+            and (
+                (path / "HCLG.fst").is_file()
+                or (path / "HCLr.fst").is_file()
+            )
+        )
+
+        return has_am_graph or has_flat_model
+
+    except Exception as e:
+        log.warning(f"[VOICE] Error validating model {model_path}: {e}")
+        return False
 
 def list_installed_models():
     """
-    Scans for installed Vosk models in both the app directory and writable data directory.
-    Returns a list of dictionaries with model names, paths, and sizes.
+    Scans for installed Vosk models in both the app directory
+    and writable data directory.
+    Returns a list of dictionaries with model names, paths,
+    sizes, and sources.
     """
-    # 1. App directory models (Read-only on device)
+
+    # App directory models (read-only)
     app_models_dir = root_dir / "voice_to_text"
-    
-    # 2. User data directory models (Writable)
+
+    # User/downloaded models directory
     user_models_dir = get_voice_models_dir()
-    
+
     search_paths = [
         (app_models_dir, "App"),
-        (user_models_dir, "User")
+        (user_models_dir, "User"),
+        (Path.home() / ".clickable" / "home" / ".local" / "share" / "ubtms" / "voice_models", "Clickable")
     ]
-    
+
     models = []
-    seen_paths = set()
-    
+    seen_names = set()
+
+    available_models = list_available_models()
+
+    known_names = {
+        m["id"]: m["name"]
+        for m in available_models
+        if "id" in m
+    }
+
+    # Bundled model
+    known_names["model"] = "Indian English"
+
     for root_dir_to_scan, source_label in search_paths:
         if not root_dir_to_scan.exists():
             continue
-            
-        # Standard Vosk models are directories containing 'am' and 'graph' subdirectories
+
         for item in root_dir_to_scan.iterdir():
-            if item.is_dir() and item not in seen_paths:
-                am_dir = item / "am"
-                graph_dir = item / "graph"
-                
-                if am_dir.exists() and graph_dir.exists():
-                    available_models = list_available_models()
-                    known_names = {m["id"]: m["name"] for m in available_models if "id" in m}
-                    known_names["model"] = "Indian English" # The bundled one is usually named 'model'
-                    
-                    if item.name in known_names:
-                        model_name = known_names[item.name]
-                    else:
-                        # Fallback to cleaning README or using folder name
-                        model_name = item.name
-                        readme_path = item / "README"
-                        if readme_path.exists():
-                            try:
-                                with open(readme_path, 'r') as f:
-                                    first_line = f.readline().strip()
-                                    if first_line:
-                                        clean_name = first_line
-                                        noise_phrases = [
-                                            "for mobile Vosk applications",
-                                            "for Android and iOS",
-                                            "Vosk mobile model",
-                                            "Vosk model",
-                                            "Vosk",
-                                            "model"
-                                        ]
-                                        for phrase in noise_phrases:
-                                            clean_name = clean_name.replace(phrase, "").strip()
-                                        
-                                        if clean_name:
-                                            model_name = clean_name
-                            except Exception as e:
-                                log.error(f"[VOICE] Error reading README for {item.name}: {e}")
+            if item.is_dir() and item.name not in seen_names:
 
-                    # Add (Default) suffix for bundled models
-                    display_name = model_name
+                # Supported Vosk model layouts:
+                #
+                # 1. Mobile layout:
+                #    model/am/
+                #    model/graph/
+                #
+                # 2. Standard Vosk/Kaldi layout:
+                #    model/final.mdl
+                #    model/HCLG.fst
+                #
+                #    or:
+                #    model/final.mdl
+                #    model/HCLr.fst
+
+                if not is_valid_vosk_model(item):
+                    continue
+
+                if item.name in known_names:
+                    model_name = known_names[item.name]
+
+                else:
+                    # Fallback to folder name
+                    model_name = item.name
+
+                    # Try README for a nicer display name
+                    readme_path = item / "README"
+
+                    if readme_path.exists():
+                        try:
+                            with open(
+                                readme_path,
+                                "r",
+                                encoding="utf-8"
+                            ) as f:
+                                first_line = f.readline().strip()
+
+                            if first_line:
+                                clean_name = first_line
+
+                                noise_phrases = [
+                                    "for mobile Vosk applications",
+                                    "for Android and iOS",
+                                    "Vosk mobile model",
+                                    "Vosk model",
+                                    "Vosk",
+                                    "model"
+                                ]
+
+                                for phrase in noise_phrases:
+                                    clean_name = clean_name.replace(
+                                        phrase,
+                                        ""
+                                    ).strip()
+
+                                if clean_name:
+                                    model_name = clean_name
+
+                        except Exception as e:
+                            log.error(
+                                f"[VOICE] Error reading README "
+                                f"for {item.name}: {e}"
+                            )
+
+                # Bundled models get "(Default)"
+                display_name = model_name
+
+                if source_label == "App":
+                    display_name = f"{model_name} (Default)"
+
+                # Calculate directory size
+                total_size = 0
+
+                try:
+                    for f in item.rglob("*"):
+                        if f.is_file():
+                            total_size += f.stat().st_size
+
+                    size_mb = total_size / (1024 * 1024)
+                    model_size = f"{size_mb:.1f} MB"
+
+                except Exception:
+                    model_size = "Unknown"
+
+                # Store model information
+                try:
                     if source_label == "App":
-                        display_name = f"{model_name} (Default)"
+                        rel_path = item.relative_to(root_dir)
+                    else:
+                        rel_path = item
 
-                    # Calculate directory size
-                    total_size = 0
-                    try:
-                        for f in item.rglob('*'):
-                            if f.is_file():
-                                total_size += f.stat().st_size
-                        size_mb = total_size / (1024 * 1024)
-                        model_size = f"{size_mb:.1f} MB"
-                    except Exception:
-                        model_size = "Unknown"
+                    models.append({
+                        "m_name": display_name,
+                        "m_path": str(rel_path),
+                        "m_size": model_size,
+                        "m_source": source_label
+                    })
 
-                    try:
-                        if source_label == "App":
-                            rel_path = item.relative_to(root_dir)
-                        else:
-                            rel_path = item
-                            
-                        models.append({
-                            "m_name": display_name,
-                            "m_path": str(rel_path),
-                            "m_size": model_size,
-                            "m_source": source_label
-                        })
-                    except ValueError:
-                        models.append({
-                            "m_name": display_name,
-                            "m_path": str(item),
-                            "m_size": model_size,
-                            "m_source": source_label
-                        })
-                    seen_paths.add(item)
-    
+                except ValueError:
+                    models.append({
+                        "m_name": display_name,
+                        "m_path": str(item),
+                        "m_size": model_size,
+                        "m_source": source_label
+                    })
+
+                seen_names.add(item.name)
+
     models.sort(key=lambda x: x["m_name"].lower())
-    log.info(f"[VOICE] Found {len(models)} installed models")
+
+    log.info(
+        f"[VOICE] Found {len(models)} installed models"
+    )
+
     return models
 
 def get_installed_voice_models():
@@ -1269,37 +1367,52 @@ def delete_voice_model(model_path):
     """
     try:
         path = Path(model_path)
+
+        user_models_dir = get_voice_models_dir()
+        clickable_models_dir = (
+            Path.home() / ".clickable" / "home" /
+            ".local" / "share" / "ubtms" / "voice_models"
+        )
         
         # If relative, it might be a bundled model or a legacy relative path
         if not path.is_absolute():
-            # Check if it's relative to user models dir
-            user_models_dir = get_voice_models_dir()
+            # Check user and Clickable model directories
             potential_path = user_models_dir / model_path
             if potential_path.exists():
                 path = potential_path
             else:
-                # Check if it's relative to root (bundled models)
-                potential_path = root_dir / model_path
+                potential_path = clickable_models_dir / model_path
                 if potential_path.exists():
                     path = potential_path
+                else:
+                    # Check if it's relative to root (bundled models)
+                    potential_path = root_dir / model_path
+                    if potential_path.exists():
+                        path = potential_path
         
         if not path.exists():
             return {"status": "error", "message": "Model path not found"}
             
-        # Security check: only allow deleting from the user models directory
-        user_models_dir = get_voice_models_dir()
-        if user_models_dir in path.parents:
+        # Security check: resolve paths before validation
+        resolved_path = path.resolve()
+        resolved_user_dir = user_models_dir.resolve()
+        resolved_clickable_dir = clickable_models_dir.resolve()
+
+        if (
+            resolved_user_dir in resolved_path.parents
+            or resolved_clickable_dir in resolved_path.parents
+        ):
             import shutil
-            if path.is_dir():
-                shutil.rmtree(path)
+            if resolved_path.is_dir():
+                shutil.rmtree(resolved_path)
             else:
-                path.unlink()
+                resolved_path.unlink()
             log.info(f"[VOICE] Deleted user model: {model_path}")
             return {"status": "success"}
         
         # Check if it's in the app dir
-        app_models_dir = root_dir / "voice_to_text"
-        if app_models_dir in path.parents or path == app_models_dir:
+        app_models_dir = (root_dir / "voice_to_text").resolve()
+        if app_models_dir in resolved_path.parents or resolved_path == app_models_dir:
             log.warning(f"[VOICE] Attempted to delete bundled model: {model_path}")
             return {"status": "error", "message": "Cannot delete bundled system models"}
             
