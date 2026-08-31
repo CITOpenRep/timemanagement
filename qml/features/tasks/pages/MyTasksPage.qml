@@ -33,6 +33,7 @@ import "../../../components"
 import "../components"
 
 Page {
+    property var rootApp
     id: myTasksPage
 
     property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
@@ -74,7 +75,8 @@ Page {
                 onTriggered: {
                     apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
                         "recordid": 0,
-                        "isReadOnly": false
+                        "isReadOnly": false,
+                        "rootApp": rootApp
                     });
                 }
             },
@@ -357,14 +359,16 @@ Page {
             onTaskEditRequested: {
                 apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": recordId,
-                    "isReadOnly": false
+                    "isReadOnly": false,
+                    "rootApp": rootApp
                 });
             }
 
             onTaskSelected: {
                 apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": recordId,
-                    "isReadOnly": true
+                    "isReadOnly": true,
+                    "rootApp": rootApp
                 });
             }
 
@@ -426,7 +430,8 @@ Page {
             if (index === 0) {
                 apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": 0,
-                    "isReadOnly": false
+                    "isReadOnly": false,
+                    "rootApp": rootApp
                 });
             }
         }

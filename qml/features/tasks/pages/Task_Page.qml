@@ -39,6 +39,8 @@ import "../components"
 
 Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
+    property alias taskList: tasklist
+    property var rootApp
     id: task
     title: i18n.dtr("ubtms", "All Tasks")
 
@@ -78,7 +80,8 @@ Page {
                 onTriggered: {
                     apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                         "recordid": 0,
-                        "isReadOnly": false
+                        "isReadOnly": false,
+                        "rootApp": rootApp
                     });
                 }
             },
@@ -343,13 +346,15 @@ Page {
             onTaskEditRequested: {
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": recordId,
-                    "isReadOnly": false
+                    "isReadOnly": false,
+                    "rootApp": rootApp
                 });
             }
             onTaskSelected: {
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": recordId,
-                    "isReadOnly": true
+                    "isReadOnly": true,
+                    "rootApp": rootApp
                 });
             }
             onTaskTimesheetRequested: {
@@ -357,10 +362,9 @@ Page {
                 if (result.success) {
                     apLayout.addPageToNextColumn(task, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
-                        "isReadOnly": false
+                        "isReadOnly": false,
                     });
                 } else {
-                    notifPopup.open("Error", "Unable to create timesheet", "error");
                 }
             }
             onTaskDeleteRequested: {
@@ -408,7 +412,8 @@ Page {
             if (index === 0) {
                 apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": 0,
-                    "isReadOnly": false
+                    "isReadOnly": false,
+                    "rootApp": rootApp
                 });
             }
         }

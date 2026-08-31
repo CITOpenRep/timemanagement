@@ -21,6 +21,7 @@ AdaptivePageLayout {
     property var rootApp
     property var globalDrawer
     property var navigationController
+    property bool menuCollapsed: false
 
     anchors.top: parent.top
     anchors.left: parent.left
@@ -45,8 +46,8 @@ AdaptivePageLayout {
             when: width > units.gu(80) && width < units.gu(130)
 
             PageColumn {
-                minimumWidth: units.gu(30)
-                maximumWidth: units.gu(50)
+                minimumWidth: menuCollapsed ? units.gu(8) : units.gu(30)
+                maximumWidth: menuCollapsed ? units.gu(8) : units.gu(50)
                 preferredWidth: width > units.gu(90) ? units.gu(20) : units.gu(15)
             }
 
@@ -61,8 +62,8 @@ AdaptivePageLayout {
             when: width >= units.gu(130)
 
             PageColumn {
-                minimumWidth: units.gu(30)
-                maximumWidth: units.gu(50)
+                minimumWidth: menuCollapsed ? units.gu(8) : units.gu(30)
+                maximumWidth: menuCollapsed ? units.gu(8) : units.gu(50)
                 preferredWidth: units.gu(40)
             }
 
@@ -144,6 +145,7 @@ AdaptivePageLayout {
 
     TaskPages.Task_Page {
         id: task_page
+        rootApp: apLayout.rootApp
 
         Connections {
             target: rootApp
@@ -153,11 +155,18 @@ AdaptivePageLayout {
                     task_page.getTaskList(task_page.currentFilter || "today", "");
                 }
             }
+
+            onTaskDataChanged: {
+                if (task_page.visible && task_page.taskList) {
+                    task_page.taskList.refreshWithFilter();
+                }
+            }
         }
     }
 
     TaskPages.MyTasksPage {
         id: my_tasks_page
+        rootApp: apLayout.rootApp
 
         Connections {
             target: rootApp
@@ -172,6 +181,7 @@ AdaptivePageLayout {
 
     ProjectPages.Project_Page {
         id: project_page
+        rootApp: apLayout.rootApp
 
         Connections {
             target: rootApp
@@ -179,6 +189,12 @@ AdaptivePageLayout {
                 Logger.debug("AppLayout", "Refreshing Project data for account:", accountId)
                 if (project_page.visible && project_page.projectlist && typeof project_page.projectlist.refresh === "function") {
                     project_page.projectlist.refresh();
+                }
+            }
+
+            onProjectDataChanged: {
+                if (project_page.visible && project_page.projectList) {
+                    project_page.projectList.refresh();
                 }
             }
         }

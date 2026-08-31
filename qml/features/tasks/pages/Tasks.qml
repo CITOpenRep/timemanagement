@@ -44,6 +44,7 @@ import "../components"
 import "../../../../models/logger.js" as Logger
 
 Page {
+    property var rootApp
     id: taskCreate
     title: i18n.dtr("ubtms", "Task")
     header: PageHeader {
@@ -480,6 +481,10 @@ Page {
                 return false;
             } else {
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
+
+                if (rootApp && typeof rootApp.taskDataChanged === "function") {
+                    rootApp.taskDataChanged();
+                }
 
                 // Prevent programmatic UI normalization from creating a fresh draft.
                 draftHandler.trackingSuspended = true;
