@@ -280,9 +280,16 @@ function fetch_subtasks(instance_id, parent_task_id) {
 }
 
 function validateAndCleanOdooURL(url) {
-    // Strip trailing slash
-    if (url.endsWith("/")) {
+    url = url.trim();
+
+    // Remove trailing slashes
+    while (url.endsWith("/")) {
         url = url.slice(0, -1);
+    }
+
+    // Add https:// if protocol is missing
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://" + url;
     }
 
     const pattern = new RegExp(

@@ -119,6 +119,19 @@ Page {
             return;
         }
 
+        var urlResult = Utils.validateAndCleanOdooURL(linkInput.text);
+
+        if (!urlResult.isValid) {
+            notifPopup.open("Error", "The Odoo Server URL is Wrong", "error");
+            return;
+        }
+
+        linkInput.text = urlResult.cleanedUrl;
+        accountNameInput.text = accountNameInput.text.trim();
+        usernameInput.text = usernameInput.text.trim();
+        passwordInput.text = passwordInput.text.trim();
+        dbname = dbname.trim();
+
         python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, dbname], function (result) {
             if (result && result['status'] === 'pass' && result['database']) {
                 let apikey = passwordInput.text;
