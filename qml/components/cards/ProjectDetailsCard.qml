@@ -122,7 +122,7 @@ ListItem {
             Action {
                 id: playpauseaction
                 iconSource: timer_on ? (timer_paused ? "../../images/play.png" : "../../images/pause.png") : "../../images/play.png"
-                visible: recordId > 0
+                visible: projectCard.accountId > 0 && recordId > 0
                 text: "Start Timer"
                 onTriggered: {
                     play_pause_workflow();
@@ -130,7 +130,7 @@ ListItem {
             },
             Action {
                 id: startstopaction
-                visible: recordId > 0
+                visible: projectCard.accountId > 0 && recordId > 0
                 iconSource: "../../images/stop.png"
                 text: i18n.dtr("ubtms", "Stop Timer")
                 onTriggered: {
@@ -255,9 +255,10 @@ ListItem {
                             anchors.fill: parent
                             z: 1  // Much lower than star MouseArea
                             onClicked: {
-                                if (hasChildren && recordId > 0) {
+                                if (hasChildren) {
                                     // For projects with children, emit navigation signal
-                                    navigationRequested(recordId, projectCard.accountId || 0);
+                                    var navId = (projectCard.accountId === 0 || recordId <= 0) ? localId : recordId;
+                                    navigationRequested(navId, projectCard.accountId || 0);
                                 } else {
                                     // For leaf projects, show details (same as View-On action)
                                     viewRequested(localId);

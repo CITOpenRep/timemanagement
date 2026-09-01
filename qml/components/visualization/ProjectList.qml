@@ -322,11 +322,12 @@ Item {
         // First pass: Create project color map for inheritance lookup
         var projectColorMap = {};
         allProjects.forEach(function (row) {
-            projectColorMap[row.odoo_record_id] = row.color_pallet ? parseInt(row.color_pallet) : 0;
+            var effectiveId = (row.account_id === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
+            projectColorMap[effectiveId] = row.color_pallet ? parseInt(row.color_pallet) : 0;
         });
 
         allProjects.forEach(function (row) {
-            var odooId = row.odoo_record_id;
+            var effectiveId = (row.account_id === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
             var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
             var accountId = row.account_id;
 
@@ -341,14 +342,14 @@ Item {
             }
 
             var item = {
-                id_val: odooId,
+                id_val: effectiveId,
                 local_id: row.id,
                 parent_id: parentOdooId,
                 account_id: accountId,
                 name: row.name || "Untitled",
                 projectName: row.name || "Untitled",
                 accountName: accountName,
-                recordId: odooId || 0,
+                recordId: effectiveId,
                 allocatedHours: row.allocated_hours ? row.allocated_hours : 0,
                 remainingHours: row.remaining_hours ? row.remaining_hours : 0,
                 startDate: row.planned_start_date || "",
