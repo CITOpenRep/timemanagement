@@ -742,12 +742,22 @@ function getProjectsFilteredPaginated(options) {
 
             // Stage filter
             if (options.stageId !== undefined && options.stageId !== null) {
-                if (options.stageId === -2 && options.openStageIds && options.openStageIds.length > 0) {
-                    // "Open" filter — match any of the open stage IDs
-                    var placeholders = options.openStageIds.map(function () { return "?"; }).join(",");
-                    whereClauses.push("stage IN (" + placeholders + ")");
-                    for (var s = 0; s < options.openStageIds.length; s++) {
-                        params.push(options.openStageIds[s]);
+                if (options.stageId === -2) {
+                    // "Open" filter
+                    if (options.accountId === 0) {
+                        // Local account projects have no stages and are always considered open
+                    } else if (options.openStageIds && options.openStageIds.length > 0) {
+                        var placeholders = options.openStageIds.map(function () { return "?"; }).join(",");
+                        if (options.accountId === -1 || options.accountId === undefined) {
+                            // "All Accounts": match open Odoo stages OR local projects / projects without a stage
+                            whereClauses.push("(stage IN (" + placeholders + ") OR account_id = 0 OR stage = 0 OR stage IS NULL)");
+                        } else {
+                            // Specific Odoo account
+                            whereClauses.push("stage IN (" + placeholders + ")");
+                        }
+                        for (var s = 0; s < options.openStageIds.length; s++) {
+                            params.push(options.openStageIds[s]);
+                        }
                     }
                 } else if (options.stageId >= 0) {
                     // Specific stage

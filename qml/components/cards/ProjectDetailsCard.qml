@@ -317,11 +317,16 @@ ListItem {
                             }
 
                             Text {
-
-                                text: Project.getProjectStageName(stage)
-                                color: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
+                                property string stageName: (stage && stage > 0) ? (Project.getProjectStageName(stage) || "") : ""
+                                property bool isDone: {
+                                    var lower = stageName.toLowerCase();
+                                    return lower === "completed" || lower === "finished" || lower === "closed" || lower === "verified" || lower === "done";
+                                }
+                                visible: stageName !== ""
+                                text: stageName
+                                color: isDone ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
                                 font.pixelSize: units.gu(1.75)
-                                font.bold: Project.getProjectStageName(stage).toLowerCase() === "completed" || Project.getProjectStageName(stage).toLowerCase() === "finished" || Project.getProjectStageName(stage).toLowerCase() === "closed" || Project.getProjectStageName(stage).toLowerCase() === "verified" || Project.getProjectStageName(stage).toLowerCase() === "done" ? true : false
+                                font.bold: isDone
                             }
 
                                Rectangle {

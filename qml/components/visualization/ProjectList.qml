@@ -348,7 +348,7 @@ Item {
                 name: row.name || "Untitled",
                 projectName: row.name || "Untitled",
                 accountName: accountName,
-                recordId: odooId,
+                recordId: odooId || 0,
                 allocatedHours: row.allocated_hours ? row.allocated_hours : 0,
                 remainingHours: row.remaining_hours ? row.remaining_hours : 0,
                 startDate: row.planned_start_date || "",
@@ -356,7 +356,7 @@ Item {
                 deadline: row.planned_end_date || "",
                 description: row.description || "",
                 colorPallet: inheritedColor,
-                stage: row.stage,
+                stage: row.stage || 0,
                 isFavorite: row.favorites === 1,
                 hasDraft: row.has_draft === 1,
                 hasChildren: false
@@ -444,6 +444,11 @@ Item {
 
             // Special case for "Open" filter (odoo_record_id = -2)
             if (stageFilter.odoo_record_id === -2) {
+                // Local projects (account_id === 0 or without a stage) don't have stages and are always considered open
+                if (project.account_id === 0 || !project.stage || project.stage === 0) {
+                    return true;
+                }
+
                 // Check if the project's stage is in the list of open stages (fold = 0)
                 for (var i = 0; i < openStagesList.length; i++) {
                     if (openStagesList[i].odoo_record_id === project.stage) {
