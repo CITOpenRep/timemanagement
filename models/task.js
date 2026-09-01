@@ -930,8 +930,8 @@ function getTaskDetails(task_id) {
                     // Look up project_project_app to check if this project has a parent_id (indicating it is a subproject)
                     // Include account_id check to ensure project is from the same account
                     var rs_project = tx.executeSql(
-                        'SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
-                        [project_id, row.account_id]
+                        'SELECT parent_id FROM project_project_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? LIMIT 1',
+                        [project_id, project_id, row.account_id]
                     );
 
                     if (rs_project.rows.length > 0) {

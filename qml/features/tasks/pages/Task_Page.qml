@@ -52,10 +52,23 @@ Page {
 
         leadingActionBar.actions: [
             Action {
+                id: backAction
+                iconName: "back"
+                text: i18n.dtr("ubtms", "Back")
+                visible: filterByProject
+                onTriggered: {
+                    if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
+                        apLayout.removePages(task);
+                    } else if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
+                        pageStack.pop();
+                    }
+                }
+            },
+            Action {
                 id: drawerAction
                 iconName: "navigation-menu"
                 text: i18n.dtr("ubtms", "Menu")
-                visible: !isMultiColumn
+                visible: !filterByProject && !isMultiColumn
                 onTriggered: {
                     apLayout.openGlobalDrawer()
                 }

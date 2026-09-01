@@ -285,12 +285,9 @@ Item {
                     anchors.margins: units.gu(2)
                     spacing: units.gu(1)
 
-                    Row {
+                    Item {
                         width: parent.width
                         height: units.gu(5)
-                        spacing: units.gu(2)
-
-                        anchors.margins: units.gu(2)
 
                         Label {
                             text: i18n.dtr("ubtms", "Select Assignees")

@@ -886,7 +886,6 @@ Page {
         //changed the attachment color
         Rectangle {
                 id: attachmentRow
-                anchors.top: deadlineRow.bottom
                 height: units.gu(50)
                 width: parent.width
                 anchors.margins: units.gu(0.1)
