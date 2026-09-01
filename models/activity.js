@@ -311,19 +311,20 @@ function resolveProjectLinkage(tx, link_id, account_id) {
 
     try {
         let rs_project = tx.executeSql(
-            `SELECT odoo_record_id, parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
-            [link_id, account_id]
+            `SELECT id, odoo_record_id, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? LIMIT 1`,
+            [link_id, link_id, account_id]
         );
 
         if (rs_project.rows.length > 0) {
             let row = rs_project.rows.item(0);
+            let effectiveId = (account_id === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
             let parent_id = sanitizeId(row.parent_id);
 
             if (parent_id !== -1 && parent_id !== 0) {  // Has a valid parent (not -1 for invalid, not 0 for no parent)
                 result.project_id = parent_id;
-                result.sub_project_id = row.odoo_record_id;
+                result.sub_project_id = effectiveId;
             } else {
-                result.project_id = row.odoo_record_id;
+                result.project_id = effectiveId;
                 result.sub_project_id = -1;
             }
         } else {
@@ -352,8 +353,8 @@ function resolveActivityLinkage(tx, link_id, account_id) {
 
         // Step 1: Determine if link_id is subtask or task
         let rs_task = tx.executeSql(
-            `SELECT odoo_record_id, parent_id, project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
-            [link_id, account_id]
+            `SELECT id, odoo_record_id, parent_id, project_id FROM project_task_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? LIMIT 1`,
+            [link_id, link_id, account_id]
         );
 
         let resolved_task_id = -1;
@@ -362,67 +363,30 @@ function resolveActivityLinkage(tx, link_id, account_id) {
 
         if (rs_task.rows.length > 0) {
             let row_task = rs_task.rows.item(0);
-            console.log("resolveActivityLinkage: Found task row:", JSON.stringify({
-                odoo_record_id: row_task.odoo_record_id,
-                parent_id: row_task.parent_id,
-                project_id: row_task.project_id
-            }));
-
+            let effectiveTaskId = (account_id === 0 || !row_task.odoo_record_id) ? row_task.id : row_task.odoo_record_id;
             let parent_id = sanitizeId(row_task.parent_id);
-            Logger.debug("Activity", "resolveActivityLinkage: Sanitized parent_id:", parent_id, "from raw value:", row_task.parent_id, "type:", typeof row_task.parent_id)
 
             if (parent_id !== -1 && parent_id !== 0) {  // Has a valid parent (not -1 for invalid, not 0 for no parent)
                 // It is a subtask
                 resolved_task_id = parent_id;
-                resolved_sub_task_id = row_task.odoo_record_id;
-                Logger.debug("Activity", "resolveActivityLinkage: Identified as SUBTASK. Parent task_id:", resolved_task_id, "Sub task_id:", resolved_sub_task_id)
+                resolved_sub_task_id = effectiveTaskId;
 
                 // For subtask, we need to get project_id from the parent task
                 let rs_parent_task = tx.executeSql(
-                    `SELECT project_id, odoo_record_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
-                    [resolved_task_id, account_id]
+                    `SELECT id, project_id, odoo_record_id FROM project_task_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? LIMIT 1`,
+                    [resolved_task_id, resolved_task_id, account_id]
                 );
 
                 if (rs_parent_task.rows.length > 0) {
                     task_project_id = sanitizeId(rs_parent_task.rows.item(0).project_id);
-                    Logger.debug("Activity", "resolveActivityLinkage: Found parent task with odoo_record_id:", rs_parent_task.rows.item(0).odoo_record_id, "project_id:", task_project_id)
                 } else {
-                    Logger.warn("Activity", "resolveActivityLinkage: Parent task not found for resolved_task_id:", resolved_task_id)
-
-                    // Fallback: try to find parent task by local database id (in case parent_id references local id instead of odoo_record_id)
-                    let rs_parent_by_id = tx.executeSql(
-                        `SELECT project_id, odoo_record_id FROM project_task_app WHERE id = ? AND account_id = ? LIMIT 1`,
-                        [resolved_task_id, account_id]
-                    );
-
-                    if (rs_parent_by_id.rows.length > 0) {
-                        task_project_id = sanitizeId(rs_parent_by_id.rows.item(0).project_id);
-                        Logger.debug("Activity", "resolveActivityLinkage: Found parent task by local id:", resolved_task_id, "odoo_record_id:", rs_parent_by_id.rows.item(0).odoo_record_id, "project_id:", task_project_id)
-                        // Update resolved_task_id to use the correct odoo_record_id
-                        resolved_task_id = rs_parent_by_id.rows.item(0).odoo_record_id;
-                        Logger.debug("Activity", "resolveActivityLinkage: Updated resolved_task_id to odoo_record_id:", resolved_task_id)
-                    } else {
-                        // FINAL FALLBACK: Maybe parent_id is negative (local record), try searching for negative values
-                        let rs_parent_negative = tx.executeSql(
-                            `SELECT project_id, odoo_record_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
-                            [resolved_task_id, account_id]
-                        );
-
-                        if (rs_parent_negative.rows.length > 0) {
-                            task_project_id = sanitizeId(rs_parent_negative.rows.item(0).project_id);
-                            Logger.debug("Activity", "resolveActivityLinkage: Found parent task with negative odoo_record_id:", resolved_task_id, "project_id:", task_project_id)
-                        } else {
-                            task_project_id = sanitizeId(row_task.project_id); // Final fallback to subtask's project_id
-                            Logger.debug("Activity", "resolveActivityLinkage: Using final fallback project_id from subtask:", task_project_id)
-                        }
-                    }
+                    task_project_id = sanitizeId(row_task.project_id);
                 }
             } else {
                 // It is a parent task
-                resolved_task_id = row_task.odoo_record_id;
+                resolved_task_id = effectiveTaskId;
                 resolved_sub_task_id = -1;
                 task_project_id = sanitizeId(row_task.project_id);
-                Logger.debug("Activity", "resolveActivityLinkage: Identified as PARENT TASK. Task_id:", resolved_task_id, "Project_id:", task_project_id)
             }
         } else {
             Logger.warn("Activity", "Link_id is not a valid task in project_task_app:", link_id, "account_id:", account_id)
@@ -430,27 +394,23 @@ function resolveActivityLinkage(tx, link_id, account_id) {
         }
 
         // Step 2: Determine if project_id is subproject or top-level
-        if (task_project_id !== -1) {  // Changed from > 0 to !== -1 to allow negative values
+        if (task_project_id !== -1) {
             let rs_project = tx.executeSql(
-                `SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1`,
-                [task_project_id, account_id]
+                `SELECT id, odoo_record_id, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? LIMIT 1`,
+                [task_project_id, task_project_id, account_id]
             );
 
             if (rs_project.rows.length > 0) {
                 let parent_project_id = sanitizeId(rs_project.rows.item(0).parent_id);
-                Logger.debug("Activity", "resolveActivityLinkage: Project parent_id:", parent_project_id)
 
                 if (parent_project_id !== -1 && parent_project_id !== 0) {  // Has a valid parent
                     result.project_id = parent_project_id;         // parent project
                     result.sub_project_id = task_project_id;  // subproject
-                    Logger.debug("Activity", "resolveActivityLinkage: Project is SUBPROJECT. Parent:", parent_project_id, "Sub:", task_project_id)
                 } else {
                     result.project_id = task_project_id;     // top-level project
                     result.sub_project_id = -1;
-                    Logger.debug("Activity", "resolveActivityLinkage: Project is TOP-LEVEL:", task_project_id)
                 }
             } else {
-                Logger.warn("Activity", "Project lookup failed for task_project_id:", task_project_id)
                 result.project_id = task_project_id;
                 result.sub_project_id = -1;
             }
@@ -972,12 +932,12 @@ function getActivitiesForProject(projectOdooRecordId, accountId) {
                     (a.resModel = 'project.project' AND a.link_id = ?)
                     OR 
                     (a.resModel = 'project.task' AND a.link_id IN (
-                        SELECT odoo_record_id FROM project_task_app 
-                        WHERE project_id = ? AND account_id = ?
+                        SELECT (CASE WHEN account_id = 0 OR odoo_record_id IS NULL THEN id ELSE odoo_record_id END) FROM project_task_app 
+                        WHERE (project_id = ? OR sub_project_id = ?) AND account_id = ?
                     ))
                 )
                 ORDER BY a.due_date ASC
-            `, [accountId, projectOdooRecordId, projectOdooRecordId, accountId]);
+            `, [accountId, projectOdooRecordId, projectOdooRecordId, projectOdooRecordId, accountId]);
 
             for (var i = 0; i < rs.rows.length; i++) {
                 var row = rs.rows.item(i);
@@ -1060,13 +1020,13 @@ function getActivitiesForProjectPaginated(projectOdooRecordId, accountId, limit,
                     (a.resModel = 'project.project' AND a.link_id = ?)
                     OR 
                     (a.resModel = 'project.task' AND a.link_id IN (
-                        SELECT odoo_record_id FROM project_task_app 
-                        WHERE project_id = ? AND account_id = ?
+                        SELECT (CASE WHEN account_id = 0 OR odoo_record_id IS NULL THEN id ELSE odoo_record_id END) FROM project_task_app 
+                        WHERE (project_id = ? OR sub_project_id = ?) AND account_id = ?
                     ))
                 )
                 ORDER BY a.due_date ASC
                 LIMIT ? OFFSET ?
-            `, [accountId, projectOdooRecordId, projectOdooRecordId, accountId, limit, offset]);
+            `, [accountId, projectOdooRecordId, projectOdooRecordId, projectOdooRecordId, accountId, limit, offset]);
 
             for (var i = 0; i < rs.rows.length; i++) {
                 var row = rs.rows.item(i);
@@ -1135,24 +1095,18 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
             // Get the task's project_id for color inheritance
             var taskProjectId = null;
             var taskRs = tx.executeSql(
-                "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
-                [taskOdooRecordId]
+                "SELECT project_id FROM project_task_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) LIMIT 1",
+                [taskOdooRecordId, taskOdooRecordId]
             );
             if (taskRs.rows.length > 0) {
                 taskProjectId = taskRs.rows.item(0).project_id;
             }
 
-            var query = `
-                SELECT * FROM mail_activity_app
-                WHERE resModel = 'project.task' 
-                AND link_id = ?
-                AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
-                AND (status IS NULL OR status != 'deleted')
-                ORDER BY due_date ASC`;
-            var params = [taskOdooRecordId];
+            var query = "";
+            var params = [];
 
             // If accountId is provided, filter by it
-            if (accountId && accountId > 0) {
+            if (accountId !== undefined && accountId !== null && accountId >= 0) {
                 query = `
                     SELECT * FROM mail_activity_app
                     WHERE resModel = 'project.task' 
@@ -1162,6 +1116,15 @@ function getActivitiesForTask(taskOdooRecordId, accountId) {
                     AND (status IS NULL OR status != 'deleted')
                     ORDER BY due_date ASC`;
                 params = [taskOdooRecordId, accountId];
+            } else {
+                query = `
+                    SELECT * FROM mail_activity_app
+                    WHERE resModel = 'project.task' 
+                    AND link_id = ?
+                    AND LOWER(TRIM(COALESCE(state, ''))) != 'done'
+                    AND (status IS NULL OR status != 'deleted')
+                    ORDER BY due_date ASC`;
+                params = [taskOdooRecordId];
             }
 
             var rs = tx.executeSql(query, params);
@@ -1218,8 +1181,8 @@ function getActivitiesForTaskPaginated(taskOdooRecordId, accountId, limit, offse
             // Get the task's project_id for color inheritance
             var taskProjectId = null;
             var taskRs = tx.executeSql(
-                "SELECT project_id FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
-                [taskOdooRecordId]
+                "SELECT project_id FROM project_task_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) LIMIT 1",
+                [taskOdooRecordId, taskOdooRecordId]
             );
             if (taskRs.rows.length > 0) {
                 taskProjectId = taskRs.rows.item(0).project_id;
@@ -1229,7 +1192,7 @@ function getActivitiesForTaskPaginated(taskOdooRecordId, accountId, limit, offse
             var params = [];
 
             // If accountId is provided, filter by it
-            if (accountId && accountId > 0) {
+            if (accountId !== undefined && accountId !== null && accountId >= 0) {
                 query = `
                     SELECT * FROM mail_activity_app
                     WHERE resModel = 'project.task' 

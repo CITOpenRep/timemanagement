@@ -91,7 +91,7 @@ function get_projects_spent_hours(account, startDate, endDate) {
             var query =
                 "SELECT p.name AS entity_name, SUM(a.unit_amount) AS total, s.name AS stage_name " +
                 "FROM account_analytic_line_app a " +
-                "LEFT JOIN project_project_app p ON p.odoo_record_id = a.project_id AND p.account_id = a.account_id " +
+                "LEFT JOIN project_project_app p ON (p.odoo_record_id = a.project_id OR (a.account_id = 0 AND p.id = a.project_id)) AND p.account_id = a.account_id " +
                 "LEFT JOIN project_project_stage_app s ON s.odoo_record_id = p.stage AND s.account_id = p.account_id ";
 
             if (account !== -1 && account !== undefined && account !== null) {

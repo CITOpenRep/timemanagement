@@ -819,7 +819,8 @@ Page {
                 });
             }
             onCreateActivityRequested: {
-                let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
+                let taskEffectiveId = (currentTask.account_id === 0 || !currentTask.odoo_record_id) ? currentTask.id : currentTask.odoo_record_id;
+                let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, taskEffectiveId);
                 if (result.success) {
                     apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                         "recordid": result.record_id,
@@ -831,10 +832,11 @@ Page {
                 }
             }
             onViewActivitiesRequested: {
-                Logger.debug("Tasks", "Viewing activities for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id)
+                let taskEffectiveId = (currentTask.account_id === 0 || !currentTask.odoo_record_id) ? currentTask.id : currentTask.odoo_record_id;
+                Logger.debug("Tasks", "Viewing activities for task:", currentTask.id, "effectiveId:", taskEffectiveId)
                 apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activity_Page.qml"), {
                     "filterByTasks": true,
-                    "taskOdooRecordId": currentTask.odoo_record_id,
+                    "taskOdooRecordId": taskEffectiveId,
                     "projectAccountId": currentTask.account_id,
                     "projectName": currentTask.name || "Task"
                 });

@@ -602,8 +602,8 @@ function getUserNameByOdooId(odoo_record_id) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1";
-            var result = tx.executeSql(query, [odoo_record_id]);
+            var query = "SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1";
+            var result = tx.executeSql(query, [odoo_record_id, odoo_record_id]);
 
             if (result.rows.length > 0) {
                 userName = result.rows.item(0).name;

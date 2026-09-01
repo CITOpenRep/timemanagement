@@ -223,7 +223,8 @@ Item {
         // Create lookup maps
         for (var i = 0; i < tasks.length; i++) {
             var task = tasks[i];
-            var compositeId = task.odoo_record_id + "_" + task.account_id;
+            var effectiveId = (task.account_id === 0 || !task.odoo_record_id) ? task.id : task.odoo_record_id;
+            var compositeId = effectiveId + "_" + task.account_id;
             taskById[compositeId] = task;
 
             var parentId = (task.parent_id === null || task.parent_id === 0) ? -1 : task.parent_id;
@@ -268,7 +269,8 @@ Item {
             }
 
             if (matchesSelectedAssignee) {
-                var compositeId = task.odoo_record_id + "_" + task.account_id;
+                var effectiveId = (task.account_id === 0 || !task.odoo_record_id) ? task.id : task.odoo_record_id;
+                var compositeId = effectiveId + "_" + task.account_id;
                 matchingTaskIds.add(compositeId);
                 //console.log("TaskList: Direct match found for task:", task.name, "ID:", compositeId);
             }
@@ -296,7 +298,8 @@ Item {
         var filteredTasks = [];
         for (var i = 0; i < tasks.length; i++) {
             var task = tasks[i];
-            var compositeId = task.odoo_record_id + "_" + task.account_id;
+            var effectiveId = (task.account_id === 0 || !task.odoo_record_id) ? task.id : task.odoo_record_id;
+            var compositeId = effectiveId + "_" + task.account_id;
 
             if (matchingTaskIds.has(compositeId)) {
                 filteredTasks.push(task);
@@ -439,8 +442,8 @@ Item {
         var tempMap = {};
 
         tasks.forEach(function (row) {
-            var odooId = row.odoo_record_id;
-            var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
+            var effectiveId = (row.account_id === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
+            var parentEffectiveId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
 
             var projectIdToUse = row.project_id;
 
@@ -456,14 +459,14 @@ Item {
             }
             
             var item = {
-                id_val: odooId,
+                id_val: effectiveId,
                 local_id: row.id,
                 account_id: row.account_id,
                 project: projectName,
-                parent_id: parentOdooId,
+                parent_id: parentEffectiveId,
                 name: row.name || "Untitled",
                 taskName: row.name || "Untitled",
-                recordId: odooId,
+                recordId: (row.odoo_record_id) ? row.odoo_record_id : -1,
                 allocatedHours: row.initial_planned_hours ? row.initial_planned_hours : 0,
                 spentHours: row.spent_hours ? row.spent_hours : 0,
                 startDate: row.start_date || "",
@@ -477,9 +480,9 @@ Item {
                 has_draft: row.has_draft === 1
             };
 
-            if (!tempMap[parentOdooId])
-                tempMap[parentOdooId] = [];
-            tempMap[parentOdooId].push(item);
+            if (!tempMap[parentEffectiveId])
+                tempMap[parentEffectiveId] = [];
+            tempMap[parentEffectiveId].push(item);
         });
 
         // Build a set of all task IDs present in this batch (and existing data for append)

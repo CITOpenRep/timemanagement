@@ -735,7 +735,8 @@ Page {
                     text: i18n.dtr("ubtms","Create")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
-                        let result = Activity.createActivityFromProjectOrTask(true, project.account_id, project.odoo_record_id);
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
+                        let result = Activity.createActivityFromProjectOrTask(true, project.account_id, projectRecordId);
                         if (result.success) {
                             apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                                 "recordid": result.record_id,
@@ -761,9 +762,10 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../activities/pages/Activity_Page.qml"), {
                             "filterByProject": true,
-                            "projectOdooRecordId": project.odoo_record_id,
+                            "projectOdooRecordId": projectRecordId,
                             "projectAccountId": project.account_id,
                             "projectName": project.name
                         });

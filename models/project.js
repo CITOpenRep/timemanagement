@@ -18,8 +18,8 @@ function getLocalIdFromOdooId(odooRecordId, accountId) {
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                'SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
-                [odooRecordId, accountId]
+                'SELECT id FROM project_project_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? LIMIT 1',
+                [odooRecordId, odooRecordId, accountId]
             );
 
             if (result.rows.length > 0) {

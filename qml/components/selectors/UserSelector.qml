@@ -132,10 +132,11 @@ ComboBox {
 
         const users = Accounts.getUsers(accountId);
         for (let i = 0; i < users.length; i++) {
+            let effectiveId = (accountId === 0 || !users[i].odoo_record_id || users[i].odoo_record_id <= 0) ? users[i].id : users[i].odoo_record_id;
             internalUserModel.append({
-                id: users[i].odoo_record_id,
+                id: effectiveId,
                 name: users[i].name,
-                remoteid: users[i].odoo_record_id
+                remoteid: effectiveId
             });
         }
 

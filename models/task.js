@@ -92,8 +92,8 @@ function getLocalIdFromOdooId(odooRecordId, accountId) {
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                'SELECT id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? AND (status IS NULL OR status != \"deleted\") LIMIT 1',
-                [odooRecordId, accountId]
+                'SELECT id FROM project_task_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? AND (status IS NULL OR status != "deleted") LIMIT 1',
+                [odooRecordId, odooRecordId, accountId]
             );
 
             if (result.rows.length > 0) {
@@ -347,13 +347,13 @@ function getTaskAssignees(taskId, accountId) {
 
                         // Get user details for each ID
                         var userQuery = `
-                            SELECT odoo_record_id as user_id, name
+                            SELECT (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) as user_id, name
                             FROM res_users_app 
-                            WHERE account_id = ? AND odoo_record_id IN (${placeholders})
+                            WHERE account_id = ? AND (odoo_record_id IN (${placeholders}) OR (account_id = 0 AND id IN (${placeholders})))
                             ORDER BY name COLLATE NOCASE ASC
                         `;
 
-                        var queryParams = [accountId].concat(userIds);
+                        var queryParams = [accountId].concat(userIds).concat(userIds);
                         var userResult = tx.executeSql(userQuery, queryParams);
 
                         for (var i = 0; i < userResult.rows.length; i++) {
@@ -3312,19 +3312,20 @@ function getAllTaskAssignees(accountId) {
                         SELECT u.id, u.odoo_record_id, u.name, COALESCE(NULLIF(u.login, ''), NULLIF(u.email, ''), NULLIF(u.work_email, ''), '') as email, u.account_id, a.name as account_name
                         FROM res_users_app u
                         LEFT JOIN users a ON u.account_id = a.id
-                        WHERE u.account_id = ? AND u.odoo_record_id IN (${placeholders})
+                        WHERE u.account_id = ? AND (u.odoo_record_id IN (${placeholders}) OR (u.account_id = 0 AND u.id IN (${placeholders})))
                         ORDER BY u.name COLLATE NOCASE ASC
                     `;
 
-                    var queryParams = [acctId].concat(userIds);
+                    var queryParams = [acctId].concat(userIds).concat(userIds);
                     var userResult = tx.executeSql(userQuery, queryParams);
 
                     for (var k = 0; k < userResult.rows.length; k++) {
                         var userRow = userResult.rows.item(k);
-                        Logger.debug("Task", "Loading assignee:", userRow.name, "Account:", userRow.account_name, "ID:", userRow.odoo_record_id)
+                        var effectiveOdooId = (userRow.account_id === 0 || !userRow.odoo_record_id || userRow.odoo_record_id <= 0) ? userRow.id : userRow.odoo_record_id;
+                        Logger.debug("Task", "Loading assignee:", userRow.name, "Account:", userRow.account_name, "ID:", effectiveOdooId)
                         assignees.push({
                             id: userRow.id,
-                            odoo_record_id: userRow.odoo_record_id,
+                            odoo_record_id: effectiveOdooId,
                             name: userRow.name,
                             email: userRow.email || "",
                             account_id: userRow.account_id,
