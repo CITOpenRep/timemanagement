@@ -796,13 +796,14 @@ Page {
                         let project = Project.getProjectDetails(recordid);
                         let isSubProject = project.parent_id && project.parent_id > 0;
                         let parentProjectId = isSubProject ? project.parent_id : -1;
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
 
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                             "recordid": 0,
                             "isReadOnly": false,
                             "prefilledAccountId": project.account_id,
-                            "prefilledProjectId": isSubProject ? -1 : project.odoo_record_id,
-                            "prefilledSubProjectId": isSubProject ? project.odoo_record_id : -1,
+                            "prefilledProjectId": isSubProject ? -1 : projectRecordId,
+                            "prefilledSubProjectId": isSubProject ? projectRecordId : -1,
                             "prefilledParentProjectId": parentProjectId,
                             "prefilledProjectName": project.name
                         });
@@ -822,9 +823,10 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../tasks/pages/Task_Page.qml"), {
                             "filterByProject": true,
-                            "projectOdooRecordId": project.odoo_record_id,
+                            "projectOdooRecordId": projectRecordId,
                             "projectAccountId": project.account_id,
                             "projectName": project.name
                         });

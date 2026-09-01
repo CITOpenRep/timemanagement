@@ -2162,8 +2162,8 @@ function getTasksByAssigneesPaginated(assigneeIds, accountId, filterType, search
 
                 // Project filter
                 if (projectOdooRecordId !== undefined && projectOdooRecordId > 0) {
-                    whereClauses.push("t.project_id = ?");
-                    params.push(projectOdooRecordId);
+                    whereClauses.push("(t.project_id = ? OR t.sub_project_id = ?)");
+                    params.push(projectOdooRecordId, projectOdooRecordId);
                 }
 
                 // Assignee filter using LIKE for comma-separated user_id field
@@ -2309,8 +2309,8 @@ function getTasksByAssigneesPaginated(assigneeIds, accountId, filterType, search
                     }
 
                     if (projectOdooRecordId !== undefined && projectOdooRecordId > 0) {
-                        whereClauses.push("t.project_id = ?");
-                        params.push(projectOdooRecordId);
+                        whereClauses.push("(t.project_id = ? OR t.sub_project_id = ?)");
+                        params.push(projectOdooRecordId, projectOdooRecordId);
                     }
 
                     // Assignee filter
@@ -2948,7 +2948,7 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var params = [projectOdooRecordId, accountId];
+            var params = [projectOdooRecordId, projectOdooRecordId, accountId];
             var dateJoin = "";
             var dateCondition = "";
             
@@ -2989,7 +2989,7 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
                     t.has_draft
                 FROM project_task_app t
                 ${dateJoin}
-                WHERE t.project_id = ? 
+                WHERE (t.project_id = ? OR t.sub_project_id = ?) 
                 AND t.account_id = ? 
                 AND (t.status != 'deleted' OR t.status IS NULL)
                 ${dateCondition}
@@ -3096,8 +3096,8 @@ function getTasksForProjectPaginated(projectOdooRecordId, accountId, limit, offs
         if (!needsJSFilter) {
             // Simple case: no date/search filter, pure SQL pagination
             db.transaction(function (tx) {
-                var query = "SELECT * FROM project_task_app WHERE project_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
-                var result = tx.executeSql(query, [projectOdooRecordId, accountId, limit + 1, offset]);
+                var query = "SELECT * FROM project_task_app WHERE (project_id = ? OR sub_project_id = ?) AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                var result = tx.executeSql(query, [projectOdooRecordId, projectOdooRecordId, accountId, limit + 1, offset]);
 
                 hasMore = result.rows.length > limit;
                 var count = Math.min(result.rows.length, limit);
@@ -3158,8 +3158,8 @@ function getTasksForProjectPaginated(projectOdooRecordId, accountId, limit, offs
                 var rawTasks = [];
 
                 db.transaction(function (tx) {
-                    var query = "SELECT * FROM project_task_app WHERE project_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
-                    var result = tx.executeSql(query, [projectOdooRecordId, accountId, batchSize, dbOffset]);
+                    var query = "SELECT * FROM project_task_app WHERE (project_id = ? OR sub_project_id = ?) AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                    var result = tx.executeSql(query, [projectOdooRecordId, projectOdooRecordId, accountId, batchSize, dbOffset]);
                     for (var i = 0; i < result.rows.length; i++) {
                         rawTasks.push(DBCommon.rowToObject(result.rows.item(i)));
                     }
