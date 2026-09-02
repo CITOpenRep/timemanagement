@@ -113,7 +113,7 @@ Controls.Drawer {
                             checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
                             style: Component {
                                 SwitchStyle {
-                                    checkedBackgroundColor: LomiriColors.orange
+                                    checkedBackgroundColor: "#FFA766"
                                 }
                             }
 
