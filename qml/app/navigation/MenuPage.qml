@@ -113,10 +113,34 @@ Page {
             Switch {
                 id: localToggleSwitch
                 Layout.alignment: Qt.AlignVCenter
-                checked: typeof accountPicker !== "undefined" && accountPicker.selectedAccountId === 0
+                checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
+
                 onClicked: {
                     if (typeof accountPicker !== "undefined") {
                         accountPicker.toggleLocalMode(checked);
+                    }
+                }
+
+                Binding {
+                    target: localToggleSwitch
+                    property: "checked"
+                    value: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
+                }
+
+                Connections {
+                    target: typeof accountPicker !== "undefined" ? accountPicker : null
+                    onSelectedAccountIdChanged: {
+                        localToggleSwitch.checked = (accountPicker.selectedAccountId === 0);
+                    }
+                    onAccepted: {
+                        localToggleSwitch.checked = (accountId === 0);
+                    }
+                }
+
+                Connections {
+                    target: typeof rootApp !== "undefined" ? rootApp : null
+                    onGlobalAccountChanged: {
+                        localToggleSwitch.checked = (accountId === 0);
                     }
                 }
             }

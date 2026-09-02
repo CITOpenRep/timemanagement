@@ -75,11 +75,6 @@ Item {
             title: root.titleText
             modal: true
 
-            StyleHints {
-                backgroundColor: theme.palette.normal.background
-                foregroundColor: theme.palette.normal.backgroundText
-            }
-
             property bool isLoadingAccounts: false
             property int preselectedId: -2
 
