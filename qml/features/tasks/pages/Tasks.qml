@@ -842,7 +842,8 @@ Page {
                 });
             }
             onCreateTimesheetRequested: {
-                const result = Timesheet.createTimesheetFromTask(currentTask.odoo_record_id);
+                var effectiveTaskId = (currentTask.account_id === 0 || !currentTask.odoo_record_id) ? currentTask.id : currentTask.odoo_record_id;
+                const result = Timesheet.createTimesheetFromTask(effectiveTaskId);
                 if (result.success) {
                     apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,

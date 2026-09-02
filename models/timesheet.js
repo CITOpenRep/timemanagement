@@ -61,8 +61,8 @@ function fetchTimesheetsByStatus(status, accountId) {
 
                 if (row.project_id) {
                     var rs_project = tx.executeSql(
-                        "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                        [row.project_id]
+                        "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                        [row.project_id, row.project_id]
                     );
 
                     if (rs_project.rows.length > 0) {
@@ -70,8 +70,8 @@ function fetchTimesheetsByStatus(status, accountId) {
                         if (project_row.parent_id && project_row.parent_id > 0) {
                             // Subproject case
                             var rs_parent = tx.executeSql(
-                                "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                                [project_row.parent_id]
+                                "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                                [project_row.parent_id, project_row.parent_id]
                             );
                             if (rs_parent.rows.length > 0) {
                                 projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
@@ -92,8 +92,8 @@ function fetchTimesheetsByStatus(status, accountId) {
                 var taskName = "Unknown Task";
                 if (row.task_id) {
                     var rs_task = tx.executeSql(
-                        "SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
-                        [row.task_id]
+                        "SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                        [row.task_id, row.task_id]
                     );
                     if (rs_task.rows.length > 0) {
                         taskName = rs_task.rows.item(0).name;
@@ -102,13 +102,13 @@ function fetchTimesheetsByStatus(status, accountId) {
 
                 // Resolve instance and user names
                 var instanceName = "", userName = "";
-                if (row.account_id) {
+                if (row.account_id !== undefined && row.account_id !== null) {
                     var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
                     if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
                 }
 
-                if (row.user_id) {
-                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                if (row.user_id !== undefined && row.user_id !== null) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.user_id, row.user_id]);
                     if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
                 }
 
@@ -180,16 +180,16 @@ function fetchTimesheetsForAllAccounts(status) {
 
                 if (row.project_id) {
                     var rs_project = tx.executeSql(
-                        "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                        [row.project_id]
+                        "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                        [row.project_id, row.project_id]
                     );
 
                     if (rs_project.rows.length > 0) {
                         var project_row = rs_project.rows.item(0);
                         if (project_row.parent_id && project_row.parent_id > 0) {
                             var rs_parent = tx.executeSql(
-                                "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                                [project_row.parent_id]
+                                "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                                [project_row.parent_id, project_row.parent_id]
                             );
                             if (rs_parent.rows.length > 0) {
                                 projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
@@ -208,8 +208,8 @@ function fetchTimesheetsForAllAccounts(status) {
                 var taskName = "Unknown Task";
                 if (row.task_id) {
                     var rs_task = tx.executeSql(
-                        "SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
-                        [row.task_id]
+                        "SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                        [row.task_id, row.task_id]
                     );
                     if (rs_task.rows.length > 0) {
                         taskName = rs_task.rows.item(0).name;
@@ -218,13 +218,13 @@ function fetchTimesheetsForAllAccounts(status) {
 
                 // Resolve instance and user names
                 var instanceName = "", userName = "";
-                if (row.account_id) {
+                if (row.account_id !== undefined && row.account_id !== null) {
                     var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
                     if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
                 }
 
-                if (row.user_id) {
-                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                if (row.user_id !== undefined && row.user_id !== null) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.user_id, row.user_id]);
                     if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
                 }
 
@@ -297,27 +297,27 @@ function fetchTimesheetsByStatusPaginated(status, accountId, limit, offset) {
                 var projectName = "Unknown Project";
                 var inheritedColor = 0;
                 if (row.project_id) {
-                    var projectAccountId = row.account_id || null;
-                    var rs_project = projectAccountId ?
+                    var projectAccountId = (row.account_id !== undefined && row.account_id !== null) ? row.account_id : null;
+                    var rs_project = (projectAccountId !== null) ?
                         tx.executeSql(
-                            "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
-                            [row.project_id, projectAccountId]
+                            "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1",
+                            [row.project_id, row.project_id, projectAccountId]
                         ) :
                         tx.executeSql(
-                            "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                            [row.project_id]
+                            "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                            [row.project_id, row.project_id]
                         );
                     if (rs_project.rows.length > 0) {
                         var project_row = rs_project.rows.item(0);
                         if (project_row.parent_id && project_row.parent_id > 0) {
-                            var rs_parent = projectAccountId ?
+                            var rs_parent = (projectAccountId !== null) ?
                                 tx.executeSql(
-                                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
-                                    [project_row.parent_id, projectAccountId]
+                                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1",
+                                    [project_row.parent_id, project_row.parent_id, projectAccountId]
                                 ) :
                                 tx.executeSql(
-                                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                                    [project_row.parent_id]
+                                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                                    [project_row.parent_id, project_row.parent_id]
                                 );
                             projectName = rs_parent.rows.length > 0 ? rs_parent.rows.item(0).name + " / " + project_row.name : project_row.name;
                             inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
@@ -330,17 +330,17 @@ function fetchTimesheetsByStatusPaginated(status, accountId, limit, offset) {
 
                 var taskName = "Unknown Task";
                 if (row.task_id) {
-                    var rs_task = tx.executeSql("SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1", [row.task_id]);
+                    var rs_task = tx.executeSql("SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.task_id, row.task_id]);
                     if (rs_task.rows.length > 0) taskName = rs_task.rows.item(0).name;
                 }
 
                 var instanceName = "", userName = "";
-                if (row.account_id) {
+                if (row.account_id !== undefined && row.account_id !== null) {
                     var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
                     if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
                 }
-                if (row.user_id) {
-                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                if (row.user_id !== undefined && row.user_id !== null) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.user_id, row.user_id]);
                     if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
                 }
 
@@ -412,11 +412,11 @@ function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
                 var projectName = "Unknown Project";
                 var inheritedColor = 0;
                 if (row.project_id) {
-                    var rs_project = tx.executeSql("SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1", [row.project_id]);
+                    var rs_project = tx.executeSql("SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.project_id, row.project_id]);
                     if (rs_project.rows.length > 0) {
                         var project_row = rs_project.rows.item(0);
                         if (project_row.parent_id && project_row.parent_id > 0) {
-                            var rs_parent = tx.executeSql("SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1", [project_row.parent_id]);
+                            var rs_parent = tx.executeSql("SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [project_row.parent_id, project_row.parent_id]);
                             projectName = rs_parent.rows.length > 0 ? rs_parent.rows.item(0).name + " / " + project_row.name : project_row.name;
                             inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
                         } else {
@@ -428,17 +428,17 @@ function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
 
                 var taskName = "Unknown Task";
                 if (row.task_id) {
-                    var rs_task = tx.executeSql("SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1", [row.task_id]);
+                    var rs_task = tx.executeSql("SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.task_id, row.task_id]);
                     if (rs_task.rows.length > 0) taskName = rs_task.rows.item(0).name;
                 }
 
                 var instanceName = "", userName = "";
-                if (row.account_id) {
+                if (row.account_id !== undefined && row.account_id !== null) {
                     var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
                     if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
                 }
-                if (row.user_id) {
-                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                if (row.user_id !== undefined && row.user_id !== null) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.user_id, row.user_id]);
                     if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
                 }
 
@@ -545,8 +545,8 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, en
 
                 if (row.project_id) {
                     var rs_project = tx.executeSql(
-                        "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                        [row.project_id]
+                        "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                        [row.project_id, row.project_id]
                     );
 
                     if (rs_project.rows.length > 0) {
@@ -554,8 +554,8 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, en
                         if (project_row.parent_id && project_row.parent_id > 0) {
                             // Subproject case
                             var rs_parent = tx.executeSql(
-                                "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                                [project_row.parent_id]
+                                "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                                [project_row.parent_id, project_row.parent_id]
                             );
                             if (rs_parent.rows.length > 0) {
                                 projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
@@ -576,8 +576,8 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, en
                 var taskName = "Unknown Task";
                 if (row.task_id) {
                     var rs_task = tx.executeSql(
-                        "SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
-                        [row.task_id]
+                        "SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                        [row.task_id, row.task_id]
                     );
                     if (rs_task.rows.length > 0) {
                         taskName = rs_task.rows.item(0).name;
@@ -586,13 +586,13 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, en
 
                 // Resolve instance and user names
                 var instanceName = "", userName = "";
-                if (row.account_id) {
+                if (row.account_id !== undefined && row.account_id !== null) {
                     var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
                     if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
                 }
 
-                if (row.user_id) {
-                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                if (row.user_id !== undefined && row.user_id !== null) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.user_id, row.user_id]);
                     if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
                 }
 
@@ -688,28 +688,28 @@ function getTimesheetsForTaskPaginated(taskOdooRecordId, accountId, status, limi
                 var inheritedColor = 0;
 
                 if (row.project_id) {
-                    var accountId = row.account_id || null;
-                    var rs_project = accountId ?
+                    var accountId = (row.account_id !== undefined && row.account_id !== null) ? row.account_id : null;
+                    var rs_project = (accountId !== null) ?
                         tx.executeSql(
-                            "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
-                            [row.project_id, accountId]
+                            "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1",
+                            [row.project_id, row.project_id, accountId]
                         ) :
                         tx.executeSql(
-                            "SELECT name, parent_id FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                            [row.project_id]
+                            "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                            [row.project_id, row.project_id]
                         );
 
                     if (rs_project.rows.length > 0) {
                         var project_row = rs_project.rows.item(0);
                         if (project_row.parent_id && project_row.parent_id > 0) {
-                            var rs_parent = accountId ?
+                            var rs_parent = (accountId !== null) ?
                                 tx.executeSql(
-                                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1",
-                                    [project_row.parent_id, accountId]
+                                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1",
+                                    [project_row.parent_id, project_row.parent_id, accountId]
                                 ) :
                                 tx.executeSql(
-                                    "SELECT name FROM project_project_app WHERE odoo_record_id = ? LIMIT 1",
-                                    [project_row.parent_id]
+                                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                                    [project_row.parent_id, project_row.parent_id]
                                 );
                             if (rs_parent.rows.length > 0) {
                                 projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
@@ -731,8 +731,8 @@ function getTimesheetsForTaskPaginated(taskOdooRecordId, accountId, status, limi
                 var taskName = "Unknown Task";
                 if (row.task_id) {
                     var rs_task = tx.executeSql(
-                        "SELECT name FROM project_task_app WHERE odoo_record_id = ? LIMIT 1",
-                        [row.task_id]
+                        "SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
+                        [row.task_id, row.task_id]
                     );
                     if (rs_task.rows.length > 0) {
                         taskName = rs_task.rows.item(0).name;
@@ -741,13 +741,13 @@ function getTimesheetsForTaskPaginated(taskOdooRecordId, accountId, status, limi
 
                 // Resolve instance and user names
                 var instanceName = "", userName = "";
-                if (row.account_id) {
+                if (row.account_id !== undefined && row.account_id !== null) {
                     var rs_instance = tx.executeSql("SELECT name FROM users WHERE id = ? LIMIT 1", [row.account_id]);
                     if (rs_instance.rows.length > 0) instanceName = rs_instance.rows.item(0).name;
                 }
 
-                if (row.user_id) {
-                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1", [row.user_id]);
+                if (row.user_id !== undefined && row.user_id !== null) {
+                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.user_id, row.user_id]);
                     if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
                 }
 
@@ -1073,7 +1073,7 @@ function getTimeSheetDetailsByOdooId(odoo_record_id, accountId) {
             var query = 'SELECT * FROM account_analytic_line_app WHERE odoo_record_id = ?';
             var params = [odoo_record_id];
 
-            if (accountId !== undefined && accountId !== null && accountId > 0) {
+            if (accountId !== undefined && accountId !== null && accountId >= 0) {
                 query += ' AND account_id = ?';
                 params.push(accountId);
             }
@@ -1157,7 +1157,7 @@ function saveTimesheet(data) {
                           has_draft = 0
                           WHERE id = ?`,
                 [
-                    data.instance_id || null,
+                    (data.instance_id !== undefined && data.instance_id !== null) ? data.instance_id : null,
                     data.record_date || Utils.getToday(),
                     data.project || null,
                     data.task || null,
@@ -1169,7 +1169,7 @@ function saveTimesheet(data) {
                     timestamp,
                     data.status || "draft",
                     data.timer_type || "manual",
-                    (data.user_id !== undefined && data.user_id !== null) ? data.user_id : null,
+                    (data.user_id !== undefined && data.user_id !== null && data.user_id !== "") ? data.user_id : (data.instance_id === 0 ? 1 : null),
                     data.id
                 ]);
 
@@ -1188,15 +1188,22 @@ function createTimesheet(instance_id, userid) {
     var timestamp = Utils.getFormattedTimestampUTC();
     var result = { success: false, error: "", id: null };
 
-    // Validate required parameters
-    if (!instance_id || instance_id <= 0) {
+    var acctId = (instance_id !== undefined && instance_id !== null) ? parseInt(instance_id) : -1;
+    if (isNaN(acctId) || acctId < 0) {
         result.error = "Invalid instance_id provided";
         return result;
     }
 
-    if (!userid || userid <= 0) {
-        result.error = "Invalid user_id provided";
-        return result;
+    var uid = (userid !== undefined && userid !== null) ? parseInt(userid) : 0;
+    if (acctId === 0) {
+        if (isNaN(uid) || uid <= 0) {
+            uid = 1;
+        }
+    } else {
+        if (isNaN(uid) || uid <= 0) {
+            result.error = "Invalid user_id provided";
+            return result;
+        }
     }
 
     try {
@@ -1206,7 +1213,7 @@ function createTimesheet(instance_id, userid) {
                           sub_task_id, quadrant_id, unit_amount, last_modified, status, timer_type, user_id, has_draft)
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
                 [
-                    instance_id,               // account_id
+                    acctId,                    // account_id
                     Utils.getToday(),      // record_date, fallback to today
                     null,                      // project_id
                     null,                      // task_id
@@ -1218,7 +1225,7 @@ function createTimesheet(instance_id, userid) {
                     timestamp,                 // last_modified
                     "draft",                   // status
                     "manual",                  // timer_type - default to manual
-                    userid                       // user_id
+                    uid                        // user_id
                 ]);
 
             // Retrieve the last inserted ID
@@ -1258,7 +1265,7 @@ function createTimesheet(instance_id, userid) {
 
         var task = null;
         db.readTransaction(function (tx) {
-            var rs = tx.executeSql("SELECT * FROM project_task_app WHERE odoo_record_id = ?", [taskRecordId]);
+            var rs = tx.executeSql("SELECT * FROM project_task_app WHERE (odoo_record_id = ? OR id = ?)", [taskRecordId, taskRecordId]);
             if (rs.rows.length > 0) {
                 task = rs.rows.item(0);
             }
@@ -1269,7 +1276,7 @@ function createTimesheet(instance_id, userid) {
             return result;
         }
 
-        if (!task.project_id || !task.account_id) {
+        if (!task.project_id || task.account_id === undefined || task.account_id === null || task.account_id < 0) {
             result.error = "Task missing required project/account linkage.";
             return result;
         }
@@ -1277,6 +1284,9 @@ function createTimesheet(instance_id, userid) {
         // Always use the current logged-in user for timesheet creation
         // Even if task has an assigned user, the timesheet should belong to who is creating it
         var userId = Accounts.getCurrentUserOdooId(task.account_id);
+        if (task.account_id === 0 && (!userId || userId <= 0)) {
+            userId = 1;
+        }
         if (!userId || userId <= 0) {
             result.error = "Unable to determine current user for account " + task.account_id;
             return result;
@@ -1295,13 +1305,14 @@ function createTimesheet(instance_id, userid) {
 
         // Now update the created empty timesheet with project, task, description, etc.
         var today = Utils.getToday(); // ensure "yyyy-MM-dd"
+        var effectiveTaskId = (task.account_id === 0 || !task.odoo_record_id) ? task.id : task.odoo_record_id;
 
         var timesheet_data = {
             id: timesheetId,
             instance_id: task.account_id,
             record_date: today,
             project: task.project_id,
-            task: task.odoo_record_id || null,
+            task: effectiveTaskId,
             subprojectId: task.sub_project_id || null,
             subTask: null,
             description: "Timesheet (" + today + ") " + (task.name || ""),
@@ -1338,7 +1349,7 @@ function createTimesheetFromProject(projectRecordId) {
     try {
         var project = null;
         db.readTransaction(function (tx) {
-            var rs = tx.executeSql("SELECT * FROM project_project_app WHERE odoo_record_id = ?", [projectRecordId]);
+            var rs = tx.executeSql("SELECT * FROM project_project_app WHERE (odoo_record_id = ? OR id = ?)", [projectRecordId, projectRecordId]);
             if (rs.rows.length > 0) {
                 project = rs.rows.item(0);
                 Logger.debug("Timesheet", "Project data:", JSON.stringify(project))
@@ -1352,7 +1363,7 @@ function createTimesheetFromProject(projectRecordId) {
             return result;
         }
 
-        if (!project.account_id || project.account_id <= 0) {
+        if (project.account_id === undefined || project.account_id === null || project.account_id < 0) {
             result.error = "Project missing required account_id. Current value: " + project.account_id;
             return result;
         }
@@ -1360,6 +1371,9 @@ function createTimesheetFromProject(projectRecordId) {
         // Always use the current logged-in user for timesheet creation
         // Projects don't have assigned users, so use whoever is creating the timesheet
         var userId = Accounts.getCurrentUserOdooId(project.account_id);
+        if (project.account_id === 0 && (!userId || userId <= 0)) {
+            userId = 1;
+        }
         if (!userId || userId <= 0) {
             result.error = "Unable to determine current user for account " + project.account_id;
             return result;
@@ -1375,13 +1389,14 @@ function createTimesheetFromProject(projectRecordId) {
 
         var timesheetId = tsResult.id;
         var today = Utils.getToday();
+        var effectiveProjectId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
 
         // Update timesheet with project data
         var timesheet_data = {
             id: timesheetId,
             instance_id: project.account_id,
             record_date: today,
-            project: project.odoo_record_id,
+            project: effectiveProjectId,
             task: null, // No specific task for project-level timesheet
             subprojectId: null,
             subTask: null,

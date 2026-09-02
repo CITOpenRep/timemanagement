@@ -120,7 +120,10 @@ Page {
         }
 
         const ids = workItem.getIds();
-        const user = Accounts.getCurrentUserOdooId(ids.account_id);
+        var user = Accounts.getCurrentUserOdooId(ids.account_id);
+        if (ids.account_id === 0 && (!user || user <= 0)) {
+            user = 1;
+        }
 
         if (!user) {
             notifPopup.open("Error", "Unable to find the user, cannot save", "error");
@@ -202,7 +205,10 @@ Page {
     // Only requires a project (task can be filled in later before syncing).
     function auto_save_for_timer() {
         const ids = workItem.getIds();
-        const user = Accounts.getCurrentUserOdooId(ids.account_id);
+        var user = Accounts.getCurrentUserOdooId(ids.account_id);
+        if (ids.account_id === 0 && (!user || user <= 0)) {
+            user = 1;
+        }
 
         if (!user) {
             notifPopup.open("Error", "Unable to find the user", "error");
@@ -486,7 +492,7 @@ Page {
             var taskId = normalizeIdForRestore(draftData.taskId);
             var subtaskId = normalizeIdForRestore(draftData.subtaskId);
             
-            if (accountId > 0 || projectId > 0) {
+            if (accountId >= 0 || projectId > 0) {
                 workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, -1);
             }
         }

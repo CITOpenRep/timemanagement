@@ -472,7 +472,8 @@ function deleteAccountAndRelatedData(userId) {
  * @returns {number|null} The `odoo_record_id` of the matched user, or `null` if not found.
  */
 function getCurrentUserOdooId(accountId) {
-    if (accountId === 0) {
+    var parsedAccountId = (accountId !== undefined && accountId !== null) ? parseInt(accountId) : -1;
+    if (parsedAccountId === 0) {
         return 1; // Local account
     }
     let odooId = null;

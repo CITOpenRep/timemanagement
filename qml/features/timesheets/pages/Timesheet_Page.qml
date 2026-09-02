@@ -90,8 +90,15 @@ Page {
                 iconName: "reminder-new"
                 text: "New"
                 onTriggered: {
-                    // Use DEFAULT account for creating new timesheets (not the filter selection)
-                    const result = Model.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
+                    var targetAccountId = (selectedAccountId >= 0) ? selectedAccountId : defaultAccountId;
+                    if (targetAccountId < 0) {
+                        targetAccountId = 0;
+                    }
+                    var targetUserId = Account.getCurrentUserOdooId(targetAccountId);
+                    if (targetAccountId === 0 && (!targetUserId || targetUserId <= 0)) {
+                        targetUserId = 1;
+                    }
+                    const result = Model.createTimesheet(targetAccountId, targetUserId);
                     if (result.success) {
                         apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                             "recordid": result.id,
@@ -361,8 +368,15 @@ Page {
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                // Use DEFAULT account for creating new timesheets (not the filter selection)
-                const result = Model.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
+                var targetAccountId = (selectedAccountId >= 0) ? selectedAccountId : defaultAccountId;
+                if (targetAccountId < 0) {
+                    targetAccountId = 0;
+                }
+                var targetUserId = Account.getCurrentUserOdooId(targetAccountId);
+                if (targetAccountId === 0 && (!targetUserId || targetUserId <= 0)) {
+                    targetUserId = 1;
+                }
+                const result = Model.createTimesheet(targetAccountId, targetUserId);
                 if (result.success) {
                     apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                         "recordid": result.id,
