@@ -110,9 +110,15 @@ Controls.Drawer {
                         Switch {
                             id: localToggleSwitch
                             Layout.alignment: Qt.AlignVCenter
+                            Layout.preferredWidth: units.gu(3.6)
+                            Layout.preferredHeight: units.gu(1.8)
+                            width: units.gu(3.6)
+                            height: units.gu(1.8)
                             checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
                             style: Component {
                                 SwitchStyle {
+                                    implicitWidth: units.gu(3.6)
+                                    implicitHeight: units.gu(1.8)
                                     checkedBackgroundColor: "#ffd8a8"
                                 }
                             }
