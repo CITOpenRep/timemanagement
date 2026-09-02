@@ -2,6 +2,7 @@ import QtQuick 2.6
 import QtQuick.Controls 2.2 as Controls
 import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import "../components"
 import "navigation/NavigationRoutes.js" as NavigationRoutes
 
@@ -110,6 +111,11 @@ Controls.Drawer {
                             id: localToggleSwitch
                             Layout.alignment: Qt.AlignVCenter
                             checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: LomiriColors.orange
+                                }
+                            }
 
                             onClicked: {
                                 if (typeof accountPicker !== "undefined") {

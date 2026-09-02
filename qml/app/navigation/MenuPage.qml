@@ -24,6 +24,7 @@
 
 import QtQuick 2.7
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
@@ -114,6 +115,11 @@ Page {
                 id: localToggleSwitch
                 Layout.alignment: Qt.AlignVCenter
                 checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
+                style: Component {
+                    SwitchStyle {
+                        checkedBackgroundColor: LomiriColors.orange
+                    }
+                }
 
                 onClicked: {
                     if (typeof accountPicker !== "undefined") {
