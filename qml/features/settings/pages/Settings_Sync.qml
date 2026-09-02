@@ -167,7 +167,7 @@ Page {
                             anchors.verticalCenter: parent.verticalCenter
                             style: Component {
                                 SwitchStyle {
-                                    checkedBackgroundColor: "#ffd8a8"
+                                    checkedBackgroundColor: LomiriColors.orange
                                 }
                             }
                             onCheckedChanged: {

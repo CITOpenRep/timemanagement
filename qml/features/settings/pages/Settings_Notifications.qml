@@ -228,7 +228,7 @@ Page {
                             anchors.verticalCenter: parent.verticalCenter
                             style: Component {
                                 SwitchStyle {
-                                    checkedBackgroundColor: "#ffd8a8"
+                                    checkedBackgroundColor: LomiriColors.orange
                                 }
                             }
                             onClicked: {
@@ -313,7 +313,7 @@ Page {
                             anchors.verticalCenter: parent.verticalCenter
                             style: Component {
                                 SwitchStyle {
-                                    checkedBackgroundColor: "#ffd8a8"
+                                    checkedBackgroundColor: LomiriColors.orange
                                 }
                             }
                             onClicked: {

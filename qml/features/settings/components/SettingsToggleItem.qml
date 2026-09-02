@@ -137,7 +137,7 @@ Item {
                     enabled: root.enabled
                     style: Component {
                         SwitchStyle {
-                            checkedBackgroundColor: "#ffd8a8"
+                            checkedBackgroundColor: LomiriColors.orange
                         }
                     }
                     onClicked: {

@@ -126,7 +126,7 @@ Page {
                     SwitchStyle {
                         implicitWidth: units.gu(4.2)
                         implicitHeight: units.gu(2.1)
-                        checkedBackgroundColor: "#ffd8a8"
+                        checkedBackgroundColor: Qt.darker(LomiriColors.orange, 1.35)
                     }
                 }
 

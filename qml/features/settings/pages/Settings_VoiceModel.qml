@@ -740,7 +740,7 @@ Page {
                     checked: isVoiceInputEnabled
                     style: Component {
                         SwitchStyle {
-                            checkedBackgroundColor: "#ffd8a8"
+                            checkedBackgroundColor: LomiriColors.orange
                         }
                     }
                     onCheckedChanged: {
@@ -773,7 +773,7 @@ Page {
                     checked: isVoiceLowMemoryMode
                     style: Component {
                         SwitchStyle {
-                            checkedBackgroundColor: "#ffd8a8"
+                            checkedBackgroundColor: LomiriColors.orange
                         }
                     }
                     onCheckedChanged: {
