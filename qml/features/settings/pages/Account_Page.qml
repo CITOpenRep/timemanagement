@@ -25,6 +25,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import QtQuick.Window 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import io.thp.pyotherside 1.4

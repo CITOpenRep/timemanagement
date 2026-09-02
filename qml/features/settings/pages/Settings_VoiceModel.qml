@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import Lomiri.Components.Popups 1.3
 import QtGraphicalEffects 1.0
 import "../components"
