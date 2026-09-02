@@ -84,7 +84,10 @@ Controls.Drawer {
                                 Label {
                                     id: accountNameLabel
                                     Layout.alignment: Qt.AlignVCenter
-                                    text: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : ""
+                                    text: {
+                                        if (typeof accountPicker === "undefined" || !accountPicker.selectedAccountName) return "";
+                                        return (accountPicker.selectedAccountId === 0 || accountPicker.selectedAccountName === "Local Account") ? "Local" : accountPicker.selectedAccountName;
+                                    }
                                     color: "white"
                                     font.pixelSize: units.dp(13)
                                     font.bold: true
@@ -110,15 +113,15 @@ Controls.Drawer {
                         Switch {
                             id: localToggleSwitch
                             Layout.alignment: Qt.AlignVCenter
-                            Layout.preferredWidth: units.gu(3.6)
-                            Layout.preferredHeight: units.gu(1.8)
-                            width: units.gu(3.6)
-                            height: units.gu(1.8)
+                            Layout.preferredWidth: units.gu(4.2)
+                            Layout.preferredHeight: units.gu(2.1)
+                            width: units.gu(4.2)
+                            height: units.gu(2.1)
                             checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
                             style: Component {
                                 SwitchStyle {
-                                    implicitWidth: units.gu(3.6)
-                                    implicitHeight: units.gu(1.8)
+                                    implicitWidth: units.gu(4.2)
+                                    implicitHeight: units.gu(2.1)
                                     checkedBackgroundColor: "#ffd8a8"
                                 }
                             }

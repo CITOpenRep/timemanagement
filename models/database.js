@@ -116,8 +116,8 @@ function ensureDefaultLocalAccountExists() {
         db.transaction(function (tx) {
             // Step 1: Ensure Local Account Exists
             const result = tx.executeSql(
-                "SELECT id FROM users WHERE id = 0 OR name = ?",
-                ["Local Account"]
+                "SELECT id FROM users WHERE id = 0 OR name = ? OR name = ?",
+                ["Local Account", "Local"]
             );
 
             if (result.rows.length === 0) {
@@ -125,7 +125,7 @@ function ensureDefaultLocalAccountExists() {
                     "INSERT INTO users (id, name, link, last_modified, database, connectwith_id, api_key, username, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     [
                         0,
-                        "Local Account",
+                        "Local",
                         "local://",
                         new Date().toISOString(),
                         "local",
@@ -134,6 +134,10 @@ function ensureDefaultLocalAccountExists() {
                         "local_user",
                         1
                     ]
+                );
+            } else {
+                tx.executeSql(
+                    "UPDATE users SET name = 'Local' WHERE id = 0 AND name = 'Local Account'"
                 );
             }
 

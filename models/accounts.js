@@ -20,7 +20,11 @@ function getAccountsList() {
 
             for (var i = 0; i < accounts.rows.length; i++) {
                 var row = accounts.rows.item(i);
-                accountsList.push(DBCommon.rowToObject(row));
+                var obj = DBCommon.rowToObject(row);
+                if (obj.id === 0 || obj.name === "Local Account") {
+                    obj.name = "Local";
+                }
+                accountsList.push(obj);
             }
         });
 
@@ -595,6 +599,10 @@ function getAccountName(accountId) {
         return "";
     }
 
+    if (Number(accountId) === 0) {
+        return "Local";
+    }
+
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var name = "";
@@ -605,6 +613,10 @@ function getAccountName(accountId) {
                 name = result.rows.item(0).name;
             }
         });
+
+        if (name === "Local Account") {
+            return "Local";
+        }
 
         return name;
     } catch (e) {
