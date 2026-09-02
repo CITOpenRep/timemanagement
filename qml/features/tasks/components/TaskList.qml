@@ -248,11 +248,17 @@ Item {
                 if (typeof selectedId === 'object' && selectedId !== null) {
                     // New format: {user_id: X, account_id: Y}
                     var taskUserIds = parseUserIds(task.user_id);
-                    var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
-                    var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
-                    var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
+                    var taskAccountId = (task.account_id !== undefined && task.account_id !== null && task.account_id !== "") ? parseInt(task.account_id) : null;
+                    var selectedUserId = (selectedId.user_id !== undefined && selectedId.user_id !== null && selectedId.user_id !== "") ? parseInt(selectedId.user_id) : null;
+                    var selectedAccountId = (selectedId.account_id !== undefined && selectedId.account_id !== null && selectedId.account_id !== "") ? parseInt(selectedId.account_id) : null;
 
-                    if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
+                    var userMatches = (taskUserIds.length > 0 && selectedUserId !== null && (
+                        taskUserIds.indexOf(selectedUserId) >= 0 ||
+                        (taskAccountId === 0 && (selectedUserId === 1 || selectedUserId === -1) && (taskUserIds.indexOf(1) >= 0 || taskUserIds.indexOf(-1) >= 0))
+                    ));
+                    var accountMatches = (taskAccountId !== null && selectedAccountId !== null && taskAccountId === selectedAccountId);
+
+                    if (userMatches && accountMatches) {
                         matchesSelectedAssignee = true;
                         break;
                     }

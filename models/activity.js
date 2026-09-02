@@ -1942,11 +1942,11 @@ function getAllActivityAssignees(accountId) {
                         SELECT u.id, u.odoo_record_id, u.name, COALESCE(NULLIF(u.login, ''), NULLIF(u.email, ''), NULLIF(u.work_email, ''), '') as email, u.account_id, a.name as account_name
                         FROM res_users_app u
                         LEFT JOIN users a ON u.account_id = a.id
-                        WHERE u.account_id = ? AND u.odoo_record_id IN (${placeholders})
+                        WHERE u.account_id = ? AND (u.odoo_record_id IN (${placeholders}) OR u.id IN (${placeholders}))
                         ORDER BY u.name COLLATE NOCASE ASC
                     `;
 
-                    var queryParams = [acctId].concat(userIds);
+                    var queryParams = [acctId].concat(userIds).concat(userIds);
                     var userResult = tx.executeSql(userQuery, queryParams);
 
                     for (var k = 0; k < userResult.rows.length; k++) {
