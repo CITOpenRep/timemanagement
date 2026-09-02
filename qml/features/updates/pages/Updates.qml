@@ -740,6 +740,7 @@ Page {
             // Update original data in draft handler
             draftHandler.updateOriginalData(newBaseline);
             
+            isReadOnly = true;
             notifPopup.open("Saved", "Project Update has been saved successfully", "success");
         }
     }

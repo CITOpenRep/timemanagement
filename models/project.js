@@ -253,8 +253,8 @@ function getProjectUpdatesByProject(projectOdooRecordId, accountId) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND project_id = ? AND account_id = ? ORDER BY date DESC";
-            var result = tx.executeSql(query, [projectOdooRecordId, accountId]);
+            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND (project_id = ? OR project_id IN (SELECT odoo_record_id FROM project_project_app WHERE (id = ? OR odoo_record_id = ?) AND account_id = ?)) AND account_id = ? ORDER BY date DESC";
+            var result = tx.executeSql(query, [projectOdooRecordId, projectOdooRecordId, projectOdooRecordId, accountId, accountId]);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -817,8 +817,8 @@ function getProjectUpdatesByProjectPaginated(projectOdooRecordId, accountId, lim
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND project_id = ? AND account_id = ? ORDER BY date DESC LIMIT ? OFFSET ?";
-            var result = tx.executeSql(query, [projectOdooRecordId, accountId, limit, offset]);
+            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND (project_id = ? OR project_id IN (SELECT odoo_record_id FROM project_project_app WHERE (id = ? OR odoo_record_id = ?) AND account_id = ?)) AND account_id = ? ORDER BY date DESC LIMIT ? OFFSET ?";
+            var result = tx.executeSql(query, [projectOdooRecordId, projectOdooRecordId, projectOdooRecordId, accountId, accountId, limit, offset]);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -1399,10 +1399,18 @@ function getProjectName(projectId, accountId) {
         var projectName = "Unknown Project";
 
         db.transaction(function (tx) {
-            var result = tx.executeSql(
-                "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
-                [projectId, accountId]
-            );
+            var result;
+            if (accountId === 0) {
+                result = tx.executeSql(
+                    "SELECT name FROM project_project_app WHERE (id = ? OR odoo_record_id = ?) AND account_id = 0",
+                    [projectId, projectId]
+                );
+            } else {
+                result = tx.executeSql(
+                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ?",
+                    [projectId, projectId, accountId]
+                );
+            }
             if (result.rows.length > 0) {
                 projectName = result.rows.item(0).name;
             }

@@ -859,18 +859,21 @@ Page {
                     text: i18n.dtr("ubtms","Create")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
-                        Global.createUpdateCallback = function(updateData) {
-                            let result = Project.createUpdateSnapShot(updateData);
-                            if (result['is_success'] === false) {
-                                notifPopup.open("Failed", result['message'], "error");
-                            } else {
-                                notifPopup.open("Saved", "Project update has been saved", "success");
-                            }
-                            Global.createUpdateCallback = null;
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
+                        var newUpdate = {
+                            account_id: project.account_id,
+                            project_id: projectRecordId,
+                            name: "",
+                            description: "",
+                            project_status: "on_track",
+                            progress: 0,
+                            user_id: Accounts.getCurrentUserOdooId(project.account_id)
                         };
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../../components/CreateUpdatePage.qml"), {
-                            "projectId": project.odoo_record_id,
-                            "accountId": project.account_id
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../updates/pages/Updates.qml"), {
+                            "recordid": 0,
+                            "accountid": project.account_id,
+                            "currentUpdate": newUpdate,
+                            "isReadOnly": false
                         });
                     }
                 }
@@ -888,9 +891,11 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../updates/pages/Updates_Page.qml"), {
                             "filterByProject": true,
-                            "projectOdooRecordId": project.odoo_record_id,
+                            "projectRecordId": projectRecordId,
+                            "projectOdooRecordId": projectRecordId,
                             "projectAccountId": project.account_id,
                             "projectName": project.name
                         });
