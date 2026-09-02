@@ -455,13 +455,13 @@ Page {
                                     if (!notificationScheduleSection.scheduleActive)
                                         return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "#e0e0e0";
                                     if (isSelected)
-                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d7d46" : "#4CAF50";
+                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? Qt.darker(LomiriColors.orange, 1.15) : LomiriColors.orange;
                                     return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#fff";
                                 }
 
                                 border.color: {
                                     if (isSelected && notificationScheduleSection.scheduleActive)
-                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#388E3C";
+                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? LomiriColors.orange : Qt.darker(LomiriColors.orange, 1.15);
                                     return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#ccc";
                                 }
 
