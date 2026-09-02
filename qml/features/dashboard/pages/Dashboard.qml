@@ -237,10 +237,15 @@ Page {
                 return;
             case 2:
                 Logger.debug("Dashboard", "Dashboard refresh stage 2: additional charts")
-                if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
-                    mobileProjectChartLoader.item.reloadData(sDate, eDate);
-                if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
-                    mobileTaskChartLoader.item.reloadData(sDate, eDate);
+                var activeAccId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : -1;
+                if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function") {
+                    mobileProjectChartLoader.item.selectedAccountId = activeAccId;
+                    mobileProjectChartLoader.item.reloadData(sDate, eDate, activeAccId);
+                }
+                if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function") {
+                    mobileTaskChartLoader.item.selectedAccountId = activeAccId;
+                    mobileTaskChartLoader.item.reloadData(sDate, eDate, activeAccId);
+                }
                 break;
             default:
                 break;
@@ -438,6 +443,8 @@ Page {
                                 onLoaded: {
                                     if (item) {
                                         item.autoRefreshOnAccountChange = false;
+                                        var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+                                        item.selectedAccountId = accId;
                                     }
                                 }
                             }
@@ -452,6 +459,8 @@ Page {
                                 onLoaded: {
                                     if (item) {
                                         item.autoRefreshOnAccountChange = false;
+                                        var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+                                        item.selectedAccountId = accId;
                                     }
                                 }
                             }
@@ -506,9 +515,26 @@ Page {
     }
 
     Connections {
-        target: accountPicker
+        target: typeof accountPicker !== "undefined" ? accountPicker : null
+        onSelectedAccountIdChanged: {
+            if (accountPicker.selectedAccountName) {
+                header.title = i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]";
+            }
+            refreshData();
+        }
         onAccepted: function (accountId, accountName) {
             header.title = i18n.dtr("ubtms", "Account") + " [" + accountName + "]";
+            refreshData();
+        }
+    }
+
+    Connections {
+        target: typeof rootApp !== "undefined" ? rootApp : null
+        onGlobalAccountChanged: function (accountId, accountName) {
+            header.title = i18n.dtr("ubtms", "Account") + " [" + accountName + "]";
+            refreshData();
+        }
+        onAccountDataRefreshRequested: function (accountId) {
             refreshData();
         }
     }

@@ -87,12 +87,27 @@ function get_projects_spent_hours(account, startDate, endDate) {
 
         db.transaction(function (tx) {
             var params = [];
-            var conditions = [];
+            var conditions = [
+                "(a.status IS NULL OR a.status != 'deleted')",
+                "a.unit_amount > 0",
+                "(a.project_id IS NOT NULL OR a.sub_project_id IS NOT NULL)"
+            ];
             var query =
-                "SELECT p.name AS entity_name, SUM(a.unit_amount) AS total, s.name AS stage_name " +
+                "SELECT p.name AS entity_name, parent.name AS parent_name, SUM(a.unit_amount) AS total, s.name AS stage_name " +
                 "FROM account_analytic_line_app a " +
-                "LEFT JOIN project_project_app p ON (p.odoo_record_id = a.project_id OR (a.account_id = 0 AND p.id = a.project_id)) AND p.account_id = a.account_id " +
-                "LEFT JOIN project_project_stage_app s ON s.odoo_record_id = p.stage AND s.account_id = p.account_id ";
+                "JOIN project_project_app p ON (" +
+                "  (p.odoo_record_id = COALESCE(NULLIF(a.sub_project_id, 0), a.project_id) OR " +
+                "   (a.account_id = 0 AND p.id = COALESCE(NULLIF(a.sub_project_id, 0), a.project_id))) " +
+                "  AND p.account_id = a.account_id " +
+                ") " +
+                "LEFT JOIN project_project_app parent ON (" +
+                "  (parent.odoo_record_id = p.parent_id OR (a.account_id = 0 AND parent.id = p.parent_id)) " +
+                "  AND parent.account_id = p.account_id " +
+                ") " +
+                "LEFT JOIN project_project_stage_app s ON (" +
+                "  (s.odoo_record_id = p.stage OR (a.account_id = 0 AND s.id = p.stage)) " +
+                "  AND s.account_id = p.account_id " +
+                ") ";
 
             if (account !== -1 && account !== undefined && account !== null) {
                 conditions.push("a.account_id = ?");
@@ -107,16 +122,13 @@ function get_projects_spent_hours(account, startDate, endDate) {
                 params.push(endDate);
             }
 
-            if (conditions.length > 0) {
-                query += "WHERE " + conditions.join(" AND ") + " ";
-            }
-
-            query += "GROUP BY a.project_id, a.account_id, p.name, s.name ORDER BY total DESC";
+            query += "WHERE " + conditions.join(" AND ") + " ";
+            query += "GROUP BY p.account_id, p.id, p.name, parent.name, s.name ORDER BY total DESC";
 
             var result = tx.executeSql(query, params);
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                var name = row.entity_name || "Unknown Project";
+                var name = row.parent_name ? (row.parent_name + " / " + row.entity_name) : (row.entity_name || "Unknown Project");
                 project_details.push({
                     name: name,
                     total: row.total,
@@ -149,11 +161,18 @@ function get_tasks_spent_hours(account, startDate, endDate) {
 
         db.transaction(function (tx) {
             var params = [];
-            var conditions = [];
+            var conditions = [
+                "(a.status IS NULL OR a.status != 'deleted')",
+                "a.unit_amount > 0",
+                "a.task_id IS NOT NULL"
+            ];
             var query =
                 "SELECT t.name AS entity_name, SUM(a.unit_amount) AS total " +
                 "FROM account_analytic_line_app a " +
-                "LEFT JOIN project_task_app t ON t.id = a.task_id ";
+                "JOIN project_task_app t ON (" +
+                "  (t.odoo_record_id = a.task_id OR (a.account_id = 0 AND t.id = a.task_id)) " +
+                "  AND t.account_id = a.account_id " +
+                ") ";
 
             if (account !== -1 && account !== undefined && account !== null) {
                 conditions.push("a.account_id = ?");
@@ -168,10 +187,7 @@ function get_tasks_spent_hours(account, startDate, endDate) {
                 params.push(endDate);
             }
 
-            if (conditions.length > 0) {
-                query += "WHERE " + conditions.join(" AND ") + " ";
-            }
-
+            query += "WHERE " + conditions.join(" AND ") + " ";
             query += "GROUP BY a.task_id, t.name ORDER BY total DESC";
 
             var result = tx.executeSql(query, params);

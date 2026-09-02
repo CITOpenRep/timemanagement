@@ -1223,11 +1223,20 @@ function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) 
             Logger.debug("Project", "   Aggregating spent hours for ALL accounts")
 
             var sqlAll = "SELECT aal.project_id, aal.account_id, COALESCE(u.name, 'Unknown') AS account_name, " +
-                "COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
+                "COALESCE(p.name, 'Unknown') AS project_name, parent.name AS parent_name, SUM(aal.unit_amount) AS total_spent " +
                 "FROM account_analytic_line_app aal " +
                 "LEFT JOIN users u ON aal.account_id = u.id " +
-                "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
-                "WHERE " + (is_work_state ? "aal.account_id != 0 " : "aal.account_id = 0 ");
+                "JOIN project_project_app p ON (" +
+                "  (p.odoo_record_id = COALESCE(NULLIF(aal.sub_project_id, 0), aal.project_id) OR " +
+                "   (aal.account_id = 0 AND p.id = COALESCE(NULLIF(aal.sub_project_id, 0), aal.project_id))) " +
+                "  AND p.account_id = aal.account_id " +
+                ") " +
+                "LEFT JOIN project_project_app parent ON (" +
+                "  (parent.odoo_record_id = p.parent_id OR (aal.account_id = 0 AND parent.id = p.parent_id)) " +
+                "  AND parent.account_id = p.account_id " +
+                ") " +
+                "WHERE (aal.status IS NULL OR aal.status != 'deleted') AND aal.unit_amount > 0 AND (aal.project_id IS NOT NULL OR aal.sub_project_id IS NOT NULL) " +
+                "AND " + (is_work_state ? "aal.account_id != 0 " : "aal.account_id = 0 ");
             var paramsAll = [];
 
             if (startDate) {
@@ -1239,21 +1248,22 @@ function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) 
                 paramsAll.push(endDate);
             }
 
-            sqlAll += "GROUP BY aal.project_id, aal.account_id, u.name, p.name ORDER BY total_spent DESC";
+            sqlAll += "GROUP BY aal.project_id, aal.account_id, u.name, p.id, p.name, parent.name ORDER BY total_spent DESC";
 
             result = tx.executeSql(sqlAll, paramsAll);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                var projectName = row.project_name || "Unknown";
+                var baseProjectName = row.project_name || "Unknown";
+                var fullProjectName = row.parent_name ? (row.parent_name + " / " + baseProjectName) : baseProjectName;
                 var accountName = row.account_name || "Unknown";
                 resultList.push({
                     project_id: row.project_id,
-                    name: projectName + " (" + accountName + ")",
+                    name: fullProjectName + " (" + accountName + ")",
                     spentHours: parseFloat((parseFloat(row.total_spent || 0)).toFixed(1)),
                     account_id: row.account_id,
                     account_name: accountName,
-                    original_project_name: projectName
+                    original_project_name: fullProjectName
                 });
             }
 
@@ -1267,10 +1277,18 @@ function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) 
 
             Logger.debug("Project", "   Aggregating spent hours for single account:", acctNum)
 
-            var sqlSingle = "SELECT aal.project_id, COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
+            var sqlSingle = "SELECT aal.project_id, COALESCE(p.name, 'Unknown') AS project_name, parent.name AS parent_name, SUM(aal.unit_amount) AS total_spent " +
                 "FROM account_analytic_line_app aal " +
-                "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
-                "WHERE aal.account_id = ? ";
+                "JOIN project_project_app p ON (" +
+                "  (p.odoo_record_id = COALESCE(NULLIF(aal.sub_project_id, 0), aal.project_id) OR " +
+                "   (aal.account_id = 0 AND p.id = COALESCE(NULLIF(aal.sub_project_id, 0), aal.project_id))) " +
+                "  AND p.account_id = aal.account_id " +
+                ") " +
+                "LEFT JOIN project_project_app parent ON (" +
+                "  (parent.odoo_record_id = p.parent_id OR (aal.account_id = 0 AND parent.id = p.parent_id)) " +
+                "  AND parent.account_id = p.account_id " +
+                ") " +
+                "WHERE aal.account_id = ? AND (aal.status IS NULL OR aal.status != 'deleted') AND aal.unit_amount > 0 AND (aal.project_id IS NOT NULL OR aal.sub_project_id IS NOT NULL) ";
             var paramsSingle = [acctNum];
 
             if (startDate) {
@@ -1282,20 +1300,21 @@ function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) 
                 paramsSingle.push(endDate);
             }
 
-            sqlSingle += "GROUP BY aal.project_id, p.name ORDER BY total_spent DESC";
+            sqlSingle += "GROUP BY aal.project_id, p.id, p.name, parent.name ORDER BY total_spent DESC";
 
             result = tx.executeSql(sqlSingle, paramsSingle);
 
             for (var j = 0; j < result.rows.length; j++) {
                 var r = result.rows.item(j);
-                var projectNameSingle = r.project_name || "Unknown";
+                var baseProjectNameSingle = r.project_name || "Unknown";
+                var fullProjectNameSingle = r.parent_name ? (r.parent_name + " / " + baseProjectNameSingle) : baseProjectNameSingle;
                 resultList.push({
                     project_id: r.project_id,
-                    name: projectNameSingle,
+                    name: fullProjectNameSingle,
                     spentHours: parseFloat((parseFloat(r.total_spent || 0)).toFixed(1)),
                     account_id: acctNum,
                     account_name: undefined,
-                    original_project_name: projectNameSingle
+                    original_project_name: fullProjectNameSingle
                 });
             }
         }
@@ -1342,18 +1361,19 @@ function getDashboardProjectTaskSummary(accountId, startDate, endDate) {
             var query =
                 "SELECT " +
                 "p.account_id, p.odoo_record_id, p.id AS local_id, p.name, p.color_pallet, s.name AS stage_name, " +
-                "COUNT(t.id) AS task_count, COALESCE(SUM(ts.total_hours), 0) AS total_hours " +
+                "COUNT(DISTINCT t.id) AS task_count, COALESCE(SUM(ts.total_hours), 0) AS total_hours " +
                 "FROM project_project_app p " +
-                "LEFT JOIN project_project_stage_app s ON s.odoo_record_id = p.stage AND s.account_id = p.account_id " +
+                "LEFT JOIN project_project_stage_app s ON (s.odoo_record_id = p.stage OR (p.account_id = 0 AND s.id = p.stage)) AND s.account_id = p.account_id " +
                 "LEFT JOIN project_task_app t ON t.account_id = p.account_id " +
-                "AND t.project_id = p.odoo_record_id " +
+                "AND ((p.odoo_record_id IS NOT NULL AND (t.project_id = p.odoo_record_id OR t.sub_project_id = p.odoo_record_id)) " +
+                "     OR (p.account_id = 0 AND (t.project_id = p.id OR t.sub_project_id = p.id))) " +
                 "AND (t.status IS NULL OR t.status != 'deleted') " +
                 "LEFT JOIN ( " +
                 "SELECT account_id, task_id, SUM(unit_amount) AS total_hours " +
                 "FROM account_analytic_line_app " +
                 "WHERE " + tsConditions.join(" AND ") + " " +
                 "GROUP BY account_id, task_id " +
-                ") ts ON ts.account_id = t.account_id AND ts.task_id = t.odoo_record_id " +
+                ") ts ON ts.account_id = t.account_id AND (ts.task_id = t.odoo_record_id OR (t.account_id = 0 AND ts.task_id = t.id)) " +
                 accountWhere +
                 "GROUP BY p.account_id, p.odoo_record_id, p.id, p.name, p.color_pallet, s.name " +
                 "ORDER BY total_hours DESC, p.name COLLATE NOCASE ASC";
@@ -1363,7 +1383,7 @@ function getDashboardProjectTaskSummary(accountId, startDate, endDate) {
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
                 resultList.push({
-                    id: String(row.account_id) + ":" + String(row.odoo_record_id),
+                    id: String(row.account_id) + ":" + String(row.odoo_record_id || row.local_id),
                     accountId: row.account_id,
                     odooRecordId: row.odoo_record_id,
                     localId: row.local_id,

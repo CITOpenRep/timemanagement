@@ -2953,7 +2953,7 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
             var dateCondition = "";
             
             if (startDate || endDate) {
-                dateJoin = " INNER JOIN account_analytic_line_app al ON al.task_id = t.odoo_record_id AND al.account_id = t.account_id AND (al.status != 'deleted' OR al.status IS NULL) ";
+                dateJoin = " INNER JOIN account_analytic_line_app al ON (al.task_id = t.odoo_record_id OR (t.account_id = 0 AND al.task_id = t.id)) AND al.account_id = t.account_id AND (al.status != 'deleted' OR al.status IS NULL) ";
                 var dateFilters = [];
                 if (startDate) {
                     dateFilters.push("DATE(al.record_date) >= DATE(?)");
@@ -2999,19 +2999,21 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
             var result = tx.executeSql(query, params);
 
             // Build a map of project colors for efficient lookup
-            var projectColorQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?";
+            var projectColorQuery = "SELECT id, odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?";
             var projectColorResult = tx.executeSql(projectColorQuery, [accountId]);
             var projectMap = {};
             for (var j = 0; j < projectColorResult.rows.length; j++) {
                 var projectRow = projectColorResult.rows.item(j);
-                projectMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+                if (projectRow.odoo_record_id) projectMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+                if (projectRow.id) projectMap[projectRow.id] = projectRow.color_pallet;
             }
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
 
                 // Calculate spent hours for this task
-                var spentParams = [row.odoo_record_id, accountId];
+                var effectiveTaskId = (accountId === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
+                var spentParams = [effectiveTaskId, accountId];
                 var spentCondition = "";
                 if (startDate) {
                     spentCondition += " AND DATE(record_date) >= DATE(?)";
