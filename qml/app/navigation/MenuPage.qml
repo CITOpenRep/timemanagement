@@ -66,29 +66,36 @@ Page {
             }
 
             // Account Selector button with Account label adjacent to icon
-            RowLayout {
+            Item {
                 id: accountBtn
-                spacing: units.gu(0.5)
+                implicitWidth: accountRow.implicitWidth
+                implicitHeight: accountRow.implicitHeight
                 Layout.alignment: Qt.AlignVCenter
 
-                Icon {
-                    name: "account"
-                    width: units.gu(2.4)
-                    height: units.gu(2.4)
-                    color: "white"
-                    Layout.alignment: Qt.AlignVCenter
-                }
+                RowLayout {
+                    id: accountRow
+                    anchors.fill: parent
+                    spacing: units.gu(0.5)
 
-                Label {
-                    id: accountLabel
-                    Layout.alignment: Qt.AlignVCenter
-                    text: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : ""
-                    color: "white"
-                    font.pixelSize: units.dp(13)
-                    font.bold: true
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-                    Layout.maximumWidth: units.gu(12)
+                    Icon {
+                        name: "account"
+                        width: units.gu(2.4)
+                        height: units.gu(2.4)
+                        color: "white"
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Label {
+                        id: accountLabel
+                        Layout.alignment: Qt.AlignVCenter
+                        text: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : ""
+                        color: "white"
+                        font.pixelSize: units.dp(13)
+                        font.bold: true
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                        Layout.maximumWidth: units.gu(10)
+                    }
                 }
 
                 MouseArea {
@@ -98,6 +105,18 @@ Page {
                         if (typeof accountPicker !== "undefined") {
                             accountPicker.open(accountPicker.selectedAccountId);
                         }
+                    }
+                }
+            }
+
+            // Local Account Toggle Switch
+            Switch {
+                id: localToggleSwitch
+                Layout.alignment: Qt.AlignVCenter
+                checked: typeof accountPicker !== "undefined" && accountPicker.selectedAccountId === 0
+                onClicked: {
+                    if (typeof accountPicker !== "undefined") {
+                        accountPicker.toggleLocalMode(checked);
                     }
                 }
             }

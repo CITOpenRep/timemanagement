@@ -140,6 +140,37 @@ function getDefaultAccountId() {
 
 
 /**
+ * Retrieves the ID of the default remote account (id > 0), or the first remote account.
+ *
+ * @returns {number} The remote account ID, or -1 if no remote account exists.
+ */
+function getDefaultRemoteAccountId() {
+    var remoteId = -1;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var res = tx.executeSql("SELECT id FROM users WHERE is_default = 1 AND id > 0 LIMIT 1");
+            if (res.rows.length > 0) {
+                remoteId = res.rows.item(0).id;
+            } else {
+                var fallback = tx.executeSql("SELECT id FROM users WHERE id > 0 ORDER BY id ASC LIMIT 1");
+                if (fallback.rows.length > 0) {
+                    remoteId = fallback.rows.item(0).id;
+                }
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+
+    return remoteId;
+}
+
+
+/**
  * Retrieves a list of Odoo users associated with the given account ID.
  *
  * @param {number} accountId - The ID of the account to filter users by.

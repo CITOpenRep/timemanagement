@@ -24,6 +24,15 @@ Item {
     /** Persist last accepted choice (set when user taps an account) */
     property int selectedAccountId: Accounts.getDefaultAccountId()
     property string selectedAccountName: Accounts.getAccountName(Accounts.getDefaultAccountId())
+    property int lastRemoteAccountId: -1
+
+    Component.onCompleted: {
+        if (selectedAccountId > 0) {
+            lastRemoteAccountId = selectedAccountId
+        } else {
+            lastRemoteAccountId = Accounts.getDefaultRemoteAccountId()
+        }
+    }
 
     signal accepted(int accountId, string accountName)
     signal canceled()
@@ -35,6 +44,26 @@ Item {
     function open(initialAccountId) {
         _initialAccountId = (typeof initialAccountId === "number") ? initialAccountId : -2
         PopupUtils.open(dialogComponent)
+    }
+
+    /** Toggle between Local Account (0) and last active remote account */
+    function toggleLocalMode(enableLocal) {
+        if (enableLocal) {
+            if (selectedAccountId !== 0) {
+                selectedAccountId = 0
+                selectedAccountName = Accounts.getAccountName(0)
+                accepted(0, selectedAccountName)
+            }
+        } else {
+            var targetId = lastRemoteAccountId > 0 ? lastRemoteAccountId : Accounts.getDefaultRemoteAccountId()
+            if (targetId > 0 && selectedAccountId !== targetId) {
+                selectedAccountId = targetId
+                selectedAccountName = Accounts.getAccountName(targetId)
+                accepted(targetId, selectedAccountName)
+            } else if (targetId <= 0) {
+                open(selectedAccountId)
+            }
+        }
     }
 
     // ---------- Private ----------
@@ -178,6 +207,9 @@ Item {
                             onClicked: {
                                 var accountId = model.accountId
                                 var accountName = model.name
+                                if (accountId > 0) {
+                                    root.lastRemoteAccountId = accountId
+                                }
                                 root.selectedAccountId = accountId
                                 root.selectedAccountName = accountName
                                 PopupUtils.close(dlg)
