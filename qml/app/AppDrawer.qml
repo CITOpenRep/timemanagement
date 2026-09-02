@@ -113,7 +113,7 @@ Controls.Drawer {
                             checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
                             style: Component {
                                 SwitchStyle {
-                                    checkedBackgroundColor: "#FFA766"
+                                    checkedBackgroundColor: "#fff1de"
                                 }
                             }
 
