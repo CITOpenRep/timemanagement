@@ -225,6 +225,11 @@ Page {
                             checked: notificationSettingsPage.notificationsEnabled && !notificationSettingsPage.isSyncUploadOnly
                             enabled: !notificationSettingsPage.isSyncUploadOnly
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: "#ffd8a8"
+                                }
+                            }
                             onClicked: {
                                 notificationSettingsPage.notificationsEnabled = checked;
                                 saveAutoSyncSetting("notifications_enabled", checked ? "true" : "false");
@@ -305,6 +310,11 @@ Page {
                             checked: getAutoSyncSetting("notification_schedule_enabled") === "true"
                             enabled: notificationSettingsPage.notificationsEffectivelyEnabled
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: "#ffd8a8"
+                                }
+                            }
                             onClicked: {
                                 saveAutoSyncSetting("notification_schedule_enabled", checked ? "true" : "false");
                             }

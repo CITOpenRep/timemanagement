@@ -601,6 +601,11 @@ Page {
                             checked: useCustomSyncSettings
                             enabled: !isReadOnly
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: "#ffd8a8"
+                                }
+                            }
                             onCheckedChanged: {
                                 useCustomSyncSettings = checked;
                             }
@@ -635,6 +640,11 @@ Page {
                             checked: true
                             enabled: !isReadOnly
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: "#ffd8a8"
+                                }
+                            }
                         }
                     }
 

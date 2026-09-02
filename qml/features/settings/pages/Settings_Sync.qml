@@ -164,6 +164,11 @@ Page {
                             id: autoSyncSwitch
                             checked: getAutoSyncSetting("autosync_enabled") === "true"
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: "#ffd8a8"
+                                }
+                            }
                             onCheckedChanged: {
                                 saveAutoSyncSetting("autosync_enabled", checked ? "true" : "false");
                             }

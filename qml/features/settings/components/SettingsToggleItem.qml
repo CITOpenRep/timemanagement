@@ -134,6 +134,11 @@ Item {
                     anchors.centerIn: parent
                     checked: root.checked
                     enabled: root.enabled
+                    style: Component {
+                        SwitchStyle {
+                            checkedBackgroundColor: "#ffd8a8"
+                        }
+                    }
                     onClicked: {
                         root.checked = checked;
                         root.toggled(checked);

@@ -737,6 +737,11 @@ Page {
                     anchors.rightMargin: units.gu(2)
                     anchors.verticalCenter: parent.verticalCenter
                     checked: isVoiceInputEnabled
+                    style: Component {
+                        SwitchStyle {
+                            checkedBackgroundColor: "#ffd8a8"
+                        }
+                    }
                     onCheckedChanged: {
                         if (checked !== isVoiceInputEnabled) {
                             saveVoiceInputEnabledSetting(checked);
@@ -765,6 +770,11 @@ Page {
                     anchors.rightMargin: units.gu(2)
                     anchors.verticalCenter: parent.verticalCenter
                     checked: isVoiceLowMemoryMode
+                    style: Component {
+                        SwitchStyle {
+                            checkedBackgroundColor: "#ffd8a8"
+                        }
+                    }
                     onCheckedChanged: {
                         if (checked !== isVoiceLowMemoryMode) {
                             saveVoiceLowMemoryModeSetting(checked);
