@@ -117,7 +117,7 @@ Page {
                 checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
                 style: Component {
                     SwitchStyle {
-                        checkedBackgroundColor: "#fff1de"
+                        checkedBackgroundColor: "#ffd8a8"
                     }
                 }
 
