@@ -65,7 +65,7 @@ Page {
 
         trailingActionBar.actions: [
             Action {
-                iconSource: "../../../images/save.svg"
+                iconName: "tick"
                 text: i18n.dtr("ubtms", "Save")
                 visible: !isReadOnly
                 onTriggered: {

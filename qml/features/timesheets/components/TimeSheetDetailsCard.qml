@@ -164,7 +164,7 @@ ListItem {
             Action {
                 id: readyAction
                 visible: (recordId !== TimerService.getActiveTimesheetId()) //Dont show this for the active running entry
-                iconSource: "../../../images/save.svg"
+                iconName: "tick"
                 text: i18n.dtr("ubtms", "Mark Ready for Sync")
                 onTriggered: {
                     save_workflow();
