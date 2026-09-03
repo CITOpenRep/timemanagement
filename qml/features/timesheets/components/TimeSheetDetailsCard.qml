@@ -44,6 +44,7 @@ ListItem {
     property string spentHours: "0"
     property string quadrant: "Do"
     property int recordId: -1
+    property int accountId: -1
     property string status: ""
     property bool timer_on: false
     property bool timer_paused: false
@@ -163,7 +164,7 @@ ListItem {
             },
             Action {
                 id: readyAction
-                visible: (recordId !== TimerService.getActiveTimesheetId()) //Dont show this for the active running entry
+                visible: (recordId !== TimerService.getActiveTimesheetId()) && status !== "saved" && status !== "updated" && status !== "synced" && (accountId > 0 || (accountId < 0 && instance !== "Local" && instance !== "local"))
                 iconName: "tick"
                 text: i18n.dtr("ubtms", "Mark Ready for Sync")
                 onTriggered: {

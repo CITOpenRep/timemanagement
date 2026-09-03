@@ -168,7 +168,7 @@ Page {
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
             'timer_type': isTimerActive ? "automatic" : "manual",
-            'status': isTimerActive ? "active" : (currentStatus === "ready" || currentStatus === "updated" ? currentStatus : "draft")
+            'status': isTimerActive ? "active" : (currentStatus === "ready" || currentStatus === "updated" || currentStatus === "saved" ? currentStatus : "draft")
         };
         if (recordid && recordid !== 0) {
             timesheet_data.id = recordid;

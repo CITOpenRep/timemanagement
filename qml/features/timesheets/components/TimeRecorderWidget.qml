@@ -225,9 +225,14 @@ Item {
 
                         const result = TimeSheet.markTimesheetAsReadyById(timesheetId);
                         if (!result.success) {
-                            notifPopup.open("Error", "Both Project and Task must be selected before finalizing", "error");
+                            notifPopup.open("Error", result.error || "Both Project and Task must be selected before finalizing", "error");
                         } else {
-                            notifPopup.open("Saved", "Timesheet has been finalised successfully", "success");
+                            var accountId = TimeSheet.getTimesheetAccountId ? TimeSheet.getTimesheetAccountId(timesheetId) : -1;
+                            if (accountId === 0) {
+                                notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
+                            } else {
+                                notifPopup.open("Saved", "Timesheet has been finalised successfully", "success");
+                            }
                         }
                     }
                 }

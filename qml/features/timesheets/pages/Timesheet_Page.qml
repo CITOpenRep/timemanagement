@@ -261,10 +261,11 @@ Page {
                 'name': t.name,
                 'id': t.id,
                 'instance': t.instance,
+                'account_id': t.account_id !== undefined ? t.account_id : -1,
                 'project': t.project,
                 'spentHours': t.spentHours,
                 'quadrant': t.quadrant || "Do",
-                'task': t.task || "Unknown Task",
+                'task': t.task || "",
                 'date': t.date,
                 'user': t.user,
                 'status': t.status,
@@ -317,6 +318,7 @@ Page {
             width: parent.width
             name: model.name
             instance: model.instance
+            accountId: model.account_id
             project: model.project
             spentHours: model.spentHours
             date: model.date || ""
