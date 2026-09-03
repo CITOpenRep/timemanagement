@@ -93,7 +93,6 @@ Item {
                         NumberAnimation {
                             duration: 180 + (repeater.count - 1 - index) * 35
                             easing.type: Easing.OutBack
-                            overshoot: 1.15
                         }
                     }
                 }
@@ -110,7 +109,6 @@ Item {
                     NumberAnimation {
                         duration: 180 + (repeater.count - 1 - index) * 35
                         easing.type: Easing.OutBack
-                        overshoot: 1.1
                     }
                 }
 
@@ -250,7 +248,7 @@ Item {
                         NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
                     }
                     Behavior on rotation {
-                        NumberAnimation { duration: 220; easing.type: Easing.OutBack; overshoot: 1.1 }
+                        NumberAnimation { duration: 220; easing.type: Easing.OutBack }
                     }
 
                     Icon {
@@ -277,7 +275,7 @@ Item {
                         NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
                     }
                     Behavior on rotation {
-                        NumberAnimation { duration: 220; easing.type: Easing.OutBack; overshoot: 1.1 }
+                        NumberAnimation { duration: 220; easing.type: Easing.OutBack }
                     }
 
                     Icon {
