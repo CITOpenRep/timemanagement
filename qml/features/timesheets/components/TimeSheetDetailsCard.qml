@@ -78,8 +78,13 @@ ListItem {
     }
 
     function stop_workflow() {
-        if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId()))
+        if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId())) {
             TimerService.stop();
+            if (accountId === 0 || instance === "Local" || instance === "local") {
+                Timesheet.markTimesheetAsSavedById(recordId);
+            }
+            timesheetItem.refresh();
+        }
     }
 
     function save_workflow() {
@@ -88,10 +93,14 @@ ListItem {
         }
         const result = Timesheet.markTimesheetAsReadyById(recordId);
         if (result.success) {
-            notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
+            if (accountId === 0 || instance === "Local" || instance === "local") {
+                notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
+            } else {
+                notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
+            }
             timesheetItem.refresh();
         } else {
-            notifPopup.open("Update needed", "Both Project and Task must be selected before syncing", "error");
+            notifPopup.open("Update needed", result.error || "Both Project and Task must be selected before syncing", "error");
         }
     }
 

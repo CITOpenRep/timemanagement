@@ -40,6 +40,7 @@ Item {
     property string timesheetName: ""
     property string elapsedTime: ""
     property bool hasTask: false
+    property bool isLocalAccount: false
 
     // Signals
     signal saved(string description, string status)
@@ -109,7 +110,7 @@ Item {
 
                 // Help text
                 Label {
-                    text: popupWrapper.hasTask ? "• Save: Keeps timesheet as draft for later editing\n• Finalize: Marks timesheet as ready for sync" : "• Save: Keeps timesheet as draft for later editing\n• Note: Finalize is only available for timesheets with tasks"
+                    text: popupWrapper.isLocalAccount ? "• Save as Draft: Keeps timesheet as draft for later editing\n• Finalize: Marks timesheet as saved" : (popupWrapper.hasTask ? "• Save: Keeps timesheet as draft for later editing\n• Finalize: Marks timesheet as ready for sync" : "• Save: Keeps timesheet as draft for later editing\n• Note: Finalize is only available for timesheets with tasks")
                     color: theme.palette.normal.backgroundText
                     opacity: 0.7
                     font.pixelSize: units.gu(1.8)
@@ -131,27 +132,27 @@ Item {
                         PopupUtils.close(popupDialog);
                     } else {
                         console.error("Failed to save timesheet:", result.error);
-                        // Could show an error notification here
+                        popupWrapper.finalized(false, result.error || "Failed to save draft");
                     }
                 }
             }
 
             Button {
                 id: finalizeButton
-                text: "Finalize"
+                text: popupWrapper.isLocalAccount ? "Save & Finalize" : "Finalize"
                 color: LomiriColors.green
-                visible: popupWrapper.hasTask
+                visible: popupWrapper.isLocalAccount || popupWrapper.hasTask
                 onClicked: {
                     var description = descriptionText.text.trim();
-                    var result = updateTimesheetDescription(description, "updated");
+                    var targetStatus = popupWrapper.isLocalAccount ? "saved" : "updated";
+                    var result = updateTimesheetDescription(description, targetStatus);
                     if (result.success) {
-                        popupWrapper.saved(description, "updated");
-                        popupWrapper.finalized(true, "Timesheet is now ready to be synced to Odoo");
+                        popupWrapper.saved(description, targetStatus);
+                        popupWrapper.finalized(true, popupWrapper.isLocalAccount ? "Timesheet has been saved successfully" : "Timesheet is now ready to be synced to Odoo");
                         PopupUtils.close(popupDialog);
                     } else {
                         console.error("Failed to finalize timesheet:", result.error);
                         popupWrapper.finalized(false, result.error || "Both Project and Task must be selected before syncing");
-                        // Don't close popup on error to allow user to fix issues
                     }
                 }
             }
@@ -181,7 +182,7 @@ Item {
             var currentDetails = Model.getTimeSheetDetails(popupWrapper.timesheetId);
             console.log("TimeSheetDescriptionPopup: Retrieved timesheet details:", JSON.stringify(currentDetails));
 
-            if (!currentDetails || !currentDetails.instance_id) {
+            if (!currentDetails || currentDetails.instance_id === undefined || currentDetails.instance_id === null) {
                 return {
                     success: false,
                     error: "Could not retrieve timesheet details"
@@ -190,7 +191,9 @@ Item {
 
             // Determine user_id with fallback
             var userId = currentDetails.user_id;
-            if (!userId || userId <= 0) {
+            if (currentDetails.instance_id === 0) {
+                if (!userId || userId <= 0) userId = 1;
+            } else if (!userId || userId <= 0) {
                 userId = Accounts.getCurrentUserOdooId(currentDetails.instance_id);
                 console.log("TimeSheetDescriptionPopup: Using fallback current user:", userId);
             } else {
@@ -220,11 +223,15 @@ Item {
             console.log("TimeSheetDescriptionPopup: Saving timesheet data:", JSON.stringify(timesheet_data));
 
             // Use the appropriate function based on status
-            if (status === "updated") {
-                // For finalize: first save the description, then mark as ready
+            if (status === "updated" || status === "saved") {
+                // For finalize: first save the description, then mark as ready/saved
                 var saveResult = Model.saveTimesheet(timesheet_data);
                 if (saveResult.success) {
-                    return Model.markTimesheetAsReadyById(popupWrapper.timesheetId);
+                    if (currentDetails.instance_id === 0 || status === "saved") {
+                        return Model.markTimesheetAsSavedById(popupWrapper.timesheetId);
+                    } else {
+                        return Model.markTimesheetAsReadyById(popupWrapper.timesheetId);
+                    }
                 } else {
                     return saveResult;
                 }
@@ -251,9 +258,11 @@ Item {
         // Check if timesheet has a task to determine if Finalize button should be shown
         if (popupWrapper.timesheetId > 0) {
             var timesheetDetails = Model.getTimeSheetDetails(popupWrapper.timesheetId);
+            popupWrapper.isLocalAccount = (timesheetDetails.instance_id === 0);
             popupWrapper.hasTask = (timesheetDetails.task_id && timesheetDetails.task_id > 0) || (timesheetDetails.sub_task_id && timesheetDetails.sub_task_id > 0);
-            console.log("TimeSheetDescriptionPopup: Timesheet", popupWrapper.timesheetId, "hasTask:", popupWrapper.hasTask, "task_id:", timesheetDetails.task_id, "sub_task_id:", timesheetDetails.sub_task_id);
+            console.log("TimeSheetDescriptionPopup: Timesheet", popupWrapper.timesheetId, "isLocalAccount:", popupWrapper.isLocalAccount, "hasTask:", popupWrapper.hasTask, "task_id:", timesheetDetails.task_id, "sub_task_id:", timesheetDetails.sub_task_id);
         } else {
+            popupWrapper.isLocalAccount = false;
             popupWrapper.hasTask = false;
         }
 

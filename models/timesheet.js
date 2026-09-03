@@ -1054,6 +1054,8 @@ function getTimeSheetDetails(record_id, accountId) {
                 timesheet_detail = {
                     'id': row.id,
                     'instance_id': row.account_id,
+                    'account_id': row.account_id,
+                    'status': row.status || 'draft',
                     'project_id': row.project_id,
                     'sub_project_id': row.sub_project_id,
                     'task_id': row.task_id,
@@ -1121,6 +1123,8 @@ function getTimeSheetDetailsByOdooId(odoo_record_id, accountId) {
                 timesheet_detail = {
                     'id': row.id,
                     'instance_id': row.account_id,
+                    'account_id': row.account_id,
+                    'status': row.status || 'draft',
                     'project_id': row.project_id,
                     'sub_project_id': row.sub_project_id,
                     'task_id': row.task_id,
@@ -1191,7 +1195,7 @@ function saveTimesheet(data) {
                           has_draft = 0
                           WHERE id = ?`,
                 [
-                    (data.instance_id !== undefined && data.instance_id !== null) ? data.instance_id : null,
+                    (data.instance_id !== undefined && data.instance_id !== null) ? data.instance_id : ((data.account_id !== undefined && data.account_id !== null) ? data.account_id : null),
                     data.record_date || Utils.getToday(),
                     data.project || null,
                     data.task || null,
@@ -1203,7 +1207,7 @@ function saveTimesheet(data) {
                     timestamp,
                     data.status || "draft",
                     data.timer_type || "manual",
-                    (data.user_id !== undefined && data.user_id !== null && data.user_id !== "") ? data.user_id : (data.instance_id === 0 ? 1 : null),
+                    (data.user_id !== undefined && data.user_id !== null && data.user_id !== "") ? data.user_id : ((data.instance_id === 0 || data.account_id === 0) ? 1 : null),
                     data.id
                 ]);
 
@@ -1563,7 +1567,8 @@ function getTimesheetAccountId(timesheetId) {
         db.readTransaction(function (tx) {
             var rs = tx.executeSql("SELECT account_id FROM account_analytic_line_app WHERE id = ? LIMIT 1", [timesheetId]);
             if (rs.rows.length > 0) {
-                accountId = rs.rows.item(0).account_id;
+                var raw = rs.rows.item(0).account_id;
+                accountId = (raw !== undefined && raw !== null) ? parseInt(raw) : 0;
             }
         });
     } catch (e) {

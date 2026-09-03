@@ -25,6 +25,26 @@ Item {
     property int timesheetId: 0
     signal invalidtimesheet
     signal requestAutoSave
+    signal beforeStop
+    signal stopped
+
+    onTimesheetIdChanged: {
+        syncTimerState();
+    }
+
+    function syncTimerState() {
+        if (timesheetId > 0 && timesheetId === TimerService.getActiveTimesheetId()) {
+            isRecording = TimerService.isRunning() && !TimerService.isPaused();
+            autoMode = true;
+            timeDisplay.text = TimerService.getElapsedTime();
+            elapsedTime = timeDisplay.text;
+        } else if (timesheetId > 0) {
+            isRecording = false;
+            var savedTime = TimeSheet.getTimesheetUnitAmount(timesheetId);
+            timeDisplay.text = Utils.convertDecimalHoursToHHMM(savedTime);
+            elapsedTime = timeDisplay.text;
+        }
+    }
 
     function tryStartTimer() {
         if (timesheetId <= 0) {
@@ -50,10 +70,16 @@ Item {
         target: globalTimerWidget
 
         onTimerStopped: {
-            updateTimer.running = false;
+            syncTimerState();
         }
         onTimerStarted: {
-            updateTimer.running = true;
+            syncTimerState();
+        }
+        onTimerPaused: {
+            syncTimerState();
+        }
+        onTimerResumed: {
+            syncTimerState();
         }
     }
 
@@ -219,6 +245,8 @@ Item {
                             return;
                         }
 
+                        autoRecorder.beforeStop();
+
                         if (TimerService.isRunning() && TimerService.getActiveTimesheetId() === timesheetId) {
                             TimerService.stop();
                         }
@@ -234,6 +262,8 @@ Item {
                                 notifPopup.open("Saved", "Timesheet has been finalised successfully", "success");
                             }
                         }
+
+                        autoRecorder.stopped();
                     }
                 }
             }
@@ -266,14 +296,6 @@ Item {
     }
 
     Component.onCompleted: {
-        if (timesheetId > 0 && timesheetId === TimerService.getActiveTimesheetId()) {
-            isRecording = true;
-            autoMode = true;
-            if (autoMode)
-                updateTimer.start();
-        } else {
-            isRecording = false;
-            updateTimer.stop();
-        }
+        syncTimerState();
     }
 }

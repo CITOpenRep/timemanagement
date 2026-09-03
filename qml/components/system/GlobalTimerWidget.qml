@@ -518,7 +518,11 @@ Rectangle {
 
         onSaved: function (description, status) {
             Logger.debug("GlobalTimerWidget", "Timesheet description saved:", description, "Status:", status)
+            var targetId = descriptionPopup.timesheetId;
             TimerService.stop();
+            if (status === "saved" && targetId > 0) {
+                Model.markTimesheetAsSavedById(targetId);
+            }
         }
 
         onFinalized: function (success, message) {
