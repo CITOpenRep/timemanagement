@@ -414,7 +414,8 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: i18n.dtr("ubtms", "Task")
+                label: i18n.dtr("ubtms", "Create Task"),
+                iconName: "add"
             }
         ]
         onMenuItemSelected: {

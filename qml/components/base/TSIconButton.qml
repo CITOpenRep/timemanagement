@@ -23,6 +23,7 @@
  */
 import QtQuick 2.7
 import QtQuick.Controls 2.2
+import QtGraphicalEffects 1.0
 import Lomiri.Components 1.3
 import "../../../models/constants.js" as AppConst
 import ".."
@@ -65,13 +66,20 @@ Item {
         // }
 
         Icon {
+            id: iconItem
             visible: root.iconName !== ""
             name: root.iconName
             anchors.centerIn: parent
             width: root.iconSize
             height: root.iconSize
             color: root.fgColor
-            // font.bold: root.iconBold
+        }
+
+        ColorOverlay {
+            anchors.fill: iconItem
+            source: iconItem
+            color: root.fgColor
+            visible: root.iconName !== "" && root.fgColor !== "transparent"
         }
 
         // Fallback to text if no iconName

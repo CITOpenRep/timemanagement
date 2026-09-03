@@ -66,22 +66,30 @@ Page {
                 Layout.fillWidth: true
             }
 
-            // Account Selector button with Account label adjacent to icon
-            Item {
+            // Account Selector chip with Account label adjacent to icon
+            Rectangle {
                 id: accountBtn
-                implicitWidth: accountRow.implicitWidth
-                implicitHeight: accountRow.implicitHeight
+                implicitWidth: accountRow.implicitWidth + units.gu(1.8)
+                implicitHeight: units.gu(3.6)
+                radius: height / 2
+                color: accountMouseArea.pressed ? "#40ffffff" : (accountMouseArea.containsMouse ? "#30ffffff" : "#20ffffff")
+                border.color: "#35ffffff"
+                border.width: 1
                 Layout.alignment: Qt.AlignVCenter
+
+                Behavior on color {
+                    ColorAnimation { duration: 100 }
+                }
 
                 RowLayout {
                     id: accountRow
-                    anchors.fill: parent
-                    spacing: units.gu(0.5)
+                    anchors.centerIn: parent
+                    spacing: units.gu(0.6)
 
                     Icon {
                         name: "account"
-                        width: units.gu(2.4)
-                        height: units.gu(2.4)
+                        width: units.gu(2.2)
+                        height: units.gu(2.2)
                         color: "white"
                         Layout.alignment: Qt.AlignVCenter
                     }
@@ -103,7 +111,9 @@ Page {
                 }
 
                 MouseArea {
+                    id: accountMouseArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         if (typeof accountPicker !== "undefined") {

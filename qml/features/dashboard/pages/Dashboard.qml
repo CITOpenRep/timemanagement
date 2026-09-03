@@ -262,13 +262,16 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: i18n.dtr("ubtms", "Task")
+                label: i18n.dtr("ubtms", "Task"),
+                iconName: "scope-manager"
             },
             {
-                label: i18n.dtr("ubtms", "Timesheet")
+                label: i18n.dtr("ubtms", "Timesheet"),
+                iconName: "alarm-clock"
             },
             {
-                label: i18n.dtr("ubtms", "Activity")
+                label: i18n.dtr("ubtms", "Activity"),
+                iconName: "calendar"
             }
         ]
         onMenuItemSelected: {

@@ -365,7 +365,8 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: i18n.dtr("ubtms", "Create"),
+                label: i18n.dtr("ubtms", "Create Timesheet"),
+                iconName: "alarm-clock"
             },
         ]
         onMenuItemSelected: {

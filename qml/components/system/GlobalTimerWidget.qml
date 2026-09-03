@@ -2,6 +2,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import "../../../models/timer_service.js" as TimerService
+import "../../../models/timesheet.js" as TimeSheet
 import "../../../models/utils.js" as Utils
 import "../../features/timesheets/components" as TimesheetComponents
 import ".."
@@ -521,7 +522,7 @@ Rectangle {
             var targetId = descriptionPopup.timesheetId;
             TimerService.stop();
             if (status === "saved" && targetId > 0) {
-                Model.markTimesheetAsSavedById(targetId);
+                TimeSheet.markTimesheetAsSavedById(targetId);
             }
         }
 
