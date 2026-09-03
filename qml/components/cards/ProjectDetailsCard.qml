@@ -167,6 +167,8 @@ ListItem {
         return parts.join("  •  ");
     }
 
+    property int effectiveProjectId: (projectCard.accountId === 0 || recordId <= 0) ? localId : recordId
+
     Connections {
         target: globalTimerWidget
         onTimerStopped: {
@@ -174,31 +176,38 @@ ListItem {
             timer_paused = false;
         }
         onTimerStarted: {
-            if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (Timesheet.doesProjectIdMatchSheetInActive(effectiveProjectId, TimerService.getActiveTimesheetId())) {
                 timer_on = true;
             }
         }
         onTimerPaused: {
-            if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (Timesheet.doesProjectIdMatchSheetInActive(effectiveProjectId, TimerService.getActiveTimesheetId())) {
                 timer_paused = true;
             }
         }
         onTimerResumed: {
-            if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (Timesheet.doesProjectIdMatchSheetInActive(effectiveProjectId, TimerService.getActiveTimesheetId())) {
                 timer_paused = false;
             }
         }
     }
 
+    Component.onCompleted: {
+        if (TimerService.isRunning() && Timesheet.doesProjectIdMatchSheetInActive(effectiveProjectId, TimerService.getActiveTimesheetId())) {
+            timer_on = true;
+            timer_paused = TimerService.isPaused();
+        }
+    }
+
     function play_pause_workflow() {
-        if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+        if (Timesheet.doesProjectIdMatchSheetInActive(effectiveProjectId, TimerService.getActiveTimesheetId())) {
             if (TimerService.isRunning() && !TimerService.isPaused()) {
                 TimerService.pause();
             } else if (TimerService.isPaused()) {
                 TimerService.start(TimerService.getActiveTimesheetId());
             }
         } else {
-            let result = Timesheet.createTimesheetFromProject(recordId);
+            let result = Timesheet.createTimesheetFromProject(effectiveProjectId);
             if (result.success) {
                 const result_start = TimerService.start(result.id);
                 if (!result_start.success) {
@@ -211,8 +220,12 @@ ListItem {
     }
 
     function stop_workflow() {
-        if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+        var activeId = TimerService.getActiveTimesheetId();
+        if (Timesheet.doesProjectIdMatchSheetInActive(effectiveProjectId, activeId)) {
             TimerService.stop();
+            if (projectCard.accountId === 0) {
+                Timesheet.markTimesheetAsSavedById(activeId);
+            }
         }
     }
 
@@ -225,7 +238,7 @@ ListItem {
             Action {
                 id: playpauseaction
                 iconSource: timer_on ? (timer_paused ? "../../images/play.png" : "../../images/pause.png") : "../../images/play.png"
-                visible: projectCard.accountId > 0 && recordId > 0
+                visible: (projectCard.accountId === 0 && localId > 0) || (projectCard.accountId > 0 && recordId > 0)
                 text: "Start Timer"
                 onTriggered: {
                     play_pause_workflow();
@@ -233,7 +246,7 @@ ListItem {
             },
             Action {
                 id: startstopaction
-                visible: projectCard.accountId > 0 && recordId > 0
+                visible: (projectCard.accountId === 0 && localId > 0) || (projectCard.accountId > 0 && recordId > 0)
                 iconSource: "../../images/stop.png"
                 text: i18n.dtr("ubtms", "Stop Timer")
                 onTriggered: {

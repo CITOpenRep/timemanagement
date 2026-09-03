@@ -60,6 +60,7 @@ ListItem {
     property bool isMyTasksContext: false // Set to true when used in MyTasks page
     property int accountId: -1 // Account ID for the task
     property bool hasDraft: false // Indicates if this task has unsaved draft changes
+    property int effectiveTaskId: (taskCard.accountId === 0 || recordId <= 0) ? localId : recordId
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -102,17 +103,17 @@ ListItem {
             timer_paused = false;
         }
         onTimerStarted: {
-            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) {
                 timer_on = true;
             }
         }
         onTimerPaused: {
-            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) {
                 timer_paused = true;
             }
         }
         onTimerResumed: {
-            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) {
                 timer_paused = false;
             }
         }
@@ -173,7 +174,7 @@ ListItem {
     }
 
     function play_pause_workflow() {
-        if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+        if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) {
             if (TimerService.isRunning() && !TimerService.isPaused()) {
                 // If running and not paused, pause it
                 TimerService.pause();
@@ -182,7 +183,7 @@ ListItem {
                 TimerService.start(TimerService.getActiveTimesheetId());
             }
         } else {
-            let result = Timesheet.createTimesheetFromTask(recordId);
+            let result = Timesheet.createTimesheetFromTask(effectiveTaskId);
             if (result.success) {
                 const result_start = TimerService.start(result.id);
                 if (!result_start.success) {
@@ -197,8 +198,13 @@ ListItem {
     }
 
     function stop_workflow() {
-        if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId()))
+        var activeId = TimerService.getActiveTimesheetId();
+        if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, activeId)) {
             TimerService.stop();
+            if (taskCard.accountId === 0) {
+                Timesheet.markTimesheetAsSavedById(activeId);
+            }
+        }
     }
 
     function handlePersonalStageChange(personalStageOdooRecordId, personalStageName) {
@@ -237,8 +243,8 @@ ListItem {
             },
             Action {
                 id: playpauseaction
-                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../../../images/play.png" : "../../../images/pause.png") : "../../../images/play.png"
-                visible: recordId > 0
+                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../../../images/play.png" : "../../../images/pause.png") : "../../../images/play.png"
+                visible: (taskCard.accountId === 0 && localId > 0) || recordId > 0
                 text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     play_pause_workflow();
@@ -246,7 +252,7 @@ ListItem {
             },
             Action {
                 id: startstopaction
-                visible: recordId > 0
+                visible: (taskCard.accountId === 0 && localId > 0) || recordId > 0
                 iconSource: "../../../images/stop.png"
                 text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
@@ -674,7 +680,7 @@ anchors.right: parent.right
     }
 
     Component.onCompleted: {
-        taskCard.timer_on = Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.activeTimesheetId);
+        taskCard.timer_on = Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.activeTimesheetId);
 
         // If we have a localId, get the task details to set the priority
         if (localId > 0) {
