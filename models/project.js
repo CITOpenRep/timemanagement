@@ -1479,3 +1479,38 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         return { success: false, message: "Failed to update project favorite status: " + e.message };
     }
 }
+
+/**
+ * Gets a map of project_id -> task count for active tasks.
+ *
+ * @param {number} accountId - Optional account ID filter.
+ * @returns {Object} Map of project ID to task count.
+ */
+function getProjectTaskCountMap(accountId) {
+    var countMap = {};
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var query = "SELECT project_id, sub_project_id, COUNT(*) AS cnt FROM project_task_app WHERE (status IS NULL OR status != 'deleted')";
+            var params = [];
+            if (accountId !== undefined && accountId >= 0) {
+                query += " AND account_id = ?";
+                params.push(accountId);
+            }
+            query += " GROUP BY project_id, sub_project_id";
+            var rs = tx.executeSql(query, params);
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                if (row.project_id) {
+                    countMap[row.project_id] = (countMap[row.project_id] || 0) + row.cnt;
+                }
+                if (row.sub_project_id && row.sub_project_id !== row.project_id) {
+                    countMap[row.sub_project_id] = (countMap[row.sub_project_id] || 0) + row.cnt;
+                }
+            }
+        });
+    } catch (e) {
+        Logger.error("Project", "getProjectTaskCountMap failed:", e);
+    }
+    return countMap;
+}
