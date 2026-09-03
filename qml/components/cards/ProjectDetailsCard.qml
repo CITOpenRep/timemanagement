@@ -35,8 +35,18 @@ import ".."
 
 ListItem {
     id: projectCard
-    width: parent.width
-    height: units.gu(20)
+    width: parent ? parent.width : units.gu(40)
+    height: units.gu(8.8)
+    divider.visible: false
+    color: "transparent"
+    highlightColor: "transparent"
+
+    readonly property bool isDark: theme.name === "Ubuntu.Components.Themes.SuruDark"
+    readonly property color bgColor: isDark ? "#121212" : "#ffffff"
+    readonly property color bgPressedColor: isDark ? "#222222" : "#f5f5f5"
+    readonly property color dividerColor: isDark ? "#2c2c2e" : "#e5e7eb"
+    readonly property color baseTextColor: isDark ? "#f3f4f6" : "#111827"
+    readonly property color subTextColor: isDark ? "#9ca3af" : "#6b7280"
 
     property bool isFavorite: true
     property string projectName: ""
@@ -54,13 +64,108 @@ ListItem {
     property bool hasChildren: false
     property int childCount: 0
     property int stage: 0
+    property int taskCount: 0
     property bool timer_on: false
     property bool timer_paused: false
     property bool hasDraft: false
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
     signal timesheetRequested(int localId)
-    signal navigationRequested(int projectId, int accountId)
+    signal navigationRequested(int projectId, int accountId, string projectName)
+
+    property string stageName: (stage && stage > 0) ? (Project.getProjectStageName(stage) || "") : ""
+    property bool isStageDone: {
+        if (!stageName) return false;
+        var lower = stageName.toLowerCase();
+        return lower === "completed" || lower === "finished" || lower === "closed" || lower === "verified" || lower === "done";
+    }
+
+    property string timeStatus: Utils.getTimeStatusInText(deadline || endDate)
+    property bool hasValidTimeStatus: timeStatus !== "N/A" && timeStatus !== "Invalid"
+    property bool isOverdue: timeStatus.indexOf("overdue") !== -1
+    property bool isDueToday: timeStatus === "Due today"
+
+    property string descriptionSnippet: {
+        if (!description) return "";
+        var str = String(description).trim();
+        if (str === "" || str === "0" || str === "false" || str === "null" || str === "undefined") return "";
+        var stripped = Utils.stripHtmlTags ? Utils.stripHtmlTags(str) : str;
+        var cleaned = Utils.cleanText ? Utils.cleanText(stripped) : stripped;
+        cleaned = cleaned.trim();
+        if (cleaned === "" || cleaned === "0" || cleaned === "false") return "";
+        return cleaned;
+    }
+
+    property string dateRangeFormatted: {
+        if (!startDate && !endDate) return "";
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        if (startDate && endDate) {
+            var s = new Date(startDate);
+            var e = new Date(endDate);
+            if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+                if (s.getFullYear() === e.getFullYear()) {
+                    return months[s.getMonth()] + " " + s.getDate() + " – " + months[e.getMonth()] + " " + e.getDate() + ", " + e.getFullYear();
+                } else {
+                    return months[s.getMonth()] + " " + s.getDate() + ", " + s.getFullYear() + " – " + months[e.getMonth()] + " " + e.getDate() + ", " + e.getFullYear();
+                }
+            }
+            return startDate + " – " + endDate;
+        }
+        if (endDate) {
+            var eOnly = new Date(endDate);
+            if (!isNaN(eOnly.getTime())) {
+                return i18n.dtr("ubtms", "Due ") + months[eOnly.getMonth()] + " " + eOnly.getDate() + ", " + eOnly.getFullYear();
+            }
+            return i18n.dtr("ubtms", "Due ") + endDate;
+        }
+        return i18n.dtr("ubtms", "Starts ") + startDate;
+    }
+
+    property string plannedHoursText: {
+        if (allocatedHours === undefined || allocatedHours === null) return "";
+        var num = parseFloat(allocatedHours);
+        if (!isNaN(num) && num > 0) {
+            var rounded = Math.round(num * 10) / 10;
+            return rounded + "h planned";
+        }
+        return "";
+    }
+
+    property string formattedAccount: {
+        var name = accountName !== "" ? accountName : "Local";
+        return name.toUpperCase();
+    }
+
+    property string remainingSubtitle: {
+        var parts = [];
+
+        // 1. If no urgency status, show date range
+        if (!hasValidTimeStatus && dateRangeFormatted !== "") {
+            parts.push(dateRangeFormatted);
+        }
+
+        // 2. Tasks count
+        if (taskCount > 0) {
+            parts.push(taskCount + (taskCount === 1 ? " task" : " tasks"));
+        }
+
+        // 3. Planned hours
+        if (plannedHoursText !== "") {
+            parts.push(plannedHoursText);
+        }
+
+        // 4. Subprojects count
+        if (hasChildren && childCount > 0) {
+            parts.push(childCount + (childCount === 1 ? " subproject" : " subprojects"));
+        }
+
+        // 5. Description preview
+        if (descriptionSnippet !== "") {
+            parts.push(descriptionSnippet);
+        }
+
+        return parts.join("  •  ");
+    }
 
     Connections {
         target: globalTimerWidget
@@ -88,10 +193,8 @@ ListItem {
     function play_pause_workflow() {
         if (Timesheet.doesProjectIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
             if (TimerService.isRunning() && !TimerService.isPaused()) {
-                // If running and not paused, pause it
                 TimerService.pause();
             } else if (TimerService.isPaused()) {
-                // If paused, resume it
                 TimerService.start(TimerService.getActiveTimesheetId());
             }
         } else {
@@ -141,272 +244,284 @@ ListItem {
     }
 
     Rectangle {
+        id: itemBackground
         anchors.fill: parent
-        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444" : "#dcdcdc"
-        radius: units.gu(0.2)
-        anchors.leftMargin: units.gu(0.2)
-        anchors.rightMargin: units.gu(0.2)
-        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
+        color: itemMouseArea.pressed ? projectCard.bgPressedColor : projectCard.bgColor
 
-        // subtle color fade on the left
+        Behavior on color {
+            ColorAnimation { duration: 100 }
+        }
+
+        // Left accent capsule bar for project color (Taste skill: tactile floating capsule)
         Rectangle {
-            width: parent.width * 0.025
-            height: parent.height
+            id: accentBar
             anchors.left: parent.left
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop {
-                    position: 0.0
-                    color: Utils.getColorFromOdooIndex(colorPallet)
-                }
-                GradientStop {
-                    position: 1.0
-                    color: Qt.rgba(Utils.getColorFromOdooIndex(colorPallet).r, Utils.getColorFromOdooIndex(colorPallet).g, Utils.getColorFromOdooIndex(colorPallet).b, 0.0)
+            anchors.leftMargin: units.gu(0.35)
+            anchors.verticalCenter: parent.verticalCenter
+            width: units.gu(0.4)
+            height: parent.height - units.gu(3.2)
+            radius: units.gu(0.2)
+            color: Utils.getColorFromOdooIndex(colorPallet)
+        }
+
+        // Card tap area
+        MouseArea {
+            id: itemMouseArea
+            anchors.fill: parent
+            z: 1
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                if (hasChildren) {
+                    var navId = (projectCard.accountId === 0 || recordId <= 0) ? localId : recordId;
+                    navigationRequested(navId, projectCard.accountId || 0, projectName);
+                } else {
+                    viewRequested(localId);
                 }
             }
         }
 
-        Row {
-            anchors.fill: parent
-            spacing: 2
+        // Left icon container: Favorite Star / Timer active indicator
+        // Perfectly top-anchored and aligned with Title row (height: 2.8 GU)
+        Item {
+            id: leftIconArea
+            anchors.left: parent.left
+            anchors.leftMargin: units.gu(1.6)
+            anchors.top: parent.top
+            anchors.topMargin: units.gu(1.5)
+            width: units.gu(3.4)
+            height: units.gu(2.8)
+            z: 10
+
+            Image {
+                id: starIcon
+                anchors.centerIn: parent
+                source: isFavorite ? "../../images/star.png" : "../../images/star-inactive.png"
+                fillMode: Image.PreserveAspectFit
+                width: units.gu(2.4)
+                height: units.gu(2.4)
+                visible: !timer_on
+            }
 
             Rectangle {
-                width: parent.width - units.gu(17)
-                height: parent.height
-                color: "transparent"
-                z: 1
+                id: indicator
+                width: units.gu(2.0)
+                height: units.gu(2.0)
+                radius: units.gu(1.0)
+                color: "#ffa500"
+                anchors.centerIn: parent
+                visible: timer_on
+
+                SequentialAnimation on opacity {
+                    loops: Animation.Infinite
+                    running: indicator.visible
+                    NumberAnimation { from: 0.3; to: 1.0; duration: 800; easing.type: Easing.InOutQuad }
+                    NumberAnimation { from: 1.0; to: 0.3; duration: 800; easing.type: Easing.InOutQuad }
+                }
+            }
+
+            // Expanded tap target for easy one-handed thumb toggle
+            MouseArea {
+                anchors.fill: parent
+                anchors.margins: -units.gu(0.8)
+                enabled: !timer_on
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    mouse.accepted = true;
+                    var newFavoriteState = !isFavorite;
+                    var result = Project.toggleProjectFavorite(localId, newFavoriteState, "updated");
+                    if (result.success) {
+                        isFavorite = newFavoriteState;
+                        starIcon.source = isFavorite ? "../../images/star.png" : "../../images/star-inactive.png";
+                    } else {
+                        console.warn("Failed to toggle project favorite:", result.message);
+                    }
+                }
+            }
+        }
+
+        // Right content column: Top-anchored at 1.5 GU with 8.8 GU card height
+        Column {
+            id: contentColumn
+            anchors.left: leftIconArea.right
+            anchors.leftMargin: units.gu(1.2)
+            anchors.right: parent.right
+            anchors.rightMargin: units.gu(1.8)
+            anchors.top: parent.top
+            anchors.topMargin: units.gu(1.5)
+            spacing: units.gu(0.7)
+            z: 5
+
+            // ROW 1: Header (Title, Draft Badge, Stage Pill, Chevron)
+            Row {
+                id: titleRow
+                width: parent.width
+                height: units.gu(2.8)
+                spacing: units.gu(0.8)
+
+                Text {
+                    id: titleText
+                    text: projectName !== "" ? projectName : i18n.dtr("ubtms", "Unnamed Project")
+                    color: hasChildren ? AppConst.Colors.Orange : projectCard.baseTextColor
+                    font.pixelSize: units.gu(1.85)
+                    font.weight: Font.Medium
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                    width: parent.width - headerRightRow.width - parent.spacing
+                    anchors.verticalCenter: parent.verticalCenter
+                }
 
                 Row {
-                    width: parent.width
-                    height: parent.height
-                    spacing: units.gu(1)
-
-                    Item {
-                        width: units.gu(4)
-                        height: parent.height
-                        z: 2
-
-                        Image {
-                            id: starIcon
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.leftMargin: units.gu(0.5)
-                            source: isFavorite ? "../../images/star.png" : "../../images/star-inactive.png"
-                            fillMode: Image.PreserveAspectFit
-                            width: units.gu(2)
-                            height: units.gu(2)
-                            visible: !timer_on
-                        }
-
-                        // Large clickable area for the star
-                        MouseArea {
-                            anchors.fill: parent
-
-                            enabled: !timer_on  // Only enabled when star is visible
-                            onClicked: {
-                                mouse.accepted = true; // Prevent event propagation to parent MouseArea
-                                var newFavoriteState = !isFavorite;
-                                var result = Project.toggleProjectFavorite(localId, newFavoriteState, "updated");
-
-                                if (result.success) {
-                                    isFavorite = newFavoriteState;
-                                    starIcon.source = isFavorite ? "../../images/star.png" : "../../images/star-inactive.png";
-                                } else {
-                                    console.warn("Failed to toggle project favorite:", result.message);
-                                }
-                            }
-                        }
-                        Rectangle {
-                            id: indicator
-                            width: units.gu(2)
-                            height: units.gu(2)
-                            radius: units.gu(1)
-                            color: "#ffa500"
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: timer_on
-
-                            SequentialAnimation on opacity {
-                                loops: Animation.Infinite
-                                running: indicator.visible
-                                NumberAnimation {
-                                    from: 0.3
-                                    to: 1
-                                    duration: 800
-                                    easing.type: Easing.InOutQuad
-                                }
-                                NumberAnimation {
-                                    from: 1
-                                    to: 0.3
-                                    duration: 800
-                                    easing.type: Easing.InOutQuad
-                                }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        width: units.gu(25)
-                        height: parent.height
-                        color: 'transparent'
-
-                        // Main content area MouseArea for navigation
-                        MouseArea {
-                            anchors.fill: parent
-                            z: 1  // Much lower than star MouseArea
-                            onClicked: {
-                                if (hasChildren) {
-                                    // For projects with children, emit navigation signal
-                                    var navId = (projectCard.accountId === 0 || recordId <= 0) ? localId : recordId;
-                                    navigationRequested(navId, projectCard.accountId || 0);
-                                } else {
-                                    // For leaf projects, show details (same as View-On action)
-                                    viewRequested(localId);
-                                }
-                            }
-                        }
-
-                        Column {
-                            width: parent.width
-                            height: parent.height
-                            spacing: units.gu(0.2)
-
-                            Text {
-                                text: projectName !== "" ? projectName : "Unnamed Project"
-                                color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                                font.pixelSize: units.gu(2)
-                                wrapMode: Text.WordWrap
-                                maximumLineCount: 2
-                                clip: true
-                                width: parent.width - units.gu(2)
-                            }
-
-                            Text {
-                                text: Utils.truncateText(accountName !== "" ? accountName : "Local", 20)
-                                font.pixelSize: units.gu(1.6)
-                                wrapMode: Text.Wrap
-                                maximumLineCount: 2
-                                width: parent.width - units.gu(2)
-                                height: units.gu(2)
-                                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
-                            }
-
-                            // Label {
-                            //     id: details
-                            //     text: "Details"
-                            //     width: parent.width - units.gu(2)
-                            //     font.pixelSize: units.gu(1.6)
-                            //     height: units.gu(3)
-                            //     color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#80bfff" : "blue"
-                            //     font.underline: true
-                            //     MouseArea {
-                            //         anchors.fill: parent
-                            //         onClicked: {
-                            //             mouse.accepted = true; // Prevent event propagation to parent MouseArea
-                            //             viewRequested(localId);
-                            //         }
-                            //     }
-                            // }
-
-                            Text {
-                                text: (childCount > 0 ? " [+" + childCount + "] Projects " : "")
-                                visible: childCount > 0
-                                color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                                font.pixelSize: units.gu(1.5)
-                                //  horizontalAlignment: Text.AlignRight
-                                width: parent.width
-                            }
-
-                            Text {
-                                property string stageName: (stage && stage > 0) ? (Project.getProjectStageName(stage) || "") : ""
-                                property bool isDone: {
-                                    var lower = stageName.toLowerCase();
-                                    return lower === "completed" || lower === "finished" || lower === "closed" || lower === "verified" || lower === "done";
-                                }
-                                visible: stageName !== ""
-                                text: stageName
-                                color: isDone ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
-                                font.pixelSize: units.gu(1.75)
-                                font.bold: isDone
-                            }
-
-                               Rectangle {
-                            id: draftIndicator
-                            visible: hasDraft
-                            width: draftLabel.width + units.gu(1.2)
-                            height: units.gu(2)
-                            radius: height / 2
-                            color: "#FFF3E0"
-                            border.color: "#FF9800"
-                            border.width: units.gu(0.15)
-                            anchors.left: parent.left
-
-                            Text {
-                                id: draftLabel
-                                text: i18n.dtr("ubtms", "DRAFT")
-                                font.pixelSize: units.gu(1.1)
-                                font.bold: true
-                                color: "#F57C00"
-                                anchors.centerIn: parent
-                            }
-                        }
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                width: units.gu(15)
-                height: parent.height
-                color: 'transparent'
-
-                Item {
-                    anchors.right: parent.right
+                    id: headerRightRow
                     anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width
-                    height: childrenRect.height
+                    spacing: units.gu(0.6)
 
-                    Column {
-                        spacing: units.gu(0.4)
-                        width: parent.width
+                    // Draft indicator badge
+                    Rectangle {
+                        visible: hasDraft
+                        height: units.gu(2.2)
+                        width: draftLabel.width + units.gu(1.2)
+                        radius: height / 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: projectCard.isDark ? "#312010" : "#fff7ed"
+                        border.color: "#fb923c"
+                        border.width: 1
 
                         Text {
-                            text: i18n.dtr("ubtms", "Planned (H): ") + Utils.truncateText(allocatedHours, 6)
-                            font.pixelSize: units.gu(1.5)
-                            horizontalAlignment: Text.AlignRight
-                            width: parent.width
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555"
+                            id: draftLabel
+                            text: i18n.dtr("ubtms", "DRAFT")
+                            font.pixelSize: units.gu(1.05)
+                            font.bold: true
+                            color: "#ea580c"
+                            anchors.centerIn: parent
                         }
+                    }
+
+                    // Stage pill with high-contrast styling for high-DPI
+                    Rectangle {
+                        visible: stageName !== ""
+                        height: units.gu(2.5)
+                        width: stageText.width + units.gu(1.6)
+                        radius: height / 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: isStageDone ? (projectCard.isDark ? "#064e3b" : "#ecfdf5")
+                             : (projectCard.isDark ? "#1e293b" : "#f1f5f9")
+                        border.color: isStageDone ? (projectCard.isDark ? "#059669" : "#a7f3d0")
+                             : (projectCard.isDark ? "#334155" : "#cbd5e1")
+                        border.width: 1
 
                         Text {
-                            text: i18n.dtr("ubtms", "Start Date: ") + (startDate !== "" ? startDate : i18n.dtr("ubtms", "Not set"))
-                            font.pixelSize: units.gu(1.5)
-                            horizontalAlignment: Text.AlignRight
-                            width: parent.width
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
+                            id: stageText
+                            text: stageName
+                            font.pixelSize: units.gu(1.2)
+                            font.bold: true
+                            anchors.centerIn: parent
+                            color: isStageDone ? (projectCard.isDark ? "#6ee7b7" : "#047857")
+                                 : (projectCard.isDark ? "#cbd5e1" : "#475569")
                         }
+                    }
+
+                    // Progression chevron for projects with subprojects (like SettingsListItem)
+                    Item {
+                        visible: hasChildren
+                        width: units.gu(1.6)
+                        height: parent.height
 
                         Text {
-                            text: i18n.dtr("ubtms", "End Date: ") + (endDate !== "" ? endDate : i18n.dtr("ubtms", "Not set"))
-                            font.pixelSize: units.gu(1.5)
-                            horizontalAlignment: Text.AlignRight
-                            width: parent.width
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#222"
-                        }
-
-                        Text {
-                            text: Utils.getTimeStatusInText(projectCard.deadline || projectCard.endDate)
-                            font.pixelSize: units.gu(1.5)
-                            horizontalAlignment: Text.AlignRight
-                            width: parent.width
-                            color: {
-                                var statusText = Utils.getTimeStatusInText(projectCard.deadline || projectCard.endDate);
-                                return (statusText === "N/A" || statusText === "Invalid") ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555") : (statusText.indexOf("overdue") !== -1 ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#ff6666" : "#e53935") : "green");
-                            }
+                            anchors.centerIn: parent
+                            text: "›"
+                            font.pixelSize: units.gu(2.4)
+                            color: projectCard.isDark ? "#888888" : "#c7c7cc"
                         }
                     }
                 }
             }
+
+            // ROW 2: Subtitle (Workspace • Urgency • Tasks • Subprojects • Description)
+            Row {
+                id: subtitleRow
+                width: parent.width
+                height: units.gu(2.3)
+                spacing: units.gu(0.6)
+
+                // Formatted uppercase account name (e.g. "CIT")
+                Text {
+                    id: accountLabel
+                    text: formattedAccount
+                    font.pixelSize: units.gu(1.3)
+                    font.bold: true
+                    color: projectCard.isDark ? "#a1a1aa" : "#475569"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                // Urgency status indicator & text
+                Row {
+                    id: urgencyRow
+                    visible: hasValidTimeStatus
+                    spacing: units.gu(0.35)
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        text: "•"
+                        font.pixelSize: units.gu(1.25)
+                        color: projectCard.isDark ? "#4b5563" : "#cbd5e1"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Icon {
+                        name: isOverdue ? "dialog-warning" : "appointment"
+                        width: units.gu(1.3)
+                        height: units.gu(1.3)
+                        color: isOverdue ? (projectCard.isDark ? "#f87171" : "#dc2626")
+                             : (isDueToday ? (projectCard.isDark ? "#fbbf24" : "#d97706")
+                             : (projectCard.isDark ? "#4ade80" : "#16a34a"))
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: timeStatus
+                        font.pixelSize: units.gu(1.25)
+                        font.bold: isOverdue || isDueToday
+                        color: isOverdue ? (projectCard.isDark ? "#f87171" : "#dc2626")
+                             : (isDueToday ? (projectCard.isDark ? "#fbbf24" : "#d97706")
+                             : (projectCard.isDark ? "#4ade80" : "#16a34a"))
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                // Separator dot before remaining metadata
+                Text {
+                    id: sepDot
+                    visible: remainingSubtitle !== ""
+                    text: "•"
+                    font.pixelSize: units.gu(1.25)
+                    color: projectCard.isDark ? "#4b5563" : "#cbd5e1"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                // Remaining metadata (tasks, hours, subprojects, description)
+                Text {
+                    id: remainingText
+                    visible: remainingSubtitle !== ""
+                    text: remainingSubtitle
+                    font.pixelSize: units.gu(1.25)
+                    color: projectCard.subTextColor
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                    width: Math.max(units.gu(5), parent.width - accountLabel.width - (urgencyRow.visible ? urgencyRow.width + parent.spacing : 0) - (sepDot.visible ? sepDot.width + parent.spacing : 0) - parent.spacing)
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+        }
+
+        // Clean bottom divider line matching Settings / MenuPage (indented past star icon area)
+        Rectangle {
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(6.2)
+            height: units.dp(1)
+            color: projectCard.dividerColor
         }
     }
 }
