@@ -77,7 +77,7 @@ Item {
 
             delegate: Item {
                 id: itemDelegate
-                width: cardRow.implicitWidth + units.gu(1.6)
+                width: cardRow.implicitWidth + units.gu(2.8)
                 height: dialerMenu.itemSize
                 anchors.right: parent ? parent.right : undefined
 
@@ -140,9 +140,9 @@ Item {
 
                     Row {
                         id: cardRow
-                        anchors.centerIn: parent
-                        anchors.leftMargin: units.gu(1.8)
-                        anchors.rightMargin: units.gu(0.8)
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left
+                        anchors.leftMargin: units.gu(2.2)
                         spacing: units.gu(1.2)
 
                         Text {
