@@ -73,7 +73,7 @@ ListItem {
     signal timesheetRequested(int localId)
     signal navigationRequested(int projectId, int accountId, string projectName)
 
-    property string stageName: (stage && stage > 0) ? (Project.getProjectStageName(stage) || "") : ""
+    property string stageName: (stage && stage !== 0) ? (Project.getProjectStageName(stage, accountId) || "") : ""
     property bool isStageDone: {
         if (!stageName) return false;
         var lower = stageName.toLowerCase();

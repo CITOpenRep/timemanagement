@@ -65,7 +65,7 @@ Item {
     // Action menu items column
     Column {
         id: menuList
-        visible: dialerMenu.expanded || opacityAnim.running
+        visible: dialerMenu.expanded
         spacing: units.gu(1.2)
         anchors.right: fabContainer.right
         anchors.bottom: fabContainer.top

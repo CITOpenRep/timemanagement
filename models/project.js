@@ -332,6 +332,9 @@ function getProjectUpdateByOdooId(odoo_record_id, accountId) {
 function getProjectStageName(odooRecordId, accountId) {
     var stageName = "";
     try {
+        if (!odooRecordId || odooRecordId === 0) {
+            return "";
+        }
         var db = Sql.LocalStorage.openDatabaseSync(
             DBCommon.NAME,
             DBCommon.VERSION,
@@ -340,10 +343,19 @@ function getProjectStageName(odooRecordId, accountId) {
         );
 
         db.transaction(function (tx) {
-            var query = (accountId !== undefined && accountId !== null)
-                ? "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1"
-                : "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? LIMIT 1";
-            var params = (accountId !== undefined && accountId !== null) ? [odooRecordId, accountId] : [odooRecordId];
+            var query = "";
+            var params = [];
+
+            if (odooRecordId < 0) {
+                query = "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = 0 LIMIT 1";
+                params = [odooRecordId];
+            } else if (accountId !== undefined && accountId !== null && accountId >= 0) {
+                query = "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1";
+                params = [odooRecordId, accountId];
+            } else {
+                query = "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? LIMIT 1";
+                params = [odooRecordId];
+            }
 
             var result = tx.executeSql(query, params);
 
@@ -748,29 +760,27 @@ function getProjectsFilteredPaginated(options) {
 
             // Stage filter
             if (options.stageId !== undefined && options.stageId !== null) {
-                if (options.stageId === -2) {
+                if (!options.isStage && options.stageId === -2) {
                     // "Open" filter
-                    if (options.accountId === 0) {
-                        // Local account projects have no stages and are always considered open
-                    } else if (options.openStageIds && options.openStageIds.length > 0) {
+                    if (options.openStageIds && options.openStageIds.length > 0) {
                         var placeholders = options.openStageIds.map(function () { return "?"; }).join(",");
                         if (options.accountId === -1 || options.accountId === undefined) {
-                            // "All Accounts": match open Odoo stages OR local projects / projects without a stage
-                            whereClauses.push("(stage IN (" + placeholders + ") OR account_id = 0 OR stage = 0 OR stage IS NULL)");
+                            // "All Accounts": match open stages OR projects without a stage
+                            whereClauses.push("(stage IN (" + placeholders + ") OR stage = 0 OR stage IS NULL)");
                         } else {
-                            // Specific Odoo account
+                            // Specific account
                             whereClauses.push("stage IN (" + placeholders + ")");
                         }
                         for (var s = 0; s < options.openStageIds.length; s++) {
                             params.push(options.openStageIds[s]);
                         }
                     }
-                } else if (options.stageId >= 0) {
+                } else if (options.isStage || options.stageId >= 0 || (options.stageId < 0 && options.stageId !== -1 && options.stageId !== -2)) {
                     // Specific stage
                     whereClauses.push("stage = ?");
                     params.push(options.stageId);
                 }
-                // stageId === -1 means "All" → no stage filter needed
+                // !options.isStage && stageId === -1 means "All" → no stage filter needed
             }
 
             // Search filter

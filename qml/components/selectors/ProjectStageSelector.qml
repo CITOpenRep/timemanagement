@@ -104,7 +104,7 @@ Dialog {
             width: parent.width
             wrapMode: Text.WordWrap
             text: {
-                var currentStageName = Project.getProjectStageName(currentStageOdooRecordId);
+                var currentStageName = Project.getProjectStageName(currentStageOdooRecordId, accountId);
                 return i18n.dtr("ubtms", "Current Stage: ") + "<b>" + (currentStageName || i18n.dtr("ubtms", "Not set")) + "</b>";
             }
             font.pixelSize: units.gu(2)

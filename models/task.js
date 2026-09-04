@@ -190,14 +190,11 @@ function saveOrUpdateTask(data) {
 
 
 function getTaskStageName(odooRecordId, accountId) {
-    var stageName = "Undefined";
+    var stageName = "";
 
     try {
-        if (odooRecordId === -1 && accountId !== 0) {
-            return "Undefined";   // special case for remote accounts
-        }
-        if (!odooRecordId) {
-            return "Undefined";
+        if (!odooRecordId || odooRecordId === 0) {
+            return "";
         }
 
         var db = Sql.LocalStorage.openDatabaseSync(
@@ -208,10 +205,19 @@ function getTaskStageName(odooRecordId, accountId) {
         );
 
         db.transaction(function (tx) {
-            var query = (accountId !== undefined && accountId !== null)
-                ? "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1"
-                : "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? LIMIT 1";
-            var params = (accountId !== undefined && accountId !== null) ? [odooRecordId, accountId] : [odooRecordId];
+            var query = "";
+            var params = [];
+
+            if (odooRecordId < 0) {
+                query = "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = 0 LIMIT 1";
+                params = [odooRecordId];
+            } else if (accountId !== undefined && accountId !== null && accountId >= 0) {
+                query = "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1";
+                params = [odooRecordId, accountId];
+            } else {
+                query = "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? LIMIT 1";
+                params = [odooRecordId];
+            }
 
             var result = tx.executeSql(query, params);
 
@@ -223,7 +229,7 @@ function getTaskStageName(odooRecordId, accountId) {
         Logger.error("Task", "getTaskStageName failed:", e)
     }
 
-    return stageName;
+    return stageName || "";
 }
 
 /**
@@ -3504,6 +3510,14 @@ function updateTaskStage(taskId, stageOdooRecordId, accountId) {
                 'SELECT id FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ?',
                 [stageOdooRecordId, accountId]
             );
+
+            if (stageCheck.rows.length === 0) {
+                // Fallback check if stage exists globally
+                stageCheck = tx.executeSql(
+                    'SELECT id FROM project_task_type_app WHERE odoo_record_id = ?',
+                    [stageOdooRecordId]
+                );
+            }
 
             if (stageCheck.rows.length === 0) {
                 throw "Stage not found or does not belong to this account";

@@ -113,6 +113,14 @@ Item {
         }
     }
 
+    Connections {
+        target: typeof mainView !== "undefined" ? mainView : null
+
+        onProjectDataChanged: {
+            populateProjectChildrenMap();
+        }
+    }
+
     property int currentParentId: -1
     property int currentAccountId: accountPicker.selectedAccountId
     property string currentParentName: ""
@@ -286,14 +294,17 @@ Item {
     function _doPaginatedProjectLoad() {
         // Determine which stage filter to pass to SQL
         var sqlStageId = undefined; // undefined = no stage filter
+        var isStage = false;
         if (stageFilter.enabled) {
-            sqlStageId = stageFilter.odoo_record_id; // -2 = open, >=0 = specific
+            sqlStageId = stageFilter.odoo_record_id; // -2 = open, specific stage otherwise
+            isStage = stageFilter.is_stage || false;
         }
 
         var result = Project.getProjectsFilteredPaginated({
             accountId: currentAccountId,
             searchQuery: searchQuery || "",
             stageId: sqlStageId,
+            isStage: isStage,
             openStageIds: _getOpenStageIds(),
             limit: pageSize,
             offset: currentOffset
@@ -464,10 +475,9 @@ Item {
                 return true;
             }
 
-            // Special case for "Open" filter (odoo_record_id = -2)
-            if (stageFilter.odoo_record_id === -2) {
-                // Local projects (account_id === 0 or without a stage) don't have stages and are always considered open
-                if (project.account_id === 0 || !project.stage || project.stage === 0) {
+            // Special case for "Open" filter (odoo_record_id = -2 and not a specific stage)
+            if (!stageFilter.is_stage && stageFilter.odoo_record_id === -2) {
+                if (!project.stage || project.stage === 0) {
                     return true;
                 }
 

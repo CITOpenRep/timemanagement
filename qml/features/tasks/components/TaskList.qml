@@ -105,6 +105,14 @@ Item {
         }
     }
 
+    Connections {
+        target: typeof mainView !== "undefined" ? mainView : null
+
+        onTaskDataChanged: {
+            refreshWithFilter();
+        }
+    }
+
     // Add the applyFilter method
     function applyFilter(filterKey) {
         currentFilter = filterKey;
@@ -782,6 +790,9 @@ Item {
                     onTaskStageChanged: localId => {
                         // Remove the task from the current list display
                         removeTaskFromList(localId);
+                    }
+                    onTaskUpdated: localId => {
+                        refreshWithFilter();
                     }
 
                     // MouseArea for task interaction - navigation for parent tasks, view for regular tasks

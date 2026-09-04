@@ -62,6 +62,13 @@ ListItem {
     property bool hasDraft: false // Indicates if this task has unsaved draft changes
     property int effectiveTaskId: (taskCard.accountId === 0 || recordId <= 0) ? localId : recordId
 
+    property string stageName: (stage && stage !== 0) ? (Task.getTaskStageName(stage, accountId) || "") : ""
+    property bool isStageDone: {
+        if (!stageName) return false;
+        var lower = stageName.toLowerCase();
+        return lower === "completed" || lower === "finished" || lower === "closed" || lower === "verified" || lower === "done";
+    }
+
     signal editRequested(int localId)
     signal deleteRequested(int localId)
     signal viewRequested(int localId)
@@ -587,12 +594,26 @@ ListItem {
                             width: parent.width
                         }
 
-                        Text {
+                        Rectangle {
+                            visible: stageName !== ""
+                            height: units.gu(2.4)
+                            width: taskStageText.width + units.gu(1.6)
+                            radius: height / 2
+                            color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#064e3b" : "#ecfdf5")
+                                 : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e293b" : "#f1f5f9")
+                            border.color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#059669" : "#a7f3d0")
+                                 : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#334155" : "#cbd5e1")
+                            border.width: 1
 
-                            text: Task.getTaskStageName(stage, accountId)
-                            color: Task.getTaskStageName(stage, accountId).toLowerCase() === "completed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "finished" || Task.getTaskStageName(stage, accountId).toLowerCase() === "closed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "verified" || Task.getTaskStageName(stage, accountId).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
-                            font.pixelSize: units.gu(1.75)
-                            font.bold: Task.getTaskStageName(stage, accountId).toLowerCase() === "completed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "finished" || Task.getTaskStageName(stage, accountId).toLowerCase() === "closed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "verified" || Task.getTaskStageName(stage, accountId).toLowerCase() === "done" ? true : false
+                            Text {
+                                id: taskStageText
+                                text: stageName
+                                font.pixelSize: units.gu(1.2)
+                                font.bold: true
+                                anchors.centerIn: parent
+                                color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6ee7b7" : "#047857")
+                                     : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#cbd5e1" : "#475569")
+                            }
                         }
                     }
                 }

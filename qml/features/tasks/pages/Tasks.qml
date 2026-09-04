@@ -494,6 +494,10 @@ Page {
                 draftHandler.updateOriginalData(getCurrentFormData());
                 draftHandler.trackingSuspended = false;
                 
+                if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
+                    mainView.taskDataChanged();
+                }
+
                 // Navigate back to list view after successful save (unless skipNavigation is true)
                 if (!skipNavigation) {
                     navigateBack();
@@ -561,6 +565,10 @@ Page {
             // Reload the task to reflect changes
             loadTask();
 
+            if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
+                mainView.taskDataChanged();
+            }
+
             notifPopup.open("Success", "Task stage changed to: " + stageName, "success");
         } else {
             notifPopup.open("Error", "Failed to change stage: " + (result.error || "Unknown error"), "error");
@@ -584,6 +592,10 @@ Page {
 
             // Reload the task to reflect changes
             loadTask();
+
+            if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
+                mainView.taskDataChanged();
+            }
 
             var message = personalStageOdooRecordId === null ? "Personal stage cleared" : "Personal stage changed to: " + personalStageName;
             notifPopup.open("Success", message, "success");

@@ -454,6 +454,10 @@ Page {
                     loadProjectData(recordid);
                 }
                 
+                if (typeof mainView !== "undefined" && mainView && mainView.projectDataChanged) {
+                    mainView.projectDataChanged();
+                }
+
                 draftHandler.clearDraft();
                 isReadOnly = true;
                 return true;
@@ -1060,6 +1064,10 @@ Page {
             // Reload project data to ensure UI is updated
             loadProjectData(recordid);
             
+            if (typeof mainView !== "undefined" && mainView && mainView.projectDataChanged) {
+                mainView.projectDataChanged();
+            }
+
             notifPopup.open("Success", "Project stage changed to: " + stageName, "success");
         } else {
             notifPopup.open("Error", "Failed to update project stage: " + (result.error || "Unknown error"), "error");
