@@ -136,6 +136,11 @@ function saveOrUpdateTask(data) {
             userIdValue = formatAssigneeIds(data.multipleAssignees);
         }
 
+        var defaultTaskStage = (data.accountId === 0) ? -1 : null;
+        var taskStageVal = (data.stageOdooRecordId !== undefined && data.stageOdooRecordId !== null && data.stageOdooRecordId !== 0)
+            ? data.stageOdooRecordId
+            : defaultTaskStage;
+
         db.transaction(function (tx) {
             if (data.record_id) {
                 // UPDATE
@@ -147,7 +152,7 @@ function saveOrUpdateTask(data) {
                         resolvedParentId, data.plannedHours, data.priority,
                         data.description, userIdValue, data.subProjectId,
                         data.startDate, data.endDate, data.deadline,
-                        data.stageOdooRecordId || null,
+                        taskStageVal,
                         data.personalStageOdooRecordId || null,
                         timestamp, data.status, data.record_id
                     ]
@@ -162,7 +167,7 @@ function saveOrUpdateTask(data) {
                         resolvedParentId, data.startDate, data.endDate,
                         data.deadline, data.priority, data.plannedHours,
                         data.description, userIdValue,
-                        data.subProjectId, data.stageOdooRecordId || null,
+                        data.subProjectId, taskStageVal,
                         data.personalStageOdooRecordId || null,
                         timestamp, data.status
                     ]
@@ -188,8 +193,11 @@ function getTaskStageName(odooRecordId, accountId) {
     var stageName = "Undefined";
 
     try {
-        if (odooRecordId === -1) {
-            return "Undefined";   // special case
+        if (odooRecordId === -1 && accountId !== 0) {
+            return "Undefined";   // special case for remote accounts
+        }
+        if (!odooRecordId) {
+            return "Undefined";
         }
 
         var db = Sql.LocalStorage.openDatabaseSync(
@@ -200,14 +208,12 @@ function getTaskStageName(odooRecordId, accountId) {
         );
 
         db.transaction(function (tx) {
-            var query = `
-                SELECT name
-                FROM project_task_type_app
-                WHERE odoo_record_id = ? AND account_id = ?
-                LIMIT 1
-            `;
+            var query = (accountId !== undefined && accountId !== null)
+                ? "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1"
+                : "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? LIMIT 1";
+            var params = (accountId !== undefined && accountId !== null) ? [odooRecordId, accountId] : [odooRecordId];
 
-            var result = tx.executeSql(query, [odooRecordId, accountId]);
+            var result = tx.executeSql(query, params);
 
             if (result.rows.length > 0) {
                 stageName = result.rows.item(0).name;
@@ -223,11 +229,12 @@ function getTaskStageName(odooRecordId, accountId) {
 /**
  * Check if a task's stage has fold == 1
  * @param {number} stageId - The odoo_record_id of the task stage
+ * @param {number} [accountId] - Optional account ID
  * @returns {boolean} True if the stage has fold == 1
  */
-function isTaskStageFolded(stageId) {
+function isTaskStageFolded(stageId, accountId) {
     try {
-        if (!stageId || stageId === -1) {
+        if (!stageId || (stageId === -1 && accountId !== 0)) {
             return false;
         }
 
@@ -241,14 +248,12 @@ function isTaskStageFolded(stageId) {
         var isFolded = false;
 
         db.transaction(function (tx) {
-            var query = `
-                SELECT fold
-                FROM project_task_type_app
-                WHERE odoo_record_id = ?
-                LIMIT 1
-            `;
+            var query = (accountId !== undefined && accountId !== null)
+                ? "SELECT fold FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1"
+                : "SELECT fold FROM project_task_type_app WHERE odoo_record_id = ? LIMIT 1";
+            var params = (accountId !== undefined && accountId !== null) ? [stageId, accountId] : [stageId];
 
-            var result = tx.executeSql(query, [stageId]);
+            var result = tx.executeSql(query, params);
 
             if (result.rows.length > 0) {
                 isFolded = result.rows.item(0).fold === 1;
@@ -3505,9 +3510,10 @@ function updateTaskStage(taskId, stageOdooRecordId, accountId) {
             }
 
             // Update the task's stage
+            var statusVal = (accountId === 0) ? "saved" : "updated";
             tx.executeSql(
                 'UPDATE project_task_app SET state = ?, last_modified = ?, status = ? WHERE id = ?',
-                [stageOdooRecordId, timestamp, "updated", taskId]
+                [stageOdooRecordId, timestamp, statusVal, taskId]
             );
         });
 

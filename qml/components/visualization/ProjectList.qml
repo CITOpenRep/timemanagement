@@ -996,12 +996,14 @@ Item {
             // Add "Open" as the first option
             menuModel.push({
                 label: "Open Projects",
-                value: -2
+                value: -2,
+                is_stage: false
             });
 
             menuModel.push({
                 label: "All Stages",
-                value: -1
+                value: -1,
+                is_stage: false
             });
 
             // Track both unique odoo_record_id+name combinations
@@ -1027,7 +1029,9 @@ Item {
                 // Add stage to menu model with its odoo_record_id as value
                 menuModel.push({
                     label: label,
-                    value: s.odoo_record_id
+                    value: s.odoo_record_id,
+                    account_id: s.account_id,
+                    is_stage: true
                 });
             }
             return menuModel;
@@ -1039,12 +1043,12 @@ Item {
             if (!selectedItem)
                 return;
 
-            if (selectedItem.value === -2) {
+            if (!selectedItem.is_stage && selectedItem.value === -2) {
                 // Open Projects filter
                 stageFilter.enabled = true;
                 stageFilter.odoo_record_id = -2;
                 stageFilter.name = "Open";
-            } else if (selectedItem.value === -1) {
+            } else if (!selectedItem.is_stage && selectedItem.value === -1) {
                 stageFilter.enabled = false;
                 stageFilter.odoo_record_id = -1;
                 stageFilter.account_id = -1;
@@ -1052,7 +1056,7 @@ Item {
             } else {
                 stageFilter.enabled = true;
                 stageFilter.odoo_record_id = selectedItem.value;
-                stageFilter.account_id = selectedItem.account_id || 0;
+                stageFilter.account_id = (selectedItem.account_id !== undefined) ? selectedItem.account_id : 0;
                 stageFilter.name = selectedItem.label;
             }
 

@@ -657,7 +657,7 @@ Page {
                 }
 
                 TSLabel {
-                    text: project && project.stage ? Project.getProjectStageName(project.stage) : i18n.dtr("ubtms", "Not set")
+                    text: project && project.stage ? Project.getProjectStageName(project.stage, project.account_id) : i18n.dtr("ubtms", "Not set")
                     width: (parent.width - (2 * parent.spacing)) / 3
                     height: units.gu(6)
                     fontBold: true
@@ -665,7 +665,7 @@ Page {
                         if (!project || !project.stage) {
                             return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
                         }
-                        var stageName = Project.getProjectStageName(project.stage).toLowerCase();
+                        var stageName = Project.getProjectStageName(project.stage, project.account_id).toLowerCase();
                         if (stageName === "completed" || stageName === "finished" || stageName === "closed" || stageName === "verified" || stageName === "done") {
                             return "green";
                         }
@@ -696,7 +696,7 @@ Page {
 
                         var dialog = PopupUtils.open(projectStageSelector, projectCreate, {
                             projectId: project.id,
-                            accountId: project.account_id,
+                            accountId: (project && project.account_id !== undefined) ? project.account_id : (selectedAccountId !== undefined ? selectedAccountId : 0),
                             currentStageOdooRecordId: project.stage || -1
                         });
                     }

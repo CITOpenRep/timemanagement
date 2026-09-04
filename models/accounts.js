@@ -413,6 +413,10 @@ function updateAccount(accountId, name, link, database, username, selectedConnec
  * @param {number} userId - The `id` of the user to delete.
  */
 function deleteAccountAndRelatedData(userId) {
+    if (userId === 0 || userId === "0") {
+        console.warn("Cannot delete Local Account");
+        return;
+    }
 
     try {
         const db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);

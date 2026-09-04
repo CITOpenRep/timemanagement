@@ -329,9 +329,8 @@ function getProjectUpdateByOdooId(odoo_record_id, accountId) {
     return update || {};
 }
 
-function getProjectStageName(odooRecordId) {
-    var stageName = null;
-
+function getProjectStageName(odooRecordId, accountId) {
+    var stageName = "";
     try {
         var db = Sql.LocalStorage.openDatabaseSync(
             DBCommon.NAME,
@@ -341,14 +340,12 @@ function getProjectStageName(odooRecordId) {
         );
 
         db.transaction(function (tx) {
-            var query = `
-                SELECT name
-                FROM project_project_stage_app
-                WHERE odoo_record_id = ?
-                LIMIT 1
-            `;
+            var query = (accountId !== undefined && accountId !== null)
+                ? "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1"
+                : "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? LIMIT 1";
+            var params = (accountId !== undefined && accountId !== null) ? [odooRecordId, accountId] : [odooRecordId];
 
-            var result = tx.executeSql(query, [odooRecordId]);
+            var result = tx.executeSql(query, params);
 
             if (result.rows.length > 0) {
                 stageName = result.rows.item(0).name;
@@ -478,18 +475,27 @@ function updateProjectStage(projectId, stageOdooRecordId, accountId) {
 
             // Verify the stage exists
             var stageCheck = tx.executeSql(
-                'SELECT id FROM project_project_stage_app WHERE odoo_record_id = ?',
-                [stageOdooRecordId]
+                'SELECT id FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = ?',
+                [stageOdooRecordId, accountId]
             );
+
+            if (stageCheck.rows.length === 0) {
+                // Fallback check if stage exists globally
+                stageCheck = tx.executeSql(
+                    'SELECT id FROM project_project_stage_app WHERE odoo_record_id = ?',
+                    [stageOdooRecordId]
+                );
+            }
 
             if (stageCheck.rows.length === 0) {
                 throw "Stage not found";
             }
 
             // Update the project's stage
+            var statusVal = (accountId === 0) ? "saved" : "updated";
             tx.executeSql(
                 'UPDATE project_project_app SET stage = ?, last_modified = ?, status = ? WHERE id = ?',
-                [stageOdooRecordId, timestamp, "updated", projectId]
+                [stageOdooRecordId, timestamp, statusVal, projectId]
             );
         });
 
@@ -1034,6 +1040,11 @@ function createUpdateProject(project_data, recordid) {
 
     db.transaction(function (tx) {
         try {
+            var defaultStage = (project_data.account_id === 0) ? -1 : 0;
+            var stageValue = (project_data.stage !== undefined && project_data.stage !== null && project_data.stage !== 0)
+                ? project_data.stage
+                : defaultStage;
+
             if (recordid === 0) {
                 tx.executeSql('INSERT INTO project_project_app \
                             (account_id, name, parent_id, planned_start_date, planned_end_date, \
@@ -1041,7 +1052,7 @@ function createUpdateProject(project_data, recordid) {
                             Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     [project_data.account_id, project_data.name, project_data.parent_id,
                     project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.stage || 0, project_data.status, project_data.user_id || null]);
+                    project_data.favorites, project_data.description, timestamp, project_data.color, stageValue, project_data.status, project_data.user_id || null]);
 
                 // Get the ID of the newly inserted project
                 var result = tx.executeSql("SELECT last_insert_rowid() as id");
@@ -1055,7 +1066,7 @@ function createUpdateProject(project_data, recordid) {
                             where id = ?',
                     [project_data.account_id, project_data.name, project_data.parent_id,
                     project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.stage || 0, project_data.status, project_data.user_id || null, recordid]);
+                    project_data.favorites, project_data.description, timestamp, project_data.color, stageValue, project_data.status, project_data.user_id || null, recordid]);
             }
             messageObj['is_success'] = true;
             messageObj['message'] = 'Project saved Successfully!';

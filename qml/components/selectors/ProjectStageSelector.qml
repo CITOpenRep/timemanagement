@@ -66,7 +66,7 @@ Dialog {
      */
     function loadStages() {
         // Load available project stages for this specific account
-        if (accountId > 0) {
+        if (accountId >= 0) {
             availableStages = Project.getProjectStagesForAccount(accountId);
         } else {
             // Fallback to all stages if no account specified

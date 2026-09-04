@@ -168,6 +168,8 @@ function ensureDefaultLocalAccountExists() {
             }
         });
 
+        ensureDefaultLocalProjectStages();
+        ensureDefaultLocalTaskStages();
     } catch (e) {
         logException(e);
     }
@@ -204,6 +206,93 @@ function ensureDefaultLocalActivityTypes() {
         logException("ensureDefaultLocalActivityTypes", e);
     }
 }
+
+/**
+ * Ensures default project stages exist for the Local Account.
+ *
+ * Local accounts do not sync project stages from Odoo, so provide
+ * a predefined set of project stages during database initialization.
+ */
+function ensureDefaultLocalProjectStages() {
+    const defaultStages = [
+        { name: "Planning", sequence: 10, fold: 0, odoo_record_id: -1 },
+        { name: "In Progress", sequence: 20, fold: 0, odoo_record_id: -2 },
+        { name: "Completed", sequence: 30, fold: 1, odoo_record_id: -3 },
+        { name: "Cancelled", sequence: 40, fold: 1, odoo_record_id: -4 }
+    ];
+
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(NAME, VERSION, DISPLAY_NAME, SIZE);
+        const timestamp = new Date().toISOString();
+
+        db.transaction(function (tx) {
+            defaultStages.forEach(function (stage) {
+                const result = tx.executeSql(
+                    "SELECT id FROM project_project_stage_app WHERE account_id = ? AND odoo_record_id = ?",
+                    [0, stage.odoo_record_id]
+                );
+
+                if (result.rows.length === 0) {
+                    tx.executeSql(
+                        "INSERT INTO project_project_stage_app (account_id, odoo_record_id, name, sequence, fold, active, create_date, write_date, status) VALUES (?, ?, ?, ?, ?, 1, ?, ?, '')",
+                        [0, stage.odoo_record_id, stage.name, stage.sequence, stage.fold, timestamp, timestamp]
+                    );
+                }
+            });
+
+            // Safe migration: Set initial stage (-1, Planning) for local projects without stage
+            tx.executeSql(
+                "UPDATE project_project_app SET stage = -1 WHERE account_id = 0 AND (stage IS NULL OR stage = 0)"
+            );
+        });
+    } catch (e) {
+        logException("ensureDefaultLocalProjectStages", e);
+    }
+}
+
+/**
+ * Ensures default task stages exist for the Local Account.
+ *
+ * Local accounts do not sync task types/stages from Odoo, so provide
+ * a predefined set of global task stages during database initialization.
+ */
+function ensureDefaultLocalTaskStages() {
+    const defaultStages = [
+        { name: "New", sequence: 1, fold: 0, odoo_record_id: -1 },
+        { name: "In Progress", sequence: 2, fold: 0, odoo_record_id: -2 },
+        { name: "Done", sequence: 3, fold: 1, odoo_record_id: -3 },
+        { name: "Cancelled", sequence: 4, fold: 1, odoo_record_id: -4 }
+    ];
+
+    try {
+        const db = Sql.LocalStorage.openDatabaseSync(NAME, VERSION, DISPLAY_NAME, SIZE);
+        const timestamp = new Date().toISOString();
+
+        db.transaction(function (tx) {
+            defaultStages.forEach(function (stage) {
+                const result = tx.executeSql(
+                    "SELECT id FROM project_task_type_app WHERE account_id = ? AND odoo_record_id = ?",
+                    [0, stage.odoo_record_id]
+                );
+
+                if (result.rows.length === 0) {
+                    tx.executeSql(
+                        "INSERT INTO project_task_type_app (account_id, odoo_record_id, name, sequence, fold, is_global, active, create_date, write_date, status) VALUES (?, ?, ?, ?, ?, 1, 1, ?, ?, '')",
+                        [0, stage.odoo_record_id, stage.name, stage.sequence, stage.fold, timestamp, timestamp]
+                    );
+                }
+            });
+
+            // Safe migration: Set initial stage (-1, New) for local tasks without state
+            tx.executeSql(
+                "UPDATE project_task_app SET state = -1 WHERE account_id = 0 AND (state IS NULL OR state = 0 OR state = '' OR state = '0')"
+            );
+        });
+    } catch (e) {
+        logException("ensureDefaultLocalTaskStages", e);
+    }
+}
+
 /**
  * Creates a table if it doesn't exist, and ensures all expected columns are present.
  *
