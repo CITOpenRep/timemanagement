@@ -139,16 +139,7 @@ Page {
                 text: i18n.dtr("ubtms", "New Timesheet")
                 visible: !headerContents.showDateFilter
                 onTriggered: {
-                    const defaultAccountId = Account.getDefaultAccountId();
-                    const result = TimesheetModel.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
-                    if (result.success) {
-                        apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
-                            "recordid": result.id,
-                            "isReadOnly": false
-                        });
-                    } else {
-                        Logger.error("Dashboard", "Error creating timesheet: " + result.message)
-                    }
+                    openNewTimesheetPage(false);
                 }
             },
             Action {
@@ -163,6 +154,33 @@ Page {
                 }
             }
         ]
+    }
+
+    function openNewTimesheetPage(useNextColumn) {
+        var targetAccountId = (accountPicker && accountPicker.selectedAccountId >= 0) ? accountPicker.selectedAccountId : Account.getDefaultAccountId();
+        if (targetAccountId < 0) {
+            targetAccountId = 0;
+        }
+        var targetUserId = Account.getCurrentUserOdooId(targetAccountId);
+        if (targetAccountId === 0 && (!targetUserId || targetUserId <= 0)) {
+            targetUserId = 1;
+        }
+        const result = TimesheetModel.createTimesheet(targetAccountId, targetUserId);
+        if (result.success) {
+            if (useNextColumn) {
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
+                    "recordid": result.id,
+                    "isReadOnly": false
+                });
+            } else {
+                apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
+                    "recordid": result.id,
+                    "isReadOnly": false
+                });
+            }
+        } else {
+            Logger.error("Dashboard", "Error creating timesheet: " + (result.error || result.message));
+        }
     }
 
     function refreshData() {
@@ -219,10 +237,15 @@ Page {
                 return;
             case 2:
                 Logger.debug("Dashboard", "Dashboard refresh stage 2: additional charts")
-                if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function")
-                    mobileProjectChartLoader.item.reloadData(sDate, eDate);
-                if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function")
-                    mobileTaskChartLoader.item.reloadData(sDate, eDate);
+                var activeAccId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : -1;
+                if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function") {
+                    mobileProjectChartLoader.item.selectedAccountId = activeAccId;
+                    mobileProjectChartLoader.item.reloadData(sDate, eDate, activeAccId);
+                }
+                if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function") {
+                    mobileTaskChartLoader.item.selectedAccountId = activeAccId;
+                    mobileTaskChartLoader.item.reloadData(sDate, eDate, activeAccId);
+                }
                 break;
             default:
                 break;
@@ -239,13 +262,16 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: i18n.dtr("ubtms", "Task")
+                label: i18n.dtr("ubtms", "Task"),
+                iconName: "scope-manager"
             },
             {
-                label: i18n.dtr("ubtms", "Timesheet")
+                label: i18n.dtr("ubtms", "Timesheet"),
+                iconName: "alarm-clock"
             },
             {
-                label: i18n.dtr("ubtms", "Activity")
+                label: i18n.dtr("ubtms", "Activity"),
+                iconName: "calendar"
             }
         ]
         onMenuItemSelected: {
@@ -256,15 +282,7 @@ Page {
                 });
             }
             if (index === 1) {
-                const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
-                if (result.success) {
-                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
-                        "recordid": result.id,
-                        "isReadOnly": false
-                    });
-                } else {
-                    Logger.error("Dashboard", "Error creating timesheet: " + result.message)
-                }
+                openNewTimesheetPage(true);
             }
             if (index === 2) {
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
@@ -428,6 +446,8 @@ Page {
                                 onLoaded: {
                                     if (item) {
                                         item.autoRefreshOnAccountChange = false;
+                                        var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+                                        item.selectedAccountId = accId;
                                     }
                                 }
                             }
@@ -442,6 +462,8 @@ Page {
                                 onLoaded: {
                                     if (item) {
                                         item.autoRefreshOnAccountChange = false;
+                                        var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+                                        item.selectedAccountId = accId;
                                     }
                                 }
                             }
@@ -490,23 +512,32 @@ Page {
         }
 
         onCommitCompleted: {
-            const result = TimesheetModel.createTimesheet(Account.getDefaultAccountId(), Account.getCurrentUserOdooId(Account.getDefaultAccountId()));
-            if (result.success) {
-                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
-                    "recordid": result.id,
-                    "isReadOnly": false
-                });
-            } else {
-                Logger.error("Dashboard", "Error creating timesheet: " + result.message)
-            }
+            openNewTimesheetPage(true);
             collapse();
         }
     }
 
     Connections {
-        target: accountPicker
+        target: typeof accountPicker !== "undefined" ? accountPicker : null
+        onSelectedAccountIdChanged: {
+            if (accountPicker.selectedAccountName) {
+                header.title = i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]";
+            }
+            refreshData();
+        }
         onAccepted: function (accountId, accountName) {
             header.title = i18n.dtr("ubtms", "Account") + " [" + accountName + "]";
+            refreshData();
+        }
+    }
+
+    Connections {
+        target: typeof rootApp !== "undefined" ? rootApp : null
+        onGlobalAccountChanged: function (accountId, accountName) {
+            header.title = i18n.dtr("ubtms", "Account") + " [" + accountName + "]";
+            refreshData();
+        }
+        onAccountDataRefreshRequested: function (accountId) {
             refreshData();
         }
     }

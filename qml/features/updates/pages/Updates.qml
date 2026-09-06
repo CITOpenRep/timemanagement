@@ -119,7 +119,7 @@ Page {
         }
         trailingActionBar.actions: [
             Action {
-                iconSource: "../../../images/save.svg"
+                iconName: "tick"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms", "Save")
                 onTriggered: {
@@ -740,6 +740,7 @@ Page {
             // Update original data in draft handler
             draftHandler.updateOriginalData(newBaseline);
             
+            isReadOnly = true;
             notifPopup.open("Saved", "Project Update has been saved successfully", "success");
         }
     }

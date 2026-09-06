@@ -44,6 +44,7 @@ ListItem {
     property string spentHours: "0"
     property string quadrant: "Do"
     property int recordId: -1
+    property int accountId: -1
     property string status: ""
     property bool timer_on: false
     property bool timer_paused: false
@@ -77,8 +78,13 @@ ListItem {
     }
 
     function stop_workflow() {
-        if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId()))
+        if (TimerService.isRunning() && (recordId === TimerService.getActiveTimesheetId())) {
             TimerService.stop();
+            if (accountId === 0 || instance === "Local" || instance === "local") {
+                Timesheet.markTimesheetAsSavedById(recordId);
+            }
+            timesheetItem.refresh();
+        }
     }
 
     function save_workflow() {
@@ -87,10 +93,14 @@ ListItem {
         }
         const result = Timesheet.markTimesheetAsReadyById(recordId);
         if (result.success) {
-            notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
+            if (accountId === 0 || instance === "Local" || instance === "local") {
+                notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
+            } else {
+                notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
+            }
             timesheetItem.refresh();
         } else {
-            notifPopup.open("Update needed", "Both Project and Task must be selected before syncing", "error");
+            notifPopup.open("Update needed", result.error || "Both Project and Task must be selected before syncing", "error");
         }
     }
 
@@ -163,8 +173,8 @@ ListItem {
             },
             Action {
                 id: readyAction
-                visible: (recordId !== TimerService.getActiveTimesheetId()) //Dont show this for the active running entry
-                iconSource: "../../../images/save.svg"
+                visible: (recordId !== TimerService.getActiveTimesheetId()) && status !== "saved" && status !== "updated" && status !== "synced" && (accountId > 0 || (accountId < 0 && instance !== "Local" && instance !== "local"))
+                iconName: "tick"
                 text: i18n.dtr("ubtms", "Mark Ready for Sync")
                 onTriggered: {
                     save_workflow();

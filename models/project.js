@@ -18,8 +18,8 @@ function getLocalIdFromOdooId(odooRecordId, accountId) {
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                'SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
-                [odooRecordId, accountId]
+                'SELECT id FROM project_project_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? LIMIT 1',
+                [odooRecordId, odooRecordId, accountId]
             );
 
             if (result.rows.length > 0) {
@@ -253,8 +253,8 @@ function getProjectUpdatesByProject(projectOdooRecordId, accountId) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND project_id = ? AND account_id = ? ORDER BY date DESC";
-            var result = tx.executeSql(query, [projectOdooRecordId, accountId]);
+            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND (project_id = ? OR project_id IN (SELECT odoo_record_id FROM project_project_app WHERE (id = ? OR odoo_record_id = ?) AND account_id = ?)) AND account_id = ? ORDER BY date DESC";
+            var result = tx.executeSql(query, [projectOdooRecordId, projectOdooRecordId, projectOdooRecordId, accountId, accountId]);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -329,10 +329,12 @@ function getProjectUpdateByOdooId(odoo_record_id, accountId) {
     return update || {};
 }
 
-function getProjectStageName(odooRecordId) {
-    var stageName = null;
-
+function getProjectStageName(odooRecordId, accountId) {
+    var stageName = "";
     try {
+        if (!odooRecordId || odooRecordId === 0) {
+            return "";
+        }
         var db = Sql.LocalStorage.openDatabaseSync(
             DBCommon.NAME,
             DBCommon.VERSION,
@@ -341,14 +343,21 @@ function getProjectStageName(odooRecordId) {
         );
 
         db.transaction(function (tx) {
-            var query = `
-                SELECT name
-                FROM project_project_stage_app
-                WHERE odoo_record_id = ?
-                LIMIT 1
-            `;
+            var query = "";
+            var params = [];
 
-            var result = tx.executeSql(query, [odooRecordId]);
+            if (odooRecordId < 0) {
+                query = "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = 0 LIMIT 1";
+                params = [odooRecordId];
+            } else if (accountId !== undefined && accountId !== null && accountId >= 0) {
+                query = "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1";
+                params = [odooRecordId, accountId];
+            } else {
+                query = "SELECT name FROM project_project_stage_app WHERE odoo_record_id = ? LIMIT 1";
+                params = [odooRecordId];
+            }
+
+            var result = tx.executeSql(query, params);
 
             if (result.rows.length > 0) {
                 stageName = result.rows.item(0).name;
@@ -478,18 +487,27 @@ function updateProjectStage(projectId, stageOdooRecordId, accountId) {
 
             // Verify the stage exists
             var stageCheck = tx.executeSql(
-                'SELECT id FROM project_project_stage_app WHERE odoo_record_id = ?',
-                [stageOdooRecordId]
+                'SELECT id FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = ?',
+                [stageOdooRecordId, accountId]
             );
+
+            if (stageCheck.rows.length === 0) {
+                // Fallback check if stage exists globally
+                stageCheck = tx.executeSql(
+                    'SELECT id FROM project_project_stage_app WHERE odoo_record_id = ?',
+                    [stageOdooRecordId]
+                );
+            }
 
             if (stageCheck.rows.length === 0) {
                 throw "Stage not found";
             }
 
             // Update the project's stage
+            var statusVal = (accountId === 0) ? "saved" : "updated";
             tx.executeSql(
                 'UPDATE project_project_app SET stage = ?, last_modified = ?, status = ? WHERE id = ?',
-                [stageOdooRecordId, timestamp, "updated", projectId]
+                [stageOdooRecordId, timestamp, statusVal, projectId]
             );
         });
 
@@ -742,19 +760,27 @@ function getProjectsFilteredPaginated(options) {
 
             // Stage filter
             if (options.stageId !== undefined && options.stageId !== null) {
-                if (options.stageId === -2 && options.openStageIds && options.openStageIds.length > 0) {
-                    // "Open" filter — match any of the open stage IDs
-                    var placeholders = options.openStageIds.map(function () { return "?"; }).join(",");
-                    whereClauses.push("stage IN (" + placeholders + ")");
-                    for (var s = 0; s < options.openStageIds.length; s++) {
-                        params.push(options.openStageIds[s]);
+                if (!options.isStage && options.stageId === -2) {
+                    // "Open" filter
+                    if (options.openStageIds && options.openStageIds.length > 0) {
+                        var placeholders = options.openStageIds.map(function () { return "?"; }).join(",");
+                        if (options.accountId === -1 || options.accountId === undefined) {
+                            // "All Accounts": match open stages OR projects without a stage
+                            whereClauses.push("(stage IN (" + placeholders + ") OR stage = 0 OR stage IS NULL)");
+                        } else {
+                            // Specific account
+                            whereClauses.push("stage IN (" + placeholders + ")");
+                        }
+                        for (var s = 0; s < options.openStageIds.length; s++) {
+                            params.push(options.openStageIds[s]);
+                        }
                     }
-                } else if (options.stageId >= 0) {
+                } else if (options.isStage || options.stageId >= 0 || (options.stageId < 0 && options.stageId !== -1 && options.stageId !== -2)) {
                     // Specific stage
                     whereClauses.push("stage = ?");
                     params.push(options.stageId);
                 }
-                // stageId === -1 means "All" → no stage filter needed
+                // !options.isStage && stageId === -1 means "All" → no stage filter needed
             }
 
             // Search filter
@@ -807,8 +833,8 @@ function getProjectUpdatesByProjectPaginated(projectOdooRecordId, accountId, lim
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND project_id = ? AND account_id = ? ORDER BY date DESC LIMIT ? OFFSET ?";
-            var result = tx.executeSql(query, [projectOdooRecordId, accountId, limit, offset]);
+            var query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND (project_id = ? OR project_id IN (SELECT odoo_record_id FROM project_project_app WHERE (id = ? OR odoo_record_id = ?) AND account_id = ?)) AND account_id = ? ORDER BY date DESC LIMIT ? OFFSET ?";
+            var result = tx.executeSql(query, [projectOdooRecordId, projectOdooRecordId, projectOdooRecordId, accountId, accountId, limit, offset]);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -1024,6 +1050,11 @@ function createUpdateProject(project_data, recordid) {
 
     db.transaction(function (tx) {
         try {
+            var defaultStage = (project_data.account_id === 0) ? -1 : 0;
+            var stageValue = (project_data.stage !== undefined && project_data.stage !== null && project_data.stage !== 0)
+                ? project_data.stage
+                : defaultStage;
+
             if (recordid === 0) {
                 tx.executeSql('INSERT INTO project_project_app \
                             (account_id, name, parent_id, planned_start_date, planned_end_date, \
@@ -1031,7 +1062,7 @@ function createUpdateProject(project_data, recordid) {
                             Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     [project_data.account_id, project_data.name, project_data.parent_id,
                     project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.stage || 0, project_data.status, project_data.user_id || null]);
+                    project_data.favorites, project_data.description, timestamp, project_data.color, stageValue, project_data.status, project_data.user_id || null]);
 
                 // Get the ID of the newly inserted project
                 var result = tx.executeSql("SELECT last_insert_rowid() as id");
@@ -1045,7 +1076,7 @@ function createUpdateProject(project_data, recordid) {
                             where id = ?',
                     [project_data.account_id, project_data.name, project_data.parent_id,
                     project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
-                    project_data.favorites, project_data.description, timestamp, project_data.color, project_data.stage || 0, project_data.status, project_data.user_id || null, recordid]);
+                    project_data.favorites, project_data.description, timestamp, project_data.color, stageValue, project_data.status, project_data.user_id || null, recordid]);
             }
             messageObj['is_success'] = true;
             messageObj['message'] = 'Project saved Successfully!';
@@ -1213,11 +1244,20 @@ function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) 
             Logger.debug("Project", "   Aggregating spent hours for ALL accounts")
 
             var sqlAll = "SELECT aal.project_id, aal.account_id, COALESCE(u.name, 'Unknown') AS account_name, " +
-                "COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
+                "COALESCE(p.name, 'Unknown') AS project_name, parent.name AS parent_name, SUM(aal.unit_amount) AS total_spent " +
                 "FROM account_analytic_line_app aal " +
                 "LEFT JOIN users u ON aal.account_id = u.id " +
-                "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
-                "WHERE " + (is_work_state ? "aal.account_id != 0 " : "aal.account_id = 0 ");
+                "JOIN project_project_app p ON (" +
+                "  (p.odoo_record_id = COALESCE(NULLIF(aal.sub_project_id, 0), aal.project_id) OR " +
+                "   (aal.account_id = 0 AND p.id = COALESCE(NULLIF(aal.sub_project_id, 0), aal.project_id))) " +
+                "  AND p.account_id = aal.account_id " +
+                ") " +
+                "LEFT JOIN project_project_app parent ON (" +
+                "  (parent.odoo_record_id = p.parent_id OR (aal.account_id = 0 AND parent.id = p.parent_id)) " +
+                "  AND parent.account_id = p.account_id " +
+                ") " +
+                "WHERE (aal.status IS NULL OR aal.status != 'deleted') AND aal.unit_amount > 0 AND (aal.project_id IS NOT NULL OR aal.sub_project_id IS NOT NULL) " +
+                "AND " + (is_work_state ? "aal.account_id != 0 " : "aal.account_id = 0 ");
             var paramsAll = [];
 
             if (startDate) {
@@ -1229,21 +1269,22 @@ function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) 
                 paramsAll.push(endDate);
             }
 
-            sqlAll += "GROUP BY aal.project_id, aal.account_id, u.name, p.name ORDER BY total_spent DESC";
+            sqlAll += "GROUP BY aal.project_id, aal.account_id, u.name, p.id, p.name, parent.name ORDER BY total_spent DESC";
 
             result = tx.executeSql(sqlAll, paramsAll);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
-                var projectName = row.project_name || "Unknown";
+                var baseProjectName = row.project_name || "Unknown";
+                var fullProjectName = row.parent_name ? (row.parent_name + " / " + baseProjectName) : baseProjectName;
                 var accountName = row.account_name || "Unknown";
                 resultList.push({
                     project_id: row.project_id,
-                    name: projectName + " (" + accountName + ")",
+                    name: fullProjectName + " (" + accountName + ")",
                     spentHours: parseFloat((parseFloat(row.total_spent || 0)).toFixed(1)),
                     account_id: row.account_id,
                     account_name: accountName,
-                    original_project_name: projectName
+                    original_project_name: fullProjectName
                 });
             }
 
@@ -1257,10 +1298,18 @@ function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) 
 
             Logger.debug("Project", "   Aggregating spent hours for single account:", acctNum)
 
-            var sqlSingle = "SELECT aal.project_id, COALESCE(p.name, 'Unknown') AS project_name, SUM(aal.unit_amount) AS total_spent " +
+            var sqlSingle = "SELECT aal.project_id, COALESCE(p.name, 'Unknown') AS project_name, parent.name AS parent_name, SUM(aal.unit_amount) AS total_spent " +
                 "FROM account_analytic_line_app aal " +
-                "LEFT JOIN project_project_app p ON p.odoo_record_id = aal.project_id AND p.account_id = aal.account_id " +
-                "WHERE aal.account_id = ? ";
+                "JOIN project_project_app p ON (" +
+                "  (p.odoo_record_id = COALESCE(NULLIF(aal.sub_project_id, 0), aal.project_id) OR " +
+                "   (aal.account_id = 0 AND p.id = COALESCE(NULLIF(aal.sub_project_id, 0), aal.project_id))) " +
+                "  AND p.account_id = aal.account_id " +
+                ") " +
+                "LEFT JOIN project_project_app parent ON (" +
+                "  (parent.odoo_record_id = p.parent_id OR (aal.account_id = 0 AND parent.id = p.parent_id)) " +
+                "  AND parent.account_id = p.account_id " +
+                ") " +
+                "WHERE aal.account_id = ? AND (aal.status IS NULL OR aal.status != 'deleted') AND aal.unit_amount > 0 AND (aal.project_id IS NOT NULL OR aal.sub_project_id IS NOT NULL) ";
             var paramsSingle = [acctNum];
 
             if (startDate) {
@@ -1272,20 +1321,21 @@ function getProjectSpentHoursList(is_work_state, accountId, startDate, endDate) 
                 paramsSingle.push(endDate);
             }
 
-            sqlSingle += "GROUP BY aal.project_id, p.name ORDER BY total_spent DESC";
+            sqlSingle += "GROUP BY aal.project_id, p.id, p.name, parent.name ORDER BY total_spent DESC";
 
             result = tx.executeSql(sqlSingle, paramsSingle);
 
             for (var j = 0; j < result.rows.length; j++) {
                 var r = result.rows.item(j);
-                var projectNameSingle = r.project_name || "Unknown";
+                var baseProjectNameSingle = r.project_name || "Unknown";
+                var fullProjectNameSingle = r.parent_name ? (r.parent_name + " / " + baseProjectNameSingle) : baseProjectNameSingle;
                 resultList.push({
                     project_id: r.project_id,
-                    name: projectNameSingle,
+                    name: fullProjectNameSingle,
                     spentHours: parseFloat((parseFloat(r.total_spent || 0)).toFixed(1)),
                     account_id: acctNum,
                     account_name: undefined,
-                    original_project_name: projectNameSingle
+                    original_project_name: fullProjectNameSingle
                 });
             }
         }
@@ -1332,18 +1382,19 @@ function getDashboardProjectTaskSummary(accountId, startDate, endDate) {
             var query =
                 "SELECT " +
                 "p.account_id, p.odoo_record_id, p.id AS local_id, p.name, p.color_pallet, s.name AS stage_name, " +
-                "COUNT(t.id) AS task_count, COALESCE(SUM(ts.total_hours), 0) AS total_hours " +
+                "COUNT(DISTINCT t.id) AS task_count, COALESCE(SUM(ts.total_hours), 0) AS total_hours " +
                 "FROM project_project_app p " +
-                "LEFT JOIN project_project_stage_app s ON s.odoo_record_id = p.stage AND s.account_id = p.account_id " +
+                "LEFT JOIN project_project_stage_app s ON (s.odoo_record_id = p.stage OR (p.account_id = 0 AND s.id = p.stage)) AND s.account_id = p.account_id " +
                 "LEFT JOIN project_task_app t ON t.account_id = p.account_id " +
-                "AND t.project_id = p.odoo_record_id " +
+                "AND ((p.odoo_record_id IS NOT NULL AND (t.project_id = p.odoo_record_id OR t.sub_project_id = p.odoo_record_id)) " +
+                "     OR (p.account_id = 0 AND (t.project_id = p.id OR t.sub_project_id = p.id))) " +
                 "AND (t.status IS NULL OR t.status != 'deleted') " +
                 "LEFT JOIN ( " +
                 "SELECT account_id, task_id, SUM(unit_amount) AS total_hours " +
                 "FROM account_analytic_line_app " +
                 "WHERE " + tsConditions.join(" AND ") + " " +
                 "GROUP BY account_id, task_id " +
-                ") ts ON ts.account_id = t.account_id AND ts.task_id = t.odoo_record_id " +
+                ") ts ON ts.account_id = t.account_id AND (ts.task_id = t.odoo_record_id OR (t.account_id = 0 AND ts.task_id = t.id)) " +
                 accountWhere +
                 "GROUP BY p.account_id, p.odoo_record_id, p.id, p.name, p.color_pallet, s.name " +
                 "ORDER BY total_hours DESC, p.name COLLATE NOCASE ASC";
@@ -1353,7 +1404,7 @@ function getDashboardProjectTaskSummary(accountId, startDate, endDate) {
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
                 resultList.push({
-                    id: String(row.account_id) + ":" + String(row.odoo_record_id),
+                    id: String(row.account_id) + ":" + String(row.odoo_record_id || row.local_id),
                     accountId: row.account_id,
                     odooRecordId: row.odoo_record_id,
                     localId: row.local_id,
@@ -1389,10 +1440,18 @@ function getProjectName(projectId, accountId) {
         var projectName = "Unknown Project";
 
         db.transaction(function (tx) {
-            var result = tx.executeSql(
-                "SELECT name FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
-                [projectId, accountId]
-            );
+            var result;
+            if (accountId === 0) {
+                result = tx.executeSql(
+                    "SELECT name FROM project_project_app WHERE (id = ? OR odoo_record_id = ?) AND account_id = 0",
+                    [projectId, projectId]
+                );
+            } else {
+                result = tx.executeSql(
+                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ?",
+                    [projectId, projectId, accountId]
+                );
+            }
             if (result.rows.length > 0) {
                 projectName = result.rows.item(0).name;
             }
@@ -1440,4 +1499,39 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         Logger.error("Project", "toggleProjectFavorite failed:", e)
         return { success: false, message: "Failed to update project favorite status: " + e.message };
     }
+}
+
+/**
+ * Gets a map of project_id -> task count for active tasks.
+ *
+ * @param {number} accountId - Optional account ID filter.
+ * @returns {Object} Map of project ID to task count.
+ */
+function getProjectTaskCountMap(accountId) {
+    var countMap = {};
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var query = "SELECT project_id, sub_project_id, COUNT(*) AS cnt FROM project_task_app WHERE (status IS NULL OR status != 'deleted')";
+            var params = [];
+            if (accountId !== undefined && accountId >= 0) {
+                query += " AND account_id = ?";
+                params.push(accountId);
+            }
+            query += " GROUP BY project_id, sub_project_id";
+            var rs = tx.executeSql(query, params);
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                if (row.project_id) {
+                    countMap[row.project_id] = (countMap[row.project_id] || 0) + row.cnt;
+                }
+                if (row.sub_project_id && row.sub_project_id !== row.project_id) {
+                    countMap[row.sub_project_id] = (countMap[row.sub_project_id] || 0) + row.cnt;
+                }
+            }
+        });
+    } catch (e) {
+        Logger.error("Project", "getProjectTaskCountMap failed:", e);
+    }
+    return countMap;
 }

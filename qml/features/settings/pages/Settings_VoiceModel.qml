@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import Lomiri.Components.Popups 1.3
 import QtGraphicalEffects 1.0
 import "../components"
@@ -737,6 +738,11 @@ Page {
                     anchors.rightMargin: units.gu(2)
                     anchors.verticalCenter: parent.verticalCenter
                     checked: isVoiceInputEnabled
+                    style: Component {
+                        SwitchStyle {
+                            checkedBackgroundColor: LomiriColors.orange
+                        }
+                    }
                     onCheckedChanged: {
                         if (checked !== isVoiceInputEnabled) {
                             saveVoiceInputEnabledSetting(checked);
@@ -765,6 +771,11 @@ Page {
                     anchors.rightMargin: units.gu(2)
                     anchors.verticalCenter: parent.verticalCenter
                     checked: isVoiceLowMemoryMode
+                    style: Component {
+                        SwitchStyle {
+                            checkedBackgroundColor: LomiriColors.orange
+                        }
+                    }
                     onCheckedChanged: {
                         if (checked !== isVoiceLowMemoryMode) {
                             saveVoiceLowMemoryModeSetting(checked);

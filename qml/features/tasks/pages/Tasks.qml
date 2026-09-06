@@ -67,7 +67,7 @@ Page {
 
         trailingActionBar.actions: [
             Action {
-                iconSource: "../../../images/save.svg"
+                iconName: "tick"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms", "Save")
                 onTriggered: {
@@ -494,6 +494,10 @@ Page {
                 draftHandler.updateOriginalData(getCurrentFormData());
                 draftHandler.trackingSuspended = false;
                 
+                if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
+                    mainView.taskDataChanged();
+                }
+
                 // Navigate back to list view after successful save (unless skipNavigation is true)
                 if (!skipNavigation) {
                     navigateBack();
@@ -561,6 +565,10 @@ Page {
             // Reload the task to reflect changes
             loadTask();
 
+            if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
+                mainView.taskDataChanged();
+            }
+
             notifPopup.open("Success", "Task stage changed to: " + stageName, "success");
         } else {
             notifPopup.open("Error", "Failed to change stage: " + (result.error || "Unknown error"), "error");
@@ -584,6 +592,10 @@ Page {
 
             // Reload the task to reflect changes
             loadTask();
+
+            if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
+                mainView.taskDataChanged();
+            }
 
             var message = personalStageOdooRecordId === null ? "Personal stage cleared" : "Personal stage changed to: " + personalStageName;
             notifPopup.open("Success", message, "success");
@@ -819,7 +831,8 @@ Page {
                 });
             }
             onCreateActivityRequested: {
-                let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
+                let taskEffectiveId = (currentTask.account_id === 0 || !currentTask.odoo_record_id) ? currentTask.id : currentTask.odoo_record_id;
+                let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, taskEffectiveId);
                 if (result.success) {
                     apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                         "recordid": result.record_id,
@@ -831,16 +844,18 @@ Page {
                 }
             }
             onViewActivitiesRequested: {
-                Logger.debug("Tasks", "Viewing activities for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id)
+                let taskEffectiveId = (currentTask.account_id === 0 || !currentTask.odoo_record_id) ? currentTask.id : currentTask.odoo_record_id;
+                Logger.debug("Tasks", "Viewing activities for task:", currentTask.id, "effectiveId:", taskEffectiveId)
                 apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activity_Page.qml"), {
                     "filterByTasks": true,
-                    "taskOdooRecordId": currentTask.odoo_record_id,
+                    "taskOdooRecordId": taskEffectiveId,
                     "projectAccountId": currentTask.account_id,
                     "projectName": currentTask.name || "Task"
                 });
             }
             onCreateTimesheetRequested: {
-                const result = Timesheet.createTimesheetFromTask(currentTask.odoo_record_id);
+                var effectiveTaskId = (currentTask.account_id === 0 || !currentTask.odoo_record_id) ? currentTask.id : currentTask.odoo_record_id;
+                const result = Timesheet.createTimesheetFromTask(effectiveTaskId);
                 if (result.success) {
                     apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
@@ -886,7 +901,6 @@ Page {
         //changed the attachment color
         Rectangle {
                 id: attachmentRow
-                anchors.top: deadlineRow.bottom
                 height: units.gu(50)
                 width: parent.width
                 anchors.margins: units.gu(0.1)

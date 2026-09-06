@@ -25,6 +25,26 @@ Item {
     property int timesheetId: 0
     signal invalidtimesheet
     signal requestAutoSave
+    signal beforeStop
+    signal stopped
+
+    onTimesheetIdChanged: {
+        syncTimerState();
+    }
+
+    function syncTimerState() {
+        if (timesheetId > 0 && timesheetId === TimerService.getActiveTimesheetId()) {
+            isRecording = TimerService.isRunning() && !TimerService.isPaused();
+            autoMode = true;
+            timeDisplay.text = TimerService.getElapsedTime();
+            elapsedTime = timeDisplay.text;
+        } else if (timesheetId > 0) {
+            isRecording = false;
+            var savedTime = TimeSheet.getTimesheetUnitAmount(timesheetId);
+            timeDisplay.text = Utils.convertDecimalHoursToHHMM(savedTime);
+            elapsedTime = timeDisplay.text;
+        }
+    }
 
     function tryStartTimer() {
         if (timesheetId <= 0) {
@@ -50,10 +70,16 @@ Item {
         target: globalTimerWidget
 
         onTimerStopped: {
-            updateTimer.running = false;
+            syncTimerState();
         }
         onTimerStarted: {
-            updateTimer.running = true;
+            syncTimerState();
+        }
+        onTimerPaused: {
+            syncTimerState();
+        }
+        onTimerResumed: {
+            syncTimerState();
         }
     }
 
@@ -219,16 +245,25 @@ Item {
                             return;
                         }
 
+                        autoRecorder.beforeStop();
+
                         if (TimerService.isRunning() && TimerService.getActiveTimesheetId() === timesheetId) {
                             TimerService.stop();
                         }
 
                         const result = TimeSheet.markTimesheetAsReadyById(timesheetId);
                         if (!result.success) {
-                            notifPopup.open("Error", "Both Project and Task must be selected before finalizing", "error");
+                            notifPopup.open("Error", result.error || "Both Project and Task must be selected before finalizing", "error");
                         } else {
-                            notifPopup.open("Saved", "Timesheet has been finalised successfully", "success");
+                            var accountId = TimeSheet.getTimesheetAccountId ? TimeSheet.getTimesheetAccountId(timesheetId) : -1;
+                            if (accountId === 0) {
+                                notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
+                            } else {
+                                notifPopup.open("Saved", "Timesheet has been finalised successfully", "success");
+                            }
                         }
+
+                        autoRecorder.stopped();
                     }
                 }
             }
@@ -261,14 +296,6 @@ Item {
     }
 
     Component.onCompleted: {
-        if (timesheetId > 0 && timesheetId === TimerService.getActiveTimesheetId()) {
-            isRecording = true;
-            autoMode = true;
-            if (autoMode)
-                updateTimer.start();
-        } else {
-            isRecording = false;
-            updateTimer.stop();
-        }
+        syncTimerState();
     }
 }

@@ -91,15 +91,30 @@ Page {
         var filterData = Global.getDateRangeFilter();
         var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
         var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
-        if (load3.item && typeof load3.item.reloadData === "function")
-            load3.item.reloadData(sDate, eDate);
-        if (load4.item && typeof load4.item.reloadData === "function")
-            load4.item.reloadData(sDate, eDate);
+        if (load3.item && typeof load3.item.reloadData === "function") {
+            load3.item.selectedAccountId = accountId;
+            load3.item.reloadData(sDate, eDate, accountId);
+        }
+        if (load4.item && typeof load4.item.reloadData === "function") {
+            load4.item.selectedAccountId = accountId;
+            load4.item.reloadData(sDate, eDate, accountId);
+        }
     }
 
     Connections {
         target: typeof accountPicker !== "undefined" ? accountPicker : null
+        onSelectedAccountIdChanged: refreshData(true)
         onAccepted: function (accountId, accountName) {
+            refreshData(true);
+        }
+    }
+
+    Connections {
+        target: typeof rootApp !== "undefined" ? rootApp : null
+        onGlobalAccountChanged: function (accountId, accountName) {
+            refreshData(true);
+        }
+        onAccountDataRefreshRequested: function (accountId) {
             refreshData(true);
         }
     }
@@ -154,6 +169,12 @@ Page {
                     onLoaded: {
                         if (item) {
                             item.autoRefreshOnAccountChange = false;
+                            var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+                            item.selectedAccountId = accId;
+                            var filterData = Global.getDateRangeFilter();
+                            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+                            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+                            item.reloadData(sDate, eDate, accId);
                         }
                     }
                 }
@@ -172,6 +193,12 @@ Page {
                     onLoaded: {
                         if (item) {
                             item.autoRefreshOnAccountChange = false;
+                            var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+                            item.selectedAccountId = accId;
+                            var filterData = Global.getDateRangeFilter();
+                            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+                            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+                            item.reloadData(sDate, eDate, accId);
                         }
                     }
                 }

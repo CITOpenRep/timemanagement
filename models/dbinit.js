@@ -432,6 +432,8 @@ function initializeDatabase() {
         'has_draft INTEGER DEFAULT 0'
       ]
     );
+    // Ensure default task stages for Local Account
+    DBCommon.ensureDefaultLocalTaskStages();
 
     DBCommon.createOrUpdateTable("project_project_stage_app",
       'CREATE TABLE IF NOT EXISTS project_project_stage_app (\
@@ -470,6 +472,8 @@ function initializeDatabase() {
         'has_draft INTEGER DEFAULT 0'
       ]
     );
+    // Ensure default project stages for Local Account
+    DBCommon.ensureDefaultLocalProjectStages();
 
     DBCommon.createOrUpdateTable("dl_cache_app",
       'CREATE TABLE IF NOT EXISTS dl_cache_app (\

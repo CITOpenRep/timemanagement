@@ -172,8 +172,9 @@ Item {
                 Component.onCompleted: {
                     var projects = Project.getUserProjects(selectedAccountId);
                     for (var i = 0; i < projects.length; i++) {
+                        var effectiveId = (selectedAccountId === 0 || !projects[i].odoo_record_id) ? projects[i].id : projects[i].odoo_record_id;
                         projectListModel.append({
-                            id: projects[i].odoo_record_id,
+                            id: effectiveId,
                             name: projects[i].name
                         });
                     }

@@ -92,8 +92,8 @@ function getLocalIdFromOdooId(odooRecordId, accountId) {
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                'SELECT id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ? AND (status IS NULL OR status != \"deleted\") LIMIT 1',
-                [odooRecordId, accountId]
+                'SELECT id FROM project_task_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? AND (status IS NULL OR status != "deleted") LIMIT 1',
+                [odooRecordId, odooRecordId, accountId]
             );
 
             if (result.rows.length > 0) {
@@ -136,6 +136,11 @@ function saveOrUpdateTask(data) {
             userIdValue = formatAssigneeIds(data.multipleAssignees);
         }
 
+        var defaultTaskStage = (data.accountId === 0) ? -1 : null;
+        var taskStageVal = (data.stageOdooRecordId !== undefined && data.stageOdooRecordId !== null && data.stageOdooRecordId !== 0)
+            ? data.stageOdooRecordId
+            : defaultTaskStage;
+
         db.transaction(function (tx) {
             if (data.record_id) {
                 // UPDATE
@@ -147,7 +152,7 @@ function saveOrUpdateTask(data) {
                         resolvedParentId, data.plannedHours, data.priority,
                         data.description, userIdValue, data.subProjectId,
                         data.startDate, data.endDate, data.deadline,
-                        data.stageOdooRecordId || null,
+                        taskStageVal,
                         data.personalStageOdooRecordId || null,
                         timestamp, data.status, data.record_id
                     ]
@@ -162,7 +167,7 @@ function saveOrUpdateTask(data) {
                         resolvedParentId, data.startDate, data.endDate,
                         data.deadline, data.priority, data.plannedHours,
                         data.description, userIdValue,
-                        data.subProjectId, data.stageOdooRecordId || null,
+                        data.subProjectId, taskStageVal,
                         data.personalStageOdooRecordId || null,
                         timestamp, data.status
                     ]
@@ -185,11 +190,11 @@ function saveOrUpdateTask(data) {
 
 
 function getTaskStageName(odooRecordId, accountId) {
-    var stageName = "Undefined";
+    var stageName = "";
 
     try {
-        if (odooRecordId === -1) {
-            return "Undefined";   // special case
+        if (!odooRecordId || odooRecordId === 0) {
+            return "";
         }
 
         var db = Sql.LocalStorage.openDatabaseSync(
@@ -200,14 +205,21 @@ function getTaskStageName(odooRecordId, accountId) {
         );
 
         db.transaction(function (tx) {
-            var query = `
-                SELECT name
-                FROM project_task_type_app
-                WHERE odoo_record_id = ? AND account_id = ?
-                LIMIT 1
-            `;
+            var query = "";
+            var params = [];
 
-            var result = tx.executeSql(query, [odooRecordId, accountId]);
+            if (odooRecordId < 0) {
+                query = "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = 0 LIMIT 1";
+                params = [odooRecordId];
+            } else if (accountId !== undefined && accountId !== null && accountId >= 0) {
+                query = "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1";
+                params = [odooRecordId, accountId];
+            } else {
+                query = "SELECT name FROM project_task_type_app WHERE odoo_record_id = ? LIMIT 1";
+                params = [odooRecordId];
+            }
+
+            var result = tx.executeSql(query, params);
 
             if (result.rows.length > 0) {
                 stageName = result.rows.item(0).name;
@@ -217,17 +229,18 @@ function getTaskStageName(odooRecordId, accountId) {
         Logger.error("Task", "getTaskStageName failed:", e)
     }
 
-    return stageName;
+    return stageName || "";
 }
 
 /**
  * Check if a task's stage has fold == 1
  * @param {number} stageId - The odoo_record_id of the task stage
+ * @param {number} [accountId] - Optional account ID
  * @returns {boolean} True if the stage has fold == 1
  */
-function isTaskStageFolded(stageId) {
+function isTaskStageFolded(stageId, accountId) {
     try {
-        if (!stageId || stageId === -1) {
+        if (!stageId || (stageId === -1 && accountId !== 0)) {
             return false;
         }
 
@@ -241,14 +254,12 @@ function isTaskStageFolded(stageId) {
         var isFolded = false;
 
         db.transaction(function (tx) {
-            var query = `
-                SELECT fold
-                FROM project_task_type_app
-                WHERE odoo_record_id = ?
-                LIMIT 1
-            `;
+            var query = (accountId !== undefined && accountId !== null)
+                ? "SELECT fold FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1"
+                : "SELECT fold FROM project_task_type_app WHERE odoo_record_id = ? LIMIT 1";
+            var params = (accountId !== undefined && accountId !== null) ? [stageId, accountId] : [stageId];
 
-            var result = tx.executeSql(query, [stageId]);
+            var result = tx.executeSql(query, params);
 
             if (result.rows.length > 0) {
                 isFolded = result.rows.item(0).fold === 1;
@@ -347,13 +358,13 @@ function getTaskAssignees(taskId, accountId) {
 
                         // Get user details for each ID
                         var userQuery = `
-                            SELECT odoo_record_id as user_id, name
+                            SELECT (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) as user_id, name
                             FROM res_users_app 
-                            WHERE account_id = ? AND odoo_record_id IN (${placeholders})
+                            WHERE account_id = ? AND (odoo_record_id IN (${placeholders}) OR (account_id = 0 AND id IN (${placeholders})))
                             ORDER BY name COLLATE NOCASE ASC
                         `;
 
-                        var queryParams = [accountId].concat(userIds);
+                        var queryParams = [accountId].concat(userIds).concat(userIds);
                         var userResult = tx.executeSql(userQuery, queryParams);
 
                         for (var i = 0; i < userResult.rows.length; i++) {
@@ -930,8 +941,8 @@ function getTaskDetails(task_id) {
                     // Look up project_project_app to check if this project has a parent_id (indicating it is a subproject)
                     // Include account_id check to ensure project is from the same account
                     var rs_project = tx.executeSql(
-                        'SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ? LIMIT 1',
-                        [project_id, row.account_id]
+                        'SELECT parent_id FROM project_project_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? LIMIT 1',
+                        [project_id, project_id, row.account_id]
                     );
 
                     if (rs_project.rows.length > 0) {
@@ -2162,8 +2173,8 @@ function getTasksByAssigneesPaginated(assigneeIds, accountId, filterType, search
 
                 // Project filter
                 if (projectOdooRecordId !== undefined && projectOdooRecordId > 0) {
-                    whereClauses.push("t.project_id = ?");
-                    params.push(projectOdooRecordId);
+                    whereClauses.push("(t.project_id = ? OR t.sub_project_id = ?)");
+                    params.push(projectOdooRecordId, projectOdooRecordId);
                 }
 
                 // Assignee filter using LIKE for comma-separated user_id field
@@ -2309,8 +2320,8 @@ function getTasksByAssigneesPaginated(assigneeIds, accountId, filterType, search
                     }
 
                     if (projectOdooRecordId !== undefined && projectOdooRecordId > 0) {
-                        whereClauses.push("t.project_id = ?");
-                        params.push(projectOdooRecordId);
+                        whereClauses.push("(t.project_id = ? OR t.sub_project_id = ?)");
+                        params.push(projectOdooRecordId, projectOdooRecordId);
                     }
 
                     // Assignee filter
@@ -2948,12 +2959,12 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var params = [projectOdooRecordId, accountId];
+            var params = [projectOdooRecordId, projectOdooRecordId, accountId];
             var dateJoin = "";
             var dateCondition = "";
             
             if (startDate || endDate) {
-                dateJoin = " INNER JOIN account_analytic_line_app al ON al.task_id = t.odoo_record_id AND al.account_id = t.account_id AND (al.status != 'deleted' OR al.status IS NULL) ";
+                dateJoin = " INNER JOIN account_analytic_line_app al ON (al.task_id = t.odoo_record_id OR (t.account_id = 0 AND al.task_id = t.id)) AND al.account_id = t.account_id AND (al.status != 'deleted' OR al.status IS NULL) ";
                 var dateFilters = [];
                 if (startDate) {
                     dateFilters.push("DATE(al.record_date) >= DATE(?)");
@@ -2989,7 +3000,7 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
                     t.has_draft
                 FROM project_task_app t
                 ${dateJoin}
-                WHERE t.project_id = ? 
+                WHERE (t.project_id = ? OR t.sub_project_id = ?) 
                 AND t.account_id = ? 
                 AND (t.status != 'deleted' OR t.status IS NULL)
                 ${dateCondition}
@@ -2999,19 +3010,21 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
             var result = tx.executeSql(query, params);
 
             // Build a map of project colors for efficient lookup
-            var projectColorQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?";
+            var projectColorQuery = "SELECT id, odoo_record_id, color_pallet FROM project_project_app WHERE account_id = ?";
             var projectColorResult = tx.executeSql(projectColorQuery, [accountId]);
             var projectMap = {};
             for (var j = 0; j < projectColorResult.rows.length; j++) {
                 var projectRow = projectColorResult.rows.item(j);
-                projectMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+                if (projectRow.odoo_record_id) projectMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+                if (projectRow.id) projectMap[projectRow.id] = projectRow.color_pallet;
             }
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
 
                 // Calculate spent hours for this task
-                var spentParams = [row.odoo_record_id, accountId];
+                var effectiveTaskId = (accountId === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
+                var spentParams = [effectiveTaskId, accountId];
                 var spentCondition = "";
                 if (startDate) {
                     spentCondition += " AND DATE(record_date) >= DATE(?)";
@@ -3096,8 +3109,8 @@ function getTasksForProjectPaginated(projectOdooRecordId, accountId, limit, offs
         if (!needsJSFilter) {
             // Simple case: no date/search filter, pure SQL pagination
             db.transaction(function (tx) {
-                var query = "SELECT * FROM project_task_app WHERE project_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
-                var result = tx.executeSql(query, [projectOdooRecordId, accountId, limit + 1, offset]);
+                var query = "SELECT * FROM project_task_app WHERE (project_id = ? OR sub_project_id = ?) AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                var result = tx.executeSql(query, [projectOdooRecordId, projectOdooRecordId, accountId, limit + 1, offset]);
 
                 hasMore = result.rows.length > limit;
                 var count = Math.min(result.rows.length, limit);
@@ -3158,8 +3171,8 @@ function getTasksForProjectPaginated(projectOdooRecordId, accountId, limit, offs
                 var rawTasks = [];
 
                 db.transaction(function (tx) {
-                    var query = "SELECT * FROM project_task_app WHERE project_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
-                    var result = tx.executeSql(query, [projectOdooRecordId, accountId, batchSize, dbOffset]);
+                    var query = "SELECT * FROM project_task_app WHERE (project_id = ? OR sub_project_id = ?) AND account_id = ? AND (status != 'deleted' OR status IS NULL) ORDER BY last_modified DESC LIMIT ? OFFSET ?";
+                    var result = tx.executeSql(query, [projectOdooRecordId, projectOdooRecordId, accountId, batchSize, dbOffset]);
                     for (var i = 0; i < result.rows.length; i++) {
                         rawTasks.push(DBCommon.rowToObject(result.rows.item(i)));
                     }
@@ -3312,19 +3325,20 @@ function getAllTaskAssignees(accountId) {
                         SELECT u.id, u.odoo_record_id, u.name, COALESCE(NULLIF(u.login, ''), NULLIF(u.email, ''), NULLIF(u.work_email, ''), '') as email, u.account_id, a.name as account_name
                         FROM res_users_app u
                         LEFT JOIN users a ON u.account_id = a.id
-                        WHERE u.account_id = ? AND u.odoo_record_id IN (${placeholders})
+                        WHERE u.account_id = ? AND (u.odoo_record_id IN (${placeholders}) OR (u.account_id = 0 AND u.id IN (${placeholders})))
                         ORDER BY u.name COLLATE NOCASE ASC
                     `;
 
-                    var queryParams = [acctId].concat(userIds);
+                    var queryParams = [acctId].concat(userIds).concat(userIds);
                     var userResult = tx.executeSql(userQuery, queryParams);
 
                     for (var k = 0; k < userResult.rows.length; k++) {
                         var userRow = userResult.rows.item(k);
-                        Logger.debug("Task", "Loading assignee:", userRow.name, "Account:", userRow.account_name, "ID:", userRow.odoo_record_id)
+                        var effectiveOdooId = (userRow.account_id === 0 || !userRow.odoo_record_id || userRow.odoo_record_id <= 0) ? userRow.id : userRow.odoo_record_id;
+                        Logger.debug("Task", "Loading assignee:", userRow.name, "Account:", userRow.account_name, "ID:", effectiveOdooId)
                         assignees.push({
                             id: userRow.id,
-                            odoo_record_id: userRow.odoo_record_id,
+                            odoo_record_id: effectiveOdooId,
                             name: userRow.name,
                             email: userRow.email || "",
                             account_id: userRow.account_id,
@@ -3498,13 +3512,22 @@ function updateTaskStage(taskId, stageOdooRecordId, accountId) {
             );
 
             if (stageCheck.rows.length === 0) {
+                // Fallback check if stage exists globally
+                stageCheck = tx.executeSql(
+                    'SELECT id FROM project_task_type_app WHERE odoo_record_id = ?',
+                    [stageOdooRecordId]
+                );
+            }
+
+            if (stageCheck.rows.length === 0) {
                 throw "Stage not found or does not belong to this account";
             }
 
             // Update the task's stage
+            var statusVal = (accountId === 0) ? "saved" : "updated";
             tx.executeSql(
                 'UPDATE project_task_app SET state = ?, last_modified = ?, status = ? WHERE id = ?',
-                [stageOdooRecordId, timestamp, "updated", taskId]
+                [stageOdooRecordId, timestamp, statusVal, taskId]
             );
         });
 

@@ -25,6 +25,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import QtQuick.Window 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import io.thp.pyotherside 1.4
@@ -63,7 +64,7 @@ Page {
         }
         trailingActionBar.actions: [
             Action {
-                iconSource: "../../../images/save.svg"
+                iconName: "tick"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms","Save")
                 
@@ -601,6 +602,11 @@ Page {
                             checked: useCustomSyncSettings
                             enabled: !isReadOnly
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: LomiriColors.orange
+                                }
+                            }
                             onCheckedChanged: {
                                 useCustomSyncSettings = checked;
                             }
@@ -635,6 +641,11 @@ Page {
                             checked: true
                             enabled: !isReadOnly
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: LomiriColors.orange
+                                }
+                            }
                         }
                     }
 

@@ -78,11 +78,19 @@ Page {
 
         trailingActionBar.actions: [
             Action {
-                iconSource: "../../../images/save.svg"
+                iconName: "tick"
                 visible: !isReadOnly
                 text: "Save"
                 onTriggered: {
                     save_timesheet();
+                }
+            },
+            Action {
+                iconName: "ok"
+                visible: !isReadOnly
+                text: "Finalize"
+                onTriggered: {
+                    finalize_timesheet();
                 }
             },
             Action {
@@ -120,7 +128,11 @@ Page {
         }
 
         const ids = workItem.getIds();
-        const user = Accounts.getCurrentUserOdooId(ids.account_id);
+        var isLocal = (ids.account_id === 0);
+        var user = Accounts.getCurrentUserOdooId(ids.account_id);
+        if (isLocal && (!user || user <= 0)) {
+            user = 1;
+        }
 
         if (!user) {
             notifPopup.open("Error", "Unable to find the user, cannot save", "error");
@@ -132,18 +144,19 @@ Page {
             return false;
         }
 
-        if (ids.task_id === null) {
-            notifPopup.open("Error", "You need to select a task to save timesheet", "error");
+        // For remote accounts that are finalized/updated, task is mandatory. For drafts, running timers, or local accounts, task is optional.
+        if (!isLocal && currentStatus === "updated" && ids.task_id === null) {
+            notifPopup.open("Error", "You need to select a task to save finalized timesheet", "error");
             return false;
         }
 
-        let correctTaskId;
+        let correctTaskId = null;
         let correctSubTaskId = null;
 
         if (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) {
             correctTaskId = ids.subtask_id;
             correctSubTaskId = null;
-        } else {
+        } else if (ids.task_id !== null && ids.task_id !== undefined && ids.task_id !== -1 && ids.task_id > 0) {
             correctTaskId = ids.task_id;
             correctSubTaskId = ids.subtask_id;
         }
@@ -151,6 +164,13 @@ Page {
         var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
         if (typeof description === "string") {
             description = description.trim();
+        }
+
+        var determinedStatus = "draft";
+        if (isTimerActive) {
+            determinedStatus = "active";
+        } else if (currentStatus === "ready" || currentStatus === "updated" || currentStatus === "saved") {
+            determinedStatus = currentStatus;
         }
 
         var timesheet_data = {
@@ -165,7 +185,7 @@ Page {
             'quadrant': priorityGrid.currentIndex + 1,
             'user_id': user,
             'timer_type': isTimerActive ? "automatic" : "manual",
-            'status': isTimerActive ? "active" : (currentStatus === "ready" || currentStatus === "updated" ? currentStatus : "draft")
+            'status': determinedStatus
         };
         if (recordid && recordid !== 0) {
             timesheet_data.id = recordid;
@@ -198,11 +218,98 @@ Page {
         }
     }
 
+    function finalize_timesheet() {
+        let isTimerActive = (recordid > 0 && recordid === TimerService.getActiveTimesheetId() && TimerService.isRunning());
+        if (isTimerActive) {
+            TimerService.stop();
+        }
+
+        const ids = workItem.getIds();
+        var isLocal = (ids.account_id === 0);
+
+        if (!isLocal && ids.task_id === null) {
+            notifPopup.open("Error", "Both Project and Task must be selected before finalizing", "error");
+            return false;
+        }
+
+        var user = Accounts.getCurrentUserOdooId(ids.account_id);
+        if (isLocal && (!user || user <= 0)) {
+            user = 1;
+        }
+
+        if (!user) {
+            notifPopup.open("Error", "Unable to find the user, cannot finalize", "error");
+            return false;
+        }
+
+        if (ids.project_id === null) {
+            notifPopup.open("Error", "You need to select a project to finalize timesheet", "error");
+            return false;
+        }
+
+        let correctTaskId = null;
+        let correctSubTaskId = null;
+        if (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) {
+            correctTaskId = ids.subtask_id;
+        } else if (ids.task_id !== null && ids.task_id !== undefined && ids.task_id !== -1 && ids.task_id > 0) {
+            correctTaskId = ids.task_id;
+            correctSubTaskId = ids.subtask_id;
+        }
+
+        var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
+        if (typeof description === "string") {
+            description = description.trim();
+        }
+
+        var finalStatus = isLocal ? "saved" : "updated";
+        var finalTime = time_sheet_widget.elapsedTime;
+
+        var timesheet_data = {
+            'record_date': date_widget.formattedDate(),
+            'instance_id': ids.account_id < 0 ? 0 : ids.account_id,
+            'project': ids.project_id,
+            'task': correctTaskId,
+            'subTask': correctSubTaskId,
+            'subprojectId': ids.subproject_id,
+            'description': description,
+            'unit_amount': Utils.convertHHMMtoDecimalHours(finalTime),
+            'quadrant': priorityGrid.currentIndex + 1,
+            'user_id': user,
+            'timer_type': "manual",
+            'status': finalStatus
+        };
+        if (recordid && recordid !== 0) {
+            timesheet_data.id = recordid;
+        }
+
+        const saveResult = Model.saveTimesheet(timesheet_data);
+        if (!saveResult.success) {
+            notifPopup.open("Error", "Unable to finalize: " + saveResult.error, "error");
+            return false;
+        }
+
+        var markResult = isLocal ? Model.markTimesheetAsSavedById(recordid) : Model.markTimesheetAsReadyById(recordid);
+        if (!markResult.success) {
+            notifPopup.open("Error", markResult.error || "Finalize failed", "error");
+            return false;
+        }
+
+        draftHandler.clearDraft();
+        var newBaseline = getCurrentFormData();
+        draftHandler.initialize(newBaseline);
+
+        notifPopup.open("Finalized", isLocal ? "Timesheet has been saved successfully" : "Timesheet is now ready to sync", "success");
+        return true;
+    }
+
     // Auto-save all form fields to DB so the timer can start.
     // Only requires a project (task can be filled in later before syncing).
     function auto_save_for_timer() {
         const ids = workItem.getIds();
-        const user = Accounts.getCurrentUserOdooId(ids.account_id);
+        var user = Accounts.getCurrentUserOdooId(ids.account_id);
+        if (ids.account_id === 0 && (!user || user <= 0)) {
+            user = 1;
+        }
 
         if (!user) {
             notifPopup.open("Error", "Unable to find the user", "error");
@@ -486,7 +593,7 @@ Page {
             var taskId = normalizeIdForRestore(draftData.taskId);
             var subtaskId = normalizeIdForRestore(draftData.subtaskId);
             
-            if (accountId > 0 || projectId > 0) {
+            if (accountId >= 0 || projectId > 0) {
                 workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, -1);
             }
         }
@@ -775,6 +882,16 @@ Page {
                 // Auto-save and start timer when user clicks Play without prior save
                 onRequestAutoSave: {
                     auto_save_for_timer();
+                }
+
+                onBeforeStop: {
+                    save_timesheet();
+                }
+
+                onStopped: {
+                    var newBaseline = getCurrentFormData();
+                    draftHandler.initialize(newBaseline);
+                    draftHandler.clearDraft();
                 }
                 
                 // Track elapsed time changes for draft management (only manual edits, not timer ticks)

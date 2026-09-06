@@ -2,7 +2,7 @@
 
 .pragma library
 
-var version="1.3.2"
+var version="1.3.3"
 
 //fonts
 var FontSizes = {
@@ -15,11 +15,11 @@ var Colors = {
     StickyNote: "#F5F5F5",
     Border: "#B0BEC5",
     Shadow: "#55000000",
-    Button: "#0cc0df",
+    Button: "#E95420",
     ButtonText: "white",
-    ButtonHover: "#ef8037",
-    Orange :"#F25C27",
-    ButtonDisabled :"grey",
+    ButtonHover: "#d3481b",
+    Orange: "#E95420",
+    ButtonDisabled: "grey",
 
     Quadrants: {
         Q1: "#E53935",     // Urgent & Important

@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import "../../../components"
 import "../components"
 
@@ -225,6 +226,11 @@ Page {
                             checked: notificationSettingsPage.notificationsEnabled && !notificationSettingsPage.isSyncUploadOnly
                             enabled: !notificationSettingsPage.isSyncUploadOnly
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: LomiriColors.orange
+                                }
+                            }
                             onClicked: {
                                 notificationSettingsPage.notificationsEnabled = checked;
                                 saveAutoSyncSetting("notifications_enabled", checked ? "true" : "false");
@@ -305,6 +311,11 @@ Page {
                             checked: getAutoSyncSetting("notification_schedule_enabled") === "true"
                             enabled: notificationSettingsPage.notificationsEffectivelyEnabled
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: LomiriColors.orange
+                                }
+                            }
                             onClicked: {
                                 saveAutoSyncSetting("notification_schedule_enabled", checked ? "true" : "false");
                             }
@@ -444,13 +455,13 @@ Page {
                                     if (!notificationScheduleSection.scheduleActive)
                                         return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222" : "#e0e0e0";
                                     if (isSelected)
-                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d7d46" : "#4CAF50";
+                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? Qt.darker(LomiriColors.orange, 1.15) : LomiriColors.orange;
                                     return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333" : "#fff";
                                 }
 
                                 border.color: {
                                     if (isSelected && notificationScheduleSection.scheduleActive)
-                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#4CAF50" : "#388E3C";
+                                        return theme.name === "Ubuntu.Components.Themes.SuruDark" ? LomiriColors.orange : Qt.darker(LomiriColors.orange, 1.15);
                                     return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#ccc";
                                 }
 

@@ -105,6 +105,14 @@ Item {
         }
     }
 
+    Connections {
+        target: typeof mainView !== "undefined" ? mainView : null
+
+        onTaskDataChanged: {
+            refreshWithFilter();
+        }
+    }
+
     // Add the applyFilter method
     function applyFilter(filterKey) {
         currentFilter = filterKey;
@@ -223,7 +231,8 @@ Item {
         // Create lookup maps
         for (var i = 0; i < tasks.length; i++) {
             var task = tasks[i];
-            var compositeId = task.odoo_record_id + "_" + task.account_id;
+            var effectiveId = (task.account_id === 0 || !task.odoo_record_id) ? task.id : task.odoo_record_id;
+            var compositeId = effectiveId + "_" + task.account_id;
             taskById[compositeId] = task;
 
             var parentId = (task.parent_id === null || task.parent_id === 0) ? -1 : task.parent_id;
@@ -247,11 +256,17 @@ Item {
                 if (typeof selectedId === 'object' && selectedId !== null) {
                     // New format: {user_id: X, account_id: Y}
                     var taskUserIds = parseUserIds(task.user_id);
-                    var taskAccountId = task.account_id ? parseInt(task.account_id) : null;
-                    var selectedUserId = selectedId.user_id ? parseInt(selectedId.user_id) : null;
-                    var selectedAccountId = selectedId.account_id ? parseInt(selectedId.account_id) : null;
+                    var taskAccountId = (task.account_id !== undefined && task.account_id !== null && task.account_id !== "") ? parseInt(task.account_id) : null;
+                    var selectedUserId = (selectedId.user_id !== undefined && selectedId.user_id !== null && selectedId.user_id !== "") ? parseInt(selectedId.user_id) : null;
+                    var selectedAccountId = (selectedId.account_id !== undefined && selectedId.account_id !== null && selectedId.account_id !== "") ? parseInt(selectedId.account_id) : null;
 
-                    if (taskUserIds.length > 0 && taskAccountId !== null && selectedUserId !== null && selectedAccountId !== null && taskUserIds.indexOf(selectedUserId) >= 0 && taskAccountId === selectedAccountId) {
+                    var userMatches = (taskUserIds.length > 0 && selectedUserId !== null && (
+                        taskUserIds.indexOf(selectedUserId) >= 0 ||
+                        (taskAccountId === 0 && (selectedUserId === 1 || selectedUserId === -1) && (taskUserIds.indexOf(1) >= 0 || taskUserIds.indexOf(-1) >= 0))
+                    ));
+                    var accountMatches = (taskAccountId !== null && selectedAccountId !== null && taskAccountId === selectedAccountId);
+
+                    if (userMatches && accountMatches) {
                         matchesSelectedAssignee = true;
                         break;
                     }
@@ -268,7 +283,8 @@ Item {
             }
 
             if (matchesSelectedAssignee) {
-                var compositeId = task.odoo_record_id + "_" + task.account_id;
+                var effectiveId = (task.account_id === 0 || !task.odoo_record_id) ? task.id : task.odoo_record_id;
+                var compositeId = effectiveId + "_" + task.account_id;
                 matchingTaskIds.add(compositeId);
                 //console.log("TaskList: Direct match found for task:", task.name, "ID:", compositeId);
             }
@@ -296,7 +312,8 @@ Item {
         var filteredTasks = [];
         for (var i = 0; i < tasks.length; i++) {
             var task = tasks[i];
-            var compositeId = task.odoo_record_id + "_" + task.account_id;
+            var effectiveId = (task.account_id === 0 || !task.odoo_record_id) ? task.id : task.odoo_record_id;
+            var compositeId = effectiveId + "_" + task.account_id;
 
             if (matchingTaskIds.has(compositeId)) {
                 filteredTasks.push(task);
@@ -439,8 +456,8 @@ Item {
         var tempMap = {};
 
         tasks.forEach(function (row) {
-            var odooId = row.odoo_record_id;
-            var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
+            var effectiveId = (row.account_id === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
+            var parentEffectiveId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
 
             var projectIdToUse = row.project_id;
 
@@ -456,14 +473,14 @@ Item {
             }
             
             var item = {
-                id_val: odooId,
+                id_val: effectiveId,
                 local_id: row.id,
                 account_id: row.account_id,
                 project: projectName,
-                parent_id: parentOdooId,
+                parent_id: parentEffectiveId,
                 name: row.name || "Untitled",
                 taskName: row.name || "Untitled",
-                recordId: odooId,
+                recordId: (row.odoo_record_id) ? row.odoo_record_id : -1,
                 allocatedHours: row.initial_planned_hours ? row.initial_planned_hours : 0,
                 spentHours: row.spent_hours ? row.spent_hours : 0,
                 startDate: row.start_date || "",
@@ -477,9 +494,9 @@ Item {
                 has_draft: row.has_draft === 1
             };
 
-            if (!tempMap[parentOdooId])
-                tempMap[parentOdooId] = [];
-            tempMap[parentOdooId].push(item);
+            if (!tempMap[parentEffectiveId])
+                tempMap[parentEffectiveId] = [];
+            tempMap[parentEffectiveId].push(item);
         });
 
         // Build a set of all task IDs present in this batch (and existing data for append)
@@ -773,6 +790,9 @@ Item {
                     onTaskStageChanged: localId => {
                         // Remove the task from the current list display
                         removeTaskFromList(localId);
+                    }
+                    onTaskUpdated: localId => {
+                        refreshWithFilter();
                     }
 
                     // MouseArea for task interaction - navigation for parent tasks, view for regular tasks

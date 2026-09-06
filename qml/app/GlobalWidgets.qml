@@ -65,6 +65,10 @@ Item {
                 return;
             }
 
+            if (id > 0) {
+                accountPicker.lastRemoteAccountId = id;
+            }
+
             if (rootApp.currentAccountId === id) {
                 return;
             }

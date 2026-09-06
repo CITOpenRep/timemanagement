@@ -60,6 +60,14 @@ ListItem {
     property bool isMyTasksContext: false // Set to true when used in MyTasks page
     property int accountId: -1 // Account ID for the task
     property bool hasDraft: false // Indicates if this task has unsaved draft changes
+    property int effectiveTaskId: (taskCard.accountId === 0 || recordId <= 0) ? localId : recordId
+
+    property string stageName: (stage && stage !== 0) ? (Task.getTaskStageName(stage, accountId) || "") : ""
+    property bool isStageDone: {
+        if (!stageName) return false;
+        var lower = stageName.toLowerCase();
+        return lower === "completed" || lower === "finished" || lower === "closed" || lower === "verified" || lower === "done";
+    }
 
     signal editRequested(int localId)
     signal deleteRequested(int localId)
@@ -102,17 +110,17 @@ ListItem {
             timer_paused = false;
         }
         onTimerStarted: {
-            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) {
                 timer_on = true;
             }
         }
         onTimerPaused: {
-            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) {
                 timer_paused = true;
             }
         }
         onTimerResumed: {
-            if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+            if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) {
                 timer_paused = false;
             }
         }
@@ -173,7 +181,7 @@ ListItem {
     }
 
     function play_pause_workflow() {
-        if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) {
+        if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) {
             if (TimerService.isRunning() && !TimerService.isPaused()) {
                 // If running and not paused, pause it
                 TimerService.pause();
@@ -182,7 +190,7 @@ ListItem {
                 TimerService.start(TimerService.getActiveTimesheetId());
             }
         } else {
-            let result = Timesheet.createTimesheetFromTask(recordId);
+            let result = Timesheet.createTimesheetFromTask(effectiveTaskId);
             if (result.success) {
                 const result_start = TimerService.start(result.id);
                 if (!result_start.success) {
@@ -197,8 +205,13 @@ ListItem {
     }
 
     function stop_workflow() {
-        if (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId()))
+        var activeId = TimerService.getActiveTimesheetId();
+        if (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, activeId)) {
             TimerService.stop();
+            if (taskCard.accountId === 0) {
+                Timesheet.markTimesheetAsSavedById(activeId);
+            }
+        }
     }
 
     function handlePersonalStageChange(personalStageOdooRecordId, personalStageName) {
@@ -237,8 +250,8 @@ ListItem {
             },
             Action {
                 id: playpauseaction
-                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../../../images/play.png" : "../../../images/pause.png") : "../../../images/play.png"
-                visible: recordId > 0
+                iconSource: (Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.getActiveTimesheetId())) ? (timer_paused ? "../../../images/play.png" : "../../../images/pause.png") : "../../../images/play.png"
+                visible: (taskCard.accountId === 0 && localId > 0) || recordId > 0
                 text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
                     play_pause_workflow();
@@ -246,7 +259,7 @@ ListItem {
             },
             Action {
                 id: startstopaction
-                visible: recordId > 0
+                visible: (taskCard.accountId === 0 && localId > 0) || recordId > 0
                 iconSource: "../../../images/stop.png"
                 text: i18n.dtr("ubtms", "update Timesheet")
                 onTriggered: {
@@ -581,12 +594,26 @@ ListItem {
                             width: parent.width
                         }
 
-                        Text {
+                        Rectangle {
+                            visible: stageName !== ""
+                            height: units.gu(2.4)
+                            width: taskStageText.width + units.gu(1.6)
+                            radius: height / 2
+                            color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#064e3b" : "#ecfdf5")
+                                 : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e293b" : "#f1f5f9")
+                            border.color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#059669" : "#a7f3d0")
+                                 : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#334155" : "#cbd5e1")
+                            border.width: 1
 
-                            text: Task.getTaskStageName(stage, accountId)
-                            color: Task.getTaskStageName(stage, accountId).toLowerCase() === "completed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "finished" || Task.getTaskStageName(stage, accountId).toLowerCase() === "closed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "verified" || Task.getTaskStageName(stage, accountId).toLowerCase() === "done" ? "green" : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#bbb" : "#555")
-                            font.pixelSize: units.gu(1.75)
-                            font.bold: Task.getTaskStageName(stage, accountId).toLowerCase() === "completed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "finished" || Task.getTaskStageName(stage, accountId).toLowerCase() === "closed" || Task.getTaskStageName(stage, accountId).toLowerCase() === "verified" || Task.getTaskStageName(stage, accountId).toLowerCase() === "done" ? true : false
+                            Text {
+                                id: taskStageText
+                                text: stageName
+                                font.pixelSize: units.gu(1.2)
+                                font.bold: true
+                                anchors.centerIn: parent
+                                color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6ee7b7" : "#047857")
+                                     : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#cbd5e1" : "#475569")
+                            }
                         }
                     }
                 }
@@ -674,7 +701,7 @@ anchors.right: parent.right
     }
 
     Component.onCompleted: {
-        taskCard.timer_on = Timesheet.doesTaskIdMatchSheetInActive(recordId, TimerService.activeTimesheetId);
+        taskCard.timer_on = Timesheet.doesTaskIdMatchSheetInActive(effectiveTaskId, TimerService.activeTimesheetId);
 
         // If we have a localId, get the task details to set the priority
         if (localId > 0) {

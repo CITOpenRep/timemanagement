@@ -24,6 +24,7 @@
 
 import QtQuick 2.7
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
@@ -65,39 +66,106 @@ Page {
                 Layout.fillWidth: true
             }
 
-            // Account Selector button with Account label adjacent to icon
-            RowLayout {
+            // Account Selector chip with Account label adjacent to icon
+            Rectangle {
                 id: accountBtn
-                spacing: units.gu(0.5)
+                implicitWidth: accountRow.implicitWidth + units.gu(1.8)
+                implicitHeight: units.gu(3.6)
+                radius: height / 2
+                color: accountMouseArea.pressed ? "#40ffffff" : (accountMouseArea.containsMouse ? "#30ffffff" : "#20ffffff")
+                border.color: "#35ffffff"
+                border.width: 1
                 Layout.alignment: Qt.AlignVCenter
 
-                Icon {
-                    name: "account"
-                    width: units.gu(2.4)
-                    height: units.gu(2.4)
-                    color: "white"
-                    Layout.alignment: Qt.AlignVCenter
+                Behavior on color {
+                    ColorAnimation { duration: 100 }
                 }
 
-                Label {
-                    id: accountLabel
-                    Layout.alignment: Qt.AlignVCenter
-                    text: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountName : ""
-                    color: "white"
-                    font.pixelSize: units.dp(13)
-                    font.bold: true
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-                    Layout.maximumWidth: units.gu(12)
+                RowLayout {
+                    id: accountRow
+                    anchors.centerIn: parent
+                    spacing: units.gu(0.6)
+
+                    Icon {
+                        name: "account"
+                        width: units.gu(2.2)
+                        height: units.gu(2.2)
+                        color: "white"
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Label {
+                        id: accountLabel
+                        Layout.alignment: Qt.AlignVCenter
+                        text: {
+                            if (typeof accountPicker === "undefined" || !accountPicker.selectedAccountName) return "";
+                            return (accountPicker.selectedAccountId === 0 || accountPicker.selectedAccountName === "Local Account") ? "Local" : accountPicker.selectedAccountName;
+                        }
+                        color: "white"
+                        font.pixelSize: units.dp(13)
+                        font.bold: true
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                        Layout.maximumWidth: units.gu(10)
+                    }
                 }
 
                 MouseArea {
+                    id: accountMouseArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         if (typeof accountPicker !== "undefined") {
                             accountPicker.open(accountPicker.selectedAccountId);
                         }
+                    }
+                }
+            }
+
+            // Local Account Toggle Switch
+            Switch {
+                id: localToggleSwitch
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: units.gu(4.2)
+                Layout.preferredHeight: units.gu(2.1)
+                width: units.gu(4.2)
+                height: units.gu(2.1)
+                checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
+                style: Component {
+                    SwitchStyle {
+                        implicitWidth: units.gu(4.2)
+                        implicitHeight: units.gu(2.1)
+                        checkedBackgroundColor: Qt.darker(LomiriColors.orange, 1.35)
+                    }
+                }
+
+                onClicked: {
+                    if (typeof accountPicker !== "undefined") {
+                        accountPicker.toggleLocalMode(checked);
+                    }
+                }
+
+                Binding {
+                    target: localToggleSwitch
+                    property: "checked"
+                    value: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
+                }
+
+                Connections {
+                    target: typeof accountPicker !== "undefined" ? accountPicker : null
+                    onSelectedAccountIdChanged: {
+                        localToggleSwitch.checked = (accountPicker.selectedAccountId === 0);
+                    }
+                    onAccepted: {
+                        localToggleSwitch.checked = (accountId === 0);
+                    }
+                }
+
+                Connections {
+                    target: typeof rootApp !== "undefined" ? rootApp : null
+                    onGlobalAccountChanged: {
+                        localToggleSwitch.checked = (accountId === 0);
                     }
                 }
             }

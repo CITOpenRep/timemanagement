@@ -90,8 +90,15 @@ Page {
                 iconName: "reminder-new"
                 text: "New"
                 onTriggered: {
-                    // Use DEFAULT account for creating new timesheets (not the filter selection)
-                    const result = Model.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
+                    var targetAccountId = (selectedAccountId >= 0) ? selectedAccountId : defaultAccountId;
+                    if (targetAccountId < 0) {
+                        targetAccountId = 0;
+                    }
+                    var targetUserId = Account.getCurrentUserOdooId(targetAccountId);
+                    if (targetAccountId === 0 && (!targetUserId || targetUserId <= 0)) {
+                        targetUserId = 1;
+                    }
+                    const result = Model.createTimesheet(targetAccountId, targetUserId);
                     if (result.success) {
                         apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                             "recordid": result.id,
@@ -254,10 +261,11 @@ Page {
                 'name': t.name,
                 'id': t.id,
                 'instance': t.instance,
+                'account_id': t.account_id !== undefined ? t.account_id : -1,
                 'project': t.project,
                 'spentHours': t.spentHours,
                 'quadrant': t.quadrant || "Do",
-                'task': t.task || "Unknown Task",
+                'task': t.task || "",
                 'date': t.date,
                 'user': t.user,
                 'status': t.status,
@@ -310,6 +318,7 @@ Page {
             width: parent.width
             name: model.name
             instance: model.instance
+            accountId: model.account_id
             project: model.project
             spentHours: model.spentHours
             date: model.date || ""
@@ -356,13 +365,21 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: i18n.dtr("ubtms", "Create"),
+                label: i18n.dtr("ubtms", "Create Timesheet"),
+                iconName: "alarm-clock"
             },
         ]
         onMenuItemSelected: {
             if (index === 0) {
-                // Use DEFAULT account for creating new timesheets (not the filter selection)
-                const result = Model.createTimesheet(defaultAccountId, Account.getCurrentUserOdooId(defaultAccountId));
+                var targetAccountId = (selectedAccountId >= 0) ? selectedAccountId : defaultAccountId;
+                if (targetAccountId < 0) {
+                    targetAccountId = 0;
+                }
+                var targetUserId = Account.getCurrentUserOdooId(targetAccountId);
+                if (targetAccountId === 0 && (!targetUserId || targetUserId <= 0)) {
+                    targetUserId = 1;
+                }
+                const result = Model.createTimesheet(targetAccountId, targetUserId);
                 if (result.success) {
                     apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"), {
                         "recordid": result.id,

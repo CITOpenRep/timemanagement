@@ -66,7 +66,7 @@ Dialog {
      */
     function loadStages() {
         // Load available project stages for this specific account
-        if (accountId > 0) {
+        if (accountId >= 0) {
             availableStages = Project.getProjectStagesForAccount(accountId);
         } else {
             // Fallback to all stages if no account specified
@@ -104,7 +104,7 @@ Dialog {
             width: parent.width
             wrapMode: Text.WordWrap
             text: {
-                var currentStageName = Project.getProjectStageName(currentStageOdooRecordId);
+                var currentStageName = Project.getProjectStageName(currentStageOdooRecordId, accountId);
                 return i18n.dtr("ubtms", "Current Stage: ") + "<b>" + (currentStageName || i18n.dtr("ubtms", "Not set")) + "</b>";
             }
             font.pixelSize: units.gu(2)

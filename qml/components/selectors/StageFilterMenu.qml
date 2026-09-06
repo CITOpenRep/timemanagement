@@ -164,7 +164,9 @@ Item {
                 color: "transparent"
 
                 Row {
-                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.right: clearFilterButton.left
+                    anchors.verticalCenter: parent.verticalCenter
                     anchors.margins: units.gu(1)
                     spacing: units.gu(1)
 
@@ -183,31 +185,29 @@ Item {
                         color: theme.palette.normal.backgroundText
                         anchors.verticalCenter: parent.verticalCenter
                     }
+                }
 
-                    Item {
-                        Layout.fillWidth: true
-                    } // Spacer
+                // Clear filter button
+                TSIconButton {
+                    id: clearFilterButton
+                    visible: selectedIndex > 0
+                    width: units.gu(3.5)
+                    height: units.gu(3.5)
+                    radius: width / 2
+                    iconName: "edit-clear"
+                    bgColor: LomiriColors.orange
+                    fgColor: "white"
+                    hoverColor: Qt.darker(bgColor, 1.2)
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right
+                    anchors.rightMargin: units.gu(1)
 
-                    // Clear filter button
-                    TSIconButton {
-                        visible: selectedIndex > 0
-                        width: units.gu(3.5)
-                        height: units.gu(3.5)
-                        radius: width / 2
-                        iconName: "edit-clear"
-                        bgColor: LomiriColors.orange
-                        fgColor: "white"
-                        hoverColor: Qt.darker(bgColor, 1.2)
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.right: parent.right
-
-                        onClicked: {
-                            selectedIndex = 0;
-                            selectedFilterName = menuModel.length > 0 ? menuModel[0].label : "All Stages";
-                            expanded = false;
-                            filterCleared();
-                            menuItemSelected(0);
-                        }
+                    onClicked: {
+                        selectedIndex = 0;
+                        selectedFilterName = menuModel.length > 0 ? menuModel[0].label : "All Stages";
+                        expanded = false;
+                        filterCleared();
+                        menuItemSelected(0);
                     }
                 }
             }

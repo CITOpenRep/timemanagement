@@ -20,7 +20,11 @@ function getAccountsList() {
 
             for (var i = 0; i < accounts.rows.length; i++) {
                 var row = accounts.rows.item(i);
-                accountsList.push(DBCommon.rowToObject(row));
+                var obj = DBCommon.rowToObject(row);
+                if (obj.id === 0 || obj.name === "Local Account") {
+                    obj.name = "Local";
+                }
+                accountsList.push(obj);
             }
         });
 
@@ -136,6 +140,37 @@ function getDefaultAccountId() {
     }
 
     return defaultId;
+}
+
+
+/**
+ * Retrieves the ID of the default remote account (id > 0), or the first remote account.
+ *
+ * @returns {number} The remote account ID, or -1 if no remote account exists.
+ */
+function getDefaultRemoteAccountId() {
+    var remoteId = -1;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var res = tx.executeSql("SELECT id FROM users WHERE is_default = 1 AND id > 0 LIMIT 1");
+            if (res.rows.length > 0) {
+                remoteId = res.rows.item(0).id;
+            } else {
+                var fallback = tx.executeSql("SELECT id FROM users WHERE id > 0 ORDER BY id ASC LIMIT 1");
+                if (fallback.rows.length > 0) {
+                    remoteId = fallback.rows.item(0).id;
+                }
+            }
+        });
+
+    } catch (e) {
+        DBCommon.logException(e);
+    }
+
+    return remoteId;
 }
 
 
@@ -378,6 +413,10 @@ function updateAccount(accountId, name, link, database, username, selectedConnec
  * @param {number} userId - The `id` of the user to delete.
  */
 function deleteAccountAndRelatedData(userId) {
+    if (userId === 0 || userId === "0") {
+        console.warn("Cannot delete Local Account");
+        return;
+    }
 
     try {
         const db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -441,7 +480,8 @@ function deleteAccountAndRelatedData(userId) {
  * @returns {number|null} The `odoo_record_id` of the matched user, or `null` if not found.
  */
 function getCurrentUserOdooId(accountId) {
-    if (accountId === 0) {
+    var parsedAccountId = (accountId !== undefined && accountId !== null) ? parseInt(accountId) : -1;
+    if (parsedAccountId === 0) {
         return 1; // Local account
     }
     let odooId = null;
@@ -563,6 +603,10 @@ function getAccountName(accountId) {
         return "";
     }
 
+    if (Number(accountId) === 0) {
+        return "Local";
+    }
+
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var name = "";
@@ -573,6 +617,10 @@ function getAccountName(accountId) {
                 name = result.rows.item(0).name;
             }
         });
+
+        if (name === "Local Account") {
+            return "Local";
+        }
 
         return name;
     } catch (e) {
@@ -602,8 +650,8 @@ function getUserNameByOdooId(odoo_record_id) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT name FROM res_users_app WHERE odoo_record_id = ? LIMIT 1";
-            var result = tx.executeSql(query, [odoo_record_id]);
+            var query = "SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1";
+            var result = tx.executeSql(query, [odoo_record_id, odoo_record_id]);
 
             if (result.rows.length > 0) {
                 userName = result.rows.item(0).name;
