@@ -639,7 +639,9 @@ function getActivityTypesForAccount(account_id) {
             var query = `
             SELECT *
             FROM mail_activity_type_app
-            WHERE account_id = ? AND (status IS NULL OR status != 'deleted')`;
+            WHERE account_id = ? AND (status IS NULL OR status != 'deleted')
+              AND name IS NOT NULL AND TRIM(name) != ''
+            ORDER BY name COLLATE NOCASE ASC`;
 
             var rs = tx.executeSql(query, [account_id]);
 
@@ -1943,6 +1945,7 @@ function getAllActivityAssignees(accountId) {
                         FROM res_users_app u
                         LEFT JOIN users a ON u.account_id = a.id
                         WHERE u.account_id = ? AND (u.odoo_record_id IN (${placeholders}) OR u.id IN (${placeholders}))
+                          AND u.name IS NOT NULL AND TRIM(u.name) != ''
                         ORDER BY u.name COLLATE NOCASE ASC
                     `;
 

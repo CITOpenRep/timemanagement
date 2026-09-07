@@ -199,7 +199,10 @@ function getUsers(accountId) {
 
         db.transaction(function (tx) {
             var result = tx.executeSql(
-                        "SELECT u.id, u.name, COALESCE(NULLIF(u.login, ''), NULLIF(u.email, ''), NULLIF(u.work_email, ''), '') as email, u.odoo_record_id, u.account_id, a.name as account_name FROM res_users_app u LEFT JOIN users a ON u.account_id = a.id WHERE u.account_id = ?",
+                        "SELECT u.id, u.name, COALESCE(NULLIF(u.login, ''), NULLIF(u.email, ''), NULLIF(u.work_email, ''), '') as email, u.odoo_record_id, u.account_id, a.name as account_name " +
+                        "FROM res_users_app u LEFT JOIN users a ON u.account_id = a.id " +
+                        "WHERE u.account_id = ? AND (u.active IS NULL OR u.active = 1) AND u.name IS NOT NULL AND TRIM(u.name) != '' " +
+                        "ORDER BY u.name COLLATE NOCASE ASC",
                         [accountId]
                         );
 
