@@ -922,8 +922,8 @@ Page {
             date_widget.setSelectedDate(currentActivity.due_date);
         } else {
             // For new activities
-            let account = Accounts.getAccountsList();
-            reloadActivityTypeSelector(account, -1);
+            let defaultAccId = Accounts.getDefaultAccountId();
+            reloadActivityTypeSelector(defaultAccId, -1);
 
             // For new activities, show both selectors with task selected by default
             taskRadio.checked = true;
@@ -1057,9 +1057,14 @@ Page {
             let id = accountId === 0 ? rawTypes[i].id : rawTypes[i].odoo_record_id;
             let name = rawTypes[i].name;
 
+            if (!name || String(name).trim() === "") {
+                continue;
+            }
+
+            let cleanName = String(name).trim();
             flatModel.push({
                 id: id,
-                name: name,
+                name: cleanName,
                 parent_id: null  // no hierarchy assumed
             });
 

@@ -687,15 +687,20 @@ Rectangle {
             let id = (accountId === 0) ? rawAssignees[i].id : rawAssignees[i].odoo_record_id;
             let name = rawAssignees[i].name;
 
+            if (!name || String(name).trim() === "") {
+                continue;
+            }
+
+            let cleanName = String(name).trim();
             assigneeList.push({
                 id: id,
-                name: name,
+                name: cleanName,
                 parent_id: null // no hierarchy for assignees
             });
 
             if (selectedId === id) {
                 default_id = id;
-                default_name = name;
+                default_name = cleanName;
             }
         }
 

@@ -77,20 +77,37 @@ Item {
     // Update model when modelData changes
     onModelDataChanged: {
         optionsModel.clear();
-        for (var i = 0; i < modelData.length; i++) {
-            optionsModel.append({
-                itemId: modelData[i].id,
-                name: modelData[i].name
-            });
+        if (!modelData || !Array.isArray(modelData)) {
+            expandedHeight = units.gu(15);
+            return;
         }
-        // Auto-adjust expanded height based on item count
-        var calculatedHeight = Math.min(modelData.length * units.gu(5) + units.gu(6), maxExpandedHeight);
+
+        var validCount = 0;
+        for (var i = 0; i < modelData.length; i++) {
+            var item = modelData[i];
+            if (!item || item.name === undefined || item.name === null) {
+                continue;
+            }
+            var cleanName = String(item.name).trim();
+            if (cleanName === "") {
+                continue;
+            }
+
+            optionsModel.append({
+                itemId: item.id !== undefined ? item.id : -1,
+                name: cleanName
+            });
+            validCount++;
+        }
+
+        // Auto-adjust expanded height based on valid item count
+        var calculatedHeight = Math.min(validCount * units.gu(5) + units.gu(6), maxExpandedHeight);
         expandedHeight = Math.max(calculatedHeight, units.gu(15));
 
         // If selectedId is already set, resolve its name from the new data
         if (selectedId !== -1) {
             for (var j = 0; j < modelData.length; j++) {
-                if (modelData[j].id === selectedId) {
+                if (modelData[j] && modelData[j].id === selectedId) {
                     selectedName = modelData[j].name;
                     break;
                 }
@@ -102,7 +119,7 @@ Item {
     onSelectedIdChanged: {
         if (selectedId !== -1 && modelData && modelData.length > 0) {
             for (var i = 0; i < modelData.length; i++) {
-                if (modelData[i].id === selectedId) {
+                if (modelData[i] && modelData[i].id === selectedId) {
                     selectedName = modelData[i].name;
                     break;
                 }
@@ -182,7 +199,7 @@ Item {
                     anchors.fill: parent
                     enabled: enabledState && !readOnly
                     onClicked: {
-                        if (modelData.length > 0) {
+                        if (optionsModel.count > 0) {
                             collapsed = !collapsed;
                         }
                     }
@@ -213,7 +230,8 @@ Item {
 
                 delegate: Rectangle {
                     width: optionsList.width
-                    height: units.gu(5)
+                    height: (model.name && String(model.name).trim().length > 0) ? units.gu(5) : 0
+                    visible: (model.name && String(model.name).trim().length > 0)
                     color: {
                         if (model.itemId === selectedId) {
                             return Qt.rgba(selectedColor.r, selectedColor.g, selectedColor.b, 0.15);
@@ -316,7 +334,7 @@ Item {
         }
 
         for (var i = 0; i < modelData.length; i++) {
-            if (modelData[i].id === id) {
+            if (modelData[i] && modelData[i].id === id) {
                 selectedId = id;
                 selectedName = modelData[i].name;
                 // Only emit signal if explicitly requested (default: false)

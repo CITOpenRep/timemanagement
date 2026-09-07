@@ -435,12 +435,11 @@ Page {
                 for (var i = 0; i < rawAssignees.length; i++) {
                     var assignee = rawAssignees[i];
                     var id = (projectAccountId === 0) ? assignee.id : assignee.odoo_record_id;
-                    if (id > 0) {
-                        // Skip invalid/placeholder entries
+                    if (id > 0 && assignee.name && String(assignee.name).trim() !== "") {
                         filteredAssignees.push({
                             id: id,
                             odoo_record_id: id,
-                            name: assignee.name,
+                            name: String(assignee.name).trim(),
                             email: assignee.email || "",
                             account_name: assignee.account_name || "",
                             account_id: projectAccountId
@@ -460,12 +459,11 @@ Page {
                 for (var i = 0; i < rawAssignees.length; i++) {
                     var assignee = rawAssignees[i];
                     var id = (currentAccountId === 0) ? assignee.id : assignee.odoo_record_id;
-                    if (id > 0) {
-                        // Skip invalid/placeholder entries
+                    if (id > 0 && assignee.name && String(assignee.name).trim() !== "") {
                         filteredAssignees.push({
                             id: id,
                             odoo_record_id: id,
-                            name: assignee.name,
+                            name: String(assignee.name).trim(),
                             email: assignee.email || "",
                             account_name: assignee.account_name || "",
                             account_id: currentAccountId

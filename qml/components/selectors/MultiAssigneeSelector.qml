@@ -79,11 +79,10 @@ Item {
         for (let i = 0; i < availableAssignees.length; i++) {
             let assignee = availableAssignees[i];
             let id = (accountId === 0) ? assignee.id : assignee.odoo_record_id;
-            if (id > 0) {
-                // Skip invalid/placeholder entries
+            if (id > 0 && assignee.name && String(assignee.name).trim() !== "") {
                 filteredAssignees.push({
                     id: id,
-                    name: assignee.name
+                    name: String(assignee.name).trim()
                 });
             }
         }
@@ -91,16 +90,6 @@ Item {
     }
 
     property var availableAssignees: []
-
-    // function updateDisplayText() {
-    //     if (selectedAssignees.length === 0) {
-    //         displayButton.text = "Select Assignees";
-    //     } else if (selectedAssignees.length === 1) {
-    //         displayButton.text = selectedAssignees[0].name + "   ⬇️";
-    //     } else {
-    //         displayButton.text = selectedAssignees.length + " assignees selected         ⬇️";
-    //     }
-    // }
 
     Column {
         id: mainColumn
