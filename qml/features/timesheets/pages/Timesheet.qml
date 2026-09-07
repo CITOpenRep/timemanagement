@@ -86,14 +86,6 @@ Page {
                 }
             },
             Action {
-                iconName: "ok"
-                visible: !isReadOnly
-                text: "Finalize"
-                onTriggered: {
-                    finalize_timesheet();
-                }
-            },
-            Action {
                 iconName: "edit"
                 visible: isReadOnly && recordid !== 0
                 text: "Edit"
@@ -171,6 +163,10 @@ Page {
             determinedStatus = "active";
         } else if (currentStatus === "ready" || currentStatus === "updated" || currentStatus === "saved") {
             determinedStatus = currentStatus;
+        } else if (isLocal) {
+            determinedStatus = "saved";
+        } else if (ids.task_id !== null) {
+            determinedStatus = "updated";
         }
 
         var timesheet_data = {
@@ -196,6 +192,13 @@ Page {
             notifPopup.open("Error", "Unable to Save the Timesheet: " + result.error, "error");
             return false;
         } else {
+            if (!isTimerActive) {
+                if (isLocal) {
+                    Model.markTimesheetAsSavedById(recordid);
+                } else if (ids.task_id !== null) {
+                    Model.markTimesheetAsReadyById(recordid);
+                }
+            }
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
             
             // If timer is running, update the active timer title in TimerService
