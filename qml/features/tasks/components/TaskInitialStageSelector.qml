@@ -25,7 +25,7 @@ Item {
         anchors.right: parent.right
         
         labelText: i18n.dtr("ubtms", "Initial Stage")
-        enabledState: !root.isReadOnly
+        enabledState: !root.isReadOnly && stageListModel.count > 0
         readOnly: root.isReadOnly
 
         onSelectionMade: {
@@ -61,9 +61,11 @@ Item {
         if (currentIndex >= 0 && currentIndex < stageListModel.count) {
             var stage = stageListModel.get(currentIndex);
             inlineSelector.selectedId = stage.odoo_record_id;
+            inlineSelector.selectedName = stage.name;
             root.stageSelected(stage.odoo_record_id);
         } else {
             inlineSelector.selectedId = -1;
+            inlineSelector.selectedName = "";
         }
     }
 }

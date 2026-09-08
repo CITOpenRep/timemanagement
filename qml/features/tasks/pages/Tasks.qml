@@ -310,7 +310,7 @@ Page {
             var projectId = TaskFormUtils.normalizeIdForRestore(draftData.projectId);
             
             if (TaskFormUtils.restoreWorkItemSelection(workItem, draftData)) {
-                if (projectId > 0 && accountId > 0) {
+                if (projectId > 0 && accountId !== null && accountId !== undefined && accountId >= 0) {
                     var savedStageId = draftData.selectedStageOdooRecordId;
                     var savedPersonalStageId = draftData.selectedPersonalStageOdooRecordId;
                     
@@ -606,7 +606,7 @@ Page {
 
     function loadStagesForProject(projectOdooRecordId, accountId) {
 
-        if (projectOdooRecordId <= 0 || accountId <= 0) {
+        if (!projectOdooRecordId || projectOdooRecordId <= 0 || accountId === undefined || accountId === null || accountId < 0) {
             initialStageSelector.model.clear();
             initialStageSelector.currentIndex = -1;
             selectedStageOdooRecordId = -1;
@@ -627,6 +627,7 @@ Page {
 
         // Automatically select first stage as default (user can change it)
         if (initialStageSelector.model.count > 0) {
+            initialStageSelector.currentIndex = -1;
             initialStageSelector.currentIndex = 0;
             var firstStage = initialStageSelector.model.get(0);
             selectedStageOdooRecordId = firstStage.odoo_record_id;
@@ -714,12 +715,16 @@ Page {
                                 var ids = workItem.getIds();
                                 var projectId = data.id;
                                 var accountId = ids.account_id;
-                                if (projectId > 0 && accountId > 0) {
+                                if (projectId > 0 && accountId !== null && accountId !== undefined && accountId >= 0) {
                                     loadStagesForProject(projectId, accountId);
+                                } else {
+                                    initialStageSelector.model.clear();
+                                    initialStageSelector.currentIndex = -1;
+                                    selectedStageOdooRecordId = -1;
                                 }
                             } else if (newState === "SubprojectSelected") {
                                 var ids2 = workItem.getIds();
-                                if (ids2.project_id > 0 && ids2.account_id > 0) {
+                                if (ids2.project_id > 0 && ids2.account_id !== null && ids2.account_id !== undefined && ids2.account_id >= 0) {
                                     loadStagesForProject(ids2.project_id, ids2.account_id);
                                 }
                             } else if (newState === "AccountSelected") {
@@ -1035,7 +1040,7 @@ Page {
                 }
 
                 // Load stages for the prefilled project
-                if (mainProjectId > 0 && prefilledAccountId > 0) {
+                if (mainProjectId > 0 && prefilledAccountId !== null && prefilledAccountId !== undefined && prefilledAccountId >= 0) {
                     Logger.debug("Tasks", "Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId)
                     loadStagesForProject(mainProjectId, prefilledAccountId);
                 }
