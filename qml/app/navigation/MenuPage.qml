@@ -142,7 +142,9 @@ Page {
 
                 onClicked: {
                     if (typeof accountPicker !== "undefined") {
-                        accountPicker.toggleLocalMode(checked);
+                        if (!accountPicker.toggleLocalMode(checked)) {
+                            checked = true;
+                        }
                     }
                 }
 
