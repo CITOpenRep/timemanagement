@@ -91,38 +91,85 @@ Item {
     id: projectList
     anchors.fill: parent
 
+    function getSelectedAccountId() {
+        if (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined) {
+            return accountPicker.selectedAccountId;
+        }
+        if (typeof rootApp !== "undefined" && rootApp && rootApp.currentAccountId !== undefined) {
+            return rootApp.currentAccountId;
+        }
+        if (typeof mainView !== "undefined" && mainView && mainView.currentAccountId !== undefined) {
+            return mainView.currentAccountId;
+        }
+        return -1;
+    }
+
+    function handleAccountChanged(id) {
+        currentAccountId = id;
+        navigationStackModel.clear();
+        currentParentId = -1;
+        currentParentName = "";
+
+        // Reset pagination
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
+
+        // Reset to default "Open" filter
+        stageFilter.enabled = true;
+        stageFilter.odoo_record_id = -2;
+        stageFilter.is_stage = false;
+        stageFilter.name = "Open";
+
+        // Clear search
+        searchQuery = "";
+
+        populateProjectChildrenMap();
+    }
+
     Connections {
-        target: accountPicker
+        target: typeof accountPicker !== "undefined" ? accountPicker : null
 
         onAccepted: function (id, name) {
-            console.log("Projects getting updated for Account chosen:", id, name);
-            currentAccountId = id;
-            navigationStackModel.clear();
-            currentParentId = -1;
-            currentParentName = "";
+            handleAccountChanged(id);
+        }
 
-            // Reset to default "Open" filter
-            stageFilter.enabled = true;
-            stageFilter.odoo_record_id = -2;
-            stageFilter.name = "Open";
-
-            // Clear search
-            searchQuery = "";
-
-            populateProjectChildrenMap();
+        onSelectedAccountIdChanged: {
+            var activeId = getSelectedAccountId();
+            if (currentParentId === -1 && currentAccountId !== activeId) {
+                handleAccountChanged(activeId);
+            }
         }
     }
 
     Connections {
-        target: typeof mainView !== "undefined" ? mainView : null
+        target: typeof rootApp !== "undefined" ? rootApp : (typeof mainView !== "undefined" ? mainView : null)
+
+        onGlobalAccountChanged: function (id, name) {
+            if (currentParentId === -1 && currentAccountId !== id) {
+                handleAccountChanged(id);
+            }
+        }
+
+        onAccountDataRefreshRequested: function (id) {
+            if (currentParentId === -1) {
+                if (currentAccountId !== id) {
+                    currentAccountId = id;
+                }
+                populateProjectChildrenMap();
+            }
+        }
 
         onProjectDataChanged: {
+            if (currentParentId === -1) {
+                currentAccountId = getSelectedAccountId();
+            }
             populateProjectChildrenMap();
         }
     }
 
     property int currentParentId: -1
-    property int currentAccountId: accountPicker.selectedAccountId
+    property int currentAccountId: getSelectedAccountId()
     property string currentParentName: ""
     property ListModel navigationStackModel: ListModel {}
     property var childrenMap: ({})
@@ -180,7 +227,11 @@ Item {
             var last = navigationStackModel.get(navigationStackModel.count - 1);
             navigationStackModel.remove(navigationStackModel.count - 1);
             currentParentId = last.parentId !== undefined ? last.parentId : -1;
-            currentAccountId = last.accountId !== undefined ? last.accountId : -1;
+            if (currentParentId === -1) {
+                currentAccountId = getSelectedAccountId();
+            } else {
+                currentAccountId = last.accountId !== undefined ? last.accountId : -1;
+            }
             currentParentName = (last.parentName !== undefined) ? last.parentName : "";
         }
     }
@@ -201,7 +252,7 @@ Item {
         navigationStackModel.clear();
         currentParentId = -1;
         currentParentName = "";
-        currentAccountId = accountPicker.selectedAccountId;
+        currentAccountId = getSelectedAccountId();
 
         // Reset pagination
         currentOffset = 0;
@@ -211,6 +262,7 @@ Item {
         // Reset to default "Open" filter
         stageFilter.enabled = true;
         stageFilter.odoo_record_id = -2;
+        stageFilter.is_stage = false;
         stageFilter.name = "Open";
 
         // Clear search
@@ -292,6 +344,10 @@ Item {
     }
 
     function _doPaginatedProjectLoad() {
+        if (currentParentId === -1) {
+            currentAccountId = getSelectedAccountId();
+        }
+
         // Determine which stage filter to pass to SQL
         var sqlStageId = undefined; // undefined = no stage filter
         var isStage = false;
@@ -448,11 +504,14 @@ Item {
             var flatModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
             var allFlatProjects = [];
             
-            // Collect all projects from childrenMap
+            // Collect projects matching current account filter from childrenMap
             for (var key in childrenMap) {
                 var model = childrenMap[key];
                 for (var i = 0; i < model.count; i++) {
-                    allFlatProjects.push(model.get(i));
+                    var proj = model.get(i);
+                    if (currentAccountId === -1 || currentAccountId === undefined || proj.account_id === currentAccountId) {
+                        allFlatProjects.push(proj);
+                    }
                 }
             }
             
@@ -478,6 +537,11 @@ Item {
             // Special case for "Open" filter (odoo_record_id = -2 and not a specific stage)
             if (!stageFilter.is_stage && stageFilter.odoo_record_id === -2) {
                 if (!project.stage || project.stage === 0) {
+                    return true;
+                }
+
+                // For local projects, stage -1 (Planning) and -2 (In Progress) are open stages
+                if (project.account_id === 0 && (project.stage === -1 || project.stage === -2)) {
                     return true;
                 }
 
@@ -525,6 +589,9 @@ Item {
                     var childModel = childrenMap[mapKey];
                     for (var j = 0; j < childModel.count; j++) {
                         var childProject = childModel.get(j);
+                        if (currentAccountId >= 0 && childProject.account_id !== currentAccountId) {
+                            continue;
+                        }
                         if (matchesStageFilter(childProject)) {
                             // Mark its parent to be included
                             var parentId = childProject.parent_id;
@@ -572,13 +639,19 @@ Item {
                 }
             }
 
-            // Gather all root level projects
+            // Gather root level projects matching current account
             for (var key in childrenMap) {
                 if (key.startsWith("-1_")) {
+                    if (currentAccountId >= 0 && key !== ("-1_" + currentAccountId)) {
+                        continue;
+                    }
                     // Root level projects
                     var model = childrenMap[key];
                     for (var i = 0; i < model.count; i++) {
-                        allRootProjects.push(model.get(i));
+                        var p = model.get(i);
+                        if (currentAccountId === -1 || currentAccountId === undefined || p.account_id === currentAccountId) {
+                            allRootProjects.push(p);
+                        }
                     }
                 }
             }
@@ -590,7 +663,8 @@ Item {
 
             // Apply filter or include if it's a parent of a matching project
             allRootProjects.forEach(function (project) {
-                if ((!stageFilter.enabled || matchesStageFilter(project) || includeParentIds[project.id_val + "_" + project.account_id]) && matchesSearchQuery(project)) {
+                var accountMatches = (currentAccountId === -1 || currentAccountId === undefined || project.account_id === currentAccountId);
+                if (accountMatches && (!stageFilter.enabled || matchesStageFilter(project) || includeParentIds[project.id_val + "_" + project.account_id]) && matchesSearchQuery(project)) {
                     combinedModel.append(project);
                 }
             });
