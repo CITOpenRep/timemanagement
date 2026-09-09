@@ -290,19 +290,36 @@ Item {
     // Search functions
     function toggleSearchVisibility() {
         showSearchBox = !showSearchBox;
+        if (!showSearchBox) {
+            if (searchQuery !== "" || searchField.text !== "") {
+                clearSearch();
+            }
+        } else {
+            Qt.callLater(function() {
+                searchField.forceActiveFocus();
+            });
+        }
     }
 
     function clearSearch() {
-        searchField.text = "";
-        searchQuery = "";
-        customSearch("");
-        // Reload from DB without search filter
-        populateProjectChildrenMap();
+        if (searchField.text !== "") {
+            searchField.text = "";
+        }
+        if (searchQuery !== "") {
+            searchQuery = "";
+            customSearch("");
+            // Reload from DB without search filter
+            populateProjectChildrenMap();
+        }
     }
 
     function performSearch(query) {
-        searchQuery = query;
-        customSearch(query);
+        var trimmed = query ? query.trim() : "";
+        if (trimmed === searchQuery) {
+            return;
+        }
+        searchQuery = trimmed;
+        customSearch(trimmed);
         // Reload from DB with search filter applied at SQL level
         populateProjectChildrenMap();
     }
@@ -814,58 +831,137 @@ Item {
         }
     }
 
-    // Timer for debounced search
-    Timer {
-        id: searchTimer
-        interval: 2000 // 2 sec delay
-        repeat: false
-        onTriggered: performSearch(searchField.text)
-    }
-
     Column {
         anchors.fill: parent
         spacing: units.gu(1)
 
-        // Search field
-
-        TextField {
-            id: searchField
-            visible: showSearchBox
-            height: units.gu(5)
+        // Search field container
+        Item {
+            id: searchContainer
             width: parent.width
-            anchors.rightMargin: units.gu(4) // Space for clear button
-            placeholderText: i18n.dtr("ubtms", "Search projects")
-            selectByMouse: true
-            onAccepted: performSearch(text)
-            //Todo: Later Experiment with Debouncing search , solve performance issues causing the crash 
-            // onTextChanged: {
-            //     searchQuery = text;
-            //     //  Debounced search - only search after user stops typing
-            //     searchTimer.restart();
-            // }
+            height: showSearchBox ? units.gu(6.2) : 0
+            visible: showSearchBox
+            clip: true
 
             Rectangle {
+                id: searchBarBox
+                anchors.fill: parent
+                anchors.leftMargin: units.gu(1.5)
+                anchors.rightMargin: units.gu(1.5)
+                anchors.topMargin: units.gu(1.2)
+                anchors.bottomMargin: units.gu(0.4)
+                radius: units.gu(1.2)
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e1e1e" : "#f1f5f9"
+                border.color: searchField.activeFocus
+                    ? AppConst.Colors.Orange
+                    : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d2d2d" : "#e2e8f0")
+                border.width: searchField.activeFocus ? units.gu(0.18) : units.gu(0.1)
 
-                height: parent.height
-                width: parent.width
-                anchors.left: parent.left
-                anchors.right: parent.right
-                color: "transparent"
-                border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
-                border.width: searchField.activeFocus ? 2 : 1
+                Behavior on border.color {
+                    ColorAnimation { duration: 150 }
+                }
 
-                Button {
+                // Tap anywhere in the box to focus input
+                MouseArea {
+                    anchors.fill: parent
+                    z: 0
+                    cursorShape: Qt.IBeamCursor
+                    onClicked: {
+                        searchField.forceActiveFocus();
+                    }
+                }
+
+                // Search icon with generous spacing
+                Icon {
+                    id: searchIcon
+                    anchors.left: parent.left
+                    anchors.leftMargin: units.gu(1.4)
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: units.gu(2)
+                    height: units.gu(2)
+                    name: "search"
+                    color: searchField.activeFocus
+                        ? AppConst.Colors.Orange
+                        : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#71717a" : "#94a3b8")
+
+                    Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
+                }
+
+                // Text Input - separated cleanly from the icon
+                TextInput {
+                    id: searchField
+                    anchors.left: searchIcon.right
+                    anchors.leftMargin: units.gu(1.2)
+                    anchors.right: clearSearchButton.visible ? clearSearchButton.left : parent.right
+                    anchors.rightMargin: clearSearchButton.visible ? units.gu(0.5) : units.gu(1.4)
+                    anchors.verticalCenter: parent.verticalCenter
+                    verticalAlignment: TextInput.AlignVCenter
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f3f4f6" : "#0f172a"
+                    font.pixelSize: units.gu(1.8)
+                    selectByMouse: true
+                    clip: true
+                    inputMethodHints: Qt.ImhNoPredictiveText
+
+                    onAccepted: {
+                        performSearch(text);
+                    }
+
+                    onTextChanged: {
+                        if (text === "" && searchQuery !== "") {
+                            clearSearch();
+                        }
+                    }
+                }
+
+                // Custom placeholder text
+                Text {
+                    anchors.fill: searchField
+                    verticalAlignment: Text.AlignVCenter
+                    text: i18n.dtr("ubtms", "Search projects...")
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#71717a" : "#94a3b8"
+                    font.pixelSize: searchField.font.pixelSize
+                    visible: !searchField.text && !searchField.activeFocus
+                    elide: Text.ElideRight
+                }
+
+                // Circular clear button
+                Item {
                     id: clearSearchButton
-                    z: 10
                     visible: searchField.text.length > 0
                     anchors.right: parent.right
+                    anchors.rightMargin: units.gu(0.8)
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.rightMargin: units.gu(0.5)
-                    width: units.gu(3)
-                    height: units.gu(3)
-                    text: "×"
-                    onClicked: {
-                        clearSearch();
+                    width: units.gu(3.2)
+                    height: units.gu(3.2)
+                    z: 1
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: units.gu(2.4)
+                        height: units.gu(2.4)
+                        radius: width / 2
+                        color: clearMouseArea.pressed
+                            ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444444" : "#cbd5e1")
+                            : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#e2e8f0")
+
+                        Icon {
+                            name: "close"
+                            width: units.gu(1.3)
+                            height: units.gu(1.3)
+                            anchors.centerIn: parent
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#a1a1aa" : "#64748b"
+                        }
+                    }
+
+                    MouseArea {
+                        id: clearMouseArea
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            clearSearch();
+                        }
                     }
                 }
             }
@@ -1001,10 +1097,46 @@ Item {
         LomiriListView {
             id: projectListView
             width: parent.width
-            height: parent.height - (breadcrumbBar.visible ? breadcrumbBar.height + units.gu(1) : 0) - (showSearchBox ? units.gu(6) : 0)
+            height: parent.height - (breadcrumbBar.visible ? breadcrumbBar.height + units.gu(1) : 0) - (showSearchBox ? searchContainer.height + units.gu(1) : 0)
             clip: true
             spacing: 0
             model: getCurrentModel()
+
+            // Empty search results indicator
+            Item {
+                anchors.centerIn: parent
+                visible: searchQuery !== "" && projectListView.count === 0 && !isLoading
+                width: parent.width - units.gu(4)
+                height: units.gu(12)
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: units.gu(0.8)
+
+                    Icon {
+                        name: "search"
+                        width: units.gu(3.5)
+                        height: units.gu(3.5)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#52525b" : "#cbd5e1"
+                    }
+
+                    Text {
+                        text: i18n.dtr("ubtms", "No projects found")
+                        font.pixelSize: units.gu(1.8)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#a1a1aa" : "#64748b"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Try searching with a different term")
+                        font.pixelSize: units.gu(1.4)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#71717a" : "#94a3b8"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
+            }
 
             footer: LoadMoreFooter {
                 isLoading: isLoadingMore
