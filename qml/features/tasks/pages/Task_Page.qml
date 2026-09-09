@@ -298,6 +298,12 @@ Page {
             tasklist.filterByAssignees = task.filterByAssignees;
             tasklist.selectedAssigneeIds = task.selectedAssigneeIds;
 
+            var activeSearch = (taskListHeader.searchText !== undefined && taskListHeader.searchText !== null)
+                ? taskListHeader.searchText
+                : (task.currentSearchQuery || "");
+            task.currentSearchQuery = activeSearch;
+            tasklist.currentSearchQuery = activeSearch;
+
             // Apply the appropriate filter with assignee filtering
             if (filterByProject) {
                 tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, filterKey);

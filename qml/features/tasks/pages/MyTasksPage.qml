@@ -305,7 +305,10 @@ Page {
 
             var stageId = filterKey === "null" ? null : parseInt(filterKey);
             myTasksPage.currentPersonalStageId = stageId;
-            myTasksPage.currentSearchQuery = "";
+            var activeSearch = (myTaskListHeader.searchText !== undefined && myTaskListHeader.searchText !== null)
+                ? myTaskListHeader.searchText
+                : (myTasksPage.currentSearchQuery || "");
+            myTasksPage.currentSearchQuery = activeSearch;
 
             updateCurrentUser();
             if (currentUserOdooId > 0) {
