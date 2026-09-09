@@ -69,66 +69,7 @@ Page {
                 text: i18n.dtr("ubtms", "Save")
                 visible: !isReadOnly
                 onTriggered: {
-                    const ids = workItem.getIds();
-
-                    if (!ids.assignee_id) {
-                        notifPopup.open("Error", "Please select the assignee", "error");
-                        return;
-                    }
-
-                    // Validate hours format before saving
-                    if (!hours_text.isValid) {
-                        notifPopup.open("Error", "Please enter allocated hours in HH:MM format (e.g., 1000:30 for large projects)", "error");
-                        return;
-                    }
-
-                    // isReadOnly = !isReadOnly
-                    // Preserve existing favorites value when editing, default to 0 for new projects
-                    var currentFavorites = (project && project.favorites !== undefined) ? project.favorites : 0;
-                    
-                    var project_data = {
-                        'account_id': ids.account_id >= 0 ? ids.account_id : 0,
-                        'name': project_name.text,
-                        'planned_start_date': date_range_widget.formattedStartDate(),
-                        'planned_end_date': date_range_widget.formattedEndDate(),
-                        'parent_id': ids.project_id,
-                        'allocated_hours': hours_text.text,
-                        'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
-                        'favorites': currentFavorites,
-                        'color': project_color,
-                        'stage': (project && project.stage !== undefined) ? project.stage : 0,
-                        'status': "updated",
-                        'user_id': ids.assignee_id
-                    };
-                    //  console.log(JSON.stringify(project_data, null, 4));
-
-                    // Use the current recordid (0 for new projects, existing ID for updates)
-                    var response = Project.createUpdateProject(project_data, recordid);
-                    if (response) {
-                        if (response.is_success) {
-                            notifPopup.open("Saved", response.message, "success");
-
-                            // Update recordid if it was a new project creation
-                            if (recordid === 0 && response.record_id) {
-                                recordid = response.record_id;
-                            }
-
-                            // Reload the project data to reflect the saved state
-                            if (recordid !== 0) {
-                                loadProjectData(recordid);
-                            }
-                            
-                            // Clear draft after successful save
-                            draftHandler.clearDraft();
-                            
-                            // Switch back to read-only mode after saving
-                            isReadOnly = true;
-                        } else {
-                            notifPopup.open("Failed", response.message, "error");
-                        }
-                    } else {
-                        notifPopup.open("Failed", "Unable to save project", "error");
-                    }
+                    saveProjectData();
                 }
             },
             Action {

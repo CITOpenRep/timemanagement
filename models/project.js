@@ -764,11 +764,11 @@ function getProjectsFilteredPaginated(options) {
                     // "Open" filter
                     if (options.openStageIds && options.openStageIds.length > 0) {
                         var placeholders = options.openStageIds.map(function () { return "?"; }).join(",");
-                        if (options.accountId === -1 || options.accountId === undefined) {
-                            // "All Accounts": match open stages OR projects without a stage
+                        if (options.accountId === -1 || options.accountId === 0 || options.accountId === undefined) {
+                            // Match open stages or projects without a stage (default/unassigned)
                             whereClauses.push("(stage IN (" + placeholders + ") OR stage = 0 OR stage IS NULL)");
                         } else {
-                            // Specific account
+                            // Specific remote account
                             whereClauses.push("stage IN (" + placeholders + ")");
                         }
                         for (var s = 0; s < options.openStageIds.length; s++) {
