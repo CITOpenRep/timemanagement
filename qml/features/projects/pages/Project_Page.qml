@@ -41,6 +41,7 @@ Page {
     property bool isMultiColumn: typeof apLayout !== "undefined" ? apLayout.columns > 1 : false
     id: project
     title: i18n.dtr("ubtms", "Projects")
+    property alias projectlist: projectlist
     header: PageHeader {
         id: projectheader
         StyleHints {
