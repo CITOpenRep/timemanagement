@@ -49,6 +49,7 @@ TSCombobox 1.0 base/TSCombobox.qml
 TSIconButton 1.0 base/TSIconButton.qml
 TSLabel 1.0 base/TSLabel.qml
 TSProgressbar 1.0 base/TSProgressbar.qml
+TSSearchBar 1.0 base/TSSearchBar.qml
 UbuntuShape 1.0 base/UbuntuShape.qml
 TasksForDayWidget 1.0 cards/TasksForDayWidget.qml
 TimePickerPopup 1.0 dialogs/TimePickerPopup.qml

@@ -291,19 +291,17 @@ Item {
     function toggleSearchVisibility() {
         showSearchBox = !showSearchBox;
         if (!showSearchBox) {
-            if (searchQuery !== "" || searchField.text !== "") {
+            if (searchQuery !== "" || searchBar.text !== "") {
                 clearSearch();
             }
         } else {
-            Qt.callLater(function() {
-                searchField.forceActiveFocus();
-            });
+            searchBar.forceActiveFocus();
         }
     }
 
     function clearSearch() {
-        if (searchField.text !== "") {
-            searchField.text = "";
+        if (searchBar.text !== "") {
+            searchBar.clear();
         }
         if (searchQuery !== "") {
             searchQuery = "";
@@ -836,133 +834,21 @@ Item {
         spacing: units.gu(1)
 
         // Search field container
-        Item {
-            id: searchContainer
+        Components.TSSearchBar {
+            id: searchBar
             width: parent.width
-            height: showSearchBox ? units.gu(6.2) : 0
+            height: showSearchBox ? implicitHeight : 0
             visible: showSearchBox
-            clip: true
+            placeholderText: i18n.dtr("ubtms", "Search projects...")
+            bottomPadding: units.gu(0.4)
 
-            Rectangle {
-                id: searchBarBox
-                anchors.fill: parent
-                anchors.leftMargin: units.gu(1.5)
-                anchors.rightMargin: units.gu(1.5)
-                anchors.topMargin: units.gu(1.2)
-                anchors.bottomMargin: units.gu(0.4)
-                radius: units.gu(1.2)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e1e1e" : "#f1f5f9"
-                border.color: searchField.activeFocus
-                    ? AppConst.Colors.Orange
-                    : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d2d2d" : "#e2e8f0")
-                border.width: searchField.activeFocus ? units.gu(0.18) : units.gu(0.1)
+            onAccepted: {
+                performSearch(query);
+            }
 
-                Behavior on border.color {
-                    ColorAnimation { duration: 150 }
-                }
-
-                // Tap anywhere in the box to focus input
-                MouseArea {
-                    anchors.fill: parent
-                    z: 0
-                    cursorShape: Qt.IBeamCursor
-                    onClicked: {
-                        searchField.forceActiveFocus();
-                    }
-                }
-
-                // Search icon with generous spacing
-                Icon {
-                    id: searchIcon
-                    anchors.left: parent.left
-                    anchors.leftMargin: units.gu(1.4)
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: units.gu(2)
-                    height: units.gu(2)
-                    name: "search"
-                    color: searchField.activeFocus
-                        ? AppConst.Colors.Orange
-                        : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#71717a" : "#94a3b8")
-
-                    Behavior on color {
-                        ColorAnimation { duration: 150 }
-                    }
-                }
-
-                // Text Input - separated cleanly from the icon
-                TextInput {
-                    id: searchField
-                    anchors.left: searchIcon.right
-                    anchors.leftMargin: units.gu(1.2)
-                    anchors.right: clearSearchButton.visible ? clearSearchButton.left : parent.right
-                    anchors.rightMargin: clearSearchButton.visible ? units.gu(0.5) : units.gu(1.4)
-                    anchors.verticalCenter: parent.verticalCenter
-                    verticalAlignment: TextInput.AlignVCenter
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f3f4f6" : "#0f172a"
-                    font.pixelSize: units.gu(1.8)
-                    selectByMouse: true
-                    clip: true
-                    inputMethodHints: Qt.ImhNoPredictiveText
-
-                    onAccepted: {
-                        performSearch(text);
-                    }
-
-                    onTextChanged: {
-                        if (text === "" && searchQuery !== "") {
-                            clearSearch();
-                        }
-                    }
-                }
-
-                // Custom placeholder text
-                Text {
-                    anchors.fill: searchField
-                    verticalAlignment: Text.AlignVCenter
-                    text: i18n.dtr("ubtms", "Search projects...")
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#71717a" : "#94a3b8"
-                    font.pixelSize: searchField.font.pixelSize
-                    visible: !searchField.text && !searchField.activeFocus
-                    elide: Text.ElideRight
-                }
-
-                // Circular clear button
-                Item {
-                    id: clearSearchButton
-                    visible: searchField.text.length > 0
-                    anchors.right: parent.right
-                    anchors.rightMargin: units.gu(0.8)
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: units.gu(3.2)
-                    height: units.gu(3.2)
-                    z: 1
-
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: units.gu(2.4)
-                        height: units.gu(2.4)
-                        radius: width / 2
-                        color: clearMouseArea.pressed
-                            ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#444444" : "#cbd5e1")
-                            : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2a2a2a" : "#e2e8f0")
-
-                        Icon {
-                            name: "close"
-                            width: units.gu(1.3)
-                            height: units.gu(1.3)
-                            anchors.centerIn: parent
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#a1a1aa" : "#64748b"
-                        }
-                    }
-
-                    MouseArea {
-                        id: clearMouseArea
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            clearSearch();
-                        }
-                    }
+            onCleared: {
+                if (searchQuery !== "") {
+                    clearSearch();
                 }
             }
         }
@@ -1097,7 +983,7 @@ Item {
         LomiriListView {
             id: projectListView
             width: parent.width
-            height: parent.height - (breadcrumbBar.visible ? breadcrumbBar.height + units.gu(1) : 0) - (showSearchBox ? searchContainer.height + units.gu(1) : 0)
+            height: parent.height - (breadcrumbBar.visible ? breadcrumbBar.height + units.gu(1) : 0) - (showSearchBox ? searchBar.height + units.gu(1) : 0)
             clip: true
             spacing: 0
             model: getCurrentModel()
