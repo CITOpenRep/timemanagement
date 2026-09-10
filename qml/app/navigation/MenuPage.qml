@@ -24,7 +24,6 @@
 
 import QtQuick 2.7
 import Lomiri.Components 1.3
-import Lomiri.Components.Themes.Ambiance 1.3
 import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
@@ -214,49 +213,17 @@ Page {
             }
 
             // Local Account Toggle Switch
-            Switch {
+            TSSwitch {
                 id: localToggleSwitch
                 visible: !listpage.menuCollapsed
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredWidth: units.gu(4.2)
                 Layout.preferredHeight: units.gu(2.1)
-                width: units.gu(4.2)
-                height: units.gu(2.1)
                 checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
-                style: Component {
-                    SwitchStyle {
-                        implicitWidth: units.gu(4.2)
-                        implicitHeight: units.gu(2.1)
-                        checkedBackgroundColor: Qt.darker(LomiriColors.orange, 1.35)
-                    }
-                }
 
                 onClicked: {
                     if (typeof accountPicker !== "undefined") {
-                        accountPicker.toggleLocalMode(checked);
-                    }
-                }
-
-                Binding {
-                    target: localToggleSwitch
-                    property: "checked"
-                    value: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
-                }
-
-                Connections {
-                    target: typeof accountPicker !== "undefined" ? accountPicker : null
-                    onSelectedAccountIdChanged: {
-                        localToggleSwitch.checked = (accountPicker.selectedAccountId === 0);
-                    }
-                    onAccepted: {
-                        localToggleSwitch.checked = (accountId === 0);
-                    }
-                }
-
-                Connections {
-                    target: typeof rootApp !== "undefined" ? rootApp : null
-                    onGlobalAccountChanged: {
-                        localToggleSwitch.checked = (accountId === 0);
+                        accountPicker.toggleLocalMode(!checked);
                     }
                 }
             }
@@ -303,7 +270,7 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            height: listpage.menuCollapsed ? (units.gu(16.5) + units.dp(1)) : 0
+            height: listpage.menuCollapsed ? (bottomActionsColumn.height + units.dp(1)) : 0
             color: isDark ? "#1e1e1e" : "#ffffff"
 
             // Divider above bottom actions
@@ -321,13 +288,13 @@ Page {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.topMargin: units.dp(1)
-                spacing: units.gu(0.5)
+                spacing: 0
 
                 // 1. Account Action
                 Rectangle {
                     id: collapsedAccountBtn
                     width: parent.width
-                    height: units.gu(5)
+                    height: units.gu(5.5)
                     color: collapsedAccountArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedAccountArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
                     Icon {
@@ -359,50 +326,30 @@ Page {
                     }
                 }
 
+                // Divider between Account and Local Account Switch
+                Rectangle {
+                    id: dividerAccountLocal
+                    width: parent.width
+                    height: units.dp(1)
+                    color: isDark ? "#333333" : "#e8e8e8"
+                }
+
                 // 2. Local Account Toggle
                 Rectangle {
                     id: collapsedLocalBtn
                     width: parent.width
-                    height: units.gu(5)
+                    height: units.gu(5.5)
                     color: collapsedLocalArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedLocalArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
-                    Switch {
+                    TSSwitch {
                         id: collapsedLocalSwitch
                         anchors.centerIn: parent
                         width: units.gu(4.2)
                         height: units.gu(2.1)
-                        enabled: false
+                        interactive: false
                         checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
-                        style: Component {
-                            SwitchStyle {
-                                implicitWidth: units.gu(4.2)
-                                implicitHeight: units.gu(2.1)
-                                checkedBackgroundColor: Qt.darker(LomiriColors.orange, 1.35)
-                            }
-                        }
-
-                        Binding {
-                            target: collapsedLocalSwitch
-                            property: "checked"
-                            value: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
-                        }
-
-                        Connections {
-                            target: typeof accountPicker !== "undefined" ? accountPicker : null
-                            onSelectedAccountIdChanged: {
-                                collapsedLocalSwitch.checked = (accountPicker.selectedAccountId === 0);
-                            }
-                            onAccepted: {
-                                collapsedLocalSwitch.checked = (accountId === 0);
-                            }
-                        }
-
-                        Connections {
-                            target: typeof rootApp !== "undefined" ? rootApp : null
-                            onGlobalAccountChanged: {
-                                collapsedLocalSwitch.checked = (accountId === 0);
-                            }
-                        }
+                        uncheckedColor: isDark ? "#444444" : "#cccccc"
+                        uncheckedBorderColor: isDark ? "#555555" : "#bbbbbb"
                     }
 
                     MouseArea {
@@ -422,11 +369,19 @@ Page {
                     }
                 }
 
+                // Divider between Local Account Switch and Theme Toggle
+                Rectangle {
+                    id: dividerLocalTheme
+                    width: parent.width
+                    height: units.dp(1)
+                    color: isDark ? "#333333" : "#e8e8e8"
+                }
+
                 // 3. Theme Toggle
                 Rectangle {
                     id: collapsedThemeBtn
                     width: parent.width
-                    height: units.gu(5)
+                    height: units.gu(5.5)
                     color: collapsedThemeArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedThemeArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
                     Item {
