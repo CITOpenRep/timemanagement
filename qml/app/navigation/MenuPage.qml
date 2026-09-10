@@ -51,21 +51,63 @@ Page {
             dividerColor: LomiriColors.slate
         }
 
-        contents: RowLayout {
+        // Overlay for collapsed mode to guarantee exact horizontal & vertical centering across 8 GU
+        Item {
+            parent: header
             anchors.fill: parent
-            anchors.leftMargin: listpage.menuCollapsed ? 0 : units.gu(1.5)
-            anchors.rightMargin: listpage.menuCollapsed ? 0 : units.gu(1)
-            spacing: listpage.menuCollapsed ? 0 : units.gu(1)
+            visible: listpage.menuCollapsed
+            z: 100
+
+            Rectangle {
+                anchors.fill: parent
+                color: collapseOverlayMouseArea.pressed ? "#40ffffff" : (collapseOverlayMouseArea.containsMouse ? "#30ffffff" : "transparent")
+
+                Behavior on color {
+                    ColorAnimation { duration: 100 }
+                }
+
+                Icon {
+                    anchors.centerIn: parent
+                    name: "navigation-menu"
+                    width: units.gu(2.4)
+                    height: units.gu(2.4)
+                    color: "white"
+                }
+
+                MouseArea {
+                    id: collapseOverlayMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (apLayout && typeof apLayout.toggleMenuCollapsed === "function") {
+                            apLayout.toggleMenuCollapsed();
+                        }
+                    }
+
+                    Controls.ToolTip.visible: collapseOverlayMouseArea.containsMouse
+                    Controls.ToolTip.text: i18n.dtr("ubtms", "Expand menu")
+                    Controls.ToolTip.delay: 400
+                }
+            }
+        }
+
+        contents: RowLayout {
+            visible: !listpage.menuCollapsed
+            anchors.fill: parent
+            anchors.leftMargin: units.gu(1.5)
+            anchors.rightMargin: units.gu(1)
+            spacing: units.gu(1)
 
             // Collapse / expand sidebar button (multi-column only)
             Rectangle {
                 id: collapseToggleBtn
                 visible: listpage.isMultiColumn
-                implicitWidth: listpage.menuCollapsed ? units.gu(8) : units.gu(3.6)
+                implicitWidth: units.gu(3.6)
                 implicitHeight: units.gu(3.6)
                 Layout.preferredWidth: implicitWidth
                 Layout.preferredHeight: implicitHeight
-                radius: listpage.menuCollapsed ? 0 : height / 2
+                radius: height / 2
                 color: collapseMouseArea.pressed ? "#40ffffff" : (collapseMouseArea.containsMouse ? "#30ffffff" : "transparent")
                 Layout.alignment: Qt.AlignVCenter
 
@@ -92,22 +134,20 @@ Page {
                         }
                     }
 
-                    Controls.ToolTip.visible: listpage.menuCollapsed && collapseMouseArea.containsMouse
-                    Controls.ToolTip.text: i18n.dtr("ubtms", "Expand menu")
+                    Controls.ToolTip.visible: collapseMouseArea.containsMouse
+                    Controls.ToolTip.text: i18n.dtr("ubtms", "Collapse menu")
                     Controls.ToolTip.delay: 400
                 }
             }
 
             Label {
                 text: i18n.dtr("ubtms", "Menu")
-                visible: !listpage.menuCollapsed
                 color: "white"
                 fontSize: "large"
                 font.bold: true
             }
 
             Item {
-                visible: !listpage.menuCollapsed
                 Layout.fillWidth: true
             }
 
@@ -262,7 +302,7 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            height: listpage.menuCollapsed ? (bottomActionsColumn.implicitHeight + units.gu(1)) : 0
+            height: listpage.menuCollapsed ? (units.gu(16.5) + units.dp(1)) : 0
             color: isDark ? "#1e1e1e" : "#ffffff"
 
             // Divider above bottom actions
@@ -280,12 +320,13 @@ Page {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.topMargin: units.dp(1)
+                spacing: units.gu(0.5)
 
                 // 1. Account Action
                 Rectangle {
                     id: collapsedAccountBtn
                     width: parent.width
-                    height: units.gu(6)
+                    height: units.gu(5)
                     color: collapsedAccountArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedAccountArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
                     Icon {
@@ -321,7 +362,7 @@ Page {
                 Rectangle {
                     id: collapsedLocalBtn
                     width: parent.width
-                    height: units.gu(6)
+                    height: units.gu(5)
                     color: collapsedLocalArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedLocalArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
                     Switch {
@@ -384,7 +425,7 @@ Page {
                 Rectangle {
                     id: collapsedThemeBtn
                     width: parent.width
-                    height: units.gu(6)
+                    height: units.gu(5)
                     color: collapsedThemeArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedThemeArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
                     Image {
