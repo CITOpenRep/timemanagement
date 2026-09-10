@@ -88,6 +88,7 @@ Page {
     }
 
     function handleAccountSave() {
+        accountNameInput.text = (accountNameInput.text || "").trim();
         if (!accountNameInput.text) {
             notifPopup.open("Error", "Account name cannot be empty", "error");
             return;
@@ -95,12 +96,12 @@ Page {
 
         var dbname = "";
         if (isManualDbMode) {
-            dbname = manualDbInput.text;
+            dbname = manualDbInput.text || "";
         } else {
-            dbname = databaseSelector.selectedName;
+            dbname = databaseSelector.selectedName || "";
         }
 
-        if (!linkInput.text.trim()) {
+        if (!linkInput.text || !linkInput.text.trim()) {
             notifPopup.open("Error", "Server URL cannot be empty", "error");
             return;
         }
@@ -112,9 +113,8 @@ Page {
         }
 
         linkInput.text = urlResult.cleanedUrl;
-        accountNameInput.text = accountNameInput.text.trim();
-        usernameInput.text = usernameInput.text.trim();
-        passwordInput.text = passwordInput.text.trim();
+        usernameInput.text = (usernameInput.text || "").trim();
+        passwordInput.text = (passwordInput.text || "").trim();
         dbname = dbname.trim();
 
         if (!usernameInput.text) {
