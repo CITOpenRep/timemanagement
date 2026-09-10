@@ -280,14 +280,37 @@ function fetch_subtasks(instance_id, parent_task_id) {
 }
 
 function validateAndCleanOdooURL(url) {
-    // Strip trailing slash
-    if (url.endsWith("/")) {
+    if (!url || typeof url !== "string") {
+        return {
+            isValid: false,
+            cleanedUrl: ""
+        };
+    }
+
+    url = url.trim();
+    if (url.length === 0 || url === "http://" || url === "https://") {
+        return {
+            isValid: false,
+            cleanedUrl: ""
+        };
+    }
+
+    // Add https:// if protocol is missing
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        if (!url.includes("://")) {
+            url = "https://" + url;
+        }
+    }
+
+    // Strip trailing slashes beyond the protocol
+    while (url.endsWith("/") && url !== "http://" && url !== "https://") {
         url = url.slice(0, -1);
     }
 
     const pattern = new RegExp(
                       '^(https?:\\/\\/)?' +
-                      '(([a-zA-Z0-9\\-\\.]+)\\.([a-zA-Z]{2,4})|' +
+                      '(([a-zA-Z0-9\\-\\.]+)\\.([a-zA-Z]{2,63})|' +
+                      'localhost|' +
                       '(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})|' +
                       '\\[([a-fA-F0-9:\\.]+)\\])' +
                       '(\\:\\d+)?(\\/[-a-zA-Z0-9@:%_\\+.~#?&//=]*)?$',

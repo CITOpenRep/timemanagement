@@ -105,17 +105,29 @@ Page {
             return;
         }
 
-        if (!usernameInput.text.trim()) {
+        var urlResult = Utils.validateAndCleanOdooURL(linkInput.text);
+        if (!urlResult.isValid) {
+            notifPopup.open("Error", "The Odoo Server URL is Wrong", "error");
+            return;
+        }
+
+        linkInput.text = urlResult.cleanedUrl;
+        accountNameInput.text = accountNameInput.text.trim();
+        usernameInput.text = usernameInput.text.trim();
+        passwordInput.text = passwordInput.text.trim();
+        dbname = dbname.trim();
+
+        if (!usernameInput.text) {
             notifPopup.open("Error", "Username cannot be empty", "error");
             return;
         }
 
-        if (!passwordInput.text.trim()) {
+        if (!passwordInput.text) {
             notifPopup.open("Error", "Password/API Key cannot be empty", "error");
             return;
         }
 
-        if (!dbname.trim()) {
+        if (!dbname) {
             notifPopup.open("Error", "Database name cannot be empty", "error");
             return;
         }
