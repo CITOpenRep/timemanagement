@@ -12,11 +12,45 @@ Item {
     
     property string labelText: "Date"
     property date selectedDate: new Date()
+    property date customDate: selectedDate
+    property bool showTomorrow: false
     property bool readOnly: false
     signal dateChanged(date selectedDate)
 
     function formattedDate() {
         return Qt.formatDate(selectedDate, "yyyy-MM-dd");
+    }
+
+    function getRelativeDate(baseDate) {
+        const d = new Date(baseDate);
+        d.setDate(d.getDate() + (showTomorrow ? 1 : -1));
+        return d;
+    }
+
+    function getRelativeLabel() {
+        return showTomorrow ? i18n.dtr("ubtms", "Tomorrow") : i18n.dtr("ubtms", "Yesterday");
+    }
+
+    function isSameDate(d1, d2) {
+        if (!d1 || !d2 || !(d1 instanceof Date) || !(d2 instanceof Date) || isNaN(d1.getTime()) || isNaN(d2.getTime())) {
+            return false;
+        }
+        return d1.getFullYear() === d2.getFullYear() &&
+               d1.getMonth() === d2.getMonth() &&
+               d1.getDate() === d2.getDate();
+    }
+
+    function syncComboSelection(targetDate) {
+        const today = new Date();
+        const relativeDate = getRelativeDate(today);
+
+        if (isSameDate(targetDate, today)) {
+            dayCombo.applyDeferredSelection(0, false);
+        } else if (isSameDate(targetDate, relativeDate)) {
+            dayCombo.applyDeferredSelection(1, false);
+        } else {
+            dayCombo.applyDeferredSelection(2, false);
+        }
     }
 
     function setSelectedDate(val) {
@@ -34,20 +68,9 @@ Item {
 
         if (parsed) {
             selectedDate = parsed;
-            
-            // Update dayCombo selection
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            
-            if (isSameDate(parsed, today)) {
-                dayCombo.applyDeferredSelection(0, false);
-            } else if (isSameDate(parsed, yesterday)) {
-                dayCombo.applyDeferredSelection(1, false);
-            } else {
-                dayCombo.applyDeferredSelection(2, false);
-            }
-            
+            customDate = parsed;
+
+            syncComboSelection(parsed);
             updateModelData();
             dateChanged(selectedDate);
         } else {
@@ -55,25 +78,18 @@ Item {
         }
     }
 
-    function isSameDate(d1, d2) {
-        return d1.getFullYear() === d2.getFullYear() &&
-               d1.getMonth() === d2.getMonth() &&
-               d1.getDate() === d2.getDate();
-    }
-
     function updateModelData() {
         const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
+        const relativeDate = getRelativeDate(today);
+
         const todayStr = Qt.formatDate(today, "dd-MM-yyyy");
-        const yesterdayStr = Qt.formatDate(yesterday, "dd-MM-yyyy");
+        const relativeStr = Qt.formatDate(relativeDate, "dd-MM-yyyy");
         const currentStr = Qt.formatDate(selectedDate, "dd-MM-yyyy");
-        
+
         dayCombo.modelData = [
-            { id: 0, name: "Today (" + todayStr + ")" },
-            { id: 1, name: "Yesterday (" + yesterdayStr + ")" },
-            { id: 2, name: "Custom (" + currentStr + ")" }
+            { id: 0, name: i18n.dtr("ubtms", "Today") + " (" + todayStr + ")" },
+            { id: 1, name: getRelativeLabel() + " (" + relativeStr + ")" },
+            { id: 2, name: i18n.dtr("ubtms", "Custom") + " (" + currentStr + ")" }
         ];
     }
 
@@ -84,8 +100,8 @@ Item {
         switch (dayCombo.selectedId) {
         case 0: // Today
             break;
-        case 1: // Yesterday
-            newDate.setDate(newDate.getDate() - 1);
+        case 1: // Relative (Tomorrow or Yesterday)
+            newDate = getRelativeDate(today);
             break;
         case 2: // Custom
             openCustomDatePicker();
@@ -93,22 +109,34 @@ Item {
         }
 
         selectedDate = newDate;
+        customDate = newDate;
         updateModelData();
         dateChanged(selectedDate);
     }
 
     function openCustomDatePicker() {
-        let result = PickerPanel.openDatePicker(daySelector, "selectedDate", "Years|Months|Days");
+        customDate = selectedDate;
+        let result = PickerPanel.openDatePicker(daySelector, "customDate", "Years|Months|Days");
         if (result) {
             if (result.picker) {
                 result.picker.minimum = new Date(2000, 0, 1);
             }
-            result.closed.connect(() => {
-                dayCombo.applyDeferredSelection(2, false);
-                updateModelData();
-                dateChanged(selectedDate);
+            result.closed.connect(function() {
+                if (customDate && !isNaN(customDate.getTime())) {
+                    selectedDate = customDate;
+                    dayCombo.applyDeferredSelection(2, false);
+                    updateModelData();
+                    dateChanged(selectedDate);
+                }
             });
         }
+    }
+
+    onShowTomorrowChanged: {
+        if (selectedDate && !isNaN(selectedDate.getTime())) {
+            syncComboSelection(selectedDate);
+        }
+        updateModelData();
     }
 
     InlineOptionSelector {
@@ -118,7 +146,7 @@ Item {
         selectorType: "date_type"
         readOnly: daySelector.readOnly
         enabledState: !daySelector.readOnly
-        
+
         onSelectionMade: function(id, name, selectorType) {
             updateDate();
         }
@@ -126,20 +154,14 @@ Item {
 
     Component.onCompleted: {
         const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
 
         if (!selectedDate || isNaN(selectedDate.getTime())) {
             selectedDate = today;
+            customDate = today;
             dayCombo.applyDeferredSelection(0, false);
         } else {
-            if (isSameDate(selectedDate, today)) {
-                dayCombo.applyDeferredSelection(0, false);
-            } else if (isSameDate(selectedDate, yesterday)) {
-                dayCombo.applyDeferredSelection(1, false);
-            } else {
-                dayCombo.applyDeferredSelection(2, false);
-            }
+            customDate = selectedDate;
+            syncComboSelection(selectedDate);
         }
         updateModelData();
     }

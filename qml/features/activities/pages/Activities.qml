@@ -820,6 +820,7 @@ Page {
                 
                 DaySelector {
                     id: date_widget
+                    showTomorrow: true
                     readOnly: isReadOnly
                     width: flickable.width - units.gu(2)
                     onDateChanged: function(selectedDate) {
