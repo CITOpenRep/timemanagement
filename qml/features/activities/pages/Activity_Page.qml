@@ -670,6 +670,10 @@ Page {
             }
 
             activity.currentFilter = nextFilter;
+            var activeSearch = (listheader.searchText !== undefined && listheader.searchText !== null)
+                ? listheader.searchText
+                : (activity.currentSearchQuery || "");
+            activity.currentSearchQuery = activeSearch;
 
             get_activity_list();
         }

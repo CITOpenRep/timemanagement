@@ -142,7 +142,6 @@ Item {
         projectOdooRecordId = projectOdooId;
         projectAccountId = accountId;
         currentFilter = timeFilter;
-        currentSearchQuery = "";
 
         refreshWithFilter();
     }

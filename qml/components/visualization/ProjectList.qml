@@ -290,19 +290,34 @@ Item {
     // Search functions
     function toggleSearchVisibility() {
         showSearchBox = !showSearchBox;
+        if (!showSearchBox) {
+            if (searchQuery !== "" || searchBar.text !== "") {
+                clearSearch();
+            }
+        } else {
+            searchBar.forceActiveFocus();
+        }
     }
 
     function clearSearch() {
-        searchField.text = "";
-        searchQuery = "";
-        customSearch("");
-        // Reload from DB without search filter
-        populateProjectChildrenMap();
+        if (searchBar.text !== "") {
+            searchBar.clear();
+        }
+        if (searchQuery !== "") {
+            searchQuery = "";
+            customSearch("");
+            // Reload from DB without search filter
+            populateProjectChildrenMap();
+        }
     }
 
     function performSearch(query) {
-        searchQuery = query;
-        customSearch(query);
+        var trimmed = query ? query.trim() : "";
+        if (trimmed === searchQuery) {
+            return;
+        }
+        searchQuery = trimmed;
+        customSearch(trimmed);
         // Reload from DB with search filter applied at SQL level
         populateProjectChildrenMap();
     }
@@ -814,59 +829,26 @@ Item {
         }
     }
 
-    // Timer for debounced search
-    Timer {
-        id: searchTimer
-        interval: 2000 // 2 sec delay
-        repeat: false
-        onTriggered: performSearch(searchField.text)
-    }
-
     Column {
         anchors.fill: parent
         spacing: units.gu(1)
 
-        // Search field
-
-        TextField {
-            id: searchField
-            visible: showSearchBox
-            height: units.gu(5)
+        // Search field container
+        Components.TSSearchBar {
+            id: searchBar
             width: parent.width
-            anchors.rightMargin: units.gu(4) // Space for clear button
-            placeholderText: i18n.dtr("ubtms", "Search projects")
-            selectByMouse: true
-            onAccepted: performSearch(text)
-            //Todo: Later Experiment with Debouncing search , solve performance issues causing the crash 
-            // onTextChanged: {
-            //     searchQuery = text;
-            //     //  Debounced search - only search after user stops typing
-            //     searchTimer.restart();
-            // }
+            height: showSearchBox ? implicitHeight : 0
+            visible: showSearchBox
+            placeholderText: i18n.dtr("ubtms", "Search projects...")
+            bottomPadding: units.gu(0.4)
 
-            Rectangle {
+            onAccepted: {
+                performSearch(query);
+            }
 
-                height: parent.height
-                width: parent.width
-                anchors.left: parent.left
-                anchors.right: parent.right
-                color: "transparent"
-                border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
-                border.width: searchField.activeFocus ? 2 : 1
-
-                Button {
-                    id: clearSearchButton
-                    z: 10
-                    visible: searchField.text.length > 0
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.rightMargin: units.gu(0.5)
-                    width: units.gu(3)
-                    height: units.gu(3)
-                    text: "×"
-                    onClicked: {
-                        clearSearch();
-                    }
+            onCleared: {
+                if (searchQuery !== "") {
+                    clearSearch();
                 }
             }
         }
@@ -1001,10 +983,46 @@ Item {
         LomiriListView {
             id: projectListView
             width: parent.width
-            height: parent.height - (breadcrumbBar.visible ? breadcrumbBar.height + units.gu(1) : 0) - (showSearchBox ? units.gu(6) : 0)
+            height: parent.height - (breadcrumbBar.visible ? breadcrumbBar.height + units.gu(1) : 0) - (showSearchBox ? searchBar.height + units.gu(1) : 0)
             clip: true
             spacing: 0
             model: getCurrentModel()
+
+            // Empty search results indicator
+            Item {
+                anchors.centerIn: parent
+                visible: searchQuery !== "" && projectListView.count === 0 && !isLoading
+                width: parent.width - units.gu(4)
+                height: units.gu(12)
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: units.gu(0.8)
+
+                    Icon {
+                        name: "search"
+                        width: units.gu(3.5)
+                        height: units.gu(3.5)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#52525b" : "#cbd5e1"
+                    }
+
+                    Text {
+                        text: i18n.dtr("ubtms", "No projects found")
+                        font.pixelSize: units.gu(1.8)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#a1a1aa" : "#64748b"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Try searching with a different term")
+                        font.pixelSize: units.gu(1.4)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#71717a" : "#94a3b8"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
+            }
 
             footer: LoadMoreFooter {
                 isLoading: isLoadingMore

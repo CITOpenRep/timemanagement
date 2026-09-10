@@ -303,6 +303,10 @@ Page {
         
         onFilterSelected: {
             updates.currentStatusFilter = filterKey;
+            var activeSearch = (updatesListHeader.searchText !== undefined && updatesListHeader.searchText !== null)
+                ? updatesListHeader.searchText
+                : (updates.currentSearchQuery || "");
+            updates.currentSearchQuery = activeSearch;
             fetchupdates();
         }
         

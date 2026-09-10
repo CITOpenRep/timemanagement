@@ -21,6 +21,13 @@ AdaptivePageLayout {
     property var rootApp
     property var globalDrawer
     property var navigationController
+    property bool userCollapsedPreference: false
+    readonly property bool canCollapse: columns > 1
+    readonly property bool menuCollapsed: canCollapse && userCollapsedPreference
+
+    function toggleMenuCollapsed() {
+        userCollapsedPreference = !userCollapsedPreference;
+    }
 
     anchors.top: parent.top
     anchors.left: parent.left
@@ -45,9 +52,9 @@ AdaptivePageLayout {
             when: width > units.gu(80) && width < units.gu(130)
 
             PageColumn {
-                minimumWidth: units.gu(30)
-                maximumWidth: units.gu(50)
-                preferredWidth: width > units.gu(90) ? units.gu(20) : units.gu(15)
+                minimumWidth: apLayout.menuCollapsed ? units.gu(8) : units.gu(30)
+                maximumWidth: apLayout.menuCollapsed ? units.gu(8) : units.gu(50)
+                preferredWidth: apLayout.menuCollapsed ? units.gu(8) : (width > units.gu(90) ? units.gu(20) : units.gu(15))
             }
 
             PageColumn {
@@ -61,9 +68,9 @@ AdaptivePageLayout {
             when: width >= units.gu(130)
 
             PageColumn {
-                minimumWidth: units.gu(30)
-                maximumWidth: units.gu(50)
-                preferredWidth: units.gu(40)
+                minimumWidth: apLayout.menuCollapsed ? units.gu(8) : units.gu(30)
+                maximumWidth: apLayout.menuCollapsed ? units.gu(8) : units.gu(50)
+                preferredWidth: apLayout.menuCollapsed ? units.gu(8) : units.gu(40)
             }
 
             PageColumn {
