@@ -34,7 +34,8 @@ import "NavigationRoutes.js" as NavigationRoutes
 Page {
     id: listpage
 
-    property bool isMultiColumn: apLayout.columns > 1
+    property bool isMultiColumn: apLayout ? (apLayout.columns > 1) : false
+    readonly property bool menuCollapsed: apLayout ? apLayout.menuCollapsed : false
     property var navigationController
 
     title: i18n.dtr("ubtms", "Menu")
@@ -51,26 +52,67 @@ Page {
 
         contents: RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: units.gu(2)
-            anchors.rightMargin: units.gu(1)
-            spacing: units.gu(1)
+            anchors.leftMargin: listpage.menuCollapsed ? units.gu(0.4) : units.gu(1.5)
+            anchors.rightMargin: listpage.menuCollapsed ? units.gu(0.4) : units.gu(1)
+            spacing: listpage.menuCollapsed ? units.gu(0.4) : units.gu(1)
+
+            // Collapse / expand sidebar button (multi-column only)
+            Rectangle {
+                id: collapseToggleBtn
+                visible: listpage.isMultiColumn
+                implicitWidth: units.gu(3.6)
+                implicitHeight: units.gu(3.6)
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
+                radius: height / 2
+                color: collapseMouseArea.pressed ? "#40ffffff" : (collapseMouseArea.containsMouse ? "#30ffffff" : "transparent")
+                Layout.alignment: Qt.AlignVCenter
+
+                Behavior on color {
+                    ColorAnimation { duration: 100 }
+                }
+
+                Icon {
+                    anchors.centerIn: parent
+                    name: "navigation-menu"
+                    width: units.gu(2.2)
+                    height: units.gu(2.2)
+                    color: "white"
+                }
+
+                MouseArea {
+                    id: collapseMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (apLayout && typeof apLayout.toggleMenuCollapsed === "function") {
+                            apLayout.toggleMenuCollapsed();
+                        }
+                    }
+                }
+            }
 
             Label {
                 text: i18n.dtr("ubtms", "Menu")
+                visible: !listpage.menuCollapsed
                 color: "white"
                 fontSize: "large"
                 font.bold: true
             }
 
             Item {
+                visible: !listpage.menuCollapsed
                 Layout.fillWidth: true
             }
 
-            // Account Selector chip with Account label adjacent to icon
+            // Account Selector chip (pill in expanded mode, compact icon in collapsed mode)
             Rectangle {
                 id: accountBtn
-                implicitWidth: accountRow.implicitWidth + units.gu(1.8)
+                implicitWidth: listpage.menuCollapsed ? units.gu(3.6) : (accountRow.implicitWidth + units.gu(1.8))
                 implicitHeight: units.gu(3.6)
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
                 radius: height / 2
                 color: accountMouseArea.pressed ? "#40ffffff" : (accountMouseArea.containsMouse ? "#30ffffff" : "#20ffffff")
                 border.color: "#35ffffff"
@@ -84,7 +126,7 @@ Page {
                 RowLayout {
                     id: accountRow
                     anchors.centerIn: parent
-                    spacing: units.gu(0.6)
+                    spacing: listpage.menuCollapsed ? 0 : units.gu(0.6)
 
                     Icon {
                         name: "account"
@@ -96,6 +138,7 @@ Page {
 
                     Label {
                         id: accountLabel
+                        visible: !listpage.menuCollapsed
                         Layout.alignment: Qt.AlignVCenter
                         text: {
                             if (typeof accountPicker === "undefined" || !accountPicker.selectedAccountName) return "";
@@ -126,6 +169,7 @@ Page {
             // Local Account Toggle Switch
             Switch {
                 id: localToggleSwitch
+                visible: !listpage.menuCollapsed
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredWidth: units.gu(4.2)
                 Layout.preferredHeight: units.gu(2.1)
@@ -172,6 +216,7 @@ Page {
 
             // Theme Mode Toggle
             Item {
+                visible: !listpage.menuCollapsed
                 width: units.gu(4)
                 height: units.gu(4)
                 Layout.alignment: Qt.AlignVCenter
@@ -225,6 +270,7 @@ Page {
 
                         NavigationMenuList {
                             width: parent.width
+                            collapsed: listpage.menuCollapsed
                             menuItems: NavigationRoutes.menuItems()
                             selectedPageUrl: apLayout && apLayout.currentMenuPageUrl ? apLayout.currentMenuPageUrl : ""
 
