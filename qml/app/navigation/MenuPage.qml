@@ -303,7 +303,7 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            height: listpage.menuCollapsed ? (units.gu(16.5) + units.dp(1)) : 0
+            height: listpage.menuCollapsed ? (bottomActionsColumn.height + units.dp(1)) : 0
             color: isDark ? "#1e1e1e" : "#ffffff"
 
             // Divider above bottom actions
@@ -321,13 +321,13 @@ Page {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.topMargin: units.dp(1)
-                spacing: units.gu(0.5)
+                spacing: 0
 
                 // 1. Account Action
                 Rectangle {
                     id: collapsedAccountBtn
                     width: parent.width
-                    height: units.gu(5)
+                    height: units.gu(5.5)
                     color: collapsedAccountArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedAccountArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
                     Icon {
@@ -359,11 +359,19 @@ Page {
                     }
                 }
 
+                // Divider between Account and Local Account Switch
+                Rectangle {
+                    id: dividerAccountLocal
+                    width: parent.width
+                    height: units.dp(1)
+                    color: isDark ? "#333333" : "#e8e8e8"
+                }
+
                 // 2. Local Account Toggle
                 Rectangle {
                     id: collapsedLocalBtn
                     width: parent.width
-                    height: units.gu(5)
+                    height: units.gu(5.5)
                     color: collapsedLocalArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedLocalArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
                     Switch {
@@ -422,11 +430,19 @@ Page {
                     }
                 }
 
+                // Divider between Local Account Switch and Theme Toggle
+                Rectangle {
+                    id: dividerLocalTheme
+                    width: parent.width
+                    height: units.dp(1)
+                    color: isDark ? "#333333" : "#e8e8e8"
+                }
+
                 // 3. Theme Toggle
                 Rectangle {
                     id: collapsedThemeBtn
                     width: parent.width
-                    height: units.gu(5)
+                    height: units.gu(5.5)
                     color: collapsedThemeArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedThemeArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
                     Item {
