@@ -44,6 +44,16 @@ Rectangle {
     property bool syncFailed: false
     property string syncStatusMessage: ""
 
+    // Customization properties for derived widgets (e.g. ModelDownloadTimerWidget)
+    property bool isDownloadWidget: false
+    property string syncTitlePrefix: i18n.dtr("ubtms", "Syncing ")
+    property string defaultSyncTitle: i18n.dtr("ubtms", "Cloud Sync")
+    property string defaultSyncingSubtitle: i18n.dtr("ubtms", "Synchronizing...")
+    property string syncSuccessSubtitle: i18n.dtr("ubtms", "All items up to date")
+    property string defaultSyncFailedText: i18n.dtr("ubtms", "Sync failed")
+    property string syncIconSource: "../../images/refresh.svg"
+    property bool rotateIcon: true
+
     // BackendBridge for real-time sync communication (connect to global bridge)
     property var backendBridge: null
 
@@ -73,7 +83,9 @@ Rectangle {
             if (root.backend_bridge) {
                 backendBridge = root.backend_bridge;
                 Logger.debug("GlobalTimerWidget", "GlobalTimer: Connected to backend bridge")
-                backendBridge.messageReceived.connect(handleSyncEvent);
+                if (!isDownloadWidget) {
+                    backendBridge.messageReceived.connect(handleSyncEvent);
+                }
                 break;
             }
         }
@@ -97,10 +109,10 @@ Rectangle {
             if (data.payload === true)
                 completeSyncSuccessfully();
             else
-                failSync("Sync Failed ");
+                failSync(defaultSyncFailedText);
             break;
         case "sync_error":
-            failSync("Failed " + data.payload);
+            failSync(data.payload ? (defaultSyncFailedText + ": " + data.payload) : defaultSyncFailedText);
             break;
         }
     }
@@ -113,15 +125,15 @@ Rectangle {
         var progressPercent = Math.round(syncProgress * 100);
 
         if (progressPercent < 25) {
-            syncStatusMessage = "Initializing sync...";
+            syncStatusMessage = i18n.dtr("ubtms", "Initializing sync...");
         } else if (progressPercent < 50) {
-            syncStatusMessage = "Downloading from server...";
+            syncStatusMessage = i18n.dtr("ubtms", "Downloading from server...");
         } else if (progressPercent < 90) {
-            syncStatusMessage = "Uploading to server...";
+            syncStatusMessage = i18n.dtr("ubtms", "Uploading to server...");
         } else if (progressPercent < 100) {
-            syncStatusMessage = "Finalizing sync...";
+            syncStatusMessage = i18n.dtr("ubtms", "Finalizing sync...");
         } else {
-            syncStatusMessage = "Sync complete!";
+            syncStatusMessage = syncSuccessSubtitle;
         }
     }
 
@@ -130,7 +142,7 @@ Rectangle {
         syncSuccessful = true;
         syncFailed = false;
         syncProgress = 1.0;
-        syncStatusMessage = "Sync Complete!";
+        syncStatusMessage = syncSuccessSubtitle;
 
         // Auto-hide after 3 seconds
         autoHideTimer.interval = 3000;
@@ -141,7 +153,7 @@ Rectangle {
     function failSync(errorMessage) {
         syncSuccessful = false;
         syncFailed = true;
-        syncStatusMessage = errorMessage || "Sync Failed";
+        syncStatusMessage = errorMessage || defaultSyncFailedText;
 
         // Auto-hide after 5 seconds
         autoHideTimer.interval = 5000;
@@ -163,12 +175,12 @@ Rectangle {
     // Function to start sync indication with BackendBridge integration
     function startSync(accountId, accountName) {
         syncAccountId = accountId;
-        syncAccountName = accountName || "Account " + accountId;
+        syncAccountName = accountName || (isDownloadWidget ? "" : ("Account " + accountId));
         isSyncing = true;
         syncSuccessful = false;
         syncFailed = false;
         syncProgress = 0.0;
-        syncStatusMessage = "Starting sync...";
+        syncStatusMessage = isDownloadWidget ? i18n.dtr("ubtms", "Starting download...") : i18n.dtr("ubtms", "Starting sync...");
         globalTimer.visible = true;
     }
 
@@ -282,12 +294,12 @@ Rectangle {
             id: syncIcon
             visible: globalTimer.isSyncing && !globalTimer.isTimerRunning && !globalTimer.syncSuccessful && !globalTimer.syncFailed
             anchors.fill: parent
-            source: "../../images/refresh.svg"
+            source: globalTimer.syncIconSource
             fillMode: Image.PreserveAspectFit
 
             RotationAnimation on rotation {
                 loops: Animation.Infinite
-                running: globalTimer.visible && globalTimer.isSyncing && !globalTimer.isTimerRunning && !globalTimer.syncSuccessful && !globalTimer.syncFailed
+                running: globalTimer.rotateIcon && globalTimer.visible && globalTimer.isSyncing && !globalTimer.isTimerRunning && !globalTimer.syncSuccessful && !globalTimer.syncFailed
                 from: 0
                 to: 360
                 duration: 1200
@@ -335,7 +347,7 @@ Rectangle {
                 if (globalTimer.isTimerRunning) {
                     return globalTimer.activeTitle;
                 } else if (globalTimer.isSyncing) {
-                    return globalTimer.syncAccountName ? ("Syncing " + globalTimer.syncAccountName) : "Cloud Sync";
+                    return globalTimer.syncAccountName ? (globalTimer.syncTitlePrefix + globalTimer.syncAccountName) : globalTimer.defaultSyncTitle;
                 }
                 return "";
             }
@@ -381,9 +393,9 @@ Rectangle {
                 visible: globalTimer.isSyncing && !globalTimer.isTimerRunning
                 width: parent.width
                 text: {
-                    if (globalTimer.syncFailed) return globalTimer.syncStatusMessage || "Sync failed";
-                    if (globalTimer.syncSuccessful) return "All items up to date";
-                    return globalTimer.syncStatusMessage || "Synchronizing...";
+                    if (globalTimer.syncFailed) return globalTimer.syncStatusMessage || globalTimer.defaultSyncFailedText;
+                    if (globalTimer.syncSuccessful) return globalTimer.syncSuccessSubtitle;
+                    return globalTimer.syncStatusMessage || globalTimer.defaultSyncingSubtitle;
                 }
                 color: globalTimer.syncFailed ? "#DF382C" : (globalTimer.syncSuccessful ? "#38B44A" : "#D0CBC5")
                 font.pixelSize: units.gu(1.3)

@@ -4,7 +4,15 @@ import Lomiri.Components 1.3
 GlobalTimerWidget {
     id: downloadWidget
     enableTimesheetTimer: false
-    
+    isDownloadWidget: true
+    syncTitlePrefix: i18n.dtr("ubtms", "Downloading ")
+    defaultSyncTitle: i18n.dtr("ubtms", "Voice Model Download")
+    defaultSyncingSubtitle: i18n.dtr("ubtms", "Downloading...")
+    syncSuccessSubtitle: i18n.dtr("ubtms", "Installation complete!")
+    defaultSyncFailedText: i18n.dtr("ubtms", "Download failed")
+    syncIconSource: "../../images/download.svg"
+    rotateIcon: false
+
     // Override completion logic to connect to our specific download events
     Component.onCompleted: {
         var root = downloadWidget;
