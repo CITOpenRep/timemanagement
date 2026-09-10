@@ -29,6 +29,7 @@ import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
 import QtQuick.Controls 2.2 as Controls
+import QtGraphicalEffects 1.0
 import "../../components"
 import "NavigationRoutes.js" as NavigationRoutes
 
@@ -428,12 +429,24 @@ Page {
                     height: units.gu(5)
                     color: collapsedThemeArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedThemeArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
 
-                    Image {
+                    Item {
                         anchors.centerIn: parent
                         width: units.gu(2.4)
                         height: units.gu(2.4)
-                        source: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../../images/daymode.png" : "../../images/darkmode.png"
-                        fillMode: Image.PreserveAspectFit
+
+                        Image {
+                            id: collapsedThemeImg
+                            anchors.fill: parent
+                            source: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../../images/daymode.png" : "../../images/darkmode.png"
+                            fillMode: Image.PreserveAspectFit
+                            visible: false
+                        }
+
+                        ColorOverlay {
+                            anchors.fill: collapsedThemeImg
+                            source: collapsedThemeImg
+                            color: isDark ? "#ffffff" : "#444444"
+                        }
                     }
 
                     MouseArea {
