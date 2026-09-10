@@ -313,13 +313,14 @@ Page {
                         });
                     }
                 }
+                leadingActions: model.id === 0 ? null : accountLeadingActions
 
-                // ── Swipe Left → Edit ──
-                leadingActions: ListItemActions {
+                ListItemActions {
+                    id: accountLeadingActions
                     actions: [
                         Action {
                             iconName: "edit"
-                            enabled: model.id !== 0
+                            text: i18n.dtr("ubtms", "Edit")
                             onTriggered: {
                                 apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'), {
                                     "accountId": model.id,
@@ -329,14 +330,14 @@ Page {
                         }
                     ]
                 }
+                trailingActions: model.id === 0 ? null : accountTrailingActions
 
-                // ── Swipe Right → Log, Delete ──
-                trailingActions: ListItemActions {
+                ListItemActions {
+                    id: accountTrailingActions
                     actions: [
                         Action {
                             iconName: "note"
                             text: i18n.dtr("ubtms", "Log")
-                            enabled: model.id !== 0
                             onTriggered: {
                                 apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl("SyncLog.qml"), {
                                     "recordid": model.id
@@ -346,7 +347,6 @@ Page {
                         Action {
                             iconName: "delete"
                             text: i18n.dtr("ubtms", "Delete")
-                            enabled: model.id !== 0
                             onTriggered: {
                                 accountToDelete = model.id;
                                 accountIndexToDelete = index;
