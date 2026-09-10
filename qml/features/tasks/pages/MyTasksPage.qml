@@ -458,6 +458,12 @@ Page {
                 handleAccountChange(accountId);
             }
         }
+
+        function onTaskDataChanged() {
+            if (myTasksPage.visible) {
+                refreshData();
+            }
+        }
     }
 
     onVisibleChanged: {
