@@ -1375,7 +1375,7 @@ class NotificationDaemon:
         account_pass = account.get("api_key")
 
         # Skip local account or accounts without URL
-        if not account_url or account_name == "Local Account":
+        if not account_url or account_url.startswith("local://") or account_id == 0 or account_name in ("Local Account", "Local"):
             log.info(f"[DAEMON] Skipping local/invalid account: {account_name}")
             return
 
@@ -1630,7 +1630,7 @@ class NotificationDaemon:
                 account_name = account.get("name", "Unknown")
                 
                 # Skip local/invalid accounts
-                if not account.get("link") or account_name == "Local Account":
+                if not account.get("link") or account.get("link").startswith("local://") or account_id == 0 or account_name in ("Local Account", "Local"):
                     continue
                 
                 # Resolve per-account settings (with global fallback)
@@ -1677,7 +1677,7 @@ class NotificationDaemon:
             for account in accounts:
                 account_id = account["id"]
                 account_name = account.get("name", "Unknown")
-                if not account.get("link") or account_name == "Local Account":
+                if not account.get("link") or account.get("link").startswith("local://") or account_id == 0 or account_name in ("Local Account", "Local"):
                     continue
                 acct_settings = get_account_sync_settings(self.app_db, account_id)
                 if not acct_settings["autosync_enabled"]:

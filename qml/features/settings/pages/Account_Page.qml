@@ -69,6 +69,10 @@ Page {
                 text: i18n.dtr("ubtms","Save")
                 
                 onTriggered: {
+                    if (typeof Qt !== "undefined" && Qt.inputMethod) {
+                        Qt.inputMethod.commit();
+                    }
+                    createAccountPage.forceActiveFocus();
                     handleAccountSave();
                 }
             },
@@ -88,9 +92,45 @@ Page {
     }
 
     function handleAccountSave() {
-        accountNameInput.text = (accountNameInput.text || "").trim();
-        if (!accountNameInput.text) {
-            notifPopup.open("Error", "Account name cannot be empty", "error");
+        if (typeof Qt !== "undefined" && Qt.inputMethod) {
+            Qt.inputMethod.commit();
+        }
+        createAccountPage.forceActiveFocus();
+
+        var trimmedAccountName = accountNameInput.text.trim();
+        if (!trimmedAccountName) {
+            notifPopup.open("Error", i18n.dtr("ubtms", "Account name cannot be empty"), "error");
+            return;
+        }
+
+        if (accountId === 0) {
+            var updateResult = Accounts.updateAccountName(0, trimmedAccountName);
+            if (!updateResult.success) {
+                if (updateResult.duplicateType === "name") {
+                    notifPopup.open("Error", i18n.dtr("ubtms", "Account name '" + trimmedAccountName + "' already exists. Please choose a different name."), "error");
+                } else {
+                    notifPopup.open("Error", updateResult.message || i18n.dtr("ubtms", "Unable to update account."), "error");
+                }
+                return;
+            }
+
+            // If local account is active, update accountPicker and rootApp
+            if (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId === 0) {
+                accountPicker.selectedAccountName = trimmedAccountName;
+                if (typeof rootApp !== "undefined" && rootApp) {
+                    rootApp.currentAccountName = trimmedAccountName;
+                    rootApp.globalAccountChanged(0, trimmedAccountName);
+                }
+            }
+
+            notifPopup.open("Saved", i18n.dtr("ubtms", "Your account has been updated successfully!"), "success");
+            isReadOnly = true;
+
+            if (typeof accountsSettingsPage !== "undefined" && accountsSettingsPage) {
+                accountsSettingsPage.fetch_accounts();
+            } else if (typeof settings !== "undefined" && settings) {
+                settings.fetch_accounts();
+            }
             return;
         }
 
@@ -205,6 +245,12 @@ Page {
                 usernameInput.text = account.username;
                 passwordInput.text = account.api_key || "";
                 selectedconnectwithId = account.connectwith_id || 1;
+                
+                if (accId === 0) {
+                    isReadOnly = !openInEditMode;
+                    activeBackendAccount = false;
+                    break;
+                }
                 
                 // Fetch databases for this URL
                 Utils.getDatabasesFromOdooServer(account.link, function(databases) {
@@ -400,7 +446,13 @@ Page {
                         width: parent.width
                         readOnly: isReadOnly
                         labelText: i18n.dtr("ubtms", "Account Name")
+                        inputMethodHints: Qt.ImhNoPredictiveText
                         text: ""
+                        onAccepted: {
+                            if (!isReadOnly) {
+                                handleAccountSave();
+                            }
+                        }
                     }
                 }
             }
@@ -411,6 +463,7 @@ Page {
             Rectangle {
                 width: parent.width
                 height: serverCol.height + units.gu(3)
+                visible: accountId !== 0
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "white"
                 radius: units.gu(1)
 
@@ -497,6 +550,7 @@ Page {
                         width: parent.width
                         visible: isManualDbMode
                         labelText: i18n.dtr("ubtms", "Database Name")
+                        inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
                     }
                 }
             }
@@ -507,7 +561,7 @@ Page {
             Rectangle {
                 width: parent.width
                 height: credCol.height + units.gu(3)
-                visible: activeBackendAccount
+                visible: activeBackendAccount && accountId !== 0
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "white"
                 radius: units.gu(1)
 
@@ -531,6 +585,7 @@ Page {
                         width: parent.width
                         readOnly: isReadOnly
                         labelText: i18n.dtr("ubtms", "Username")
+                        inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
                     }
 
                     InlineOptionSelector {
@@ -578,7 +633,7 @@ Page {
             // =============================================================
             Rectangle {
                 id: syncSettingsSection
-                visible: activeBackendAccount
+                visible: activeBackendAccount && accountId !== 0
                 width: parent.width
                 height: syncSettingsColumn.height + units.gu(3)
                 color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "white"

@@ -189,7 +189,7 @@ Page {
                         Layout.alignment: Qt.AlignVCenter
                         text: {
                             if (typeof accountPicker === "undefined" || !accountPicker.selectedAccountName) return "";
-                            return (accountPicker.selectedAccountId === 0 || accountPicker.selectedAccountName === "Local Account") ? "Local" : accountPicker.selectedAccountName;
+                            return (accountPicker.selectedAccountName === "Local Account" || !accountPicker.selectedAccountName) ? "Local" : accountPicker.selectedAccountName;
                         }
                         color: "white"
                         font.pixelSize: units.dp(13)
@@ -352,7 +352,7 @@ Page {
                         Controls.ToolTip.visible: collapsedAccountArea.containsMouse
                         Controls.ToolTip.text: {
                             if (typeof accountPicker === "undefined" || !accountPicker.selectedAccountName) return i18n.dtr("ubtms", "Account");
-                            var accName = (accountPicker.selectedAccountId === 0 || accountPicker.selectedAccountName === "Local Account") ? i18n.dtr("ubtms", "Local") : accountPicker.selectedAccountName;
+                            var accName = (accountPicker.selectedAccountName === "Local Account" || !accountPicker.selectedAccountName) ? i18n.dtr("ubtms", "Local") : accountPicker.selectedAccountName;
                             return i18n.dtr("ubtms", "Account: %1").arg(accName);
                         }
                         Controls.ToolTip.delay: 400

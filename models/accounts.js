@@ -21,7 +21,7 @@ function getAccountsList() {
             for (var i = 0; i < accounts.rows.length; i++) {
                 var row = accounts.rows.item(i);
                 var obj = DBCommon.rowToObject(row);
-                if (obj.id === 0 || obj.name === "Local Account") {
+                if (obj.name === "Local Account" || (obj.id === 0 && !obj.name)) {
                     obj.name = "Local";
                 }
                 accountsList.push(obj);
@@ -408,6 +408,63 @@ function updateAccount(accountId, name, link, database, username, selectedConnec
 }
  
 /**
+ * Updates only the name of an account in the local SQLite database.
+ *
+ * @param {number} accountId - The ID of the account to update.
+ * @param {string} name - The new name for the account.
+ * @returns {Object} Result object containing success status, message, and duplicateType.
+ */
+function updateAccountName(accountId, name) {
+    var result = {
+        success: false,
+        message: "",
+        duplicateType: null
+    };
+
+    if (!name || !name.trim()) {
+        result.message = "Account name cannot be empty.";
+        return result;
+    }
+
+    var cleanName = name.trim();
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            // Check for duplicate account name (excluding current account)
+            var nameCheckResult = tx.executeSql(
+                'SELECT COUNT(*) AS count FROM users WHERE LOWER(name) = LOWER(?) AND id != ?',
+                [cleanName, accountId]
+            );
+
+            if (nameCheckResult.rows.item(0).count > 0) {
+                DBCommon.log("Duplicate account name found (case-insensitive): " + cleanName);
+                result.duplicateType = "name";
+                result.message = "An account with this name already exists.";
+                return;
+            }
+
+            // Update the account name
+            tx.executeSql(
+                'UPDATE users SET name = ? WHERE id = ?',
+                [cleanName, accountId]
+            );
+
+            DBCommon.log("Account name updated successfully for account id: " + accountId + " (" + cleanName + ")");
+            result.success = true;
+            result.message = "Account name updated successfully.";
+        });
+
+    } catch (e) {
+        DBCommon.logException("updateAccountName", e);
+        result.message = "Error updating account name: " + e.message;
+    }
+
+    return result;
+}
+ 
+/**
  * Deletes a user account and all related records from associated tables in the local SQLite database.
  *
  * This is a cascading delete utility that removes a user by their `id` from the `users` table,
@@ -606,10 +663,6 @@ function getAccountName(accountId) {
         return "";
     }
 
-    if (Number(accountId) === 0) {
-        return "Local";
-    }
-
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         var name = "";
@@ -621,14 +674,14 @@ function getAccountName(accountId) {
             }
         });
 
-        if (name === "Local Account") {
+        if (name === "Local Account" || (Number(accountId) === 0 && !name)) {
             return "Local";
         }
 
         return name;
     } catch (e) {
         Logger.error("Accounts", "getAccountName failed:", e)
-        return "";
+        return Number(accountId) === 0 ? "Local" : "";
     }
 }
 

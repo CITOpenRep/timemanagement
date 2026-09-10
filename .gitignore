@@ -5,3 +5,5 @@ build
 voice_to_text/lib/
 .clickable
 .vscode
+node_modules/
+website/

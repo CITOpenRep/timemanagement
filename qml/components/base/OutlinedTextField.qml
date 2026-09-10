@@ -15,6 +15,15 @@ Item {
     property alias inputMethodHints: inputField.inputMethodHints
     property alias validator: inputField.validator
     property alias readOnly: inputField.readOnly
+    property alias inputField: inputField
+    property alias inputFocus: inputField.focus
+
+    function commit() {
+        if (typeof Qt !== "undefined" && Qt.inputMethod) {
+            Qt.inputMethod.commit();
+        }
+        inputField.focus = false;
+    }
 
     signal accepted()
 

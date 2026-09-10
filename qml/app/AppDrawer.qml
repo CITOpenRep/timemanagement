@@ -94,7 +94,7 @@ Controls.Drawer {
                                     Layout.alignment: Qt.AlignVCenter
                                     text: {
                                         if (typeof accountPicker === "undefined" || !accountPicker.selectedAccountName) return "";
-                                        return (accountPicker.selectedAccountId === 0 || accountPicker.selectedAccountName === "Local Account") ? "Local" : accountPicker.selectedAccountName;
+                                        return (accountPicker.selectedAccountName === "Local Account" || !accountPicker.selectedAccountName) ? "Local" : accountPicker.selectedAccountName;
                                     }
                                     color: "white"
                                     font.pixelSize: units.dp(13)

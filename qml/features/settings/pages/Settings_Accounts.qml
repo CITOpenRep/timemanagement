@@ -307,11 +307,9 @@ Page {
                 highlightColor: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#252525" : "#e8e8e8"
 
                 onClicked: {
-                    if (model.id !== 0) {
-                        apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'), {
-                            "accountId": model.id
-                        });
-                    }
+                    apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'), {
+                        "accountId": model.id
+                    });
                 }
 
                 // ── Swipe Left → Edit ──
@@ -319,7 +317,7 @@ Page {
                     actions: [
                         Action {
                             iconName: "edit"
-                            enabled: model.id !== 0
+                            text: i18n.dtr("ubtms", "Edit")
                             onTriggered: {
                                 apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'), {
                                     "accountId": model.id,
@@ -330,13 +328,15 @@ Page {
                     ]
                 }
 
-                // ── Swipe Right → Log, Delete ──
-                trailingActions: ListItemActions {
+                // ── Swipe Right → Log, Delete (Hidden for Local Account) ──
+                trailingActions: model.id === 0 ? null : accountTrailingActions
+
+                ListItemActions {
+                    id: accountTrailingActions
                     actions: [
                         Action {
                             iconName: "note"
                             text: i18n.dtr("ubtms", "Log")
-                            enabled: model.id !== 0
                             onTriggered: {
                                 apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl("SyncLog.qml"), {
                                     "recordid": model.id
@@ -346,7 +346,6 @@ Page {
                         Action {
                             iconName: "delete"
                             text: i18n.dtr("ubtms", "Delete")
-                            enabled: model.id !== 0
                             onTriggered: {
                                 accountToDelete = model.id;
                                 accountIndexToDelete = index;
