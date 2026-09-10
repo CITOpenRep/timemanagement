@@ -28,6 +28,7 @@ import Lomiri.Components.Themes.Ambiance 1.3
 import QtCharts 2.0
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
+import QtQuick.Controls 2.2 as Controls
 import "../../components"
 import "NavigationRoutes.js" as NavigationRoutes
 
@@ -52,19 +53,19 @@ Page {
 
         contents: RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: listpage.menuCollapsed ? units.gu(0.4) : units.gu(1.5)
-            anchors.rightMargin: listpage.menuCollapsed ? units.gu(0.4) : units.gu(1)
-            spacing: listpage.menuCollapsed ? units.gu(0.4) : units.gu(1)
+            anchors.leftMargin: listpage.menuCollapsed ? 0 : units.gu(1.5)
+            anchors.rightMargin: listpage.menuCollapsed ? 0 : units.gu(1)
+            spacing: listpage.menuCollapsed ? 0 : units.gu(1)
 
             // Collapse / expand sidebar button (multi-column only)
             Rectangle {
                 id: collapseToggleBtn
                 visible: listpage.isMultiColumn
-                implicitWidth: units.gu(3.6)
+                implicitWidth: listpage.menuCollapsed ? units.gu(8) : units.gu(3.6)
                 implicitHeight: units.gu(3.6)
                 Layout.preferredWidth: implicitWidth
                 Layout.preferredHeight: implicitHeight
-                radius: height / 2
+                radius: listpage.menuCollapsed ? 0 : height / 2
                 color: collapseMouseArea.pressed ? "#40ffffff" : (collapseMouseArea.containsMouse ? "#30ffffff" : "transparent")
                 Layout.alignment: Qt.AlignVCenter
 
@@ -90,6 +91,10 @@ Page {
                             apLayout.toggleMenuCollapsed();
                         }
                     }
+
+                    Controls.ToolTip.visible: listpage.menuCollapsed && collapseMouseArea.containsMouse
+                    Controls.ToolTip.text: i18n.dtr("ubtms", "Expand menu")
+                    Controls.ToolTip.delay: 400
                 }
             }
 
@@ -106,10 +111,11 @@ Page {
                 Layout.fillWidth: true
             }
 
-            // Account Selector chip (pill in expanded mode, compact icon in collapsed mode)
+            // Account Selector chip (visible when expanded)
             Rectangle {
                 id: accountBtn
-                implicitWidth: listpage.menuCollapsed ? units.gu(3.6) : (accountRow.implicitWidth + units.gu(1.8))
+                visible: !listpage.menuCollapsed
+                implicitWidth: accountRow.implicitWidth + units.gu(1.8)
                 implicitHeight: units.gu(3.6)
                 Layout.preferredWidth: implicitWidth
                 Layout.preferredHeight: implicitHeight
@@ -126,7 +132,7 @@ Page {
                 RowLayout {
                     id: accountRow
                     anchors.centerIn: parent
-                    spacing: listpage.menuCollapsed ? 0 : units.gu(0.6)
+                    spacing: units.gu(0.6)
 
                     Icon {
                         name: "account"
@@ -249,8 +255,168 @@ Page {
         anchors.bottom: parent.bottom
         color: isDark ? "#111" : "#f2f2f7"
 
+        // Pinned bottom actions section when sidebar is collapsed
+        Rectangle {
+            id: collapsedBottomSection
+            visible: listpage.menuCollapsed
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: listpage.menuCollapsed ? (bottomActionsColumn.implicitHeight + units.gu(1)) : 0
+            color: isDark ? "#1e1e1e" : "#ffffff"
+
+            // Divider above bottom actions
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: units.dp(1)
+                color: isDark ? "#333333" : "#e8e8e8"
+            }
+
+            Column {
+                id: bottomActionsColumn
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: units.dp(1)
+
+                // 1. Account Action
+                Rectangle {
+                    id: collapsedAccountBtn
+                    width: parent.width
+                    height: units.gu(6)
+                    color: collapsedAccountArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedAccountArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
+
+                    Icon {
+                        anchors.centerIn: parent
+                        name: "account"
+                        width: units.gu(2.8)
+                        height: units.gu(2.8)
+                        color: (typeof accountPicker !== "undefined" && accountPicker.selectedAccountId === 0) ? (isDark ? "#aaaaaa" : "#666666") : LomiriColors.orange
+                    }
+
+                    MouseArea {
+                        id: collapsedAccountArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (typeof accountPicker !== "undefined") {
+                                accountPicker.open(accountPicker.selectedAccountId);
+                            }
+                        }
+
+                        Controls.ToolTip.visible: collapsedAccountArea.containsMouse
+                        Controls.ToolTip.text: {
+                            if (typeof accountPicker === "undefined" || !accountPicker.selectedAccountName) return i18n.dtr("ubtms", "Account");
+                            var accName = (accountPicker.selectedAccountId === 0 || accountPicker.selectedAccountName === "Local Account") ? i18n.dtr("ubtms", "Local") : accountPicker.selectedAccountName;
+                            return i18n.dtr("ubtms", "Account: %1").arg(accName);
+                        }
+                        Controls.ToolTip.delay: 400
+                    }
+                }
+
+                // 2. Local Account Toggle
+                Rectangle {
+                    id: collapsedLocalBtn
+                    width: parent.width
+                    height: units.gu(6)
+                    color: collapsedLocalArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedLocalArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
+
+                    Switch {
+                        id: collapsedLocalSwitch
+                        anchors.centerIn: parent
+                        width: units.gu(4.2)
+                        height: units.gu(2.1)
+                        enabled: false
+                        checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
+                        style: Component {
+                            SwitchStyle {
+                                implicitWidth: units.gu(4.2)
+                                implicitHeight: units.gu(2.1)
+                                checkedBackgroundColor: Qt.darker(LomiriColors.orange, 1.35)
+                            }
+                        }
+
+                        Binding {
+                            target: collapsedLocalSwitch
+                            property: "checked"
+                            value: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
+                        }
+
+                        Connections {
+                            target: typeof accountPicker !== "undefined" ? accountPicker : null
+                            onSelectedAccountIdChanged: {
+                                collapsedLocalSwitch.checked = (accountPicker.selectedAccountId === 0);
+                            }
+                            onAccepted: {
+                                collapsedLocalSwitch.checked = (accountId === 0);
+                            }
+                        }
+
+                        Connections {
+                            target: typeof rootApp !== "undefined" ? rootApp : null
+                            onGlobalAccountChanged: {
+                                collapsedLocalSwitch.checked = (accountId === 0);
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: collapsedLocalArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (typeof accountPicker !== "undefined") {
+                                accountPicker.toggleLocalMode(!collapsedLocalSwitch.checked);
+                            }
+                        }
+
+                        Controls.ToolTip.visible: collapsedLocalArea.containsMouse
+                        Controls.ToolTip.text: collapsedLocalSwitch.checked ? i18n.dtr("ubtms", "Local Account (Active)") : i18n.dtr("ubtms", "Local Account (Disabled)")
+                        Controls.ToolTip.delay: 400
+                    }
+                }
+
+                // 3. Theme Toggle
+                Rectangle {
+                    id: collapsedThemeBtn
+                    width: parent.width
+                    height: units.gu(6)
+                    color: collapsedThemeArea.pressed ? (isDark ? "#2a2a2a" : "#f0f0f0") : (collapsedThemeArea.containsMouse ? (isDark ? "#252525" : "#f7f7f7") : "transparent")
+
+                    Image {
+                        anchors.centerIn: parent
+                        width: units.gu(2.4)
+                        height: units.gu(2.4)
+                        source: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "../../images/daymode.png" : "../../images/darkmode.png"
+                        fillMode: Image.PreserveAspectFit
+                    }
+
+                    MouseArea {
+                        id: collapsedThemeArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                        }
+
+                        Controls.ToolTip.visible: collapsedThemeArea.containsMouse
+                        Controls.ToolTip.text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Day mode") : i18n.dtr("ubtms", "Dark mode")
+                        Controls.ToolTip.delay: 400
+                    }
+                }
+            }
+        }
+
         Flickable {
-            anchors.fill: parent
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: listpage.menuCollapsed ? collapsedBottomSection.top : parent.bottom
             contentHeight: menuColumn.height + units.gu(4)
             clip: true
 
