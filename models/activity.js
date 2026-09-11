@@ -924,22 +924,16 @@ function getActivitiesForProject(projectOdooRecordId, accountId) {
                 projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
             }
 
-            // Step 2: Fetch activities linked to the specific project
-            // This includes activities linked directly to the project and activities linked to tasks within the project
+            // Step 2: Fetch activities linked directly to the specific project
             var rs = tx.executeSql(`
                 SELECT DISTINCT a.* FROM mail_activity_app a
                 WHERE a.account_id = ? 
                 AND LOWER(TRIM(COALESCE(a.state, ''))) != 'done'
-                AND (
-                    (a.resModel = 'project.project' AND a.link_id = ?)
-                    OR 
-                    (a.resModel = 'project.task' AND a.link_id IN (
-                        SELECT (CASE WHEN account_id = 0 OR odoo_record_id IS NULL THEN id ELSE odoo_record_id END) FROM project_task_app 
-                        WHERE (project_id = ? OR sub_project_id = ?) AND account_id = ?
-                    ))
-                )
+                AND (a.status IS NULL OR a.status != 'deleted')
+                AND a.resModel = 'project.project'
+                AND a.link_id = ?
                 ORDER BY a.due_date ASC
-            `, [accountId, projectOdooRecordId, projectOdooRecordId, projectOdooRecordId, accountId]);
+            `, [accountId, projectOdooRecordId]);
 
             for (var i = 0; i < rs.rows.length; i++) {
                 var row = rs.rows.item(i);
@@ -1013,22 +1007,17 @@ function getActivitiesForProjectPaginated(projectOdooRecordId, accountId, limit,
                 projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
             }
 
-            // Step 2: Fetch activities linked to the specific project with LIMIT/OFFSET
+            // Step 2: Fetch activities linked directly to the specific project with LIMIT/OFFSET
             var rs = tx.executeSql(`
                 SELECT DISTINCT a.* FROM mail_activity_app a
                 WHERE a.account_id = ? 
                 AND LOWER(TRIM(COALESCE(a.state, ''))) != 'done'
-                AND (
-                    (a.resModel = 'project.project' AND a.link_id = ?)
-                    OR 
-                    (a.resModel = 'project.task' AND a.link_id IN (
-                        SELECT (CASE WHEN account_id = 0 OR odoo_record_id IS NULL THEN id ELSE odoo_record_id END) FROM project_task_app 
-                        WHERE (project_id = ? OR sub_project_id = ?) AND account_id = ?
-                    ))
-                )
+                AND (a.status IS NULL OR a.status != 'deleted')
+                AND a.resModel = 'project.project'
+                AND a.link_id = ?
                 ORDER BY a.due_date ASC
                 LIMIT ? OFFSET ?
-            `, [accountId, projectOdooRecordId, projectOdooRecordId, projectOdooRecordId, accountId, limit, offset]);
+            `, [accountId, projectOdooRecordId, limit, offset]);
 
             for (var i = 0; i < rs.rows.length; i++) {
                 var row = rs.rows.item(i);
