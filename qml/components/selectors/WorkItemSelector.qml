@@ -132,7 +132,7 @@ Rectangle {
     signal multiAssigneesChanged(var assignees)
 
     // Selected IDs
-    property int selectedAccountId: -1
+    property alias selectedAccountId: account_component.selectedId
     property int selectedProjectId: -1
     property int selectedSubProjectId: -1
     property int selectedTaskId: -1

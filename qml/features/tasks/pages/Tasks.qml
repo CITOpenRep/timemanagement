@@ -96,6 +96,7 @@ Page {
     }
     property var recordid: 0 //0 means creation mode
     property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
+    property int tempAttachmentId: recordid === 0 ? -(Math.floor(Date.now() % 100000000) + 1) : 0
 
     property string currentEditingField: ""
     property bool workpersonaSwitchState: true
@@ -370,6 +371,11 @@ Page {
         if (originalData.selectedPersonalStageOdooRecordId !== undefined) {
             selectedPersonalStageOdooRecordId = originalData.selectedPersonalStageOdooRecordId;
         }
+
+        if (recordid === 0 && tempAttachmentId !== 0) {
+            Task.cleanupTemporaryAttachments("project.task", tempAttachmentId, workItem ? workItem.selectedAccountId : 0);
+            attachments_widget.clearAttachments();
+        }
     }
     
     function getCurrentFormData() {
@@ -479,6 +485,10 @@ Page {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
                 return false;
             } else {
+                if (recordid === 0 && result.taskId && tempAttachmentId !== 0) {
+                    var accIdToLink = ids.account_id !== null && ids.account_id !== undefined ? ids.account_id : 0;
+                    Task.updateAttachmentResourceId("project.task", tempAttachmentId, result.taskId, accIdToLink);
+                }
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
 
                 // Prevent programmatic UI normalization from creating a fresh draft.
@@ -913,14 +923,22 @@ Page {
                 AttachmentManager {
                 id: attachments_widget
                 anchors.fill: parent
-                resource_type: "project.task"   // keep as-is if that's your default
-                resource_id: (currentTask && currentTask.odoo_record_id > 0) ? currentTask.odoo_record_id : ((currentTask && currentTask.id) ? currentTask.id : recordid)
-                account_id: (currentTask && currentTask.account_id !== undefined) ? currentTask.account_id : 0
+                resource_type: "project.task"
+                resource_id: (currentTask && currentTask.odoo_record_id > 0)
+                    ? currentTask.odoo_record_id
+                    : ((currentTask && currentTask.id) ? currentTask.id : (recordid !== 0 ? recordid : tempAttachmentId))
+                account_id: (currentTask && currentTask.account_id !== undefined && currentTask.account_id !== null)
+                    ? currentTask.account_id
+                    : (workItem && workItem.selectedAccountId !== -1 ? workItem.selectedAccountId : 0)
                 notifier: infobar
 
                 onUploadCompleted: {
-                    var resId = (currentTask && currentTask.odoo_record_id > 0) ? currentTask.odoo_record_id : ((currentTask && currentTask.id) ? currentTask.id : recordid);
-                    var accId = (currentTask && currentTask.account_id !== undefined) ? currentTask.account_id : 0;
+                    var resId = (currentTask && currentTask.odoo_record_id > 0)
+                        ? currentTask.odoo_record_id
+                        : ((currentTask && currentTask.id) ? currentTask.id : (recordid !== 0 ? recordid : tempAttachmentId));
+                    var accId = (currentTask && currentTask.account_id !== undefined && currentTask.account_id !== null)
+                        ? currentTask.account_id
+                        : (workItem && workItem.selectedAccountId !== -1 ? workItem.selectedAccountId : 0);
                     attachments_widget.setAttachments(Task.getAttachmentsForTask(resId, accId));
                 }
 
@@ -1024,6 +1042,7 @@ Page {
             });
         } else {
             // We are creating a new task
+            attachments_widget.clearAttachments();
             workItem.loadAccounts();
             taskScheduleFields.deadlineText = "Not set";
 

@@ -16,6 +16,7 @@ Popups.PopupBase {
     signal complete
     signal filesImported(var files)
     property var host
+    property bool _deliveryHandled: false
 
     // --- Simple type resolver (no singleton) ---
     function resolveType(fileUrl) {
@@ -92,6 +93,7 @@ Popups.PopupBase {
 
     function _startWithPeer(peer) {
         try {
+            picker._deliveryHandled = false;
             peer.selectionType = ContentTransfer.Single;
             picker.activeTransfer = peer.request();
             stateChangeConnection.target = picker.activeTransfer;
@@ -146,6 +148,7 @@ Popups.PopupBase {
 
             onPeerSelected: {
                 // normal manual selection
+                picker._deliveryHandled = false;
                 peer.selectionType = (isExport ? ContentTransfer.Single : ContentTransfer.Multiple);
                 picker.activeTransfer = peer.request();
                 stateChangeConnection.target = picker.activeTransfer;
@@ -171,9 +174,11 @@ Popups.PopupBase {
                 picker.activeTransfer.state = ContentTransfer.Charged;
                 closeTimer.start();
             } else if (!isExport && picker.activeTransfer.state === ContentTransfer.Charged) {
-                // Import: deliver selected items, then close
-                picker.filesImported(picker.activeTransfer.items);
-                closeTimer.start();
+                if (!picker._deliveryHandled) {
+                    picker._deliveryHandled = true;
+                    picker.filesImported(picker.activeTransfer.items);
+                    closeTimer.start();
+                }
             }
         }
     }

@@ -2,7 +2,6 @@ import QtQuick 2.6
 import QtQuick.Controls 2.2 as Controls
 import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
-import Lomiri.Components.Themes.Ambiance 1.3
 import "../components"
 import "navigation/NavigationRoutes.js" as NavigationRoutes
 
@@ -120,50 +119,16 @@ Controls.Drawer {
                         }
 
                         // Local Account Toggle Switch
-                        Switch {
+                        TSSwitch {
                             id: localToggleSwitch
                             Layout.alignment: Qt.AlignVCenter
                             Layout.preferredWidth: units.gu(4.2)
                             Layout.preferredHeight: units.gu(2.1)
-                            width: units.gu(4.2)
-                            height: units.gu(2.1)
                             checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
-                            style: Component {
-                                SwitchStyle {
-                                    implicitWidth: units.gu(4.2)
-                                    implicitHeight: units.gu(2.1)
-                                    checkedBackgroundColor: Qt.darker(LomiriColors.orange, 1.35)
-                                }
-                            }
 
                             onClicked: {
                                 if (typeof accountPicker !== "undefined") {
-                                    if (!accountPicker.toggleLocalMode(checked)) {
-                                        checked = true;
-                                    }
-                                }
-                            }
-
-                            Binding {
-                                target: localToggleSwitch
-                                property: "checked"
-                                value: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
-                            }
-
-                            Connections {
-                                target: typeof accountPicker !== "undefined" ? accountPicker : null
-                                onSelectedAccountIdChanged: {
-                                    localToggleSwitch.checked = (accountPicker.selectedAccountId === 0);
-                                }
-                                onAccepted: {
-                                    localToggleSwitch.checked = (accountId === 0);
-                                }
-                            }
-
-                            Connections {
-                                target: typeof rootApp !== "undefined" ? rootApp : null
-                                onGlobalAccountChanged: {
-                                    localToggleSwitch.checked = (accountId === 0);
+                                    accountPicker.toggleLocalMode(!checked);
                                 }
                             }
                         }

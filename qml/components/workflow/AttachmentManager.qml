@@ -336,6 +336,9 @@ Item {
                 console.log("backend imported");
             });
         }
+        onReceived: function (data) {
+            _handleSyncEvent(data);
+        }
         onError: {
             console.log("python error: " + traceback);
             attachmentManager._busy = false;
@@ -350,7 +353,7 @@ Item {
             id: dlg
             isExport: false   // importing from device/apps
             onFilesImported: function (files) {
-                if (!files || !files.length)
+                if (!files || !files.length || attachmentManager._busy)
                     return;
 
                 if (host) {
@@ -358,8 +361,12 @@ Item {
                     host.uploadStarted();
                 }
 
+                var seenPaths = {};
                 for (var i = 0; i < files.length; i++) {
                     var filePath = (files[i].url || "").toString().replace(/^file:\/\//, "");
+                    if (!filePath || seenPaths[filePath])
+                        continue;
+                    seenPaths[filePath] = true;
 
                     python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                         if (!path) {
@@ -398,6 +405,15 @@ Item {
     }
 
     function openContentPicker() {
+        if (_busy) {
+            return;
+        }
+
+        if (account_id !== 0 && resource_id <= 0) {
+            _notify(i18n.dtr("ubtms", "Please save first before adding attachments to a server account"), 3500);
+            return;
+        }
+
         try {
             PopupUtils.open(contentPickerComponent, attachmentManager, {
                 host: attachmentManager
@@ -477,9 +493,16 @@ Item {
         internalModel.clear();
         if (!items || !items.length)
             return;
+        var seenKeys = {};
         for (var i = 0; i < items.length; i++) {
-            //Do a duplicate name check to ensure the double entries doesnot present : TODO . GK
-            internalModel.append(_normalizeItem(items[i]));
+            var item = items[i];
+            var key = item.odoo_record_id && item.odoo_record_id > 0
+                ? ("odoo_" + item.odoo_record_id + "_" + (item.account_id !== undefined ? item.account_id : attachmentManager.account_id))
+                : ("local_" + (item.name || "") + "_" + (item.size || 0) + "_" + (item.account_id !== undefined ? item.account_id : attachmentManager.account_id));
+            if (!seenKeys[key]) {
+                seenKeys[key] = true;
+                internalModel.append(_normalizeItem(item));
+            }
         }
     }
 
