@@ -24,6 +24,7 @@ Rectangle {
 
     property bool readOnly: false
     property bool restrictAccountToLocalOnly: false  // When true, only show local account for new project creation
+    readonly property alias selectedAccountId: account_component.selectedId
 
     // Add flag to prevent auto-loading when deferred loading is planned
     property bool deferredLoadingPlanned: false

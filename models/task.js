@@ -297,12 +297,12 @@ function getAttachmentsForTask(odooRecordId, accountId) {
                 SELECT name, mimetype, account_id, odoo_record_id, url, file_path, local_url, file_size
                 FROM ir_attachment_app
                 WHERE res_model = 'project.task'
-                  AND (res_id = ? OR (odoo_record_id = ? AND odoo_record_id > 0))
+                  AND res_id = ?
                   AND account_id = ?
                 ORDER BY name COLLATE NOCASE ASC
             `;
 
-            var result = tx.executeSql(query, [odooRecordId, odooRecordId, accountId]);
+            var result = tx.executeSql(query, [odooRecordId, accountId]);
 
             for (var i = 0; i < result.rows.length; i++) {
                 var row = result.rows.item(i);
@@ -324,6 +324,54 @@ function getAttachmentsForTask(odooRecordId, accountId) {
     }
 
     return attachmentList;
+}
+
+function updateAttachmentResourceId(resModel, oldResId, newResId, accountId) {
+    if (oldResId === newResId) {
+        return true;
+    }
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            tx.executeSql(
+                "UPDATE ir_attachment_app SET res_id = ? WHERE res_model = ? AND res_id = ? AND account_id = ?",
+                [newResId, resModel, oldResId, accountId]
+            );
+        });
+        return true;
+    } catch (e) {
+        DBCommon.logException("updateAttachmentResourceId", e);
+        return false;
+    }
+}
+
+function cleanupTemporaryAttachments(resModel, tempResId, accountId) {
+    if (!tempResId || tempResId >= 0) {
+        return true;
+    }
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            tx.executeSql(
+                "DELETE FROM ir_attachment_app WHERE res_model = ? AND res_id = ? AND account_id = ?",
+                [resModel, tempResId, accountId]
+            );
+        });
+        return true;
+    } catch (e) {
+        DBCommon.logException("cleanupTemporaryAttachments", e);
+        return false;
+    }
 }
 
 
