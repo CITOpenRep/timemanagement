@@ -54,15 +54,23 @@ Item {
                 selectedAccountName = Accounts.getAccountName(0)
                 accepted(0, selectedAccountName)
             }
+            return true
         } else {
-            var targetId = lastRemoteAccountId > 0 ? lastRemoteAccountId : Accounts.getDefaultRemoteAccountId()
+            var targetId = (lastRemoteAccountId > 0 && Accounts.getAccountName(lastRemoteAccountId))
+                           ? lastRemoteAccountId
+                           : Accounts.getDefaultRemoteAccountId()
             if (targetId > 0 && selectedAccountId !== targetId) {
                 selectedAccountId = targetId
                 selectedAccountName = Accounts.getAccountName(targetId)
                 accepted(targetId, selectedAccountName)
+                return true
             } else if (targetId <= 0) {
-                open(selectedAccountId)
+                if (typeof notifPopup !== "undefined") {
+                    notifPopup.open(i18n.dtr("ubtms", "Notice"), i18n.dtr("ubtms", "You don't have any account logged in"), "warning")
+                }
+                return false
             }
+            return true
         }
     }
 
