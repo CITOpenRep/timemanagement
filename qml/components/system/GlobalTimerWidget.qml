@@ -44,8 +44,7 @@ Rectangle {
     property bool syncFailed: false
     property string syncStatusMessage: ""
 
-    // Customization properties for derived widgets (e.g. ModelDownloadTimerWidget)
-    property bool isDownloadWidget: false
+    // Customization properties for derived widgets
     property string syncTitlePrefix: i18n.dtr("ubtms", "Syncing ")
     property string defaultSyncTitle: i18n.dtr("ubtms", "Cloud Sync")
     property string defaultSyncingSubtitle: i18n.dtr("ubtms", "Synchronizing...")
@@ -83,9 +82,7 @@ Rectangle {
             if (root.backend_bridge) {
                 backendBridge = root.backend_bridge;
                 Logger.debug("GlobalTimerWidget", "GlobalTimer: Connected to backend bridge")
-                if (!isDownloadWidget) {
-                    backendBridge.messageReceived.connect(handleSyncEvent);
-                }
+                backendBridge.messageReceived.connect(handleSyncEvent);
                 break;
             }
         }
@@ -175,12 +172,12 @@ Rectangle {
     // Function to start sync indication with BackendBridge integration
     function startSync(accountId, accountName) {
         syncAccountId = accountId;
-        syncAccountName = accountName || (isDownloadWidget ? "" : ("Account " + accountId));
+        syncAccountName = accountName || "Account " + accountId;
         isSyncing = true;
         syncSuccessful = false;
         syncFailed = false;
         syncProgress = 0.0;
-        syncStatusMessage = isDownloadWidget ? i18n.dtr("ubtms", "Starting download...") : i18n.dtr("ubtms", "Starting sync...");
+        syncStatusMessage = "Starting sync...";
         globalTimer.visible = true;
     }
 
