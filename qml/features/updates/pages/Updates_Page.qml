@@ -154,6 +154,27 @@ Page {
 
     // React to global account changes (numeric normalization)
     Connections {
+        target: typeof accountPicker !== "undefined" ? accountPicker : null
+
+        onAccepted: function (id, name) {
+            if (!filterByProject) {
+                selectedAccountId = id;
+                fetchupdates();
+            }
+        }
+
+        onSelectedAccountIdChanged: {
+            if (!filterByProject && typeof accountPicker !== "undefined" && accountPicker) {
+                var activeId = accountPicker.selectedAccountId;
+                if (selectedAccountId !== activeId) {
+                    selectedAccountId = activeId;
+                    fetchupdates();
+                }
+            }
+        }
+    }
+
+    Connections {
         target: mainView
         onAccountDataRefreshRequested: function (accountId) {
             var acctNum = -1;
@@ -167,8 +188,9 @@ Page {
             } catch (e) {
                 acctNum = -1;
             }
-            console.log("Updates_Page: AccountDataRefreshRequested ->", acctNum);
-            selectedAccountId = acctNum;
+            if (!filterByProject) {
+                selectedAccountId = acctNum;
+            }
             fetchupdates();
         }
         onGlobalAccountChanged: function (accountId, accountName) {
@@ -183,8 +205,9 @@ Page {
             } catch (e) {
                 acctNum = -1;
             }
-            console.log("Updates_Page: GlobalAccountChanged ->", acctNum, accountName);
-            selectedAccountId = acctNum;
+            if (!filterByProject) {
+                selectedAccountId = acctNum;
+            }
             fetchupdates();
         }
     }
@@ -378,12 +401,17 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            if (!filterByProject && typeof accountPicker !== "undefined" && accountPicker) {
+                selectedAccountId = accountPicker.selectedAccountId;
+            }
             fetchupdates();
         }
     }
 
     Component.onCompleted: {
-        selectedAccountId = accountPicker.selectedAccountId;
+        if (!filterByProject && typeof accountPicker !== "undefined" && accountPicker) {
+            selectedAccountId = accountPicker.selectedAccountId;
+        }
         fetchupdates();
     }
 

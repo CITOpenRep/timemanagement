@@ -444,18 +444,19 @@ function deleteAccountAndRelatedData(userId) {
                              "notification"
                          ];
 
+            var numericUserId = parseInt(userId, 10);
             for (let i = 0; i < tables.length; i++) {
                 const table = tables[i];
-                DBCommon.log("Deleting data from account " + userId);
+                DBCommon.log("Deleting data from account " + numericUserId);
                 try {
-                    tx.executeSql(`DELETE FROM ${table} WHERE account_id = ?`, [userId]);
+                    tx.executeSql(`DELETE FROM ${table} WHERE account_id = ?`, [numericUserId]);
                 } catch (tableErr) {
                     DBCommon.log("Could not delete from table " + table + ": " + tableErr);
                 }
             }
 
-            DBCommon.log(`Deleting user from users table where id = ${userId}`);
-            tx.executeSql("DELETE FROM users WHERE id = ?", [userId]);
+            DBCommon.log(`Deleting user from users table where id = ${numericUserId}`);
+            tx.executeSql("DELETE FROM users WHERE id = ?", [numericUserId]);
 
             // Ensure a valid default account exists
             var defaultCheck = tx.executeSql("SELECT id FROM users WHERE is_default = 1 LIMIT 1");
@@ -466,11 +467,20 @@ function deleteAccountAndRelatedData(userId) {
                 }
             }
 
-            DBCommon.log(`Account and related data deleted for account_id: ${userId}`);
+            // Post-deletion sweep across all tables to purge any unlinked records
+            for (let j = 0; j < tables.length; j++) {
+                try {
+                    tx.executeSql(`DELETE FROM ${tables[j]} WHERE account_id NOT IN (SELECT id FROM users)`);
+                } catch (sweepErr) {
+                    // Ignore sweep errors for optional tables
+                }
+            }
+
+            DBCommon.log(`Account and related data deleted for account_id: ${numericUserId}`);
         });
 
     } catch (e) {
-        DBCommon.logException(e);
+        DBCommon.logException("Accounts", e);
     }
 }
 

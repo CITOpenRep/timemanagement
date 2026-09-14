@@ -73,13 +73,13 @@ Item {
                 accountPicker.lastRemoteAccountId = id;
             }
 
-            if (rootApp.currentAccountId === id) {
-                return;
-            }
-
+            var accountChanged = (rootApp.currentAccountId !== id);
             rootApp.currentAccountId = id;
             rootApp.currentAccountName = name;
-            rootApp.globalAccountChanged(id, name);
+
+            if (accountChanged) {
+                rootApp.globalAccountChanged(id, name);
+            }
             rootApp.accountDataRefreshRequested(id);
         }
     }
