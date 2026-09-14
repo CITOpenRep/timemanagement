@@ -39,11 +39,15 @@ Item {
 
     // carry initial request until dialog is visible
     property int _initialAccountId: -2   // -2 = none, -1 = "All"
+    property var activeDialog: null
 
     /** Show dialog; optionally preselect an account id */
     function open(initialAccountId) {
+        if (activeDialog)
+            return activeDialog
         _initialAccountId = (typeof initialAccountId === "number") ? initialAccountId : -2
-        PopupUtils.open(dialogComponent)
+        activeDialog = PopupUtils.open(dialogComponent)
+        return activeDialog
     }
 
     /** Toggle between Local Account (0) and last active remote account */
@@ -292,6 +296,10 @@ Item {
                     }
                     loadAccounts()
                 }
+            }
+
+            Component.onDestruction: {
+                root.activeDialog = null
             }
         }
     }
