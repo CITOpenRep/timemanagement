@@ -46,12 +46,6 @@ Item {
             id: popupDialog
             title: popupWrapper.titleText
 
-            // Dark mode friendly styling
-            StyleHints {
-                backgroundColor: theme.palette.normal.background
-                foregroundColor: theme.palette.normal.backgroundText
-            }
-
             Text {
                 id: messageText
                 text: popupWrapper.messageText

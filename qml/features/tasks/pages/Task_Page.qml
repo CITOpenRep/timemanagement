@@ -575,12 +575,10 @@ Page {
         // Apply default assignee filter (current logged-in user)
         applyDefaultAssigneeFilter();
 
-        if (visible) {
-            if (filterByProject) {
-                tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
-            } else {
-                tasklist.applyFilter(currentFilter);
-            }
+        if (filterByProject) {
+            tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, currentFilter);
+        } else {
+            tasklist.applyFilter(currentFilter);
         }
     }
 

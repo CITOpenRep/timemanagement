@@ -1,6 +1,6 @@
 clickable_minimum_required: 8.0.0
 builder: cmake
-kill: qmlscene
+launch: "bash -c 'pkill -9 -x qmlscene 2>/dev/null || true; sleep 0.2; env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/32011/bus XDG_RUNTIME_DIR=/run/user/32011 lomiri-app-launch ubtms_ubtms_1.3.3 || true'"
 skip_review: true
 dependencies_target:
   - libatomic1
