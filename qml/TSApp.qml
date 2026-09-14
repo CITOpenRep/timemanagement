@@ -125,6 +125,17 @@ MainView {
         Qt.callLater(function () {
             apLayout.setFirstScreen();
         });
+
+        postStartupMaintenanceTimer.start();
+    }
+
+    Timer {
+        id: postStartupMaintenanceTimer
+        interval: 1500
+        repeat: false
+        onTriggered: {
+            DbInit.performPostStartupMaintenance();
+        }
     }
 
     function checkStartupArguments() {

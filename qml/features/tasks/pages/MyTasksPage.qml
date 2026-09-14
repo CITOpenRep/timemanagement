@@ -488,7 +488,7 @@ Page {
 
         updateCurrentUser();
 
-        if (currentUserOdooId > 0) {
+        if (visible && currentUserOdooId > 0) {
             loadPersonalStages();
             if (personalStages.length > 0 && currentPersonalStageId !== undefined) {
                 loadTasksWithIndicator(function() {

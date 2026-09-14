@@ -159,7 +159,9 @@ Page {
         onAccepted: function (id, name) {
             if (!filterByProject) {
                 selectedAccountId = id;
-                fetchupdates();
+                if (visible) {
+                    fetchupdates();
+                }
             }
         }
 
@@ -168,7 +170,9 @@ Page {
                 var activeId = accountPicker.selectedAccountId;
                 if (selectedAccountId !== activeId) {
                     selectedAccountId = activeId;
-                    fetchupdates();
+                    if (visible) {
+                        fetchupdates();
+                    }
                 }
             }
         }
@@ -191,7 +195,9 @@ Page {
             if (!filterByProject) {
                 selectedAccountId = acctNum;
             }
-            fetchupdates();
+            if (visible) {
+                fetchupdates();
+            }
         }
         onGlobalAccountChanged: function (accountId, accountName) {
             var acctNum = -1;
@@ -208,7 +214,9 @@ Page {
             if (!filterByProject) {
                 selectedAccountId = acctNum;
             }
-            fetchupdates();
+            if (visible) {
+                fetchupdates();
+            }
         }
     }
 
@@ -412,7 +420,9 @@ Page {
         if (!filterByProject && typeof accountPicker !== "undefined" && accountPicker) {
             selectedAccountId = accountPicker.selectedAccountId;
         }
-        fetchupdates();
+        if (visible) {
+            fetchupdates();
+        }
     }
 
     // Loading indicator overlay

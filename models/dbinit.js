@@ -647,11 +647,15 @@ function initializeDatabase() {
     }
 
 
+    Logger.debug("Dbinit", "Database initialization complete")
+}
+
+function performPostStartupMaintenance() {
+    Logger.debug("Dbinit", "Performing post-startup database maintenance...")
     purgeCache();
     syncDraftFlags();
     cleanupOrphanAccountData();
-    
-    Logger.debug("Dbinit", "Database initialization complete")
+    Logger.debug("Dbinit", "Post-startup database maintenance complete")
 }
 
 /**

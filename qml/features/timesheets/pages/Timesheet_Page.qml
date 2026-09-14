@@ -407,7 +407,9 @@ Page {
         // do NOT re-assign it imperatively — that would break the binding and
         // cause the filter to lose sync when the user changes accounts.
         currentFilter = "all";
-        fetch_timesheets_list();
+        if (visible) {
+            fetch_timesheets_list();
+        }
     }
 
     // Loading indicator overlay
