@@ -39,119 +39,163 @@ Controls.Drawer {
                 width: parent.width
 
                 Rectangle {
+                    id: drawerHeader
                     width: parent.width
                     height: units.gu(8)
                     color: LomiriColors.orange
 
-                    RowLayout {
+                    Item {
                         anchors.fill: parent
-                        anchors.leftMargin: units.gu(2)
-                        anchors.rightMargin: units.gu(1.2)
-                        spacing: units.gu(1)
+                        anchors.leftMargin: drawerHeader.width < units.gu(32) ? units.gu(1.2) : units.gu(2)
+                        anchors.rightMargin: drawerHeader.width < units.gu(32) ? units.gu(0.8) : units.gu(1.2)
 
-                        Label {
-                            text: i18n.dtr("ubtms", "Menu")
-                            color: "white"
-                            fontSize: "large"
-                            font.bold: true
+                        // Left section: Menu title
+                        RowLayout {
+                            id: drawerLeftSection
+                            anchors.left: parent.left
+                            anchors.right: drawerRightSection.left
+                            anchors.rightMargin: units.gu(0.5)
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Label {
+                                text: i18n.dtr("ubtms", "Menu")
+                                color: "white"
+                                fontSize: "large"
+                                font.bold: true
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
                         }
 
-                        Item {
-                            Layout.fillWidth: true
-                        }
+                        // Right section: Account selector chip, local mode toggle, and theme toggle button
+                        RowLayout {
+                            id: drawerRightSection
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: drawerHeader.width < units.gu(34) ? units.gu(0.6) : units.gu(0.8)
 
-                        // Account Selector chip with Account label adjacent to icon
-                        Rectangle {
-                            id: accountSelectorItem
-                            implicitWidth: accountRow.implicitWidth + units.gu(1.8)
-                            implicitHeight: units.gu(3.6)
-                            radius: height / 2
-                            color: accountMouseArea.pressed ? "#40ffffff" : (accountMouseArea.containsMouse ? "#30ffffff" : "#20ffffff")
-                            border.color: "#35ffffff"
-                            border.width: 1
-                            Layout.alignment: Qt.AlignVCenter
+                            // Account Selector chip (collapses to circular avatar when width is restricted)
+                            Rectangle {
+                                id: accountSelectorItem
+                                implicitWidth: accountNameLabel.visible ? (accountRow.implicitWidth + units.gu(1.6)) : units.gu(3.6)
+                                implicitHeight: units.gu(3.6)
+                                Layout.preferredWidth: implicitWidth
+                                Layout.preferredHeight: implicitHeight
+                                radius: height / 2
+                                color: accountMouseArea.pressed ? "#40ffffff" : (accountMouseArea.containsMouse ? "#30ffffff" : "#20ffffff")
+                                border.color: "#35ffffff"
+                                border.width: 1
+                                Layout.alignment: Qt.AlignVCenter
 
-                            Behavior on color {
-                                ColorAnimation { duration: 100 }
+                                Behavior on color {
+                                    ColorAnimation { duration: 100 }
+                                }
+
+                                RowLayout {
+                                    id: accountRow
+                                    anchors.centerIn: parent
+                                    spacing: units.gu(0.5)
+
+                                    Icon {
+                                        name: "account"
+                                        width: units.gu(2.2)
+                                        height: units.gu(2.2)
+                                        color: "white"
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    Label {
+                                        id: accountNameLabel
+                                        visible: drawerHeader.width >= units.gu(29)
+                                        Layout.alignment: Qt.AlignVCenter
+                                        text: {
+                                            if (typeof accountPicker === "undefined" || !accountPicker.selectedAccountName) return "";
+                                            return (accountPicker.selectedAccountId === 0 || accountPicker.selectedAccountName === "Local Account") ? "Local" : accountPicker.selectedAccountName;
+                                        }
+                                        color: "white"
+                                        font.pixelSize: units.dp(13)
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        maximumLineCount: 1
+                                        Layout.maximumWidth: Math.min(units.gu(10), Math.max(units.gu(3), drawerHeader.width - units.gu(24)))
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: accountMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        drawerRoot.close();
+                                        if (typeof accountPicker !== "undefined") {
+                                            accountPicker.open(accountPicker.selectedAccountId);
+                                        }
+                                    }
+
+                                    Controls.ToolTip.visible: accountMouseArea.containsMouse
+                                    Controls.ToolTip.text: {
+                                        var name = (typeof accountPicker !== "undefined" && accountPicker.selectedAccountName) ? accountPicker.selectedAccountName : "";
+                                        if (!name || name === "Local Account" || (typeof accountPicker !== "undefined" && accountPicker.selectedAccountId === 0)) {
+                                            return i18n.dtr("ubtms", "Local Account");
+                                        }
+                                        return name;
+                                    }
+                                    Controls.ToolTip.delay: 400
+                                }
                             }
 
-                            RowLayout {
-                                id: accountRow
-                                anchors.centerIn: parent
-                                spacing: units.gu(0.6)
+                            // Local Account Toggle Switch (hidden on narrow widths to guarantee fit)
+                            TSSwitch {
+                                id: localToggleSwitch
+                                visible: drawerHeader.width >= units.gu(25)
+                                Layout.alignment: Qt.AlignVCenter
+                                Layout.preferredWidth: units.gu(4.2)
+                                Layout.preferredHeight: units.gu(2.1)
+                                checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
 
-                                Icon {
-                                    name: "account"
+                                onClicked: {
+                                    if (typeof accountPicker !== "undefined") {
+                                        accountPicker.toggleLocalMode(!checked);
+                                    }
+                                }
+                            }
+
+                            // Theme Toggle Button (guaranteed to be visible and anchored at the right edge)
+                            Rectangle {
+                                id: themeToggleBtn
+                                implicitWidth: units.gu(3.6)
+                                implicitHeight: units.gu(3.6)
+                                Layout.preferredWidth: implicitWidth
+                                Layout.preferredHeight: implicitHeight
+                                radius: height / 2
+                                color: themeMouseArea.pressed ? "#40ffffff" : (themeMouseArea.containsMouse ? "#30ffffff" : "transparent")
+                                Layout.alignment: Qt.AlignVCenter
+
+                                Behavior on color {
+                                    ColorAnimation { duration: 100 }
+                                }
+
+                                Image {
+                                    anchors.centerIn: parent
                                     width: units.gu(2.2)
                                     height: units.gu(2.2)
-                                    color: "white"
-                                    Layout.alignment: Qt.AlignVCenter
+                                    source: theme.name === "Ubuntu.Components.Themes.SuruDark" ? Qt.resolvedUrl("../images/daymode.png") : Qt.resolvedUrl("../images/darkmode.png")
+                                    fillMode: Image.PreserveAspectFit
                                 }
 
-                                Label {
-                                    id: accountNameLabel
-                                    Layout.alignment: Qt.AlignVCenter
-                                    text: {
-                                        if (typeof accountPicker === "undefined" || !accountPicker.selectedAccountName) return "";
-                                        return (accountPicker.selectedAccountId === 0 || accountPicker.selectedAccountName === "Local Account") ? "Local" : accountPicker.selectedAccountName;
+                                MouseArea {
+                                    id: themeMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
                                     }
-                                    color: "white"
-                                    font.pixelSize: units.dp(13)
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 1
-                                    Layout.maximumWidth: units.gu(10)
-                                }
-                            }
 
-                            MouseArea {
-                                id: accountMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    drawerRoot.close();
-                                    if (typeof accountPicker !== "undefined") {
-                                        accountPicker.open(accountPicker.selectedAccountId);
-                                    }
-                                }
-                            }
-                        }
-
-                        // Local Account Toggle Switch
-                        TSSwitch {
-                            id: localToggleSwitch
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.preferredWidth: units.gu(4.2)
-                            Layout.preferredHeight: units.gu(2.1)
-                            checked: typeof accountPicker !== "undefined" ? (accountPicker.selectedAccountId === 0) : false
-
-                            onClicked: {
-                                if (typeof accountPicker !== "undefined") {
-                                    accountPicker.toggleLocalMode(!checked);
-                                }
-                            }
-                        }
-
-                        // Theme Toggle Button
-                        Item {
-                            width: units.gu(4)
-                            height: units.gu(4)
-                            Layout.alignment: Qt.AlignVCenter
-
-                            Image {
-                                anchors.centerIn: parent
-                                width: units.gu(2.2)
-                                height: units.gu(2.2)
-                                source: theme.name === "Ubuntu.Components.Themes.SuruDark" ? Qt.resolvedUrl("../images/daymode.png") : Qt.resolvedUrl("../images/darkmode.png")
-                                fillMode: Image.PreserveAspectFit
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    Theme.name = theme.name === "Ubuntu.Components.Themes.SuruDark" ? "Ubuntu.Components.Themes.Ambiance" : "Ubuntu.Components.Themes.SuruDark";
+                                    Controls.ToolTip.visible: themeMouseArea.containsMouse
+                                    Controls.ToolTip.text: theme.name === "Ubuntu.Components.Themes.SuruDark" ? i18n.dtr("ubtms", "Light mode") : i18n.dtr("ubtms", "Dark mode")
+                                    Controls.ToolTip.delay: 400
                                 }
                             }
                         }
