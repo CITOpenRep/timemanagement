@@ -665,6 +665,37 @@ function getProjectsForAccount(accountId) {
 }
 
 /**
+ * Check if any active projects exist (optionally filtered by account)
+ * @param {number} [accountId] - Optional account ID. If omitted or < 0, checks across all accounts.
+ * @returns {boolean} true if at least one active project exists, false otherwise.
+ */
+function hasProjects(accountId) {
+    var exists = false;
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+
+        db.transaction(function (tx) {
+            var query = "SELECT id FROM project_project_app WHERE (status IS NULL OR status != 'deleted')";
+            var params = [];
+
+            if (accountId !== undefined && accountId !== null && accountId >= 0) {
+                query += " AND account_id = ?";
+                params.push(accountId);
+            }
+            query += " LIMIT 1";
+
+            var result = tx.executeSql(query, params);
+            exists = result.rows.length > 0;
+        });
+    } catch (e) {
+        Logger.error("Project", "hasProjects failed:", e);
+    }
+
+    return exists;
+}
+
+/**
  * Paginated version of getProjectsForAccount for infinite scroll.
  * 
  * @param {number} accountId - The account ID to filter projects by.

@@ -26,6 +26,7 @@ import QtQuick 2.9
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import "../../../../models/timesheet.js" as Timesheet
+import "../../../../models/project.js" as Project
 import "../../../../models/task.js" as Task
 import "../../../../models/accounts.js" as Account
 import "../../../../models/global.js" as Global
@@ -435,6 +436,13 @@ Page {
 
         onMenuItemSelected: {
             if (index === 0) {
+                var targetAccountId = (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined)
+                                      ? accountPicker.selectedAccountId
+                                      : -1;
+                if (!Project.hasProjects(targetAccountId)) {
+                    notifPopup.open(i18n.dtr("ubtms", "Notice"), i18n.dtr("ubtms", "No projects found. Please create a project first."), "warning");
+                    return;
+                }
                 apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
                     "recordid": 0,
                     "isReadOnly": false
