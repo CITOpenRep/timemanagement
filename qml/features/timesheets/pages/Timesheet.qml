@@ -862,20 +862,18 @@ Page {
             }
         }
 
-        Row {
+        Item {
             id: time_sheet_row
             anchors.top: myRow7.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: units.gu(1)
             anchors.rightMargin: units.gu(1)
-            spacing: units.gu(2)
-            topPadding: units.gu(1)
             height: recordid ? units.gu(20) : units.gu(5)
             TimeRecorderWidget {
                 id: time_sheet_widget
                 enabled: !isReadOnly
-                anchors.fill: time_sheet_row
+                anchors.fill: parent
                 timesheetId: recordid
                 visible: recordid
                 onInvalidtimesheet: {

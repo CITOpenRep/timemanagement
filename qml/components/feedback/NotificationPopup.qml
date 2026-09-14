@@ -49,12 +49,6 @@ Item {
             title: popupWrapper.titleText
             modal: true
 
-            // Dark mode friendly styling
-            StyleHints {
-                backgroundColor: theme.palette.normal.background
-                foregroundColor: theme.palette.normal.backgroundText
-            }
-
             Text {
                 id: messageText
                 text: popupWrapper.messageText

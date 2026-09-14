@@ -80,12 +80,23 @@ Page {
         ]
     }
 
+    Timer {
+        id: debounceRefreshTimer
+        interval: 100
+        repeat: false
+        onTriggered: _doRefreshCharts()
+    }
+
     function refreshData(force) {
         var accountId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
         if (!force && lastRefreshAccountId === accountId) {
             return;
         }
+        debounceRefreshTimer.restart();
+    }
 
+    function _doRefreshCharts() {
+        var accountId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
         lastRefreshAccountId = accountId;
         console.log("Refreshing Dashboard2 charts for account: " + accountId);
         var filterData = Global.getDateRangeFilter();

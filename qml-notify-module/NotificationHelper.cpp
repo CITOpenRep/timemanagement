@@ -193,11 +193,13 @@ void NotificationHelper::startDaemon()
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     env.insert("DBUS_SESSION_BUS_ADDRESS", dbusAddr);
     
-    // Get the click package path dynamically
+    // Get the click package path dynamically - prefer /opt/click.ubuntu.com/ubtms/current for click installs
     QString clickPath = "/opt/click.ubuntu.com/ubtms/current";
-    QString appDir = QCoreApplication::applicationDirPath();
-    if (QFile::exists(appDir + "/src/daemon.py")) {
-        clickPath = appDir;
+    if (!QFile::exists(clickPath + "/src/daemon.py")) {
+        QString appDir = QCoreApplication::applicationDirPath();
+        if (QFile::exists(appDir + "/src/daemon.py")) {
+            clickPath = appDir;
+        }
     }
     
     qDebug() << "Using click path:" << clickPath;
@@ -207,12 +209,25 @@ void NotificationHelper::startDaemon()
     QDir().mkpath(logDir);
     QString logFile = logDir + "/daemon.log";
     
-    // Check if systemd service exists, if not create it via bootstrap
+    // Check if systemd service exists and is up to date
     QString serviceFile = QDir::homePath() + "/.config/systemd/user/ubtms-daemon.service";
     QFileInfo serviceInfo(serviceFile);
     
-    if (!serviceInfo.exists()) {
-        qDebug() << "Systemd service not found, running bootstrap to create it...";
+    bool needsBootstrap = !serviceInfo.exists();
+    if (!needsBootstrap) {
+        QFile sf(serviceFile);
+        if (sf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QString content = sf.readAll();
+            sf.close();
+            // If the service references an old version path instead of current
+            if (content.contains("/opt/click.ubuntu.com/ubtms/") && !content.contains("/opt/click.ubuntu.com/ubtms/current")) {
+                needsBootstrap = true;
+            }
+        }
+    }
+    
+    if (needsBootstrap) {
+        qDebug() << "Systemd service missing or outdated, running bootstrap to create/update it...";
         
         // Run bootstrap to create the service file
         QString bootstrapScript = clickPath + "/src/daemon_bootstrap.py";
@@ -234,13 +249,14 @@ void NotificationHelper::startDaemon()
         qDebug() << "Bootstrap completed, service should be created";
     }
     
-    // Try to start via systemd first (this ensures boot-time auto-start works)
+    // Try to start/restart via systemd first (this ensures boot-time auto-start works)
     QProcess systemctl;
     systemctl.setProcessEnvironment(env);
-    systemctl.start("systemctl", QStringList() << "--user" << "start" << "ubtms-daemon");
+    QString action = needsBootstrap ? "restart" : "start";
+    systemctl.start("systemctl", QStringList() << "--user" << action << "ubtms-daemon");
     
     if (systemctl.waitForFinished(5000) && systemctl.exitCode() == 0) {
-        qDebug() << "Daemon started via systemd";
+        qDebug() << "Daemon started/restarted via systemd";
         return;
     }
     

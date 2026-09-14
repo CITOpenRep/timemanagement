@@ -41,20 +41,20 @@ QtObject {
         try {
             var xhr = new XMLHttpRequest();
             var setupFile = "/home/phablet/.ubtms_needs_setup";
-            xhr.open("GET", "file://" + setupFile, false);
-            try {
-                xhr.send();
-                if (xhr.status === 200 && xhr.responseText.length > 0) {
-                    var missingDeps = xhr.responseText;
-                    var message = "Background sync requires additional packages.\n\n" +
-                                 "To enable push notifications, connect via adb and run:\n\n" +
-                                 "sudo apt install python3-dbus python3-gi gir1.2-glib-2.0\n\n" +
-                                 "Then restart the app.";
-                    if (notifPopup)
-                        notifPopup.open("Setup Required", message, "warning");
+            xhr.open("GET", "file://" + setupFile, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200 && xhr.responseText.length > 0) {
+                        var message = "Background sync requires additional packages.\n\n" +
+                                     "To enable push notifications, connect via adb and run:\n\n" +
+                                     "sudo apt install python3-dbus python3-gi gir1.2-glib-2.0\n\n" +
+                                     "Then restart the app.";
+                        if (notifPopup)
+                            notifPopup.open("Setup Required", message, "warning");
+                    }
                 }
-            } catch (fileError) {
-            }
+            };
+            xhr.send();
         } catch (e) {
         }
     }

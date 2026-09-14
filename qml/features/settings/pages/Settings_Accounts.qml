@@ -154,6 +154,11 @@ Page {
                             }
                         }
 
+                        if (typeof mainView !== "undefined" && mainView) {
+                            mainView.projectDataChanged();
+                            mainView.taskDataChanged();
+                        }
+
                         accountToDelete = -1;
                         accountIndexToDelete = -1;
                     }
