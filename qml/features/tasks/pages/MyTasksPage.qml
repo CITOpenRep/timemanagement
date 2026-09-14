@@ -78,6 +78,9 @@ Page {
                     };
                     if (!myTasksList.flatViewMode && myTasksList.currentParentId > 0) {
                         initialData["selectedparentId"] = myTasksList.currentParentId;
+                        if (myTasksList.currentAccountId !== undefined && myTasksList.currentAccountId !== null) {
+                            initialData["selectedparentAccountId"] = myTasksList.currentAccountId;
+                        }
                     }
                     apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), initialData);
                 }

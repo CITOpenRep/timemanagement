@@ -103,6 +103,7 @@ Page {
     property bool isReadOnly: recordid != 0 // Set read-only immediately based on recordid
     property int selectedProjectId: 0
     property int selectedparentId: 0
+    property int selectedparentAccountId: -1
     property int selectedTaskId: 0
     property int priority: 0
     property bool editVisible: true   
@@ -1065,9 +1066,28 @@ Page {
                 }
             } else if (selectedparentId > 0) {
                 // Prefill parent task when creating subtask while drilled down
-                var parentTaskDetails = Task.getTaskDetails(selectedparentId);
-                if (!parentTaskDetails || !parentTaskDetails.id) {
-                    parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId);
+                var parentTaskDetails = null;
+                if (selectedparentAccountId > 0) {
+                    parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId, selectedparentAccountId);
+                    if (!parentTaskDetails || !parentTaskDetails.id) {
+                        parentTaskDetails = Task.getTaskDetails(selectedparentId);
+                    }
+                } else if (selectedparentAccountId === 0) {
+                    parentTaskDetails = Task.getTaskDetails(selectedparentId);
+                    if (!parentTaskDetails || !parentTaskDetails.id) {
+                        parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId);
+                    }
+                } else {
+                    var activeAcc = (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId >= 0) ? accountPicker.selectedAccountId : -1;
+                    if (activeAcc > 0) {
+                        parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId, activeAcc);
+                    }
+                    if (!parentTaskDetails || !parentTaskDetails.id) {
+                        parentTaskDetails = Task.getTaskDetails(selectedparentId);
+                    }
+                    if (!parentTaskDetails || !parentTaskDetails.id) {
+                        parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId);
+                    }
                 }
                 if (parentTaskDetails && parentTaskDetails.id) {
                     var pAccountId = (parentTaskDetails.account_id !== undefined && parentTaskDetails.account_id !== null) ? parentTaskDetails.account_id : -1;

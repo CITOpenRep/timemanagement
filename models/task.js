@@ -1547,8 +1547,8 @@ function getSubtasksForParent(parentId, accountId, projectOdooRecordId) {
             var accId = accountId;
             if (accId === undefined || accId === null || accId < 0) {
                 var detectAccRes = tx.executeSql(
-                    "SELECT account_id FROM project_task_app WHERE (parent_id = ? OR id = ? OR odoo_record_id = ?) AND (status IS NULL OR status != 'deleted') AND account_id IS NOT NULL AND account_id >= 0 ORDER BY CASE WHEN parent_id = ? THEN 0 ELSE 1 END LIMIT 1",
-                    [parentId, parentId, parentId, parentId]
+                    "SELECT account_id FROM project_task_app WHERE (id = ? OR parent_id = ? OR odoo_record_id = ?) AND (status IS NULL OR status != 'deleted') AND account_id IS NOT NULL AND account_id >= 0 ORDER BY CASE WHEN id = ? THEN 0 WHEN parent_id = ? THEN 1 ELSE 2 END LIMIT 1",
+                    [parentId, parentId, parentId, parentId, parentId]
                 );
                 if (detectAccRes.rows.length > 0) {
                     accId = detectAccRes.rows.item(0).account_id;
@@ -1617,8 +1617,9 @@ function getSubtasksForParent(parentId, accountId, projectOdooRecordId) {
                 task.color_pallet = inheritedColor;
 
                 // Calculate total hours spent from timesheet entries
-                var timeQuery = "SELECT SUM(unit_amount) as total_hours FROM account_analytic_line_app WHERE (status IS NULL OR status != 'deleted') AND (task_id = ? OR (task_id = ? AND ? > 0) OR sub_task_id = ? OR (sub_task_id = ? AND ? > 0)) AND account_id = ?";
-                var timeParams = [task.id, task.odoo_record_id || 0, task.odoo_record_id || 0, task.id, task.odoo_record_id || 0, task.odoo_record_id || 0, task.account_id];
+                var effectiveTaskId = (task.account_id === 0 || !task.odoo_record_id) ? task.id : task.odoo_record_id;
+                var timeQuery = "SELECT SUM(unit_amount) as total_hours FROM account_analytic_line_app WHERE (status IS NULL OR status != 'deleted') AND (task_id = ? OR sub_task_id = ?) AND account_id = ?";
+                var timeParams = [effectiveTaskId, effectiveTaskId, task.account_id];
                 var timeResult = tx.executeSql(timeQuery, timeParams);
                 if (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null) {
                     task.spent_hours = timeResult.rows.item(0).total_hours;
