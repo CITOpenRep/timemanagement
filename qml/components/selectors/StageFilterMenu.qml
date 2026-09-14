@@ -266,7 +266,7 @@ Item {
 
                 delegate: Rectangle {
 
-                    width: parent.width
+                    width: menuListView.width
                     height: units.gu(5.5)
                     color: mouseArea.pressed ? theme.palette.selected.background : (selectedIndex === model.originalIndex ? theme.palette.selected.background : "transparent")
                     radius: units.gu(0.5)

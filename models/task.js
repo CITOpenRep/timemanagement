@@ -526,7 +526,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
         db.transaction(function (tx) {
             // First, get the task details
             var taskResult = tx.executeSql(
-                "SELECT id, name, project_id, odoo_record_id FROM project_task_app WHERE id = ? AND (status IS NULL OR status != 'deleted')",
+                "SELECT id, name, project_id, account_id, odoo_record_id FROM project_task_app WHERE id = ? AND (status IS NULL OR status != 'deleted')",
                 [taskId]
             );
 
@@ -540,8 +540,8 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
 
             Logger.debug("Task", "Attempting to delete task: '" + taskName + "' (Local ID: " + taskId + ", Odoo ID: " + taskOdooRecordId + ")")
 
-            // Check for child tasks using both possible parent reference methods
-            var childTasks = getChildTasks(tx, taskId, taskOdooRecordId);
+            // Check for child tasks using both possible parent reference methods, scoped to account
+            var childTasks = getChildTasks(tx, taskId, taskOdooRecordId, taskRow.account_id);
 
             if (childTasks.length > 0 && !forceDelete) {
                 // Prevent deletion - task has children
@@ -666,21 +666,25 @@ function markMultipleTasksAsDeleted(taskIds, forceDelete = false) {
  * @param {Object} tx - Database transaction object
  * @param {number} parentLocalId - The local 'id' of the parent task
  * @param {number} parentOdooRecordId - The 'odoo_record_id' of the parent task
+ * @param {number} accountId - Optional account ID filter
  * @returns {Array<Object>} Array of child task objects
  */
-function getChildTasks(tx, parentLocalId, parentOdooRecordId) {
+function getChildTasks(tx, parentLocalId, parentOdooRecordId, accountId) {
     var childTasks = [];
-    var seenIds = new Set(); // To prevent duplicates
+    var seenIds = new Set();
 
     try {
-        // Method 1: Check if parent_id references local 'id' field
-        var childResult1 = tx.executeSql(
-            "SELECT id, name, odoo_record_id FROM project_task_app WHERE parent_id = ? AND (status IS NULL OR status != 'deleted')",
-            [parentLocalId]
-        );
+        var query = "SELECT id, name, odoo_record_id FROM project_task_app WHERE (status IS NULL OR status != 'deleted') AND (parent_id = ? OR (parent_id = ? AND ? > 0))";
+        var params = [parentLocalId, parentOdooRecordId || 0, parentOdooRecordId || 0];
 
-        for (var i = 0; i < childResult1.rows.length; i++) {
-            var row = childResult1.rows.item(i);
+        if (accountId !== undefined && accountId !== null && accountId >= 0) {
+            query += " AND account_id = ?";
+            params.push(accountId);
+        }
+
+        var result = tx.executeSql(query, params);
+        for (var i = 0; i < result.rows.length; i++) {
+            var row = result.rows.item(i);
             if (!seenIds.has(row.id)) {
                 childTasks.push({
                     id: row.id,
@@ -690,29 +694,8 @@ function getChildTasks(tx, parentLocalId, parentOdooRecordId) {
                 seenIds.add(row.id);
             }
         }
-
-        // Method 2: Check if parent_id references 'odoo_record_id' field
-        if (parentOdooRecordId && parentOdooRecordId > 0) {
-            var childResult2 = tx.executeSql(
-                "SELECT id, name, odoo_record_id FROM project_task_app WHERE parent_id = ? AND (status IS NULL OR status != 'deleted')",
-                [parentOdooRecordId]
-            );
-
-            for (var j = 0; j < childResult2.rows.length; j++) {
-                var row2 = childResult2.rows.item(j);
-                if (!seenIds.has(row2.id)) {
-                    childTasks.push({
-                        id: row2.id,
-                        name: row2.name,
-                        odoo_record_id: row2.odoo_record_id
-                    });
-                    seenIds.add(row2.id);
-                }
-            }
-        }
-
     } catch (e) {
-        Logger.error("Task", "Error getting child tasks:", e)
+        Logger.error("Task", "Error getting child tasks:", e);
     }
 
     return childTasks;
@@ -730,13 +713,13 @@ function checkTaskHasChildren(taskId) {
 
         db.transaction(function (tx) {
             var taskResult = tx.executeSql(
-                "SELECT id, name, odoo_record_id FROM project_task_app WHERE id = ?",
+                "SELECT id, name, odoo_record_id, account_id FROM project_task_app WHERE id = ?",
                 [taskId]
             );
 
             if (taskResult.rows.length > 0) {
                 var taskRow = taskResult.rows.item(0);
-                var childTasks = getChildTasks(tx, taskRow.id, taskRow.odoo_record_id);
+                var childTasks = getChildTasks(tx, taskRow.id, taskRow.odoo_record_id, taskRow.account_id);
 
                 result.hasChildren = childTasks.length > 0;
                 result.childCount = childTasks.length;
@@ -747,7 +730,7 @@ function checkTaskHasChildren(taskId) {
         return result;
 
     } catch (e) {
-        Logger.error("Task", "Error checking task children:", e)
+        Logger.error("Task", "Error checking task children:", e);
         return { hasChildren: false, childCount: 0, childTasks: [], error: e.message };
     }
 }
@@ -1542,6 +1525,115 @@ function getTasksByParentIdPaginated(parentId, accountId, limit, offset, dateFil
         });
     } catch (e) { console.error("getTasksByParentIdPaginated failed:", e); }
     return taskList;
+}
+
+/**
+ * Retrieves direct subtasks for a given parent task, strictly scoped to account and optional project.
+ *
+ * @param {number} parentId - The parent task ID (local ID or odoo_record_id).
+ * @param {number} accountId - Optional account ID filter.
+ * @param {number} projectOdooRecordId - Optional project ID filter.
+ * @returns {Array<Object>} List of subtask objects.
+ */
+function getSubtasksForParent(parentId, accountId, projectOdooRecordId) {
+    var subtaskList = [];
+    if (!parentId || parentId <= 0) {
+        return subtaskList;
+    }
+
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var accId = accountId;
+            if (accId === undefined || accId === null || accId < 0) {
+                var detectAccRes = tx.executeSql(
+                    "SELECT account_id FROM project_task_app WHERE (id = ? OR parent_id = ? OR odoo_record_id = ?) AND (status IS NULL OR status != 'deleted') AND account_id IS NOT NULL AND account_id >= 0 ORDER BY CASE WHEN id = ? THEN 0 WHEN parent_id = ? THEN 1 ELSE 2 END LIMIT 1",
+                    [parentId, parentId, parentId, parentId, parentId]
+                );
+                if (detectAccRes.rows.length > 0) {
+                    accId = detectAccRes.rows.item(0).account_id;
+                }
+            }
+
+            // Look up parent task row to find local ID, odoo_record_id, and account_id
+            var parentQuery = "SELECT id, odoo_record_id, account_id FROM project_task_app WHERE (odoo_record_id = ? OR id = ?)";
+            var parentParams = [parentId, parentId];
+            if (accId !== undefined && accId !== null && accId >= 0) {
+                parentQuery += " AND account_id = ?";
+                parentParams.push(accId);
+            }
+            parentQuery += " ORDER BY CASE WHEN odoo_record_id = ? THEN 0 ELSE 1 END LIMIT 1";
+            parentParams.push(parentId);
+
+            var parentRes = tx.executeSql(parentQuery, parentParams);
+            var localPid = parentId;
+            var odooPid = 0;
+
+            if (parentRes.rows.length > 0) {
+                var pRow = parentRes.rows.item(0);
+                localPid = pRow.id;
+                odooPid = pRow.odoo_record_id || 0;
+                if (accId === undefined || accId === null || accId < 0) {
+                    accId = pRow.account_id;
+                }
+            }
+
+            var query = "SELECT * FROM project_task_app WHERE (status IS NULL OR status != 'deleted') AND (parent_id = ? OR (parent_id = ? AND ? > 0))";
+            var params = [localPid, odooPid, odooPid];
+
+            if (accId !== undefined && accId !== null && accId >= 0) {
+                query += " AND account_id = ?";
+                params.push(accId);
+            }
+
+            if (projectOdooRecordId !== undefined && projectOdooRecordId !== null && projectOdooRecordId > 0) {
+                query += " AND (project_id = ? OR sub_project_id = ?)";
+                params.push(projectOdooRecordId, projectOdooRecordId);
+            }
+
+            query += " ORDER BY end_date ASC";
+
+            // Build projectColorMap for project color resolution
+            var projectColorMap = {};
+            var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+            var projectResult = tx.executeSql(projectQuery);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
+            var result = tx.executeSql(query, params);
+            for (var i = 0; i < result.rows.length; i++) {
+                var task = DBCommon.rowToObject(result.rows.item(i));
+
+                // Inherit color from sub_project, project, or walk up hierarchy
+                var inheritedColor = 0;
+                if (task.sub_project_id) {
+                    inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                }
+                if (!inheritedColor && task.project_id) {
+                    inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                }
+                task.color_pallet = inheritedColor;
+
+                // Calculate total hours spent from timesheet entries
+                var effectiveTaskId = (task.account_id === 0 || !task.odoo_record_id) ? task.id : task.odoo_record_id;
+                var timeQuery = "SELECT SUM(unit_amount) as total_hours FROM account_analytic_line_app WHERE (status IS NULL OR status != 'deleted') AND (task_id = ? OR sub_task_id = ?) AND account_id = ?";
+                var timeParams = [effectiveTaskId, effectiveTaskId, task.account_id];
+                var timeResult = tx.executeSql(timeQuery, timeParams);
+                if (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null) {
+                    task.spent_hours = timeResult.rows.item(0).total_hours;
+                } else {
+                    task.spent_hours = 0;
+                }
+
+                subtaskList.push(task);
+            }
+        });
+    } catch (e) {
+        Logger.error("Task", "getSubtasksForParent failed:", e);
+    }
+    return subtaskList;
 }
 
 /**

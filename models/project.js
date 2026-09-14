@@ -228,7 +228,7 @@ function getAllProjectUpdates(accountId) {
                 Logger.debug("Project", "Fetching project updates for account:", accountId)
             } else {
 
-                query = "SELECT * FROM project_update_app WHERE status != 'deleted' ORDER BY date DESC";
+                query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND account_id IN (SELECT id FROM users) ORDER BY date DESC";
                 result = tx.executeSql(query);
                 Logger.debug("Project", "Fetching all project updates (no account filter)")
             }
@@ -712,7 +712,7 @@ function getAllProjectsPaginated(limit, offset) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT * FROM project_project_app ORDER BY name COLLATE NOCASE ASC LIMIT ? OFFSET ?";
+            var query = "SELECT * FROM project_project_app WHERE account_id IN (SELECT id FROM users) ORDER BY name COLLATE NOCASE ASC LIMIT ? OFFSET ?";
             var result = tx.executeSql(query, [limit, offset]);
 
             for (var i = 0; i < result.rows.length; i++) {
@@ -756,6 +756,8 @@ function getProjectsFilteredPaginated(options) {
             if (options.accountId !== undefined && options.accountId >= 0) {
                 whereClauses.push("account_id = ?");
                 params.push(options.accountId);
+            } else {
+                whereClauses.push("account_id IN (SELECT id FROM users)");
             }
 
             // Stage filter
@@ -871,7 +873,7 @@ function getAllProjectUpdatesPaginated(accountId, limit, offset) {
                 query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND account_id = ? ORDER BY date DESC LIMIT ? OFFSET ?";
                 result = tx.executeSql(query, [accountId, limit, offset]);
             } else {
-                query = "SELECT * FROM project_update_app WHERE status != 'deleted' ORDER BY date DESC LIMIT ? OFFSET ?";
+                query = "SELECT * FROM project_update_app WHERE status != 'deleted' AND account_id IN (SELECT id FROM users) ORDER BY date DESC LIMIT ? OFFSET ?";
                 result = tx.executeSql(query, [limit, offset]);
             }
 
@@ -917,6 +919,8 @@ function getProjectUpdatesFilteredPaginated(options) {
             if (options.accountId !== undefined && options.accountId !== null && options.accountId >= 0) {
                 whereClauses.push("u.account_id = ?");
                 params.push(options.accountId);
+            } else {
+                whereClauses.push("u.account_id IN (SELECT id FROM users)");
             }
 
             // Project filter (when viewing updates for a specific project)
