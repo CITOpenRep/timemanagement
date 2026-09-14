@@ -26,6 +26,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.1
 import Lomiri.Components 1.3
 import QtQuick.LocalStorage 2.7 as Sql
+import "../../../../models/constants.js" as AppConst
 import "../../../../models/task.js" as Task
 import "../../../../models/project.js" as Project
 import "../../../components"
@@ -36,6 +37,8 @@ Item {
     anchors.fill: parent
 
     property int currentParentId: -1
+    property string currentParentName: ""
+    property int currentAccountId: -1
     property ListModel navigationStackModel: ListModel {}
     property var childrenMap: ({})
     property bool childrenMapReady: false
@@ -48,8 +51,23 @@ Item {
 
     onCurrentParentIdChanged: {
         currentOffset = 0;
-        hasMoreItems = true;
-        _doPopulateTaskChildrenMap();
+        hasMoreItems = (currentParentId === -1);
+
+        if (currentParentId === -1) {
+            currentParentName = "";
+            if (childrenMapReady && childrenMap[-1] !== undefined) {
+                taskListView.model = getCurrentModel();
+            } else {
+                refreshWithFilter();
+            }
+            return;
+        }
+
+        if (childrenMapReady && childrenMap[currentParentId] !== undefined && childrenMap[currentParentId].count > 0) {
+            taskListView.model = getCurrentModel();
+        } else {
+            _loadSubtasksForCurrentParent();
+        }
     }
 
     // Optional delegate for external data loading (function(limit, offset))
@@ -392,6 +410,88 @@ Item {
         refreshWithFilter();
     }
 
+    function navigateToTask(taskId, accountId, taskName) {
+        if (taskId === undefined || taskId === null) {
+            return;
+        }
+
+        navigationStackModel.append({
+            parentId: currentParentId !== undefined ? currentParentId : -1,
+            accountId: currentAccountId !== undefined ? currentAccountId : -1,
+            parentName: currentParentName || ""
+        });
+        currentParentId = taskId;
+        currentAccountId = (accountId !== undefined && accountId !== null) ? accountId : -1;
+        currentParentName = taskName || "";
+    }
+
+    function navigateBackInHierarchy() {
+        if (navigationStackModel.count > 0) {
+            var last = navigationStackModel.get(navigationStackModel.count - 1);
+            navigationStackModel.remove(navigationStackModel.count - 1);
+            currentParentId = last.parentId !== undefined ? last.parentId : -1;
+            currentAccountId = last.accountId !== undefined ? last.accountId : -1;
+            currentParentName = (last.parentName !== undefined) ? last.parentName : "";
+        }
+    }
+
+    function _loadSubtasksForCurrentParent() {
+        if (currentParentId === -1) {
+            return;
+        }
+
+        hasMoreItems = false;
+
+        var acc = (currentAccountId !== undefined && currentAccountId >= 0)
+            ? currentAccountId
+            : (filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1);
+
+        var subtasks = Task.getSubtasksForParent(currentParentId, acc);
+
+        var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
+        childrenMap[currentParentId] = model;
+
+        subtasks.forEach(function (row) {
+            var effectiveId = (row.account_id === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
+            var parentEffectiveId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
+
+            var projectIdToUse = row.project_id || row.sub_project_id;
+            var projectName = Project.getProjectName(projectIdToUse, row.account_id);
+            if (projectName === "Unknown Project") {
+                projectName = Project.getProjectDetails(projectIdToUse).name || i18n.dtr("ubtms", "Unknown Project");
+            }
+
+            var childCheck = Task.checkTaskHasChildren(row.id);
+
+            model.append({
+                id_val: effectiveId,
+                local_id: row.id,
+                account_id: row.account_id,
+                project: projectName,
+                parent_id: parentEffectiveId,
+                name: row.name || "Untitled",
+                taskName: row.name || "Untitled",
+                recordId: (row.odoo_record_id) ? row.odoo_record_id : -1,
+                allocatedHours: row.initial_planned_hours ? row.initial_planned_hours : 0,
+                spentHours: row.spent_hours ? row.spent_hours : 0,
+                startDate: row.start_date || "",
+                endDate: row.end_date || "",
+                deadline: row.deadline || "",
+                description: row.description || "",
+                hasChildren: childCheck.hasChildren,
+                childCount: childCheck.childCount,
+                priority: row.priority ? parseInt(row.priority) : 0,
+                stage: row.state || -1,
+                color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
+                last_modified: row.last_modified || "",
+                has_draft: row.has_draft === 1
+            });
+        });
+
+        isLoading = false;
+        taskListView.model = getCurrentModel();
+    }
+
     function toggleFlatView() {
         flatViewMode = !flatViewMode;
         
@@ -399,6 +499,7 @@ Item {
         if (flatViewMode) {
             navigationStackModel.clear();
             currentParentId = -1;
+            currentParentName = "";
         }
         
         // Refresh the model
@@ -487,6 +588,8 @@ Item {
                 deadline: row.deadline || "",
                 description: row.description || "",
                 hasChildren: false,
+                childCount: 0,
+                priority: row.priority ? parseInt(row.priority) : 0,
                 stage: row.state || -1,
                 color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
                 last_modified: row.last_modified || "",
@@ -520,7 +623,7 @@ Item {
         var orphanedParentKeys = [];
         for (var pKey in tempMap) {
             var numKey = parseInt(pKey);
-            if (numKey !== -1 && !knownTaskIds[numKey]) {
+            if (numKey !== -1 && numKey !== currentParentId && !knownTaskIds[numKey]) {
                 orphanedParentKeys.push(pKey);
             }
         }
@@ -538,8 +641,14 @@ Item {
         for (var parent in tempMap) {
             tempMap[parent].forEach(function (child) {
                 var children = tempMap[child.id_val];
-                child.hasChildren = !!children;
-                child.childCount = children ? children.length : 0;
+                if (children && children.length > 0) {
+                    child.hasChildren = true;
+                    child.childCount = children.length;
+                } else {
+                    var childCheck = Task.checkTaskHasChildren(child.local_id);
+                    child.hasChildren = childCheck.hasChildren;
+                    child.childCount = childCheck.childCount;
+                }
             });
         }
 
@@ -567,6 +676,7 @@ Item {
         isLoading = true;
         navigationStackModel.clear();
         currentParentId = -1;
+        currentParentName = "";
         
         // Reset pagination
         currentOffset = 0;
@@ -598,6 +708,10 @@ Item {
         if (isLoadingMore || !hasMoreItems) return;
         isLoadingMore = true;
         currentOffset += pageSize;
+        if (currentParentId !== -1) {
+            isLoadingMore = false;
+            return;
+        }
         // Route to proper paginated loader based on context
         if (filterByAssignees && selectedAssigneeIds && selectedAssigneeIds.length > 0) {
             _doPaginatedAssigneeLoad();
@@ -618,7 +732,7 @@ Item {
             // Delegate is responsible for calling updateDisplayedTasks and managing hasMoreItems/isLoading flags
             return;
         }
-        
+
         var tasks = [];
         // This function is now only called for "all" filter or when no date filter is active
         // So we can always paginate when we reach this point
@@ -712,17 +826,146 @@ Item {
         anchors.fill: parent
         spacing: units.gu(1)
 
-        TSButton {
-            id: backbutton
-            text: "← Back"
+        // Hierarchical breadcrumb navigation bar
+        Rectangle {
+            id: breadcrumbBar
             width: parent.width
-            height: units.gu(4)
-            visible: !flatViewMode && navigationStackModel.count
-            onClicked: {
-                if (navigationStackModel.count > 0) {
-                    var last = navigationStackModel.get(navigationStackModel.count - 1).parentId;
-                    navigationStackModel.remove(navigationStackModel.count - 1);
-                    currentParentId = last;
+            height: visible ? units.gu(5) : 0
+            visible: !flatViewMode && navigationStackModel.count > 0
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e1e1e" : "#f8fafc"
+            radius: units.gu(0.6)
+            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d2d2d" : "#e2e8f0"
+            border.width: units.gu(0.1)
+            clip: true
+
+            Row {
+                anchors.fill: parent
+                anchors.leftMargin: units.gu(1)
+                anchors.rightMargin: units.gu(1)
+                spacing: units.gu(1)
+
+                // Back button with tactile styling
+                Rectangle {
+                    id: backBtn
+                    width: units.gu(9)
+                    height: units.gu(3.6)
+                    anchors.verticalCenter: parent.verticalCenter
+                    radius: units.gu(0.5)
+                    color: backMouseArea.pressed ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333333" : "#e2e8f0")
+                         : (backMouseArea.containsMouse ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#262626" : "#edf2f7")
+                         : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222222" : "#ffffff"))
+                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3d3d3d" : "#cbd5e1"
+                    border.width: 1
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: units.gu(0.5)
+
+                        Icon {
+                            name: "back"
+                            width: units.gu(1.6)
+                            height: units.gu(1.6)
+                            color: AppConst.Colors.Orange
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Text {
+                            text: i18n.dtr("ubtms", "Back")
+                            font.pixelSize: units.gu(1.4)
+                            font.bold: true
+                            color: AppConst.Colors.Orange
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    MouseArea {
+                        id: backMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: navigateBackInHierarchy()
+                    }
+                }
+
+                // Breadcrumb path display
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: units.gu(0.6)
+                    width: parent.width - backBtn.width - units.gu(2)
+                    clip: true
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Tasks")
+                        font.pixelSize: units.gu(1.3)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9ca3af" : "#64748b"
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                navigationStackModel.clear();
+                                currentParentId = -1;
+                                currentParentName = "";
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: "/"
+                        font.pixelSize: units.gu(1.3)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6b7280" : "#94a3b8"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    // For deep nesting (> 1 level above): show "..."
+                    Text {
+                        visible: navigationStackModel.count > 1
+                        text: "..."
+                        font.pixelSize: units.gu(1.3)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9ca3af" : "#64748b"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        visible: navigationStackModel.count > 1
+                        text: "/"
+                        font.pixelSize: units.gu(1.3)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6b7280" : "#94a3b8"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: currentParentName !== "" ? currentParentName : i18n.dtr("ubtms", "Subtasks")
+                        font.pixelSize: units.gu(1.4)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f3f4f6" : "#1e293b"
+                        anchors.verticalCenter: parent.verticalCenter
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                        width: Math.min(implicitWidth, parent.width - (navigationStackModel.count > 1 ? units.gu(16) : units.gu(10)))
+                    }
+
+                    // Count badge
+                    Rectangle {
+                        visible: taskListView.count > 0
+                        height: units.gu(2)
+                        width: childCountBadgeText.width + units.gu(1)
+                        radius: height / 2
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d2013" : "#fff7ed"
+                        border.color: AppConst.Colors.Orange
+                        border.width: 1
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Text {
+                            id: childCountBadgeText
+                            text: String(taskListView.count)
+                            font.pixelSize: units.gu(1.1)
+                            font.bold: true
+                            color: AppConst.Colors.Orange
+                            anchors.centerIn: parent
+                        }
+                    }
                 }
             }
         }
@@ -730,18 +973,18 @@ Item {
         LomiriListView {
             id: taskListView
             width: parent.width
-            height: parent.height - backbutton.height
+            height: parent.height - (breadcrumbBar.visible ? breadcrumbBar.height + units.gu(1) : 0)
             clip: true
             model: getCurrentModel()
 
             footer: LoadMoreFooter {
                 isLoading: isLoadingMore
-                hasMore: hasMoreItems
+                hasMore: (currentParentId === -1) && hasMoreItems
                 onLoadMore: loadMoreTasks()
             }
 
             onAtYEndChanged: {
-                if (taskListView.atYEnd && !isLoadingMore && hasMoreItems) {
+                if (currentParentId === -1 && taskListView.atYEnd && !isLoadingMore && hasMoreItems) {
                     loadMoreTasks();
                 }
             }
@@ -753,6 +996,7 @@ Item {
                 TaskDetailsCard {
                     id: taskCard
                     localId: model.local_id
+                    idVal: model.id_val || -1
                     height: parent.height
                     width: parent.width
                     recordId: (model.recordId) ? (model.recordId) : -1
@@ -767,6 +1011,7 @@ Item {
                     // Hide children navigation in flat view mode
                     hasChildren: flatViewMode ? false : (model.hasChildren || false)
                     childCount: flatViewMode ? 0 : (model.childCount || 0)
+                    flatViewMode: taskNavigator.flatViewMode
                     projectName: model.project
                     colorPallet: model.color_pallet
                     stage: model.stage
@@ -783,6 +1028,11 @@ Item {
                     onViewRequested: d => {
                         taskSelected(local_id);
                     }
+                    onNavigationRequested: (taskId, accountId, taskName) => {
+                        if (!flatViewMode) {
+                            navigateToTask(taskId, accountId, taskName);
+                        }
+                    }
                     onTimesheetRequested: localId => {
                         taskTimesheetRequested(localId);
                     }
@@ -793,30 +1043,34 @@ Item {
                     onTaskUpdated: localId => {
                         refreshWithFilter();
                     }
+                }
+            }
+        }
 
-                    // MouseArea for task interaction - navigation for parent tasks, view for regular tasks
-                    MouseArea {
-                        // Only cover the text area, not the whole card
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        anchors.leftMargin: units.gu(15)  // Skip the star area
-                        enabled: !taskCard.starInteractionActive
-                        onClicked: {
-                            // In flat view mode, always go to task view (no navigation)
-                            if (flatViewMode) {
-                                taskCard.viewRequested(model.local_id);
-                            } else if (model.hasChildren) {
-                                navigationStackModel.append({
-                                    parentId: currentParentId
-                                });
-                                currentParentId = model.id_val;
-                            } else {
-                                taskCard.viewRequested(model.local_id);
-                            }
-                        }
-                    }
+        // Empty state when drilled down into a parent task with no subtasks
+        Item {
+            anchors.centerIn: parent
+            visible: currentParentId !== -1 && taskListView.count === 0 && !isLoading
+            width: parent.width - units.gu(4)
+            height: units.gu(12)
+
+            Column {
+                anchors.centerIn: parent
+                spacing: units.gu(1)
+
+                Icon {
+                    name: "info"
+                    width: units.gu(3)
+                    height: units.gu(3)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6b7280" : "#9ca3af"
+                }
+
+                Text {
+                    text: i18n.dtr("ubtms", "No subtasks found")
+                    font.pixelSize: units.gu(1.5)
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9ca3af" : "#64748b"
+                    anchors.horizontalCenter: parent.horizontalCenter
                 }
             }
         }

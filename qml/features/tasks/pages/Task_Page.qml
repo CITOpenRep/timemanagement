@@ -89,10 +89,14 @@ Page {
                 iconName: "add"
                 text: "New"
                 onTriggered: {
-                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                    var initialData = {
                         "recordid": 0,
                         "isReadOnly": false
-                    });
+                    };
+                    if (!tasklist.flatViewMode && tasklist.currentParentId > 0) {
+                        initialData["selectedparentId"] = tasklist.currentParentId;
+                    }
+                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), initialData);
                 }
             },
              Action {

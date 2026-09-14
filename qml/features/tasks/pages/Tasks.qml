@@ -1063,6 +1063,25 @@ Page {
                     Logger.debug("Tasks", "Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId)
                     loadStagesForProject(mainProjectId, prefilledAccountId);
                 }
+            } else if (selectedparentId > 0) {
+                // Prefill parent task when creating subtask while drilled down
+                var parentTaskDetails = Task.getTaskDetails(selectedparentId);
+                if (!parentTaskDetails || !parentTaskDetails.id) {
+                    parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId);
+                }
+                if (parentTaskDetails && parentTaskDetails.id) {
+                    var pAccountId = (parentTaskDetails.account_id !== undefined && parentTaskDetails.account_id !== null) ? parentTaskDetails.account_id : -1;
+                    var pProjectId = (parentTaskDetails.project_id !== undefined && parentTaskDetails.project_id !== null && parentTaskDetails.project_id > 0) ? parentTaskDetails.project_id : -1;
+                    var pSubProjectId = (parentTaskDetails.sub_project_id !== undefined && parentTaskDetails.sub_project_id !== null) ? parentTaskDetails.sub_project_id : -1;
+                    var pTaskId = (parentTaskDetails.odoo_record_id && parentTaskDetails.odoo_record_id > 0) ? parentTaskDetails.odoo_record_id : parentTaskDetails.id;
+
+                    if (workItem.deferredLoadExistingRecordSet) {
+                        workItem.deferredLoadExistingRecordSet(pAccountId, pProjectId, pSubProjectId, pTaskId, -1, -1);
+                    }
+                    if (pProjectId > 0 && pAccountId >= 0) {
+                        loadStagesForProject(pProjectId, pAccountId);
+                    }
+                }
             }
         }
     

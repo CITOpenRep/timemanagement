@@ -54,13 +54,15 @@ ListItem {
     property int stage: -1
     property bool hasChildren: false
     property int childCount: 0
+    property bool flatViewMode: false
     property bool timer_on: false
     property bool timer_paused: false
     property bool starInteractionActive: false
     property bool isMyTasksContext: false // Set to true when used in MyTasks page
     property int accountId: -1 // Account ID for the task
     property bool hasDraft: false // Indicates if this task has unsaved draft changes
-    property int effectiveTaskId: (taskCard.accountId === 0 || recordId <= 0) ? localId : recordId
+    property int idVal: -1
+    property int effectiveTaskId: idVal > 0 ? idVal : ((taskCard.accountId === 0 || recordId <= 0) ? localId : recordId)
 
     property string stageName: (stage && stage !== 0) ? (Task.getTaskStageName(stage, accountId) || "") : ""
     property bool isStageDone: {
@@ -75,6 +77,7 @@ ListItem {
     signal timesheetRequested(int localId)
     signal taskUpdated(int localId)
     signal taskStageChanged(int localId) // Emitted when personal stage changes in MyTasks
+    signal navigationRequested(int taskId, int accountId, string taskName)
 
     NotificationPopup {
         id: notifPopup
@@ -317,6 +320,22 @@ ListItem {
         anchors.leftMargin: units.gu(0.2)
         anchors.rightMargin: units.gu(0.2)
         color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#111" : "#fff"
+
+        MouseArea {
+            id: cardTapArea
+            anchors.fill: parent
+            z: 0
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            enabled: !starInteractionActive
+            onClicked: {
+                if (hasChildren && !flatViewMode) {
+                    taskCard.navigationRequested(taskCard.effectiveTaskId, taskCard.accountId || 0, taskName);
+                } else {
+                    viewRequested(localId);
+                }
+            }
+        }
         // subtle color fade on the left
         Rectangle {
             width: parent.width * 0.025
@@ -585,34 +604,82 @@ ListItem {
                             // }
                         }
 
-                        Text {
-                            text: (childCount > 0 ? " [+" + childCount + "] Tasks" : "")
-                            visible: childCount > 0
-                            color: hasChildren ? AppConst.Colors.Orange : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "black")
-                            font.pixelSize: units.gu(1.5)
-                            //  horizontalAlignment: Text.AlignRight
-                            width: parent.width
-                        }
+                        Row {
+                            spacing: units.gu(0.8)
+                            visible: (stageName !== "") || (hasChildren && !flatViewMode)
 
-                        Rectangle {
-                            visible: stageName !== ""
-                            height: units.gu(2.4)
-                            width: taskStageText.width + units.gu(1.6)
-                            radius: height / 2
-                            color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#064e3b" : "#ecfdf5")
-                                 : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e293b" : "#f1f5f9")
-                            border.color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#059669" : "#a7f3d0")
-                                 : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#334155" : "#cbd5e1")
-                            border.width: 1
+                            Rectangle {
+                                visible: stageName !== ""
+                                height: units.gu(2.4)
+                                width: taskStageText.width + units.gu(1.6)
+                                radius: height / 2
+                                color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#064e3b" : "#ecfdf5")
+                                     : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e293b" : "#f1f5f9")
+                                border.color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#059669" : "#a7f3d0")
+                                     : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#334155" : "#cbd5e1")
+                                border.width: 1
 
-                            Text {
-                                id: taskStageText
-                                text: stageName
-                                font.pixelSize: units.gu(1.2)
-                                font.bold: true
-                                anchors.centerIn: parent
-                                color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6ee7b7" : "#047857")
-                                     : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#cbd5e1" : "#475569")
+                                Text {
+                                    id: taskStageText
+                                    text: stageName
+                                    font.pixelSize: units.gu(1.2)
+                                    font.bold: true
+                                    anchors.centerIn: parent
+                                    color: isStageDone ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6ee7b7" : "#047857")
+                                         : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#cbd5e1" : "#475569")
+                                }
+                            }
+
+                            // Interactive Subtasks badge
+                            Rectangle {
+                                id: subtasksBadge
+                                visible: hasChildren && !flatViewMode
+                                height: units.gu(2.4)
+                                width: subtasksBadgeRow.implicitWidth + units.gu(1.6)
+                                radius: height / 2
+                                color: subtasksMouseArea.pressed
+                                     ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3d2a1a" : "#fed7aa")
+                                     : (subtasksMouseArea.containsMouse
+                                         ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#352414" : "#ffedd5")
+                                         : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#24180d" : "#fff7ed"))
+                                border.color: AppConst.Colors.Orange
+                                border.width: 1
+
+                                Row {
+                                    id: subtasksBadgeRow
+                                    anchors.centerIn: parent
+                                    spacing: units.gu(0.4)
+
+                                    Text {
+                                        text: childCount > 0 ? (i18n.dtr("ubtms", "Subtasks") + " (" + childCount + ")") : i18n.dtr("ubtms", "Subtasks")
+                                        font.pixelSize: units.gu(1.2)
+                                        font.bold: true
+                                        color: AppConst.Colors.Orange
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Icon {
+                                        name: "next"
+                                        width: units.gu(1.2)
+                                        height: units.gu(1.2)
+                                        color: AppConst.Colors.Orange
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: subtasksMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    z: 10
+                                    propagateComposedEvents: false
+                                    preventStealing: true
+                                    onClicked: {
+                                        mouse.accepted = true;
+                                        taskCard.navigationRequested(taskCard.effectiveTaskId, taskCard.accountId || 0, taskName);
+                                    }
+                                }
                             }
                         }
                     }
