@@ -1058,32 +1058,32 @@ Item {
                 }
             }
         }
+    }
 
-        // Empty state when drilled down into a parent task with no subtasks
-        Item {
+    // Empty state when drilled down into a parent task with no subtasks
+    Item {
+        anchors.centerIn: parent
+        visible: currentParentId !== -1 && taskListView.count === 0 && !isLoading
+        width: parent.width - units.gu(4)
+        height: units.gu(12)
+
+        Column {
             anchors.centerIn: parent
-            visible: currentParentId !== -1 && taskListView.count === 0 && !isLoading
-            width: parent.width - units.gu(4)
-            height: units.gu(12)
+            spacing: units.gu(1)
 
-            Column {
-                anchors.centerIn: parent
-                spacing: units.gu(1)
+            Icon {
+                name: "info"
+                width: units.gu(3)
+                height: units.gu(3)
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6b7280" : "#9ca3af"
+            }
 
-                Icon {
-                    name: "info"
-                    width: units.gu(3)
-                    height: units.gu(3)
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6b7280" : "#9ca3af"
-                }
-
-                Text {
-                    text: i18n.dtr("ubtms", "No subtasks found")
-                    font.pixelSize: units.gu(1.5)
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9ca3af" : "#64748b"
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
+            Text {
+                text: i18n.dtr("ubtms", "No subtasks found")
+                font.pixelSize: units.gu(1.5)
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9ca3af" : "#64748b"
+                anchors.horizontalCenter: parent.horizontalCenter
             }
         }
     }

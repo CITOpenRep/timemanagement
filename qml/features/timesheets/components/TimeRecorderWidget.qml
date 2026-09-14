@@ -110,9 +110,9 @@ Item {
             text: i18n.dtr("ubtms", "Time Tracking")
             anchors.left: parent.left
             anchors.right: parent.right
+            horizontalAlignment: Text.AlignHCenter
             font.bold: true
             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
-            anchors.horizontalCenter: parent.horizontalCenter
             height: units.gu(2)
         }
 
