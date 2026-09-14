@@ -48,6 +48,7 @@ Item {
     property int currentOffset: 0
     property bool hasMoreItems: true
     property bool isLoadingMore: false
+    property var fallbackEmptyModel: ListModel {}
 
     onCurrentParentIdChanged: {
         currentOffset = 0;
@@ -55,19 +56,12 @@ Item {
 
         if (currentParentId === -1) {
             currentParentName = "";
-            if (childrenMapReady && childrenMap[-1] !== undefined) {
-                taskListView.model = getCurrentModel();
-            } else {
-                refreshWithFilter();
-            }
+            currentAccountId = -1;
+            refreshWithFilter();
             return;
         }
 
-        if (childrenMapReady && childrenMap[currentParentId] !== undefined && childrenMap[currentParentId].count > 0) {
-            taskListView.model = getCurrentModel();
-        } else {
-            _loadSubtasksForCurrentParent();
-        }
+        _loadSubtasksForCurrentParent();
     }
 
     // Optional delegate for external data loading (function(limit, offset))
@@ -131,20 +125,30 @@ Item {
         }
     }
 
+    function _resetHierarchyNavigation() {
+        navigationStackModel.clear();
+        currentParentId = -1;
+        currentAccountId = -1;
+        currentParentName = "";
+    }
+
     // Add the applyFilter method
     function applyFilter(filterKey) {
+        _resetHierarchyNavigation();
         currentFilter = filterKey;
         refreshWithFilter();
     }
 
     // Add the applySearch method
     function applySearch(searchQuery) {
+        _resetHierarchyNavigation();
         currentSearchQuery = searchQuery;
         refreshWithFilter();
     }
 
     // Add the applyProjectFilter method
     function applyProjectFilter(projectOdooId, projectAccountId) {
+        _resetHierarchyNavigation();
         filterByProject = true;
         projectOdooRecordId = projectOdooId;
         projectAccountId = projectAccountId;
@@ -156,6 +160,7 @@ Item {
 
     // Add combined project and time filter method
     function applyProjectAndTimeFilter(projectOdooId, accountId, timeFilter) {
+        _resetHierarchyNavigation();
         filterByProject = true;
         projectOdooRecordId = projectOdooId;
         projectAccountId = accountId;
@@ -166,6 +171,7 @@ Item {
 
     // Add combined project and search filter method
     function applyProjectAndSearchFilter(projectOdooId, accountId, searchQuery) {
+        _resetHierarchyNavigation();
         filterByProject = true;
         projectOdooRecordId = projectOdooId;
         projectAccountId = accountId;
@@ -350,6 +356,10 @@ Item {
     }
 
     function refreshWithFilter() {
+        if (currentParentId !== -1) {
+            _loadSubtasksForCurrentParent();
+            return;
+        }
         isLoading = true;
         // Use Timer to defer the actual data loading,
         // giving QML time to render the loading indicator first
@@ -403,6 +413,7 @@ Item {
     }
 
     function applyAccountFilter(accountId) {
+        _resetHierarchyNavigation();
         filterByAccount = (accountId >= 0);
         selectedAccountId = accountId;
         filterByProject = false;
@@ -448,8 +459,13 @@ Item {
 
         var subtasks = Task.getSubtasksForParent(currentParentId, acc);
 
-        var model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
-        childrenMap[currentParentId] = model;
+        var model = childrenMap[currentParentId];
+        if (!model) {
+            model = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
+            childrenMap[currentParentId] = model;
+        } else {
+            model.clear();
+        }
 
         subtasks.forEach(function (row) {
             var effectiveId = (row.account_id === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
@@ -497,9 +513,7 @@ Item {
         
         // Reset navigation when switching modes
         if (flatViewMode) {
-            navigationStackModel.clear();
-            currentParentId = -1;
-            currentParentName = "";
+            _resetHierarchyNavigation();
         }
         
         // Refresh the model
@@ -819,7 +833,7 @@ Item {
         
         // Hierarchical view: return tasks for current parent
         var model = childrenMap[currentParentId];
-        return model || Qt.createQmlObject('import QtQuick 2.0; ListModel {}', taskNavigator);
+        return model || fallbackEmptyModel;
     }
 
     Column {
@@ -904,9 +918,7 @@ Item {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                navigationStackModel.clear();
-                                currentParentId = -1;
-                                currentParentName = "";
+                                _resetHierarchyNavigation();
                             }
                         }
                     }

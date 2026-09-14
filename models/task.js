@@ -1582,9 +1582,40 @@ function getSubtasksForParent(parentId, accountId, projectOdooRecordId) {
 
             query += " ORDER BY end_date ASC";
 
+            // Build projectColorMap for project color resolution
+            var projectColorMap = {};
+            var projectQuery = "SELECT odoo_record_id, color_pallet FROM project_project_app";
+            var projectResult = tx.executeSql(projectQuery);
+            for (var j = 0; j < projectResult.rows.length; j++) {
+                var projectRow = projectResult.rows.item(j);
+                projectColorMap[projectRow.odoo_record_id] = projectRow.color_pallet;
+            }
+
             var result = tx.executeSql(query, params);
             for (var i = 0; i < result.rows.length; i++) {
-                subtaskList.push(DBCommon.rowToObject(result.rows.item(i)));
+                var task = DBCommon.rowToObject(result.rows.item(i));
+
+                // Inherit color from sub_project, project, or walk up hierarchy
+                var inheritedColor = 0;
+                if (task.sub_project_id) {
+                    inheritedColor = resolveProjectColor(task.sub_project_id, projectColorMap, tx);
+                }
+                if (!inheritedColor && task.project_id) {
+                    inheritedColor = resolveProjectColor(task.project_id, projectColorMap, tx);
+                }
+                task.color_pallet = inheritedColor;
+
+                // Calculate total hours spent from timesheet entries
+                var timeQuery = "SELECT SUM(unit_amount) as total_hours FROM account_analytic_line_app WHERE (status IS NULL OR status != 'deleted') AND (task_id = ? OR (task_id = ? AND ? > 0) OR sub_task_id = ? OR (sub_task_id = ? AND ? > 0)) AND account_id = ?";
+                var timeParams = [task.id, task.odoo_record_id || 0, task.odoo_record_id || 0, task.id, task.odoo_record_id || 0, task.odoo_record_id || 0, task.account_id];
+                var timeResult = tx.executeSql(timeQuery, timeParams);
+                if (timeResult.rows.length > 0 && timeResult.rows.item(0).total_hours !== null) {
+                    task.spent_hours = timeResult.rows.item(0).total_hours;
+                } else {
+                    task.spent_hours = 0;
+                }
+
+                subtaskList.push(task);
             }
         });
     } catch (e) {
