@@ -1544,19 +1544,30 @@ function getSubtasksForParent(parentId, accountId, projectOdooRecordId) {
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
         db.transaction(function (tx) {
-            // Look up parent task row to find local ID, odoo_record_id, and account_id
-            var parentQuery = "SELECT id, odoo_record_id, account_id FROM project_task_app WHERE (id = ? OR odoo_record_id = ?)";
-            var parentParams = [parentId, parentId];
-            if (accountId !== undefined && accountId !== null && accountId >= 0) {
-                parentQuery += " AND account_id = ?";
-                parentParams.push(accountId);
+            var accId = accountId;
+            if (accId === undefined || accId === null || accId < 0) {
+                var detectAccRes = tx.executeSql(
+                    "SELECT account_id FROM project_task_app WHERE (parent_id = ? OR id = ? OR odoo_record_id = ?) AND (status IS NULL OR status != 'deleted') AND account_id IS NOT NULL AND account_id >= 0 ORDER BY CASE WHEN parent_id = ? THEN 0 ELSE 1 END LIMIT 1",
+                    [parentId, parentId, parentId, parentId]
+                );
+                if (detectAccRes.rows.length > 0) {
+                    accId = detectAccRes.rows.item(0).account_id;
+                }
             }
-            parentQuery += " LIMIT 1";
+
+            // Look up parent task row to find local ID, odoo_record_id, and account_id
+            var parentQuery = "SELECT id, odoo_record_id, account_id FROM project_task_app WHERE (odoo_record_id = ? OR id = ?)";
+            var parentParams = [parentId, parentId];
+            if (accId !== undefined && accId !== null && accId >= 0) {
+                parentQuery += " AND account_id = ?";
+                parentParams.push(accId);
+            }
+            parentQuery += " ORDER BY CASE WHEN odoo_record_id = ? THEN 0 ELSE 1 END LIMIT 1";
+            parentParams.push(parentId);
 
             var parentRes = tx.executeSql(parentQuery, parentParams);
             var localPid = parentId;
             var odooPid = 0;
-            var accId = accountId;
 
             if (parentRes.rows.length > 0) {
                 var pRow = parentRes.rows.item(0);

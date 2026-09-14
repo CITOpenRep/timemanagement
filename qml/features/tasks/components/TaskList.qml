@@ -64,6 +64,12 @@ Item {
         _loadSubtasksForCurrentParent();
     }
 
+    onCurrentAccountIdChanged: {
+        if (currentParentId !== -1) {
+            _loadSubtasksForCurrentParent();
+        }
+    }
+
     // Optional delegate for external data loading (function(limit, offset))
     property var loadDelegate: null
 
@@ -431,18 +437,18 @@ Item {
             accountId: currentAccountId !== undefined ? currentAccountId : -1,
             parentName: currentParentName || ""
         });
-        currentParentId = taskId;
         currentAccountId = (accountId !== undefined && accountId !== null) ? accountId : -1;
         currentParentName = taskName || "";
+        currentParentId = taskId;
     }
 
     function navigateBackInHierarchy() {
         if (navigationStackModel.count > 0) {
             var last = navigationStackModel.get(navigationStackModel.count - 1);
             navigationStackModel.remove(navigationStackModel.count - 1);
-            currentParentId = last.parentId !== undefined ? last.parentId : -1;
             currentAccountId = last.accountId !== undefined ? last.accountId : -1;
             currentParentName = (last.parentName !== undefined) ? last.parentName : "";
+            currentParentId = last.parentId !== undefined ? last.parentId : -1;
         }
     }
 
@@ -455,7 +461,7 @@ Item {
 
         var acc = (currentAccountId !== undefined && currentAccountId >= 0)
             ? currentAccountId
-            : (filterByAccount && selectedAccountId >= 0 ? selectedAccountId : -1);
+            : (filterByAccount && selectedAccountId >= 0 ? selectedAccountId : (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId >= 0 ? accountPicker.selectedAccountId : -1));
 
         var subtasks = Task.getSubtasksForParent(currentParentId, acc);
 
@@ -654,15 +660,9 @@ Item {
         // Mark children
         for (var parent in tempMap) {
             tempMap[parent].forEach(function (child) {
-                var children = tempMap[child.id_val];
-                if (children && children.length > 0) {
-                    child.hasChildren = true;
-                    child.childCount = children.length;
-                } else {
-                    var childCheck = Task.checkTaskHasChildren(child.local_id);
-                    child.hasChildren = childCheck.hasChildren;
-                    child.childCount = childCheck.childCount;
-                }
+                var childCheck = Task.checkTaskHasChildren(child.local_id);
+                child.hasChildren = childCheck.hasChildren;
+                child.childCount = childCheck.childCount;
             });
         }
 

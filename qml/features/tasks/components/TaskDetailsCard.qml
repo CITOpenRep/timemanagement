@@ -330,7 +330,7 @@ ListItem {
             enabled: !starInteractionActive
             onClicked: {
                 if (hasChildren && !flatViewMode) {
-                    taskCard.navigationRequested(taskCard.effectiveTaskId, taskCard.accountId || 0, taskName);
+                    taskCard.navigationRequested(taskCard.effectiveTaskId, (taskCard.accountId !== undefined && taskCard.accountId !== null) ? taskCard.accountId : -1, taskName);
                 } else {
                     viewRequested(localId);
                 }
@@ -677,7 +677,7 @@ ListItem {
                                     preventStealing: true
                                     onClicked: {
                                         mouse.accepted = true;
-                                        taskCard.navigationRequested(taskCard.effectiveTaskId, taskCard.accountId || 0, taskName);
+                                        taskCard.navigationRequested(taskCard.effectiveTaskId, (taskCard.accountId !== undefined && taskCard.accountId !== null) ? taskCard.accountId : -1, taskName);
                                     }
                                 }
                             }
